@@ -1,0 +1,32 @@
+{
+  "name": "iron-and-empire",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run --reporter=dot",
+    "bench": "tsx scripts/bench.ts",
+    "lint:content": "tsx scripts/lint-content.ts",
+    "typecheck": "tsc --noEmit",
+    "headless": "tsx scripts/headless-run.ts"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^3.1.3",
+    "fflate": "^0.8.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}
