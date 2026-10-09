@@ -1,4 +1,5 @@
 // Every player/AI action is a Command: validate → apply. No direct mutation from UI or AI.
+import { Acct, burn, mint } from "./money";
 import type { CountryId, World } from "./world";
 import type { SimDate } from "./date";
 
@@ -39,7 +40,8 @@ registerCommand<{ cents: number }>("debug_add_treasury", {
     return { ok: true };
   },
   apply(cmd, world) {
-    world.countries.cols.treasury![cmd.actor]! += cmd.payload.cents;
+    if (cmd.payload.cents >= 0) mint(world, Acct.Treasury, cmd.actor, cmd.payload.cents);
+    else burn(world, Acct.Treasury, cmd.actor, -cmd.payload.cents);
     return [{ type: "treasury_changed", data: { actor: cmd.actor, delta: cmd.payload.cents } }];
   },
 });

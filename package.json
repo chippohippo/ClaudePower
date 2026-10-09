@@ -10,7 +10,8 @@
     "lint:content": "tsx scripts/lint-content.ts",
     "typecheck": "tsc --noEmit",
     "headless": "tsx scripts/headless-run.ts",
-    "build-map": "tsx scripts/build-map.ts"
+    "build-map": "tsx scripts/build-map.ts",
+    "build-pops": "tsx scripts/build-pops.ts"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3",

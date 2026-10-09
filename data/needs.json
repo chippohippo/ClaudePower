@@ -1,0 +1,22 @@
+{
+ "subsistence": {
+  "grain": 1.0,
+  "clothing": 0.15
+ },
+ "everyday": {
+  "grain": 0.5,
+  "clothing": 0.3,
+  "consumer_goods": 0.6,
+  "fuel": 0.3,
+  "electricity": 20,
+  "services": 1.0
+ },
+ "luxury": {
+  "clothing": 0.3,
+  "consumer_goods": 0.6,
+  "fuel": 0.3,
+  "electricity": 40,
+  "services": 2.0,
+  "luxury_goods": 0.5
+ }
+}

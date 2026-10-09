@@ -1,0 +1,1367 @@
+{
+ "GER": {
+  "population": 67,
+  "urban": 0.67,
+  "literacy": 0.98,
+  "gdpPerCapita": 4500,
+  "cultures": {
+   "German": 0.99,
+   "Polish": 0.01
+  },
+  "religions": {
+   "Protestant": 0.6,
+   "Catholic": 0.39,
+   "Jewish": 0.01
+  }
+ },
+ "FRA": {
+  "population": 42,
+  "urban": 0.52,
+  "literacy": 0.95,
+  "gdpPerCapita": 4400,
+  "cultures": {
+   "French": 0.9,
+   "Breton": 0.03,
+   "Occitan": 0.04,
+   "Alsatian": 0.03
+  },
+  "religions": {
+   "Catholic": 0.95,
+   "Protestant": 0.05
+  },
+  "colonies": {
+   "africa": {
+    "population": 42,
+    "urban": 0.08,
+    "literacy": 0.06,
+    "gdpPerCapita": 900,
+    "cultures": {
+     "Arab": 0.3,
+     "Berber": 0.08,
+     "West African": 0.52,
+     "Malagasy": 0.1
+    },
+    "religions": {
+     "Sunni": 0.5,
+     "Animist": 0.4,
+     "Catholic": 0.1
+    }
+   },
+   "mideast": {
+    "population": 3.6,
+    "urban": 0.3,
+    "literacy": 0.3,
+    "gdpPerCapita": 1600,
+    "cultures": {
+     "Levantine Arab": 1
+    },
+    "religions": {
+     "Sunni": 0.65,
+     "Catholic": 0.2,
+     "Shia": 0.15
+    }
+   },
+   "asia": {
+    "population": 23,
+    "urban": 0.08,
+    "literacy": 0.15,
+    "gdpPerCapita": 900,
+    "cultures": {
+     "Vietnamese": 0.8,
+     "Khmer": 0.13,
+     "Lao": 0.07
+    },
+    "religions": {
+     "Buddhist": 0.85,
+     "Catholic": 0.1,
+     "Folk": 0.05
+    }
+   },
+   "oceania": {
+    "population": 0.1,
+    "urban": 0.2,
+    "literacy": 0.5,
+    "gdpPerCapita": 2000,
+    "cultures": {
+     "Polynesian": 1
+    },
+    "religions": {
+     "Catholic": 1
+    }
+   },
+   "samerica": {
+    "population": 0.3,
+    "urban": 0.3,
+    "literacy": 0.5,
+    "gdpPerCapita": 2000,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Catholic": 1
+    }
+   },
+   "namerica": {
+    "population": 0.5,
+    "urban": 0.3,
+    "literacy": 0.5,
+    "gdpPerCapita": 1800,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Catholic": 1
+    }
+   }
+  }
+ },
+ "GBR": {
+  "population": 47,
+  "urban": 0.8,
+  "literacy": 0.99,
+  "gdpPerCapita": 5600,
+  "cultures": {
+   "English": 0.82,
+   "Scottish": 0.1,
+   "Welsh": 0.05,
+   "Ulster": 0.03
+  },
+  "religions": {
+   "Protestant": 0.9,
+   "Catholic": 0.1
+  },
+  "colonies": {
+   "africa": {
+    "population": 55,
+    "urban": 0.07,
+    "literacy": 0.06,
+    "gdpPerCapita": 700,
+    "cultures": {
+     "West African": 0.5,
+     "East African": 0.35,
+     "Sudanese": 0.1,
+     "Southern Bantu": 0.05
+    },
+    "religions": {
+     "Animist": 0.45,
+     "Sunni": 0.4,
+     "Protestant": 0.15
+    }
+   },
+   "asia": {
+    "population": 5.5,
+    "urban": 0.3,
+    "literacy": 0.3,
+    "gdpPerCapita": 1300,
+    "cultures": {
+     "Malay": 0.45,
+     "Cantonese": 0.45,
+     "Tamil": 0.1
+    },
+    "religions": {
+     "Sunni": 0.45,
+     "Folk": 0.45,
+     "Hindu": 0.1
+    }
+   },
+   "mideast": {
+    "population": 2.5,
+    "urban": 0.3,
+    "literacy": 0.3,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Levantine Arab": 0.65,
+     "Jewish": 0.25,
+     "Greek": 0.1
+    },
+    "religions": {
+     "Sunni": 0.65,
+     "Jewish": 0.25,
+     "Orthodox": 0.1
+    }
+   },
+   "namerica": {
+    "population": 1.5,
+    "urban": 0.25,
+    "literacy": 0.6,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Protestant": 1
+    }
+   },
+   "samerica": {
+    "population": 0.4,
+    "urban": 0.25,
+    "literacy": 0.6,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Protestant": 1
+    }
+   },
+   "oceania": {
+    "population": 0.3,
+    "urban": 0.1,
+    "literacy": 0.3,
+    "gdpPerCapita": 1200,
+    "cultures": {
+     "Melanesian": 1
+    },
+    "religions": {
+     "Protestant": 1
+    }
+   }
+  }
+ },
+ "ITA": {
+  "population": 43,
+  "urban": 0.45,
+  "literacy": 0.79,
+  "gdpPerCapita": 3000,
+  "cultures": {
+   "Italian": 0.98,
+   "Slovene": 0.02
+  },
+  "religions": {
+   "Catholic": 1
+  },
+  "colonies": {
+   "africa": {
+    "population": 2.5,
+    "urban": 0.15,
+    "literacy": 0.08,
+    "gdpPerCapita": 700,
+    "cultures": {
+     "Arab": 0.35,
+     "Somali": 0.4,
+     "Tigrinya": 0.25
+    },
+    "religions": {
+     "Sunni": 0.75,
+     "Orthodox": 0.25
+    }
+   }
+  }
+ },
+ "SOV": {
+  "population": 120,
+  "urban": 0.32,
+  "literacy": 0.8,
+  "gdpPerCapita": 2150,
+  "cultures": {
+   "Russian": 0.62,
+   "Ukrainian": 0.25,
+   "Belarusian": 0.05,
+   "Tatar": 0.03,
+   "Georgian": 0.025,
+   "Armenian": 0.025
+  },
+  "religions": {
+   "Orthodox": 0.65,
+   "Irreligious": 0.3,
+   "Sunni": 0.05
+  },
+  "colonies": {
+   "asia": {
+    "population": 45,
+    "urban": 0.25,
+    "literacy": 0.65,
+    "gdpPerCapita": 1600,
+    "cultures": {
+     "Russian": 0.45,
+     "Kazakh": 0.15,
+     "Uzbek": 0.2,
+     "Turkmen": 0.05,
+     "Kyrgyz": 0.05,
+     "Tajik": 0.05,
+     "Buryat": 0.05
+    },
+    "religions": {
+     "Sunni": 0.5,
+     "Orthodox": 0.25,
+     "Irreligious": 0.25
+    }
+   }
+  }
+ },
+ "USA": {
+  "population": 130,
+  "urban": 0.56,
+  "literacy": 0.96,
+  "gdpPerCapita": 6200,
+  "cultures": {
+   "Anglo-American": 0.78,
+   "African American": 0.1,
+   "Mexican American": 0.02,
+   "Italian American": 0.05,
+   "Irish American": 0.05
+  },
+  "religions": {
+   "Protestant": 0.7,
+   "Catholic": 0.25,
+   "Jewish": 0.03,
+   "Irreligious": 0.02
+  },
+  "colonies": {
+   "asia": {
+    "population": 15,
+    "urban": 0.15,
+    "literacy": 0.5,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Filipino": 1
+    },
+    "religions": {
+     "Catholic": 0.9,
+     "Sunni": 0.1
+    }
+   },
+   "oceania": {
+    "population": 0.4,
+    "urban": 0.4,
+    "literacy": 0.8,
+    "gdpPerCapita": 4000,
+    "cultures": {
+     "Hawaiian": 1
+    },
+    "religions": {
+     "Protestant": 1
+    }
+   }
+  }
+ },
+ "JAP": {
+  "population": 97,
+  "urban": 0.35,
+  "literacy": 0.85,
+  "gdpPerCapita": 2200,
+  "cultures": {
+   "Japanese": 0.72,
+   "Korean": 0.23,
+   "Taiwanese": 0.05
+  },
+  "religions": {
+   "Shinto": 0.5,
+   "Buddhist": 0.45,
+   "Folk": 0.05
+  }
+ },
+ "CHI": {
+  "population": 500,
+  "urban": 0.1,
+  "literacy": 0.2,
+  "gdpPerCapita": 560,
+  "cultures": {
+   "Han": 0.93,
+   "Hui": 0.02,
+   "Uyghur": 0.01,
+   "Tibetan": 0.01,
+   "Mongol": 0.01,
+   "Zhuang": 0.02
+  },
+  "religions": {
+   "Folk": 0.8,
+   "Buddhist": 0.15,
+   "Sunni": 0.05
+  }
+ },
+ "MAN": {
+  "population": 35,
+  "urban": 0.15,
+  "literacy": 0.25,
+  "gdpPerCapita": 900,
+  "cultures": {
+   "Han": 0.85,
+   "Manchu": 0.1,
+   "Korean": 0.03,
+   "Japanese": 0.02
+  },
+  "religions": {
+   "Folk": 0.85,
+   "Buddhist": 0.15
+  }
+ },
+ "RAJ": {
+  "population": 360,
+  "urban": 0.12,
+  "literacy": 0.1,
+  "gdpPerCapita": 680,
+  "cultures": {
+   "Hindustani": 0.4,
+   "Bengali": 0.17,
+   "Telugu": 0.07,
+   "Marathi": 0.06,
+   "Tamil": 0.06,
+   "Punjabi": 0.08,
+   "Burmese": 0.04,
+   "Gujarati": 0.05,
+   "Sinhalese": 0.02,
+   "Pashtun": 0.05
+  },
+  "religions": {
+   "Hindu": 0.66,
+   "Sunni": 0.24,
+   "Buddhist": 0.06,
+   "Sikh": 0.02,
+   "Christian": 0.02
+  }
+ },
+ "SPR": {
+  "population": 25,
+  "urban": 0.4,
+  "literacy": 0.7,
+  "gdpPerCapita": 2300,
+  "cultures": {
+   "Castilian": 0.7,
+   "Catalan": 0.2,
+   "Basque": 0.03,
+   "Galician": 0.07
+  },
+  "religions": {
+   "Catholic": 1
+  },
+  "colonies": {
+   "africa": {
+    "population": 0.3,
+    "urban": 0.1,
+    "literacy": 0.1,
+    "gdpPerCapita": 800,
+    "cultures": {
+     "Arab": 0.6,
+     "Bubi": 0.4
+    },
+    "religions": {
+     "Sunni": 0.6,
+     "Catholic": 0.4
+    }
+   }
+  }
+ },
+ "POR": {
+  "population": 7.3,
+  "urban": 0.2,
+  "literacy": 0.4,
+  "gdpPerCapita": 1500,
+  "cultures": {
+   "Portuguese": 1
+  },
+  "religions": {
+   "Catholic": 1
+  },
+  "colonies": {
+   "africa": {
+    "population": 8.5,
+    "urban": 0.05,
+    "literacy": 0.05,
+    "gdpPerCapita": 600,
+    "cultures": {
+     "Southern Bantu": 0.6,
+     "Central Bantu": 0.4
+    },
+    "religions": {
+     "Animist": 0.8,
+     "Catholic": 0.2
+    }
+   },
+   "asia": {
+    "population": 0.5,
+    "urban": 0.05,
+    "literacy": 0.05,
+    "gdpPerCapita": 600,
+    "cultures": {
+     "Timorese": 1
+    },
+    "religions": {
+     "Catholic": 1
+    }
+   }
+  }
+ },
+ "HOL": {
+  "population": 8.5,
+  "urban": 0.55,
+  "literacy": 0.98,
+  "gdpPerCapita": 4900,
+  "cultures": {
+   "Dutch": 1
+  },
+  "religions": {
+   "Catholic": 0.4,
+   "Protestant": 0.6
+  },
+  "colonies": {
+   "asia": {
+    "population": 65,
+    "urban": 0.08,
+    "literacy": 0.07,
+    "gdpPerCapita": 1100,
+    "cultures": {
+     "Javanese": 0.45,
+     "Sundanese": 0.15,
+     "Malay": 0.25,
+     "Papuan": 0.05,
+     "Balinese": 0.1
+    },
+    "religions": {
+     "Sunni": 0.88,
+     "Hindu": 0.03,
+     "Animist": 0.06,
+     "Protestant": 0.03
+    }
+   },
+   "samerica": {
+    "population": 0.3,
+    "urban": 0.3,
+    "literacy": 0.5,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Protestant": 1
+    }
+   },
+   "namerica": {
+    "population": 0.1,
+    "urban": 0.3,
+    "literacy": 0.5,
+    "gdpPerCapita": 1500,
+    "cultures": {
+     "Creole": 1
+    },
+    "religions": {
+     "Catholic": 1
+    }
+   }
+  }
+ },
+ "BEL": {
+  "population": 8.3,
+  "urban": 0.6,
+  "literacy": 0.95,
+  "gdpPerCapita": 4600,
+  "cultures": {
+   "Flemish": 0.55,
+   "Walloon": 0.45
+  },
+  "religions": {
+   "Catholic": 1
+  },
+  "colonies": {
+   "africa": {
+    "population": 14,
+    "urban": 0.05,
+    "literacy": 0.05,
+    "gdpPerCapita": 500,
+    "cultures": {
+     "Central Bantu": 0.8,
+     "Rwandan": 0.2
+    },
+    "religions": {
+     "Animist": 0.7,
+     "Catholic": 0.3
+    }
+   }
+  }
+ },
+ "LUX": {
+  "population": 0.3,
+  "urban": 0.4,
+  "literacy": 0.97,
+  "gdpPerCapita": 5000,
+  "cultures": {
+   "Luxembourgish": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "SWI": {
+  "population": 4.2,
+  "urban": 0.4,
+  "literacy": 0.99,
+  "gdpPerCapita": 6000,
+  "cultures": {
+   "Swiss German": 0.7,
+   "Romand": 0.2,
+   "Ticinese": 0.1
+  },
+  "religions": {
+   "Protestant": 0.55,
+   "Catholic": 0.45
+  }
+ },
+ "AUS": {
+  "population": 6.8,
+  "urban": 0.5,
+  "literacy": 0.95,
+  "gdpPerCapita": 3200,
+  "cultures": {
+   "Austrian": 1
+  },
+  "religions": {
+   "Catholic": 0.95,
+   "Jewish": 0.05
+  }
+ },
+ "CZE": {
+  "population": 15,
+  "urban": 0.48,
+  "literacy": 0.93,
+  "gdpPerCapita": 2900,
+  "cultures": {
+   "Czech": 0.51,
+   "Slovak": 0.16,
+   "Sudeten German": 0.22,
+   "Hungarian": 0.05,
+   "Ruthenian": 0.04,
+   "Jewish": 0.02
+  },
+  "religions": {
+   "Catholic": 0.85,
+   "Protestant": 0.1,
+   "Jewish": 0.02,
+   "Orthodox": 0.03
+  }
+ },
+ "POL": {
+  "population": 34,
+  "urban": 0.27,
+  "literacy": 0.77,
+  "gdpPerCapita": 1700,
+  "cultures": {
+   "Polish": 0.69,
+   "Ukrainian": 0.14,
+   "Jewish": 0.09,
+   "Belarusian": 0.04,
+   "German": 0.03,
+   "Lithuanian": 0.01
+  },
+  "religions": {
+   "Catholic": 0.75,
+   "Orthodox": 0.12,
+   "Jewish": 0.09,
+   "Protestant": 0.04
+  }
+ },
+ "HUN": {
+  "population": 9,
+  "urban": 0.35,
+  "literacy": 0.9,
+  "gdpPerCapita": 2600,
+  "cultures": {
+   "Hungarian": 0.92,
+   "German": 0.06,
+   "Jewish": 0.02
+  },
+  "religions": {
+   "Catholic": 0.67,
+   "Protestant": 0.28,
+   "Jewish": 0.05
+  }
+ },
+ "ROM": {
+  "population": 19,
+  "urban": 0.2,
+  "literacy": 0.57,
+  "gdpPerCapita": 1250,
+  "cultures": {
+   "Romanian": 0.72,
+   "Hungarian": 0.08,
+   "Jewish": 0.04,
+   "German": 0.04,
+   "Ukrainian": 0.06,
+   "Bulgarian": 0.02,
+   "Turkish": 0.02,
+   "Gagauz": 0.02
+  },
+  "religions": {
+   "Orthodox": 0.8,
+   "Catholic": 0.1,
+   "Protestant": 0.05,
+   "Jewish": 0.04,
+   "Sunni": 0.01
+  }
+ },
+ "YUG": {
+  "population": 15,
+  "urban": 0.18,
+  "literacy": 0.55,
+  "gdpPerCapita": 1250,
+  "cultures": {
+   "Serb": 0.43,
+   "Croat": 0.23,
+   "Slovene": 0.08,
+   "Bosniak": 0.06,
+   "Macedonian": 0.05,
+   "Albanian": 0.04,
+   "German": 0.04,
+   "Hungarian": 0.04,
+   "Montenegrin": 0.03
+  },
+  "religions": {
+   "Orthodox": 0.48,
+   "Catholic": 0.37,
+   "Sunni": 0.15
+  }
+ },
+ "BUL": {
+  "population": 6.2,
+  "urban": 0.21,
+  "literacy": 0.7,
+  "gdpPerCapita": 1300,
+  "cultures": {
+   "Bulgarian": 0.86,
+   "Turkish": 0.1,
+   "Roma": 0.04
+  },
+  "religions": {
+   "Orthodox": 0.86,
+   "Sunni": 0.14
+  }
+ },
+ "GRE": {
+  "population": 6.9,
+  "urban": 0.33,
+  "literacy": 0.6,
+  "gdpPerCapita": 2100,
+  "cultures": {
+   "Greek": 0.95,
+   "Slavic Macedonian": 0.03,
+   "Albanian": 0.02
+  },
+  "religions": {
+   "Orthodox": 0.97,
+   "Sunni": 0.02,
+   "Jewish": 0.01
+  }
+ },
+ "ALB": {
+  "population": 1,
+  "urban": 0.15,
+  "literacy": 0.2,
+  "gdpPerCapita": 800,
+  "cultures": {
+   "Albanian": 1
+  },
+  "religions": {
+   "Sunni": 0.7,
+   "Orthodox": 0.2,
+   "Catholic": 0.1
+  }
+ },
+ "TUR": {
+  "population": 16.5,
+  "urban": 0.24,
+  "literacy": 0.2,
+  "gdpPerCapita": 1500,
+  "cultures": {
+   "Turkish": 0.85,
+   "Kurdish": 0.13,
+   "Armenian": 0.01,
+   "Greek": 0.01
+  },
+  "religions": {
+   "Sunni": 0.98,
+   "Orthodox": 0.02
+  }
+ },
+ "DEN": {
+  "population": 3.8,
+  "urban": 0.6,
+  "literacy": 0.99,
+  "gdpPerCapita": 5200,
+  "cultures": {
+   "Danish": 0.97,
+   "Icelandic": 0.03
+  },
+  "religions": {
+   "Protestant": 1
+  }
+ },
+ "NOR": {
+  "population": 2.9,
+  "urban": 0.3,
+  "literacy": 0.99,
+  "gdpPerCapita": 3900,
+  "cultures": {
+   "Norwegian": 1
+  },
+  "religions": {
+   "Protestant": 1
+  }
+ },
+ "SWE": {
+  "population": 6.2,
+  "urban": 0.38,
+  "literacy": 0.99,
+  "gdpPerCapita": 4400,
+  "cultures": {
+   "Swedish": 1
+  },
+  "religions": {
+   "Protestant": 1
+  }
+ },
+ "FIN": {
+  "population": 3.7,
+  "urban": 0.25,
+  "literacy": 0.95,
+  "gdpPerCapita": 3000,
+  "cultures": {
+   "Finnish": 0.9,
+   "Finland Swedish": 0.1
+  },
+  "religions": {
+   "Protestant": 1
+  }
+ },
+ "EST": {
+  "population": 1.1,
+  "urban": 0.3,
+  "literacy": 0.95,
+  "gdpPerCapita": 2500,
+  "cultures": {
+   "Estonian": 0.9,
+   "Russian": 0.1
+  },
+  "religions": {
+   "Protestant": 0.8,
+   "Orthodox": 0.2
+  }
+ },
+ "LAT": {
+  "population": 1.95,
+  "urban": 0.35,
+  "literacy": 0.9,
+  "gdpPerCapita": 2500,
+  "cultures": {
+   "Latvian": 0.75,
+   "Russian": 0.12,
+   "Jewish": 0.05,
+   "German": 0.03,
+   "Polish": 0.05
+  },
+  "religions": {
+   "Protestant": 0.55,
+   "Catholic": 0.25,
+   "Orthodox": 0.15,
+   "Jewish": 0.05
+  }
+ },
+ "LIT": {
+  "population": 2.5,
+  "urban": 0.2,
+  "literacy": 0.8,
+  "gdpPerCapita": 1800,
+  "cultures": {
+   "Lithuanian": 0.84,
+   "Jewish": 0.07,
+   "German": 0.04,
+   "Polish": 0.05
+  },
+  "religions": {
+   "Catholic": 0.88,
+   "Jewish": 0.07,
+   "Protestant": 0.05
+  }
+ },
+ "IRE": {
+  "population": 3,
+  "urban": 0.36,
+  "literacy": 0.95,
+  "gdpPerCapita": 2800,
+  "cultures": {
+   "Irish": 1
+  },
+  "religions": {
+   "Catholic": 0.93,
+   "Protestant": 0.07
+  }
+ },
+ "CAN": {
+  "population": 11,
+  "urban": 0.53,
+  "literacy": 0.95,
+  "gdpPerCapita": 4300,
+  "cultures": {
+   "English Canadian": 0.5,
+   "French Canadian": 0.3,
+   "Ukrainian Canadian": 0.1,
+   "Scottish": 0.1
+  },
+  "religions": {
+   "Protestant": 0.55,
+   "Catholic": 0.45
+  }
+ },
+ "MEX": {
+  "population": 18.5,
+  "urban": 0.33,
+  "literacy": 0.45,
+  "gdpPerCapita": 1700,
+  "cultures": {
+   "Mexican": 0.85,
+   "Nahua": 0.1,
+   "Maya": 0.05
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "GUA": {
+  "population": 2.1,
+  "urban": 0.2,
+  "literacy": 0.2,
+  "gdpPerCapita": 1300,
+  "cultures": {
+   "Guatemalan": 0.4,
+   "Maya": 0.6
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "HON": {
+  "population": 1,
+  "urban": 0.15,
+  "literacy": 0.3,
+  "gdpPerCapita": 1100,
+  "cultures": {
+   "Honduran": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "ELS": {
+  "population": 1.6,
+  "urban": 0.2,
+  "literacy": 0.3,
+  "gdpPerCapita": 1000,
+  "cultures": {
+   "Salvadoran": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "NIC": {
+  "population": 0.8,
+  "urban": 0.2,
+  "literacy": 0.3,
+  "gdpPerCapita": 1000,
+  "cultures": {
+   "Nicaraguan": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "COS": {
+  "population": 0.6,
+  "urban": 0.2,
+  "literacy": 0.7,
+  "gdpPerCapita": 1600,
+  "cultures": {
+   "Costa Rican": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "PAN": {
+  "population": 0.6,
+  "urban": 0.3,
+  "literacy": 0.6,
+  "gdpPerCapita": 1600,
+  "cultures": {
+   "Panamanian": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "CUB": {
+  "population": 4.2,
+  "urban": 0.5,
+  "literacy": 0.7,
+  "gdpPerCapita": 1800,
+  "cultures": {
+   "Cuban": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "HAI": {
+  "population": 2.6,
+  "urban": 0.1,
+  "literacy": 0.1,
+  "gdpPerCapita": 800,
+  "cultures": {
+   "Haitian": 1
+  },
+  "religions": {
+   "Catholic": 0.9,
+   "Folk": 0.1
+  }
+ },
+ "DOM": {
+  "population": 1.5,
+  "urban": 0.18,
+  "literacy": 0.3,
+  "gdpPerCapita": 900,
+  "cultures": {
+   "Dominican": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "COL": {
+  "population": 8.7,
+  "urban": 0.29,
+  "literacy": 0.55,
+  "gdpPerCapita": 1800,
+  "cultures": {
+   "Colombian": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "VEN": {
+  "population": 3.4,
+  "urban": 0.35,
+  "literacy": 0.4,
+  "gdpPerCapita": 2700,
+  "cultures": {
+   "Venezuelan": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "ECU": {
+  "population": 2.6,
+  "urban": 0.25,
+  "literacy": 0.5,
+  "gdpPerCapita": 1200,
+  "cultures": {
+   "Ecuadorian": 0.6,
+   "Quechua": 0.4
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "PRU": {
+  "population": 6.6,
+  "urban": 0.25,
+  "literacy": 0.45,
+  "gdpPerCapita": 1700,
+  "cultures": {
+   "Peruvian": 0.55,
+   "Quechua": 0.4,
+   "Aymara": 0.05
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "BOL": {
+  "population": 2.7,
+  "urban": 0.2,
+  "literacy": 0.2,
+  "gdpPerCapita": 1000,
+  "cultures": {
+   "Bolivian": 0.4,
+   "Quechua": 0.35,
+   "Aymara": 0.25
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "BRA": {
+  "population": 38,
+  "urban": 0.3,
+  "literacy": 0.4,
+  "gdpPerCapita": 1300,
+  "cultures": {
+   "Brazilian": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "PAR": {
+  "population": 1,
+  "urban": 0.3,
+  "literacy": 0.6,
+  "gdpPerCapita": 1300,
+  "cultures": {
+   "Paraguayan": 0.5,
+   "Guarani": 0.5
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "URU": {
+  "population": 2,
+  "urban": 0.6,
+  "literacy": 0.9,
+  "gdpPerCapita": 4300,
+  "cultures": {
+   "Uruguayan": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "ARG": {
+  "population": 13,
+  "urban": 0.6,
+  "literacy": 0.85,
+  "gdpPerCapita": 4600,
+  "cultures": {
+   "Argentine": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "CHL": {
+  "population": 4.7,
+  "urban": 0.5,
+  "literacy": 0.75,
+  "gdpPerCapita": 3000,
+  "cultures": {
+   "Chilean": 1
+  },
+  "religions": {
+   "Catholic": 1
+  }
+ },
+ "EGY": {
+  "population": 16,
+  "urban": 0.25,
+  "literacy": 0.15,
+  "gdpPerCapita": 950,
+  "cultures": {
+   "Egyptian": 0.94,
+   "Nubian": 0.02,
+   "Copt": 0.04
+  },
+  "religions": {
+   "Sunni": 0.92,
+   "Orthodox": 0.08
+  }
+ },
+ "ETH": {
+  "population": 10,
+  "urban": 0.05,
+  "literacy": 0.05,
+  "gdpPerCapita": 400,
+  "cultures": {
+   "Amhara": 0.35,
+   "Oromo": 0.35,
+   "Tigrinya": 0.1,
+   "Somali": 0.1,
+   "Sidama": 0.1
+  },
+  "religions": {
+   "Orthodox": 0.5,
+   "Sunni": 0.35,
+   "Animist": 0.15
+  }
+ },
+ "LIB": {
+  "population": 1.5,
+  "urban": 0.1,
+  "literacy": 0.1,
+  "gdpPerCapita": 600,
+  "cultures": {
+   "Liberian": 1
+  },
+  "religions": {
+   "Animist": 0.6,
+   "Protestant": 0.2,
+   "Sunni": 0.2
+  }
+ },
+ "SAF": {
+  "population": 9.9,
+  "urban": 0.32,
+  "literacy": 0.4,
+  "gdpPerCapita": 2500,
+  "cultures": {
+   "Afrikaner": 0.12,
+   "English South African": 0.1,
+   "Zulu": 0.25,
+   "Xhosa": 0.25,
+   "Sotho": 0.2,
+   "Indian": 0.03,
+   "Herero": 0.05
+  },
+  "religions": {
+   "Protestant": 0.6,
+   "Animist": 0.35,
+   "Hindu": 0.05
+  }
+ },
+ "SAU": {
+  "population": 2.5,
+  "urban": 0.1,
+  "literacy": 0.05,
+  "gdpPerCapita": 900,
+  "cultures": {
+   "Arab": 1
+  },
+  "religions": {
+   "Sunni": 0.9,
+   "Shia": 0.1
+  }
+ },
+ "YEM": {
+  "population": 3.5,
+  "urban": 0.08,
+  "literacy": 0.05,
+  "gdpPerCapita": 500,
+  "cultures": {
+   "Yemeni": 1
+  },
+  "religions": {
+   "Sunni": 0.55,
+   "Shia": 0.45
+  }
+ },
+ "IRQ": {
+  "population": 3.6,
+  "urban": 0.25,
+  "literacy": 0.1,
+  "gdpPerCapita": 1000,
+  "cultures": {
+   "Mesopotamian Arab": 0.75,
+   "Kurdish": 0.2,
+   "Assyrian": 0.05
+  },
+  "religions": {
+   "Shia": 0.55,
+   "Sunni": 0.4,
+   "Orthodox": 0.05
+  }
+ },
+ "PER": {
+  "population": 15,
+  "urban": 0.2,
+  "literacy": 0.1,
+  "gdpPerCapita": 1200,
+  "cultures": {
+   "Persian": 0.6,
+   "Azeri": 0.2,
+   "Kurdish": 0.08,
+   "Lur": 0.06,
+   "Baloch": 0.03,
+   "Arab": 0.03
+  },
+  "religions": {
+   "Shia": 0.9,
+   "Sunni": 0.09,
+   "Jewish": 0.01
+  }
+ },
+ "AFG": {
+  "population": 10,
+  "urban": 0.06,
+  "literacy": 0.05,
+  "gdpPerCapita": 650,
+  "cultures": {
+   "Pashtun": 0.45,
+   "Tajik": 0.3,
+   "Hazara": 0.12,
+   "Uzbek": 0.1,
+   "Baloch": 0.03
+  },
+  "religions": {
+   "Sunni": 0.85,
+   "Shia": 0.15
+  }
+ },
+ "NEP": {
+  "population": 6,
+  "urban": 0.04,
+  "literacy": 0.05,
+  "gdpPerCapita": 500,
+  "cultures": {
+   "Nepali": 1
+  },
+  "religions": {
+   "Hindu": 0.85,
+   "Buddhist": 0.15
+  }
+ },
+ "SIA": {
+  "population": 14,
+  "urban": 0.1,
+  "literacy": 0.3,
+  "gdpPerCapita": 800,
+  "cultures": {
+   "Thai": 0.85,
+   "Lao": 0.1,
+   "Malay": 0.05
+  },
+  "religions": {
+   "Buddhist": 0.95,
+   "Sunni": 0.05
+  }
+ },
+ "MON": {
+  "population": 0.8,
+  "urban": 0.1,
+  "literacy": 0.1,
+  "gdpPerCapita": 500,
+  "cultures": {
+   "Mongol": 1
+  },
+  "religions": {
+   "Buddhist": 1
+  }
+ },
+ "AST": {
+  "population": 6.8,
+  "urban": 0.64,
+  "literacy": 0.97,
+  "gdpPerCapita": 5800,
+  "cultures": {
+   "Australian": 0.97,
+   "Aboriginal": 0.01,
+   "Papuan": 0.02
+  },
+  "religions": {
+   "Protestant": 0.75,
+   "Catholic": 0.25
+  }
+ },
+ "NZL": {
+  "population": 1.6,
+  "urban": 0.6,
+  "literacy": 0.97,
+  "gdpPerCapita": 5600,
+  "cultures": {
+   "New Zealander": 0.95,
+   "Maori": 0.05
+  },
+  "religions": {
+   "Protestant": 0.85,
+   "Catholic": 0.15
+  }
+ }
+}

@@ -20,7 +20,8 @@ export function classifyTerrain(lon: number, lat: number): Terrain {
   return "plains";
 }
 
-export const isEurope = (lon: number, lat: number) => inBox(lon, lat, [-25, 34, 45, 72]);
+import { isEurope } from "../src/sim/regions";
+export { isEurope };
 
 /** Starting development 1–20: rough 1936 industrial core weighting. */
 export function startingDevelopment(lon: number, lat: number): number {
@@ -32,12 +33,4 @@ export function startingDevelopment(lon: number, lat: number): number {
   return 3;
 }
 
-/** Coarse continent index for grouping colonies separately from homelands. */
-export function regionOf(lon: number, lat: number): number {
-  if (isEurope(lon, lat)) return 0;
-  if (lon < -30) return lat > 12 ? 1 : 2;
-  if (lon < 60 && lat < 34 && !(lon > 34 && lat > 12)) return 3;
-  if (lon < 60) return 4;
-  if (lat < -10 && lon > 110) return 5;
-  return 6;
-}
+export { regionOfLonLat as regionOf } from "../src/sim/regions";

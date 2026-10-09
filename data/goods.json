@@ -1,0 +1,72 @@
+[
+ {
+  "id": "grain",
+  "name": "Grain",
+  "basePrice": 1000
+ },
+ {
+  "id": "consumer_goods",
+  "name": "Consumer Goods",
+  "basePrice": 3000
+ },
+ {
+  "id": "clothing",
+  "name": "Clothing",
+  "basePrice": 2000
+ },
+ {
+  "id": "coal",
+  "name": "Coal",
+  "basePrice": 800
+ },
+ {
+  "id": "iron",
+  "name": "Iron",
+  "basePrice": 1000
+ },
+ {
+  "id": "steel",
+  "name": "Steel",
+  "basePrice": 3000
+ },
+ {
+  "id": "oil",
+  "name": "Oil",
+  "basePrice": 1500
+ },
+ {
+  "id": "fuel",
+  "name": "Fuel",
+  "basePrice": 2000
+ },
+ {
+  "id": "tools",
+  "name": "Tools",
+  "basePrice": 4000
+ },
+ {
+  "id": "machinery",
+  "name": "Machinery",
+  "basePrice": 8000
+ },
+ {
+  "id": "electricity",
+  "name": "Electricity",
+  "basePrice": 100
+ },
+ {
+  "id": "arms",
+  "name": "Arms",
+  "basePrice": 6000
+ },
+ {
+  "id": "luxury_goods",
+  "name": "Luxury Goods",
+  "basePrice": 6000
+ },
+ {
+  "id": "services",
+  "name": "Services",
+  "basePrice": 1500
+ }
+]

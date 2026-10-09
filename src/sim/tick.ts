@@ -3,6 +3,12 @@ import type { World } from "./world";
 import { toYmd } from "./date";
 import { applyCommand, type Command, type SimEvent } from "./commands";
 import { pruneExpired } from "./modifiers";
+import * as eco from "./systems/economy";
+import { runMigration } from "./systems/migration";
+import { runAssimilation } from "./systems/mobility";
+import { recordYear } from "./systems/stats";
+import { yearlyFiscalPolicy } from "./systems/budget";
+import { mergeSmallPops } from "./pops";
 
 export type System = (world: World, events: SimEvent[]) => void;
 const noop: System = () => {};
@@ -11,13 +17,15 @@ export const DAILY: [string, System][] = [
   ["movement", noop], ["combat", noop], ["sieges", noop], ["character_health", noop],
 ];
 export const MONTHLY: [string, System][] = [
-  ["points_pp", noop], ["production", noop], ["markets", noop], ["wages_income", noop],
-  ["consumption_sol", noop], ["state_budget", noop], ["construction", noop], ["research_focus", noop],
-  ["ig_approval", noop], ["stability_unrest", noop], ["events", noop], ["ai", noop], ["alerts", noop],
+  ["points_pp", noop], ["production", eco.production], ["markets", eco.markets], ["wages_income", eco.wagesIncome],
+  ["consumption_sol", eco.consumptionSol], ["state_budget", eco.stateBudget], ["construction", eco.construction],
+  // Demography is yearly in the design; rates are applied monthly (/12) for smoothness, with mobility.
+  ["demography_smoothed", eco.demographyMonthly],
+  ["research_focus", noop], ["ig_approval", noop], ["stability_unrest", noop], ["events", noop], ["ai", noop], ["alerts", noop],
 ];
 export const YEARLY: [string, System][] = [
-  ["demography", noop], ["migration", noop], ["assimilation_mobility", noop], ["ig_clout", noop],
-  ["ideology_drift", noop], ["rankings", noop], ["chronicle", noop], ["autosave", noop],
+  ["demography", noop], ["migration", runMigration], ["assimilation_mobility", runAssimilation], ["ig_clout", noop],
+  ["ideology_drift", noop], ["rankings", (w) => { yearlyFiscalPolicy(w); mergeSmallPops(w); }], ["chronicle", recordYear], ["autosave", noop],
 ];
 
 /** Advance one day. Commands run first, then daily/monthly/yearly systems on boundaries. */

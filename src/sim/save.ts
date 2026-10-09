@@ -1,7 +1,7 @@
 // Versioned MessagePack + gzip saves with migrations.
 import { encode, decode } from "@msgpack/msgpack";
 import { gzipSync, gunzipSync } from "fflate";
-import { TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
+import { BUILDING_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
 
 type TableKey = (typeof TABLE_KEYS)[number];
 type Packed = Omit<World, TableKey> & Record<TableKey, PackedTable>;
@@ -32,6 +32,18 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     const addCol = (t: PackedTable, k: string) => { t.cols[k] = packTable(makeTable(t.size, { [k]: "i32" })).cols[k]!; };
     addCol(w.provinces as PackedTable, "terrain");
     addCol(w.countries as PackedTable, "capital");
+  },
+  (w) => { // v2 → v3: population & economy (M2). Old saves had no pops; start them with empty tables.
+    const ct = w.countries as PackedTable, pt = w.provinces as PackedTable;
+    const fill = (t: PackedTable, spec: Record<string, "f64" | "i32">) => {
+      for (const [k, kind] of Object.entries(spec)) if (!t.cols[k]) t.cols[k] = packTable(makeTable(t.size, { [k]: kind })).cols[k]!;
+    };
+    fill(ct, COUNTRY_COLS); fill(pt, PROVINCE_COLS);
+    for (const [k, spec] of [["pops", POP_COLS], ["buildings", BUILDING_COLS], ["markets", MARKET_COLS], ["worldMarket", MARKET_COLS], ["projects", PROJECT_COLS]] as const)
+      w[k] = packTable(makeTable(0, spec));
+    w.cultures = []; w.religions = [];
+    w.ledger = { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 };
+    w.history = { year: [], series: {} };
   },
 ];
 

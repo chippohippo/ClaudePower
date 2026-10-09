@@ -1,11 +1,22 @@
 // Loads and validates bundled content (works in Node, worker, and Vite).
 import countriesJson from "../../data/countries.json";
 import provincesJson from "../../data/generated/provinces.json";
-import { CountriesFile, ProvincesFile } from "./schemas";
+import popsJson from "../../data/generated/pops-1936.json";
+import startJson from "../../data/start/countries-1936.json";
+import resourcesJson from "../../data/start/resources.json";
+import { CountriesFile, CountriesStartFile, ProvincesFile, ResourcesFile, StartPopsFile } from "./schemas";
 import type { StartData } from "./setup";
 
+let cached: StartData | null = null;
 export function loadContent(): StartData {
+  if (cached) return cached;
   const countries = CountriesFile.parse(countriesJson);
   const { provinces, capitals } = ProvincesFile.parse(provincesJson);
-  return { countries, provinces, capitals };
+  cached = {
+    countries, provinces, capitals,
+    pops: StartPopsFile.parse(popsJson),
+    start: CountriesStartFile.parse(startJson),
+    resources: ResourcesFile.parse(resourcesJson),
+  };
+  return cached;
 }

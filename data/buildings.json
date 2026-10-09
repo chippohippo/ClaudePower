@@ -1,0 +1,875 @@
+[
+ {
+  "id": "farm",
+  "name": "Farm",
+  "owner": "private",
+  "category": "agriculture",
+  "pms": [
+   {
+    "id": "traditional",
+    "name": "Traditional",
+    "year": 1900,
+    "jobs": {
+     "peasants": 2500
+    },
+    "inputs": {},
+    "outputs": {
+     "grain": 20000
+    }
+   },
+   {
+    "id": "mechanised",
+    "name": "Mechanised",
+    "year": 1950,
+    "jobs": {
+     "peasants": 1250,
+     "workers": 125
+    },
+    "inputs": {
+     "tools": 150,
+     "fuel": 400
+    },
+    "outputs": {
+     "grain": 36000
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Industrial",
+    "year": 1985,
+    "jobs": {
+     "peasants": 500,
+     "workers": 100,
+     "professionals": 50
+    },
+    "inputs": {
+     "machinery": 120,
+     "fuel": 700,
+     "electricity": 20000
+    },
+    "outputs": {
+     "grain": 56000
+    }
+   }
+  ]
+ },
+ {
+  "id": "coal_mine",
+  "name": "Coal Mine",
+  "owner": "private",
+  "category": "extraction",
+  "resource": "coal",
+  "pms": [
+   {
+    "id": "pick",
+    "name": "Pick and shovel",
+    "year": 1900,
+    "jobs": {
+     "workers": 800,
+     "clerks": 40
+    },
+    "inputs": {
+     "tools": 100
+    },
+    "outputs": {
+     "coal": 52500
+    }
+   },
+   {
+    "id": "mechanised",
+    "name": "Mechanised",
+    "year": 1950,
+    "jobs": {
+     "workers": 480,
+     "clerks": 40,
+     "professionals": 10
+    },
+    "inputs": {
+     "tools": 200,
+     "electricity": 40000,
+     "machinery": 60
+    },
+    "outputs": {
+     "coal": 100000
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 180,
+     "clerks": 30,
+     "professionals": 30
+    },
+    "inputs": {
+     "machinery": 200,
+     "electricity": 90000,
+     "fuel": 300
+    },
+    "outputs": {
+     "coal": 160000
+    }
+   }
+  ]
+ },
+ {
+  "id": "iron_mine",
+  "name": "Iron Mine",
+  "owner": "private",
+  "category": "extraction",
+  "resource": "iron",
+  "pms": [
+   {
+    "id": "pick",
+    "name": "Pick and shovel",
+    "year": 1900,
+    "jobs": {
+     "workers": 800,
+     "clerks": 40
+    },
+    "inputs": {
+     "tools": 100
+    },
+    "outputs": {
+     "iron": 42000
+    }
+   },
+   {
+    "id": "mechanised",
+    "name": "Mechanised",
+    "year": 1950,
+    "jobs": {
+     "workers": 480,
+     "clerks": 40,
+     "professionals": 10
+    },
+    "inputs": {
+     "tools": 200,
+     "electricity": 40000,
+     "machinery": 60
+    },
+    "outputs": {
+     "iron": 80000
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 180,
+     "clerks": 30,
+     "professionals": 30
+    },
+    "inputs": {
+     "machinery": 200,
+     "electricity": 90000,
+     "fuel": 300
+    },
+    "outputs": {
+     "iron": 130000
+    }
+   }
+  ]
+ },
+ {
+  "id": "oil_well",
+  "name": "Oil Well",
+  "owner": "private",
+  "category": "extraction",
+  "resource": "oil",
+  "pms": [
+   {
+    "id": "derrick",
+    "name": "Derricks",
+    "year": 1900,
+    "jobs": {
+     "workers": 200,
+     "clerks": 20
+    },
+    "inputs": {
+     "tools": 60
+    },
+    "outputs": {
+     "oil": 14700
+    }
+   },
+   {
+    "id": "rotary",
+    "name": "Rotary drilling",
+    "year": 1950,
+    "jobs": {
+     "workers": 160,
+     "clerks": 20,
+     "professionals": 10
+    },
+    "inputs": {
+     "tools": 100,
+     "machinery": 60,
+     "electricity": 20000
+    },
+    "outputs": {
+     "oil": 32000
+    }
+   },
+   {
+    "id": "modern",
+    "name": "Modern extraction",
+    "year": 1985,
+    "jobs": {
+     "workers": 100,
+     "clerks": 20,
+     "professionals": 30
+    },
+    "inputs": {
+     "machinery": 150,
+     "electricity": 50000
+    },
+    "outputs": {
+     "oil": 55000
+    }
+   }
+  ]
+ },
+ {
+  "id": "steel_mill",
+  "name": "Steel Mill",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 800,
+     "clerks": 60
+    },
+    "inputs": {
+     "iron": 10000,
+     "coal": 15000
+    },
+    "outputs": {
+     "steel": 28800
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 640,
+     "clerks": 72
+    },
+    "inputs": {
+     "iron": 15000.0,
+     "coal": 22500.0,
+     "machinery": 200,
+     "electricity": 20000.0
+    },
+    "outputs": {
+     "steel": 51840.0
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 320,
+     "clerks": 90,
+     "professionals": 120
+    },
+    "inputs": {
+     "iron": 22000.0,
+     "coal": 33000.0,
+     "machinery": 600,
+     "electricity": 60000.0
+    },
+    "outputs": {
+     "steel": 92160.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "refinery",
+  "name": "Refinery",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 260,
+     "clerks": 40
+    },
+    "inputs": {
+     "oil": 10000
+    },
+    "outputs": {
+     "fuel": 18750
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 208,
+     "clerks": 48
+    },
+    "inputs": {
+     "oil": 15000.0,
+     "machinery": 200,
+     "electricity": 20000.0
+    },
+    "outputs": {
+     "fuel": 33750.0
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 104,
+     "clerks": 60,
+     "professionals": 120
+    },
+    "inputs": {
+     "oil": 22000.0,
+     "machinery": 600,
+     "electricity": 60000.0
+    },
+    "outputs": {
+     "fuel": 60000.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "power_plant",
+  "name": "Power Plant",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "coal",
+    "name": "Coal-fired",
+    "year": 1900,
+    "jobs": {
+     "workers": 160,
+     "clerks": 20,
+     "professionals": 20
+    },
+    "inputs": {
+     "coal": 15000
+    },
+    "outputs": {
+     "electricity": 2700000
+    }
+   },
+   {
+    "id": "oil",
+    "name": "Oil-fired",
+    "year": 1955,
+    "jobs": {
+     "workers": 120,
+     "clerks": 20,
+     "professionals": 30
+    },
+    "inputs": {
+     "fuel": 9000
+    },
+    "outputs": {
+     "electricity": 4500000
+    }
+   },
+   {
+    "id": "nuclear",
+    "name": "Nuclear and renewables",
+    "year": 1985,
+    "jobs": {
+     "workers": 60,
+     "clerks": 20,
+     "professionals": 80
+    },
+    "inputs": {
+     "machinery": 250
+    },
+    "outputs": {
+     "electricity": 8000000
+    }
+   }
+  ]
+ },
+ {
+  "id": "tool_works",
+  "name": "Tool Works",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 740,
+     "clerks": 60
+    },
+    "inputs": {
+     "steel": 5000,
+     "electricity": 200000
+    },
+    "outputs": {
+     "tools": 19250
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 592,
+     "clerks": 72
+    },
+    "inputs": {
+     "steel": 7500.0,
+     "electricity": 320000.0,
+     "machinery": 200
+    },
+    "outputs": {
+     "tools": 34650.0
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 296,
+     "clerks": 90,
+     "professionals": 120
+    },
+    "inputs": {
+     "steel": 11000.0,
+     "electricity": 560000.0,
+     "machinery": 600
+    },
+    "outputs": {
+     "tools": 61600.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "machine_works",
+  "name": "Machine Works",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 700,
+     "clerks": 60,
+     "professionals": 40
+    },
+    "inputs": {
+     "steel": 6000,
+     "tools": 2000,
+     "electricity": 300000
+    },
+    "outputs": {
+     "machinery": 11125
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 560,
+     "clerks": 72,
+     "professionals": 48
+    },
+    "inputs": {
+     "steel": 9000.0,
+     "tools": 3000.0,
+     "electricity": 470000.0,
+     "machinery": 200
+    },
+    "outputs": {
+     "machinery": 20025.0
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 280,
+     "clerks": 90,
+     "professionals": 160
+    },
+    "inputs": {
+     "steel": 13200.000000000002,
+     "tools": 4400.0,
+     "electricity": 810000.0,
+     "machinery": 600
+    },
+    "outputs": {
+     "machinery": 35600.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "consumer_factory",
+  "name": "Consumer Goods Factory",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 920,
+     "clerks": 80
+    },
+    "inputs": {
+     "steel": 1000,
+     "tools": 500,
+     "electricity": 200000
+    },
+    "outputs": {
+     "consumer_goods": 27333
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 736,
+     "clerks": 96
+    },
+    "inputs": {
+     "steel": 1500.0,
+     "tools": 750.0,
+     "electricity": 320000.0,
+     "machinery": 200
+    },
+    "outputs": {
+     "consumer_goods": 49199.4
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 368,
+     "clerks": 120,
+     "professionals": 120
+    },
+    "inputs": {
+     "steel": 2200.0,
+     "tools": 1100.0,
+     "electricity": 560000.0,
+     "machinery": 600
+    },
+    "outputs": {
+     "consumer_goods": 87465.6
+    }
+   }
+  ]
+ },
+ {
+  "id": "textile_mill",
+  "name": "Textile Mill",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 940,
+     "clerks": 60
+    },
+    "inputs": {
+     "tools": 300,
+     "electricity": 100000
+    },
+    "outputs": {
+     "clothing": 38600
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 752,
+     "clerks": 72
+    },
+    "inputs": {
+     "tools": 450.0,
+     "electricity": 170000.0,
+     "machinery": 200
+    },
+    "outputs": {
+     "clothing": 69480.0
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 376,
+     "clerks": 90,
+     "professionals": 120
+    },
+    "inputs": {
+     "tools": 660.0,
+     "electricity": 310000.0,
+     "machinery": 600
+    },
+    "outputs": {
+     "clothing": 123520.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "arms_factory",
+  "name": "Arms Factory",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 740,
+     "clerks": 60
+    },
+    "inputs": {
+     "steel": 4000,
+     "tools": 1000
+    },
+    "outputs": {
+     "arms": 12667
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 592,
+     "clerks": 72
+    },
+    "inputs": {
+     "steel": 6000.0,
+     "tools": 1500.0,
+     "machinery": 200,
+     "electricity": 20000.0
+    },
+    "outputs": {
+     "arms": 22800.600000000002
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 296,
+     "clerks": 90,
+     "professionals": 120
+    },
+    "inputs": {
+     "steel": 8800.0,
+     "tools": 2200.0,
+     "machinery": 600,
+     "electricity": 60000.0
+    },
+    "outputs": {
+     "arms": 40534.4
+    }
+   }
+  ]
+ },
+ {
+  "id": "luxury_workshop",
+  "name": "Luxury Workshop",
+  "owner": "private",
+  "category": "industry",
+  "pms": [
+   {
+    "id": "manual",
+    "name": "Manual",
+    "year": 1900,
+    "jobs": {
+     "workers": 360,
+     "professionals": 40
+    },
+    "inputs": {
+     "tools": 200
+    },
+    "outputs": {
+     "luxury_goods": 5633
+    }
+   },
+   {
+    "id": "assembly",
+    "name": "Assembly line",
+    "year": 1950,
+    "jobs": {
+     "workers": 288,
+     "professionals": 48
+    },
+    "inputs": {
+     "tools": 300.0,
+     "machinery": 200,
+     "electricity": 20000.0
+    },
+    "outputs": {
+     "luxury_goods": 10139.4
+    }
+   },
+   {
+    "id": "automated",
+    "name": "Automated",
+    "year": 1985,
+    "jobs": {
+     "workers": 144,
+     "professionals": 160
+    },
+    "inputs": {
+     "tools": 440.00000000000006,
+     "machinery": 600,
+     "electricity": 60000.0
+    },
+    "outputs": {
+     "luxury_goods": 18025.600000000002
+    }
+   }
+  ]
+ },
+ {
+  "id": "office",
+  "name": "Office",
+  "owner": "private",
+  "category": "services",
+  "pms": [
+   {
+    "id": "clerical",
+    "name": "Clerical",
+    "year": 1900,
+    "jobs": {
+     "clerks": 480,
+     "professionals": 120
+    },
+    "inputs": {
+     "electricity": 200000,
+     "consumer_goods": 1000
+    },
+    "outputs": {
+     "services": 43333
+    }
+   },
+   {
+    "id": "computerised",
+    "name": "Computerised",
+    "year": 1975,
+    "jobs": {
+     "clerks": 400,
+     "professionals": 200
+    },
+    "inputs": {
+     "electricity": 500000,
+     "machinery": 200
+    },
+    "outputs": {
+     "services": 90000
+    }
+   },
+   {
+    "id": "digital",
+    "name": "Digital",
+    "year": 2000,
+    "jobs": {
+     "clerks": 240,
+     "professionals": 320
+    },
+    "inputs": {
+     "electricity": 900000,
+     "machinery": 400
+    },
+    "outputs": {
+     "services": 160000
+    }
+   }
+  ]
+ },
+ {
+  "id": "university",
+  "name": "University",
+  "owner": "state",
+  "category": "public",
+  "effect": "literacy",
+  "pms": [
+   {
+    "id": "standard",
+    "name": "Standard",
+    "year": 1900,
+    "jobs": {
+     "professionals": 1000,
+     "clerks": 500
+    },
+    "inputs": {
+     "electricity": 100000,
+     "consumer_goods": 500
+    },
+    "outputs": {}
+   }
+  ]
+ },
+ {
+  "id": "hospital",
+  "name": "Hospital",
+  "owner": "state",
+  "category": "public",
+  "effect": "health",
+  "pms": [
+   {
+    "id": "standard",
+    "name": "Standard",
+    "year": 1900,
+    "jobs": {
+     "professionals": 800,
+     "clerks": 400
+    },
+    "inputs": {
+     "electricity": 100000,
+     "consumer_goods": 500,
+     "services": 2000
+    },
+    "outputs": {}
+   }
+  ]
+ }
+]
