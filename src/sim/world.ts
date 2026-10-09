@@ -22,14 +22,18 @@ export interface World {
   rng: RngState;
   /** Tag lookup — strings only at the data boundary. */
   countryTags: string[];
-  countries: Table; // treasury (integer cents), stability
-  provinces: Table; // owner, population, development
+  countries: Table; // treasury (integer cents), stability, capital (province id)
+  provinces: Table; // owner, population, development, terrain
+  provinceNames: string[];
+  /** CSR adjacency: cols.offset has size+1 entries into cols.list. */
+  adjacency: Table;
   modifiers: Modifier[];
   /** Base values per scope ("c:3", "p:12") and stat key. */
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 1;
+export const WORLD_VERSION = 2;
+export const TABLE_KEYS = ["countries", "provinces", "adjacency"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
   return {
@@ -38,8 +42,10 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     date: 0,
     rng: seedRng(seed),
     countryTags: Array.from({ length: nCountries }, (_, i) => `C${i.toString().padStart(2, "0")}`),
-    countries: makeTable(nCountries, { treasury: "i32", stability: "f64" }),
-    provinces: makeTable(nProvinces, { owner: "i32", population: "f64", development: "f64" }),
+    countries: makeTable(nCountries, { treasury: "i32", stability: "f64", capital: "i32" }),
+    provinces: makeTable(nProvinces, { owner: "i32", population: "f64", development: "f64", terrain: "i32" }),
+    provinceNames: Array.from({ length: nProvinces }, (_, i) => `P${i}`),
+    adjacency: { size: nProvinces, cols: { offset: new Int32Array(nProvinces + 1), list: new Int32Array(0) } },
     modifiers: [],
     base: {},
   };

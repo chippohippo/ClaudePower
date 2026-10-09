@@ -1,25 +1,58 @@
-import { StrictMode, useEffect, useRef } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createSimBridge } from "../worker/bridge";
+import type { StartScope } from "../sim/setup";
 import { useUi } from "./store";
+import { MapView } from "./MapView";
+import { TopBar } from "./TopBar";
+import { ProvincePanel } from "./ProvincePanel";
+
+function useHotkeys() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const { snap, send, set } = useUi.getState();
+      if (!snap || (e.target as HTMLElement).tagName === "INPUT") return;
+      if (e.code === "Space") { e.preventDefault(); send({ kind: "setPaused", paused: !snap.paused }); }
+      else if (e.key === "+" || e.key === "=") send({ kind: "setSpeed", speed: snap.speed + 1 });
+      else if (e.key === "-") send({ kind: "setSpeed", speed: snap.speed - 1 });
+      else if (e.key === "1") set({ mapMode: "political" });
+      else if (e.key === "2") set({ mapMode: "development" });
+      else if (e.key === "Escape") set({ selected: null });
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, []);
+}
 
 function App() {
-  const { snap, message, set } = useUi();
-  const bridge = useRef<ReturnType<typeof createSimBridge> | null>(null);
+  const [scope, setScope] = useState<StartScope | null>(null);
+  const { setup, set } = useUi();
+  useHotkeys();
   useEffect(() => {
-    const b = createSimBridge((m) => (m.kind === "snapshot" ? set({ snap: m.snap }) : set({ message: m.reason })));
-    b.send({ kind: "init", seed: 1936 });
-    bridge.current = b;
+    if (!scope) return;
+    const b = createSimBridge((m) => {
+      if (m.kind === "setup") set({ setup: m.info });
+      else if (m.kind === "snapshot") set({ snap: m.snap });
+      else set({ message: m.reason });
+    });
+    set({ send: b.send });
+    b.send({ kind: "init", seed: 1936, scope });
     return () => b.terminate();
-  }, [set]);
+  }, [scope, set]);
+
+  if (!scope) return (
+    <div style={{ display: "grid", placeItems: "center", height: "100vh", background: "#0f111a", color: "#eee" }}>
+      <div style={{ textAlign: "center" }}>
+        <h1>Iron &amp; Empire</h1><p>The Long Century, 1936–2026</p>
+        <button style={{ margin: 8, padding: "8px 16px" }} onClick={() => setScope("world")}>Start — World</button>
+        <button style={{ margin: 8, padding: "8px 16px" }} onClick={() => setScope("europe")}>Quick start — Europe only</button>
+      </div>
+    </div>
+  );
   return (
-    <main style={{ fontFamily: "system-ui", padding: 16 }}>
-      <h1>Iron &amp; Empire</h1>
-      <p>Date: {snap?.dateLabel ?? "…"} · Treasury C00: {((snap?.treasury[0] ?? 0) / 100).toFixed(2)}</p>
-      <button onClick={() => bridge.current?.send({ kind: "step", days: 30 })}>+30 days</button>{" "}
-      <button onClick={() => { bridge.current?.send({ kind: "command", cmd: { type: "debug_add_treasury", actor: 0, payload: { cents: 10000 } } }); bridge.current?.send({ kind: "step", days: 1 }); }}>+100 treasury</button>
-      <p>{message}</p>
-    </main>
+    <div style={{ position: "fixed", inset: 0, background: "#1d3557", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
+      {setup ? <><MapView /><TopBar /><ProvincePanel /></> : <p style={{ color: "#eee", padding: 16 }}>Loading…</p>}
+    </div>
   );
 }
 createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

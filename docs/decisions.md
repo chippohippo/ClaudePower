@@ -3,3 +3,9 @@
 - **Modifier scopes as strings ("c:3", "p:12", "g")**. Alt: tagged objects. Why: simple keys for base lookup and filtering.
 - **fflate for gzip** instead of pako. Why: smaller, sync API in both Node and browser.
 - **Command registry keyed by type string**; systems register handlers at import. Why: AI, UI, console share one path.
+- **Provinces = k-means clusters of Natural Earth admin-1 regions**, allocated per (owner, continent), Europe ×30 weight, majors' homelands ≥ 8. Alt: hand-drawn. Why: generated, reproducible, real borders.
+- **1936 ownership = modern country → owner table + admin-1 overrides** (data/map_1936.json). Why: no clean free 1936 admin-1 dataset.
+- **Colonies belong to the metropole** for the slice. Revisit with diplomacy.
+- **Terrain/dev from lat-lon boxes** (scripts/map-rules.ts). Why: no extra dataset needed.
+- **Map renders on demand** (Pixi autoStart off). Why: static map, zero idle cost.
+- **Worker owns the game clock**; speeds = [2,5,10,30,120] days/sec. Speed 3 ≈ 1 month / 3 s.

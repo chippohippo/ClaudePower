@@ -1,4 +1,692 @@
 [
-  { "tag": "GER", "name": "Germany", "color": "#5a5a5a" },
-  { "tag": "FRA", "name": "France", "color": "#2a5db0" }
+{
+"tag": "GER",
+"name": "Germany",
+"color": "#6b6b6b",
+"capital": [
+13.4,
+52.5
+],
+"major": true
+},
+{
+"tag": "FRA",
+"name": "France",
+"color": "#3a66c4",
+"capital": [
+2.35,
+48.85
+],
+"major": true
+},
+{
+"tag": "GBR",
+"name": "United Kingdom",
+"color": "#c0392b",
+"capital": [
+-0.12,
+51.5
+],
+"major": true
+},
+{
+"tag": "ITA",
+"name": "Italy",
+"color": "#2e8b57",
+"capital": [
+12.5,
+41.9
+],
+"major": true
+},
+{
+"tag": "SOV",
+"name": "Soviet Union",
+"color": "#8b1a1a",
+"capital": [
+37.6,
+55.75
+],
+"major": true
+},
+{
+"tag": "USA",
+"name": "United States",
+"color": "#3b5ba5",
+"capital": [
+-77.04,
+38.9
+],
+"major": true
+},
+{
+"tag": "JAP",
+"name": "Japan",
+"color": "#e8d4a0",
+"capital": [
+139.7,
+35.7
+],
+"major": true
+},
+{
+"tag": "CHI",
+"name": "China",
+"color": "#d4a017",
+"capital": [
+118.8,
+32.06
+],
+"major": true
+},
+{
+"tag": "SPR",
+"name": "Spain",
+"color": "#e6b800",
+"capital": [
+-3.7,
+40.4
+],
+"major": false
+},
+{
+"tag": "POR",
+"name": "Portugal",
+"color": "#196b24",
+"capital": [
+-9.14,
+38.72
+],
+"major": false
+},
+{
+"tag": "HOL",
+"name": "Netherlands",
+"color": "#f08c00",
+"capital": [
+4.9,
+52.37
+],
+"major": false
+},
+{
+"tag": "BEL",
+"name": "Belgium",
+"color": "#b5a642",
+"capital": [
+4.35,
+50.85
+],
+"major": false
+},
+{
+"tag": "LUX",
+"name": "Luxembourg",
+"color": "#6fa8dc",
+"capital": [
+6.13,
+49.61
+],
+"major": false
+},
+{
+"tag": "SWI",
+"name": "Switzerland",
+"color": "#d9534f",
+"capital": [
+7.45,
+46.95
+],
+"major": false
+},
+{
+"tag": "AUS",
+"name": "Austria",
+"color": "#f0f0f0",
+"capital": [
+16.37,
+48.2
+],
+"major": false
+},
+{
+"tag": "CZE",
+"name": "Czechoslovakia",
+"color": "#4aa3a3",
+"capital": [
+14.42,
+50.08
+],
+"major": false
+},
+{
+"tag": "POL",
+"name": "Poland",
+"color": "#d46a8a",
+"capital": [
+21.0,
+52.23
+],
+"major": false
+},
+{
+"tag": "HUN",
+"name": "Hungary",
+"color": "#a0522d",
+"capital": [
+19.04,
+47.5
+],
+"major": false
+},
+{
+"tag": "ROM",
+"name": "Romania",
+"color": "#e0c341",
+"capital": [
+26.1,
+44.43
+],
+"major": false
+},
+{
+"tag": "YUG",
+"name": "Yugoslavia",
+"color": "#7a5ea8",
+"capital": [
+20.46,
+44.8
+],
+"major": false
+},
+{
+"tag": "BUL",
+"name": "Bulgaria",
+"color": "#5a8f3a",
+"capital": [
+23.32,
+42.7
+],
+"major": false
+},
+{
+"tag": "GRE",
+"name": "Greece",
+"color": "#7fb2e5",
+"capital": [
+23.73,
+37.98
+],
+"major": false
+},
+{
+"tag": "ALB",
+"name": "Albania",
+"color": "#a33a3a",
+"capital": [
+19.82,
+41.33
+],
+"major": false
+},
+{
+"tag": "TUR",
+"name": "Turkey",
+"color": "#9ab973",
+"capital": [
+32.85,
+39.93
+],
+"major": false
+},
+{
+"tag": "DEN",
+"name": "Denmark",
+"color": "#a85454",
+"capital": [
+12.57,
+55.68
+],
+"major": false
+},
+{
+"tag": "NOR",
+"name": "Norway",
+"color": "#8c4f4f",
+"capital": [
+10.75,
+59.91
+],
+"major": false
+},
+{
+"tag": "SWE",
+"name": "Sweden",
+"color": "#2f6fb0",
+"capital": [
+18.07,
+59.33
+],
+"major": false
+},
+{
+"tag": "FIN",
+"name": "Finland",
+"color": "#cfd8e8",
+"capital": [
+24.94,
+60.17
+],
+"major": false
+},
+{
+"tag": "EST",
+"name": "Estonia",
+"color": "#5b84b1",
+"capital": [
+24.75,
+59.44
+],
+"major": false
+},
+{
+"tag": "LAT",
+"name": "Latvia",
+"color": "#8a3b4b",
+"capital": [
+24.1,
+56.95
+],
+"major": false
+},
+{
+"tag": "LIT",
+"name": "Lithuania",
+"color": "#c9b03c",
+"capital": [
+23.9,
+54.9
+],
+"major": false
+},
+{
+"tag": "IRE",
+"name": "Ireland",
+"color": "#4caf50",
+"capital": [
+-6.26,
+53.35
+],
+"major": false
+},
+{
+"tag": "CAN",
+"name": "Canada",
+"color": "#b03a3a",
+"capital": [
+-75.7,
+45.42
+],
+"major": false
+},
+{
+"tag": "MEX",
+"name": "Mexico",
+"color": "#5f9e6e",
+"capital": [
+-99.13,
+19.43
+],
+"major": false
+},
+{
+"tag": "GUA",
+"name": "Guatemala",
+"color": "#c13d67",
+"capital": [
+-90.5,
+14.6
+],
+"major": false
+},
+{
+"tag": "HON",
+"name": "Honduras",
+"color": "#b981ca",
+"capital": [
+-87.2,
+14.1
+],
+"major": false
+},
+{
+"tag": "ELS",
+"name": "El Salvador",
+"color": "#4352c5",
+"capital": [
+-89.2,
+13.7
+],
+"major": false
+},
+{
+"tag": "NIC",
+"name": "Nicaragua",
+"color": "#ca6ccf",
+"capital": [
+-86.25,
+12.13
+],
+"major": false
+},
+{
+"tag": "COS",
+"name": "Costa Rica",
+"color": "#cfd656",
+"capital": [
+-84.08,
+9.93
+],
+"major": false
+},
+{
+"tag": "PAN",
+"name": "Panama",
+"color": "#ced66f",
+"capital": [
+-79.52,
+8.98
+],
+"major": false
+},
+{
+"tag": "CUB",
+"name": "Cuba",
+"color": "#88c539",
+"capital": [
+-82.37,
+23.13
+],
+"major": false
+},
+{
+"tag": "HAI",
+"name": "Haiti",
+"color": "#73d7a5",
+"capital": [
+-72.33,
+18.54
+],
+"major": false
+},
+{
+"tag": "DOM",
+"name": "Dominican Republic",
+"color": "#88d872",
+"capital": [
+-69.9,
+18.48
+],
+"major": false
+},
+{
+"tag": "COL",
+"name": "Colombia",
+"color": "#d7558d",
+"capital": [
+-74.07,
+4.6
+],
+"major": false
+},
+{
+"tag": "VEN",
+"name": "Venezuela",
+"color": "#da858c",
+"capital": [
+-66.9,
+10.5
+],
+"major": false
+},
+{
+"tag": "ECU",
+"name": "Ecuador",
+"color": "#b562a5",
+"capital": [
+-78.5,
+-0.22
+],
+"major": false
+},
+{
+"tag": "PRU",
+"name": "Peru",
+"color": "#73dd8c",
+"capital": [
+-77.04,
+-12.05
+],
+"major": false
+},
+{
+"tag": "BOL",
+"name": "Bolivia",
+"color": "#8a52bb",
+"capital": [
+-68.15,
+-16.5
+],
+"major": false
+},
+{
+"tag": "BRA",
+"name": "Brazil",
+"color": "#3d9140",
+"capital": [
+-43.2,
+-22.9
+],
+"major": false
+},
+{
+"tag": "PAR",
+"name": "Paraguay",
+"color": "#7bd6d9",
+"capital": [
+-57.6,
+-25.3
+],
+"major": false
+},
+{
+"tag": "URU",
+"name": "Uruguay",
+"color": "#92c789",
+"capital": [
+-56.16,
+-34.9
+],
+"major": false
+},
+{
+"tag": "ARG",
+"name": "Argentina",
+"color": "#87bde0",
+"capital": [
+-58.38,
+-34.6
+],
+"major": false
+},
+{
+"tag": "CHL",
+"name": "Chile",
+"color": "#64d275",
+"capital": [
+-70.66,
+-33.45
+],
+"major": false
+},
+{
+"tag": "EGY",
+"name": "Egypt",
+"color": "#73be95",
+"capital": [
+31.24,
+30.04
+],
+"major": false
+},
+{
+"tag": "ETH",
+"name": "Ethiopia",
+"color": "#c06c76",
+"capital": [
+38.75,
+9.03
+],
+"major": false
+},
+{
+"tag": "LIB",
+"name": "Liberia",
+"color": "#47bdc1",
+"capital": [
+-10.8,
+6.3
+],
+"major": false
+},
+{
+"tag": "SAF",
+"name": "South Africa",
+"color": "#c98b4b",
+"capital": [
+28.19,
+-25.75
+],
+"major": false
+},
+{
+"tag": "SAU",
+"name": "Saudi Arabia",
+"color": "#d64c8a",
+"capital": [
+46.7,
+24.7
+],
+"major": false
+},
+{
+"tag": "YEM",
+"name": "Yemen",
+"color": "#4dced5",
+"capital": [
+44.2,
+15.35
+],
+"major": false
+},
+{
+"tag": "IRQ",
+"name": "Iraq",
+"color": "#a1c55c",
+"capital": [
+44.4,
+33.3
+],
+"major": false
+},
+{
+"tag": "PER",
+"name": "Persia",
+"color": "#896acc",
+"capital": [
+51.4,
+35.7
+],
+"major": false
+},
+{
+"tag": "AFG",
+"name": "Afghanistan",
+"color": "#5898d4",
+"capital": [
+69.2,
+34.5
+],
+"major": false
+},
+{
+"tag": "RAJ",
+"name": "British India",
+"color": "#e07b39",
+"capital": [
+77.2,
+28.6
+],
+"major": false
+},
+{
+"tag": "NEP",
+"name": "Nepal",
+"color": "#82c8b0",
+"capital": [
+85.3,
+27.7
+],
+"major": false
+},
+{
+"tag": "SIA",
+"name": "Siam",
+"color": "#7dd8c1",
+"capital": [
+100.5,
+13.75
+],
+"major": false
+},
+{
+"tag": "MAN",
+"name": "Manchukuo",
+"color": "#9c7a3c",
+"capital": [
+125.3,
+43.9
+],
+"major": false
+},
+{
+"tag": "MON",
+"name": "Mongolia",
+"color": "#d1756a",
+"capital": [
+106.9,
+47.9
+],
+"major": false
+},
+{
+"tag": "AST",
+"name": "Australia",
+"color": "#4a7ab0",
+"capital": [
+149.13,
+-35.28
+],
+"major": false
+},
+{
+"tag": "NZL",
+"name": "New Zealand",
+"color": "#69cbd2",
+"capital": [
+174.78,
+-41.29
+],
+"major": false
+}
 ]
