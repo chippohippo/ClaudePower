@@ -1,6 +1,6 @@
 // Wages & pop income: buildings pay a labour share of value added, profit tax, and dividends to elites.
 import { BASE_PRICE, N_GOODS, N_STRATA, PMS, STRATUM } from "../defs";
-import { Acct, Escrow, apportion, transfer } from "../money";
+import { Acct, Escrow, apportion, budgetLine, transfer } from "../money";
 import type { World } from "../world";
 import { jobsKey, isStateBuilding } from "./labour";
 import type { OrderBook } from "./orders";
@@ -44,6 +44,7 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
     b.wages![i] = pool;
     if (pool > 0) {
       const tax = Math.floor(pool * cc.taxRate![country]!);
+      budgetLine("income_tax");
       transfer(w, Acct.Building, i, Acct.Treasury, country, tax);
       esc.take(Acct.Building, i, pool - tax);
       let wsum = 0;
@@ -57,12 +58,14 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
     }
     const profit = va - pool;
     b.profit![i] = profit;
+    budgetLine("profit_tax");
     if (profit > 0) transfer(w, Acct.Building, i, Acct.Treasury, country, Math.min(b.cash![i]!, Math.floor(profit * cc.taxRate![country]!)));
     const reserve = 2 * inputCost + pool;
     const div = Math.floor(Math.max(0, b.cash![i]! - reserve) * DIVIDEND_SHARE);
     if (div > 0) { esc.take(Acct.Building, i, div); dividendsByProv[prov]! += div; }
   }
 
+  budgetLine("other_income");
   // Pay net wages to employed pops by (province, stratum), dividends to elites in the province.
   const popsByKey = new Map<number, number[]>();
   const elitesByProv = new Map<number, number[]>();

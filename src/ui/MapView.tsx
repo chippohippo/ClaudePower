@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import geometry from "../../data/generated/map-geometry.json";
 import { MapRenderer } from "../map/MapRenderer";
-import { developmentColor, hexToNum } from "../map/colors";
+import { densityColor, developmentColor, hexToNum, solColor } from "../map/colors";
 import { useUi } from "./store";
 
 export function MapView() {
@@ -22,8 +22,15 @@ export function MapView() {
   const paint = () => {
     const s = useUi.getState();
     if (!r.current || !s.setup || !s.snap) return;
-    const { owner, development } = s.snap;
-    r.current.setColors(owner.map((o, i) => s.mapMode === "political" ? hexToNum(s.setup!.countries[o]!.color) : developmentColor(development[i]!)));
+    const { owner, development, provPopulation, provSol } = s.snap, setup = s.setup;
+    r.current.setColors(owner.map((o, i) => {
+      switch (s.mapMode) {
+        case "political": return hexToNum(setup.countries[o]!.color);
+        case "development": return developmentColor(development[i]!);
+        case "population": return densityColor(provPopulation[i]! / setup.areaKm2[i]!);
+        case "sol": return solColor(provSol[i]!);
+      }
+    }));
   };
   useEffect(paint, [snap, mapMode]);
 

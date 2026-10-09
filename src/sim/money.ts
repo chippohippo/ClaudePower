@@ -1,6 +1,10 @@
 // All money is integer cents held in f64 columns. Every movement goes through these helpers so that
 // budgets balance to the cent and Σmoney changes only by ledger.minted − ledger.destroyed.
-import type { World } from "./world";
+import type { BudgetLine, World } from "./world";
+
+let category: BudgetLine = "other";
+/** Systems label treasury flows before moving money; every treasury flow is booked under this line. */
+export function budgetLine(c: BudgetLine): void { category = c; }
 
 export const enum Acct { Pop = 0, Building = 1, Treasury = 2, Pool = 3 }
 
@@ -16,6 +20,8 @@ function arr(w: World, k: Acct): Float64Array {
 /** Debit/credit bookkeeping for treasuries: income/expense columns track every treasury flow except debt. */
 function book(w: World, k: Acct, id: number, delta: number, debt: boolean) {
   if (k !== Acct.Treasury) return;
+  const line = w.budget.cols[category];
+  if (line) line[id]! += delta;
   if (debt) { w.countries.cols.debtFlow![id]! += delta; return; }
   if (delta > 0) w.countries.cols.income![id]! += delta;
   else w.countries.cols.expense![id]! -= delta;

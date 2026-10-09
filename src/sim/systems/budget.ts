@@ -1,7 +1,7 @@
 // State budget: public-sector pay, arms, pensions, interest, debt and money printing, inflation, tax policy.
 // Auto-managed until the AI/player loop (M3): taxes drift toward a balanced budget.
 import { BASE_PRICE, N_GOODS, N_STRATA, PMS, STRATUM, goodIndex } from "../defs";
-import { Acct, apportion, burn, mint, transfer } from "../money";
+import { Acct, apportion, budgetLine, burn, mint, transfer } from "../money";
 import type { World } from "../world";
 import { toYmd } from "../date";
 import type { OrderBook } from "./orders";
@@ -67,6 +67,7 @@ export function settleBudget(w: World, jobs: Float64Array, filled: Float64Array)
   }
   const payroll: number[][] = Array.from({ length: nC }, () => []);
   const payW: number[][] = Array.from({ length: nC }, () => []);
+  const pensioners: number[][] = Array.from({ length: nC }, () => []), penW: number[][] = Array.from({ length: nC }, () => []);
   for (let i = 0; i < w.pops.size; i++) {
     const s = pc.stratum![i]!, prov = pc.prov![i]!, c = w.provinces.cols.owner![prov]!, k = jobsKey(prov, s);
     let amount = 0;
@@ -74,28 +75,34 @@ export function settleBudget(w: World, jobs: Float64Array, filled: Float64Array)
     if (s === _STRATUM.military) amount = pc.a1![i]! * workerWage * MILITARY_PAY;
     else if (s === _STRATUM.bureaucrats) amount = pc.a1![i]! * workerWage * BUREAUCRAT_PAY;
     else if (publicJobs[k]! > 0 && jobs[k]! > 0) amount = pc.employed![i]! * (publicJobs[k]! / jobs[k]!) * (cc[`wage${s}`]![c]! || workerWage);
-    amount += pc.a2![i]! * workerWage * cc.pensionRate![c]!;
     if (amount > 0) { payroll[c]!.push(i); payW[c]!.push(amount); }
+    const pension = pc.a2![i]! * workerWage * cc.pensionRate![c]!;
+    if (pension > 0) { pensioners[c]!.push(i); penW[c]!.push(pension); }
   }
   void filled;
   for (let c = 0; c < nC; c++) {
-    const want = Math.floor(payW[c]!.reduce((a, x) => a + x, 0));
-    // Spending above the treasury is financed by borrowing up to the debt limit, then by printing.
-    ensureFunds(w, c, want);
-    const pay = Math.min(want, Math.max(0, Math.floor(cc.treasury![c]!)));
-    const shares = apportion(pay, payW[c]!);
-    payroll[c]!.forEach((i, j) => transfer(w, Acct.Treasury, c, Acct.Pop, i, shares[j]!));
+    for (const [line, who, wts] of [["payroll", payroll[c]!, payW[c]!], ["pensions", pensioners[c]!, penW[c]!]] as const) {
+      const want = Math.floor(wts.reduce((a, x) => a + x, 0));
+      // Spending above the treasury is financed by borrowing up to the debt limit, then by printing.
+      ensureFunds(w, c, want);
+      const pay = Math.min(want, Math.max(0, Math.floor(cc.treasury![c]!)));
+      const shares = apportion(pay, wts);
+      budgetLine(line);
+      who.forEach((i, j) => transfer(w, Acct.Treasury, c, Acct.Pop, i, shares[j]!));
+    }
     // Interest to foreign creditors.
     const debtRatio = cc.gdpYear![c]! > 0 ? cc.debt![c]! / cc.gdpYear![c]! : 0;
     const rate = BASE_INTEREST + 0.06 * Math.max(0, debtRatio - 0.6);
     const interest = Math.floor((cc.debt![c]! * rate) / 12);
     ensureFunds(w, c, interest);
+    budgetLine("interest");
     burn(w, Acct.Treasury, c, Math.min(interest, Math.max(0, Math.floor(cc.treasury![c]!))));
     // Repay debt from large surpluses.
     const monthlyExp = Math.max(1, cc.expense![c]!);
     const excess = cc.treasury![c]! - 6 * monthlyExp;
     if (excess > 0 && cc.debt![c]! > 0) {
       const r = Math.floor(Math.min(cc.debt![c]!, excess * 0.5));
+      budgetLine("repayment");
       burn(w, Acct.Treasury, c, r, true);
       cc.debt![c]! -= r;
     }
@@ -109,8 +116,10 @@ function ensureFunds(w: World, c: number, need: number): void {
   if (gap <= 0) return;
   const limit = DEBT_LIMIT_GDP * Math.max(cc.gdpYear![c]!, 1);
   const borrow = Math.max(0, Math.min(gap, Math.floor(limit - cc.debt![c]!)));
+  budgetLine("borrowing");
   if (borrow > 0) { mint(w, Acct.Treasury, c, borrow, true); cc.debt![c]! += borrow; cc.borrowed![c]! += borrow; }
   const print = gap - borrow;
+  budgetLine("printing");
   if (print > 0) { mint(w, Acct.Treasury, c, print, true); cc.printed![c]! += print; }
 }
 
@@ -162,6 +171,7 @@ export function monetaryPolicy(w: World): void {
   for (let c = 0; c < w.countries.size; c++) {
     const gap = MONETARY_TARGET - consumerPriceIndex(w, c) / cc.priceLevel![c]!;
     if (!(gap > 0.02)) continue; // also skips NaN (countries without markets)
+    budgetLine("seigniorage");
     mint(w, Acct.Treasury, c, Math.floor(Math.min(MONETARY_MAX, MONETARY_RESPONSE * gap) * cc.money![c]!), true);
   }
 }

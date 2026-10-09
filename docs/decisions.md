@@ -9,3 +9,10 @@
 - **Terrain/dev from lat-lon boxes** (scripts/map-rules.ts). Why: no extra dataset needed.
 - **Map renders on demand** (Pixi autoStart off). Why: static map, zero idle cost.
 - **Worker owns the game clock**; speeds = [2,5,10,30,120] days/sec. Speed 3 ≈ 1 month / 3 s.
+- **Starting industry sized from 1936 demand** (build-pops input–output pass) rather than headcount guesses. Why: headcount sizing left supply at 20% of demand and the economy collapsed.
+- **Wages = 65% of building value added**, profits → elites (dividends) → investment pool. Why: wages track productivity with no separate wage model; money stays closed.
+- **Markets: national clear, then a world market on residuals** at a world price. Alt: bilateral trade routes. Why: simple, lets resource-poor countries import; routes/blocs later.
+- **Monetary policy mints seigniorage when consumer prices fall below target.** Why: real output grows ~7× over the century; a fixed money stock deflated into collapse. Printing beyond the debt limit drives the inflation channel instead.
+- **Demography applied monthly at yearly rates /12**, in its own monthly slot after construction (documented in tick.ts).
+- **Mobility, migration, assimilation via transferPop** (moves people, cash, averaged traits); small groups merge yearly (≤40/province).
+- **Exogenous tech placeholders** (productivity, medicine, schooling, PM unlock years) until the tech system (M7).

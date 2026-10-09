@@ -2,7 +2,7 @@ import { MAX_SPEED } from "../sim/speed";
 import { useUi } from "./store";
 
 export function TopBar() {
-  const { snap, send, mapMode, set } = useUi();
+  const { snap, send, mapMode, set, dock } = useUi();
   if (!snap) return null;
   const btn = { padding: "2px 8px", background: "#2b2d42", color: "#eee", border: "1px solid #555", borderRadius: 4, cursor: "pointer" } as const;
   return (
@@ -14,9 +14,11 @@ export function TopBar() {
       {Array.from({ length: MAX_SPEED }, (_, i) => i + 1).map((s) => (
         <button key={s} style={{ ...btn, background: s === snap.speed ? "#8d99ae" : btn.background }} onClick={() => send({ kind: "setSpeed", speed: s })}>{s}</button>
       ))}
+      <button style={{ ...btn, marginLeft: 16, background: dock === "economy" ? "#8d99ae" : btn.background }} onClick={() => set({ dock: dock === "economy" ? null : "economy" })}>F2 Economy</button>
+      <button style={{ ...btn, background: dock === "population" ? "#8d99ae" : btn.background }} onClick={() => set({ dock: dock === "population" ? null : "population" })}>F3 Population</button>
       <span style={{ marginLeft: "auto" }}>Map:</span>
-      {(["political", "development"] as const).map((m, i) => (
-        <button key={m} style={{ ...btn, background: m === mapMode ? "#8d99ae" : btn.background }} onClick={() => set({ mapMode: m })}>{i + 1} {m}</button>
+      {(["political", "development", "population", "sol"] as const).map((m, i) => (
+        <button key={m} style={{ ...btn, background: m === mapMode ? "#8d99ae" : btn.background }} onClick={() => set({ mapMode: m })}>{i + 1} {m === "sol" ? "SoL" : m}</button>
       ))}
     </div>
   );

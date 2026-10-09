@@ -1,7 +1,7 @@
 // Market clearing: national markets first, residual demand/supply cleared on the world market.
 // Price = base × priceLevel × clamp((demand/supply)^0.6, 0.25, 4), smoothed to ±10%/month.
 import { BASE_PRICE, N_GOODS } from "../defs";
-import { Escrow, apportion, type Acct } from "../money";
+import { Escrow, apportion, budgetLine, type Acct } from "../money";
 import type { World } from "../world";
 import type { OrderBook } from "./orders";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
@@ -43,6 +43,7 @@ function clear(w: World, book: OrderBook, buys: number[], sells: number[], p: nu
 }
 
 export function clearMarkets(w: World, book: OrderBook): void {
+  budgetLine("purchases");
   const nC = w.countries.size, nM = nC * _N_GOODS;
   const buys: number[][] = Array.from({ length: nM }, () => []), sells: number[][] = Array.from({ length: nM }, () => []);
   for (let b = 0; b < book.nB; b++) buys[book.bCountry[b]! * _N_GOODS + book.bGood[b]!]!.push(b);

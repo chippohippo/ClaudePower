@@ -1,5 +1,5 @@
 // Builds a starting World from validated content (countries, provinces, pops, buildings).
-import { COUNTRY_COLS, MARKET_COLS, createEmptyWorld, ensureCapacity, makeTable, type World } from "./world";
+import { BUDGET_COLS, COUNTRY_COLS, MARKET_COLS, createEmptyWorld, ensureCapacity, makeTable, type World } from "./world";
 import { TERRAINS, type CountryDef, type ProvinceDef } from "./schemas";
 import type { z } from "zod";
 import type { CountriesStartFile, ResourcesFile, StartPopsFile } from "./schemas";
@@ -28,6 +28,7 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
 
   const w = createEmptyWorld(seed, countries.length, provs.length);
   w.countries = makeTable(countries.length, COUNTRY_COLS);
+  w.budget = makeTable(countries.length, BUDGET_COLS);
   w.countryTags = countries.map((c) => c.tag);
   w.provinceNames = provs.map((p) => p.name);
   w.cultures = [...data.pops.cultures];

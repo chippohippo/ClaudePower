@@ -12,3 +12,16 @@ export function lighten(c: number, amt: number): number {
   const ch = (s: number) => Math.min(255, Math.round(((c >> s) & 255) + (255 - ((c >> s) & 255)) * amt));
   return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 }
+
+/** Sequential ramp (light → dark) for t in 0..1. */
+export function ramp(t: number, from: [number, number, number], to: [number, number, number]): number {
+  t = Math.max(0, Math.min(1, t));
+  const ch = (i: number) => Math.round(from[i]! + (to[i]! - from[i]!) * t);
+  return (ch(0) << 16) | (ch(1) << 8) | ch(2);
+}
+/** Population density (people/km²), log scale. */
+export const densityColor = (density: number) => ramp(Math.log10(1 + density) / 3, [245, 238, 220], [120, 30, 60]);
+/** SoL 0..100: red → yellow → green (diverging around 50). */
+export function solColor(sol: number): number {
+  return sol < 50 ? ramp(sol / 50, [178, 34, 34], [240, 220, 120]) : ramp((sol - 50) / 50, [240, 220, 120], [34, 120, 60]);
+}

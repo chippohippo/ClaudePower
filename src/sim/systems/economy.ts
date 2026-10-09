@@ -26,6 +26,7 @@ const cur = () => { if (!m) throw new Error("economy month not started"); return
 export function production(w: World): void {
   const cc = w.countries.cols;
   for (let c = 0; c < w.countries.size; c++) { cc.income![c] = 0; cc.expense![c] = 0; cc.debtFlow![c] = 0; }
+  for (const a of Object.values(w.budget.cols)) a.fill(0);
   if (toYmd(w.date).month === 1) choosePms(w);
   const { jobs, filled } = runLabour(w);
   const book = sharedBook.reset();

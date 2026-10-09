@@ -1,7 +1,7 @@
 // Versioned MessagePack + gzip saves with migrations.
 import { encode, decode } from "@msgpack/msgpack";
 import { gzipSync, gunzipSync } from "fflate";
-import { BUILDING_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
+import { BUDGET_COLS, BUILDING_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
 
 type TableKey = (typeof TABLE_KEYS)[number];
 type Packed = Omit<World, TableKey> & Record<TableKey, PackedTable>;
@@ -41,6 +41,7 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     fill(ct, COUNTRY_COLS); fill(pt, PROVINCE_COLS);
     for (const [k, spec] of [["pops", POP_COLS], ["buildings", BUILDING_COLS], ["markets", MARKET_COLS], ["worldMarket", MARKET_COLS], ["projects", PROJECT_COLS]] as const)
       w[k] = packTable(makeTable(0, spec));
+    w.budget = packTable(makeTable(ct.size, BUDGET_COLS));
     w.cultures = []; w.religions = [];
     w.ledger = { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 };
     w.history = { year: [], series: {} };

@@ -1,7 +1,7 @@
 // Pop consumption: plan purchases tier by tier (subsistence → everyday → luxury) from savings,
 // then compute standard of living (SoL 0–100) from what was actually delivered.
 import { BASE_PRICE, N_GOODS, NEEDS, goodIndex } from "../defs";
-import { Acct, transfer } from "../money";
+import { Acct, budgetLine, transfer } from "../money";
 import { popSize } from "../pops";
 import type { World } from "../world";
 import type { OrderBook } from "./orders";
@@ -71,6 +71,7 @@ export function settleConsumption(w: World, book: OrderBook, plan: ConsumptionPl
       paid += book.bPaid[o]!;
       fill[g] = book.bQty[o]! > 0 ? book.bGot[o]! / book.bQty[o]! : 1;
     }
+    budgetLine("consumption_tax");
     transfer(w, Acct.Pop, i, Acct.Treasury, c, Math.min(Math.max(0, p.cash![i]!), Math.floor(paid * CONSUMPTION_TAX)));
     const cov = [0, 0, 0];
     for (let t = 0; t < 3; t++) {

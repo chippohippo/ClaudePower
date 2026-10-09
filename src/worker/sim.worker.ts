@@ -5,6 +5,8 @@ import { validateCommand, type Command } from "../sim/commands";
 import { formatDate } from "../sim/date";
 import { createWorld, neighborsOf } from "../sim/setup";
 import { loadContent } from "../sim/content";
+import { inspectCountry } from "../sim/inspect";
+import { updateStats } from "../sim/systems/stats";
 import { MAX_SPEED, SPEED_DAYS_PER_SEC } from "../sim/speed";
 import type { FromWorker, Snapshot, ToWorker } from "./protocol";
 
@@ -22,7 +24,12 @@ const snapshot = (w: World): Snapshot => ({
   treasury: Array.from(w.countries.cols.treasury!),
   owner: Array.from(w.provinces.cols.owner!),
   development: Array.from(w.provinces.cols.development!),
+  provPopulation: Array.from(w.provinces.cols.population!),
+  provSol: Array.from(w.provinces.cols.sol!),
+  provUnemployment: Array.from(w.provinces.cols.unemployment!),
 });
+let inspecting: number | null = null;
+let lastReport = 0;
 
 function advance(days: number) {
   if (!world) return;
@@ -40,20 +47,28 @@ setInterval(() => {
     carry -= whole;
     advance(whole);
   }
-  if (world && dirty) { dirty = false; post({ kind: "snapshot", snap: snapshot(world) }); }
+  if (world && dirty) {
+    dirty = false;
+    post({ kind: "snapshot", snap: snapshot(world) });
+    // Reports are heavier: at most twice a second while a panel is open.
+    if (inspecting !== null && now - lastReport > 500) { lastReport = now; post({ kind: "report", report: inspectCountry(world, inspecting) }); }
+  }
 }, 100);
 
 onmessage = (e: MessageEvent<ToWorker>) => {
   const m = e.data;
   switch (m.kind) {
     case "init": {
-      const start = createWorld(m.seed, loadContent(), m.scope);
+      const content = loadContent();
+      const start = createWorld(m.seed, content, m.scope);
       world = start.world;
+      updateStats(world);
       paused = true;
       post({ kind: "setup", info: {
         srcProvinceIds: start.srcProvinceIds,
         provinceNames: world.provinceNames,
         terrain: Array.from(world.provinces.cols.terrain!),
+        areaKm2: start.srcProvinceIds.map((id) => content.provinces[id]!.areaKm2),
         neighbors: world.provinceNames.map((_, i) => Array.from(neighborsOf(world!, i))),
         countries: start.countries.map((c, i) => ({ tag: c.tag, name: c.name, color: c.color, capital: world!.countries.cols.capital![i]! })),
       } });
@@ -71,6 +86,7 @@ onmessage = (e: MessageEvent<ToWorker>) => {
     case "step": advance(m.days); break;
     case "setSpeed": speed = Math.max(1, Math.min(MAX_SPEED, m.speed)); break;
     case "setPaused": paused = m.paused; carry = 0; break;
+    case "inspect": inspecting = m.country; lastReport = 0; break;
   }
   dirty = true;
 };

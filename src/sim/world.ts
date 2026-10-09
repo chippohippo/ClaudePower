@@ -48,6 +48,10 @@ export const BUILDING_COLS: ColSpec = {
   revenue: "f64", profit: "f64", wages: "f64",
 };
 export const MARKET_COLS: ColSpec = { price: "f64", supply: "f64", demand: "f64", sold: "f64", bought: "f64" };
+/** Treasury flows of the current month by category (signed cents), for the budget panel. */
+export const BUDGET_LINES = ["income_tax", "profit_tax", "consumption_tax", "other_income", "purchases", "payroll", "pensions", "interest", "borrowing", "printing", "seigniorage", "repayment", "other"] as const;
+export type BudgetLine = (typeof BUDGET_LINES)[number];
+export const BUDGET_COLS: ColSpec = Object.fromEntries(BUDGET_LINES.map((k) => [k, "f64"]));
 export const PROJECT_COLS: ColSpec = { country: "i32", prov: "i32", type: "i32", progress: "f64", state: "i32", levels: "i32" };
 
 /** Money ledger: all cents created or destroyed outside closed transfers. */
@@ -76,6 +80,7 @@ export interface World {
   /** one row per good; world price and residual trade. */
   worldMarket: Table;
   projects: Table;
+  budget: Table;
   ledger: Ledger;
   history: History;
   modifiers: Modifier[];
@@ -84,7 +89,7 @@ export interface World {
 }
 
 export const WORLD_VERSION = 3;
-export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects"] as const;
+export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
   return {
@@ -104,6 +109,7 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     markets: makeTable(0, MARKET_COLS),
     worldMarket: makeTable(0, MARKET_COLS),
     projects: makeTable(0, PROJECT_COLS),
+    budget: makeTable(nCountries, BUDGET_COLS),
     ledger: { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 },
     history: { year: [], series: {} },
     modifiers: [],

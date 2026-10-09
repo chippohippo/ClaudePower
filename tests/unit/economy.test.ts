@@ -25,6 +25,9 @@ beforeAll(() => {
     const cc = w.countries.cols;
     for (let c = 0; c < w.countries.size; c++) {
       const delta = cc.treasury![c]! - treas0[c]!, booked = cc.income![c]! - cc.expense![c]! + cc.debtFlow![c]!;
+      let lines = 0;
+      for (const a of Object.values(w.budget.cols)) lines += a[c]!;
+      if (lines !== delta) failures.push(`budget lines ${w.countryTags[c]} month ${m}: Σ${lines} vs Δ${delta}`);
       if (delta !== booked) failures.push(`budget ${w.countryTags[c]} month ${m}: Δ${delta} vs booked ${booked}`);
       if (!Number.isInteger(cc.treasury![c]!)) failures.push(`treasury not integer cents ${w.countryTags[c]}`);
       if (cc.investPool![c]! < 0) failures.push(`negative pool ${w.countryTags[c]}`);
