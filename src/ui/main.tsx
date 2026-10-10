@@ -10,6 +10,8 @@ import { Dock } from "./Dock";
 import { AlertsColumn } from "./Alerts";
 import { Palette } from "./Palette";
 import { FirstSteps } from "./FirstSteps";
+import { EventModal } from "./EventModal";
+import { Ticker } from "./Ticker";
 import { receivePreviews } from "./store";
 
 const MAJORS = [["GER", "Germany"], ["USA", "United States"], ["GBR", "United Kingdom"], ["FRA", "France"], ["ITA", "Italy"], ["SOV", "Soviet Union"], ["JAP", "Japan"], ["CHI", "China"]] as const;
@@ -26,8 +28,12 @@ const MAJOR_BLURB: Record<string, string> = {
 
 /** New chronicle entries for the player become notifications; leadership changes auto-pause (§9). */
 const PAUSE_KINDS = new Set(["succession", "coup", "election", "death"]);
+let lastEventCount = 0;
 function notify(snap: import("../worker/protocol").Snapshot) {
   const { seenChronicle, notes, set, send } = useUi.getState();
+  // A new event awaiting a choice pauses the game (§4 auto-pause).
+  if (snap.events.length > lastEventCount && !snap.paused) send({ kind: "setPaused", paused: true });
+  lastEventCount = snap.events.length;
   const fresh = snap.chronicle.filter((e) => e.n > seenChronicle);
   if (!fresh.length) return;
   const first = seenChronicle < 0 && snap.date === 0;
@@ -73,6 +79,7 @@ function useHotkeys() {
       else if (e.key === "5") set({ mapMode: "unrest" });
       else if (e.key === "6") set({ mapMode: "ig" });
       else if (e.key === "F4") { e.preventDefault(); toggleDock("igs"); }
+      else if (e.key === "F5") { e.preventDefault(); toggleDock("focus"); }
       else if (e.key === "F1") { e.preventDefault(); toggleDock("government"); }
       else if (e.key === "F2") { e.preventDefault(); toggleDock("economy"); }
       else if (e.key === "F3") { e.preventDefault(); toggleDock("population"); }
@@ -83,7 +90,7 @@ function useHotkeys() {
   }, []);
 }
 
-function toggleDock(tab: "government" | "economy" | "population" | "igs") {
+function toggleDock(tab: "government" | "economy" | "population" | "igs" | "focus") {
   const { dock, set } = useUi.getState();
   set({ dock: dock === tab ? null : tab });
 }
@@ -134,7 +141,7 @@ function App() {
   );
   return (
     <div style={{ position: "fixed", inset: 0, background: "#1d3557", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
-      {setup ? <><MapView /><TopBar /><Dock /><AlertsColumn /><ProvincePanel /><FirstSteps /><Palette /><Toast /><Notes /></> : <p style={{ color: "#eee", padding: 16 }}>Loading…</p>}
+      {setup ? <><MapView /><TopBar /><Dock /><AlertsColumn /><ProvincePanel /><FirstSteps /><Palette /><Toast /><Notes /><EventModal /><Ticker /></> : <p style={{ color: "#eee", padding: 16 }}>Loading…</p>}
     </div>
   );
 }

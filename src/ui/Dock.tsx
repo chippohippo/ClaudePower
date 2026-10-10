@@ -7,18 +7,30 @@ import { useUi } from "./store";
 import { Government } from "./Government";
 import { People } from "./People";
 import { Igs } from "./Igs";
+import { FocusTree } from "./FocusTree";
 
-const box = { position: "absolute", top: 72, left: 0, bottom: 0, width: 330, overflowY: "auto", padding: 12, background: "rgba(15,17,26,0.95)", color: "#eee", fontSize: 13, zIndex: 3 } as const;
+function Ambitions() {
+  const a = useUi((s) => s.snap?.ambitions);
+  if (!a?.length) return null;
+  return (
+    <div style={{ margin: "6px 0 10px", padding: 6, background: "rgba(255,214,10,0.08)", borderRadius: 4 }}>
+      <div style={{ fontSize: 12, textTransform: "uppercase", opacity: 0.7 }}>Ambitions</div>
+      {a.map((x) => <div key={x.name} title={x.description} style={{ fontSize: 12 }}>{x.done ? "🏆" : "🎯"} {x.name} <span style={{ opacity: 0.6 }}>— {x.description}</span></div>)}
+    </div>
+  );
+}
+
+const box = { position: "absolute", top: 72, left: 0, bottom: 22, width: 330, overflowY: "auto", padding: 12, background: "rgba(15,17,26,0.95)", color: "#eee", fontSize: 13, zIndex: 3 } as const;
 const h = { margin: "10px 0 4px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 } as const;
 
 export function Dock() {
   const { dock, report, setup, set } = useUi();
   if (!dock) return null;
-  if (dock === "government" || dock === "igs") return (
-    <div style={box}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>{dock === "igs" ? "Interest Groups" : "Government"}</strong>
+  if (dock === "government" || dock === "igs" || dock === "focus") return (
+    <div style={{ ...box, width: dock === "focus" ? "min(1100px, 75vw)" : box.width }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>{{ igs: "Interest Groups", government: "Government", focus: "National Focus" }[dock]}</strong>
         <button onClick={() => set({ dock: null })} style={{ background: "none", color: "#eee", border: "none", cursor: "pointer" }}>✕</button></div>
-      {dock === "igs" ? <Igs /> : <><People /><Government /></>}
+      {dock === "igs" ? <Igs /> : dock === "focus" ? <FocusTree /> : <><Ambitions /><People /><Government /></>}
     </div>
   );
   if (!report || !setup) return <div style={box}>Loading report…</div>;

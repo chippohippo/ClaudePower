@@ -4,7 +4,7 @@ import type { CountryReport } from "../sim/inspect";
 import type { Preview } from "../sim/commands";
 
 export type MapMode = "political" | "development" | "population" | "sol" | "unrest" | "ig";
-export type DockTab = "government" | "economy" | "population" | "igs" | null;
+export type DockTab = "government" | "economy" | "population" | "igs" | "focus" | null;
 
 interface UiState {
   setup: SetupInfo | null;

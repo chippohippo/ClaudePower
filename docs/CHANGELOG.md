@@ -28,3 +28,11 @@
 - UI: Interest Groups panel (F4), people in Government (F1), IG map mode (6), chronicle notifications with auto-pause on leadership changes, IG alerts.
 - Exit test: ignoring Trade Unions while industrialising → radicalism 64 and 19 strike-years in 20; accommodating → radicalism 14, no strikes.
 - Fixes: fromYmd before 1936; US oil regions.
+## m5 — Focuses, Events & Consistency
+- Content scripting language (conditions/effects with plain-language previews); global and country flags; era flags.
+- Focus engine with computed layout; trees for GER, SOV, USA, GBR, FRA, ITA, JAP, CHI (1930s branches + era sub-trees) and generic modules (industrialise, alignment, independence, regional union) — 128 focuses.
+- Event engine: 59 emergent/reaction/era events with templates ({country} {province} {ig} {leader}), MTTH, binding, auto-pause and choice previews.
+- Ambitions (12, three per nation) and a headline ticker from real sim events.
+- Content linter (consistency) and a harness that forces choices: every focus reachable.
+- UI: Focus panel (F5), event pop-ups, ambitions in Government, ticker; shortage alerts name the building to build.
+- docs/ARCHITECTURE.md: layers, extension points, merge guide.

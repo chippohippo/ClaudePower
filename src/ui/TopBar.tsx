@@ -34,7 +34,7 @@ export function TopBar() {
       <Tip title="Stability (−3…+3) drifts toward its target" rows={p.why.stability!}><span style={{ ...res, cursor: "pointer", color: p.stability < -1 ? "#e76f51" : p.stability > 1 ? "#90be6d" : undefined }} onClick={() => toggle("government")}>⚓ {p.stability.toFixed(1)}</span></Tip>
       <button style={{ ...btnStyle, opacity: p.canUndo ? 1 : 0.4 }} disabled={!p.canUndo} title="Undo last action (Ctrl+Z) — only before time advances" onClick={() => send({ kind: "undo" })}>↶ Undo</button>
       <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-        {([["government", "F1 Gov"], ["economy", "F2 Economy"], ["population", "F3 Pop"], ["igs", "F4 IGs"]] as const).map(([t, l]) => (
+        {([["government", "F1 Gov"], ["economy", "F2 Economy"], ["population", "F3 Pop"], ["igs", "F4 IGs"], ["focus", "F5 Focus"]] as const).map(([t, l]) => (
           <button key={t} style={{ ...btnStyle, background: dock === t ? "#8d99ae" : btnStyle.background }} onClick={() => toggle(t)}>{l}</button>
         ))}
         <button style={btnStyle} onClick={() => set({ palette: true })} title="Search anything">⌘K</button>

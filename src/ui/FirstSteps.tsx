@@ -3,7 +3,7 @@ import { useUi } from "./store";
 
 const GOALS = [
   { event: "developed", text: "Develop a province — select one of yours and spend ADM, DIP or MIL" },
-  { event: "law_enacted", text: "Enact a law — open Government (F1) and pick one you can afford" },
+  { event: "focus_started", text: "Pick a national focus — open Focus (F5) and start one" },
   { event: "construction_started", text: "Start a state construction — turn off Auto-construct in F1, then Build in a province" },
 ];
 

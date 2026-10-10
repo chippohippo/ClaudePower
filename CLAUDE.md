@@ -1,6 +1,6 @@
 # Iron & Empire — Working Memory
-## Current milestone: M4 — Characters & Interest Groups   Status: done (tag m4). Next: M5 — Focuses, Events & Consistency
-## Next task: M5 — read §10, §14 and the M5 entry in §15; apply any playtest feedback first
+## Current milestone: M5 — Focuses, Events & Consistency   Status: done (tag m5). Next: M6 — Diplomacy & War
+## Next task: M6 — read §11 and the M6 entry in §15. User may merge other projects / restructure: see docs/ARCHITECTURE.md, adapt freely
 ## Golden rules
 1. One milestone at a time; never leave the build broken.
 2. Everything is a Modifier (getStat for tooltips/explain/AI).
@@ -13,7 +13,7 @@
 9. Quiet output; minimal reporters.
 10. When in doubt, simpler mechanic; note it.
 11. Original names only; no Paradox names/assets/text.
-## Stack & commands: npm run dev | test | bench | lint:content | typecheck | headless -- --years N --seed S | build-map -- <ne_10m_admin_1_states_provinces.geojson> | build-pops
+## Stack & commands: npm run dev | test | bench | lint:content | typecheck | headless -- --years N --seed S | build-map -- <ne_10m_admin_1_states_provinces.geojson> | build-pops | build-content (after editing data/focuses|events|flags|ambitions|headlines)
 ## Architecture pointers
 - modifiers: src/sim/modifiers.ts · commands: src/sim/commands.ts · tick order: src/sim/tick.ts
 - world tables (SoA typed arrays): src/sim/world.ts · rng (sfc32): src/sim/rng.ts · calendar (int days from 1936-01-01): src/sim/date.ts
@@ -26,6 +26,9 @@
 - player commands (validate/apply/preview): src/sim/commands/player.ts, commands/politics.ts · alerts: src/sim/alerts.ts
 - characters: src/sim/characters.ts (roles, traits→modifiers "char:*", mortality) · IGs: src/sim/igs.ts (+ data/igs.json), systems/igs.ts (clout/approval/radicalism/strikes)
 - politics: systems/politics.ts (deaths, succession, elections, coups, ideology drift) · seeding: src/sim/politics-setup.ts · UI: People.tsx, Igs.tsx, Portrait.tsx
+- content scripting: src/sim/script/{schema,eval,content,bundle}.ts (conditions/effects, describe*) · engines: systems/{focus,events,ambitions,era}.ts · commands/content.ts
+- content: data/focuses/*.json (1 per tree; generic_* combine into tree "generic"), data/events/*.json, flags.json, ambitions.json, headlines.json → data/generated/content.json
+- linter: scripts/lint-consistency.ts (in lint:content) · harness: tests/content/focus-harness.test.ts · architecture/merge map: docs/ARCHITECTURE.md
 - session (player, undo, previews, snapshot): src/worker/session.ts · scripted UI playtest: scripts/playtest-germany.mjs
 - inspect (UI reports + breakdowns): src/sim/inspect.ts · calibration: tests/calibration/century.test.ts (~45 s)
 - world from content: src/sim/setup.ts (createWorld, scope world|europe, CSR adjacency) · renderer: src/map/MapRenderer.ts (render on demand)
@@ -37,6 +40,7 @@
 - Calibration is one deterministic run (no randomness in sim yet), so "10% of runs" inflation check = this run.
 - Points: base 3 + head stats + ¼ minister stats + traits; PP base 2 + stability + loyal IGs. Sinks: dev, stability, heirs, appointments, laws.
 - Historical leaders can die early by chance (seed 1: Hitler dies May 1936). Consider a grace period for historical heads.
+- Focus trees are 1930s-first: 10–25 focuses per major (brief target 40–80) + era stubs; generic modules combined. Add depth in later passes.
 - State construction is cheap vs treasury (30 levels ≈ $70–120M vs $5–9B); consider bigger levels or presets.
 - Hot loops alias imported consts locally (tsx live-binding getters were 40% of tick time).
 - Snapshots send full owner/dev arrays (cheap at 250); switch to changed-table diffs if it grows.

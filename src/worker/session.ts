@@ -14,12 +14,17 @@ import { loadWorld, saveWorld } from "../sim/save";
 import { computeAlerts } from "../sim/alerts";
 import { countryStat, getStat } from "../sim/modifiers";
 import { LAWS, activeLaw, sourceLabel } from "../sim/laws";
-import type { CharacterInfo, PlayerCommand, PoliticsState, SetupInfo, Snapshot } from "./protocol";
+import type { CharacterInfo, FocusState, PlayerCommand, PoliticsState, SetupInfo, Snapshot } from "./protocol";
 import { CABINET_SLOTS, HIGH_COMMAND_SLOTS, Role, TRAITS, ageOf, charactersOf, findRole } from "../sim/characters";
 import { IGS, N_IGS, hasPrivilege, igRow } from "../sim/igs";
 import { approvalParts, computeClout, lastIgMonth } from "../sim/systems/igs";
 import { electionScores } from "../sim/systems/politics";
 import "../sim/commands/politics";
+import "../sim/commands/content";
+import { AMBITIONS, CONTENT, EVENT_BY_ID, focusById, treeById } from "../sim/script/bundle";
+import { describeEffect, fill } from "../sim/script/eval";
+import { focusBlocker } from "../sim/systems/focus";
+import { GOODS, N_GOODS } from "../sim/defs";
 
 export const UNDO_DEPTH = 10;
 
@@ -139,6 +144,37 @@ export class GameSession {
     return out;
   }
 
+  private focusState(): FocusState {
+    const w = this.world, c = this.player, st = w.focus[c]!, t = treeById(st.tree);
+    if (!t) return { tree: "", treeName: "", current: null, progress: 0, days: 0, focuses: [] };
+    const cur = st.current ? focusById(st.tree, st.current) : null;
+    return {
+      tree: t.id, treeName: t.name, current: st.current, progress: st.progress, days: cur?.days ?? 0,
+      focuses: t.focuses.map((f) => {
+        const done = st.done.includes(f.id), reason = done ? "" : focusBlocker(w, c, f) ?? "";
+        const excluded = f.exclusive.some((x) => st.done.includes(x) || st.current === x);
+        const [x, y] = t.layout[f.id] ?? [0, 0];
+        return { id: f.id, name: f.name, x, y, status: done ? "done" : st.current === f.id ? "current" : excluded ? "excluded" : reason ? "blocked" : "available", reason, prereqs: f.prerequisites, anyOf: f.anyOf, exclusive: f.exclusive, branch: f.branch ?? "main" };
+      }),
+    };
+  }
+
+  private headlines(): string[] {
+    const w = this.world, names = this.countries.map((c) => c.name), out: string[] = [];
+    for (const e of w.chronicle.slice(-12).reverse()) {
+      const pool = CONTENT.headlines[e.kind];
+      if (!pool) continue;
+      out.push(pool[(e.date + e.country) % pool.length]!.replaceAll("{country}", names[e.country] ?? "") + (e.kind === "event" || e.kind === "story" || e.kind === "focus" ? ` — ${e.text}` : ""));
+    }
+    // Price spikes from the market (sim-derived, not scripted).
+    const k0 = this.player * N_GOODS;
+    for (let g = 0; g < N_GOODS; g++) if (w.markets.cols.price![k0 + g]! > GOODS[g]!.basePrice * w.countries.cols.priceLevel![this.player]! * 2) {
+      const pool = CONTENT.headlines.price_spike!;
+      out.push(pool[g % pool.length]!.replace("{good}", GOODS[g]!.name).replace("{country}", names[this.player]!));
+    }
+    return out.slice(0, 10);
+  }
+
   snapshot(): Snapshot {
     const w = this.world, cc = w.countries.cols, pc = w.provinces.cols, c = this.player;
     const projects = [];
@@ -154,6 +190,13 @@ export class GameSession {
       devTax: Array.from(pc.devTax!), devProd: Array.from(pc.devProd!), devMan: Array.from(pc.devMan!),
       provPopulation: Array.from(pc.population!), provSol: Array.from(pc.sol!), provUnemployment: Array.from(pc.unemployment!), provUnrest: Array.from(pc.unrest!),
       politics: this.politics(), provIg: this.provIg(),
+      focus: this.focusState(),
+      events: w.pendingEvents.filter((p) => p.country === c).map((p) => {
+        const e = EVENT_BY_ID.get(p.event)!, x = { w, c, bind: p.bind }, names = this.countries.map((k) => k.name);
+        return { id: p.id, title: fill(e.title, x, names), description: fill(e.description, x, names), choices: e.choices.map((ch) => ({ name: fill(ch.name, x, names), effects: ch.effects.map(describeEffect).filter(Boolean) })) };
+      }),
+      ambitions: (w.ambitions[c] ?? []).map((a) => { const d = AMBITIONS.find((x) => x.id === a.id)!; return { name: d.name, description: d.description, done: a.done >= 0 }; }),
+      headlines: this.headlines(),
       chronicle: w.chronicle.map((e, n) => ({ ...e, n })).filter((e) => e.country === c).slice(-30).map((e) => ({ date: formatDate(e.date), kind: e.kind, text: e.text, n: e.n })),
       player: {
         adm: cc.adm![c]!, dip: cc.dip![c]!, mil: cc.mil![c]!, pp: cc.pp![c]!, manpower: cc.manpower![c]!, stability: cc.stability![c]!,

@@ -29,3 +29,9 @@
 - **Law cost rises with opposition** (×1 + 1.5×clout-weighted opposition); opponents gain radicalism. Preview shows the support bar.
 - **Characters**: Gompertz mortality, succession via heir → best minister → generated; auto-advisors fill seats. Portraits are deterministic SVG from a seed.
 - **Resource flags use province centroids**, so boxes must cover cluster centroids (US Gulf/California oil widened).
+- **One JSON scripting language for focuses, events and ambitions** (conditions + effects, each with a plain-language describer for previews). Content compiled into data/generated/content.json so Node, tests and the browser load the same bundle.
+- **Focus layout is computed** (depth = longest prerequisite chain, x by branch) at build time.
+- **Generic modular trees are concatenated** into one "National Development" tree for nations without their own.
+- **Events fire on sim state with mean-time-to-happen**; AI takes the highest-weight choice; the player's events wait (game auto-pauses). Province/IG events bind a matching province/IG for templates.
+- **Consistency linter** checks references, flags read-but-never-set / set-but-undeclared, focus graph errors, unreachable focuses, and that every major flag has reaction content.
+- **Reachability harness** proves each focus by completing its prerequisite path on a cloned world while forcing conditions (flags, stats, laws, IG values).

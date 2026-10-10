@@ -21,6 +21,7 @@ export function Palette() {
       { label: "Economy", hint: "panel · F2", run: dock("economy") },
       { label: "Population", hint: "panel · F3", run: dock("population") },
       { label: "Interest Groups", hint: "panel · F4", run: dock("igs") },
+      { label: "National Focus", hint: "panel · F5", run: dock("focus") },
       ...(["political", "development", "population", "sol", "unrest", "ig"] as const).map((m) => ({ label: `${m} map`, hint: "map mode", run: mode(m) })),
       ...LAWS.flatMap((c) => c.laws.map((l) => ({ label: l.name, hint: `law · ${c.name}`, run: dock("government") }))),
       ...setup.countries.map((c) => ({ label: c.name, hint: `country · ${c.tag}`, run: () => { jumpTo(c.capital); close(); } })),

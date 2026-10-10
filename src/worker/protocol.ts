@@ -54,6 +54,13 @@ export interface PoliticsState {
   igs: IgInfo[]; ideology: number[]; electionScores: number[];
 }
 
+export interface FocusState {
+  tree: string; treeName: string; current: string | null; progress: number; days: number;
+  focuses: { id: string; name: string; x: number; y: number; status: "done" | "current" | "available" | "blocked" | "excluded"; reason: string; prereqs: string[]; anyOf: string[]; exclusive: string[]; branch: string }[];
+}
+export interface PendingEventView { id: number; title: string; description: string; choices: { name: string; effects: string[] }[] }
+export interface AmbitionView { name: string; description: string; done: boolean }
+
 export interface Snapshot {
   date: number; dateLabel: string; paused: boolean; speed: number; rev: number;
   treasury: number[]; owner: number[]; development: number[];
@@ -65,6 +72,10 @@ export interface Snapshot {
   provIg: number[];
   /** Chronicle entries involving the player since the start (UI shows new ones as notifications). */
   chronicle: { date: string; kind: string; text: string; n: number }[];
+  focus: FocusState;
+  events: PendingEventView[];
+  ambitions: AmbitionView[];
+  headlines: string[];
 }
 export type FromWorker =
   | { kind: "setup"; info: SetupInfo }

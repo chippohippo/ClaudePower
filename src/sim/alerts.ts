@@ -1,6 +1,6 @@
 // Alerts column (§13.1): actionable, sim-derived warnings for one country. Each has a type (mutable),
 // a severity, readable text, and an optional jump target.
-import { GOODS, N_GOODS } from "./defs";
+import { BUILDINGS, GOODS, N_GOODS } from "./defs";
 import { countryStat } from "./modifiers";
 import { POINT_CAP } from "./systems/core";
 import { AUTO_BUILD } from "./setup";
@@ -8,6 +8,9 @@ import type { World } from "./world";
 import { IGS, N_IGS, igIndex, igRow } from "./igs";
 import { Role, findRole } from "./characters";
 import { toYmd } from "./date";
+
+const PRODUCER: Record<number, string> = {};
+BUILDINGS.forEach((b) => { for (const g of Object.keys(b.pms[0]!.outputs)) PRODUCER[GOODS.findIndex((x) => x.id === g)] = b.name; });
 
 export interface Alert { type: string; severity: 1 | 2 | 3; text: string; province?: number; panel?: "economy" | "population" | "government" | "igs" }
 
@@ -37,10 +40,16 @@ export function computeAlerts(w: World, c: number): Alert[] {
   }
   const debtRatio = cc.debt![c]! / Math.max(1, cc.gdpYear![c]!);
   if (debtRatio > 0.6) out.push({ type: "debt", severity: debtRatio > 0.85 ? 3 : 2, text: `Debt at ${(100 * debtRatio).toFixed(0)}% of GDP — interest rising${debtRatio > 0.85 ? ", printing money soon" : ""}`, panel: "economy" });
+  // Only the two worst shortages, so the column stays readable.
+  const short: [number, number][] = [];
   for (let g = 0; g < N_GOODS; g++) {
+    const k = c * N_GOODS + g, demand = w.markets.cols.demand![k]!;
+    const unmet = demand > 0 ? 1 - w.markets.cols.bought![k]! / demand : 0;
+    if (unmet > 0.3) short.push([g, unmet]);
+  }
+  for (const [g, unmet] of short.sort((a, b) => b[1] - a[1]).slice(0, 2)) {
     const k = c * N_GOODS + g, base = GOODS[g]!.basePrice * cc.priceLevel![c]!;
-    const demand = w.markets.cols.demand![k]!, unmet = demand > 0 ? 1 - w.markets.cols.bought![k]! / demand : 0;
-    if (unmet > 0.2 && demand > 0) out.push({ type: "shortage", severity: unmet > 0.5 ? 3 : 2, text: `${GOODS[g]!.name} shortage: ${(100 * unmet).toFixed(0)}% of demand unmet, price ×${(w.markets.cols.price![k]! / base).toFixed(1)} — build more`, panel: "economy" });
+    out.push({ type: "shortage", severity: unmet > 0.5 ? 3 : 2, text: `${GOODS[g]!.name} shortage: ${(100 * unmet).toFixed(0)}% unmet, price ×${(w.markets.cols.price![k]! / base).toFixed(1)} — build ${PRODUCER[g] ?? "more"}`, panel: "economy" });
   }
   if (cc.stability![c]! < -1) out.push({ type: "stability", severity: cc.stability![c]! < -2 ? 3 : 2, text: `Stability ${cc.stability![c]!.toFixed(1)} — unrest rising`, panel: "government" });
   if (!(cc.automation![c]! & AUTO_BUILD)) {
