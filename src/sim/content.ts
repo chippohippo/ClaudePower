@@ -5,7 +5,9 @@ import popsJson from "../../data/generated/pops-1936.json";
 import startJson from "../../data/start/countries-1936.json";
 import resourcesJson from "../../data/start/resources.json";
 import lawsJson from "../../data/start/laws-1936.json";
-import { CountriesFile, CountriesStartFile, ProvincesFile, ResourcesFile, StartLawsFile, StartPopsFile } from "./schemas";
+import govJson from "../../data/start/governments-1936.json";
+import charsJson from "../../data/start/characters-1936.json";
+import { CountriesFile, CountriesStartFile, GovernmentsFile, ProvincesFile, ResourcesFile, StartCharactersFile, StartLawsFile, StartPopsFile } from "./schemas";
 import type { StartData } from "./setup";
 
 let cached: StartData | null = null;
@@ -19,6 +21,7 @@ export function loadContent(): StartData {
     start: CountriesStartFile.parse(startJson),
     resources: ResourcesFile.parse(resourcesJson),
     laws: StartLawsFile.parse(lawsJson),
+    politics: { governments: GovernmentsFile.parse(govJson), characters: StartCharactersFile.parse(charsJson) },
   };
   return cached;
 }

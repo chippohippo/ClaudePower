@@ -1,0 +1,788 @@
+[
+ {
+  "id": "administrator",
+  "name": "Administrator",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "adm_gain",
+    "add": 1
+   }
+  ]
+ },
+ {
+  "id": "diplomat",
+  "name": "Diplomat",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "dip_gain",
+    "add": 1
+   }
+  ]
+ },
+ {
+  "id": "strategist",
+  "name": "Strategist",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 1
+   }
+  ]
+ },
+ {
+  "id": "charismatic",
+  "name": "Charismatic",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.5
+   },
+   {
+    "target": "stability_target",
+    "add": 0.1
+   }
+  ]
+ },
+ {
+  "id": "demagogue",
+  "name": "Demagogue",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 1
+   },
+   {
+    "target": "stability_target",
+    "add": -0.2
+   }
+  ]
+ },
+ {
+  "id": "reformer",
+  "name": "Reformer",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "literacy_target",
+    "add": 0.02
+   },
+   {
+    "target": "pp_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "reactionary",
+  "name": "Reactionary",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.2
+   },
+   {
+    "target": "literacy_target",
+    "add": -0.02
+   }
+  ]
+ },
+ {
+  "id": "pragmatist",
+  "name": "Pragmatist",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "ideologue",
+  "name": "Ideologue",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.6
+   },
+   {
+    "target": "stability_target",
+    "add": -0.1
+   }
+  ]
+ },
+ {
+  "id": "frugal",
+  "name": "Frugal",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "construction_cost",
+    "mult": -0.05
+   }
+  ]
+ },
+ {
+  "id": "spendthrift",
+  "name": "Spendthrift",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "construction_cost",
+    "mult": 0.08
+   },
+   {
+    "target": "stability_target",
+    "add": 0.1
+   }
+  ]
+ },
+ {
+  "id": "industrious",
+  "name": "Industrious",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "investment_rate",
+    "mult": 0.1
+   }
+  ]
+ },
+ {
+  "id": "lazy",
+  "name": "Lazy",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "adm_gain",
+    "add": -1
+   }
+  ]
+ },
+ {
+  "id": "paranoid",
+  "name": "Paranoid",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": -0.15
+   },
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "cautious",
+  "name": "Cautious",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.1
+   }
+  ]
+ },
+ {
+  "id": "bold",
+  "name": "Bold",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   },
+   {
+    "target": "stability_target",
+    "add": -0.05
+   }
+  ]
+ },
+ {
+  "id": "corrupt",
+  "name": "Corrupt",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "tax_efficiency",
+    "mult": -0.05
+   }
+  ]
+ },
+ {
+  "id": "honest",
+  "name": "Honest",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "tax_efficiency",
+    "mult": 0.04
+   }
+  ]
+ },
+ {
+  "id": "populist",
+  "name": "Populist",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.15
+   },
+   {
+    "target": "tax_efficiency",
+    "mult": -0.03
+   }
+  ]
+ },
+ {
+  "id": "technocrat",
+  "name": "Technocrat",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "investment_rate",
+    "mult": 0.08
+   },
+   {
+    "target": "literacy_target",
+    "add": 0.01
+   }
+  ]
+ },
+ {
+  "id": "militarist",
+  "name": "Militarist",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mobilisation",
+    "add": 0.005
+   },
+   {
+    "target": "arms_demand",
+    "mult": 0.2
+   }
+  ]
+ },
+ {
+  "id": "pacifist",
+  "name": "Pacifist",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "arms_demand",
+    "mult": -0.2
+   },
+   {
+    "target": "stability_target",
+    "add": 0.05
+   }
+  ]
+ },
+ {
+  "id": "xenophobe",
+  "name": "Xenophobe",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "immigration",
+    "add": -0.5
+   }
+  ]
+ },
+ {
+  "id": "cosmopolitan",
+  "name": "Cosmopolitan",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "immigration",
+    "add": 0.5
+   },
+   {
+    "target": "dip_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "sickly",
+  "name": "Sickly",
+  "kind": "leader",
+  "description": "",
+  "modifiers": []
+ },
+ {
+  "id": "robust",
+  "name": "Robust",
+  "kind": "leader",
+  "description": "",
+  "modifiers": []
+ },
+ {
+  "id": "ambitious",
+  "name": "Ambitious",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.2
+   }
+  ]
+ },
+ {
+  "id": "loyal",
+  "name": "Loyal",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.05
+   }
+  ]
+ },
+ {
+  "id": "schemer",
+  "name": "Schemer",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "dip_gain",
+    "add": 0.5
+   },
+   {
+    "target": "stability_target",
+    "add": -0.05
+   }
+  ]
+ },
+ {
+  "id": "orator",
+  "name": "Orator",
+  "kind": "leader",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "finance_expert",
+  "name": "Finance Expert",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "tax_efficiency",
+    "mult": 0.05
+   }
+  ]
+ },
+ {
+  "id": "planner",
+  "name": "Economic Planner",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "construction_cost",
+    "mult": -0.06
+   }
+  ]
+ },
+ {
+  "id": "educator",
+  "name": "Educator",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "literacy_target",
+    "add": 0.03
+   }
+  ]
+ },
+ {
+  "id": "public_health",
+  "name": "Public Health Advocate",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "fertility_mult",
+    "mult": 0.02
+   }
+  ]
+ },
+ {
+  "id": "propagandist",
+  "name": "Propagandist",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "security_chief",
+  "name": "Security Chief",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.15
+   }
+  ]
+ },
+ {
+  "id": "labour_mediator",
+  "name": "Labour Mediator",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.1
+   },
+   {
+    "target": "labour_share",
+    "add": 0.01
+   }
+  ]
+ },
+ {
+  "id": "free_trader",
+  "name": "Free Trader",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "investment_rate",
+    "mult": 0.08
+   }
+  ]
+ },
+ {
+  "id": "protectionist",
+  "name": "Protectionist",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "construction_cost",
+    "mult": -0.03
+   },
+   {
+    "target": "investment_rate",
+    "mult": -0.03
+   }
+  ]
+ },
+ {
+  "id": "bureaucrat",
+  "name": "Career Bureaucrat",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "adm_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "envoy",
+  "name": "Seasoned Envoy",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "dip_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "quartermaster",
+  "name": "Quartermaster",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "incompetent",
+  "name": "Incompetent",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "adm_gain",
+    "add": -0.5
+   }
+  ]
+ },
+ {
+  "id": "embezzler",
+  "name": "Embezzler",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "tax_efficiency",
+    "mult": -0.06
+   }
+  ]
+ },
+ {
+  "id": "zealot",
+  "name": "Zealot",
+  "kind": "minister",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": -0.1
+   },
+   {
+    "target": "pp_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "organiser",
+  "name": "Organiser",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mobilisation",
+    "add": 0.005
+   }
+  ]
+ },
+ {
+  "id": "logistician",
+  "name": "Logistician",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "arms_demand",
+    "mult": -0.1
+   }
+  ]
+ },
+ {
+  "id": "drillmaster",
+  "name": "Drillmaster",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "armour_pioneer",
+  "name": "Armour Pioneer",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "old_guard",
+  "name": "Old Guard",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.05
+   }
+  ]
+ },
+ {
+  "id": "naval_visionary",
+  "name": "Naval Visionary",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "dip_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "airpower_advocate",
+  "name": "Airpower Advocate",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.5
+   }
+  ]
+ },
+ {
+  "id": "defensive_genius",
+  "name": "Defensive Genius",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": 0.05
+   }
+  ]
+ },
+ {
+  "id": "offensive_doctrine",
+  "name": "Offensive Doctrine",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "political_general",
+  "name": "Political General",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "pp_gain",
+    "add": 0.3
+   },
+   {
+    "target": "stability_target",
+    "add": -0.05
+   }
+  ]
+ },
+ {
+  "id": "reckless",
+  "name": "Reckless",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": -0.3
+   }
+  ]
+ },
+ {
+  "id": "mutinous",
+  "name": "Mutinous",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "stability_target",
+    "add": -0.1
+   }
+  ]
+ },
+ {
+  "id": "brilliant",
+  "name": "Brilliant",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 1
+   }
+  ]
+ },
+ {
+  "id": "veteran",
+  "name": "Veteran",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.3
+   }
+  ]
+ },
+ {
+  "id": "reformist_officer",
+  "name": "Reformist Officer",
+  "kind": "general",
+  "description": "",
+  "modifiers": [
+   {
+    "target": "mil_gain",
+    "add": 0.3
+   },
+   {
+    "target": "literacy_target",
+    "add": 0.005
+   }
+  ]
+ }
+]

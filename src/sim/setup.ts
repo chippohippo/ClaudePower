@@ -4,6 +4,8 @@ import { TERRAINS, type CountryDef, type ProvinceDef } from "./schemas";
 import type { z } from "zod";
 import type { CountriesStartFile, ResourcesFile, StartLawsFile, StartPopsFile } from "./schemas";
 import { LAWS, enactLaw } from "./laws";
+import { seedPolitics, type PoliticsStart } from "./politics-setup";
+import { IG_COLS } from "./world";
 import { BASE_PRICE, BUILDINGS, N_GOODS, PMS } from "./defs";
 import { addPop } from "./pops";
 import { regionOfLonLat } from "./regions";
@@ -15,10 +17,11 @@ export interface StartData {
   countries: CountryDef[]; provinces: ProvinceDef[]; capitals: Record<string, number>;
   pops: z.infer<typeof StartPopsFile>; start: z.infer<typeof CountriesStartFile>; resources: z.infer<typeof ResourcesFile>;
   laws: z.infer<typeof StartLawsFile>;
+  politics: PoliticsStart;
 }
 export interface StartInfo { world: World; srcProvinceIds: number[]; countries: CountryDef[] }
 
-export const AUTO_DEVELOP = 1, AUTO_BUILD = 2, AUTO_BUDGET = 4, AUTO_ALL = 7;
+export const AUTO_DEVELOP = 1, AUTO_BUILD = 2, AUTO_BUDGET = 4, AUTO_ADVISORS = 8, AUTO_ALL = 15;
 export const RES_OIL = 1, RES_COAL = 2, RES_IRON = 4;
 export const STARTING_TAX = 0.12;
 
@@ -96,6 +99,8 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
     const wages = [0.5, 1, 1.5, 3, 10, 1, 1.5];
     wages.forEach((x, k) => { cc[`wage${k}`]![i] = Math.round(((s.gdpPerCapita * 100) / 12) * x * 0.9); });
   });
+  w.igs = makeTable(countries.length * 8, IG_COLS);
+  seedPolitics(w, data.politics);
   return { world: w, srcProvinceIds: provs.map((p) => p.id), countries };
 }
 

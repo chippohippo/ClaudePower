@@ -22,3 +22,10 @@
 - **Automation flags per country** (develop/build/budget). AI countries run with all on; the player can take over each system separately.
 - **Map repaints only when a colour changes**; previews refresh per game month and after every command (snapshot.rev).
 - **Interim point gains +5 (ADM/DIP/MIL) and PP +4** until leaders and IGs supply them (M4).
+- **IG clout = Σ pop political weight (size × √relative wealth × (0.3+literacy)) × stratum attraction × IG power** (Armed Forces ×8: guns beyond headcount).
+- **Approval target = laws + own privilege + rivals' privileges + members' SoL + representation + head's ideology + fading favour + unmet demand** (IGs above 15% clout demand their privilege). Smoothed 8%/month; radicalism follows anger × size.
+- **Strikes** when radicalism > 40 and clout > 8%: unrest in members' provinces (output −3%/point via unrest).
+- **Elections** every 4 years (democracies): clout × approval × ideology fit; the winning IG's leader governs. **Coups** when Armed Forces radicalism > 60 (75 in democracies) and clout > 10%.
+- **Law cost rises with opposition** (×1 + 1.5×clout-weighted opposition); opponents gain radicalism. Preview shows the support bar.
+- **Characters**: Gompertz mortality, succession via heir → best minister → generated; auto-advisors fill seats. Portraits are deterministic SVG from a seed.
+- **Resource flags use province centroids**, so boxes must cover cluster centroids (US Gulf/California oil widened).

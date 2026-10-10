@@ -23,7 +23,7 @@ export const STAT_CLAMPS: Record<StatKey, [number, number]> = {
 /** Default base values for stats not set in world.base. */
 export const STAT_DEFAULTS: Record<StatKey, number> = {
   fertility_mult: 1, tax_efficiency: 1, construction_cost: 1, investment_rate: 0.05, state_construction: 0.3,
-  mobilisation: 0.01, arms_demand: 1, consumption: 1, adm_gain: 5, dip_gain: 5, mil_gain: 5, pp_gain: 4,
+  mobilisation: 0.01, arms_demand: 1, consumption: 1, adm_gain: 3, dip_gain: 3, mil_gain: 3, pp_gain: 2,
 };
 
 export function getStat(world: World, scope: ScopeRef, key: StatKey): StatBreakdown {
@@ -70,6 +70,10 @@ export function countryStat(world: World, key: StatKey): Float64Array {
     out[c] = Math.min(hi, Math.max(lo, (base + add[c]! + global) * mult[c]! * gmult));
   }
   return out;
+}
+
+export function removeModifiersWhere(world: World, pred: (m: Modifier) => boolean): void {
+  world.modifiers = world.modifiers.filter((m) => !pred(m));
 }
 
 export function removeModifiers(world: World, scope: ScopeRef, source: SourceRef): void {

@@ -5,10 +5,13 @@ import { countryStat } from "./modifiers";
 import { POINT_CAP } from "./systems/core";
 import { AUTO_BUILD } from "./setup";
 import type { World } from "./world";
+import { IGS, N_IGS, igIndex, igRow } from "./igs";
+import { Role, findRole } from "./characters";
+import { toYmd } from "./date";
 
-export interface Alert { type: string; severity: 1 | 2 | 3; text: string; province?: number; panel?: "economy" | "population" | "government" }
+export interface Alert { type: string; severity: 1 | 2 | 3; text: string; province?: number; panel?: "economy" | "population" | "government" | "igs" }
 
-export const ALERT_TYPES = ["points_cap", "pp_cap", "unemployment", "unrest", "bankruptcy", "debt", "shortage", "stability", "idle_treasury", "construction_idle"] as const;
+export const ALERT_TYPES = ["ig_radical", "strike", "coup_risk", "vacant_seat", "election", "points_cap", "pp_cap", "unemployment", "unrest", "bankruptcy", "debt", "shortage", "stability", "idle_treasury", "construction_idle"] as const;
 
 export function computeAlerts(w: World, c: number): Alert[] {
   const out: Alert[] = [], cc = w.countries.cols, pc = w.provinces.cols;
@@ -45,6 +48,19 @@ export function computeAlerts(w: World, c: number): Alert[] {
     for (let j = 0; j < w.projects.size; j++) if (w.projects.cols.country![j] === c && w.projects.cols.state![j] === 1) mine++;
     if (mine === 0) out.push({ type: "construction_idle", severity: 1, text: "No state construction under way" });
     if (cc.treasury![c]! > 12 * Math.max(1, cc.expense![c]!)) out.push({ type: "idle_treasury", severity: 1, text: "Treasury holds a year of spending — invest it or cut taxes", panel: "economy" });
+  }
+  // Interest groups.
+  const AF = igIndex("armed_forces");
+  for (let g = 0; g < N_IGS; g++) {
+    const r = igRow(c, g), ic = w.igs.cols;
+    if (ic.strikes![r]! > 0) out.push({ type: "strike", severity: 3, text: `${IGS[g]!.name} are striking (radicalism ${ic.radicalism![r]!.toFixed(0)}) — output falls`, panel: "igs" });
+    else if (ic.radicalism![r]! > 30 && ic.clout![r]! > 0.05) out.push({ type: "ig_radical", severity: 2, text: `${IGS[g]!.name} radicalising (${ic.radicalism![r]!.toFixed(0)}) — grant their privilege or co-opt`, panel: "igs" });
+    if (g === AF && ic.radicalism![r]! > 45 && ic.clout![r]! > 0.08) out.push({ type: "coup_risk", severity: 3, text: `Coup risk: the Armed Forces are restless (radicalism ${ic.radicalism![r]!.toFixed(0)})`, panel: "igs" });
+  }
+  for (const [role, n] of [[Role.Cabinet, 4], [Role.HighCommand, 3]] as const) for (let sl = 0; sl < n; sl++) if (findRole(w, c, role, sl) < 0) { out.push({ type: "vacant_seat", severity: 2, text: `A ${role === Role.Cabinet ? "cabinet" : "high command"} seat is vacant — appoint someone`, panel: "government" }); break; }
+  if (cc.government![c] === 0) {
+    const next = cc.nextElection![c]!, months = (Math.floor(next / 100) - toYmd(w.date).year) * 12 + (next % 100) - toYmd(w.date).month;
+    if (months >= 0 && months <= 6) out.push({ type: "election", severity: 1, text: `Election in ${months} months — IG approval decides the vote`, panel: "igs" });
   }
   return out.sort((a, b) => b.severity - a.severity);
 }

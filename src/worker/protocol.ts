@@ -40,12 +40,31 @@ export interface PlayerState {
   why: Record<string, { label: string; value: string }[]>;
 }
 
+export interface CharacterInfo {
+  id: number; name: string; role: number; slot: number; age: number; adm: number; dip: number; mil: number;
+  traits: string[]; ideology: number; ig: number; seed: number; loyalty: number;
+}
+export interface IgInfo {
+  clout: number; approval: number; radicalism: number; privilege: boolean; strikes: number; leader: CharacterInfo | null;
+  parts: { label: string; value: number }[];
+}
+export interface PoliticsState {
+  government: "democracy" | "autocracy"; nextElection: string; academy: number;
+  head: CharacterInfo | null; heir: CharacterInfo | null; cabinet: (CharacterInfo | null)[]; high: (CharacterInfo | null)[]; pool: CharacterInfo[];
+  igs: IgInfo[]; ideology: number[]; electionScores: number[];
+}
+
 export interface Snapshot {
   date: number; dateLabel: string; paused: boolean; speed: number; rev: number;
   treasury: number[]; owner: number[]; development: number[];
   devTax: number[]; devProd: number[]; devMan: number[];
   provPopulation: number[]; provSol: number[]; provUnemployment: number[]; provUnrest: number[];
   player: PlayerState;
+  politics: PoliticsState;
+  /** Dominant IG per province (−1 none), for the IG map mode. */
+  provIg: number[];
+  /** Chronicle entries involving the player since the start (UI shows new ones as notifications). */
+  chronicle: { date: string; kind: string; text: string; n: number }[];
 }
 export type FromWorker =
   | { kind: "setup"; info: SetupInfo }

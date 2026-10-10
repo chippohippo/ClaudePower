@@ -1,0 +1,296 @@
+[
+ {
+  "id": "landowners",
+  "name": "Landowners",
+  "color": "#8d6e3f",
+  "ideology": "non",
+  "strata": {
+   "elites": 0.5,
+   "peasants": 0.15
+  },
+  "prefs": {
+   "laissez_faire": 1,
+   "interventionism": 0,
+   "command_economy": -2,
+   "no_schooling": 1,
+   "universal_education": -1,
+   "closed_borders": 1,
+   "open_borders": -1
+  },
+  "privileges": [
+   {
+    "id": "land_rights",
+    "name": "Protected Estates",
+    "description": "Landed estates are exempt from reform and lightly taxed.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": -0.05
+     }
+    ]
+   }
+  ],
+  "power": 1.2
+ },
+ {
+  "id": "industrialists",
+  "name": "Industrialists",
+  "color": "#4a5a6a",
+  "ideology": "dem",
+  "strata": {
+   "elites": 0.5,
+   "professionals": 0.15
+  },
+  "prefs": {
+   "laissez_faire": 2,
+   "interventionism": 0,
+   "command_economy": -2,
+   "open_borders": 1,
+   "restricted": 0,
+   "public_schools": 1,
+   "partial": 1,
+   "total": -1
+  },
+  "privileges": [
+   {
+    "id": "tax_breaks",
+    "name": "Industrial Tax Breaks",
+    "description": "Lower taxes on profits; capital flows into new plants.",
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": 0.25
+     },
+     {
+      "target": "tax_efficiency",
+      "mult": -0.05
+     }
+    ]
+   }
+  ],
+  "power": 1.5
+ },
+ {
+  "id": "petite_bourgeoisie",
+  "name": "Petite Bourgeoisie",
+  "color": "#c9a227",
+  "ideology": "fas",
+  "strata": {
+   "clerks": 0.6,
+   "professionals": 0.2,
+   "bureaucrats": 0.3
+  },
+  "prefs": {
+   "interventionism": 1,
+   "command_economy": -2,
+   "closed_borders": 1,
+   "open_borders": -1,
+   "public_schools": 1,
+   "limited": 1
+  },
+  "privileges": [
+   {
+    "id": "small_business",
+    "name": "Small Business Protection",
+    "description": "Licences and tariffs shield shopkeepers.",
+    "modifiers": [
+     {
+      "target": "construction_cost",
+      "mult": 0.05
+     },
+     {
+      "target": "stability_target",
+      "add": 0.1
+     }
+    ]
+   }
+  ],
+  "power": 1
+ },
+ {
+  "id": "intelligentsia",
+  "name": "Intelligentsia",
+  "color": "#5e7fbf",
+  "ideology": "dem",
+  "strata": {
+   "professionals": 0.6,
+   "clerks": 0.15
+  },
+  "prefs": {
+   "universal_education": 2,
+   "public_schools": 1,
+   "no_schooling": -2,
+   "open_borders": 1,
+   "total": -2,
+   "partial": -1,
+   "civilian": 1
+  },
+  "privileges": [
+   {
+    "id": "academic_freedom",
+    "name": "Academic Freedom",
+    "description": "Universities and the press run free.",
+    "modifiers": [
+     {
+      "target": "literacy_target",
+      "add": 0.03
+     },
+     {
+      "target": "stability_target",
+      "add": -0.1
+     }
+    ]
+   }
+  ],
+  "power": 1.5
+ },
+ {
+  "id": "trade_unions",
+  "name": "Trade Unions",
+  "color": "#b23a48",
+  "ideology": "com",
+  "strata": {
+   "workers": 0.7,
+   "clerks": 0.1
+  },
+  "prefs": {
+   "interventionism": 1,
+   "command_economy": 1,
+   "laissez_faire": -2,
+   "public_schools": 1,
+   "universal_education": 1,
+   "open_borders": -1,
+   "total": -1
+  },
+  "privileges": [
+   {
+    "id": "collective_bargaining",
+    "name": "Collective Bargaining",
+    "description": "Unions negotiate wages: workers take a larger share of output.",
+    "modifiers": [
+     {
+      "target": "labour_share",
+      "add": 0.05
+     },
+     {
+      "target": "investment_rate",
+      "mult": -0.1
+     }
+    ]
+   }
+  ],
+  "power": 1
+ },
+ {
+  "id": "rural_folk",
+  "name": "Rural Folk",
+  "color": "#6a994e",
+  "ideology": "non",
+  "strata": {
+   "peasants": 0.7
+  },
+  "prefs": {
+   "laissez_faire": -1,
+   "interventionism": 1,
+   "closed_borders": 1,
+   "no_schooling": 0,
+   "public_schools": 1,
+   "total": -2,
+   "partial": -1
+  },
+  "privileges": [
+   {
+    "id": "farm_subsidies",
+    "name": "Farm Price Supports",
+    "description": "The state buys surplus grain.",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.15
+     },
+     {
+      "target": "tax_efficiency",
+      "mult": -0.03
+     }
+    ]
+   }
+  ],
+  "power": 1
+ },
+ {
+  "id": "armed_forces",
+  "name": "Armed Forces",
+  "color": "#3d5a40",
+  "ideology": "fas",
+  "strata": {
+   "military": 0.9
+  },
+  "prefs": {
+   "partial": 2,
+   "total": 1,
+   "limited": 1,
+   "civilian": -2,
+   "closed_borders": 1,
+   "command_economy": 0
+  },
+  "privileges": [
+   {
+    "id": "military_budget",
+    "name": "Guaranteed Military Budget",
+    "description": "The army's budget is beyond parliament's reach.",
+    "modifiers": [
+     {
+      "target": "arms_demand",
+      "mult": 0.5
+     },
+     {
+      "target": "mobilisation",
+      "add": 0.01
+     }
+    ]
+   }
+  ],
+  "power": 8
+ },
+ {
+  "id": "devout",
+  "name": "Devout",
+  "color": "#7b5ea7",
+  "ideology": "non",
+  "strata": {
+   "peasants": 0.15,
+   "clerks": 0.05,
+   "elites": 0.05
+  },
+  "religious": true,
+  "prefs": {
+   "no_schooling": 2,
+   "universal_education": -1,
+   "closed_borders": 1,
+   "open_borders": -2,
+   "command_economy": -2
+  },
+  "privileges": [
+   {
+    "id": "church_schools",
+    "name": "Church Schools",
+    "description": "Religious bodies run education and charity.",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.2
+     },
+     {
+      "target": "literacy_target",
+      "add": -0.02
+     },
+     {
+      "target": "fertility_mult",
+      "mult": 0.05
+     }
+    ]
+   }
+  ],
+  "power": 1
+ }
+]

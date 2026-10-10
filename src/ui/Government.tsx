@@ -1,11 +1,11 @@
 // F1 Government: laws, stability, automation toggles, tax rate.
 import { LAWS } from "../sim/laws";
-import { AUTO_BUDGET, AUTO_BUILD, AUTO_DEVELOP } from "../sim/setup";
+import { AUTO_ADVISORS, AUTO_BUDGET, AUTO_BUILD, AUTO_DEVELOP } from "../sim/setup";
 import { ActionButton } from "./ActionButton";
 import { useUi } from "./store";
 
 const h = { margin: "12px 0 4px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 } as const;
-const AUTOS = [[AUTO_DEVELOP, "Auto-develop", "Spend ADM/DIP/MIL on the cheapest development when points pass 600"], [AUTO_BUILD, "Auto-construct", "The state picks and funds construction projects"], [AUTO_BUDGET, "Auto-budget", "Adjust the tax rate yearly toward a balanced budget"]] as const;
+const AUTOS = [[AUTO_DEVELOP, "Auto-develop", "Spend ADM/DIP/MIL on the cheapest development when points pass 600"], [AUTO_BUILD, "Auto-construct", "The state picks and funds construction projects"], [AUTO_BUDGET, "Auto-budget", "Adjust the tax rate yearly toward a balanced budget"], [AUTO_ADVISORS, "Auto-advisors", "Fill empty cabinet and high-command seats with the best candidate"]] as const;
 
 export function Government() {
   const p = useUi((s) => s.snap?.player);

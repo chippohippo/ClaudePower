@@ -4,6 +4,7 @@ import { countryStat, getStat } from "../modifiers";
 import { AUTO_DEVELOP } from "../setup";
 import { applyCommand } from "../commands";
 import { cheapestDevelopment } from "../commands/player";
+import "../commands/politics";
 import type { World } from "../world";
 
 export const POINT_CAP = 999, PP_CAP = 2000;

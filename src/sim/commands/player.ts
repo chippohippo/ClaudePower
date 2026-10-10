@@ -2,6 +2,7 @@
 import { registerCommand, type Validation } from "../commands";
 import { BUILDINGS, PMS } from "../defs";
 import { LAWS, activeLaw, enactLaw } from "../laws";
+import { IGS, igRow, lawSupport } from "../igs";
 import { getStat } from "../modifiers";
 import { TERRAINS } from "../schemas";
 import { AUTO_BUDGET, RES_COAL, RES_IRON, RES_OIL } from "../setup";
@@ -110,10 +111,12 @@ registerCommand<{ project: number }>("cancel_project", {
   preview() { return ["Stops the project. Goods already delivered are lost."]; },
 });
 
+/** PP cost: base × steps × opposition (passing against powerful IGs costs extra, §7.2). */
 export const lawChangeCost = (w: World, c: number, cat: number, law: number) => {
   const base = LAWS[cat]!.laws[law]!.ppCost;
   const steps = Math.abs(law - activeLaw(w, c, cat));
-  return Math.round(base * (1 + 0.5 * (steps - 1)));
+  const opposition = Math.max(0, -lawSupport(w, c, cat, law).total);
+  return Math.round(base * (1 + 0.5 * (steps - 1)) * (1 + 1.5 * opposition));
 };
 
 registerCommand<{ category: number; law: number }>("set_law", {
@@ -127,6 +130,8 @@ registerCommand<{ category: number; law: number }>("set_law", {
   },
   apply({ actor, payload: { category, law } }, w) {
     w.countries.cols.pp![actor]! -= lawChangeCost(w, actor, category, law);
+    // Opponents radicalise in proportion to how much they lose.
+    for (const x of lawSupport(w, actor, category, law).by) if (x.delta < 0) w.igs.cols.radicalism![igRow(actor, x.ig)] = Math.min(100, w.igs.cols.radicalism![igRow(actor, x.ig)]! - 6 * x.delta);
     enactLaw(w, actor, category, law);
     return [{ type: "law_enacted", data: { category, law } }];
   },
@@ -136,7 +141,10 @@ registerCommand<{ category: number; law: number }>("set_law", {
     const fx = l.modifiers.map((m) => m.target === "education_spending"
       ? `Schooling costs ≈ $${fmt((m.add ?? 0) * pop)}/month at today's population (bought as services)`
       : `${m.target.replace(/_/g, " ")} ${m.add !== undefined ? (m.add > 0 ? "+" : "") + m.add : ""}${m.mult !== undefined ? `${m.mult > 0 ? "+" : ""}${Math.round(m.mult * 100)}%` : ""}`);
-    return [`Costs ${lawChangeCost(w, actor, category, law)} PP (jumping several steps costs more)`, l.description, ...(fx.length ? fx : ["No modifiers (baseline)"]), "Replaces: " + LAWS[category]!.laws[activeLaw(w, actor, category)]!.name];
+    const sup = lawSupport(w, actor, category, law);
+    const fmtIg = (x: { ig: number; clout: number; delta: number }) => `${IGS[x.ig]!.name} ${(100 * x.clout).toFixed(0)}%`;
+    const pro = sup.by.filter((x) => x.delta > 0 && x.clout > 0.01).map(fmtIg), con = sup.by.filter((x) => x.delta < 0 && x.clout > 0.01).map(fmtIg);
+    return [`Costs ${lawChangeCost(w, actor, category, law)} PP (more steps and stronger opposition cost more)`, `Support ${sup.total >= 0 ? "+" : ""}${sup.total.toFixed(2)} — for: ${pro.join(", ") || "nobody"}; against: ${con.join(", ") || "nobody"}`, l.description, ...(fx.length ? fx : ["No modifiers (baseline)"]), con.length ? "Opponents' radicalism rises" : "", "Replaces: " + LAWS[category]!.laws[activeLaw(w, actor, category)]!.name].filter(Boolean);
   },
 });
 
@@ -160,7 +168,7 @@ registerCommand<Record<string, never>>("raise_stability", {
 });
 
 registerCommand<{ flags: number }>("set_automation", {
-  validate({ payload: { flags } }) { return Number.isInteger(flags) && flags >= 0 && flags <= 7 ? ok : no("Invalid automation flags"); },
+  validate({ payload: { flags } }) { return Number.isInteger(flags) && flags >= 0 && flags <= 15 ? ok : no("Invalid automation flags"); },
   apply({ actor, payload: { flags } }, w) { w.countries.cols.automation![actor] = flags; return [{ type: "automation_changed" }]; },
   preview() { return ["Automated systems are run by the same logic as the AI; you can take over any time."]; },
 });

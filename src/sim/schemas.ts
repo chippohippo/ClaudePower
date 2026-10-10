@@ -72,6 +72,23 @@ export const LawsFile = z.array(z.object({
 export type LawCategory = z.infer<typeof LawsFile>[number];
 export const StartLawsFile = z.record(z.string(), z.record(z.string(), z.string()));
 
+export const IDEOLOGIES = ["dem", "fas", "com", "non"] as const;
+export const IgsFile = z.array(z.object({
+  id: z.string(), name: z.string(), color: z.string().regex(/^#[0-9a-f]{6}$/i), ideology: z.enum(IDEOLOGIES),
+  strata: z.partialRecord(z.enum(STRATA), z.number().min(0).max(1)), religious: z.boolean().optional(),
+  /** Political weight multiplier (guns, money, prestige beyond headcount). */
+  power: z.number().positive().default(1),
+  prefs: z.record(z.string(), z.number().min(-2).max(2)),
+  privileges: z.array(z.object({ id: z.string(), name: z.string(), description: z.string(), modifiers: z.array(ModSpec) })).min(1),
+})).length(8);
+export const TraitsFile = z.array(z.object({ id: z.string(), name: z.string(), kind: z.enum(["leader", "minister", "general"]), description: z.string(), modifiers: z.array(ModSpec) })).min(50);
+export const GovernmentsFile = z.record(z.string(), z.object({ type: z.enum(["democracy", "autocracy"]), electionMonth: z.number().int().min(1).max(12).optional() }));
+export const StartCharactersFile = z.record(z.string(), z.array(z.object({
+  name: z.string(), born: z.number().int(), role: z.enum(["head", "cabinet", "high"]), adm: z.number(), dip: z.number(), mil: z.number(),
+  traits: z.array(z.string()), ideology: z.enum(IDEOLOGIES), ig: z.string(),
+})));
+export const NamesFile = z.record(z.string(), z.union([z.object({ first: z.array(z.string()).min(5), last: z.array(z.string()).min(5) }), z.record(z.string(), z.string())]));
+
 export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "countries.json": CountriesFile,
   "map_1936.json": Map1936File,
@@ -84,5 +101,10 @@ export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "needs.json": NeedsFile,
   "buildings.json": BuildingsFile,
   "laws.json": LawsFile,
+  "igs.json": IgsFile,
+  "traits.json": TraitsFile,
+  "names.json": NamesFile,
+  "start/governments-1936.json": GovernmentsFile,
+  "start/characters-1936.json": StartCharactersFile,
   "start/laws-1936.json": StartLawsFile,
 };

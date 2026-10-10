@@ -12,7 +12,7 @@ export function AlertsColumn() {
   const p = snap.player;
   const alerts = p.alerts.filter((a) => !muted.includes(a.type));
   return (
-    <div style={{ position: "absolute", top: 72, right: 12, width: 300, color: "#eee", fontSize: 12, zIndex: 4, display: "flex", flexDirection: "column", gap: 4, maxHeight: "55vh", overflowY: "auto" }}>
+    <div style={{ position: "absolute", top: 80, right: 12, width: 300, color: "#eee", fontSize: 12, zIndex: 4, display: "flex", flexDirection: "column", gap: 4, maxHeight: "55vh", overflowY: "auto" }}>
       {alerts.map((a, i) => (
         <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", padding: "4px 8px", background: "rgba(15,17,26,0.92)", borderLeft: `3px solid ${COLORS[a.severity]}`, borderRadius: 4, cursor: a.province !== undefined || a.panel ? "pointer" : undefined }}
           onClick={() => { if (a.province !== undefined) jumpTo(a.province); if (a.panel) set({ dock: a.panel }); }}>
@@ -24,8 +24,9 @@ export function AlertsColumn() {
       <div style={{ marginTop: 6, padding: 8, background: "rgba(15,17,26,0.92)", borderRadius: 4 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Outliner</div>
         <div style={{ opacity: 0.7 }}>Construction</div>
-        {p.projects.length === 0 && <div style={{ opacity: 0.6 }}>— none —</div>}
-        {p.projects.map((pr) => (
+        {p.projects.filter((x) => x.state).length === 0 && <div style={{ opacity: 0.6 }}>— no state projects —</div>}
+        {p.projects.some((x) => !x.state) && <div style={{ opacity: 0.7 }}>💼 {p.projects.filter((x) => !x.state).length} private investment project(s) under way</div>}
+        {p.projects.filter((x) => x.state).map((pr) => (
           <div key={pr.index} style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span style={{ flex: 1, cursor: "pointer" }} onClick={() => jumpTo(pr.province)}>
               {pr.state ? "🏗" : "💼"} {BUILDINGS[pr.type]!.name} ×{pr.levels} · {setup.provinceNames[pr.province]} · {Math.round(100 * pr.progress)}%

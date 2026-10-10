@@ -1,6 +1,6 @@
 # Iron & Empire — Working Memory
-## Current milestone: M3 — The Core Loop   Status: done (tag m3) — awaiting human playtest feedback. Next: M4 — Characters & Interest Groups
-## Next task: act on the user's playtest feedback, then M4 (read §7, §9 and the M4 entry in §15)
+## Current milestone: M4 — Characters & Interest Groups   Status: done (tag m4). Next: M5 — Focuses, Events & Consistency
+## Next task: M5 — read §10, §14 and the M5 entry in §15; apply any playtest feedback first
 ## Golden rules
 1. One milestone at a time; never leave the build broken.
 2. Everything is a Modifier (getStat for tooltips/explain/AI).
@@ -23,7 +23,9 @@
 - pops: src/sim/pops.ts (SoA table, transferPop/merge) · money: src/sim/money.ts (integer cents, Escrow, ledger, budgetLine)
 - economy month (src/sim/systems/economy.ts): labour → production orders → pop/state/construction orders → market clear (national, then world residual) → wages/dividends → SoL → budget/monetary → construction → demography/mobility
 - core loop: src/sim/systems/core.ts (points, PP, stability, unrest, manpower, auto-develop) · laws: src/sim/laws.ts + data/laws.json
-- player commands (validate/apply/preview): src/sim/commands/player.ts · alerts: src/sim/alerts.ts
+- player commands (validate/apply/preview): src/sim/commands/player.ts, commands/politics.ts · alerts: src/sim/alerts.ts
+- characters: src/sim/characters.ts (roles, traits→modifiers "char:*", mortality) · IGs: src/sim/igs.ts (+ data/igs.json), systems/igs.ts (clout/approval/radicalism/strikes)
+- politics: systems/politics.ts (deaths, succession, elections, coups, ideology drift) · seeding: src/sim/politics-setup.ts · UI: People.tsx, Igs.tsx, Portrait.tsx
 - session (player, undo, previews, snapshot): src/worker/session.ts · scripted UI playtest: scripts/playtest-germany.mjs
 - inspect (UI reports + breakdowns): src/sim/inspect.ts · calibration: tests/calibration/century.test.ts (~45 s)
 - world from content: src/sim/setup.ts (createWorld, scope world|europe, CSR adjacency) · renderer: src/map/MapRenderer.ts (render on demand)
@@ -33,13 +35,13 @@
 - Tech placeholders until M7: ERA_GROWTH productivity, medicine()/schooling() curves, PMs unlock by year (chosen by profit).
 - Cultures/religions are spread uniformly across a country's provinces (no regional distribution yet).
 - Calibration is one deterministic run (no randomness in sim yet), so "10% of runs" inflation check = this run.
-- Point/PP gains are interim (+5/+4) until leaders/advisors (M4). Points pile up by ~1944: few sinks yet.
+- Points: base 3 + head stats + ¼ minister stats + traits; PP base 2 + stability + loyal IGs. Sinks: dev, stability, heirs, appointments, laws.
+- Historical leaders can die early by chance (seed 1: Hitler dies May 1936). Consider a grace period for historical heads.
 - State construction is cheap vs treasury (30 levels ≈ $70–120M vs $5–9B); consider bigger levels or presets.
 - Hot loops alias imported consts locally (tsx live-binding getters were 40% of tick time).
 - Snapshots send full owner/dev arrays (cheap at 250); switch to changed-table diffs if it grows.
 - Colonies owned directly by metropole (no subjects yet). Small 1936 border details ignored (Saar, Danzig, Hatay, Karelia).
 - Terrain is lat/lon-box heuristic; ~20 island provinces lack land neighbours (need sea links).
 - Map fps checked only in headless software GL (render submit ~1–2 ms); re-check on a real GPU.
-- Undo (re-sim from snapshot) not yet implemented.
 ## Decisions: see docs/decisions.md
 ## Brief: IRON_AND_EMPIRE_BRIEF_v2.md (text extract of the PDF)

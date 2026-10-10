@@ -22,6 +22,7 @@ export function toYmd(d: SimDate): Ymd {
 export function fromYmd(year: number, month: number, day: number): SimDate {
   let d = 0;
   for (let y = START_YEAR; y < year; y++) d += yearDays(y);
+  for (let y = year; y < START_YEAR; y++) d -= yearDays(y); // dates before 1936 are negative
   for (let m = 0; m < month - 1; m++) d += MONTH_DAYS[m]! + (m === 1 && isLeap(year) ? 1 : 0);
   return d + day - 1;
 }

@@ -22,3 +22,9 @@
 - Alerts column (click to jump, mute per type), First Steps card, greyed buttons with reasons, hover previews of effects, top-bar breakdown tooltips, Unrest map mode (5), Government panel (F1).
 - Fixes: import-dependent markets price near the world price; shortage alerts use unmet demand; more iron regions; construction costs ~8 months of output; gzip saves deterministic (mtime 0).
 - Scripted playtest as Germany: 10 years, 26 decisions, 60 fps at speed 5, no errors.
+## m4 — Characters & Interest Groups
+- Characters: historical 1936 leaders for the 8 majors, procedural characters from culture name lists, 60 traits, ageing and death, succession, heirs and education, leadership academies, cabinet (4) and high command (3) with appointments, candidate pool, procedural SVG portraits.
+- 8 interest groups: clout from pops, approval with breakdown, privileges, radicalism, strikes, PP effects, law support bars and opposition costs, elections, coups, yearly ideology drift.
+- UI: Interest Groups panel (F4), people in Government (F1), IG map mode (6), chronicle notifications with auto-pause on leadership changes, IG alerts.
+- Exit test: ignoring Trade Unions while industrialising → radicalism 64 and 19 strike-years in 20; accommodating → radicalism 14, no strikes.
+- Fixes: fromYmd before 1936; US oil regions.

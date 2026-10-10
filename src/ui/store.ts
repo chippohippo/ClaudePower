@@ -3,8 +3,8 @@ import type { PlayerCommand, SetupInfo, Snapshot, ToWorker } from "../worker/pro
 import type { CountryReport } from "../sim/inspect";
 import type { Preview } from "../sim/commands";
 
-export type MapMode = "political" | "development" | "population" | "sol" | "unrest";
-export type DockTab = "government" | "economy" | "population" | null;
+export type MapMode = "political" | "development" | "population" | "sol" | "unrest" | "ig";
+export type DockTab = "government" | "economy" | "population" | "igs" | null;
 
 interface UiState {
   setup: SetupInfo | null;
@@ -21,13 +21,16 @@ interface UiState {
   done: string[];
   firstStepsDismissed: boolean;
   previews: Record<string, Preview>;
+  /** Highest chronicle index already shown as a notification. */
+  seenChronicle: number;
+  notes: { text: string; kind: string }[];
   send: (m: ToWorker) => void;
   jumpTo: (province: number) => void;
   set: (p: Partial<UiState>) => void;
 }
 export const useUi = create<UiState>((set) => ({
   setup: null, snap: null, message: "", mapMode: "political", selected: null, hovered: null, report: null, dock: null,
-  palette: false, muted: loadMuted(), done: [], firstStepsDismissed: false, previews: {},
+  palette: false, muted: loadMuted(), done: [], firstStepsDismissed: false, previews: {}, seenChronicle: -1, notes: [],
   send: () => {}, jumpTo: () => {}, set,
 }));
 

@@ -24,6 +24,32 @@ const MAJOR_BLURB: Record<string, string> = {
   CHI: "Half a billion people, little industry. Hard mode.",
 };
 
+/** New chronicle entries for the player become notifications; leadership changes auto-pause (§9). */
+const PAUSE_KINDS = new Set(["succession", "coup", "election", "death"]);
+function notify(snap: import("../worker/protocol").Snapshot) {
+  const { seenChronicle, notes, set, send } = useUi.getState();
+  const fresh = snap.chronicle.filter((e) => e.n > seenChronicle);
+  if (!fresh.length) return;
+  const first = seenChronicle < 0 && snap.date === 0;
+  set({ seenChronicle: Math.max(...snap.chronicle.map((e) => e.n)), notes: first ? notes : [...notes, ...fresh.map((e) => ({ text: `${e.date}: ${e.text}`, kind: e.kind }))].slice(-6) });
+  if (!first && fresh.some((e) => PAUSE_KINDS.has(e.kind)) && !snap.paused) send({ kind: "setPaused", paused: true });
+}
+
+function Notes() {
+  const { notes, set } = useUi();
+  if (!notes.length) return null;
+  return (
+    <div style={{ position: "absolute", top: 46, left: "50%", transform: "translateX(-50%)", width: 520, zIndex: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+      {notes.map((n, i) => (
+        <div key={i} style={{ padding: "6px 10px", background: n.kind === "coup" || n.kind === "strike" ? "#7f1d1d" : "#1e3a5f", color: "#fff", borderRadius: 6, fontSize: 13, display: "flex", gap: 8 }}>
+          <span style={{ flex: 1 }}>{{ death: "⚱", succession: "👑", election: "🗳", coup: "⚔", strike: "✊" }[n.kind] ?? "📰"} {n.text}</span>
+          <button style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }} onClick={() => set({ notes: notes.filter((_, k) => k !== i) })}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Toast() {
   const message = useUi((s) => s.message);
   if (!message) return null;
@@ -45,6 +71,8 @@ function useHotkeys() {
       else if (e.key === "3") set({ mapMode: "population" });
       else if (e.key === "4") set({ mapMode: "sol" });
       else if (e.key === "5") set({ mapMode: "unrest" });
+      else if (e.key === "6") set({ mapMode: "ig" });
+      else if (e.key === "F4") { e.preventDefault(); toggleDock("igs"); }
       else if (e.key === "F1") { e.preventDefault(); toggleDock("government"); }
       else if (e.key === "F2") { e.preventDefault(); toggleDock("economy"); }
       else if (e.key === "F3") { e.preventDefault(); toggleDock("population"); }
@@ -55,7 +83,7 @@ function useHotkeys() {
   }, []);
 }
 
-function toggleDock(tab: "government" | "economy" | "population") {
+function toggleDock(tab: "government" | "economy" | "population" | "igs") {
   const { dock, set } = useUi.getState();
   set({ dock: dock === tab ? null : tab });
 }
@@ -64,7 +92,7 @@ function toggleDock(tab: "government" | "economy" | "population") {
 function useInspection() {
   const { dock, selected, snap, setup, send } = useUi();
   const country = setup ? (selected !== null && snap ? snap.owner[selected]! : setup.player) : null;
-  useEffect(() => { send({ kind: "inspect", country: dock && dock !== "government" ? country : null }); }, [dock, country, send]);
+  useEffect(() => { send({ kind: "inspect", country: dock && dock !== "government" && dock !== "igs" ? country : null }); }, [dock, country, send]);
 }
 
 function App() {
@@ -77,7 +105,7 @@ function App() {
     if (!scope) return;
     const b = createSimBridge((m) => {
       if (m.kind === "setup") set({ setup: m.info });
-      else if (m.kind === "snapshot") set({ snap: m.snap });
+      else if (m.kind === "snapshot") { set({ snap: m.snap }); notify(m.snap); }
       else if (m.kind === "report") set({ report: m.report });
       else if (m.kind === "previews") receivePreviews(m.id, m.results);
       else if (m.kind === "events") { const done = useUi.getState().done; set({ done: [...new Set([...done, ...m.events])], message: "" }); }
@@ -106,7 +134,7 @@ function App() {
   );
   return (
     <div style={{ position: "fixed", inset: 0, background: "#1d3557", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
-      {setup ? <><MapView /><TopBar /><Dock /><AlertsColumn /><ProvincePanel /><FirstSteps /><Palette /><Toast /></> : <p style={{ color: "#eee", padding: 16 }}>Loading…</p>}
+      {setup ? <><MapView /><TopBar /><Dock /><AlertsColumn /><ProvincePanel /><FirstSteps /><Palette /><Toast /><Notes /></> : <p style={{ color: "#eee", padding: 16 }}>Loading…</p>}
     </div>
   );
 }

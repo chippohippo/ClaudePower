@@ -36,6 +36,8 @@ export const COUNTRY_COLS: ColSpec = {
   sol: "f64", unemployment: "f64", gdpYear: "f64", gdpAcc: "f64", tfr: "f64", money: "f64", pensionRate: "f64", debtFlow: "f64",
   adm: "f64", dip: "f64", mil: "f64", pp: "f64", manpower: "f64", automation: "i32",
   law0: "i32", law1: "i32", law2: "i32", law3: "i32",
+  government: "i32", head: "i32", heir: "i32", academy: "f64", nextElection: "i32", lastCoup: "i32",
+  ideoDem: "f64", ideoFas: "f64", ideoCom: "f64", ideoNon: "f64",
   wage0: "f64", wage1: "f64", wage2: "f64", wage3: "f64", wage4: "f64", wage5: "f64", wage6: "f64",
 };
 export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32", devTax: "f64", devProd: "f64", devMan: "f64", unrest: "f64" };
@@ -54,6 +56,14 @@ export const MARKET_COLS: ColSpec = { price: "f64", supply: "f64", demand: "f64"
 export const BUDGET_LINES = ["income_tax", "profit_tax", "consumption_tax", "other_income", "purchases", "payroll", "pensions", "interest", "borrowing", "printing", "seigniorage", "repayment", "other"] as const;
 export type BudgetLine = (typeof BUDGET_LINES)[number];
 export const BUDGET_COLS: ColSpec = Object.fromEntries(BUDGET_LINES.map((k) => [k, "f64"]));
+/** Characters: one row each (dead ones stay for the chronicle). Strings live in World.characterNames. */
+export const CHARACTER_COLS: ColSpec = {
+  country: "i32", role: "i32", slot: "i32", born: "i32", died: "i32", alive: "i32",
+  adm: "f64", dip: "f64", mil: "f64", trait0: "i32", trait1: "i32", trait2: "i32",
+  ideology: "i32", ig: "i32", loyalty: "f64", ambition: "f64", popularity: "f64", health: "f64", seed: "i32",
+};
+/** Interest groups: row = country * 8 + ig. */
+export const IG_COLS: ColSpec = { clout: "f64", approval: "f64", radicalism: "f64", leader: "i32", privileges: "i32", support: "f64", strikes: "f64", favour: "f64" };
 export const PROJECT_COLS: ColSpec = { country: "i32", prov: "i32", type: "i32", progress: "f64", state: "i32", levels: "i32" };
 
 /** Money ledger: all cents created or destroyed outside closed transfers. */
@@ -83,6 +93,11 @@ export interface World {
   worldMarket: Table;
   projects: Table;
   budget: Table;
+  characters: Table;
+  characterNames: string[];
+  igs: Table;
+  /** Chronicle of notable events (deaths, elections, coups, strikes), newest last. */
+  chronicle: { date: number; country: number; kind: string; text: string }[];
   ledger: Ledger;
   history: History;
   modifiers: Modifier[];
@@ -90,8 +105,8 @@ export interface World {
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 4;
-export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget"] as const;
+export const WORLD_VERSION = 5;
+export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget", "characters", "igs"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
   return {
@@ -112,6 +127,10 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     worldMarket: makeTable(0, MARKET_COLS),
     projects: makeTable(0, PROJECT_COLS),
     budget: makeTable(nCountries, BUDGET_COLS),
+    characters: makeTable(0, CHARACTER_COLS),
+    characterNames: [],
+    igs: makeTable(nCountries * 8, IG_COLS),
+    chronicle: [],
     ledger: { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 },
     history: { year: [], series: {} },
     modifiers: [],

@@ -1,7 +1,7 @@
 // Versioned MessagePack + gzip saves with migrations.
 import { encode, decode } from "@msgpack/msgpack";
 import { gzipSync, gunzipSync } from "fflate";
-import { BUDGET_COLS, BUILDING_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
+import { BUDGET_COLS, BUILDING_COLS, CHARACTER_COLS, IG_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
 
 type TableKey = (typeof TABLE_KEYS)[number];
 type Packed = Omit<World, TableKey> & Record<TableKey, PackedTable>;
@@ -52,6 +52,13 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
       for (const [k, kind] of Object.entries(spec)) if (!t.cols[k]) t.cols[k] = packTable(makeTable(t.size, { [k]: kind })).cols[k]!;
     };
     fill(ct, COUNTRY_COLS); fill(pt, PROVINCE_COLS);
+  },
+  (w) => { // v4 → v5: characters and interest groups (M4). Old saves start with none; setup systems seed them lazily.
+    const ct = w.countries as PackedTable;
+    for (const [k, kind] of Object.entries(COUNTRY_COLS)) if (!ct.cols[k]) ct.cols[k] = packTable(makeTable(ct.size, { [k]: kind })).cols[k]!;
+    w.characters = packTable(makeTable(0, CHARACTER_COLS));
+    w.igs = packTable(makeTable(ct.size * 8, IG_COLS));
+    w.characterNames = []; w.chronicle = [];
   },
 ];
 

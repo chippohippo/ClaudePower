@@ -14,7 +14,12 @@ import { loadWorld, saveWorld } from "../sim/save";
 import { computeAlerts } from "../sim/alerts";
 import { countryStat, getStat } from "../sim/modifiers";
 import { LAWS, activeLaw, sourceLabel } from "../sim/laws";
-import type { PlayerCommand, SetupInfo, Snapshot } from "./protocol";
+import type { CharacterInfo, PlayerCommand, PoliticsState, SetupInfo, Snapshot } from "./protocol";
+import { CABINET_SLOTS, HIGH_COMMAND_SLOTS, Role, TRAITS, ageOf, charactersOf, findRole } from "../sim/characters";
+import { IGS, N_IGS, hasPrivilege, igRow } from "../sim/igs";
+import { approvalParts, computeClout, lastIgMonth } from "../sim/systems/igs";
+import { electionScores } from "../sim/systems/politics";
+import "../sim/commands/politics";
 
 export const UNDO_DEPTH = 10;
 
@@ -40,6 +45,7 @@ export class GameSession {
     runLabour(this.world);
     updateStats(this.world);
     updateManpower(this.world);
+    computeClout(this.world);
     this.areas = start.srcProvinceIds.map((id) => content.provinces[id]!.areaKm2);
     this.aka = start.srcProvinceIds.map((id) => content.provinces[id]!.aka);
   }
@@ -87,6 +93,50 @@ export class GameSession {
     return cmds.map((c) => previewCommand({ ...c, actor: this.player, issuedOn: this.world.date }, this.world));
   }
 
+  private character(i: number): CharacterInfo | null {
+    if (i < 0) return null;
+    const c = this.world.characters.cols;
+    if (!c.alive![i]) return null;
+    return {
+      id: i, name: this.world.characterNames[i]!, role: c.role![i]!, slot: c.slot![i]!, age: Math.floor(ageOf(this.world, i)),
+      adm: c.adm![i]!, dip: c.dip![i]!, mil: c.mil![i]!, traits: [c.trait0![i]!, c.trait1![i]!, c.trait2![i]!].filter((t) => t >= 0).map((t) => TRAITS[t]!.name),
+      ideology: c.ideology![i]!, ig: c.ig![i]!, seed: c.seed![i]!, loyalty: c.loyalty![i]!,
+    };
+  }
+
+  private politics(): PoliticsState {
+    const w = this.world, k = this.player, cc = w.countries.cols, ic = w.igs.cols;
+    const m = lastIgMonth();
+    const leaders = charactersOf(w, k, Role.IgLeader);
+    const next = cc.nextElection![k]!;
+    return {
+      government: cc.government![k] === 0 ? "democracy" : "autocracy",
+      nextElection: cc.government![k] === 0 ? `${["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][next % 100]} ${Math.floor(next / 100)}` : "—",
+      academy: cc.academy![k]!,
+      head: this.character(findRole(w, k, Role.Head)), heir: this.character(cc.heir![k]!),
+      cabinet: CABINET_SLOTS.map((_, s) => this.character(findRole(w, k, Role.Cabinet, s))),
+      high: HIGH_COMMAND_SLOTS.map((_, s) => this.character(findRole(w, k, Role.HighCommand, s))),
+      pool: charactersOf(w, k, Role.Pool).map((i) => this.character(i)!),
+      igs: IGS.map((_, g) => {
+        const r = igRow(k, g);
+        return {
+          clout: ic.clout![r]!, approval: ic.approval![r]!, radicalism: ic.radicalism![r]!, privilege: hasPrivilege(w, k, g), strikes: ic.strikes![r]!,
+          leader: this.character(leaders.find((i) => w.characters.cols.ig![i] === g) ?? -1),
+          parts: approvalParts(w, k, g, m ? m.memberSol[r]! : 45),
+        };
+      }),
+      ideology: [cc.ideoDem![k]!, cc.ideoFas![k]!, cc.ideoCom![k]!, cc.ideoNon![k]!],
+      electionScores: electionScores(w, k),
+    };
+  }
+
+  private provIg(): number[] {
+    const m = lastIgMonth(), n = this.world.provinces.size, out = new Array<number>(n).fill(-1);
+    if (!m) return out;
+    for (let p = 0; p < n; p++) { let best = -1, v = 0; for (let g = 0; g < N_IGS; g++) { const x = m.provMembers[p * N_IGS + g]!; if (x > v) { v = x; best = g; } } out[p] = best; }
+    return out;
+  }
+
   snapshot(): Snapshot {
     const w = this.world, cc = w.countries.cols, pc = w.provinces.cols, c = this.player;
     const projects = [];
@@ -101,6 +151,8 @@ export class GameSession {
       treasury: Array.from(cc.treasury!), owner: Array.from(pc.owner!), development: Array.from(pc.development!),
       devTax: Array.from(pc.devTax!), devProd: Array.from(pc.devProd!), devMan: Array.from(pc.devMan!),
       provPopulation: Array.from(pc.population!), provSol: Array.from(pc.sol!), provUnemployment: Array.from(pc.unemployment!), provUnrest: Array.from(pc.unrest!),
+      politics: this.politics(), provIg: this.provIg(),
+      chronicle: w.chronicle.map((e, n) => ({ ...e, n })).filter((e) => e.country === c).slice(-30).map((e) => ({ date: formatDate(e.date), kind: e.kind, text: e.text, n: e.n })),
       player: {
         adm: cc.adm![c]!, dip: cc.dip![c]!, mil: cc.mil![c]!, pp: cc.pp![c]!, manpower: cc.manpower![c]!, stability: cc.stability![c]!,
         treasury: cc.treasury![c]!, income: cc.income![c]!, expense: cc.expense![c]!, taxRate: cc.taxRate![c]!, automation: cc.automation![c]!,

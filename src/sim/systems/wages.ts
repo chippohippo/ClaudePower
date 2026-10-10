@@ -24,7 +24,7 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
   const esc = new Escrow(w);
   const dividendsByProv = new Float64Array(nP);
   const weights = new Float64Array(_N_STRATA);
-  const taxEff = countryStat(w, "tax_efficiency"), invest = countryStat(w, "investment_rate");
+  const taxEff = countryStat(w, "tax_efficiency"), invest = countryStat(w, "investment_rate"), labourBonus = countryStat(w, "labour_share");
 
   for (let i = 0; i < w.buildings.size; i++) {
     const prov = b.prov![i]!, country = w.provinces.cols.owner![prov]!, pm = _PMS[b.type![i]!]![b.pm![i]!]!;
@@ -41,7 +41,7 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
     const va = revenue - inputCost;
     valueAdded[country]! += va;
     if (isStateBuilding(b.type![i]!)) continue; // staff paid by the state budget
-    const pool = Math.min(b.cash![i]!, Math.floor(Math.max(0, va) * LABOUR_SHARE));
+    const pool = Math.min(b.cash![i]!, Math.floor(Math.max(0, va) * Math.min(0.85, LABOUR_SHARE + labourBonus[country]!)));
     b.wages![i] = pool;
     if (pool > 0) {
       const rate = Math.min(0.6, cc.taxRate![country]! * taxEff[country]! * (0.85 + 0.03 * w.provinces.cols.devTax![prov]!));

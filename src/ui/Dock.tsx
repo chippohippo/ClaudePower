@@ -5,18 +5,20 @@ import { Stat } from "./Stat";
 import { fmtBig, fmtMoney, fmtPct } from "./format";
 import { useUi } from "./store";
 import { Government } from "./Government";
+import { People } from "./People";
+import { Igs } from "./Igs";
 
-const box = { position: "absolute", top: 40, left: 0, bottom: 0, width: 330, overflowY: "auto", padding: 12, background: "rgba(15,17,26,0.95)", color: "#eee", fontSize: 13, zIndex: 3 } as const;
+const box = { position: "absolute", top: 72, left: 0, bottom: 0, width: 330, overflowY: "auto", padding: 12, background: "rgba(15,17,26,0.95)", color: "#eee", fontSize: 13, zIndex: 3 } as const;
 const h = { margin: "10px 0 4px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 } as const;
 
 export function Dock() {
   const { dock, report, setup, set } = useUi();
   if (!dock) return null;
-  if (dock === "government") return (
+  if (dock === "government" || dock === "igs") return (
     <div style={box}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>Government</strong>
+      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>{dock === "igs" ? "Interest Groups" : "Government"}</strong>
         <button onClick={() => set({ dock: null })} style={{ background: "none", color: "#eee", border: "none", cursor: "pointer" }}>✕</button></div>
-      <Government />
+      {dock === "igs" ? <Igs /> : <><People /><Government /></>}
     </div>
   );
   if (!report || !setup) return <div style={box}>Loading report…</div>;

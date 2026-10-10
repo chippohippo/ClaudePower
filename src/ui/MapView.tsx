@@ -3,6 +3,7 @@ import geometry from "../../data/generated/map-geometry.json";
 import { MapRenderer } from "../map/MapRenderer";
 import { densityColor, developmentColor, hexToNum, solColor, unrestColor } from "../map/colors";
 import { useUi } from "./store";
+import { IGS } from "../sim/igs";
 
 export function MapView() {
   const el = useRef<HTMLDivElement>(null);
@@ -32,6 +33,7 @@ export function MapView() {
         case "population": return densityColor(provPopulation[i]! / setup.areaKm2[i]!);
         case "sol": return solColor(provSol[i]!);
         case "unrest": return unrestColor(s.snap!.provUnrest[i]!);
+        case "ig": { const g = s.snap!.provIg[i]!; return g < 0 ? 0x888888 : hexToNum(IGS[g]!.color); }
       }
     });
     // Repaint only when a colour changed (most snapshots leave the political map untouched).

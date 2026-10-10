@@ -1,0 +1,342 @@
+{
+ "GER": [
+  {
+   "name": "Adolf Hitler",
+   "born": 1889,
+   "role": "head",
+   "adm": 3,
+   "dip": 4,
+   "mil": 4,
+   "traits": [
+    "demagogue",
+    "orator",
+    "militarist"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  },
+  {
+   "name": "Hjalmar Schacht",
+   "born": 1877,
+   "role": "cabinet",
+   "adm": 5,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "finance_expert"
+   ],
+   "ideology": "non",
+   "ig": "industrialists"
+  },
+  {
+   "name": "Werner von Blomberg",
+   "born": 1878,
+   "role": "high",
+   "adm": 2,
+   "dip": 2,
+   "mil": 4,
+   "traits": [
+    "organiser"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  }
+ ],
+ "USA": [
+  {
+   "name": "Franklin D. Roosevelt",
+   "born": 1882,
+   "role": "head",
+   "adm": 5,
+   "dip": 4,
+   "mil": 2,
+   "traits": [
+    "charismatic",
+    "reformer",
+    "orator"
+   ],
+   "ideology": "dem",
+   "ig": "trade_unions"
+  },
+  {
+   "name": "Henry Morgenthau Jr.",
+   "born": 1891,
+   "role": "cabinet",
+   "adm": 4,
+   "dip": 2,
+   "mil": 1,
+   "traits": [
+    "finance_expert"
+   ],
+   "ideology": "dem",
+   "ig": "intelligentsia"
+  },
+  {
+   "name": "Malin Craig",
+   "born": 1875,
+   "role": "high",
+   "adm": 2,
+   "dip": 1,
+   "mil": 3,
+   "traits": [
+    "old_guard"
+   ],
+   "ideology": "dem",
+   "ig": "armed_forces"
+  }
+ ],
+ "GBR": [
+  {
+   "name": "Stanley Baldwin",
+   "born": 1867,
+   "role": "head",
+   "adm": 4,
+   "dip": 4,
+   "mil": 1,
+   "traits": [
+    "cautious",
+    "pragmatist"
+   ],
+   "ideology": "dem",
+   "ig": "industrialists"
+  },
+  {
+   "name": "Neville Chamberlain",
+   "born": 1869,
+   "role": "cabinet",
+   "adm": 4,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "finance_expert"
+   ],
+   "ideology": "dem",
+   "ig": "industrialists"
+  },
+  {
+   "name": "Cyril Deverell",
+   "born": 1874,
+   "role": "high",
+   "adm": 2,
+   "dip": 1,
+   "mil": 3,
+   "traits": [
+    "old_guard"
+   ],
+   "ideology": "dem",
+   "ig": "armed_forces"
+  }
+ ],
+ "FRA": [
+  {
+   "name": "Albert Sarraut",
+   "born": 1872,
+   "role": "head",
+   "adm": 3,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "pragmatist"
+   ],
+   "ideology": "dem",
+   "ig": "petite_bourgeoisie"
+  },
+  {
+   "name": "Léon Blum",
+   "born": 1872,
+   "role": "cabinet",
+   "adm": 4,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "labour_mediator"
+   ],
+   "ideology": "dem",
+   "ig": "trade_unions"
+  },
+  {
+   "name": "Maurice Gamelin",
+   "born": 1872,
+   "role": "high",
+   "adm": 2,
+   "dip": 2,
+   "mil": 3,
+   "traits": [
+    "defensive_genius"
+   ],
+   "ideology": "dem",
+   "ig": "armed_forces"
+  }
+ ],
+ "ITA": [
+  {
+   "name": "Benito Mussolini",
+   "born": 1883,
+   "role": "head",
+   "adm": 3,
+   "dip": 3,
+   "mil": 3,
+   "traits": [
+    "demagogue",
+    "orator",
+    "bold"
+   ],
+   "ideology": "fas",
+   "ig": "petite_bourgeoisie"
+  },
+  {
+   "name": "Galeazzo Ciano",
+   "born": 1903,
+   "role": "cabinet",
+   "adm": 2,
+   "dip": 4,
+   "mil": 1,
+   "traits": [
+    "envoy"
+   ],
+   "ideology": "fas",
+   "ig": "landowners"
+  },
+  {
+   "name": "Pietro Badoglio",
+   "born": 1871,
+   "role": "high",
+   "adm": 2,
+   "dip": 2,
+   "mil": 4,
+   "traits": [
+    "veteran"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  }
+ ],
+ "SOV": [
+  {
+   "name": "Joseph Stalin",
+   "born": 1878,
+   "role": "head",
+   "adm": 5,
+   "dip": 3,
+   "mil": 3,
+   "traits": [
+    "paranoid",
+    "administrator",
+    "ideologue"
+   ],
+   "ideology": "com",
+   "ig": "trade_unions"
+  },
+  {
+   "name": "Vyacheslav Molotov",
+   "born": 1890,
+   "role": "cabinet",
+   "adm": 4,
+   "dip": 4,
+   "mil": 1,
+   "traits": [
+    "bureaucrat"
+   ],
+   "ideology": "com",
+   "ig": "trade_unions"
+  },
+  {
+   "name": "Mikhail Tukhachevsky",
+   "born": 1893,
+   "role": "high",
+   "adm": 2,
+   "dip": 1,
+   "mil": 5,
+   "traits": [
+    "armour_pioneer",
+    "brilliant"
+   ],
+   "ideology": "com",
+   "ig": "armed_forces"
+  }
+ ],
+ "JAP": [
+  {
+   "name": "Keisuke Okada",
+   "born": 1868,
+   "role": "head",
+   "adm": 3,
+   "dip": 3,
+   "mil": 3,
+   "traits": [
+    "cautious"
+   ],
+   "ideology": "non",
+   "ig": "armed_forces"
+  },
+  {
+   "name": "Korekiyo Takahashi",
+   "born": 1854,
+   "role": "cabinet",
+   "adm": 5,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "finance_expert"
+   ],
+   "ideology": "non",
+   "ig": "industrialists"
+  },
+  {
+   "name": "Hajime Sugiyama",
+   "born": 1880,
+   "role": "high",
+   "adm": 2,
+   "dip": 1,
+   "mil": 4,
+   "traits": [
+    "political_general"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  }
+ ],
+ "CHI": [
+  {
+   "name": "Chiang Kai-shek",
+   "born": 1887,
+   "role": "head",
+   "adm": 3,
+   "dip": 4,
+   "mil": 4,
+   "traits": [
+    "paranoid",
+    "militarist"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  },
+  {
+   "name": "H. H. Kung",
+   "born": 1880,
+   "role": "cabinet",
+   "adm": 3,
+   "dip": 3,
+   "mil": 1,
+   "traits": [
+    "finance_expert",
+    "embezzler"
+   ],
+   "ideology": "non",
+   "ig": "industrialists"
+  },
+  {
+   "name": "He Yingqin",
+   "born": 1890,
+   "role": "high",
+   "adm": 2,
+   "dip": 2,
+   "mil": 3,
+   "traits": [
+    "political_general"
+   ],
+   "ideology": "fas",
+   "ig": "armed_forces"
+  }
+ ]
+}

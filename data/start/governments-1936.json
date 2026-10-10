@@ -1,0 +1,113 @@
+{
+ "_default": {
+  "type": "autocracy"
+ },
+ "USA": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "GBR": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "FRA": {
+  "type": "democracy",
+  "electionMonth": 5
+ },
+ "HOL": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "BEL": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "LUX": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "SWI": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "SWE": {
+  "type": "democracy",
+  "electionMonth": 9
+ },
+ "NOR": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "DEN": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "FIN": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "IRE": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "CZE": {
+  "type": "democracy",
+  "electionMonth": 5
+ },
+ "CAN": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "AST": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "NZL": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "CHL": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "COS": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "URU": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "EST": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "LAT": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "LIT": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "SAF": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "COL": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "MEX": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "ARG": {
+  "type": "democracy",
+  "electionMonth": 11
+ },
+ "BRA": {
+  "type": "democracy",
+  "electionMonth": 11
+ }
+}
