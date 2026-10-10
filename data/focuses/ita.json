@@ -358,6 +358,184 @@
    "available": {
     "flag": "era_cold_war"
    }
+  },
+  {
+   "id": "ita_era0_0",
+   "name": "Economic Boom",
+   "description": "Scooters, cars and white goods.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Postwar Planning",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "ita_era0_1",
+   "name": "Southern Fund",
+   "description": "Roads and dams for the south.",
+   "prerequisites": [
+    "ita_era0_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "pp": 50
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "ita_era1_0",
+   "name": "Industrial Districts",
+   "description": "Clusters of small family firms.",
+   "prerequisites": [
+    "ita_era0_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Open Economy",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "points": {
+      "adm": 50,
+      "dip": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "ita_era1_1",
+   "name": "Design Capital",
+   "description": "Fashion and furniture for the world.",
+   "prerequisites": [
+    "ita_era1_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "develop": {
+      "kind": "tax",
+      "amount": 2,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": 1
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "ita_era2_0",
+   "name": "Heritage Economy",
+   "description": "Tourism and restoration.",
+   "prerequisites": [
+    "ita_era1_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Digital Push",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "ita_era2_1",
+   "name": "Ports of the Mediterranean",
+   "description": "Container hubs for the inland sea.",
+   "prerequisites": [
+    "ita_era2_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "points": {
+      "adm": 50,
+      "mil": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
   }
  ]
 }

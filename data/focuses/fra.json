@@ -343,6 +343,184 @@
    "available": {
     "flag": "era_cold_war"
    }
+  },
+  {
+   "id": "fra_era0_0",
+   "name": "Planning Commissariat",
+   "description": "Five-year plans for a mixed economy.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Postwar Planning",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "fra_era0_1",
+   "name": "Atomic Independence",
+   "description": "Reactors and a deterrent of our own.",
+   "prerequisites": [
+    "fra_era0_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "pp": 50
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "fra_era1_0",
+   "name": "High-Speed Rail",
+   "description": "Trains at three hundred kilometres an hour.",
+   "prerequisites": [
+    "fra_era0_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Open Economy",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "points": {
+      "adm": 50,
+      "dip": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "fra_era1_1",
+   "name": "Common Market Leadership",
+   "description": "Steer the continental market.",
+   "prerequisites": [
+    "fra_era1_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "develop": {
+      "kind": "tax",
+      "amount": 2,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": 1
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "fra_era2_0",
+   "name": "Digital Republic",
+   "description": "Online services for every citizen.",
+   "prerequisites": [
+    "fra_era1_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Digital Push",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "fra_era2_1",
+   "name": "Reindustrialise",
+   "description": "Grants for new factories in the regions.",
+   "prerequisites": [
+    "fra_era2_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "points": {
+      "adm": 50,
+      "mil": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
   }
  ]
 }

@@ -89,6 +89,14 @@ export const StartCharactersFile = z.record(z.string(), z.array(z.object({
 })));
 export const NamesFile = z.record(z.string(), z.union([z.object({ first: z.array(z.string()).min(5), last: z.array(z.string()).min(5) }), z.record(z.string(), z.string())]));
 
+export const TechsFile = z.array(z.object({ id: z.string(), name: z.string(), techs: z.array(z.object({
+  id: z.string(), name: z.string(), year: z.number().int(), description: z.string(), modifiers: z.array(ModSpec), flags: z.array(z.string()) })).min(4) })).length(8);
+const IdeaSchema = z.object({ name: z.string(), modifiers: z.array(ModSpec) });
+export const IdeasFile = z.object({
+  groups: z.array(z.object({ id: z.string(), name: z.string(), kind: z.enum(["adm", "dip", "mil"]), ideas: z.array(IdeaSchema).length(7), bonus: z.unknown() })).min(6),
+  national: z.record(z.string(), z.array(IdeaSchema).min(1)),
+});
+
 export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "countries.json": CountriesFile,
   "map_1936.json": Map1936File,
@@ -101,6 +109,8 @@ export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "needs.json": NeedsFile,
   "buildings.json": BuildingsFile,
   "laws.json": LawsFile,
+  "techs.json": TechsFile,
+  "ideas.json": IdeasFile,
   "igs.json": IgsFile,
   "traits.json": TraitsFile,
   "names.json": NamesFile,

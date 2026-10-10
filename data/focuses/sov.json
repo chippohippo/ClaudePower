@@ -627,6 +627,184 @@
    "available": {
     "flag": "era_cold_war"
    }
+  },
+  {
+   "id": "sov_era0_0",
+   "name": "Atomic Project",
+   "description": "Match the rival bomb by bomb.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Postwar Planning",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "sov_era0_1",
+   "name": "Virgin Lands",
+   "description": "Plough the steppe.",
+   "prerequisites": [
+    "sov_era0_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "pp": 50
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "sov_era1_0",
+   "name": "Restructuring",
+   "description": "Loosen the plan, open the press.",
+   "prerequisites": [
+    "sov_era0_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Open Economy",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "points": {
+      "adm": 50,
+      "dip": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "sov_era1_1",
+   "name": "Resource Exports",
+   "description": "Oil and gas pipelines westward.",
+   "prerequisites": [
+    "sov_era1_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "develop": {
+      "kind": "tax",
+      "amount": 2,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": 1
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "sov_era2_0",
+   "name": "Sovereign Internet",
+   "description": "A national network behind a national wall.",
+   "prerequisites": [
+    "sov_era1_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Digital Push",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "sov_era2_1",
+   "name": "Arctic Route",
+   "description": "Ships across the northern sea.",
+   "prerequisites": [
+    "sov_era2_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "points": {
+      "adm": 50,
+      "mil": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
   }
  ]
 }

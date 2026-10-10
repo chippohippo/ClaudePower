@@ -2,6 +2,7 @@
 import { BUILDINGS, N_STRATA, PMS, STRATUM } from "../defs";
 import type { World } from "../world";
 import { toYmd } from "../date";
+import { relYear, TREE_INDUSTRY } from "../techs";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
 const _PMS = PMS, _N_STRATA = N_STRATA, _STRATUM = STRATUM, _BUILDINGS = BUILDINGS;
 
@@ -9,7 +10,7 @@ export const jobsKey = (prov: number, s: number) => prov * _N_STRATA + s;
 
 /**
  * Pick the production method with the best expected profit at current national prices and wages among
- * those unlocked by year (auto-managed until tech in M7). Inputs priced at the dearer of national/world
+ * those unlocked by year (gated by the industry tech year). Inputs priced at the dearer of national/world
  * price so shortages discourage switching. Runs yearly (and for new buildings).
  */
 export function choosePms(w: World, only?: number): void {
@@ -20,7 +21,7 @@ export function choosePms(w: World, only?: number): void {
     let best = 0, bestV = -Infinity;
     for (let k = 0; k < pms.length; k++) {
       const pm = pms[k]!;
-      if (pm.year > year) continue;
+      if (pm.year > relYear(w, c, TREE_INDUSTRY)) continue;
       let v = 0;
       for (let g = 0; g < nG; g++) {
         if (pm.outputs[g]) v += pm.outputs[g]! * Math.min(mk[c * nG + g]!, wp[g]! * 1.5);

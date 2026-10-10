@@ -73,6 +73,12 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     w.claims = Array.from({ length: n }, () => []); w.wars = []; w.battles = []; w.blocs = []; w.rivals = Array.from({ length: n }, () => []);
     w.nextWarId = 1; w.nextBattleId = 1;
   },
+  (w) => { // v7 → v8: technology years and ideas (M7). Old saves start every tree at 1936.
+    const ct = w.countries as PackedTable;
+    for (let k = 0; k < 8; k++) ct.cols[`tech${k}`] = packTable({ size: ct.size, cols: { t: new Float64Array(ct.size).fill(1936) } }).cols.t!;
+    ct.cols.techLag = packTable(makeTable(ct.size, { techLag: "f64" })).cols.techLag!;
+    w.ideas = Array.from({ length: ct.size }, () => []);
+  },
 ];
 
 export function saveWorld(w: World): Uint8Array {

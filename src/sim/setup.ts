@@ -9,6 +9,7 @@ import { assignTrees } from "./systems/focus";
 import { assignAmbitions } from "./systems/ambitions";
 import { runEra } from "./systems/era";
 import { seedDiplomacy } from "./diplomacy";
+import { seedTechs } from "./techs";
 import { seedArmies } from "./systems/armies";
 import { IG_COLS } from "./world";
 import { BASE_PRICE, BUILDINGS, N_GOODS, PMS } from "./defs";
@@ -112,6 +113,7 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
   assignAmbitions(w);
   seedDiplomacy(w);
   seedArmies(w);
+  seedTechs(w);
   return { world: w, srcProvinceIds: provs.map((p) => p.id), countries };
 }
 

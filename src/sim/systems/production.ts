@@ -2,15 +2,17 @@
 import { N_GOODS, PMS } from "../defs";
 import { Acct } from "../money";
 import type { World } from "../world";
-import { toYmd } from "../date";
 import type { OrderBook } from "./orders";
 import { isStateBuilding } from "./labour";
+import { relYear, TREE_INDUSTRY } from "../techs";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
 const _N_GOODS = N_GOODS, _PMS = PMS;
 
-/** Exogenous productivity growth until the tech system (M7): ~1.2%/year. */
+/** Productivity growth per year of the industry tree (M7: driven by tech, not the calendar). */
 export const ERA_GROWTH = 1.012;
 export const eraProductivity = (year: number) => ERA_GROWTH ** (year - 1936);
+/** Country productivity from its industry tech year (relative to its 1936 level). */
+export const countryProductivity = (w: World, c: number) => eraProductivity(relYear(w, c, TREE_INDUSTRY));
 export const provinceProductivity = (dev: number) => 0.4 + 0.6 * Math.min(2, dev / 14);
 /** Unrest above zero cuts output (strikes, sabotage): −3% per point. */
 export const UNREST_PENALTY = 0.03;
@@ -27,14 +29,14 @@ export interface ProductionOrders { inFirst: Int32Array; inCount: Int32Array; ou
 
 export function postProduction(w: World, book: OrderBook): ProductionOrders {
   const n = w.buildings.size, b = w.buildings.cols;
-  const year = toYmd(w.date).year, era = eraProductivity(year);
+  const era = Float64Array.from({ length: w.countries.size }, (_, c) => countryProductivity(w, c));
   const res: ProductionOrders = { inFirst: new Int32Array(n).fill(-1), inCount: new Int32Array(n), outFirst: new Int32Array(n).fill(-1), outCount: new Int32Array(n), wanted: new Float64Array(n * _N_GOODS) };
   const mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
   for (let i = 0; i < n; i++) {
     const t = b.type![i]!, pm = _PMS[t]![b.pm![i]!]!, prov = b.prov![i]!, country = w.provinces.cols.owner![prov]!;
     const scale = b.level![i]! * b.staffing![i]!;
     if (scale <= 0) continue;
-    const prod = scale * b.inputSat![i]! * era * provinceProd(w, prov);
+    const prod = scale * b.inputSat![i]! * era[country]! * provinceProd(w, prov);
     for (let g = 0; g < _N_GOODS; g++) {
       if (!pm.outputs[g]) continue;
       const o = book.sell(country, g, pm.outputs[g]! * prod, Acct.Building, i);

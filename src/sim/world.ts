@@ -39,6 +39,7 @@ export const COUNTRY_COLS: ColSpec = {
   overlord: "i32", bloc: "i32", warExhaustion: "f64", equip: "f64", prestige: "f64", nukes: "i32", armyPower: "f64",
   government: "i32", head: "i32", heir: "i32", academy: "f64", nextElection: "i32", lastCoup: "i32",
   ideoDem: "f64", ideoFas: "f64", ideoCom: "f64", ideoNon: "f64",
+  tech0: "f64", tech1: "f64", tech2: "f64", tech3: "f64", tech4: "f64", tech5: "f64", tech6: "f64", tech7: "f64", techLag: "f64",
   wage0: "f64", wage1: "f64", wage2: "f64", wage3: "f64", wage4: "f64", wage5: "f64", wage6: "f64",
 };
 export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32", devTax: "f64", devProd: "f64", devMan: "f64", unrest: "f64", controller: "i32", siege: "f64" };
@@ -130,6 +131,8 @@ export interface World {
   eventLog: Record<string, number>;
   /** Ambitions per country: id + completion date (−1 open). */
   ambitions: { id: string; done: number }[][];
+  /** Per-country adopted idea groups (index into IDEAS.groups) and ideas taken in each (0..7). */
+  ideas: { g: number; n: number }[][];
   nextEventId: number;
   diplo: Table;
   armies: Table;
@@ -151,7 +154,7 @@ export interface World {
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 7;
+export const WORLD_VERSION = 8;
 export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget", "characters", "igs", "diplo", "armies"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
@@ -183,6 +186,7 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     pendingEvents: [],
     eventLog: {},
     ambitions: Array.from({ length: nCountries }, () => []),
+    ideas: Array.from({ length: nCountries }, () => []),
     nextEventId: 1,
     diplo: makeTable(nCountries * nCountries, DIPLO_COLS),
     armies: makeTable(0, ARMY_COLS),

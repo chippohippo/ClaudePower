@@ -365,6 +365,184 @@
    "available": {
     "flag": "era_globalisation"
    }
+  },
+  {
+   "id": "chi_era0_0",
+   "name": "Five-Year Plans",
+   "description": "Heavy industry first.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Postwar Planning",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "chi_era0_1",
+   "name": "Barefoot Doctors",
+   "description": "Village medicine for millions.",
+   "prerequisites": [
+    "chi_era0_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_cold_war"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "pp": 50
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "chi_era1_0",
+   "name": "Reform and Opening",
+   "description": "Special zones for foreign capital.",
+   "prerequisites": [
+    "chi_era0_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Open Economy",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "points": {
+      "adm": 50,
+      "dip": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "chi_era1_1",
+   "name": "Township Enterprises",
+   "description": "Village factories everywhere.",
+   "prerequisites": [
+    "chi_era1_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_globalisation"
+   },
+   "effects": [
+    {
+     "develop": {
+      "kind": "tax",
+      "amount": 2,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": 1
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "chi_era2_0",
+   "name": "Belt of Roads",
+   "description": "Rail and ports across continents.",
+   "prerequisites": [
+    "chi_era1_1"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "modifier": {
+      "name": "Digital Push",
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
+  },
+  {
+   "id": "chi_era2_1",
+   "name": "Made at Home",
+   "description": "Climb the value chain.",
+   "prerequisites": [
+    "chi_era2_0"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "available": {
+    "flag": "era_information"
+   },
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "points": {
+      "adm": 50,
+      "mil": 50
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "era"
   }
  ]
 }

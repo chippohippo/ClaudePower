@@ -22,6 +22,7 @@ import { electionScores } from "../sim/systems/politics";
 import "../sim/commands/politics";
 import "../sim/commands/content";
 import "../sim/commands/war";
+import { IDEAS, N_TREES, ideaBlocker, ideaSlots, techYear } from "../sim/techs";
 import { allied, casusBelli, guarantees, hasTrade, militaryPower, rel, truceWith, warBetween } from "../sim/diplomacy";
 import { AMBITIONS, CONTENT, EVENT_BY_ID, focusById, treeById } from "../sim/script/bundle";
 import { describeEffect, fill } from "../sim/script/eval";
@@ -193,6 +194,7 @@ export class GameSession {
     const battles = w.battles.filter((b) => ourWars.has(b.war) || b.attacker === c || b.defender === c).slice(-15).reverse().map((b) => ({ ...b, provName: w.provinceNames[b.prov]!, date: formatDate(b.start) }));
     return {
       armies, controller: Array.from(w.provinces.cols.controller!), diplomacy, wars, battles, claims: [...w.claims[c]!], rivals: [...w.rivals[c]!],
+      tech: { years: Array.from({ length: N_TREES }, (_, k) => techYear(w, c, k)), slots: ideaSlots(w, c), ideas: w.ideas[c]!.map((x) => ({ ...x })), blockers: IDEAS.groups.map((_, g) => ideaBlocker(w, c, g)) },
       military: { equip: cc.equip![c]!, manpower: cc.manpower![c]!, fielded: fieldedMen, exhaustion: cc.warExhaustion![c]!, nukes: cc.nukes![c]!, power: militaryPower(w, c) },
     };
   }

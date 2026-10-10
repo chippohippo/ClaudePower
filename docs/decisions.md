@@ -41,3 +41,6 @@
 - **War AI** needs a casus belli (claims, independence, ideological hostility), relations < −40, coalition power edge 1.6×, aggression (ideology, mobilisation, Armed Forces, militarist flags; democracies ×0.3) and a 2.5%×aggression monthly roll. Nuclear deterrence blocks wars against nuclear powers.
 - **Printing capped at 2% of money per month**; unpaid bills cost stability (stops endless hyperinflation after lost wars).
 - **Soldiers don't count as urban.**
+- M7: Tech is an effective year per tree (not discrete research picks). Growth uses relYear = min(year + 1936 lag, max(year, calendar)). This keeps the 1936 calibration (everyone starts at "1936" growth) while laggards fall behind and catch up by diffusion.
+- M7: Tech modifiers avoid investment and construction bonuses, which double-counted productivity growth and pushed urbanisation past 65%; those techs give tax efficiency instead. Idea bonuses are halved.
+- M7: Era goods are deferred to M8 balance; production-method unlocks already follow industry tech.

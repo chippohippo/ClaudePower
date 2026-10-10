@@ -1,0 +1,926 @@
+{
+ "groups": [
+  {
+   "id": "administration",
+   "name": "Administration",
+   "kind": "adm",
+   "ideas": [
+    {
+     "name": "Civil Service Exams",
+     "modifiers": [
+      {
+       "target": "tax_efficiency",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Statistical Bureau",
+     "modifiers": [
+      {
+       "target": "adm_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Merit Promotion",
+     "modifiers": [
+      {
+       "target": "pp_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Local Government",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.1
+      }
+     ]
+    },
+    {
+     "name": "Records Office",
+     "modifiers": [
+      {
+       "target": "tax_efficiency",
+       "mult": 0.04
+      }
+     ]
+    },
+    {
+     "name": "Regional Planning",
+     "modifiers": [
+      {
+       "target": "construction_cost",
+       "mult": -0.02
+      }
+     ]
+    },
+    {
+     "name": "Modern State",
+     "modifiers": [
+      {
+       "target": "adm_gain",
+       "add": 0.5
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "pp_gain",
+     "add": 0.5
+    }
+   ]
+  },
+  {
+   "id": "economic",
+   "name": "Economic",
+   "kind": "adm",
+   "ideas": [
+    {
+     "name": "Central Bank",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.025
+      }
+     ]
+    },
+    {
+     "name": "Infrastructure Board",
+     "modifiers": [
+      {
+       "target": "construction_cost",
+       "mult": -0.025
+      }
+     ]
+    },
+    {
+     "name": "Industrial Policy",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.025
+      }
+     ]
+    },
+    {
+     "name": "Standards Agency",
+     "modifiers": [
+      {
+       "target": "construction_cost",
+       "mult": -0.015
+      }
+     ]
+    },
+    {
+     "name": "Export Promotion",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.02
+      }
+     ]
+    },
+    {
+     "name": "Price Stability",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.1
+      }
+     ]
+    },
+    {
+     "name": "Developmental State",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.03
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "tax_efficiency",
+     "mult": 0.05
+    }
+   ]
+  },
+  {
+   "id": "humanist",
+   "name": "Humanist",
+   "kind": "adm",
+   "ideas": [
+    {
+     "name": "Tolerance",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.1
+      }
+     ]
+    },
+    {
+     "name": "Public Libraries",
+     "modifiers": [
+      {
+       "target": "literacy_target",
+       "add": 0.02
+      }
+     ]
+    },
+    {
+     "name": "Social Housing",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.1
+      }
+     ]
+    },
+    {
+     "name": "Labour Rights",
+     "modifiers": [
+      {
+       "target": "labour_share",
+       "add": 0.01
+      }
+     ]
+    },
+    {
+     "name": "Free Clinics",
+     "modifiers": [
+      {
+       "target": "fertility_mult",
+       "mult": 0
+      },
+      {
+       "target": "stability_target",
+       "add": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Open Universities",
+     "modifiers": [
+      {
+       "target": "literacy_target",
+       "add": 0.03
+      }
+     ]
+    },
+    {
+     "name": "Welfare Consensus",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.15
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "pp_gain",
+     "add": 0.5
+    }
+   ]
+  },
+  {
+   "id": "diplomatic",
+   "name": "Diplomatic",
+   "kind": "dip",
+   "ideas": [
+    {
+     "name": "Foreign Service",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Cultural Institutes",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Embassies Everywhere",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Treaty Lawyers",
+     "modifiers": [
+      {
+       "target": "pp_gain",
+       "add": 0.2
+      }
+     ]
+    },
+    {
+     "name": "Summit Diplomacy",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Soft Power",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Great-Power Diplomacy",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.5
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "pp_gain",
+     "add": 0.3
+    }
+   ]
+  },
+  {
+   "id": "trade",
+   "name": "Trade",
+   "kind": "dip",
+   "ideas": [
+    {
+     "name": "Free Ports",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.02
+      }
+     ]
+    },
+    {
+     "name": "Merchant Marine",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.015
+      }
+     ]
+    },
+    {
+     "name": "Trade Missions",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Tariff Reform",
+     "modifiers": [
+      {
+       "target": "tax_efficiency",
+       "mult": 0.03
+      }
+     ]
+    },
+    {
+     "name": "Commodity Exchanges",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.02
+      }
+     ]
+    },
+    {
+     "name": "Global Supply Chains",
+     "modifiers": [
+      {
+       "target": "construction_cost",
+       "mult": -0.015
+      }
+     ]
+    },
+    {
+     "name": "Trading Nation",
+     "modifiers": [
+      {
+       "target": "investment_rate",
+       "mult": 0.025
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "investment_rate",
+     "mult": 0.05
+    }
+   ]
+  },
+  {
+   "id": "influence",
+   "name": "Influence",
+   "kind": "dip",
+   "ideas": [
+    {
+     "name": "Propaganda Ministry",
+     "modifiers": [
+      {
+       "target": "pp_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "International Broadcasting",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Development Aid",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Intelligence Service",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Client States",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Covert Action",
+     "modifiers": [
+      {
+       "target": "pp_gain",
+       "add": 0.3
+      }
+     ]
+    },
+    {
+     "name": "Hegemony",
+     "modifiers": [
+      {
+       "target": "dip_gain",
+       "add": 0.5
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "pp_gain",
+     "add": 0.5
+    }
+   ]
+  },
+  {
+   "id": "offensive",
+   "name": "Offensive",
+   "kind": "mil",
+   "ideas": [
+    {
+     "name": "Shock Doctrine",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Officer Corps",
+     "modifiers": [
+      {
+       "target": "mil_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Mobile Warfare",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Air-Land Battle",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Special Forces",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.03
+      }
+     ]
+    },
+    {
+     "name": "Logistics Corps",
+     "modifiers": [
+      {
+       "target": "org_recovery",
+       "mult": 0.15
+      }
+     ]
+    },
+    {
+     "name": "Blitz Doctrine",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.08
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "mil_gain",
+     "add": 0.5
+    }
+   ]
+  },
+  {
+   "id": "defensive",
+   "name": "Defensive",
+   "kind": "mil",
+   "ideas": [
+    {
+     "name": "Fortified Borders",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.03
+      }
+     ]
+    },
+    {
+     "name": "Reserves System",
+     "modifiers": [
+      {
+       "target": "mobilisation",
+       "add": 0.01
+      }
+     ]
+    },
+    {
+     "name": "Defence in Depth",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.04
+      }
+     ]
+    },
+    {
+     "name": "Civil Defence",
+     "modifiers": [
+      {
+       "target": "stability_target",
+       "add": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Home Guard",
+     "modifiers": [
+      {
+       "target": "mobilisation",
+       "add": 0.01
+      }
+     ]
+    },
+    {
+     "name": "Deterrence",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.04
+      }
+     ]
+    },
+    {
+     "name": "Fortress Nation",
+     "modifiers": [
+      {
+       "target": "org_recovery",
+       "mult": 0.2
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "mobilisation",
+     "add": 0.01
+    }
+   ]
+  },
+  {
+   "id": "quality",
+   "name": "Quality",
+   "kind": "mil",
+   "ideas": [
+    {
+     "name": "Professional Army",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Training Grounds",
+     "modifiers": [
+      {
+       "target": "org_recovery",
+       "mult": 0.1
+      }
+     ]
+    },
+    {
+     "name": "Equipment Standards",
+     "modifiers": [
+      {
+       "target": "arms_demand",
+       "mult": -0.05
+      }
+     ]
+    },
+    {
+     "name": "Staff College",
+     "modifiers": [
+      {
+       "target": "mil_gain",
+       "add": 0.5
+      }
+     ]
+    },
+    {
+     "name": "Elite Units",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.05
+      }
+     ]
+    },
+    {
+     "name": "Military Research",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.04
+      }
+     ]
+    },
+    {
+     "name": "Qualitative Edge",
+     "modifiers": [
+      {
+       "target": "land_combat",
+       "mult": 0.08
+      }
+     ]
+    }
+   ],
+   "bonus": [
+    {
+     "target": "land_combat",
+     "mult": 0.05
+    }
+   ]
+  }
+ ],
+ "national": {
+  "GER": [
+   {
+    "name": "German Engineering",
+    "modifiers": [
+     {
+      "target": "construction_cost",
+      "mult": -0.025
+     }
+    ]
+   },
+   {
+    "name": "General Staff Tradition",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.05
+     }
+    ]
+   },
+   {
+    "name": "Universities of Science",
+    "modifiers": [
+     {
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    ]
+   }
+  ],
+  "USA": [
+   {
+    "name": "Arsenal of Industry",
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": 0.04
+     }
+    ]
+   },
+   {
+    "name": "Land of Immigrants",
+    "modifiers": [
+     {
+      "target": "immigration",
+      "add": 0.5
+     }
+    ]
+   },
+   {
+    "name": "Frontier Spirit",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.1
+     }
+    ]
+   }
+  ],
+  "GBR": [
+   {
+    "name": "City of London",
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": 0.025
+     }
+    ]
+   },
+   {
+    "name": "Royal Navy Tradition",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.5
+     }
+    ]
+   },
+   {
+    "name": "Parliamentary Sovereignty",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.15
+     }
+    ]
+   }
+  ],
+  "FRA": [
+   {
+    "name": "Grandes Écoles",
+    "modifiers": [
+     {
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    ]
+   },
+   {
+    "name": "Republican Army",
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.01
+     }
+    ]
+   },
+   {
+    "name": "Mission Civilisatrice",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.3
+     }
+    ]
+   }
+  ],
+  "ITA": [
+   {
+    "name": "Renaissance Heritage",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.3
+     }
+    ]
+   },
+   {
+    "name": "Alpine Troops",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.03
+     }
+    ]
+   },
+   {
+    "name": "Mediterranean Trade",
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": 0.015
+     }
+    ]
+   }
+  ],
+  "SOV": [
+   {
+    "name": "Planned Economy",
+    "modifiers": [
+     {
+      "target": "construction_cost",
+      "mult": -0.025
+     }
+    ]
+   },
+   {
+    "name": "Endless Reserves",
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.02
+     }
+    ]
+   },
+   {
+    "name": "Academy of Sciences",
+    "modifiers": [
+     {
+      "target": "research_speed",
+      "mult": 0.05
+     }
+    ]
+   }
+  ],
+  "JAP": [
+   {
+    "name": "Kaizen",
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": 0.025
+     }
+    ]
+   },
+   {
+    "name": "Bushido Revival",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.05
+     }
+    ]
+   },
+   {
+    "name": "Meiji Schools",
+    "modifiers": [
+     {
+      "target": "literacy_target",
+      "add": 0.03
+     }
+    ]
+   }
+  ],
+  "CHI": [
+   {
+    "name": "Mandate of Heaven",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.1
+     }
+    ]
+   },
+   {
+    "name": "Vast Population",
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.01
+     }
+    ]
+   },
+   {
+    "name": "Imperial Examinations",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.03
+     }
+    ]
+   }
+  ]
+ }
+}

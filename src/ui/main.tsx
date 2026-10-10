@@ -83,6 +83,7 @@ function useHotkeys() {
       else if (e.key === "F5") { e.preventDefault(); toggleDock("focus"); }
       else if (e.key === "F6") { e.preventDefault(); toggleDock("diplomacy"); }
       else if (e.key === "F7") { e.preventDefault(); toggleDock("military"); }
+      else if (e.key === "F8") { e.preventDefault(); toggleDock("tech"); }
       else if (e.key === "7") set({ mapMode: "relations" });
       else if (e.key === "8") set({ mapMode: "occupation" });
       else if (e.key === "F1") { e.preventDefault(); toggleDock("government"); }
@@ -95,7 +96,7 @@ function useHotkeys() {
   }, []);
 }
 
-function toggleDock(tab: "government" | "economy" | "population" | "igs" | "focus" | "diplomacy" | "military") {
+function toggleDock(tab: "government" | "economy" | "population" | "igs" | "focus" | "diplomacy" | "military" | "tech") {
   const { dock, set } = useUi.getState();
   set({ dock: dock === tab ? null : tab });
 }

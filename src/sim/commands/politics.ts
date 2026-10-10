@@ -4,6 +4,7 @@ import { CABINET_SLOTS, HIGH_COMMAND_SLOTS, ROLE_NAMES, Role, TRAITS, findRole, 
 import { IGS, N_IGS, hasPrivilege, igRow, setPrivilege } from "../igs";
 import { toYmd } from "../date";
 import type { World } from "../world";
+import { IDEA_COST, IDEAS, ideaBlocker, takeIdea } from "../techs";
 
 const ok: Validation = { ok: true };
 const no = (reason: string): Validation => ({ ok: false, reason });
@@ -140,4 +141,13 @@ registerCommand<{ ig: number }>("co_opt_ig", {
     return [{ type: "ig_coopted" }];
   },
   preview({ payload: { ig } }) { return [`Costs ${COOPT_COST} PP`, `${IGS[ig]!.name}: radicalism −15, approval +20 (fading over a year)`, "Buys time; fix the cause (laws, privileges, SoL) to keep them calm"]; },
+});
+
+registerCommand<{ group: number }>("take_idea", {
+  validate({ actor, payload: { group } }, w) { const b = ideaBlocker(w, actor, group); return b ? no(b) : ok; },
+  apply({ actor, payload: { group } }, w) { takeIdea(w, actor, group); return [{ type: "idea_taken" }]; },
+  preview({ actor, payload: { group } }, w) {
+    const grp = IDEAS.groups[group]!, n = w.ideas[actor]!.find((x) => x.g === group)?.n ?? 0, idea = grp.ideas[n];
+    return idea ? [`Costs ${IDEA_COST} ${grp.kind.toUpperCase()}`, `${grp.name}: ${idea.name}`, ...idea.modifiers.map((m) => `${m.target.replace(/_/g, " ")} ${m.add !== undefined ? (m.add > 0 ? "+" : "") + m.add : ""}${m.mult !== undefined ? `${m.mult > 0 ? "+" : ""}${Math.round(m.mult * 100)}%` : ""}`)] : ["Group complete"];
+  },
 });

@@ -5,7 +5,8 @@ import { Acct } from "../money";
 import { RES_COAL, RES_IRON, RES_OIL } from "../setup";
 import { ensureCapacity, type World } from "../world";
 import type { OrderBook } from "./orders";
-import { eraProductivity, provinceProd } from "./production";
+import { countryProductivity, provinceProd } from "./production";
+import { relYear, TREE_INDUSTRY } from "../techs";
 import { countryStat } from "../modifiers";
 import { AUTO_BUILD } from "../automation";
 import { LABOUR_SHARE } from "./wages";
@@ -82,11 +83,11 @@ function addLevels(w: World, prov: number, type: number, n: number): void {
 
 /** Expected monthly profit per level of a building type at current national prices. */
 function expectedProfit(w: World, c: number, type: number, prov: number): number {
-  const pms = _PMS[type]!, year = toYmd(w.date).year;
+  const pms = _PMS[type]!, year = relYear(w, c, TREE_INDUSTRY);
   let pm = pms[0]!;
   for (const p of pms) if (p.year <= year) pm = p;
   const mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
-  const prod = eraProductivity(year) * provinceProd(w, prov);
+  const prod = countryProductivity(w, c) * provinceProd(w, prov);
   let out = 0, inp = 0;
   for (let g = 0; g < _N_GOODS; g++) {
     const sell = Math.max(mk[c * _N_GOODS + g]!, wp[g]! * 0.9);

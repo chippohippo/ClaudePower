@@ -1,0 +1,847 @@
+[
+ {
+  "id": "industry",
+  "name": "Industry",
+  "techs": [
+   {
+    "id": "assembly_lines",
+    "name": "Assembly Lines",
+    "year": 1936,
+    "description": "Moving lines for mass production.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.015
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "synthetic_materials",
+    "name": "Synthetic Materials",
+    "year": 1942,
+    "description": "Plastics and synthetic rubber.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.015
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "mass_production",
+    "name": "Mass Production",
+    "year": 1950,
+    "description": "Standardised parts for everything; assembly-line methods.",
+    "modifiers": [],
+    "flags": [
+     "tech_mass_production"
+    ]
+   },
+   {
+    "id": "automobile_industry",
+    "name": "Automobile Industry",
+    "year": 1952,
+    "description": "Cars for the middle classes.",
+    "modifiers": [],
+    "flags": [
+     "tech_vehicles"
+    ]
+   },
+   {
+    "id": "containerisation",
+    "name": "Containerisation",
+    "year": 1960,
+    "description": "Standard boxes revolutionise trade.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "industrial_robots",
+    "name": "Industrial Robots",
+    "year": 1975,
+    "description": "Machines that build machines.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "automation",
+    "name": "Automation",
+    "year": 1985,
+    "description": "Lights-out factories; automated methods.",
+    "modifiers": [],
+    "flags": [
+     "tech_automation"
+    ]
+   },
+   {
+    "id": "lean_manufacturing",
+    "name": "Lean Manufacturing",
+    "year": 1990,
+    "description": "Just-in-time supply chains.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "additive_manufacturing",
+    "name": "Additive Manufacturing",
+    "year": 2010,
+    "description": "Printing objects layer by layer.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "smart_factories",
+    "name": "Smart Factories",
+    "year": 2018,
+    "description": "Networked, self-optimising plants.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.025
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "computing",
+  "name": "Computing",
+  "techs": [
+   {
+    "id": "electromechanical",
+    "name": "Electromechanical Calculators",
+    "year": 1938,
+    "description": "Tabulating machines for the state.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "electronic_computers",
+    "name": "Electronic Computers",
+    "year": 1946,
+    "description": "Valves and punched cards.",
+    "modifiers": [],
+    "flags": [
+     "tech_computers_early"
+    ]
+   },
+   {
+    "id": "transistor",
+    "name": "The Transistor",
+    "year": 1950,
+    "description": "Solid-state switching.",
+    "modifiers": [
+     {
+      "target": "literacy_target",
+      "add": 0.01
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "mainframes",
+    "name": "Business Computers",
+    "year": 1962,
+    "description": "Computers in every big office; computerised offices.",
+    "modifiers": [],
+    "flags": [
+     "computers",
+     "tech_computerised"
+    ]
+   },
+   {
+    "id": "integrated_circuits",
+    "name": "Integrated Circuits",
+    "year": 1966,
+    "description": "Whole circuits on one chip.",
+    "modifiers": [],
+    "flags": [
+     "tech_semiconductors"
+    ]
+   },
+   {
+    "id": "consumer_electronics",
+    "name": "Consumer Electronics",
+    "year": 1968,
+    "description": "Televisions and radios for every home.",
+    "modifiers": [],
+    "flags": [
+     "tech_electronics"
+    ]
+   },
+   {
+    "id": "personal_computers",
+    "name": "Personal Computers",
+    "year": 1978,
+    "description": "A computer on every desk.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.015
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "internet",
+    "name": "The Internet",
+    "year": 1991,
+    "description": "A network of networks.",
+    "modifiers": [],
+    "flags": [
+     "internet",
+     "tech_digital"
+    ]
+   },
+   {
+    "id": "mobile_computing",
+    "name": "Mobile Computing",
+    "year": 2007,
+    "description": "Smartphones in every pocket.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "machine_learning",
+    "name": "Machine Learning",
+    "year": 2016,
+    "description": "Statistical intelligence at scale.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.025
+     },
+     {
+      "target": "tax_efficiency",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "energy",
+  "name": "Energy",
+  "techs": [
+   {
+    "id": "grid_expansion",
+    "name": "National Grids",
+    "year": 1936,
+    "description": "Interconnected power networks.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "nuclear_fission",
+    "name": "Nuclear Fission",
+    "year": 1944,
+    "description": "Splitting the atom.",
+    "modifiers": [],
+    "flags": [
+     "nuclear_weapons",
+     "tech_uranium"
+    ]
+   },
+   {
+    "id": "oil_power",
+    "name": "Oil-Fired Power",
+    "year": 1950,
+    "description": "Oil replaces coal in power stations.",
+    "modifiers": [],
+    "flags": [
+     "tech_oil_power"
+    ]
+   },
+   {
+    "id": "nuclear_power",
+    "name": "Civil Nuclear Power",
+    "year": 1956,
+    "description": "Reactors on the grid.",
+    "modifiers": [],
+    "flags": [
+     "tech_nuclear_power"
+    ]
+   },
+   {
+    "id": "offshore_drilling",
+    "name": "Offshore Drilling",
+    "year": 1965,
+    "description": "Oil from beneath the sea.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.01
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "combined_cycle",
+    "name": "Combined-Cycle Gas",
+    "year": 1985,
+    "description": "Efficient gas turbines.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.01
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "renewables",
+    "name": "Wind and Solar",
+    "year": 2000,
+    "description": "Cheap renewable power.",
+    "modifiers": [],
+    "flags": [
+     "tech_renewables"
+    ]
+   },
+   {
+    "id": "batteries",
+    "name": "Lithium Batteries",
+    "year": 2010,
+    "description": "Storage for grids and cars.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.015
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "land",
+  "name": "Land Warfare",
+  "techs": [
+   {
+    "id": "motorised_infantry",
+    "name": "Motorised Infantry",
+    "year": 1938,
+    "description": "Trucks for the infantry.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.08
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "combined_arms",
+    "name": "Combined Arms",
+    "year": 1942,
+    "description": "Tanks, infantry and air together.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.1
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "assault_rifles",
+    "name": "Assault Rifles",
+    "year": 1946,
+    "description": "Automatic weapons for every soldier.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.08
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "mechanised_war",
+    "name": "Mechanised Warfare",
+    "year": 1955,
+    "description": "Armoured personnel carriers.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.1
+     },
+     {
+      "target": "org_recovery",
+      "mult": 0.1
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "guided_missiles",
+    "name": "Guided Missiles",
+    "year": 1965,
+    "description": "Anti-tank and anti-air missiles.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.08
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "night_vision",
+    "name": "Night Vision",
+    "year": 1975,
+    "description": "Fighting in the dark.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.06
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "precision_warfare",
+    "name": "Precision Warfare",
+    "year": 1991,
+    "description": "Satellite-guided munitions.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.1
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "drones",
+    "name": "Drone Warfare",
+    "year": 2010,
+    "description": "Unmanned systems.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.1
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "naval",
+  "name": "Naval",
+  "techs": [
+   {
+    "id": "naval_aviation",
+    "name": "Naval Aviation",
+    "year": 1938,
+    "description": "Carriers project air power at sea.",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.3
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "radar_sonar",
+    "name": "Radar and Sonar",
+    "year": 1942,
+    "description": "Seeing beyond the horizon.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "nuclear_submarines",
+    "name": "Nuclear Submarines",
+    "year": 1958,
+    "description": "Boats that never need to surface.",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.3
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "missile_ships",
+    "name": "Missile Ships",
+    "year": 1970,
+    "description": "Guided missiles at sea.",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.2
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "stealth_ships",
+    "name": "Stealth Ships",
+    "year": 2000,
+    "description": "Ships that hide from radar.",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.2
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "air",
+  "name": "Air & Aerospace",
+  "techs": [
+   {
+    "id": "monoplanes",
+    "name": "All-Metal Monoplanes",
+    "year": 1936,
+    "description": "Modern fighters and bombers.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.04
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "jet_engines",
+    "name": "Jet Engines",
+    "year": 1944,
+    "description": "Faster than any propeller.",
+    "modifiers": [
+     {
+      "target": "land_combat",
+      "mult": 0.05
+     }
+    ],
+    "flags": [
+     "tech_aircraft"
+    ]
+   },
+   {
+    "id": "rocketry",
+    "name": "Rocketry",
+    "year": 1946,
+    "description": "Ballistic rockets.",
+    "modifiers": [],
+    "flags": [
+     "tech_rockets"
+    ]
+   },
+   {
+    "id": "satellites",
+    "name": "Satellites",
+    "year": 1958,
+    "description": "Eyes in orbit.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.01
+     }
+    ],
+    "flags": [
+     "space_age"
+    ]
+   },
+   {
+    "id": "jet_airliners",
+    "name": "Jet Airliners",
+    "year": 1958,
+    "description": "Mass air travel.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.01
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "crewed_spaceflight",
+    "name": "Crewed Spaceflight",
+    "year": 1961,
+    "description": "People in space.",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.3
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "gps",
+    "name": "Satellite Navigation",
+    "year": 1993,
+    "description": "Positioning anywhere on Earth.",
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": 0.01
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "reusable_rockets",
+    "name": "Reusable Rockets",
+    "year": 2015,
+    "description": "Cheap access to orbit.",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.3
+     }
+    ],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "biomedicine",
+  "name": "Biomedicine",
+  "techs": [
+   {
+    "id": "sulfa_drugs",
+    "name": "Sulfa Drugs",
+    "year": 1937,
+    "description": "The first antibacterials.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "penicillin",
+    "name": "Penicillin",
+    "year": 1943,
+    "description": "Mass-produced antibiotics.",
+    "modifiers": [],
+    "flags": [
+     "tech_pharmaceuticals"
+    ]
+   },
+   {
+    "id": "vaccination_campaigns",
+    "name": "Mass Vaccination",
+    "year": 1950,
+    "description": "Polio and smallpox in retreat.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "green_revolution",
+    "name": "Green Revolution",
+    "year": 1962,
+    "description": "High-yield crops and fertiliser.",
+    "modifiers": [
+     {
+      "target": "fertility_mult",
+      "mult": 0
+     }
+    ],
+    "flags": [
+     "tech_chemicals"
+    ]
+   },
+   {
+    "id": "organ_transplants",
+    "name": "Organ Transplants",
+    "year": 1967,
+    "description": "Replacing failing organs.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "imaging",
+    "name": "Medical Imaging",
+    "year": 1975,
+    "description": "Scanners see inside the body.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "biotechnology",
+    "name": "Biotechnology",
+    "year": 1985,
+    "description": "Engineered medicines.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "genomics",
+    "name": "Genomics",
+    "year": 2003,
+    "description": "Reading the human genome.",
+    "modifiers": [],
+    "flags": []
+   },
+   {
+    "id": "mrna",
+    "name": "mRNA Medicine",
+    "year": 2020,
+    "description": "Vaccines designed in days.",
+    "modifiers": [],
+    "flags": []
+   }
+  ]
+ },
+ {
+  "id": "society",
+  "name": "Society",
+  "techs": [
+   {
+    "id": "mass_media",
+    "name": "Mass Media",
+    "year": 1936,
+    "description": "Radio and newsreels.",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.2
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "social_insurance",
+    "name": "Social Insurance",
+    "year": 1942,
+    "description": "Pensions and unemployment insurance.",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.1
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "mass_higher_education",
+    "name": "Mass Higher Education",
+    "year": 1955,
+    "description": "University for the many.",
+    "modifiers": [
+     {
+      "target": "literacy_target",
+      "add": 0.02
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "television_age",
+    "name": "The Television Age",
+    "year": 1960,
+    "description": "Every home watches the news.",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.2
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "civil_rights",
+    "name": "Civil Rights",
+    "year": 1965,
+    "description": "Equal rights before the law.",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.1
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "environmentalism",
+    "name": "Environmentalism",
+    "year": 1972,
+    "description": "Protecting nature.",
+    "modifiers": [
+     {
+      "target": "stability_target",
+      "add": 0.05
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "globalised_culture",
+    "name": "Globalised Culture",
+    "year": 1992,
+    "description": "A shared world culture.",
+    "modifiers": [
+     {
+      "target": "dip_gain",
+      "add": 0.3
+     }
+    ],
+    "flags": []
+   },
+   {
+    "id": "social_media",
+    "name": "Social Media",
+    "year": 2008,
+    "description": "Everyone a broadcaster.",
+    "modifiers": [
+     {
+      "target": "pp_gain",
+      "add": 0.3
+     },
+     {
+      "target": "stability_target",
+      "add": -0.1
+     }
+    ],
+    "flags": []
+   }
+  ]
+ }
+]

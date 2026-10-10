@@ -6,6 +6,12 @@ import { fmtBig, fmtMoney } from "./format";
 
 const MODES = [["political", "Political"], ["development", "Development"], ["population", "Population"], ["sol", "SoL"], ["unrest", "Unrest"], ["ig", "IG"], ["relations", "Relations"], ["occupation", "Occupation"]] as const;
 
+/** Era theming (§4): bar tint and accent change with the era. */
+const ERA_THEME: [number, string, string, string][] = [
+  [0, "Crisis", "rgba(26,17,15,0.95)", "#9a3b2e"], [1946, "Reconstruction", "rgba(17,22,26,0.95)", "#6c8ea0"], [1960, "Cold War", "rgba(15,17,26,0.95)", "#3a6ea5"],
+  [1990, "Globalisation", "rgba(14,24,24,0.95)", "#2a9d8f"], [2010, "Information", "rgba(16,14,28,0.95)", "#7b5cff"],
+];
+
 export function TopBar() {
   const { snap, send, mapMode, set, dock, setup } = useUi();
   if (!snap || !setup) return null;
@@ -13,8 +19,9 @@ export function TopBar() {
   const toggle = (t: DockTab) => set({ dock: dock === t ? null : t });
   const res = { display: "inline-flex", gap: 4, alignItems: "center", padding: "0 4px" } as const;
   const delta = p.income - p.expense;
+  const year = +(snap.dateLabel.match(/\d{4}/)?.[0] ?? 1936), era = ERA_THEME.filter(([y]) => year >= y).pop()!;
   return (
-    <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", gap: 10, alignItems: "center", padding: "6px 12px", background: "rgba(15,17,26,0.95)", color: "#eee", fontSize: 13, zIndex: 5, flexWrap: "wrap" }}>
+    <div title={era[1]} style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", gap: 10, alignItems: "center", padding: "6px 12px", background: era[2], borderBottom: `2px solid ${era[3]}`, color: "#eee", fontSize: 13, zIndex: 5, flexWrap: "wrap" }}>
       <span style={{ ...res, cursor: "pointer" }} onClick={() => toggle("government")}>
         <span style={{ width: 12, height: 12, background: me.color, display: "inline-block", border: "1px solid #000" }} /><strong>{me.name}</strong>
       </span>
@@ -34,7 +41,7 @@ export function TopBar() {
       <Tip title="Stability (−3…+3) drifts toward its target" rows={p.why.stability!}><span style={{ ...res, cursor: "pointer", color: p.stability < -1 ? "#e76f51" : p.stability > 1 ? "#90be6d" : undefined }} onClick={() => toggle("government")}>⚓ {p.stability.toFixed(1)}</span></Tip>
       <button style={{ ...btnStyle, opacity: p.canUndo ? 1 : 0.4 }} disabled={!p.canUndo} title="Undo last action (Ctrl+Z) — only before time advances" onClick={() => send({ kind: "undo" })}>↶ Undo</button>
       <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-        {([["government", "F1 Gov"], ["economy", "F2 Economy"], ["population", "F3 Pop"], ["igs", "F4 IGs"], ["focus", "F5 Focus"], ["diplomacy", "F6 Diplo"], ["military", "F7 Military"]] as const).map(([t, l]) => (
+        {([["government", "F1 Gov"], ["economy", "F2 Economy"], ["population", "F3 Pop"], ["igs", "F4 IGs"], ["focus", "F5 Focus"], ["diplomacy", "F6 Diplo"], ["military", "F7 Military"], ["tech", "F8 Tech"]] as const).map(([t, l]) => (
           <button key={t} style={{ ...btnStyle, background: dock === t ? "#8d99ae" : btnStyle.background }} onClick={() => toggle(t)}>{l}</button>
         ))}
         <button style={btnStyle} onClick={() => set({ palette: true })} title="Search anything">⌘K</button>

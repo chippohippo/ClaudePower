@@ -42,3 +42,11 @@
 - AI: diplomacy and war evaluators, recruitment, demobilisation, peace.
 - UI: Diplomacy (F6), Military (F7) with peace builder, battle report pop-up, army markers (right-click to move), Relations (7) and Occupation (8) map modes, war alerts.
 - Exit test: AI-only runs (seeds 1, 2) reach 1950 with a major war ending in a peace deal; no instant wipes; reports explain outcomes.
+## m7 — Tech, Ideas & Eras
+- 8 tech trees (66 techs, data/techs.json). Each country has an effective year per tree. Speed = (0.45 + 0.6×literacy) × research_speed, plus diffusion (+1/yr per 30 years behind the frontier), halved every 1.5 years ahead of the calendar. Laggards start up to 22 years behind (by literacy).
+- Tech now drives growth: industry year → productivity and production-method unlocks; biomedicine → medicine (basic medicine never lags the calendar by more than 8 years); society → schooling; land techs → land_combat; fission → nuclear_weapons; flags `computers`, `internet` and tech_*.
+- Ideas: 9 groups × 7 (bought for 200 ADM/DIP/MIL), slots grow with tech (1–8), AI auto-buys under Auto-advisors; national ideas for the 8 majors. `take_idea` command with preview.
+- Era sub-trees (6 focuses each, gated on era flags) for the 8 majors. Era-tinted top bar.
+- UI: F8 Technology & Ideas panel. Save v8 (migration from v7).
+- Exit: AI-only run gives computers in 1961 and the internet in 1990. 2006 tech years range from 1998.6 to 2006.5. Calibration green; bench 45 ms.
+- Deferred to M8: the remaining era goods and buildings (vehicles, electronics, pharmaceuticals, chemicals, aircraft, semiconductors, uranium, digital services). They need economy re-calibration.

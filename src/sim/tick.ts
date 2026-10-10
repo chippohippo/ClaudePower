@@ -14,6 +14,8 @@ import { runFocus } from "./systems/focus";
 import { runEvents } from "./systems/events";
 import { runAmbitions } from "./systems/ambitions";
 import { runEra } from "./systems/era";
+import { runResearch, aiIdeas } from "./techs";
+import { AUTO_ADVISORS } from "./automation";
 import "./commands/content";
 import "./commands/war";
 import { runMovement } from "./systems/armies";
@@ -27,6 +29,11 @@ import { runIdeologyDrift, runPolitics } from "./systems/politics";
 export type System = (world: World, events: SimEvent[]) => void;
 const noop: System = () => {};
 
+function runAiIdeas(w: World): void {
+  const a = w.countries.cols.automation!;
+  for (let c = 0; c < w.countries.size; c++) if (a[c]! & AUTO_ADVISORS && w.countries.cols.population![c]! > 0) aiIdeas(w, c);
+}
+
 export const DAILY: [string, System][] = [
   ["movement", runMovement], ["combat", runCombat], ["sieges", runSieges], ["character_health", noop],
 ];
@@ -35,7 +42,7 @@ export const MONTHLY: [string, System][] = [
   ["consumption_sol", eco.consumptionSol], ["state_budget", eco.stateBudget], ["construction", eco.construction],
   // Demography is yearly in the design; rates are applied monthly (/12) for smoothness, with mobility.
   ["demography_smoothed", eco.demographyMonthly],
-  ["research_focus", (w) => { runEra(w); runFocus(w); }], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", runEvents], ["ai", (w) => { runWarScore(w); runDiplomacyAi(w); aiPeace(w); aiRecruit(w); autoCommand(w); }], ["alerts", noop],
+  ["research_focus", (w) => { runEra(w); runResearch(w); runAiIdeas(w); runFocus(w); }], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", runEvents], ["ai", (w) => { runWarScore(w); runDiplomacyAi(w); aiPeace(w); aiRecruit(w); autoCommand(w); }], ["alerts", noop],
 ];
 export const YEARLY: [string, System][] = [
   ["demography", noop], ["migration", runMigration], ["assimilation_mobility", runAssimilation], ["ig_clout", noop],

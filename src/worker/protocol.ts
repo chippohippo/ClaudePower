@@ -88,6 +88,7 @@ export interface Snapshot {
   battles: BattleView[];
   claims: number[];
   rivals: number[];
+  tech: { years: number[]; slots: number; ideas: { g: number; n: number }[]; blockers: (string | null)[] };
   military: { equip: number; manpower: number; fielded: number; exhaustion: number; nukes: number; power: number };
 }
 export type FromWorker =

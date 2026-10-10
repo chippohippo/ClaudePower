@@ -10,6 +10,7 @@ import { Igs } from "./Igs";
 import { FocusTree } from "./FocusTree";
 import { Diplomacy } from "./Diplomacy";
 import { Military } from "./Military";
+import { Tech } from "./Tech";
 
 function Ambitions() {
   const a = useUi((s) => s.snap?.ambitions);
@@ -28,11 +29,11 @@ const h = { margin: "10px 0 4px", fontSize: 13, textTransform: "uppercase", lett
 export function Dock() {
   const { dock, report, setup, set } = useUi();
   if (!dock) return null;
-  if (dock === "government" || dock === "igs" || dock === "focus" || dock === "diplomacy" || dock === "military") return (
+  if (dock === "government" || dock === "igs" || dock === "focus" || dock === "diplomacy" || dock === "military" || dock === "tech") return (
     <div style={{ ...box, width: dock === "focus" ? "min(1100px, 75vw)" : box.width }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>{{ igs: "Interest Groups", government: "Government", focus: "National Focus", diplomacy: "Diplomacy", military: "Military" }[dock]}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between" }}><strong style={{ fontSize: 15 }}>{{ igs: "Interest Groups", government: "Government", focus: "National Focus", diplomacy: "Diplomacy", military: "Military", tech: "Technology & Ideas" }[dock]}</strong>
         <button onClick={() => set({ dock: null })} style={{ background: "none", color: "#eee", border: "none", cursor: "pointer" }}>✕</button></div>
-      {dock === "igs" ? <Igs /> : dock === "focus" ? <FocusTree /> : dock === "diplomacy" ? <Diplomacy /> : dock === "military" ? <Military /> : <><Ambitions /><People /><Government /></>}
+      {dock === "igs" ? <Igs /> : dock === "focus" ? <FocusTree /> : dock === "diplomacy" ? <Diplomacy /> : dock === "military" ? <Military /> : dock === "tech" ? <Tech /> : <><Ambitions /><People /><Government /></>}
     </div>
   );
   if (!report || !setup) return <div style={box}>Loading report…</div>;

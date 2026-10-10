@@ -31,13 +31,14 @@
 - linter: scripts/lint-consistency.ts (in lint:content) · harness: tests/content/focus-harness.test.ts · architecture/merge map: docs/ARCHITECTURE.md
 - diplomacy: src/sim/diplomacy.ts (pair table, CB, power) · wars: systems/{armies,combat,wars,diplo-ai,war-ai}.ts · commands/war.ts · UI Diplomacy.tsx (F6), Military.tsx (F7)
 - automation flags live in src/sim/automation.ts (leaf module — import cycles made setup re-exports undefined at runtime)
+- tech & ideas: src/sim/techs.ts (+ data/techs.json, data/ideas.json; relYear drives productivity/medicine/schooling/PM unlocks) · UI Tech.tsx (F8)
 - session (player, undo, previews, snapshot): src/worker/session.ts · scripted UI playtest: scripts/playtest-germany.mjs
 - inspect (UI reports + breakdowns): src/sim/inspect.ts · calibration: tests/calibration/century.test.ts (~45 s)
 - world from content: src/sim/setup.ts (createWorld, scope world|europe, CSR adjacency) · renderer: src/map/MapRenderer.ts (render on demand)
 ## Key constants: STAT_CLAMPS in src/sim/modifiers.ts; WORLD_VERSION in src/sim/world.ts; SPEED_DAYS_PER_SEC in src/sim/speed.ts; TARGET_PROVINCES/EUROPE_WEIGHT/MAJOR_HOME_MIN in scripts/build-map.ts; demography (TFR_*, BIRTH_FACTOR, medicine/schooling curves), mobility/migration rates, LABOUR_SHARE, SPEND_RATE, MONETARY_*, ERA_GROWTH — each at the top of its system file
 ## Known issues / tuning notes
 - Systems in tick.ts not yet built are noops. Demography runs monthly (rates/12) in slot demography_smoothed.
-- Tech placeholders until M7: ERA_GROWTH productivity, medicine()/schooling() curves, PMs unlock by year (chosen by profit).
+- Tech (M7) drives ERA_GROWTH productivity, medicine()/schooling() and PM unlocks via relYear; tune START_LAG/DIFFUSION/AHEAD_HALF in techs.ts.
 - Cultures/religions are spread uniformly across a country's provinces (no regional distribution yet).
 - Calibration is one deterministic run (no randomness in sim yet), so "10% of runs" inflation check = this run.
 - Points: base 3 + head stats + ¼ minister stats + traits; PP base 2 + stability + loyal IGs. Sinks: dev, stability, heirs, appointments, laws.

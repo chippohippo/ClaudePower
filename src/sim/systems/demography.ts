@@ -3,7 +3,7 @@
 import { STRATUM } from "../defs";
 import { countryStat, getStat } from "../modifiers";
 import type { World } from "../world";
-import { toYmd } from "../date";
+import { relYear, TREE_BIOMED, TREE_SOCIETY } from "../techs";
 
 export const TFR_FLOOR = 1.2, TFR_RANGE = 5.6;
 export const HEALTH_DRIFT = 0.02, LITERACY_YEARS = 12;
@@ -11,9 +11,11 @@ export const FAMINE_DEATHS = 0.06;
 /** Births per adult (15–64) per unit TFR per year: women 15–49 ≈ 45% of adults, TFR spread over 35 years. */
 export const BIRTH_FACTOR = 0.014;
 
-/** Global medicine (placeholder for the tech system, M7): 0.8 in 1936 → 1.0 by ~1976. */
+/** Basic medicine (vaccines, antibiotics) diffuses worldwide: nobody lags the calendar by more than this. */
+export const MEDICINE_DIFFUSION_LAG = 8;
+/** Medicine by biomedicine tech year: 0.8 in 1936 → 1.0 by ~1976. */
 export const medicine = (year: number) => Math.min(1, 0.8 + 0.2 * Math.max(0, (year - 1936) / 40) ** 0.7);
-/** Global schooling reach: 0.55 in 1936 → 1.0 by ~2010. */
+/** Schooling reach by society tech year: 0.55 in 1936 → 1.0 by ~2010. */
 export const schooling = (year: number) => Math.min(1, 0.55 + 0.45 * Math.max(0, (year - 1936) / 74));
 
 export function tfrOf(literacy: number, urban: boolean, sol: number): number {
@@ -34,7 +36,9 @@ export function lifeExpectancy([m0, m1, m2]: [number, number, number]): number {
 export interface Bonuses { literacy: Float64Array; health: Float64Array }
 
 export function runDemography(w: World, famine: Float64Array, bonus: Bonuses): void {
-  const p = w.pops.cols, year = toYmd(w.date).year, med = medicine(year), school = schooling(year);
+  const p = w.pops.cols, year = w.date / 365.25 + 1936;
+  const med = Float64Array.from({ length: w.countries.size }, (_, c) => medicine(Math.max(relYear(w, c, TREE_BIOMED), year - MEDICINE_DIFFUSION_LAG)));
+  const school = Float64Array.from({ length: w.countries.size }, (_, c) => schooling(relYear(w, c, TREE_SOCIETY)));
   const litLaw = countryStat(w, "literacy_target");
   const fertMult = Array.from({ length: w.countries.size }, (_, c) => getStat(w, `c:${c}`, "fertility_mult").value);
   for (let i = 0; i < w.pops.size; i++) {
@@ -52,9 +56,9 @@ export function runDemography(w: World, famine: Float64Array, bonus: Bonuses): v
     p.a1![i] = a1 + up0 - d1 - up1;
     p.a2![i] = a2 + up1 - d2;
     w.ledger.born += births; w.ledger.died += d0 + d1 + d2;
-    const hTarget = Math.min(1, med * (0.45 + 0.55 * sol / 100) + bonus.health[prov]!);
+    const hTarget = Math.min(1, med[c]! * (0.45 + 0.55 * sol / 100) + bonus.health[prov]!);
     p.health![i] = p.health![i]! + (hTarget - p.health![i]!) * HEALTH_DRIFT;
-    const lTarget = Math.min(1, Math.max(0, school * (0.35 + 0.65 * Math.min(1, sol / 70)) + bonus.literacy[prov]! + litLaw[c]!));
+    const lTarget = Math.min(1, Math.max(0, school[c]! * (0.35 + 0.65 * Math.min(1, sol / 70)) + bonus.literacy[prov]! + litLaw[c]!));
     p.literacy![i] = lit + (lTarget - lit) / (LITERACY_YEARS * 12);
   }
 }
