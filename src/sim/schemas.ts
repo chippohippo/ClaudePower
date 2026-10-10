@@ -17,7 +17,7 @@ export const Map1936File = z.object({
 });
 export const TERRAINS = ["plains", "forest", "hills", "mountains", "desert", "jungle", "tundra", "marsh"] as const;
 export const ProvinceSchema = z.object({
-  id: z.number().int().nonnegative(), name: z.string(), owner: z.string().regex(/^[A-Z]{3}$/),
+  id: z.number().int().nonnegative(), name: z.string(), aka: z.array(z.string()).default([]), owner: z.string().regex(/^[A-Z]{3}$/),
   terrain: z.enum(TERRAINS), development: z.number().min(0), areaKm2: z.number().positive(),
   lon: z.number(), lat: z.number(), neighbors: z.array(z.number().int()),
 });
@@ -64,6 +64,14 @@ export const StartPopsFile = z.object({
 export type CountryDef = z.infer<typeof CountrySchemaV2>;
 export type ProvinceDef = z.infer<typeof ProvinceSchema>;
 
+const ModSpec = z.object({ target: z.string(), add: z.number().optional(), mult: z.number().optional() });
+export const LawsFile = z.array(z.object({
+  id: z.string(), name: z.string(),
+  laws: z.array(z.object({ id: z.string(), name: z.string(), description: z.string(), ppCost: z.number().positive(), modifiers: z.array(ModSpec) })).min(2),
+}));
+export type LawCategory = z.infer<typeof LawsFile>[number];
+export const StartLawsFile = z.record(z.string(), z.record(z.string(), z.string()));
+
 export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "countries.json": CountriesFile,
   "map_1936.json": Map1936File,
@@ -75,4 +83,6 @@ export const DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   "goods.json": GoodsFile,
   "needs.json": NeedsFile,
   "buildings.json": BuildingsFile,
+  "laws.json": LawsFile,
+  "start/laws-1936.json": StartLawsFile,
 };

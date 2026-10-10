@@ -1,6 +1,7 @@
 // Wages & pop income: buildings pay a labour share of value added, profit tax, and dividends to elites.
 import { BASE_PRICE, N_GOODS, N_STRATA, PMS, STRATUM } from "../defs";
 import { Acct, Escrow, apportion, budgetLine, transfer } from "../money";
+import { countryStat } from "../modifiers";
 import type { World } from "../world";
 import { jobsKey, isStateBuilding } from "./labour";
 import type { OrderBook } from "./orders";
@@ -10,7 +11,6 @@ const _N_GOODS = N_GOODS, _BASE_PRICE = BASE_PRICE, _PMS = PMS, _N_STRATA = N_ST
 
 export const LABOUR_SHARE = 0.65;
 export const DIVIDEND_SHARE = 0.7;
-export const ELITE_INVEST_SHARE = 0.05;
 export const POOL_RETURN = 0.08;
 /** Relative pay per stratum within a building's wage pool. */
 export const STRATUM_PAY = [1, 1.5, 2, 3.5, 0, 1.5, 2];
@@ -24,6 +24,7 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
   const esc = new Escrow(w);
   const dividendsByProv = new Float64Array(nP);
   const weights = new Float64Array(_N_STRATA);
+  const taxEff = countryStat(w, "tax_efficiency"), invest = countryStat(w, "investment_rate");
 
   for (let i = 0; i < w.buildings.size; i++) {
     const prov = b.prov![i]!, country = w.provinces.cols.owner![prov]!, pm = _PMS[b.type![i]!]![b.pm![i]!]!;
@@ -43,7 +44,8 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
     const pool = Math.min(b.cash![i]!, Math.floor(Math.max(0, va) * LABOUR_SHARE));
     b.wages![i] = pool;
     if (pool > 0) {
-      const tax = Math.floor(pool * cc.taxRate![country]!);
+      const rate = Math.min(0.6, cc.taxRate![country]! * taxEff[country]! * (0.85 + 0.03 * w.provinces.cols.devTax![prov]!));
+      const tax = Math.floor(pool * rate);
       budgetLine("income_tax");
       transfer(w, Acct.Building, i, Acct.Treasury, country, tax);
       esc.take(Acct.Building, i, pool - tax);
@@ -59,7 +61,8 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
     const profit = va - pool;
     b.profit![i] = profit;
     budgetLine("profit_tax");
-    if (profit > 0) transfer(w, Acct.Building, i, Acct.Treasury, country, Math.min(b.cash![i]!, Math.floor(profit * cc.taxRate![country]!)));
+    const prate = Math.min(0.6, cc.taxRate![country]! * taxEff[country]! * (0.85 + 0.03 * w.provinces.cols.devTax![prov]!));
+    if (profit > 0) transfer(w, Acct.Building, i, Acct.Treasury, country, Math.min(b.cash![i]!, Math.floor(profit * prate)));
     const reserve = 2 * inputCost + pool;
     const div = Math.floor(Math.max(0, b.cash![i]! - reserve) * DIVIDEND_SHARE);
     if (div > 0) { esc.take(Acct.Building, i, div); dividendsByProv[prov]! += div; }
@@ -109,7 +112,7 @@ export function settleBuildings(w: World, book: OrderBook, po: ProductionOrders,
   // Elites invest part of their savings into the national investment pool.
   for (let i = 0; i < w.pops.size; i++) {
     if (pc.stratum![i] !== _STRATUM.elites) continue;
-    transfer(w, Acct.Pop, i, Acct.Pool, w.provinces.cols.owner![pc.prov![i]!]!, Math.floor(Math.max(0, pc.cash![i]!) * ELITE_INVEST_SHARE));
+    transfer(w, Acct.Pop, i, Acct.Pool, w.provinces.cols.owner![pc.prov![i]!]!, Math.floor(Math.max(0, pc.cash![i]!) * invest[w.provinces.cols.owner![pc.prov![i]!]!]!));
   }
   return { paidByKey, valueAdded };
 }

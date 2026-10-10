@@ -69,7 +69,8 @@ export function clearMarkets(w: World, book: OrderBook): void {
     for (const b of buys[k]!) bought += book.bGot[b]!;
     m.sold![k] = sold; m.bought![k] = bought;
     const g = k % _N_GOODS, c = (k - g) / _N_GOODS;
-    m.price![k] = nextPrice(m.price![k]!, _BASE_PRICE[g]! * pl[c]!, m.demand![k]!, m.supply![k]!);
+    // Imports count as supply: an import-dependent market prices near the world price, not at the cap.
+    m.price![k] = nextPrice(m.price![k]!, _BASE_PRICE[g]! * pl[c]!, m.demand![k]!, Math.max(m.supply![k]!, bought));
   }
   let totS = new Float64Array(_N_GOODS), totD = new Float64Array(_N_GOODS);
   for (let k = 0; k < nM; k++) { totS[k % _N_GOODS]! += m.supply![k]!; totD[k % _N_GOODS]! += m.demand![k]!; }

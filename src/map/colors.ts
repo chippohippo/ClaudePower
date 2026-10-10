@@ -25,3 +25,5 @@ export const densityColor = (density: number) => ramp(Math.log10(1 + density) / 
 export function solColor(sol: number): number {
   return sol < 50 ? ramp(sol / 50, [178, 34, 34], [240, 220, 120]) : ramp((sol - 50) / 50, [240, 220, 120], [34, 120, 60]);
 }
+/** Unrest 0..10: pale → deep red. */
+export const unrestColor = (u: number) => ramp(u / 8, [235, 235, 225], [150, 20, 20]);

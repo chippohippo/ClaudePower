@@ -5,7 +5,8 @@ import { Acct, budgetLine, transfer } from "../money";
 import { popSize } from "../pops";
 import type { World } from "../world";
 import type { OrderBook } from "./orders";
-import { provinceProductivity } from "./production";
+import { provinceProd } from "./production";
+import { countryStat } from "../modifiers";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
 const _N_GOODS = N_GOODS, _BASE_PRICE = BASE_PRICE, _NEEDS = NEEDS;
 
@@ -18,21 +19,22 @@ const GRAIN = goodIndex("grain");
 export interface ConsumptionPlan { first: Int32Array; tiers: Float64Array; subsGrain: Float64Array }
 
 /** Subsistence farmers grow their own grain (per capita per month). */
-export const subsistenceYield = (dev: number) => Math.min(1.1, 0.75 * provinceProductivity(dev) + 0.35);
+export const subsistenceYield = (prod: number) => Math.min(1.1, 0.75 * prod + 0.35);
 
 export function planConsumption(w: World, book: OrderBook): ConsumptionPlan {
   const n = w.pops.size, p = w.pops.cols;
   const plan: ConsumptionPlan = { first: new Int32Array(n * _N_GOODS).fill(-1), tiers: new Float64Array(n * 3), subsGrain: new Float64Array(n) };
   const mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
   const pp = new Float64Array(_N_GOODS), qty = new Float64Array(_N_GOODS);
+  const consumption = countryStat(w, "consumption");
   for (let i = 0; i < n; i++) {
     const size = popSize(w, i);
     if (size < 1) continue;
     const prov = p.prov![i]!, c = w.provinces.cols.owner![prov]!;
     for (let g = 0; g < _N_GOODS; g++) pp[g] = Math.min(mk[c * _N_GOODS + g]!, wp[g]! * 1.05);
-    const subs = p.subsistence![i]! * size * subsistenceYield(w.provinces.cols.development![prov]!);
+    const subs = p.subsistence![i]! * size * subsistenceYield(provinceProd(w, prov));
     plan.subsGrain[i] = subs;
-    const budget = (Math.max(0, p.cash![i]!) * SPEND_RATE) / (1 + CONSUMPTION_TAX);
+    const budget = (Math.max(0, p.cash![i]!) * SPEND_RATE * consumption[c]!) / (1 + CONSUMPTION_TAX);
     // tier costs at plan prices
     const tierCost = [0, 0, 0];
     for (let t = 0; t < 3; t++) for (let g = 0; g < _N_GOODS; g++) {
@@ -60,6 +62,7 @@ export function planConsumption(w: World, book: OrderBook): ConsumptionPlan {
 export function settleConsumption(w: World, book: OrderBook, plan: ConsumptionPlan): Float64Array {
   const n = w.pops.size, p = w.pops.cols;
   const famine = new Float64Array(n), fill = new Float64Array(_N_GOODS);
+  const taxEff = countryStat(w, "tax_efficiency");
   for (let i = 0; i < n; i++) {
     const size = popSize(w, i);
     if (size < 1) continue;
@@ -72,7 +75,7 @@ export function settleConsumption(w: World, book: OrderBook, plan: ConsumptionPl
       fill[g] = book.bQty[o]! > 0 ? book.bGot[o]! / book.bQty[o]! : 1;
     }
     budgetLine("consumption_tax");
-    transfer(w, Acct.Pop, i, Acct.Treasury, c, Math.min(Math.max(0, p.cash![i]!), Math.floor(paid * CONSUMPTION_TAX)));
+    transfer(w, Acct.Pop, i, Acct.Treasury, c, Math.min(Math.max(0, p.cash![i]!), Math.floor(paid * CONSUMPTION_TAX * taxEff[c]!)));
     const cov = [0, 0, 0];
     for (let t = 0; t < 3; t++) {
       let need = 0, got = 0;

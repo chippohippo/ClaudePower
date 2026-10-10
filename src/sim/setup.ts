@@ -2,7 +2,8 @@
 import { BUDGET_COLS, COUNTRY_COLS, MARKET_COLS, createEmptyWorld, ensureCapacity, makeTable, type World } from "./world";
 import { TERRAINS, type CountryDef, type ProvinceDef } from "./schemas";
 import type { z } from "zod";
-import type { CountriesStartFile, ResourcesFile, StartPopsFile } from "./schemas";
+import type { CountriesStartFile, ResourcesFile, StartLawsFile, StartPopsFile } from "./schemas";
+import { LAWS, enactLaw } from "./laws";
 import { BASE_PRICE, BUILDINGS, N_GOODS, PMS } from "./defs";
 import { addPop } from "./pops";
 import { regionOfLonLat } from "./regions";
@@ -13,9 +14,11 @@ export const inEurope = (p: { lon: number; lat: number }) => p.lon >= -25 && p.l
 export interface StartData {
   countries: CountryDef[]; provinces: ProvinceDef[]; capitals: Record<string, number>;
   pops: z.infer<typeof StartPopsFile>; start: z.infer<typeof CountriesStartFile>; resources: z.infer<typeof ResourcesFile>;
+  laws: z.infer<typeof StartLawsFile>;
 }
 export interface StartInfo { world: World; srcProvinceIds: number[]; countries: CountryDef[] }
 
+export const AUTO_DEVELOP = 1, AUTO_BUILD = 2, AUTO_BUDGET = 4, AUTO_ALL = 7;
 export const RES_OIL = 1, RES_COAL = 2, RES_IRON = 4;
 export const STARTING_TAX = 0.12;
 
@@ -42,6 +45,7 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
     pc.development![i] = p.development;
     pc.terrain![i] = TERRAINS.indexOf(p.terrain);
     pc.region![i] = regionOfLonLat(p.lon, p.lat);
+    pc.devTax![i] = pc.devProd![i] = pc.devMan![i] = p.development / 3;
     pc.res![i] = (inBoxes(data.resources.oil, p) ? RES_OIL : 0) | (inBoxes(data.resources.coal, p) ? RES_COAL : 0) | (inBoxes(data.resources.iron, p) ? RES_IRON : 0);
     for (const n of p.neighbors) { const j = newId.get(n); if (j !== undefined) list.push(j); }
     offset[i + 1] = list.length;
@@ -84,7 +88,11 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
     const s = data.start[c.tag]!;
     // Treasury ≈ two months of a 12%-of-GDP budget.
     cc.treasury![i] = Math.round(s.population * 1e6 * s.gdpPerCapita * 100 * 0.12 * (2 / 12));
-    w.base[`c:${i}`] = { stability: 0, fertility_mult: 1 };
+    w.base[`c:${i}`] = { fertility_mult: 1 };
+    cc.adm![i] = cc.dip![i] = cc.mil![i] = 100; cc.pp![i] = 100;
+    cc.automation![i] = AUTO_ALL;
+    const laws = { ...data.laws._default, ...data.laws[c.tag] };
+    LAWS.forEach((cat, k) => enactLaw(w, i, k, Math.max(0, cat.laws.findIndex((l) => l.id === laws[cat.id]))));
     const wages = [0.5, 1, 1.5, 3, 10, 1, 1.5];
     wages.forEach((x, k) => { cc[`wage${k}`]![i] = Math.round(((s.gdpPerCapita * 100) / 12) * x * 0.9); });
   });

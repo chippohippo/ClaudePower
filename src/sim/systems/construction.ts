@@ -5,7 +5,9 @@ import { Acct } from "../money";
 import { RES_COAL, RES_IRON, RES_OIL } from "../setup";
 import { ensureCapacity, type World } from "../world";
 import type { OrderBook } from "./orders";
-import { eraProductivity, provinceProductivity } from "./production";
+import { eraProductivity, provinceProd } from "./production";
+import { countryStat } from "../modifiers";
+import { AUTO_BUILD } from "../setup";
 import { LABOUR_SHARE } from "./wages";
 import { toYmd } from "../date";
 import { choosePms, jobsKey } from "./labour";
@@ -29,18 +31,19 @@ export function planConstruction(w: World, book: OrderBook): ConstructionPlan {
   const pr = w.projects.cols, n = w.projects.size;
   const orders = new Int32Array(n * _CONSTRUCTION_BASKET.length).fill(-1);
   const mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
+  const stateShare = countryStat(w, "state_construction"), costMult = countryStat(w, "construction_cost");
   // Split each funder's monthly budget across its active projects.
   const count = new Map<string, number>();
   for (let j = 0; j < n; j++) { const k = `${pr.country![j]}:${pr.state![j]}`; count.set(k, (count.get(k) ?? 0) + 1); }
   for (let j = 0; j < n; j++) {
     const c = pr.country![j]!, state = pr.state![j]! === 1;
-    const funds = state ? Math.max(0, w.countries.cols.treasury![c]! - 3 * w.countries.cols.expense![c]!) * 0.3 : w.countries.cols.investPool![c]! * POOL_SPEND;
+    const funds = state ? Math.max(0, w.countries.cols.treasury![c]! - 3 * w.countries.cols.expense![c]!) * (pr.levels![j]! > 0 && (w.countries.cols.automation![c]! & AUTO_BUILD) ? stateShare[c]! : 0.5) : w.countries.cols.investPool![c]! * POOL_SPEND;
     const budget = funds / count.get(`${c}:${pr.state![j]}`)!;
     const remaining = 1 - pr.progress![j]!, lv = pr.levels![j]!;
-    const unit = basketCost(w, c) * lv;
+    const unit = basketCost(w, c) * lv * costMult[c]!;
     const frac = unit > 0 ? Math.min(remaining, budget / unit) : 0;
     _CONSTRUCTION_BASKET.forEach(([g, q], k) => {
-      const qty = q * lv * frac;
+      const qty = q * lv * frac * costMult[c]!;
       orders[j * _CONSTRUCTION_BASKET.length + k] = book.buy(c, g, qty, state ? Acct.Treasury : Acct.Pool, c, qty * Math.max(mk[c * _N_GOODS + g]!, wp[g]!) + 1);
     });
   }
@@ -48,13 +51,13 @@ export function planConstruction(w: World, book: OrderBook): ConstructionPlan {
 }
 
 export function settleConstruction(w: World, book: OrderBook, plan: ConstructionPlan): void {
-  const pr = w.projects.cols;
+  const pr = w.projects.cols, costMult = countryStat(w, "construction_cost");
   let basketVal = 0;
   for (const [g, q] of _CONSTRUCTION_BASKET) basketVal += q * _BASE_PRICE[g]!;
   for (let j = 0; j < w.projects.size; j++) {
     let got = 0;
     _CONSTRUCTION_BASKET.forEach(([g], k) => { const o = plan.orders[j * _CONSTRUCTION_BASKET.length + k]!; if (o >= 0) got += book.bGot[o]! * _BASE_PRICE[g]!; });
-    pr.progress![j]! += got / (basketVal * pr.levels![j]!);
+    pr.progress![j]! += got / (basketVal * pr.levels![j]! * costMult[pr.country![j]!]!);
   }
   // Complete finished projects.
   let out = 0;
@@ -83,7 +86,7 @@ function expectedProfit(w: World, c: number, type: number, prov: number): number
   let pm = pms[0]!;
   for (const p of pms) if (p.year <= year) pm = p;
   const mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
-  const prod = eraProductivity(year) * provinceProductivity(w.provinces.cols.development![prov]!);
+  const prod = eraProductivity(year) * provinceProd(w, prov);
   let out = 0, inp = 0;
   for (let g = 0; g < _N_GOODS; g++) {
     const sell = Math.max(mk[c * _N_GOODS + g]!, wp[g]! * 0.9);
@@ -113,6 +116,7 @@ function startProjects(w: World): void {
     if (active[c]! >= MAX_PROJECTS_PER_COUNTRY) continue;
     const cost = basketCost(w, c);
     for (const state of [0, 1]) {
+      if (state === 1 && !(cc.automation![c]! & AUTO_BUILD)) continue; // player builds by hand
       if (active[c]! >= MAX_PROJECTS_PER_COUNTRY) break;
       const funds = state ? cc.treasury![c]! - 3 * cc.expense![c]! : cc.investPool![c]!;
       if (funds < cost * 0.25) continue;

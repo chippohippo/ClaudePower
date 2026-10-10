@@ -3,6 +3,7 @@
 import { popIndex, popSize, transferPop } from "../pops";
 import type { World } from "../world";
 import { STRATUM } from "../defs";
+import { countryStat } from "../modifiers";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
 const _STRATUM = STRATUM;
 
@@ -32,9 +33,11 @@ export function runMigration(w: World): void {
   }
   const countrySol = w.countries.cols.sol!;
   const destinations: number[] = [];
+  const imm = countryStat(w, "immigration");
   for (let c = 0; c < nC; c++) {
     const cap = w.countries.cols.capital![c]!;
-    if (cap >= 0 && OPEN_REGIONS.has(w.provinces.cols.region![cap]!) && countrySol[c]! > 55 && bestProv[c]! >= 0) destinations.push(c);
+    const open = imm[c]! >= 1 || (imm[c]! > -0.5 && cap >= 0 && OPEN_REGIONS.has(w.provinces.cols.region![cap]!));
+    if (open && countrySol[c]! > 55 && bestProv[c]! >= 0) destinations.push(c);
   }
   const idx = popIndex(w), n = w.pops.size;
   for (let i = 0; i < n; i++) {

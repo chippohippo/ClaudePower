@@ -12,6 +12,16 @@ const _N_GOODS = N_GOODS, _PMS = PMS;
 export const ERA_GROWTH = 1.012;
 export const eraProductivity = (year: number) => ERA_GROWTH ** (year - 1936);
 export const provinceProductivity = (dev: number) => 0.4 + 0.6 * Math.min(2, dev / 14);
+/** Unrest above zero cuts output (strikes, sabotage): −3% per point. */
+export const UNREST_PENALTY = 0.03;
+/**
+ * Effective productivity of a province: production development counts double (dev + devProd)×0.75 keeps
+ * a 1936 province at its generated value; unrest reduces it.
+ */
+export function provinceProd(w: World, p: number): number {
+  const pc = w.provinces.cols;
+  return provinceProductivity((pc.development![p]! + pc.devProd![p]!) * 0.75) * (1 - UNREST_PENALTY * pc.unrest![p]!);
+}
 
 export interface ProductionOrders { inFirst: Int32Array; inCount: Int32Array; outFirst: Int32Array; outCount: Int32Array; wanted: Float64Array }
 
@@ -24,7 +34,7 @@ export function postProduction(w: World, book: OrderBook): ProductionOrders {
     const t = b.type![i]!, pm = _PMS[t]![b.pm![i]!]!, prov = b.prov![i]!, country = w.provinces.cols.owner![prov]!;
     const scale = b.level![i]! * b.staffing![i]!;
     if (scale <= 0) continue;
-    const prod = scale * b.inputSat![i]! * era * provinceProductivity(w.provinces.cols.development![prov]!);
+    const prod = scale * b.inputSat![i]! * era * provinceProd(w, prov);
     for (let g = 0; g < _N_GOODS; g++) {
       if (!pm.outputs[g]) continue;
       const o = book.sell(country, g, pm.outputs[g]! * prod, Acct.Building, i);

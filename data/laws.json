@@ -1,0 +1,240 @@
+[
+ {
+  "id": "economic",
+  "name": "Economic System",
+  "laws": [
+   {
+    "id": "laissez_faire",
+    "name": "Laissez-faire",
+    "description": "Low taxes and light regulation. Private capital builds; the state stays small.",
+    "ppCost": 80,
+    "modifiers": [
+     {
+      "target": "tax_efficiency",
+      "mult": -0.1
+     },
+     {
+      "target": "investment_rate",
+      "mult": 0.4
+     },
+     {
+      "target": "state_construction",
+      "mult": -0.5
+     }
+    ]
+   },
+   {
+    "id": "interventionism",
+    "name": "Interventionism",
+    "description": "A mixed economy: the state plans infrastructure and smooths cycles.",
+    "ppCost": 80,
+    "modifiers": [
+     {
+      "target": "construction_cost",
+      "mult": -0.05
+     }
+    ]
+   },
+   {
+    "id": "command_economy",
+    "name": "Command Economy",
+    "description": "The state directs investment and owns heavy industry. Private savings are channelled to the plan.",
+    "ppCost": 150,
+    "modifiers": [
+     {
+      "target": "investment_rate",
+      "mult": -0.6
+     },
+     {
+      "target": "state_construction",
+      "mult": 1.0
+     },
+     {
+      "target": "tax_efficiency",
+      "mult": 0.15
+     },
+     {
+      "target": "stability_target",
+      "add": -0.5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mobilisation",
+  "name": "Mobilisation",
+  "laws": [
+   {
+    "id": "civilian",
+    "name": "Civilian Economy",
+    "description": "Peacetime footing. Consumers come first.",
+    "ppCost": 50,
+    "modifiers": []
+   },
+   {
+    "id": "limited",
+    "name": "Limited Mobilisation",
+    "description": "Rearmament: more conscripts and arms, slightly fewer consumer goods.",
+    "ppCost": 60,
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.02
+     },
+     {
+      "target": "arms_demand",
+      "mult": 1.0
+     },
+     {
+      "target": "consumption",
+      "mult": -0.05
+     }
+    ]
+   },
+   {
+    "id": "partial",
+    "name": "Partial Mobilisation",
+    "description": "Large standing army; the economy tilts toward war production.",
+    "ppCost": 80,
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.05
+     },
+     {
+      "target": "arms_demand",
+      "mult": 3.0
+     },
+     {
+      "target": "consumption",
+      "mult": -0.15
+     },
+     {
+      "target": "stability_target",
+      "add": -0.3
+     }
+    ]
+   },
+   {
+    "id": "total",
+    "name": "Total Mobilisation",
+    "description": "Everything for the front. Consumption collapses.",
+    "ppCost": 120,
+    "modifiers": [
+     {
+      "target": "mobilisation",
+      "add": 0.12
+     },
+     {
+      "target": "arms_demand",
+      "mult": 8.0
+     },
+     {
+      "target": "consumption",
+      "mult": -0.35
+     },
+     {
+      "target": "stability_target",
+      "add": -1.0
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "migration",
+  "name": "Migration",
+  "laws": [
+   {
+    "id": "closed_borders",
+    "name": "Closed Borders",
+    "description": "No immigration; emigration discouraged.",
+    "ppCost": 50,
+    "modifiers": [
+     {
+      "target": "immigration",
+      "add": -1
+     }
+    ]
+   },
+   {
+    "id": "restricted",
+    "name": "Restricted Migration",
+    "description": "Quotas admit a trickle of migrants.",
+    "ppCost": 50,
+    "modifiers": []
+   },
+   {
+    "id": "open_borders",
+    "name": "Open Borders",
+    "description": "Migrants welcome: more workers, some social friction.",
+    "ppCost": 70,
+    "modifiers": [
+     {
+      "target": "immigration",
+      "add": 1
+     },
+     {
+      "target": "stability_target",
+      "add": -0.2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "education",
+  "name": "Education",
+  "laws": [
+   {
+    "id": "no_schooling",
+    "name": "Church and Private Schools",
+    "description": "The state leaves schooling to others. Cheap, slow literacy growth.",
+    "ppCost": 50,
+    "modifiers": [
+     {
+      "target": "literacy_target",
+      "add": -0.05
+     }
+    ]
+   },
+   {
+    "id": "public_schools",
+    "name": "Public Schools",
+    "description": "State primary schools: steady literacy gains for a modest cost.",
+    "ppCost": 70,
+    "modifiers": [
+     {
+      "target": "education_spending",
+      "add": 150
+     },
+     {
+      "target": "literacy_target",
+      "add": 0.05
+     }
+    ]
+   },
+   {
+    "id": "universal_education",
+    "name": "Universal Education",
+    "description": "Free schooling to secondary level. Expensive, but a literate nation prospers.",
+    "ppCost": 100,
+    "modifiers": [
+     {
+      "target": "education_spending",
+      "add": 400
+     },
+     {
+      "target": "literacy_target",
+      "add": 0.12
+     },
+     {
+      "target": "fertility_mult",
+      "mult": -0.05
+     }
+    ]
+   }
+  ]
+ }
+]

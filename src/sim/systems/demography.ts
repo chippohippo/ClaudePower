@@ -1,7 +1,7 @@
 // Demography (yearly rates, applied monthly for smoothness): births, deaths by age band, ageing,
 // health and literacy drift. Demographic transition: fertility falls with literacy, urbanisation and SoL.
 import { STRATUM } from "../defs";
-import { getStat } from "../modifiers";
+import { countryStat, getStat } from "../modifiers";
 import type { World } from "../world";
 import { toYmd } from "../date";
 
@@ -35,6 +35,7 @@ export interface Bonuses { literacy: Float64Array; health: Float64Array }
 
 export function runDemography(w: World, famine: Float64Array, bonus: Bonuses): void {
   const p = w.pops.cols, year = toYmd(w.date).year, med = medicine(year), school = schooling(year);
+  const litLaw = countryStat(w, "literacy_target");
   const fertMult = Array.from({ length: w.countries.size }, (_, c) => getStat(w, `c:${c}`, "fertility_mult").value);
   for (let i = 0; i < w.pops.size; i++) {
     const a0 = p.a0![i]!, a1 = p.a1![i]!, a2 = p.a2![i]!;
@@ -53,7 +54,7 @@ export function runDemography(w: World, famine: Float64Array, bonus: Bonuses): v
     w.ledger.born += births; w.ledger.died += d0 + d1 + d2;
     const hTarget = Math.min(1, med * (0.45 + 0.55 * sol / 100) + bonus.health[prov]!);
     p.health![i] = p.health![i]! + (hTarget - p.health![i]!) * HEALTH_DRIFT;
-    const lTarget = Math.min(1, school * (0.35 + 0.65 * Math.min(1, sol / 70)) + bonus.literacy[prov]!);
+    const lTarget = Math.min(1, Math.max(0, school * (0.35 + 0.65 * Math.min(1, sol / 70)) + bonus.literacy[prov]! + litLaw[c]!));
     p.literacy![i] = lit + (lTarget - lit) / (LITERACY_YEARS * 12);
   }
 }

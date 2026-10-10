@@ -16,3 +16,9 @@
 - **Demography applied monthly at yearly rates /12**, in its own monthly slot after construction (documented in tick.ts).
 - **Mobility, migration, assimilation via transferPop** (moves people, cash, averaged traits); small groups merge yearly (≤40/province).
 - **Exogenous tech placeholders** (productivity, medicine, schooling, PM unlock years) until the tech system (M7).
+- **Commands apply immediately between ticks** (not queued to the next day); undo = restore a save snapshot taken before the command, valid until time advances (depth 10).
+- **Laws are modifier bundles** (data/laws.json, source "law:<category>"); systems read rates with countryStat() (fast) and tooltips use getStat() (breakdown).
+- **Development split into tax/production/manpower** (dev = sum). Tax dev raises per-province tax efficiency, production dev counts double toward productivity, manpower dev raises manpower. No infrastructure cap yet; diminishing returns come from the productivity cap.
+- **Automation flags per country** (develop/build/budget). AI countries run with all on; the player can take over each system separately.
+- **Map repaints only when a colour changes**; previews refresh per game month and after every command (snapshot.rev).
+- **Interim point gains +5 (ADM/DIP/MIL) and PP +4** until leaders and IGs supply them (M4).

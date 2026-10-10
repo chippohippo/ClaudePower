@@ -9,6 +9,7 @@ import { runAssimilation } from "./systems/mobility";
 import { recordYear } from "./systems/stats";
 import { yearlyFiscalPolicy } from "./systems/budget";
 import { mergeSmallPops } from "./pops";
+import { runCore } from "./systems/core";
 
 export type System = (world: World, events: SimEvent[]) => void;
 const noop: System = () => {};
@@ -17,7 +18,7 @@ export const DAILY: [string, System][] = [
   ["movement", noop], ["combat", noop], ["sieges", noop], ["character_health", noop],
 ];
 export const MONTHLY: [string, System][] = [
-  ["points_pp", noop], ["production", eco.production], ["markets", eco.markets], ["wages_income", eco.wagesIncome],
+  ["points_pp", runCore], ["production", eco.production], ["markets", eco.markets], ["wages_income", eco.wagesIncome],
   ["consumption_sol", eco.consumptionSol], ["state_budget", eco.stateBudget], ["construction", eco.construction],
   // Demography is yearly in the design; rates are applied monthly (/12) for smoothness, with mobility.
   ["demography_smoothed", eco.demographyMonthly],

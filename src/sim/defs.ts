@@ -37,4 +37,5 @@ export const PMS: PmData[][] = BUILDINGS.map((b) => b.pms.map((pm) => {
 }));
 
 /** Construction basket per building level (units of goods). */
-export const CONSTRUCTION_BASKET: [number, number][] = [[goodIndex("steel"), 15000], [goodIndex("tools"), 7000], [goodIndex("machinery"), 2500]];
+/** ≈ 8 months of a level's value added at 1936 prices (capital/labour ratio; tune with calibration). */
+export const CONSTRUCTION_BASKET: [number, number][] = [[goodIndex("steel"), 60000], [goodIndex("tools"), 28000], [goodIndex("machinery"), 10000]];

@@ -88,7 +88,8 @@ const provinces = groups.map((g, id) => {
   const lat = g.reduce((s, a) => s + a.lat * a.area, 0) / area;
   const nb = new Set<number>();
   for (const a of g) for (const n of a1Neighbors[a.i]!) if (provOf[n] !== id) nb.add(provOf[n]!);
-  return { id, name: main.name, owner: countries[g[0]!.owner]!.tag, terrain: classifyTerrain(lon, lat),
+  const aka = g.filter((a) => a !== main).sort((x, y) => y.area - x.area).map((a) => a.name).filter((n) => n && n !== main.name);
+  return { id, name: main.name, aka, owner: countries[g[0]!.owner]!.tag, terrain: classifyTerrain(lon, lat),
     development: startingDevelopment(lon, lat), areaKm2: Math.round(area), lon: round2(lon), lat: round2(lat),
     neighbors: [...nb].sort((x, y) => x - y) };
 });

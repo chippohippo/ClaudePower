@@ -2,6 +2,8 @@
 // Auto-managed until the AI/player loop (M3): taxes drift toward a balanced budget.
 import { BASE_PRICE, N_GOODS, N_STRATA, PMS, STRATUM, goodIndex } from "../defs";
 import { Acct, apportion, budgetLine, burn, mint, transfer } from "../money";
+import { countryStat } from "../modifiers";
+import { AUTO_BUDGET } from "../setup";
 import type { World } from "../world";
 import { toYmd } from "../date";
 import type { OrderBook } from "./orders";
@@ -15,7 +17,7 @@ export const DEBT_LIMIT_GDP = 0.9;
 export const BASE_INTEREST = 0.03;
 export const PRINT_INFLATION = 0.9;
 export const TAX_MIN = 0.05, TAX_MAX = 0.45;
-const ARMS = goodIndex("arms");
+const ARMS = goodIndex("arms"), SERVICES = goodIndex("services");
 /** Government consumption basket (share of discretionary spending by good). */
 export const GOV_BASKET: [number, number][] = [[goodIndex("services"), 0.5], [goodIndex("consumer_goods"), 0.2], [ARMS, 0.15], [goodIndex("fuel"), 0.1], [goodIndex("electricity"), 0.05]];
 /** Months of expenses the treasury keeps; anything above is spent on government consumption. */
@@ -30,7 +32,12 @@ export function planState(w: World, book: OrderBook): StatePlan {
   const soldiers = new Float64Array(w.countries.size);
   for (let i = 0; i < w.pops.size; i++) if (w.pops.cols.stratum![i] === _STRATUM.military) soldiers[w.provinces.cols.owner![w.pops.cols.prov![i]!]!]! += w.pops.cols.a1![i]!;
   const want = new Float64Array(w.countries.size * _N_GOODS);
-  for (let c = 0; c < w.countries.size; c++) want[c * _N_GOODS + ARMS] = soldiers[c]! * ARMS_PER_SOLDIER;
+  const armsMult = countryStat(w, "arms_demand"), edu = countryStat(w, "education_spending");
+  for (let c = 0; c < w.countries.size; c++) {
+    want[c * _N_GOODS + ARMS] = soldiers[c]! * ARMS_PER_SOLDIER * armsMult[c]!;
+    // Education law: schooling bought as services (cents per capita per month at base prices).
+    want[c * _N_GOODS + SERVICES] = (edu[c]! * cc.population![c]!) / _BASE_PRICE[SERVICES]! / 100;
+  }
   const b = w.buildings.cols;
   for (let i = 0; i < w.buildings.size; i++) {
     if (!isStateBuilding(b.type![i]!)) continue;
@@ -138,6 +145,7 @@ export function updateInflation(w: World): void {
 export function yearlyFiscalPolicy(w: World): void {
   const cc = w.countries.cols, year = toYmd(w.date).year;
   for (let c = 0; c < w.countries.size; c++) {
+    if (!(cc.automation![c]! & AUTO_BUDGET)) { yearlyStats(w, c); continue; }
     const gdp = Math.max(1, cc.gdpYear![c]!), debtRatio = cc.debt![c]! / gdp;
     const months = cc.treasury![c]! / Math.max(1, cc.expense![c]!);
     let t = cc.taxRate![c]!;
@@ -146,9 +154,14 @@ export function yearlyFiscalPolicy(w: World): void {
     cc.taxRate![c] = Math.min(TAX_MAX, Math.max(TAX_MIN, t));
     const gdpPc = gdp / Math.max(1, cc.population![c]!) / 100;
     cc.pensionRate![c] = Math.min(0.5, 0.05 + 0.4 * Math.min(1, gdpPc / 20000) * Math.min(1, (year - 1936) / 40 + 0.3));
-    cc.inflation![c] = cc.plYearAgo![c]! > 0 ? cc.priceLevel![c]! / cc.plYearAgo![c]! - 1 : 0;
-    cc.plYearAgo![c] = cc.priceLevel![c]!;
+    yearlyStats(w, c);
   }
+}
+
+function yearlyStats(w: World, c: number): void {
+  const cc = w.countries.cols;
+  cc.inflation![c] = cc.plYearAgo![c]! > 0 ? cc.priceLevel![c]! / cc.plYearAgo![c]! - 1 : 0;
+  cc.plYearAgo![c] = cc.priceLevel![c]!;
 }
 
 /** Consumer price index per country (basket of final goods, 1 = base prices). */

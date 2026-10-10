@@ -10,6 +10,17 @@ export type Validation = { ok: true } | { ok: false; reason: string };
 export interface CommandHandler<P = unknown> {
   validate(cmd: Command & { payload: P }, world: World): Validation;
   apply(cmd: Command & { payload: P }, world: World): SimEvent[];
+  /** Human-readable effects shown before committing (action previews). */
+  preview?(cmd: Command & { payload: P }, world: World): string[];
+}
+
+export interface Preview { ok: boolean; reason?: string; effects: string[] }
+export function previewCommand(cmd: Command, world: World): Preview {
+  const v = validateCommand(cmd, world);
+  const h = registry.get(cmd.type);
+  let effects: string[] = [];
+  try { effects = h?.preview?.(cmd as never, world) ?? []; } catch { effects = []; }
+  return v.ok ? { ok: true, effects } : { ok: false, reason: v.reason, effects };
 }
 
 const registry = new Map<string, CommandHandler<never>>();

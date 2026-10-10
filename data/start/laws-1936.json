@@ -1,0 +1,68 @@
+{
+ "_default": {
+  "economic": "interventionism",
+  "mobilisation": "civilian",
+  "migration": "restricted",
+  "education": "public_schools"
+ },
+ "USA": {
+  "economic": "laissez_faire",
+  "migration": "restricted"
+ },
+ "GBR": {
+  "economic": "laissez_faire"
+ },
+ "GER": {
+  "mobilisation": "limited",
+  "migration": "closed_borders"
+ },
+ "SOV": {
+  "economic": "command_economy",
+  "mobilisation": "limited",
+  "migration": "closed_borders",
+  "education": "universal_education"
+ },
+ "JAP": {
+  "mobilisation": "limited",
+  "migration": "closed_borders"
+ },
+ "ITA": {
+  "mobilisation": "limited"
+ },
+ "CHI": {
+  "education": "no_schooling",
+  "mobilisation": "limited"
+ },
+ "RAJ": {
+  "education": "no_schooling"
+ },
+ "CAN": {
+  "economic": "laissez_faire",
+  "migration": "open_borders"
+ },
+ "AST": {
+  "migration": "open_borders"
+ },
+ "ARG": {
+  "migration": "open_borders"
+ },
+ "BRA": {
+  "migration": "open_borders",
+  "education": "no_schooling"
+ },
+ "NZL": {
+  "migration": "open_borders"
+ },
+ "FRA": {
+  "education": "universal_education"
+ },
+ "SWE": {
+  "education": "universal_education"
+ },
+ "DEN": {
+  "education": "universal_education"
+ },
+ "NOR": {
+  "education": "universal_education"
+ }
+}

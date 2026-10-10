@@ -46,12 +46,19 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     w.ledger = { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 };
     w.history = { year: [], series: {} };
   },
+  (w) => { // v3 → v4: points, laws, automation, development split, unrest (M3).
+    const ct = w.countries as PackedTable, pt = w.provinces as PackedTable;
+    const fill = (t: PackedTable, spec: Record<string, "f64" | "i32">) => {
+      for (const [k, kind] of Object.entries(spec)) if (!t.cols[k]) t.cols[k] = packTable(makeTable(t.size, { [k]: kind })).cols[k]!;
+    };
+    fill(ct, COUNTRY_COLS); fill(pt, PROVINCE_COLS);
+  },
 ];
 
 export function saveWorld(w: World): Uint8Array {
   const packed = { ...w } as unknown as Packed;
   for (const k of TABLE_KEYS) packed[k] = packTable(w[k]);
-  return gzipSync(encode(packed, { ignoreUndefined: true }));
+  return gzipSync(encode(packed, { ignoreUndefined: true }), { mtime: 0 });
 }
 
 export function loadWorld(bytes: Uint8Array): World {

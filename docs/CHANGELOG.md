@@ -13,3 +13,12 @@
 - Integer-cent money with escrow and ledger; budget lines per category.
 - UI: Population and SoL map modes (keys 3/4), Economy (F2) and Population (F3) panels with history graphs, market/industry tables and hover breakdowns.
 - Tests: §6.4 calibration over 1936–2026 (5.7B people, rich LE ~80, 62% urban), economy sanity (no negative stocks, prices in clamp, budgets to the cent, money and population conserved). Bench 33 ms/month.
+## m3 — The Core Loop
+- Nation select (8 majors) and Europe quick start; ADM/DIP/MIL and political power; development by type with terrain costs.
+- Laws: economic system, mobilisation, migration, education (PP costs, modifier effects).
+- Stability and per-province unrest (output penalty); manpower from mobilisation.
+- Player construction (state projects) with outliner and cancel; tax rate control.
+- Automation toggles (auto-develop, auto-construct, auto-budget), undo (Ctrl+Z), Ctrl+K search (provinces incl. merged regions, countries, laws, panels).
+- Alerts column (click to jump, mute per type), First Steps card, greyed buttons with reasons, hover previews of effects, top-bar breakdown tooltips, Unrest map mode (5), Government panel (F1).
+- Fixes: import-dependent markets price near the world price; shortage alerts use unmet demand; more iron regions; construction costs ~8 months of output; gzip saves deterministic (mtime 0).
+- Scripted playtest as Germany: 10 years, 26 decisions, 60 fps at speed 5, no errors.

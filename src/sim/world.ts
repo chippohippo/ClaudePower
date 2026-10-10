@@ -34,9 +34,11 @@ export const COUNTRY_COLS: ColSpec = {
   gdp: "f64", taxRate: "f64", income: "f64", expense: "f64", investPool: "f64", population: "f64",
   minted: "f64", printed: "f64", borrowed: "f64", plYearAgo: "f64", lifeExp: "f64", urban: "f64", literacy: "f64",
   sol: "f64", unemployment: "f64", gdpYear: "f64", gdpAcc: "f64", tfr: "f64", money: "f64", pensionRate: "f64", debtFlow: "f64",
+  adm: "f64", dip: "f64", mil: "f64", pp: "f64", manpower: "f64", automation: "i32",
+  law0: "i32", law1: "i32", law2: "i32", law3: "i32",
   wage0: "f64", wage1: "f64", wage2: "f64", wage3: "f64", wage4: "f64", wage5: "f64", wage6: "f64",
 };
-export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32" };
+export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32", devTax: "f64", devProd: "f64", devMan: "f64", unrest: "f64" };
 export const POP_COLS: ColSpec = {
   prov: "i32", culture: "i32", religion: "i32", stratum: "i32",
   a0: "f64", a1: "f64", a2: "f64", female: "f64", literacy: "f64", health: "f64", cash: "f64",
@@ -88,7 +90,7 @@ export interface World {
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 3;
+export const WORLD_VERSION = 4;
 export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {

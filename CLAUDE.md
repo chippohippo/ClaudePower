@@ -1,6 +1,6 @@
 # Iron & Empire — Working Memory
-## Current milestone: M2 — Population & Economy   Status: done (tag m2). Next: M3 — The Core Loop
-## Next task: M3 — read the brief's M3 section (§15) and its Read list; player country selection + points/PP/dev loop
+## Current milestone: M3 — The Core Loop   Status: done (tag m3) — awaiting human playtest feedback. Next: M4 — Characters & Interest Groups
+## Next task: act on the user's playtest feedback, then M4 (read §7, §9 and the M4 entry in §15)
 ## Golden rules
 1. One milestone at a time; never leave the build broken.
 2. Everything is a Modifier (getStat for tooltips/explain/AI).
@@ -22,6 +22,9 @@
 - map: scripts/build-map.ts + scripts/map-rules.ts → data/generated/{provinces,map-geometry}.json; 1936 ownership in data/map_1936.json
 - pops: src/sim/pops.ts (SoA table, transferPop/merge) · money: src/sim/money.ts (integer cents, Escrow, ledger, budgetLine)
 - economy month (src/sim/systems/economy.ts): labour → production orders → pop/state/construction orders → market clear (national, then world residual) → wages/dividends → SoL → budget/monetary → construction → demography/mobility
+- core loop: src/sim/systems/core.ts (points, PP, stability, unrest, manpower, auto-develop) · laws: src/sim/laws.ts + data/laws.json
+- player commands (validate/apply/preview): src/sim/commands/player.ts · alerts: src/sim/alerts.ts
+- session (player, undo, previews, snapshot): src/worker/session.ts · scripted UI playtest: scripts/playtest-germany.mjs
 - inspect (UI reports + breakdowns): src/sim/inspect.ts · calibration: tests/calibration/century.test.ts (~45 s)
 - world from content: src/sim/setup.ts (createWorld, scope world|europe, CSR adjacency) · renderer: src/map/MapRenderer.ts (render on demand)
 ## Key constants: STAT_CLAMPS in src/sim/modifiers.ts; WORLD_VERSION in src/sim/world.ts; SPEED_DAYS_PER_SEC in src/sim/speed.ts; TARGET_PROVINCES/EUROPE_WEIGHT/MAJOR_HOME_MIN in scripts/build-map.ts; demography (TFR_*, BIRTH_FACTOR, medicine/schooling curves), mobility/migration rates, LABOUR_SHARE, SPEND_RATE, MONETARY_*, ERA_GROWTH — each at the top of its system file
@@ -30,6 +33,8 @@
 - Tech placeholders until M7: ERA_GROWTH productivity, medicine()/schooling() curves, PMs unlock by year (chosen by profit).
 - Cultures/religions are spread uniformly across a country's provinces (no regional distribution yet).
 - Calibration is one deterministic run (no randomness in sim yet), so "10% of runs" inflation check = this run.
+- Point/PP gains are interim (+5/+4) until leaders/advisors (M4). Points pile up by ~1944: few sinks yet.
+- State construction is cheap vs treasury (30 levels ≈ $70–120M vs $5–9B); consider bigger levels or presets.
 - Hot loops alias imported consts locally (tsx live-binding getters were 40% of tick time).
 - Snapshots send full owner/dev arrays (cheap at 250); switch to changed-table diffs if it grows.
 - Colonies owned directly by metropole (no subjects yet). Small 1936 border details ignored (Saar, Danzig, Hatay, Karelia).
