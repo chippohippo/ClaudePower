@@ -5,7 +5,7 @@ import { tickDay } from "../sim/tick";
 import { applyCommand, previewCommand, validateCommand, type Preview } from "../sim/commands";
 import "../sim/commands/player";
 import { formatDate } from "../sim/date";
-import { AUTO_ALL, AUTO_FOCUS, PLAYER_EVENTS, createWorld, neighborsOf, type StartScope } from "../sim/setup";
+import { AUTO_ALL, AUTO_DIPLOMACY, AUTO_FOCUS, PLAYER_EVENTS, createWorld, neighborsOf, type StartScope } from "../sim/setup";
 import { loadContent } from "../sim/content";
 import { updateStats } from "../sim/systems/stats";
 import { runLabour } from "../sim/systems/labour";
@@ -21,6 +21,8 @@ import { approvalParts, computeClout, lastIgMonth } from "../sim/systems/igs";
 import { electionScores } from "../sim/systems/politics";
 import "../sim/commands/politics";
 import "../sim/commands/content";
+import "../sim/commands/war";
+import { allied, casusBelli, guarantees, hasTrade, militaryPower, rel, truceWith, warBetween } from "../sim/diplomacy";
 import { AMBITIONS, CONTENT, EVENT_BY_ID, focusById, treeById } from "../sim/script/bundle";
 import { describeEffect, fill } from "../sim/script/eval";
 import { focusBlocker } from "../sim/systems/focus";
@@ -46,7 +48,7 @@ export class GameSession {
     this.srcIds = start.srcProvinceIds;
     this.player = Math.max(0, this.world.countryTags.indexOf(playerTag));
     // The player decides events and picks focuses; other automation starts on (toggle in F1).
-    this.world.countries.cols.automation![this.player] = (AUTO_ALL & ~AUTO_FOCUS) | PLAYER_EVENTS;
+    this.world.countries.cols.automation![this.player] = (AUTO_ALL & ~AUTO_FOCUS & ~AUTO_DIPLOMACY) | PLAYER_EVENTS;
     this.countries = start.countries.map((c, i) => ({ tag: c.tag, name: c.name, color: c.color, capital: this.world.countries.cols.capital![i]! }));
     // Day-zero derived state so the first frame is honest (employment, unemployment, manpower).
     runLabour(this.world);
@@ -175,6 +177,26 @@ export class GameSession {
     return out.slice(0, 10);
   }
 
+  private warState() {
+    const w = this.world, c = this.player, a = w.armies.cols, cc = w.countries.cols;
+    const armies = [];
+    for (let i = 0; i < w.armies.size; i++) if (a.alive![i]) armies.push({ id: i, country: a.country![i]!, prov: a.prov![i]!, strength: a.strength![i]!, org: a.org![i]!, target: a.target![i]!, battle: a.battle![i]!, auto: a.auto![i] === 1 });
+    const fieldedMen = armies.filter((x) => x.country === c).reduce((s, x) => s + x.strength, 0);
+    const diplomacy = [];
+    for (let k = 0; k < w.countries.size; k++) {
+      if (k === c || cc.capital![k]! < 0) continue;
+      const cb = casusBelli(w, c, k);
+      diplomacy.push({ country: k, rel: rel(w, c, k), alliance: allied(w, c, k), guaranteesUs: guarantees(w, k, c), weGuarantee: guarantees(w, c, k), trade: hasTrade(w, c, k), truce: truceWith(w, c, k), war: !!warBetween(w, c, k), cb: cb ? `${cb.type}: ${w.provinceNames[cb.province]}` : null, rival: w.rivals[c]!.includes(k), overlord: cc.overlord![c] === k, puppet: cc.overlord![k] === c, power: militaryPower(w, k) });
+    }
+    const wars = w.wars.filter((x) => x.end < 0).map((x) => ({ id: x.id, name: x.name, attackers: x.attackers, defenders: x.defenders, score: x.score, start: formatDate(x.start), ours: x.attackers.includes(c) || x.defenders.includes(c), side: x.attackers.includes(c) ? "attacker" as const : x.defenders.includes(c) ? "defender" as const : null, goal: x.goal.province }));
+    const ourWars = new Set(wars.filter((x) => x.ours).map((x) => x.id));
+    const battles = w.battles.filter((b) => ourWars.has(b.war) || b.attacker === c || b.defender === c).slice(-15).reverse().map((b) => ({ ...b, provName: w.provinceNames[b.prov]!, date: formatDate(b.start) }));
+    return {
+      armies, controller: Array.from(w.provinces.cols.controller!), diplomacy, wars, battles, claims: [...w.claims[c]!], rivals: [...w.rivals[c]!],
+      military: { equip: cc.equip![c]!, manpower: cc.manpower![c]!, fielded: fieldedMen, exhaustion: cc.warExhaustion![c]!, nukes: cc.nukes![c]!, power: militaryPower(w, c) },
+    };
+  }
+
   snapshot(): Snapshot {
     const w = this.world, cc = w.countries.cols, pc = w.provinces.cols, c = this.player;
     const projects = [];
@@ -197,6 +219,7 @@ export class GameSession {
       }),
       ambitions: (w.ambitions[c] ?? []).map((a) => { const d = AMBITIONS.find((x) => x.id === a.id)!; return { name: d.name, description: d.description, done: a.done >= 0 }; }),
       headlines: this.headlines(),
+      ...this.warState(),
       chronicle: w.chronicle.map((e, n) => ({ ...e, n })).filter((e) => e.country === c).slice(-30).map((e) => ({ date: formatDate(e.date), kind: e.kind, text: e.text, n: e.n })),
       player: {
         adm: cc.adm![c]!, dip: cc.dip![c]!, mil: cc.mil![c]!, pp: cc.pp![c]!, manpower: cc.manpower![c]!, stability: cc.stability![c]!,

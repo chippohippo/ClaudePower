@@ -36,3 +36,9 @@
 - Content linter (consistency) and a harness that forces choices: every focus reachable.
 - UI: Focus panel (F5), event pop-ups, ambitions in Government, ticker; shortage alerts name the building to build.
 - docs/ARCHITECTURE.md: layers, extension points, merge guide.
+## m6 — Diplomacy & War
+- Diplomacy: relations matrix with drift, alliances, guarantees, trade agreements, claims, puppets, truces, rivals; 1936 alliances and hostilities.
+- War: armies from military pops, movement along land adjacency, daily combat with capped losses and readable battle reports, sieges and occupation, war score, peace deals (annex, puppet, reparations, demilitarise, change government, white peace), revenge flags, war exhaustion, nukes with deterrence, auto-command.
+- AI: diplomacy and war evaluators, recruitment, demobilisation, peace.
+- UI: Diplomacy (F6), Military (F7) with peace builder, battle report pop-up, army markers (right-click to move), Relations (7) and Occupation (8) map modes, war alerts.
+- Exit test: AI-only runs (seeds 1, 2) reach 1950 with a major war ending in a peace deal; no instant wipes; reports explain outcomes.

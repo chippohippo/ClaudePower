@@ -15,6 +15,12 @@ import { runEvents } from "./systems/events";
 import { runAmbitions } from "./systems/ambitions";
 import { runEra } from "./systems/era";
 import "./commands/content";
+import "./commands/war";
+import { runMovement } from "./systems/armies";
+import { runCombat, runSieges } from "./systems/combat";
+import { runWarScore } from "./systems/wars";
+import { runDiplomacyAi, runRivals } from "./systems/diplo-ai";
+import { aiPeace, aiRecruit, autoCommand } from "./systems/war-ai";
 import { runIgs } from "./systems/igs";
 import { runIdeologyDrift, runPolitics } from "./systems/politics";
 
@@ -22,18 +28,18 @@ export type System = (world: World, events: SimEvent[]) => void;
 const noop: System = () => {};
 
 export const DAILY: [string, System][] = [
-  ["movement", noop], ["combat", noop], ["sieges", noop], ["character_health", noop],
+  ["movement", runMovement], ["combat", runCombat], ["sieges", runSieges], ["character_health", noop],
 ];
 export const MONTHLY: [string, System][] = [
   ["points_pp", runCore], ["production", eco.production], ["markets", eco.markets], ["wages_income", eco.wagesIncome],
   ["consumption_sol", eco.consumptionSol], ["state_budget", eco.stateBudget], ["construction", eco.construction],
   // Demography is yearly in the design; rates are applied monthly (/12) for smoothness, with mobility.
   ["demography_smoothed", eco.demographyMonthly],
-  ["research_focus", (w) => { runEra(w); runFocus(w); }], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", runEvents], ["ai", noop], ["alerts", noop],
+  ["research_focus", (w) => { runEra(w); runFocus(w); }], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", runEvents], ["ai", (w) => { runWarScore(w); runDiplomacyAi(w); aiPeace(w); aiRecruit(w); autoCommand(w); }], ["alerts", noop],
 ];
 export const YEARLY: [string, System][] = [
   ["demography", noop], ["migration", runMigration], ["assimilation_mobility", runAssimilation], ["ig_clout", noop],
-  ["ideology_drift", runIdeologyDrift], ["rankings", (w) => { yearlyFiscalPolicy(w); mergeSmallPops(w); runAmbitions(w); }], ["chronicle", recordYear], ["autosave", noop],
+  ["ideology_drift", runIdeologyDrift], ["rankings", (w) => { yearlyFiscalPolicy(w); mergeSmallPops(w); runAmbitions(w); runRivals(w); }], ["chronicle", recordYear], ["autosave", noop],
 ];
 
 /** Advance one day. Commands run first, then daily/monthly/yearly systems on boundaries. */

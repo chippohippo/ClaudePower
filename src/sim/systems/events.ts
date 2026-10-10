@@ -3,12 +3,12 @@
 import { Rng } from "../rng";
 import { EVENTS, EVENT_BY_ID } from "../script/bundle";
 import type { EventDef } from "../script/content";
-import { apply, setQueueEvent, test, type Ctx } from "../script/eval";
+import { apply, fill, setQueueEvent, test, type Ctx } from "../script/eval";
 import { N_IGS } from "../igs";
 import { chronicle } from "../characters";
 import type { EventBinding, World } from "../world";
 
-import { PLAYER_EVENTS } from "../setup";
+import { PLAYER_EVENTS } from "../automation";
 
 function bind(w: World, c: number, e: EventDef, rng: Rng): EventBinding | null {
   if (e.scope === "country") return {};
@@ -35,7 +35,7 @@ export function resolveEvent(w: World, c: number, e: EventDef, b: EventBinding, 
   const ch = e.choices[choice]!;
   const x: Ctx = { w, c, bind: b };
   apply(ch.effects, x, `event:${e.id}`);
-  if (e.mtth > 0 || e.reactsTo.length) chronicle(w, c, "event", `${e.title} — ${ch.name}`);
+  if (e.mtth > 0 || e.reactsTo.length) chronicle(w, c, "event", `${fill(e.title, x)} — ${fill(ch.name, x)}`);
 }
 
 /** Monthly scan: each eligible event fires with probability 1/mtth (immediately if mtth is 0). */

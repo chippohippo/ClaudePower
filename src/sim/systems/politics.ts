@@ -8,7 +8,7 @@ import { popSize } from "../pops";
 import type { World } from "../world";
 
 export const ELECTION_YEARS = 4, COUP_RADICALISM = 60, COUP_CLOUT = 0.1, COUP_COOLDOWN_DAYS = 5 * 365;
-import { AUTO_ADVISORS } from "../setup";
+import { AUTO_ADVISORS } from "../automation";
 export const GOV_DEMOCRACY = 0, GOV_AUTOCRACY = 1;
 const AF = igIndex("armed_forces");
 
@@ -58,8 +58,9 @@ function succeed(w: World, k: number, rng: Rng): void {
 function fillVacancies(w: World, k: number, rng: Rng): boolean {
   let changed = false;
   const c = w.characters.cols, auto = (w.countries.cols.automation![k]! & AUTO_ADVISORS) !== 0;
+  const leaders = charactersOf(w, k, Role.IgLeader);
   for (let g = 0; g < N_IGS; g++) {
-    if (!charactersOf(w, k, Role.IgLeader).some((i) => c.ig![i] === g)) generateCharacter(w, k, Role.IgLeader, rng, g, "leader");
+    if (!leaders.some((i) => c.ig![i] === g)) generateCharacter(w, k, Role.IgLeader, rng, g, "leader");
   }
   const pool = () => charactersOf(w, k, Role.Pool);
   while (pool().length < POOL_SIZE) generateCharacter(w, k, Role.Pool, rng, rng.int(0, N_IGS - 1), rng.chance(0.4) ? "general" : "minister");

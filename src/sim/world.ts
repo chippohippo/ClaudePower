@@ -36,11 +36,12 @@ export const COUNTRY_COLS: ColSpec = {
   sol: "f64", unemployment: "f64", gdpYear: "f64", gdpAcc: "f64", tfr: "f64", money: "f64", pensionRate: "f64", debtFlow: "f64",
   adm: "f64", dip: "f64", mil: "f64", pp: "f64", manpower: "f64", automation: "i32",
   law0: "i32", law1: "i32", law2: "i32", law3: "i32",
+  overlord: "i32", bloc: "i32", warExhaustion: "f64", equip: "f64", prestige: "f64", nukes: "i32", armyPower: "f64",
   government: "i32", head: "i32", heir: "i32", academy: "f64", nextElection: "i32", lastCoup: "i32",
   ideoDem: "f64", ideoFas: "f64", ideoCom: "f64", ideoNon: "f64",
   wage0: "f64", wage1: "f64", wage2: "f64", wage3: "f64", wage4: "f64", wage5: "f64", wage6: "f64",
 };
-export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32", devTax: "f64", devProd: "f64", devMan: "f64", unrest: "f64" };
+export const PROVINCE_COLS: ColSpec = { owner: "i32", population: "f64", development: "f64", terrain: "i32", sol: "f64", unemployment: "f64", region: "i32", res: "i32", devTax: "f64", devProd: "f64", devMan: "f64", unrest: "f64", controller: "i32", siege: "f64" };
 export const POP_COLS: ColSpec = {
   prov: "i32", culture: "i32", religion: "i32", stratum: "i32",
   a0: "f64", a1: "f64", a2: "f64", female: "f64", literacy: "f64", health: "f64", cash: "f64",
@@ -64,11 +65,30 @@ export const CHARACTER_COLS: ColSpec = {
 };
 /** Interest groups: row = country * 8 + ig. */
 export const IG_COLS: ColSpec = { clout: "f64", approval: "f64", radicalism: "f64", leader: "i32", privileges: "i32", support: "f64", strikes: "f64", favour: "f64" };
+/** Pairwise diplomacy: row = a * nCountries + b. guarantee: a guarantees b. truce: day until. */
+export const DIPLO_COLS: ColSpec = { rel: "f64", alliance: "i32", guarantee: "i32", trade: "i32", truce: "i32", claim: "i32" };
+/** Armies (stacks of divisions of 10k). target = destination province; objective = enemy country (auto). */
+export const ARMY_COLS: ColSpec = {
+  country: "i32", prov: "i32", strength: "f64", org: "f64", target: "i32", next: "i32", progress: "f64",
+  objective: "i32", auto: "i32", general: "i32", entrench: "f64", battle: "i32", alive: "i32",
+};
 export const PROJECT_COLS: ColSpec = { country: "i32", prov: "i32", type: "i32", progress: "f64", state: "i32", levels: "i32" };
 
 /** Money ledger: all cents created or destroyed outside closed transfers. */
 export interface Ledger { minted: number; destroyed: number; born: number; died: number; migratedOut: number; migratedIn: number }
 
+export interface War {
+  id: number; name: string; attackers: number[]; defenders: number[]; start: number; end: number;
+  /** Attacker-side war score, −100…+100. */
+  score: number; battleScore: number; goal: { type: "claim" | "ideology" | "independence" | "conquest"; province: number };
+  monthsStalemate: number; outcome: string;
+}
+export interface BattleReport {
+  id: number; war: number; prov: number; start: number; end: number;
+  attacker: number; defender: number; aStart: number; dStart: number; aEnd: number; dEnd: number;
+  winner: "attacker" | "defender" | "ongoing"; modifiers: { label: string; attacker: number; defender: number }[];
+  firstDayLoss: number;
+}
 export interface EventBinding { province?: number; ig?: number; leader?: number; other?: number }
 
 export interface History { year: number[]; series: Record<string, number[][]> }
@@ -111,6 +131,17 @@ export interface World {
   /** Ambitions per country: id + completion date (−1 open). */
   ambitions: { id: string; done: number }[][];
   nextEventId: number;
+  diplo: Table;
+  armies: Table;
+  /** Claims: country → provinces it claims. */
+  claims: number[][];
+  wars: War[];
+  battles: BattleReport[];
+  blocs: { id: number; name: string; leader: number; founded: number }[];
+  /** Rivals per country (up to 3). */
+  rivals: number[][];
+  nextWarId: number;
+  nextBattleId: number;
   /** Chronicle of notable events (deaths, elections, coups, strikes), newest last. */
   chronicle: { date: number; country: number; kind: string; text: string }[];
   ledger: Ledger;
@@ -120,8 +151,8 @@ export interface World {
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 6;
-export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget", "characters", "igs"] as const;
+export const WORLD_VERSION = 7;
+export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget", "characters", "igs", "diplo", "armies"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
   return {
@@ -153,6 +184,11 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     eventLog: {},
     ambitions: Array.from({ length: nCountries }, () => []),
     nextEventId: 1,
+    diplo: makeTable(nCountries * nCountries, DIPLO_COLS),
+    armies: makeTable(0, ARMY_COLS),
+    claims: Array.from({ length: nCountries }, () => []),
+    wars: [], battles: [], blocs: [], rivals: Array.from({ length: nCountries }, () => []),
+    nextWarId: 1, nextBattleId: 1,
     ledger: { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 },
     history: { year: [], series: {} },
     modifiers: [],

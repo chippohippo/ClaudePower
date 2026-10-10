@@ -9,7 +9,7 @@ import { postProduction, type ProductionOrders } from "./production";
 import { clearMarkets } from "./market";
 import { settleBuildings, updateWageRates } from "./wages";
 import { planConsumption, settleConsumption, type ConsumptionPlan } from "./consumption";
-import { monetaryPolicy, planState, settleBudget, updateInflation } from "./budget";
+import { monetaryPolicy, planState, settleBudget, updateEquipment, updateInflation, type StatePlan } from "./budget";
 import { planConstruction, settleConstruction, type ConstructionPlan } from "./construction";
 import { publicBonuses, runDemography } from "./demography";
 import { runMobility } from "./mobility";
@@ -17,7 +17,7 @@ import { updateStats } from "./stats";
 
 interface Month {
   book: OrderBook; jobs: Float64Array; filled: Float64Array; po: ProductionOrders;
-  cons: ConsumptionPlan; cons2?: ConstructionPlan; famine?: Float64Array;
+  cons: ConsumptionPlan; cons2?: ConstructionPlan; famine?: Float64Array; statePlan?: StatePlan;
 }
 let m: Month | null = null;
 const sharedBook = new OrderBook();
@@ -36,7 +36,7 @@ export function production(w: World): void {
 
 export function markets(w: World): void {
   const s = cur();
-  planState(w, s.book);
+  s.statePlan = planState(w, s.book);
   s.cons2 = planConstruction(w, s.book);
   clearMarkets(w, s.book);
 }
@@ -61,6 +61,7 @@ export function stateBudget(w: World): void {
   for (let c = 0; c < w.countries.size; c++) w.countries.cols.gdpAcc![c]! += w.countries.cols.expense![c]! - before[c]!;
   updateInflation(w);
   monetaryPolicy(w);
+  if (s.statePlan) updateEquipment(w, s.book, s.statePlan);
 }
 
 export function construction(w: World): void {

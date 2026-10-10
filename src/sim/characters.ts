@@ -10,6 +10,9 @@ import { fromYmd, toYmd } from "./date";
 
 export const TRAITS = TraitsFile.parse(traitsJson);
 const NAMES = NamesFile.parse(namesJson) as Record<string, { first: string[]; last: string[] } | Record<string, string>>;
+/** Set by the IG module (avoids an import cycle). */
+let IG_IDEOLOGY_OF: (ig: number) => number = () => 3;
+export const setIgIdeologyLookup = (f: (ig: number) => number) => { IG_IDEOLOGY_OF = f; };
 export const traitIndex = (id: string) => TRAITS.findIndex((t) => t.id === id);
 
 export const enum Role { Pool = 0, Head = 1, Cabinet = 2, HighCommand = 3, IgLeader = 4, Retired = 5 }
@@ -58,7 +61,8 @@ export function generateCharacter(w: World, country: number, role: Role, rng: Rn
   return addCharacter(w, {
     name: `${names.first[rng.int(0, names.first.length - 1)]} ${names.last[rng.int(0, names.last.length - 1)]}`,
     country, role, born: fromYmd(year - rng.int(38, 66), 1, 1) - 0, adm: stat(), dip: stat(), mil: role === Role.HighCommand ? stat() + 1 : stat(),
-    traits, ideology: rng.int(0, IDEOLOGIES.length - 1), ig,
+    // Ideology follows the character's interest group (pool characters lean to the centre).
+    traits, ideology: ig >= 0 ? IG_IDEOLOGY_OF(ig) : rng.chance(0.7) ? IDEOLOGIES.indexOf("non") : IDEOLOGIES.indexOf("dem"), ig,
   }, rng);
 }
 

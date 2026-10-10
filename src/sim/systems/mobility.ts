@@ -8,7 +8,7 @@ import { jobsKey } from "./labour";
 // Local aliases: avoid cross-module live-binding getters in hot loops (tsx/esbuild).
 const _N_STRATA = N_STRATA, _STRATUM = STRATUM;
 
-export const MOBILITY_RATE = 0.012;  // max share of a source pop per month
+export const MOBILITY_RATE = 0.010;  // max share of a source pop per month
 export const DOWNWARD_RATE = 0.01;
 export const ASSIMILATION_RATE = 0.006;
 

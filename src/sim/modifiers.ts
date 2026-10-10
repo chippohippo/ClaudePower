@@ -24,6 +24,7 @@ export const STAT_CLAMPS: Record<StatKey, [number, number]> = {
 export const STAT_DEFAULTS: Record<StatKey, number> = {
   fertility_mult: 1, tax_efficiency: 1, construction_cost: 1, investment_rate: 0.05, state_construction: 0.3,
   mobilisation: 0.01, arms_demand: 1, consumption: 1, adm_gain: 3, dip_gain: 3, mil_gain: 3, pp_gain: 2,
+  land_combat: 1, org_recovery: 1,
 };
 
 export function getStat(world: World, scope: ScopeRef, key: StatKey): StatBreakdown {

@@ -1,7 +1,7 @@
 // Versioned MessagePack + gzip saves with migrations.
 import { encode, decode } from "@msgpack/msgpack";
 import { gzipSync, gunzipSync } from "fflate";
-import { BUDGET_COLS, BUILDING_COLS, CHARACTER_COLS, IG_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
+import { ARMY_COLS, BUDGET_COLS, BUILDING_COLS, CHARACTER_COLS, DIPLO_COLS, IG_COLS, COUNTRY_COLS, MARKET_COLS, POP_COLS, PROJECT_COLS, PROVINCE_COLS, TABLE_KEYS, WORLD_VERSION, makeTable, type Table, type World } from "./world";
 
 type TableKey = (typeof TABLE_KEYS)[number];
 type Packed = Omit<World, TableKey> & Record<TableKey, PackedTable>;
@@ -65,6 +65,13 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     w.flags = {}; w.countryFlags = Array.from({ length: n }, () => ({}));
     w.focus = Array.from({ length: n }, () => ({ tree: "", current: null, progress: 0, done: [] }));
     w.pendingEvents = []; w.eventLog = {}; w.ambitions = Array.from({ length: n }, () => []); w.nextEventId = 1;
+  },
+  (w) => { // v6 → v7: diplomacy and war (M6).
+    const ct = w.countries as PackedTable, pt = w.provinces as PackedTable, n = ct.size;
+    for (const [t, spec] of [[ct, COUNTRY_COLS], [pt, PROVINCE_COLS]] as const) for (const [k, kind] of Object.entries(spec)) if (!t.cols[k]) t.cols[k] = packTable(makeTable(t.size, { [k]: kind })).cols[k]!;
+    w.diplo = packTable(makeTable(n * n, DIPLO_COLS)); w.armies = packTable(makeTable(0, ARMY_COLS));
+    w.claims = Array.from({ length: n }, () => []); w.wars = []; w.battles = []; w.blocs = []; w.rivals = Array.from({ length: n }, () => []);
+    w.nextWarId = 1; w.nextBattleId = 1;
   },
 ];
 

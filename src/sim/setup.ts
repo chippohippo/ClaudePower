@@ -8,6 +8,8 @@ import { seedPolitics, type PoliticsStart } from "./politics-setup";
 import { assignTrees } from "./systems/focus";
 import { assignAmbitions } from "./systems/ambitions";
 import { runEra } from "./systems/era";
+import { seedDiplomacy } from "./diplomacy";
+import { seedArmies } from "./systems/armies";
 import { IG_COLS } from "./world";
 import { BASE_PRICE, BUILDINGS, N_GOODS, PMS } from "./defs";
 import { addPop } from "./pops";
@@ -24,9 +26,8 @@ export interface StartData {
 }
 export interface StartInfo { world: World; srcProvinceIds: number[]; countries: CountryDef[] }
 
-export const AUTO_DEVELOP = 1, AUTO_BUILD = 2, AUTO_BUDGET = 4, AUTO_ADVISORS = 8, AUTO_FOCUS = 16, AUTO_ALL = 31;
-/** Player-only: events wait for a choice instead of the AI deciding. */
-export const PLAYER_EVENTS = 32;
+export { AUTO_DEVELOP, AUTO_BUILD, AUTO_BUDGET, AUTO_ADVISORS, AUTO_FOCUS, AUTO_DIPLOMACY, AUTO_ARMY, AUTO_ALL, PLAYER_EVENTS } from "./automation";
+import { AUTO_ALL } from "./automation";
 export const RES_OIL = 1, RES_COAL = 2, RES_IRON = 4;
 export const STARTING_TAX = 0.12;
 
@@ -109,6 +110,8 @@ export function createWorld(seed: number, data: StartData, scope: StartScope = "
   runEra(w);
   assignTrees(w);
   assignAmbitions(w);
+  seedDiplomacy(w);
+  seedArmies(w);
   return { world: w, srcProvinceIds: provs.map((p) => p.id), countries };
 }
 

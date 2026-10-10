@@ -1,6 +1,6 @@
 # Iron & Empire — Working Memory
-## Current milestone: M5 — Focuses, Events & Consistency   Status: done (tag m5). Next: M6 — Diplomacy & War
-## Next task: M6 — read §11 and the M6 entry in §15. User may merge other projects / restructure: see docs/ARCHITECTURE.md, adapt freely
+## Current milestone: M6 — Diplomacy & War   Status: done (tag m6). Next: M7 — Tech, Ideas & Eras
+## Next task: M7 — read §11, §4, §8.1 and the M7 entry in §15. User may merge other projects / restructure: see docs/ARCHITECTURE.md, adapt freely
 ## Golden rules
 1. One milestone at a time; never leave the build broken.
 2. Everything is a Modifier (getStat for tooltips/explain/AI).
@@ -29,6 +29,8 @@
 - content scripting: src/sim/script/{schema,eval,content,bundle}.ts (conditions/effects, describe*) · engines: systems/{focus,events,ambitions,era}.ts · commands/content.ts
 - content: data/focuses/*.json (1 per tree; generic_* combine into tree "generic"), data/events/*.json, flags.json, ambitions.json, headlines.json → data/generated/content.json
 - linter: scripts/lint-consistency.ts (in lint:content) · harness: tests/content/focus-harness.test.ts · architecture/merge map: docs/ARCHITECTURE.md
+- diplomacy: src/sim/diplomacy.ts (pair table, CB, power) · wars: systems/{armies,combat,wars,diplo-ai,war-ai}.ts · commands/war.ts · UI Diplomacy.tsx (F6), Military.tsx (F7)
+- automation flags live in src/sim/automation.ts (leaf module — import cycles made setup re-exports undefined at runtime)
 - session (player, undo, previews, snapshot): src/worker/session.ts · scripted UI playtest: scripts/playtest-germany.mjs
 - inspect (UI reports + breakdowns): src/sim/inspect.ts · calibration: tests/calibration/century.test.ts (~45 s)
 - world from content: src/sim/setup.ts (createWorld, scope world|europe, CSR adjacency) · renderer: src/map/MapRenderer.ts (render on demand)
@@ -41,6 +43,8 @@
 - Points: base 3 + head stats + ¼ minister stats + traits; PP base 2 + stability + loyal IGs. Sinks: dev, stability, heirs, appointments, laws.
 - Historical leaders can die early by chance (seed 1: Hitler dies May 1936). Consider a grace period for historical heads.
 - Focus trees are 1930s-first: 10–25 focuses per major (brief target 40–80) + era stubs; generic modules combined. Add depth in later passes.
+- Army quality uses GDP/capita (militaryQuality) until M7 tech; equipment often low (arms undersupplied) — balance in M8.
+- War AI: WAR_CHANCE/WAR_RELATIONS/WAR_POWER_EDGE in diplo-ai.ts; China's huge army wins too often.
 - State construction is cheap vs treasury (30 levels ≈ $70–120M vs $5–9B); consider bigger levels or presets.
 - Hot loops alias imported consts locally (tsx live-binding getters were 40% of tick time).
 - Snapshots send full owner/dev arrays (cheap at 250); switch to changed-table diffs if it grows.

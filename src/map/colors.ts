@@ -27,3 +27,9 @@ export function solColor(sol: number): number {
 }
 /** Unrest 0..10: pale → deep red. */
 export const unrestColor = (u: number) => ramp(u / 8, [235, 235, 225], [150, 20, 20]);
+/** Relations −200…+200 (red → grey → green); allies blue, enemies at war dark red. */
+export function relationColor(rel: number, ally: boolean, war: boolean): number {
+  if (war) return 0x8b0000;
+  if (ally) return 0x2f6fb0;
+  return rel < 0 ? ramp(-rel / 150, [200, 200, 200], [200, 60, 50]) : ramp(rel / 150, [200, 200, 200], [70, 160, 80]);
+}

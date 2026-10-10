@@ -35,3 +35,9 @@
 - **Events fire on sim state with mean-time-to-happen**; AI takes the highest-weight choice; the player's events wait (game auto-pauses). Province/IG events bind a matching province/IG for templates.
 - **Consistency linter** checks references, flags read-but-never-set / set-but-undeclared, focus graph errors, unreachable focuses, and that every major flag has reaction content.
 - **Reachability harness** proves each focus by completing its prerequisite path on a cloned world while forcing conditions (flags, stats, laws, IG values).
+- **Armies are made of military pops** (recruit moves peasants/workers into the military stratum; casualties are deaths in the ledger; demobilisation sends them back). Equipment = share of arms needs actually bought on the market.
+- **Combat**: power = men × equipment × organisation × general × terrain × entrenchment × industry/doctrine; daily losses ∝ enemy power / own power, capped at 3%/day (no instant wipes); retreat at organisation < 25%. Every factor is in the battle report.
+- **War score** from occupied value (development + population) ×1.5, battle results (±25) and holding the war goal; peace terms cost score; AI takes what its score buys after 3 months or when the loser is exhausted.
+- **War AI** needs a casus belli (claims, independence, ideological hostility), relations < −40, coalition power edge 1.6×, aggression (ideology, mobilisation, Armed Forces, militarist flags; democracies ×0.3) and a 2.5%×aggression monthly roll. Nuclear deterrence blocks wars against nuclear powers.
+- **Printing capped at 2% of money per month**; unpaid bills cost stability (stops endless hyperinflation after lost wars).
+- **Soldiers don't count as urban.**

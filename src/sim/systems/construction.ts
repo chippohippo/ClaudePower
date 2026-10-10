@@ -7,7 +7,7 @@ import { ensureCapacity, type World } from "../world";
 import type { OrderBook } from "./orders";
 import { eraProductivity, provinceProd } from "./production";
 import { countryStat } from "../modifiers";
-import { AUTO_BUILD } from "../setup";
+import { AUTO_BUILD } from "../automation";
 import { LABOUR_SHARE } from "./wages";
 import { toYmd } from "../date";
 import { choosePms, jobsKey } from "./labour";

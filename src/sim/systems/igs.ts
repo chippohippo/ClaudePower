@@ -63,12 +63,22 @@ function computeCloutInner(w: World): IgMonth {
 }
 
 /** Approval target parts for one IG (sum clamps to −100…+100); shown in tooltips. */
-export function approvalParts(w: World, c: number, g: number, memberSol: number): { label: string; value: number }[] {
+/** Per-country: head's ideology and which IGs sit in government (one pass over characters). */
+export function govInfo(w: World): { headIdeo: Int32Array; inGov: Uint8Array } {
+  const n = w.countries.size, headIdeo = new Int32Array(n).fill(-1), inGov = new Uint8Array(n * _N), cc = w.characters.cols;
+  for (let i = 0; i < w.characters.size; i++) {
+    if (!cc.alive![i]) continue;
+    const c = cc.country![i]!, r = cc.role![i]!;
+    if (r === Role.Head) headIdeo[c] = cc.ideology![i]!;
+    if ((r === Role.Cabinet || r === Role.Head) && cc.ig![i]! >= 0) inGov[c * _N + cc.ig![i]!] = 1;
+  }
+  return { headIdeo, inGov };
+}
+
+export function approvalParts(w: World, c: number, g: number, memberSol: number, gi = govInfo(w)): { label: string; value: number }[] {
   let others = 0;
   for (let h = 0; h < _N; h++) if (h !== g && hasPrivilege(w, c, h)) others++;
-  const head = findRole(w, c, Role.Head), cc = w.characters.cols;
-  let inGov = false;
-  for (let i = 0; i < w.characters.size; i++) if (cc.alive![i] && cc.country![i] === c && cc.ig![i] === g && (cc.role![i] === Role.Cabinet || cc.role![i] === Role.Head)) inGov = true;
+  const headIdeo = gi.headIdeo[c]!, inGov = gi.inGov[c * _N + g] === 1;
   const parts = [
     { label: "Laws in force", value: LAW_WEIGHT * lawScore(w, c, g) },
     { label: "Own privilege", value: hasPrivilege(w, c, g) ? PRIVILEGE_BONUS : 0 },
@@ -77,19 +87,19 @@ export function approvalParts(w: World, c: number, g: number, memberSol: number)
     // Growing IGs demand their privilege: ignoring a big group (e.g. unions during industrialisation) hurts.
     { label: "Unmet demand for privilege", value: hasPrivilege(w, c, g) ? 0 : -DEMAND_WEIGHT * Math.max(0, w.igs.cols.clout![igRow(c, g)]! - DEMAND_CLOUT) },
     { label: "Represented in government", value: inGov ? CABINET_BONUS : 0 },
-    { label: "Head's ideology", value: head >= 0 ? (cc.ideology![head] === IG_IDEOLOGY[g] ? IDEOLOGY_MATCH : -IDEOLOGY_MATCH / 2) : 0 },
+    { label: "Head's ideology", value: headIdeo >= 0 ? (headIdeo === IG_IDEOLOGY[g] ? IDEOLOGY_MATCH : -IDEOLOGY_MATCH / 2) : 0 },
     { label: "Co-opted / suppressed (fading)", value: w.igs.cols.favour![igRow(c, g)]! },
   ];
   return parts.map((x) => ({ label: x.label, value: Math.round(x.value * 10) / 10 }));
 }
 
 export function runIgs(w: World): void {
-  const m = computeClout(w), ic = w.igs.cols, cc = w.countries.cols, nC = w.countries.size;
+  const m = computeClout(w), ic = w.igs.cols, cc = w.countries.cols, nC = w.countries.size, gi = govInfo(w);
   for (let c = 0; c < nC; c++) {
     let ppDelta = 0;
     for (let g = 0; g < _N; g++) {
       const r = igRow(c, g);
-      const target = Math.max(-100, Math.min(100, approvalParts(w, c, g, m.memberSol[r]!).reduce((s, x) => s + x.value, 0)));
+      const target = Math.max(-100, Math.min(100, approvalParts(w, c, g, m.memberSol[r]!, gi).reduce((s, x) => s + x.value, 0)));
       ic.approval![r] = ic.approval![r]! + (target - ic.approval![r]!) * APPROVAL_SMOOTH;
       ic.favour![r] = ic.favour![r]! * 0.95;
       // Radicalism follows anger, scaled by how many members the IG has (big unhappy IGs radicalise).

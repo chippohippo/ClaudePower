@@ -1,8 +1,9 @@
 // PixiJS province map: one Graphics per province, tinted per map mode; pan/zoom/hover/select.
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, Container, Graphics, Text } from "pixi.js";
 import { lighten } from "./colors";
 
-export interface MapCallbacks { onHover(p: number | null): void; onSelect(p: number | null): void }
+export interface MapCallbacks { onHover(p: number | null): void; onSelect(p: number | null): void; onRightClick?(p: number): void; onArmy?(id: number): void }
+export interface ArmyMarker { id: number; prov: number; color: number; label: string; selected: boolean; battle: boolean }
 
 export class MapRenderer {
   private app = new Application();
@@ -28,10 +29,13 @@ export class MapRenderer {
       g.on("pointerover", () => this.setHover(id));
       g.on("pointerout", () => this.hovered === id && this.setHover(null));
       g.on("pointertap", (e) => { if (!this.dragged) { e.stopPropagation(); this.select(id); } });
+      g.on("rightclick", (e) => { e.stopPropagation(); this.cb.onRightClick?.(id); });
       this.world.addChild(g);
       this.shapes.push(g);
     });
     this.world.addChild(this.outline);
+    this.world.addChild(this.armyLayer);
+    this.app.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     this.installPanZoom();
     this.fit();
     this.app.renderer.on("resize", () => this.requestRender());
@@ -54,6 +58,35 @@ export class MapRenderer {
   setColors(colors: number[]): void {
     this.colors = colors;
     this.shapes.forEach((g, i) => (g.tint = i === this.hovered ? lighten(colors[i]!, 0.35) : colors[i]!));
+    this.requestRender();
+  }
+
+  private armyLayer = new Container();
+  private centers: [number, number][] = [];
+  private center(p: number): [number, number] {
+    if (!this.centers[p]) { const b = this.shapes[p]!.getLocalBounds(); this.centers[p] = [b.x + b.width / 2, b.y + b.height / 2]; }
+    return this.centers[p]!;
+  }
+
+  /** Army markers: one badge per army, stacked when several share a province. */
+  setArmies(list: ArmyMarker[]): void {
+    for (const ch of this.armyLayer.removeChildren()) ch.destroy();
+    const k = 1 / Math.max(0.6, this.world.scale.x);
+    const perProv = new Map<number, number>();
+    for (const m of list) {
+      const n = perProv.get(m.prov) ?? 0; perProv.set(m.prov, n + 1);
+      const [x, y] = this.center(m.prov);
+      const c = new Container();
+      c.position.set(x + n * 14 * k, y + n * 10 * k);
+      c.scale.set(k);
+      const bg = new Graphics().roundRect(-16, -9, 32, 18, 3).fill(m.color).stroke({ color: m.selected ? 0xffd60a : m.battle ? 0xe76f51 : 0x111111, width: m.selected || m.battle ? 2.5 : 1 });
+      const t = new Text({ text: m.label, style: { fontSize: 10, fill: 0xffffff, fontWeight: "700", stroke: { color: 0x000000, width: 2 } } });
+      t.anchor.set(0.5);
+      c.addChild(bg, t);
+      c.eventMode = "static"; c.cursor = "pointer";
+      c.on("pointertap", (e) => { e.stopPropagation(); this.cb.onArmy?.(m.id); });
+      this.armyLayer.addChild(c);
+    }
     this.requestRender();
   }
 

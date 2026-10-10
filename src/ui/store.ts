@@ -3,8 +3,8 @@ import type { PlayerCommand, SetupInfo, Snapshot, ToWorker } from "../worker/pro
 import type { CountryReport } from "../sim/inspect";
 import type { Preview } from "../sim/commands";
 
-export type MapMode = "political" | "development" | "population" | "sol" | "unrest" | "ig";
-export type DockTab = "government" | "economy" | "population" | "igs" | "focus" | null;
+export type MapMode = "political" | "development" | "population" | "sol" | "unrest" | "ig" | "relations" | "occupation";
+export type DockTab = "government" | "economy" | "population" | "igs" | "focus" | "diplomacy" | "military" | null;
 
 interface UiState {
   setup: SetupInfo | null;
@@ -23,6 +23,8 @@ interface UiState {
   previews: Record<string, Preview>;
   /** Highest chronicle index already shown as a notification. */
   seenChronicle: number;
+  selectedArmy: number | null;
+  battle: number | null;
   notes: { text: string; kind: string }[];
   send: (m: ToWorker) => void;
   jumpTo: (province: number) => void;
@@ -30,7 +32,7 @@ interface UiState {
 }
 export const useUi = create<UiState>((set) => ({
   setup: null, snap: null, message: "", mapMode: "political", selected: null, hovered: null, report: null, dock: null,
-  palette: false, muted: loadMuted(), done: [], firstStepsDismissed: false, previews: {}, seenChronicle: -1, notes: [],
+  palette: false, muted: loadMuted(), done: [], firstStepsDismissed: false, previews: {}, seenChronicle: -1, notes: [], selectedArmy: null, battle: null,
   send: () => {}, jumpTo: () => {}, set,
 }));
 

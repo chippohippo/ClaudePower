@@ -4,12 +4,14 @@ import { IgsFile, STRATA, IDEOLOGIES } from "./schemas";
 import { LAWS, activeLaw } from "./laws";
 import { addModifier, removeModifiers } from "./modifiers";
 import type { World } from "./world";
+import { setIgIdeologyLookup } from "./characters";
 
 export const IGS = IgsFile.parse(igsJson);
 export const N_IGS = IGS.length;
 export const igIndex = (id: string) => IGS.findIndex((g) => g.id === id);
 export const igRow = (country: number, ig: number) => country * N_IGS + ig;
 export const IG_IDEOLOGY = IGS.map((g) => IDEOLOGIES.indexOf(g.ideology));
+setIgIdeologyLookup((ig) => IG_IDEOLOGY[ig] ?? 3);
 /** Attraction weight of each stratum to each IG: [ig][stratum]. */
 export const IG_STRATA: number[][] = IGS.map((g) => STRATA.map((s) => g.strata[s] ?? 0));
 export const IG_POWER = IGS.map((g) => g.power);

@@ -3,7 +3,7 @@
 import { BUILDINGS, GOODS, N_GOODS } from "./defs";
 import { countryStat } from "./modifiers";
 import { POINT_CAP } from "./systems/core";
-import { AUTO_BUILD } from "./setup";
+import { AUTO_BUILD } from "./automation";
 import type { World } from "./world";
 import { IGS, N_IGS, igIndex, igRow } from "./igs";
 import { Role, findRole } from "./characters";
@@ -12,9 +12,9 @@ import { toYmd } from "./date";
 const PRODUCER: Record<number, string> = {};
 BUILDINGS.forEach((b) => { for (const g of Object.keys(b.pms[0]!.outputs)) PRODUCER[GOODS.findIndex((x) => x.id === g)] = b.name; });
 
-export interface Alert { type: string; severity: 1 | 2 | 3; text: string; province?: number; panel?: "economy" | "population" | "government" | "igs" }
+export interface Alert { type: string; severity: 1 | 2 | 3; text: string; province?: number; panel?: "economy" | "population" | "government" | "igs" | "military" }
 
-export const ALERT_TYPES = ["ig_radical", "strike", "coup_risk", "vacant_seat", "election", "points_cap", "pp_cap", "unemployment", "unrest", "bankruptcy", "debt", "shortage", "stability", "idle_treasury", "construction_idle"] as const;
+export const ALERT_TYPES = ["war", "battle", "ig_radical", "strike", "coup_risk", "vacant_seat", "election", "points_cap", "pp_cap", "unemployment", "unrest", "bankruptcy", "debt", "shortage", "stability", "idle_treasury", "construction_idle"] as const;
 
 export function computeAlerts(w: World, c: number): Alert[] {
   const out: Alert[] = [], cc = w.countries.cols, pc = w.provinces.cols;
@@ -58,6 +58,14 @@ export function computeAlerts(w: World, c: number): Alert[] {
     if (mine === 0) out.push({ type: "construction_idle", severity: 1, text: "No state construction under way" });
     if (cc.treasury![c]! > 12 * Math.max(1, cc.expense![c]!)) out.push({ type: "idle_treasury", severity: 1, text: "Treasury holds a year of spending — invest it or cut taxes", panel: "economy" });
   }
+  // Wars and battles.
+  for (const war of w.wars) {
+    if (war.end >= 0 || (!war.attackers.includes(c) && !war.defenders.includes(c))) continue;
+    const ours = war.attackers.includes(c) ? war.score : -war.score;
+    out.push({ type: "war", severity: ours < -20 ? 3 : 2, text: `${war.name}: war score ${ours.toFixed(0)}${ours >= 25 ? " — you can demand terms" : ours <= -25 ? " — consider peace" : ""}`, panel: "military" });
+  }
+  const fighting = w.battles.filter((b) => b.winner === "ongoing" && (b.attacker === c || b.defender === c));
+  if (fighting.length) out.push({ type: "battle", severity: 2, text: `${fighting.length} battle${fighting.length > 1 ? "s" : ""} under way (${fighting.map((b) => w.provinceNames[b.prov]).slice(0, 2).join(", ")})`, province: fighting[0]!.prov, panel: "military" });
   // Interest groups.
   const AF = igIndex("armed_forces");
   for (let g = 0; g < N_IGS; g++) {

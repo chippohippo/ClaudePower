@@ -7,7 +7,7 @@ void 0;
 import { chronicle } from "../characters";
 import type { World } from "../world";
 
-import { AUTO_FOCUS } from "../setup";
+import { AUTO_FOCUS } from "../automation";
 
 export function assignTrees(w: World): void {
   for (let c = 0; c < w.countries.size; c++) {

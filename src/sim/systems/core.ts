@@ -1,7 +1,7 @@
 // Core loop (monthly, "points_pp" slot): monarch points, political power, stability drift, unrest,
 // manpower, and auto-develop. All rates come from the modifier system so tooltips can explain them.
 import { countryStat, getStat } from "../modifiers";
-import { AUTO_DEVELOP } from "../setup";
+import { AUTO_DEVELOP } from "../automation";
 import { applyCommand } from "../commands";
 import { cheapestDevelopment } from "../commands/player";
 import "../commands/politics";
@@ -33,7 +33,7 @@ export function runCore(w: World): void {
   for (let c = 0; c < n; c++) {
     cc.pp![c] = Math.min(PP_CAP, cc.pp![c]! + pp[c]! + 0.5 * cc.stability![c]!);
     const avgUnrest = popSum[c]! > 0 ? unrestSum[c]! / popSum[c]! : 0;
-    const t = Math.max(-3, Math.min(3, target[c]! + (cc.sol![c]! - 45) / 25 - avgUnrest / 4));
+    const t = Math.max(-3, Math.min(3, target[c]! + (cc.sol![c]! - 45) / 25 - avgUnrest / 4 - cc.warExhaustion![c]! / 40));
     cc.stability![c] = cc.stability![c]! + (t - cc.stability![c]!) * STABILITY_DRIFT;
   }
   updateManpower(w, mob);

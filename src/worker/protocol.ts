@@ -61,6 +61,11 @@ export interface FocusState {
 export interface PendingEventView { id: number; title: string; description: string; choices: { name: string; effects: string[] }[] }
 export interface AmbitionView { name: string; description: string; done: boolean }
 
+export interface ArmyView { id: number; country: number; prov: number; strength: number; org: number; target: number; battle: number; auto: boolean }
+export interface DiploRow { country: number; rel: number; alliance: boolean; guaranteesUs: boolean; weGuarantee: boolean; trade: boolean; truce: boolean; war: boolean; cb: string | null; rival: boolean; overlord: boolean; puppet: boolean; power: number }
+export interface WarView { id: number; name: string; attackers: number[]; defenders: number[]; score: number; start: string; ours: boolean; side: "attacker" | "defender" | null; goal: number }
+export type BattleView = import("../sim/world").BattleReport & { provName: string; date: string };
+
 export interface Snapshot {
   date: number; dateLabel: string; paused: boolean; speed: number; rev: number;
   treasury: number[]; owner: number[]; development: number[];
@@ -76,6 +81,14 @@ export interface Snapshot {
   events: PendingEventView[];
   ambitions: AmbitionView[];
   headlines: string[];
+  armies: ArmyView[];
+  controller: number[];
+  diplomacy: DiploRow[];
+  wars: WarView[];
+  battles: BattleView[];
+  claims: number[];
+  rivals: number[];
+  military: { equip: number; manpower: number; fielded: number; exhaustion: number; nukes: number; power: number };
 }
 export type FromWorker =
   | { kind: "setup"; info: SetupInfo }

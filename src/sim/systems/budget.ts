@@ -3,7 +3,7 @@
 import { BASE_PRICE, N_GOODS, N_STRATA, PMS, STRATUM, goodIndex } from "../defs";
 import { Acct, apportion, budgetLine, burn, mint, transfer } from "../money";
 import { countryStat } from "../modifiers";
-import { AUTO_BUDGET } from "../setup";
+import { AUTO_BUDGET } from "../automation";
 import type { World } from "../world";
 import { toYmd } from "../date";
 import type { OrderBook } from "./orders";
@@ -15,7 +15,7 @@ export const ARMS_PER_SOLDIER = 0.02;
 export const MILITARY_PAY = 1.2, BUREAUCRAT_PAY = 1.1; // × average worker wage
 export const DEBT_LIMIT_GDP = 0.9;
 export const BASE_INTEREST = 0.03;
-export const PRINT_INFLATION = 0.9;
+export const PRINT_INFLATION = 0.9, MAX_PRINT_SHARE = 0.02;
 export const TAX_MIN = 0.05, TAX_MAX = 0.45;
 const ARMS = goodIndex("arms"), SERVICES = goodIndex("services");
 /** Government consumption basket (share of discretionary spending by good). */
@@ -23,12 +23,13 @@ export const GOV_BASKET: [number, number][] = [[goodIndex("services"), 0.5], [go
 /** Months of expenses the treasury keeps; anything above is spent on government consumption. */
 export const RESERVE_MONTHS = 3, DISCRETIONARY_SPEND = 0.4;
 
-export interface StatePlan { orders: number[] }
+export interface StatePlan { orders: number[]; arms: Int32Array; armsWanted: Float64Array }
 
 /** Treasury buys arms for the army and inputs for public buildings (universities, hospitals). */
 export function planState(w: World, book: OrderBook): StatePlan {
   const cc = w.countries.cols, mk = w.markets.cols.price!, wp = w.worldMarket.cols.price!;
   const orders: number[] = [];
+  const arms = new Int32Array(w.countries.size).fill(-1), armsWanted = new Float64Array(w.countries.size);
   const soldiers = new Float64Array(w.countries.size);
   for (let i = 0; i < w.pops.size; i++) if (w.pops.cols.stratum![i] === _STRATUM.military) soldiers[w.provinces.cols.owner![w.pops.cols.prov![i]!]!]! += w.pops.cols.a1![i]!;
   const want = new Float64Array(w.countries.size * _N_GOODS);
@@ -56,9 +57,10 @@ export function planState(w: World, book: OrderBook): StatePlan {
     const reserve = RESERVE_MONTHS * Math.max(cc.expense![c]!, cc.income![c]!);
     const spare = Math.max(0, cash - cost * afford - reserve) * DISCRETIONARY_SPEND;
     for (const [g, share] of GOV_BASKET) q[g]! += (spare * share) / price(g);
-    for (let g = 0; g < _N_GOODS; g++) if (q[g]! > 0) orders.push(book.buy(c, g, q[g]!, Acct.Treasury, c, q[g]! * maxP(g) + 1));
+    armsWanted[c] = want[c * _N_GOODS + ARMS]!;
+    for (let g = 0; g < _N_GOODS; g++) if (q[g]! > 0) { const o = book.buy(c, g, q[g]!, Acct.Treasury, c, q[g]! * maxP(g) + 1); orders.push(o); if (g === ARMS) arms[c] = o; }
   }
-  return { orders };
+  return { orders, arms, armsWanted };
 }
 
 /** Pay public employees, soldiers, bureaucrats and pensions; service debt; update inflation. */
@@ -125,9 +127,11 @@ function ensureFunds(w: World, c: number, need: number): void {
   const borrow = Math.max(0, Math.min(gap, Math.floor(limit - cc.debt![c]!)));
   budgetLine("borrowing");
   if (borrow > 0) { mint(w, Acct.Treasury, c, borrow, true); cc.debt![c]! += borrow; cc.borrowed![c]! += borrow; }
-  const print = gap - borrow;
+  // Printing is capped at a share of the money supply per month; beyond that, bills go unpaid (arrears).
+  const print = Math.min(gap - borrow, Math.floor(MAX_PRINT_SHARE * Math.max(0, cc.money![c]!) - cc.printed![c]!));
   budgetLine("printing");
   if (print > 0) { mint(w, Acct.Treasury, c, print, true); cc.printed![c]! += print; }
+  if (gap - borrow - Math.max(0, print) > 0) cc.stability![c] = Math.max(-3, cc.stability![c]! - 0.02); // arrears
 }
 
 /** Monthly price-level drift from printed money relative to the money supply. */
@@ -186,5 +190,16 @@ export function monetaryPolicy(w: World): void {
     if (!(gap > 0.02)) continue; // also skips NaN (countries without markets)
     budgetLine("seigniorage");
     mint(w, Acct.Treasury, c, Math.floor(Math.min(MONETARY_MAX, MONETARY_RESPONSE * gap) * cc.money![c]!), true);
+  }
+}
+
+/** Equipment level: share of the army's arms needs actually delivered this month (smoothed). */
+export function updateEquipment(w: World, book: { bGot: Float64Array }, plan: StatePlan): void {
+  const cc = w.countries.cols;
+  for (let c = 0; c < w.countries.size; c++) {
+    const want = plan.armsWanted[c]!, o = plan.arms[c]!;
+    const got = o >= 0 ? book.bGot[o]! : 0;
+    const ratio = want > 0 ? Math.min(1, got / want) : 1;
+    cc.equip![c] = cc.equip![c]! + (ratio - cc.equip![c]!) * 0.2;
   }
 }
