@@ -1,0 +1,207 @@
+[
+ {
+  "id": "ger_rearmed",
+  "major": false,
+  "description": "Germany has rearmed openly"
+ },
+ {
+  "id": "ger_rhineland",
+  "major": true,
+  "description": "Germany remilitarised the Rhineland"
+ },
+ {
+  "id": "ger_militarist",
+  "major": true,
+  "description": "Germany became a garrison state"
+ },
+ {
+  "id": "ger_democratic",
+  "major": true,
+  "description": "Germany restored democracy"
+ },
+ {
+  "id": "ger_monarchy_restored",
+  "major": true,
+  "description": "Germany restored the crown"
+ },
+ {
+  "id": "ger_west_aligned",
+  "major": false,
+  "description": "Germany sought Western guarantees"
+ },
+ {
+  "id": "sov_purges",
+  "major": true,
+  "description": "The Soviet purges"
+ },
+ {
+  "id": "sov_moderates",
+  "major": false,
+  "description": "Soviet collective leadership"
+ },
+ {
+  "id": "sov_reformed",
+  "major": true,
+  "description": "The Soviet Union reformed"
+ },
+ {
+  "id": "sov_collapsed_risk",
+  "major": false,
+  "description": "Soviet restructuring under way"
+ },
+ {
+  "id": "first_space_programme",
+  "major": false,
+  "description": "A space programme exists"
+ },
+ {
+  "id": "usa_new_deal",
+  "major": false,
+  "description": "The Second New Deal"
+ },
+ {
+  "id": "usa_isolation",
+  "major": true,
+  "description": "US neutrality"
+ },
+ {
+  "id": "usa_arsenal",
+  "major": true,
+  "description": "America arms the free world"
+ },
+ {
+  "id": "first_moon_landing",
+  "major": true,
+  "description": "Humans walked on the Moon"
+ },
+ {
+  "id": "gbr_rearmament",
+  "major": false,
+  "description": "Britain rearmed"
+ },
+ {
+  "id": "gbr_appeasement",
+  "major": false,
+  "description": "Britain chose appeasement"
+ },
+ {
+  "id": "gbr_decolonisation",
+  "major": true,
+  "description": "Britain promised self-government"
+ },
+ {
+  "id": "gbr_welfare_state",
+  "major": false,
+  "description": "Britain's welfare state"
+ },
+ {
+  "id": "fra_popular_front",
+  "major": true,
+  "description": "France's Popular Front"
+ },
+ {
+  "id": "fra_reaction",
+  "major": false,
+  "description": "France's National Union"
+ },
+ {
+  "id": "fra_decolonisation",
+  "major": false,
+  "description": "The French Union"
+ },
+ {
+  "id": "fra_nuclear_power",
+  "major": false,
+  "description": "French nuclear power"
+ },
+ {
+  "id": "ita_imperial",
+  "major": true,
+  "description": "Italy's imperial drive"
+ },
+ {
+  "id": "ita_monarchy_reasserted",
+  "major": false,
+  "description": "The Italian king acted"
+ },
+ {
+  "id": "ita_republic",
+  "major": false,
+  "description": "Italy became a republic"
+ },
+ {
+  "id": "jap_militarist",
+  "major": true,
+  "description": "Japan's army took power"
+ },
+ {
+  "id": "jap_civilian",
+  "major": false,
+  "description": "Japanese party government"
+ },
+ {
+  "id": "jap_economic_power",
+  "major": false,
+  "description": "Japan's electronics giants"
+ },
+ {
+  "id": "chi_united",
+  "major": false,
+  "description": "China's united front"
+ },
+ {
+  "id": "chi_communist_victory",
+  "major": true,
+  "description": "The People's Republic of China"
+ },
+ {
+  "id": "chi_opening",
+  "major": false,
+  "description": "China opened up"
+ },
+ {
+  "id": "regional_union_formed",
+  "major": false,
+  "description": "A regional common market"
+ },
+ {
+  "id": "strike_crushed",
+  "major": true,
+  "description": "A strike was broken by troops"
+ },
+ {
+  "id": "democracy_suspended",
+  "major": false,
+  "description": "A democracy suspended its constitution"
+ },
+ {
+  "id": "democratic_wave",
+  "major": true,
+  "description": "A dictatorship fell to protest"
+ },
+ {
+  "id": "era_crisis",
+  "major": false,
+  "description": "1936–45"
+ },
+ {
+  "id": "era_reconstruction",
+  "major": false,
+  "description": "1946–59"
+ },
+ {
+  "id": "era_cold_war",
+  "major": false,
+  "description": "1960–89"
+ },
+ {
+  "id": "era_globalisation",
+  "major": false,
+  "description": "1990–2009"
+ },
+ {
+  "id": "era_information",
+  "major": false,
+  "description": "2010–26"
+ }
+]

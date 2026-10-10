@@ -1,0 +1,95 @@
+{
+ "id": "generic_independence",
+ "name": "Independence & Decolonisation",
+ "countries": "generic",
+ "focuses": [
+  {
+   "id": "gen_nationalist_press",
+   "name": "Nationalist Press",
+   "description": "Newspapers spread the idea of self-rule.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 15
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.03
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "indep"
+  },
+  {
+   "id": "gen_self_rule",
+   "name": "Demand Self-Rule",
+   "description": "Petition the metropole for home rule.",
+   "prerequisites": [
+    "gen_nationalist_press"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "pp": 40
+    },
+    {
+     "setCountryFlag": "self_rule_demanded"
+    }
+   ],
+   "ai": 1,
+   "branch": "indep",
+   "available": {
+    "any": [
+     {
+      "flag": "gbr_decolonisation"
+     },
+     {
+      "flag": "fra_decolonisation"
+     },
+     {
+      "flag": "era_reconstruction"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gen_nation_building",
+   "name": "Nation Building",
+   "description": "A flag, an anthem, a civil service.",
+   "prerequisites": [
+    "gen_self_rule"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "modifier": {
+      "name": "New nation",
+      "target": "pp_gain",
+      "add": 1,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "indep"
+  }
+ ]
+}

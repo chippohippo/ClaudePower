@@ -1,0 +1,870 @@
+{
+ "id": "ger",
+ "name": "German Reich",
+ "countries": [
+  "GER"
+ ],
+ "focuses": [
+  {
+   "id": "ger_four_year_plan",
+   "name": "Four-Year Plan",
+   "description": "Push heavy industry toward self-sufficiency in fuel, steel and rubber.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "refinery",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Four-Year Plan",
+      "target": "investment_rate",
+      "mult": 0.15,
+      "months": 36
+     }
+    }
+   ],
+   "ai": 5,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_synthetic_fuel",
+   "name": "Synthetic Fuel Works",
+   "description": "Coal-to-oil plants reduce dependence on imported crude.",
+   "prerequisites": [
+    "ger_four_year_plan"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "refinery",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Fuel autarky",
+      "target": "construction_cost",
+      "mult": -0.05,
+      "months": 24
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_ruhr_expansion",
+   "name": "Expand the Ruhr",
+   "description": "New mines and mills along the Rhine and Ruhr.",
+   "prerequisites": [
+    "ger_four_year_plan"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "coal_mine",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_autobahn",
+   "name": "Motorway Programme",
+   "description": "Public works employ hundreds of thousands and bind the regions together.",
+   "prerequisites": [
+    "ger_ruhr_expansion"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 15
+     }
+    },
+    {
+     "treasuryMonths": -2
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_tool_industry",
+   "name": "Machine Tools for Everything",
+   "description": "Precision tools are the foundation of every modern industry.",
+   "prerequisites": [
+    "ger_synthetic_fuel",
+    "ger_ruhr_expansion"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 105,
+   "effects": [
+    {
+     "build": {
+      "building": "tool_works",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_consumer_turn",
+   "name": "People's Goods",
+   "description": "Cheap radios, cars and holidays for the masses.",
+   "prerequisites": [
+    "ger_autobahn"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "petite_bourgeoisie",
+      "value": 15
+     }
+    },
+    {
+     "stability": 0.3
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "ger_rearmament",
+   "name": "Open Rearmament",
+   "description": "Repudiate the arms limits and rebuild the army openly.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "limited"
+     }
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 25
+     }
+    },
+    {
+     "setFlag": "ger_rearmed"
+    }
+   ],
+   "ai": 4,
+   "branch": "military"
+  },
+  {
+   "id": "ger_rhineland",
+   "name": "Remilitarise the Rhineland",
+   "description": "March troops back into the western provinces.",
+   "prerequisites": [
+    "ger_rearmament"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "ger_west_guarantee"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "pp": 50
+    },
+    {
+     "setFlag": "ger_rhineland"
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "military"
+  },
+  {
+   "id": "ger_war_economy",
+   "name": "Prepare the War Economy",
+   "description": "Plan the switch of factories to munitions.",
+   "prerequisites": [
+    "ger_rhineland"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "partial"
+     }
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "War economy",
+      "target": "consumption",
+      "mult": -0.05,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "military"
+  },
+  {
+   "id": "ger_militarist_state",
+   "name": "The Garrison State",
+   "description": "The army becomes the arbiter of national life.",
+   "prerequisites": [
+    "ger_war_economy"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "ger_restore_republic",
+    "ger_crown_restored"
+   ],
+   "cost": 100,
+   "days": 105,
+   "effects": [
+    {
+     "government": "autocracy"
+    },
+    {
+     "privilege": {
+      "id": "armed_forces",
+      "granted": true
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "fas",
+      "amount": 0.08
+     }
+    },
+    {
+     "setFlag": "ger_militarist"
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": -30
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "military"
+  },
+  {
+   "id": "ger_officer_schools",
+   "name": "Officer Academies",
+   "description": "A modern officer corps trained in combined arms.",
+   "prerequisites": [
+    "ger_rearmament"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "points": {
+      "mil": 100
+     }
+    },
+    {
+     "modifier": {
+      "name": "Officer schools",
+      "target": "mil_gain",
+      "add": 1,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "military"
+  },
+  {
+   "id": "ger_west_guarantee",
+   "name": "Seek Western Guarantees",
+   "description": "Approach London and Paris for security in exchange for restraint.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "ger_rhineland"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "pp": 40
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": 10
+     }
+    },
+    {
+     "setFlag": "ger_west_aligned"
+    }
+   ],
+   "ai": 1,
+   "branch": "republic"
+  },
+  {
+   "id": "ger_free_unions",
+   "name": "Restore Free Trade Unions",
+   "description": "Legalise independent unions and collective bargaining.",
+   "prerequisites": [
+    "ger_west_guarantee"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "privilege": {
+      "id": "trade_unions",
+      "granted": true
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 25
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "trade_unions",
+      "value": -20
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.05
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "republic"
+  },
+  {
+   "id": "ger_free_press",
+   "name": "Free Press and Assembly",
+   "description": "Lift censorship and release political prisoners.",
+   "prerequisites": [
+    "ger_west_guarantee"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 30
+     }
+    },
+    {
+     "stability": -0.3
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.06
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "republic"
+  },
+  {
+   "id": "ger_restore_republic",
+   "name": "Restore the Republic",
+   "description": "Free elections under a new constitution.",
+   "prerequisites": [
+    "ger_free_unions",
+    "ger_free_press"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "ger_militarist_state",
+    "ger_crown_restored"
+   ],
+   "cost": 120,
+   "days": 140,
+   "effects": [
+    {
+     "government": "democracy"
+    },
+    {
+     "setFlag": "ger_democratic"
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.1
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": -25
+     }
+    },
+    {
+     "stability": -0.5
+    }
+   ],
+   "ai": 1,
+   "branch": "republic",
+   "available": {
+    "any": [
+     {
+      "stat": {
+       "key": "stability",
+       "op": ">",
+       "value": -1
+      }
+     },
+     {
+      "ig": {
+       "id": "intelligentsia",
+       "key": "approval",
+       "op": ">",
+       "value": 20
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "ger_social_market",
+   "name": "Social Market Economy",
+   "description": "Free markets, strong unions, and a welfare floor.",
+   "prerequisites": [
+    "ger_restore_republic"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Social partnership",
+      "target": "stability_target",
+      "add": 0.3
+     }
+    },
+    {
+     "modifier": {
+      "name": "Social partnership",
+      "target": "labour_share",
+      "add": 0.02
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "republic"
+  },
+  {
+   "id": "ger_monarchist_circles",
+   "name": "Court the Monarchists",
+   "description": "Old aristocrats and officers dream of a crown.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "landowners",
+      "value": 20
+     }
+    },
+    {
+     "igFavour": {
+      "id": "devout",
+      "value": 10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "crown"
+  },
+  {
+   "id": "ger_crown_restored",
+   "name": "Restore the Crown",
+   "description": "A constitutional monarch as a symbol above the parties.",
+   "prerequisites": [
+    "ger_monarchist_circles"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "ger_militarist_state",
+    "ger_restore_republic"
+   ],
+   "cost": 100,
+   "days": 140,
+   "effects": [
+    {
+     "setFlag": "ger_monarchy_restored"
+    },
+    {
+     "stability": 1.0
+    },
+    {
+     "igFavour": {
+      "id": "landowners",
+      "value": 30
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": -20
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "crown"
+  },
+  {
+   "id": "ger_estates_council",
+   "name": "Council of Estates",
+   "description": "Corporatist chambers for every profession.",
+   "prerequisites": [
+    "ger_crown_restored"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "privilege": {
+      "id": "landowners",
+      "granted": true
+     }
+    },
+    {
+     "privilege": {
+      "id": "devout",
+      "granted": true
+     }
+    },
+    {
+     "modifier": {
+      "name": "Estates council",
+      "target": "pp_gain",
+      "add": 1
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "crown"
+  },
+  {
+   "id": "ger_universities",
+   "name": "Fund the Universities",
+   "description": "Laboratories and lecture halls for a scientific nation.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "university",
+      "levels": 20,
+      "where": "capital"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Research grants",
+      "target": "literacy_target",
+      "add": 0.02
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "ger_public_health",
+   "name": "National Health Insurance",
+   "description": "Extend the old insurance system to all workers.",
+   "prerequisites": [
+    "ger_universities"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "hospital",
+      "levels": 20,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "ger_youth_education",
+   "name": "Universal Secondary Schools",
+   "description": "Every child stays in school to sixteen.",
+   "prerequisites": [
+    "ger_universities"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 70,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "education",
+      "law": "universal_education"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "ger_reconstruction",
+   "name": "Reconstruction Programme",
+   "description": "Rebuild what the crisis years destroyed.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 140,
+   "effects": [
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 100,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "tool_works",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "ger_economic_miracle",
+   "name": "The Economic Miracle",
+   "description": "Export-led growth on the back of precision engineering.",
+   "prerequisites": [
+    "ger_reconstruction"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Export boom",
+      "target": "investment_rate",
+      "mult": 0.2,
+      "months": 120
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 80,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  },
+  {
+   "id": "ger_digital_mittelstand",
+   "name": "Digital Mittelstand",
+   "description": "Small firms adopt computers and automation.",
+   "prerequisites": [
+    "ger_economic_miracle"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "office",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Automation",
+      "target": "construction_cost",
+      "mult": -0.05,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_globalisation"
+   }
+  }
+ ]
+}

@@ -1,0 +1,348 @@
+{
+ "id": "fra",
+ "name": "France",
+ "countries": [
+  "FRA"
+ ],
+ "focuses": [
+  {
+   "id": "fra_popular_front",
+   "name": "The Popular Front",
+   "description": "A coalition of the left promises bread, peace and liberty.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "fra_national_union"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "fra_popular_front"
+    },
+    {
+     "privilege": {
+      "id": "trade_unions",
+      "granted": true
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 25
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": -20
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "left"
+  },
+  {
+   "id": "fra_matignon",
+   "name": "Matignon Agreements",
+   "description": "Forty-hour week, paid holidays, wage rises.",
+   "prerequisites": [
+    "fra_popular_front"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Matignon",
+      "target": "labour_share",
+      "add": 0.03
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 15
+     }
+    },
+    {
+     "stability": 0.3
+    }
+   ],
+   "ai": 1,
+   "branch": "left"
+  },
+  {
+   "id": "fra_nationalise_arms",
+   "name": "Nationalise Arms Makers",
+   "description": "No private profit from war.",
+   "prerequisites": [
+    "fra_popular_front"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": -15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "left"
+  },
+  {
+   "id": "fra_national_union",
+   "name": "National Union",
+   "description": "The centre and right close ranks against unrest.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "fra_popular_front"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "fra_reaction"
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": 20
+     }
+    },
+    {
+     "igFavour": {
+      "id": "devout",
+      "value": 15
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "trade_unions",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "right"
+  },
+  {
+   "id": "fra_franc_devaluation",
+   "name": "Devalue the Franc",
+   "description": "Leave gold and make exports cheap.",
+   "prerequisites": [
+    "fra_national_union"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Devaluation",
+      "target": "investment_rate",
+      "mult": 0.15,
+      "months": 36
+     }
+    },
+    {
+     "stability": -0.2
+    }
+   ],
+   "ai": 1,
+   "branch": "right"
+  },
+  {
+   "id": "fra_maginot",
+   "name": "Complete the Fortified Line",
+   "description": "Concrete and steel along the eastern border.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "mil": 60
+     }
+    },
+    {
+     "treasuryMonths": -1
+    }
+   ],
+   "ai": 1,
+   "branch": "defence"
+  },
+  {
+   "id": "fra_armoured_divisions",
+   "name": "Armoured Divisions",
+   "description": "Concentrate tanks instead of spreading them out.",
+   "prerequisites": [
+    "fra_maginot"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "mil": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "defence"
+  },
+  {
+   "id": "fra_empire_council",
+   "name": "Imperial Council",
+   "description": "Bind the colonies closer with investment and representation.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "farm",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "dip": 80
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "fra_french_union",
+   "name": "The French Union",
+   "description": "Colonies become associated states.",
+   "prerequisites": [
+    "fra_empire_council"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "fra_decolonisation"
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "fra_planning_commission",
+   "name": "Planning Commission",
+   "description": "Indicative planning for modernisation.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "tool_works",
+      "levels": 60,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "fra_nuclear_power",
+   "name": "Atomic Power",
+   "description": "Reactors supply most of the nation's electricity.",
+   "prerequisites": [
+    "fra_planning_commission"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 210,
+   "effects": [
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 150,
+      "where": "largest"
+     }
+    },
+    {
+     "setFlag": "fra_nuclear_power"
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}

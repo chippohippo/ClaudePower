@@ -10,6 +10,11 @@ import { recordYear } from "./systems/stats";
 import { yearlyFiscalPolicy } from "./systems/budget";
 import { mergeSmallPops } from "./pops";
 import { runCore } from "./systems/core";
+import { runFocus } from "./systems/focus";
+import { runEvents } from "./systems/events";
+import { runAmbitions } from "./systems/ambitions";
+import { runEra } from "./systems/era";
+import "./commands/content";
 import { runIgs } from "./systems/igs";
 import { runIdeologyDrift, runPolitics } from "./systems/politics";
 
@@ -24,11 +29,11 @@ export const MONTHLY: [string, System][] = [
   ["consumption_sol", eco.consumptionSol], ["state_budget", eco.stateBudget], ["construction", eco.construction],
   // Demography is yearly in the design; rates are applied monthly (/12) for smoothness, with mobility.
   ["demography_smoothed", eco.demographyMonthly],
-  ["research_focus", noop], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", noop], ["ai", noop], ["alerts", noop],
+  ["research_focus", (w) => { runEra(w); runFocus(w); }], ["ig_approval", (w) => { runIgs(w); runPolitics(w); }], ["stability_unrest", noop], ["events", runEvents], ["ai", noop], ["alerts", noop],
 ];
 export const YEARLY: [string, System][] = [
   ["demography", noop], ["migration", runMigration], ["assimilation_mobility", runAssimilation], ["ig_clout", noop],
-  ["ideology_drift", runIdeologyDrift], ["rankings", (w) => { yearlyFiscalPolicy(w); mergeSmallPops(w); }], ["chronicle", recordYear], ["autosave", noop],
+  ["ideology_drift", runIdeologyDrift], ["rankings", (w) => { yearlyFiscalPolicy(w); mergeSmallPops(w); runAmbitions(w); }], ["chronicle", recordYear], ["autosave", noop],
 ];
 
 /** Advance one day. Commands run first, then daily/monthly/yearly systems on boundaries. */

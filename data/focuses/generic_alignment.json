@@ -1,0 +1,122 @@
+{
+ "id": "generic_alignment",
+ "name": "Alignment",
+ "countries": "generic",
+ "focuses": [
+  {
+   "id": "gen_align_democracies",
+   "name": "Lean to the Democracies",
+   "description": "Trade and treaties with the parliamentary powers.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "gen_align_authoritarian",
+    "gen_align_neutral"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.05
+     }
+    },
+    {
+     "points": {
+      "dip": 60
+     }
+    },
+    {
+     "setCountryFlag": "aligned_democracies"
+    }
+   ],
+   "ai": 1,
+   "branch": "align"
+  },
+  {
+   "id": "gen_align_authoritarian",
+   "name": "Lean to the Strongmen",
+   "description": "Order and discipline, as the dictators promise.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "gen_align_democracies",
+    "gen_align_neutral"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "ideologyShift": {
+      "id": "fas",
+      "amount": 0.05
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 15
+     }
+    },
+    {
+     "setCountryFlag": "aligned_authoritarian"
+    }
+   ],
+   "ai": 1,
+   "branch": "align"
+  },
+  {
+   "id": "gen_align_neutral",
+   "name": "Armed Neutrality",
+   "description": "Friends with all, allied to none.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "gen_align_democracies",
+    "gen_align_authoritarian"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "pp": 50
+    },
+    {
+     "stability": 0.3
+    },
+    {
+     "setCountryFlag": "aligned_neutral"
+    }
+   ],
+   "ai": 2,
+   "branch": "align"
+  },
+  {
+   "id": "gen_align_trade",
+   "name": "Trade Agreements",
+   "description": "Lower tariffs with partners.",
+   "prerequisites": [],
+   "anyOf": [
+    "gen_align_democracies",
+    "gen_align_authoritarian",
+    "gen_align_neutral"
+   ],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Trade agreements",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "align"
+  }
+ ]
+}

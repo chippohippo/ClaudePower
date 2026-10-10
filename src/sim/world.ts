@@ -69,6 +69,8 @@ export const PROJECT_COLS: ColSpec = { country: "i32", prov: "i32", type: "i32",
 /** Money ledger: all cents created or destroyed outside closed transfers. */
 export interface Ledger { minted: number; destroyed: number; born: number; died: number; migratedOut: number; migratedIn: number }
 
+export interface EventBinding { province?: number; ig?: number; leader?: number; other?: number }
+
 export interface History { year: number[]; series: Record<string, number[][]> }
 
 export interface World {
@@ -96,6 +98,19 @@ export interface World {
   characters: Table;
   characterNames: string[];
   igs: Table;
+  /** Global flags (consistency engine): name → date set. */
+  flags: Record<string, number>;
+  /** Per-country flags: name → date set. */
+  countryFlags: Record<string, number>[];
+  /** Per-country focus state. */
+  focus: { tree: string; current: string | null; progress: number; done: string[] }[];
+  /** Events awaiting a choice (player) — AI resolves immediately. */
+  pendingEvents: { id: number; country: number; event: string; bind: EventBinding; date: number }[];
+  /** Last fire date per "country:event" (cooldowns, once-only). */
+  eventLog: Record<string, number>;
+  /** Ambitions per country: id + completion date (−1 open). */
+  ambitions: { id: string; done: number }[][];
+  nextEventId: number;
   /** Chronicle of notable events (deaths, elections, coups, strikes), newest last. */
   chronicle: { date: number; country: number; kind: string; text: string }[];
   ledger: Ledger;
@@ -105,7 +120,7 @@ export interface World {
   base: Record<string, Record<string, number>>;
 }
 
-export const WORLD_VERSION = 5;
+export const WORLD_VERSION = 6;
 export const TABLE_KEYS = ["countries", "provinces", "adjacency", "pops", "buildings", "markets", "worldMarket", "projects", "budget", "characters", "igs"] as const;
 
 export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): World {
@@ -131,6 +146,13 @@ export function createEmptyWorld(seed: number, nCountries = 0, nProvinces = 0): 
     characterNames: [],
     igs: makeTable(nCountries * 8, IG_COLS),
     chronicle: [],
+    flags: {},
+    countryFlags: Array.from({ length: nCountries }, () => ({})),
+    focus: Array.from({ length: nCountries }, () => ({ tree: "", current: null, progress: 0, done: [] })),
+    pendingEvents: [],
+    eventLog: {},
+    ambitions: Array.from({ length: nCountries }, () => []),
+    nextEventId: 1,
     ledger: { minted: 0, destroyed: 0, born: 0, died: 0, migratedOut: 0, migratedIn: 0 },
     history: { year: [], series: {} },
     modifiers: [],

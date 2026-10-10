@@ -168,7 +168,7 @@ registerCommand<Record<string, never>>("raise_stability", {
 });
 
 registerCommand<{ flags: number }>("set_automation", {
-  validate({ payload: { flags } }) { return Number.isInteger(flags) && flags >= 0 && flags <= 15 ? ok : no("Invalid automation flags"); },
+  validate({ payload: { flags } }) { return Number.isInteger(flags) && flags >= 0 && flags <= 63 ? ok : no("Invalid automation flags"); },
   apply({ actor, payload: { flags } }, w) { w.countries.cols.automation![actor] = flags; return [{ type: "automation_changed" }]; },
   preview() { return ["Automated systems are run by the same logic as the AI; you can take over any time."]; },
 });

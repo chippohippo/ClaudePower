@@ -1,0 +1,211 @@
+{
+ "id": "generic_industrialise",
+ "name": "Industrialisation",
+ "countries": "generic",
+ "focuses": [
+  {
+   "id": "gen_infrastructure",
+   "name": "Infrastructure Push",
+   "description": "Roads, ports and railways.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 4,
+   "branch": "industry"
+  },
+  {
+   "id": "gen_light_industry",
+   "name": "Light Industry",
+   "description": "Textiles and consumer goods first.",
+   "prerequisites": [
+    "gen_infrastructure"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "textile_mill",
+      "levels": 30,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 30,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "industry"
+  },
+  {
+   "id": "gen_heavy_industry",
+   "name": "Heavy Industry",
+   "description": "Steel and tools for self-reliance.",
+   "prerequisites": [
+    "gen_light_industry"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 30,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "tool_works",
+      "levels": 20,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "gen_electrify",
+   "name": "Rural Electrification",
+   "description": "Light in every village.",
+   "prerequisites": [
+    "gen_infrastructure"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "gen_schools",
+   "name": "National Schools",
+   "description": "A school in every town.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "university",
+      "levels": 5,
+      "where": "capital"
+     }
+    },
+    {
+     "modifier": {
+      "name": "School drive",
+      "target": "literacy_target",
+      "add": 0.04,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 2,
+   "branch": "society"
+  },
+  {
+   "id": "gen_clinics",
+   "name": "Public Clinics",
+   "description": "Doctors for the countryside.",
+   "prerequisites": [
+    "gen_schools"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "hospital",
+      "levels": 8,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "gen_tax_reform",
+   "name": "Tax Reform",
+   "description": "A modern revenue service.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Revenue service",
+      "target": "tax_efficiency",
+      "mult": 0.05
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "state"
+  },
+  {
+   "id": "gen_army",
+   "name": "Professional Army",
+   "description": "Officers trained abroad.",
+   "prerequisites": [
+    "gen_tax_reform"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "points": {
+      "mil": 50
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "state"
+  }
+ ]
+}

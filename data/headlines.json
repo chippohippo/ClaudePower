@@ -1,0 +1,40 @@
+{
+ "strike": [
+  "Strike wave grips {country}: factories idle",
+  "{country}: unions down tools"
+ ],
+ "election": [
+  "Voters have spoken in {country}",
+  "Ballot boxes counted across {country}"
+ ],
+ "coup": [
+  "Tanks in the streets of {country}'s capital",
+  "Generals seize power in {country}"
+ ],
+ "death": [
+  "{country} mourns a statesman",
+  "Flags at half-mast across {country}"
+ ],
+ "succession": [
+  "New hands on the tiller in {country}"
+ ],
+ "focus": [
+  "{country} unveils an ambitious national programme"
+ ],
+ "event": [
+  "Headline news from {country}"
+ ],
+ "ambition": [
+  "{country} celebrates a historic milestone"
+ ],
+ "price_spike": [
+  "{good} prices soar in {country}",
+  "Shortages of {good} hit {country}"
+ ],
+ "unemployment": [
+  "Jobless queues lengthen in {country}"
+ ],
+ "story": [
+  "Special report from {country}"
+ ]
+}

@@ -1,0 +1,712 @@
+[
+ {
+  "id": "stock_crash",
+  "title": "Panic on the Exchange",
+  "description": "Share prices in {country} collapse as investors flee. Banks call in loans.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "stat": {
+      "key": "debtRatio",
+      "op": ">",
+      "value": 0.5
+     }
+    },
+    {
+     "stat": {
+      "key": "stability",
+      "op": "<",
+      "value": 1
+     }
+    }
+   ]
+  },
+  "mtth": 60,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Rescue the banks",
+    "effects": [
+     {
+      "treasuryMonths": -2
+     },
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": 20
+      }
+     },
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": -10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Let them fail",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Credit crunch",
+       "target": "investment_rate",
+       "mult": -0.3,
+       "months": 24
+      }
+     },
+     {
+      "igFavour": {
+       "id": "petite_bourgeoisie",
+       "value": -15
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "investment_boom",
+  "title": "Investment Boom",
+  "description": "Capital floods into {country}'s factories as profits soar.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "stat": {
+      "key": "unemployment",
+      "op": "<",
+      "value": 0.05
+     }
+    },
+    {
+     "stat": {
+      "key": "stability",
+      "op": ">",
+      "value": 0
+     }
+    }
+   ]
+  },
+  "mtth": 48,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Ride the boom",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Boom",
+       "target": "investment_rate",
+       "mult": 0.2,
+       "months": 18
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Cool things down",
+    "effects": [
+     {
+      "treasuryMonths": 1
+     },
+     {
+      "stability": 0.2
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "inflation_scare",
+  "title": "Prices Are Rising",
+  "description": "Housewives queue as prices climb week after week in {country}.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "inflation",
+    "op": ">",
+    "value": 0.08
+   }
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Raise taxes to cool demand",
+    "effects": [
+     {
+      "stability": -0.2
+     },
+     {
+      "modifier": {
+       "name": "Austerity",
+       "target": "consumption",
+       "mult": -0.05,
+       "months": 12
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Blame speculators",
+    "effects": [
+     {
+      "pp": 20
+     },
+     {
+      "igFavour": {
+       "id": "petite_bourgeoisie",
+       "value": -10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "hyperinflation",
+  "title": "Money Is Worthless",
+  "description": "Wheelbarrows of banknotes buy a loaf of bread.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "inflation",
+    "op": ">",
+    "value": 0.5
+   }
+  },
+  "mtth": 3,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Currency reform",
+    "effects": [
+     {
+      "stability": -1
+     },
+     {
+      "modifier": {
+       "name": "New currency",
+       "target": "tax_efficiency",
+       "mult": 0.1,
+       "months": 24
+      }
+     },
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Print and pray",
+    "effects": [
+     {
+      "stability": -0.5
+     },
+     {
+      "igRadicalism": {
+       "id": "petite_bourgeoisie",
+       "value": 20
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "mass_unemployment",
+  "title": "Breadlines",
+  "description": "One worker in five has no job in {country}.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "unemployment",
+    "op": ">",
+    "value": 0.2
+   }
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Public works",
+    "effects": [
+     {
+      "treasuryMonths": -1
+     },
+     {
+      "develop": {
+       "kind": "production",
+       "amount": 1,
+       "where": "largest"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": 15
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Tighten belts",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 15
+      }
+     },
+     {
+      "stability": -0.3
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "debt_crisis",
+  "title": "Bond Markets Lose Faith",
+  "description": "Lenders demand ruinous interest from {country}.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "debtRatio",
+    "op": ">",
+    "value": 0.8
+   }
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Austerity",
+    "effects": [
+     {
+      "treasuryMonths": 2
+     },
+     {
+      "stability": -0.5
+     },
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Default",
+    "effects": [
+     {
+      "stability": -1
+     },
+     {
+      "pp": -50
+     },
+     {
+      "modifier": {
+       "name": "Default stigma",
+       "target": "investment_rate",
+       "mult": -0.2,
+       "months": 36
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "budget_surplus",
+  "title": "Treasury Overflowing",
+  "description": "The finance ministry reports an unexpected surplus.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "treasuryMonths",
+    "op": ">",
+    "value": 18
+   }
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Cut taxes",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": 10
+      }
+     },
+     {
+      "igFavour": {
+       "id": "petite_bourgeoisie",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Invest in schools",
+    "effects": [
+     {
+      "build": {
+       "building": "university",
+       "levels": 5,
+       "where": "capital"
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "factory_fire",
+  "title": "Factory Fire in {province}",
+  "description": "A blaze guts a major works in {province}; workers are killed.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 120,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Compensate the families",
+    "effects": [
+     {
+      "treasuryMonths": -0.2
+     },
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Blame negligence",
+    "effects": [
+     {
+      "provinceUnrest": 1.5
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "province": {
+    "key": "population",
+    "op": ">",
+    "value": 1000000
+   }
+  }
+ },
+ {
+  "id": "mine_disaster",
+  "title": "Mine Disaster in {province}",
+  "description": "A gallery collapses deep underground in {province}.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 180,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "New safety laws",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": 15
+      }
+     },
+     {
+      "modifier": {
+       "name": "Safety rules",
+       "target": "construction_cost",
+       "mult": 0.02,
+       "months": 24
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Reopen quickly",
+    "effects": [
+     {
+      "provinceUnrest": 2
+     },
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 8
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "province": {
+    "key": "population",
+    "op": ">",
+    "value": 500000
+   }
+  }
+ },
+ {
+  "id": "bumper_harvest",
+  "title": "Bumper Harvest",
+  "description": "Granaries in {country} overflow after a perfect season.",
+  "scope": "country",
+  "trigger": {
+   "year": {
+    "max": 2026
+   }
+  },
+  "mtth": 60,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Celebrate",
+    "effects": [
+     {
+      "stability": 0.2
+     },
+     {
+      "igFavour": {
+       "id": "rural_folk",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "famine",
+  "title": "Famine in {province}",
+  "description": "Crops fail and people starve in {province}.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 36,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Emergency relief",
+    "effects": [
+     {
+      "treasuryMonths": -0.5
+     },
+     {
+      "igFavour": {
+       "id": "rural_folk",
+       "value": 15
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Requisition grain",
+    "effects": [
+     {
+      "provinceUnrest": 3
+     },
+     {
+      "igRadicalism": {
+       "id": "rural_folk",
+       "value": 15
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "all": [
+    {
+     "province": {
+      "key": "sol",
+      "op": "<",
+      "value": 18
+     }
+    },
+    {
+     "province": {
+      "key": "population",
+      "op": ">",
+      "value": 200000
+     }
+    }
+   ]
+  }
+ },
+ {
+  "id": "tech_breakthrough",
+  "title": "Engineering Breakthrough",
+  "description": "Researchers in {country} unveil a new production process.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "literacy",
+    "op": ">",
+    "value": 0.7
+   }
+  },
+  "mtth": 48,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "License it to industry",
+    "effects": [
+     {
+      "modifier": {
+       "name": "New process",
+       "target": "investment_rate",
+       "mult": 0.15,
+       "months": 24
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Keep it for the state",
+    "effects": [
+     {
+      "points": {
+       "adm": 50
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "oil_discovery",
+  "title": "Oil Struck!",
+  "description": "Prospectors hit a gusher in {province}.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 400,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Grant a concession",
+    "effects": [
+     {
+      "build": {
+       "building": "oil_well",
+       "levels": 30,
+       "where": "bound"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "State oil company",
+    "effects": [
+     {
+      "build": {
+       "building": "oil_well",
+       "levels": 20,
+       "where": "bound"
+      }
+     },
+     {
+      "pp": 30
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "province": {
+    "key": "population",
+    "op": ">",
+    "value": 200000
+   }
+  }
+ }
+]

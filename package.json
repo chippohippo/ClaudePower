@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "headless": "tsx scripts/headless-run.ts",
     "build-map": "tsx scripts/build-map.ts",
-    "build-pops": "tsx scripts/build-pops.ts"
+    "build-pops": "tsx scripts/build-pops.ts",
+    "build-content": "tsx scripts/build-content.ts"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3",

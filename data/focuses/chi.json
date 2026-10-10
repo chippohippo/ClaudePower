@@ -1,0 +1,370 @@
+{
+ "id": "chi",
+ "name": "China",
+ "countries": [
+  "CHI"
+ ],
+ "focuses": [
+  {
+   "id": "chi_unify",
+   "name": "Complete National Unification",
+   "description": "Bring the warlords to heel.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "stability": 0.5
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 15
+     }
+    },
+    {
+     "pp": 40
+    }
+   ],
+   "ai": 3,
+   "branch": "nation"
+  },
+  {
+   "id": "chi_new_life",
+   "name": "New Life Movement",
+   "description": "Discipline, hygiene and Confucian virtue.",
+   "prerequisites": [
+    "chi_unify"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "devout",
+      "value": 15
+     }
+    },
+    {
+     "stability": 0.3
+    },
+    {
+     "ideologyShift": {
+      "id": "non",
+      "amount": 0.04
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "nation"
+  },
+  {
+   "id": "chi_united_front",
+   "name": "Second United Front",
+   "description": "Nationalists and Communists unite against the invader.",
+   "prerequisites": [
+    "chi_unify"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "chi_encirclement"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "chi_united"
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 15
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "com",
+      "amount": 0.04
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "nation"
+  },
+  {
+   "id": "chi_encirclement",
+   "name": "Final Encirclement",
+   "description": "Destroy the Communist base areas once and for all.",
+   "prerequisites": [
+    "chi_unify"
+   ],
+   "anyOf": [],
+   "exclusive": [
+    "chi_united_front"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 15
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "trade_unions",
+      "value": 20
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "rural_folk",
+      "value": 10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "nation"
+  },
+  {
+   "id": "chi_railways",
+   "name": "Build the Railways",
+   "description": "Link the coast to the interior.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    },
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "economy"
+  },
+  {
+   "id": "chi_currency_reform",
+   "name": "Currency Reform",
+   "description": "A single national banknote replaces silver.",
+   "prerequisites": [
+    "chi_railways"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Fiat currency",
+      "target": "tax_efficiency",
+      "mult": 0.08,
+      "months": 60
+     }
+    },
+    {
+     "stability": 0.2
+    }
+   ],
+   "ai": 1,
+   "branch": "economy"
+  },
+  {
+   "id": "chi_land_reform",
+   "name": "Land to the Tiller",
+   "description": "Break up the great estates.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": 30
+     }
+    },
+    {
+     "igFavour": {
+      "id": "landowners",
+      "value": -35
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "landowners",
+      "value": 20
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "com",
+      "amount": 0.04
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "economy"
+  },
+  {
+   "id": "chi_communist_victory",
+   "name": "The People's Republic",
+   "description": "The revolution wins the civil war.",
+   "prerequisites": [
+    "chi_land_reform"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 100,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "chi_communist_victory"
+    },
+    {
+     "law": {
+      "category": "economic",
+      "law": "command_economy"
+     }
+    },
+    {
+     "government": "autocracy"
+    },
+    {
+     "ideologyShift": {
+      "id": "com",
+      "amount": 0.15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "all": [
+     {
+      "flag": "era_reconstruction"
+     },
+     {
+      "any": [
+       {
+        "ig": {
+         "id": "trade_unions",
+         "key": "radicalism",
+         "op": ">",
+         "value": 30
+        }
+       },
+       {
+        "ig": {
+         "id": "rural_folk",
+         "key": "radicalism",
+         "op": ">",
+         "value": 30
+        }
+       },
+       {
+        "stat": {
+         "key": "stability",
+         "op": "<",
+         "value": -1
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "chi_reform_opening",
+   "name": "Reform and Opening",
+   "description": "Special economic zones welcome foreign capital.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 200,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Opening",
+      "target": "investment_rate",
+      "mult": 0.3,
+      "months": 120
+     }
+    },
+    {
+     "setFlag": "chi_opening"
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  },
+  {
+   "id": "chi_world_factory",
+   "name": "Workshop of the World",
+   "description": "Export everything, to everyone.",
+   "prerequisites": [
+    "chi_reform_opening"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 150,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "textile_mill",
+      "levels": 150,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_globalisation"
+   }
+  }
+ ]
+}

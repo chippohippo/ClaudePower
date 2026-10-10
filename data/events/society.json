@@ -1,0 +1,612 @@
+[
+ {
+  "id": "epidemic",
+  "title": "Epidemic in {province}",
+  "description": "Disease spreads through crowded districts of {province}.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 48,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Quarantine and clinics",
+    "effects": [
+     {
+      "treasuryMonths": -0.3
+     },
+     {
+      "build": {
+       "building": "hospital",
+       "levels": 3,
+       "where": "bound"
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Let it run its course",
+    "effects": [
+     {
+      "provinceUnrest": 2
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "all": [
+    {
+     "province": {
+      "key": "sol",
+      "op": "<",
+      "value": 30
+     }
+    },
+    {
+     "province": {
+      "key": "population",
+      "op": ">",
+      "value": 1000000
+     }
+    }
+   ]
+  }
+ },
+ {
+  "id": "refugees",
+  "title": "Refugees at the Border",
+  "description": "Thousands flee war and persecution into {country}.",
+  "scope": "country",
+  "trigger": {
+   "flag": "era_crisis"
+  },
+  "mtth": 96,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Take them in",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 15
+      }
+     },
+     {
+      "igFavour": {
+       "id": "devout",
+       "value": -5
+      }
+     },
+     {
+      "ideologyShift": {
+       "id": "dem",
+       "amount": 0.02
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Close the border",
+    "effects": [
+     {
+      "law": {
+       "category": "migration",
+       "law": "closed_borders"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": -10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "urban_boom",
+  "title": "Cities Bursting at the Seams",
+  "description": "Shanty towns ring the industrial cities.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "urban",
+    "op": ">",
+    "value": 0.5
+   }
+  },
+  "mtth": 60,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Build housing",
+    "effects": [
+     {
+      "build": {
+       "building": "consumer_factory",
+       "levels": 20,
+       "where": "largest"
+      }
+     },
+     {
+      "treasuryMonths": -0.5
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Leave it to the market",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Slums",
+       "target": "stability_target",
+       "add": -0.2,
+       "months": 36
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "literacy_milestone",
+  "title": "A Literate Nation",
+  "description": "Census shows most adults in {country} can now read.",
+  "scope": "country",
+  "trigger": {
+   "stat": {
+    "key": "literacy",
+    "op": ">",
+    "value": 0.8
+   }
+  },
+  "mtth": 6,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Celebrate the teachers",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     },
+     {
+      "pp": 20
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "religious_revival",
+  "title": "Religious Revival",
+  "description": "Churches fill again; preachers draw vast crowds.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "stat": {
+      "key": "sol",
+      "op": "<",
+      "value": 40
+     }
+    },
+    {
+     "ig": {
+      "id": "devout",
+      "key": "clout",
+      "op": ">",
+      "value": 5
+     }
+    }
+   ]
+  },
+  "mtth": 48,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Embrace it",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "devout",
+       "value": 20
+      }
+     },
+     {
+      "ideologyShift": {
+       "id": "non",
+       "amount": 0.03
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Keep religion private",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     },
+     {
+      "igFavour": {
+       "id": "devout",
+       "value": -10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "baby_boom",
+  "title": "Baby Boom",
+  "description": "Peace and prosperity bring a wave of births.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "era_reconstruction"
+    },
+    {
+     "stat": {
+      "key": "sol",
+      "op": ">",
+      "value": 60
+     }
+    }
+   ]
+  },
+  "mtth": 12,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Welcome the next generation",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Baby boom",
+       "target": "fertility_mult",
+       "mult": 0.1,
+       "months": 60
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "ageing_society",
+  "title": "Ageing Society",
+  "description": "Pension costs climb as the population greys.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "era_globalisation"
+    },
+    {
+     "stat": {
+      "key": "lifeExp",
+      "op": ">",
+      "value": 75
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Raise the retirement age",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": -15
+      }
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Open immigration",
+    "effects": [
+     {
+      "law": {
+       "category": "migration",
+       "law": "open_borders"
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "riots",
+  "title": "Riots in {province}",
+  "description": "Shops burn as crowds clash with police in {province}.",
+  "scope": "province",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 6,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Send troops",
+    "effects": [
+     {
+      "provinceUnrest": -2
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Address grievances",
+    "effects": [
+     {
+      "treasuryMonths": -0.3
+     },
+     {
+      "provinceUnrest": -1
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "province": {
+    "key": "unrest",
+    "op": ">",
+    "value": 6
+   }
+  }
+ },
+ {
+  "id": "brain_gain",
+  "title": "Scientists Arrive",
+  "description": "Exiled scholars seek a new home in {country}.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "intelligentsia",
+      "key": "approval",
+      "op": ">",
+      "value": 30
+     }
+    },
+    {
+     "stat": {
+      "key": "sol",
+      "op": ">",
+      "value": 50
+     }
+    }
+   ]
+  },
+  "mtth": 60,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Give them chairs",
+    "effects": [
+     {
+      "build": {
+       "building": "university",
+       "levels": 5,
+       "where": "capital"
+      }
+     },
+     {
+      "points": {
+       "adm": 30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "radio_age",
+  "title": "The Radio Age",
+  "description": "Every household now has a wireless set.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "stat": {
+      "key": "sol",
+      "op": ">",
+      "value": 55
+     }
+    },
+    {
+     "year": {
+      "max": 1965
+     }
+    }
+   ]
+  },
+  "mtth": 36,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "A national broadcaster",
+    "effects": [
+     {
+      "pp": 30
+     },
+     {
+      "modifier": {
+       "name": "Broadcasting",
+       "target": "pp_gain",
+       "add": 0.5,
+       "months": 60
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "television",
+  "title": "Television Arrives",
+  "description": "Families gather round flickering screens.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "era_cold_war"
+    },
+    {
+     "stat": {
+      "key": "sol",
+      "op": ">",
+      "value": 60
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Public television",
+    "effects": [
+     {
+      "pp": 20
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 5
+      }
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Commercial channels",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "internet",
+  "title": "The Network",
+  "description": "Computers in every office connect to one another.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "era_globalisation"
+    },
+    {
+     "stat": {
+      "key": "literacy",
+      "op": ">",
+      "value": 0.8
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Wire the nation",
+    "effects": [
+     {
+      "build": {
+       "building": "office",
+       "levels": 40,
+       "where": "largest"
+      }
+     },
+     {
+      "modifier": {
+       "name": "Networked economy",
+       "target": "investment_rate",
+       "mult": 0.1,
+       "months": 60
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ }
+]

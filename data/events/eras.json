@@ -1,0 +1,111 @@
+[
+ {
+  "id": "era_reconstruction_dawn",
+  "title": "The Guns Fall Silent",
+  "description": "A new era of reconstruction begins.",
+  "scope": "country",
+  "trigger": {
+   "flag": "era_reconstruction"
+  },
+  "mtth": 1,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Rebuild",
+    "effects": [
+     {
+      "pp": 30
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "era_cold_war_dawn",
+  "title": "A World Divided",
+  "description": "Rival blocs face each other across the globe.",
+  "scope": "country",
+  "trigger": {
+   "flag": "era_cold_war"
+  },
+  "mtth": 1,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Choose our path",
+    "effects": [
+     {
+      "pp": 30
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "era_globalisation_dawn",
+  "title": "The Wall Comes Down",
+  "description": "Trade and information race across borders.",
+  "scope": "country",
+  "trigger": {
+   "flag": "era_globalisation"
+  },
+  "mtth": 1,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Embrace the world",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Globalisation",
+       "target": "investment_rate",
+       "mult": 0.1,
+       "months": 60
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "era_information_dawn",
+  "title": "The Information Age",
+  "description": "Everyone carries a computer in their pocket.",
+  "scope": "country",
+  "trigger": {
+   "flag": "era_information"
+  },
+  "mtth": 1,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Go digital",
+    "effects": [
+     {
+      "build": {
+       "building": "office",
+       "levels": 20,
+       "where": "largest"
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ }
+]

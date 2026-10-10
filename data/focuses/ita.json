@@ -1,0 +1,363 @@
+{
+ "id": "ita",
+ "name": "Italy",
+ "countries": [
+  "ITA"
+ ],
+ "focuses": [
+  {
+   "id": "ita_autarky",
+   "name": "Autarky",
+   "description": "Self-sufficiency under sanctions.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "textile_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "farm",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Autarky",
+      "target": "consumption",
+      "mult": -0.03,
+      "months": 36
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "economy"
+  },
+  {
+   "id": "ita_battle_for_grain",
+   "name": "Battle for Grain",
+   "description": "Drain the marshes and plough every field.",
+   "prerequisites": [
+    "ita_autarky"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "farm",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "economy"
+  },
+  {
+   "id": "ita_iri",
+   "name": "State Industry Holding",
+   "description": "The state owns banks, shipyards and steel.",
+   "prerequisites": [
+    "ita_autarky"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 30,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": -10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "economy"
+  },
+  {
+   "id": "ita_imperial_dream",
+   "name": "A New Roman Empire",
+   "description": "Expand in Africa and the Mediterranean.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "ita_moderation"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "ita_imperial"
+    },
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "partial"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 25
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "fas",
+      "amount": 0.05
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "ita_east_africa",
+   "name": "Develop East Africa",
+   "description": "Settlers, roads and plantations.",
+   "prerequisites": [
+    "ita_imperial_dream"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "farm",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": -1
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "ita_moderation",
+   "name": "Restrain the Regime",
+   "description": "The King and moderates curb the dictator's adventures.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "ita_imperial_dream"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "landowners",
+      "value": 15
+     }
+    },
+    {
+     "igFavour": {
+      "id": "devout",
+      "value": 15
+     }
+    },
+    {
+     "stability": 0.4
+    },
+    {
+     "pp": 40
+    }
+   ],
+   "ai": 1,
+   "branch": "crown"
+  },
+  {
+   "id": "ita_kings_coup",
+   "name": "The King Acts",
+   "description": "Dismiss the dictator and form a government of notables.",
+   "prerequisites": [
+    "ita_moderation"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "government": "autocracy"
+    },
+    {
+     "setFlag": "ita_monarchy_reasserted"
+    },
+    {
+     "ideologyShift": {
+      "id": "fas",
+      "amount": -0.08
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "crown",
+   "available": {
+    "any": [
+     {
+      "stat": {
+       "key": "stability",
+       "op": "<",
+       "value": 0
+      }
+     },
+     {
+      "ig": {
+       "id": "devout",
+       "key": "approval",
+       "op": ">",
+       "value": 20
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "ita_republic",
+   "name": "The Republic",
+   "description": "A referendum ends the monarchy.",
+   "prerequisites": [
+    "ita_kings_coup"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "government": "democracy"
+    },
+    {
+     "setFlag": "ita_republic"
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.1
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "crown",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "ita_mezzogiorno",
+   "name": "Fund for the South",
+   "description": "Industry and roads for the southern regions.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "ita_design",
+   "name": "Made in Italy",
+   "description": "Fashion, cars and design conquer world markets.",
+   "prerequisites": [
+    "ita_mezzogiorno"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "luxury_workshop",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Italian design",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}

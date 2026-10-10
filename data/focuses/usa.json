@@ -1,0 +1,503 @@
+{
+ "id": "usa",
+ "name": "United States",
+ "countries": [
+  "USA"
+ ],
+ "focuses": [
+  {
+   "id": "usa_second_new_deal",
+   "name": "Second New Deal",
+   "description": "Social security, labour rights and public works.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "usa_business_first"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "privilege": {
+      "id": "trade_unions",
+      "granted": true
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 20
+     }
+    },
+    {
+     "treasuryMonths": -1
+    },
+    {
+     "setFlag": "usa_new_deal"
+    },
+    {
+     "modifier": {
+      "name": "Social security",
+      "target": "stability_target",
+      "add": 0.3
+     }
+    }
+   ],
+   "ai": 5,
+   "branch": "newdeal"
+  },
+  {
+   "id": "usa_tva",
+   "name": "Valley Authorities",
+   "description": "Dams and power lines for the rural South.",
+   "prerequisites": [
+    "usa_second_new_deal"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "newdeal"
+  },
+  {
+   "id": "usa_wpa",
+   "name": "Works Progress Administration",
+   "description": "Hire the unemployed to build roads, schools and parks.",
+   "prerequisites": [
+    "usa_second_new_deal"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    },
+    {
+     "build": {
+      "building": "university",
+      "levels": 20,
+      "where": "capital"
+     }
+    },
+    {
+     "treasuryMonths": -1
+    }
+   ],
+   "ai": 1,
+   "branch": "newdeal"
+  },
+  {
+   "id": "usa_social_contract",
+   "name": "The Social Contract",
+   "description": "Union labour and federal planning become permanent.",
+   "prerequisites": [
+    "usa_tva",
+    "usa_wpa"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 105,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Social contract",
+      "target": "labour_share",
+      "add": 0.02
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "newdeal"
+  },
+  {
+   "id": "usa_business_first",
+   "name": "Business Comes First",
+   "description": "Cut taxes and red tape; let enterprise lead recovery.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "usa_second_new_deal"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "privilege": {
+      "id": "industrialists",
+      "granted": true
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": 25
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": -20
+     }
+    },
+    {
+     "modifier": {
+      "name": "Business confidence",
+      "target": "investment_rate",
+      "mult": 0.25,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "business"
+  },
+  {
+   "id": "usa_balanced_budget",
+   "name": "Balance the Budget",
+   "description": "Sound money and a smaller federal government.",
+   "prerequisites": [
+    "usa_business_first"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "treasuryMonths": 2
+    },
+    {
+     "igFavour": {
+      "id": "petite_bourgeoisie",
+      "value": 15
+     }
+    },
+    {
+     "stability": -0.2
+    }
+   ],
+   "ai": 1,
+   "branch": "business"
+  },
+  {
+   "id": "usa_isolation",
+   "name": "Neutrality Acts",
+   "description": "Stay out of foreign quarrels.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "usa_arsenal"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "usa_isolation"
+    },
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": 15
+     }
+    },
+    {
+     "pp": 40
+    }
+   ],
+   "ai": 1,
+   "branch": "world"
+  },
+  {
+   "id": "usa_arsenal",
+   "name": "Arsenal of Democracy",
+   "description": "Build the factories that can arm the free world.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "usa_isolation"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "usa_arsenal"
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 150,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "limited"
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "world"
+  },
+  {
+   "id": "usa_two_ocean_navy",
+   "name": "Two-Ocean Navy",
+   "description": "Shipyards on both coasts.",
+   "prerequisites": [
+    "usa_arsenal"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "mil": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "world"
+  },
+  {
+   "id": "usa_good_neighbor",
+   "name": "Good Neighbour Policy",
+   "description": "Trade and respect, not marines, in the hemisphere.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "points": {
+      "dip": 100
+     }
+    },
+    {
+     "modifier": {
+      "name": "Good neighbour",
+      "target": "dip_gain",
+      "add": 1,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "world"
+  },
+  {
+   "id": "usa_open_immigration",
+   "name": "Open the Golden Door",
+   "description": "Lift quotas and welcome refugees.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "migration",
+      "law": "open_borders"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 15
+     }
+    },
+    {
+     "igFavour": {
+      "id": "devout",
+      "value": -10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "usa_gi_education",
+   "name": "Education for Veterans",
+   "description": "College for everyone who served.",
+   "prerequisites": [
+    "usa_open_immigration"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "education",
+      "law": "universal_education"
+     }
+    },
+    {
+     "build": {
+      "building": "university",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "usa_interstates",
+   "name": "Interstate Highways",
+   "description": "Forty thousand miles of road.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 210,
+   "effects": [
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "all"
+     }
+    },
+    {
+     "build": {
+      "building": "refinery",
+      "levels": 80,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "usa_moonshot",
+   "name": "The Moonshot",
+   "description": "Land a person on the Moon within the decade.",
+   "prerequisites": [
+    "usa_interstates"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 150,
+   "days": 280,
+   "effects": [
+    {
+     "pp": 100
+    },
+    {
+     "setFlag": "first_moon_landing"
+    },
+    {
+     "modifier": {
+      "name": "Moonshot",
+      "target": "literacy_target",
+      "add": 0.02,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  },
+  {
+   "id": "usa_silicon_valley",
+   "name": "Silicon Valley",
+   "description": "Universities, venture capital and microchips.",
+   "prerequisites": [
+    "usa_moonshot"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "office",
+      "levels": 200,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Tech boom",
+      "target": "investment_rate",
+      "mult": 0.2,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_globalisation"
+   }
+  }
+ ]
+}

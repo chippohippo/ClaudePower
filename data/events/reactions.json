@@ -1,0 +1,1010 @@
+[
+ {
+  "id": "react_ger_rearmament",
+  "title": "Germany Rearms",
+  "description": "German troops march into the demilitarised zone. Neighbours look to their defences.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "ger_rhineland"
+    },
+    {
+     "not": {
+      "tag": "GER"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "POL"
+      },
+      {
+       "tag": "CZE"
+      },
+      {
+       "tag": "BEL"
+      },
+      {
+       "tag": "HOL"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 2,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "ger_rhineland"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Rearm in response",
+    "effects": [
+     {
+      "law": {
+       "category": "mobilisation",
+       "law": "limited"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Protest diplomatically",
+    "effects": [
+     {
+      "points": {
+       "dip": 30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_ger_militarist",
+  "title": "The German Garrison State",
+  "description": "Berlin's army rules; Europe shivers.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "ger_militarist"
+    },
+    {
+     "not": {
+      "tag": "GER"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "POL"
+      },
+      {
+       "tag": "CZE"
+      },
+      {
+       "tag": "SOV"
+      },
+      {
+       "tag": "AUS"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "ger_militarist"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Prepare for the worst",
+    "effects": [
+     {
+      "law": {
+       "category": "mobilisation",
+       "law": "partial"
+      }
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Seek accommodation",
+    "effects": [
+     {
+      "pp": 30
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": -10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_ger_democratic",
+  "title": "A Democratic Germany",
+  "description": "Free elections in Germany calm the continent.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "ger_democratic"
+    },
+    {
+     "not": {
+      "tag": "GER"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "POL"
+      },
+      {
+       "tag": "CZE"
+      },
+      {
+       "tag": "HOL"
+      },
+      {
+       "tag": "BEL"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "ger_democratic"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Welcome them",
+    "effects": [
+     {
+      "stability": 0.3
+     },
+     {
+      "points": {
+       "dip": 40
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_ger_crown",
+  "title": "The Kaiser Returns?",
+  "description": "A crown is restored in Berlin.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "ger_monarchy_restored"
+    },
+    {
+     "not": {
+      "tag": "GER"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "AUS"
+      },
+      {
+       "tag": "HUN"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "FRA"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "ger_monarchy_restored"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Watch warily",
+    "effects": [
+     {
+      "points": {
+       "dip": 20
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Monarchists take heart",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "landowners",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_sov_purges",
+  "title": "Terror in Moscow",
+  "description": "Show trials in the Soviet capital shock the world's left.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "sov_purges"
+    },
+    {
+     "not": {
+      "tag": "SOV"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "USA"
+      },
+      {
+       "tag": "POL"
+      },
+      {
+       "tag": "FIN"
+      },
+      {
+       "tag": "EST"
+      },
+      {
+       "tag": "LAT"
+      },
+      {
+       "tag": "LIT"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "sov_purges"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Communists lose sympathy",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "com",
+       "amount": -0.03
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_sov_reformed",
+  "title": "Moscow Opens Up",
+  "description": "The Soviet party allows debate and free unions.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "sov_reformed"
+    },
+    {
+     "not": {
+      "tag": "SOV"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "POL"
+      },
+      {
+       "tag": "FIN"
+      },
+      {
+       "tag": "ROM"
+      },
+      {
+       "tag": "CHI"
+      },
+      {
+       "tag": "MON"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "sov_reformed"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Reformers take heart",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "dem",
+       "amount": 0.03
+      }
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_usa_arsenal",
+  "title": "America Arms the Free World",
+  "description": "American factories offer arms to friendly nations.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "usa_arsenal"
+    },
+    {
+     "not": {
+      "tag": "USA"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "CHI"
+      },
+      {
+       "tag": "CAN"
+      },
+      {
+       "tag": "AST"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "usa_arsenal"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Buy American",
+    "effects": [
+     {
+      "build": {
+       "building": "arms_factory",
+       "levels": 20,
+       "where": "largest"
+      }
+     },
+     {
+      "treasuryMonths": -0.5
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Build our own",
+    "effects": [
+     {
+      "points": {
+       "mil": 30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_usa_isolation",
+  "title": "America Turns Inward",
+  "description": "Washington will not be drawn into foreign quarrels.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "usa_isolation"
+    },
+    {
+     "not": {
+      "tag": "USA"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "CHI"
+      },
+      {
+       "tag": "MEX"
+      },
+      {
+       "tag": "CAN"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "usa_isolation"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "We stand alone",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": 10
+      }
+     },
+     {
+      "points": {
+       "mil": 20
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_gbr_decolonisation",
+  "title": "Britain Promises Self-Government",
+  "description": "London sets a timetable for colonial independence.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "gbr_decolonisation"
+    },
+    {
+     "not": {
+      "tag": "GBR"
+     }
+    }
+   ]
+  },
+  "mtth": 6,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "gbr_decolonisation"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Demand the same",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "dem",
+       "amount": 0.02
+      }
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_fra_popular_front",
+  "title": "The Left Governs France",
+  "description": "A government of the left takes power in Paris.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "fra_popular_front"
+    },
+    {
+     "not": {
+      "tag": "FRA"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "SPR"
+      },
+      {
+       "tag": "BEL"
+      },
+      {
+       "tag": "SWI"
+      },
+      {
+       "tag": "ITA"
+      },
+      {
+       "tag": "GER"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "fra_popular_front"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Unions are inspired",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": 10
+      }
+     },
+     {
+      "igRadicalism": {
+       "id": "industrialists",
+       "value": 5
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_ita_imperial",
+  "title": "Rome's Imperial Ambitions",
+  "description": "Italy mobilises for empire in Africa and the Mediterranean.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "ita_imperial"
+    },
+    {
+     "not": {
+      "tag": "ITA"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "ETH"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "FRA"
+      },
+      {
+       "tag": "YUG"
+      },
+      {
+       "tag": "GRE"
+      },
+      {
+       "tag": "EGY"
+      },
+      {
+       "tag": "ALB"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "ita_imperial"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Strengthen defences",
+    "effects": [
+     {
+      "law": {
+       "category": "mobilisation",
+       "law": "limited"
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Appeal for help",
+    "effects": [
+     {
+      "points": {
+       "dip": 30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_jap_militarist",
+  "title": "Tokyo's Generals Take Charge",
+  "description": "The army now governs Japan.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "jap_militarist"
+    },
+    {
+     "not": {
+      "tag": "JAP"
+     }
+    },
+    {
+     "any": [
+      {
+       "tag": "CHI"
+      },
+      {
+       "tag": "MAN"
+      },
+      {
+       "tag": "USA"
+      },
+      {
+       "tag": "SOV"
+      },
+      {
+       "tag": "GBR"
+      },
+      {
+       "tag": "HOL"
+      }
+     ]
+    }
+   ]
+  },
+  "mtth": 3,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "jap_militarist"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Brace for conflict",
+    "effects": [
+     {
+      "law": {
+       "category": "mobilisation",
+       "law": "limited"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Seek talks",
+    "effects": [
+     {
+      "points": {
+       "dip": 30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_chi_communist",
+  "title": "Revolution in China",
+  "description": "The People's Republic is proclaimed in Beijing.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "chi_communist_victory"
+    },
+    {
+     "not": {
+      "tag": "CHI"
+     }
+    }
+   ]
+  },
+  "mtth": 6,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "chi_communist_victory"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Contain the revolution",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "com",
+       "amount": -0.02
+      }
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Recognise the new China",
+    "effects": [
+     {
+      "points": {
+       "dip": 30
+      }
+     },
+     {
+      "ideologyShift": {
+       "id": "com",
+       "amount": 0.02
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_moon",
+  "title": "Footprints on the Moon",
+  "description": "The whole world watches a human walk on another world.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "first_moon_landing"
+    }
+   ]
+  },
+  "mtth": 1,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "first_moon_landing"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Humanity's achievement",
+    "effects": [
+     {
+      "stability": 0.2
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "react_strike_crushed",
+  "title": "Strike Broken by Bayonets",
+  "description": "News spreads of troops firing on strikers.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "strike_crushed"
+    },
+    {
+     "ig": {
+      "id": "trade_unions",
+      "key": "clout",
+      "op": ">",
+      "value": 20
+     }
+    }
+   ]
+  },
+  "mtth": 6,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "strike_crushed"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Unions mourn and organise",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 8
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "react_democratic_wave",
+  "title": "A Democratic Wave",
+  "description": "A neighbour's dictatorship falls to peaceful protest.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "flag": "democratic_wave"
+    },
+    {
+     "government": "autocracy"
+    }
+   ]
+  },
+  "mtth": 12,
+  "once": true,
+  "cooldown": 60,
+  "reactsTo": [
+   "democratic_wave"
+  ],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Crack down",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Promise reform",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "dem",
+       "amount": 0.03
+      }
+     },
+     {
+      "pp": -20
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ }
+]

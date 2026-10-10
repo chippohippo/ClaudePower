@@ -1,0 +1,632 @@
+{
+ "id": "sov",
+ "name": "Soviet Union",
+ "countries": [
+  "SOV"
+ ],
+ "focuses": [
+  {
+   "id": "sov_second_plan",
+   "name": "Second Five-Year Plan",
+   "description": "Heavy industry above all: steel, coal, machines.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 100,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "coal_mine",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Five-year plan",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 5,
+   "branch": "plan"
+  },
+  {
+   "id": "sov_urals_complex",
+   "name": "Ural-Siberian Complex",
+   "description": "Industry moved east, beyond the reach of any invader.",
+   "prerequisites": [
+    "sov_second_plan"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 40,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 2,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "plan"
+  },
+  {
+   "id": "sov_electrification",
+   "name": "Electrify the Union",
+   "description": "Power plants and grids from the Baltic to the Pacific.",
+   "prerequisites": [
+    "sov_second_plan"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "plan"
+  },
+  {
+   "id": "sov_collective_farms",
+   "name": "Mechanise the Collective Farms",
+   "description": "Tractor stations bring machines to the countryside.",
+   "prerequisites": [
+    "sov_electrification"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "farm",
+      "levels": 200,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": -10
+     }
+    },
+    {
+     "igRadicalism": {
+      "id": "rural_folk",
+      "value": 10
+     }
+    },
+    {
+     "modifier": {
+      "name": "Tractor stations",
+      "target": "construction_cost",
+      "mult": -0.03,
+      "months": 36
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "plan"
+  },
+  {
+   "id": "sov_third_plan",
+   "name": "Third Five-Year Plan",
+   "description": "Chemicals, tools and armaments.",
+   "prerequisites": [
+    "sov_urals_complex",
+    "sov_electrification"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 140,
+   "effects": [
+    {
+     "build": {
+      "building": "tool_works",
+      "levels": 100,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "plan"
+  },
+  {
+   "id": "sov_great_purge",
+   "name": "The Great Purge",
+   "description": "Root out every suspected enemy, real or imagined.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "sov_collective_leadership"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "stability": 1.0
+    },
+    {
+     "pp": 150
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": -40
+     }
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": -40
+     }
+    },
+    {
+     "setFlag": "sov_purges"
+    },
+    {
+     "modifier": {
+      "name": "Terror",
+      "target": "stability_target",
+      "add": 0.5,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "party"
+  },
+  {
+   "id": "sov_new_constitution",
+   "name": "The New Constitution",
+   "description": "On paper, the freest constitution in the world.",
+   "prerequisites": [
+    "sov_great_purge"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "ideologyShift": {
+      "id": "com",
+      "amount": 0.08
+     }
+    },
+    {
+     "pp": 50
+    }
+   ],
+   "ai": 1,
+   "branch": "party"
+  },
+  {
+   "id": "sov_cult",
+   "name": "Cult of the Leader",
+   "description": "Portraits on every wall, songs on every radio.",
+   "prerequisites": [
+    "sov_new_constitution"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Personality cult",
+      "target": "pp_gain",
+      "add": 1.5
+     }
+    },
+    {
+     "stability": 0.5
+    }
+   ],
+   "ai": 1,
+   "branch": "party"
+  },
+  {
+   "id": "sov_collective_leadership",
+   "name": "Collective Leadership",
+   "description": "Restrain the general secretary; the Politburo decides together.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "sov_great_purge"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 20
+     }
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 20
+     }
+    },
+    {
+     "pp": -50
+    },
+    {
+     "setFlag": "sov_moderates"
+    }
+   ],
+   "ai": 1,
+   "branch": "reform"
+  },
+  {
+   "id": "sov_nep_revival",
+   "name": "Revive the Market",
+   "description": "Let peasants and craftsmen sell their surplus.",
+   "prerequisites": [
+    "sov_collective_leadership"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "rural_folk",
+      "value": 25
+     }
+    },
+    {
+     "igFavour": {
+      "id": "petite_bourgeoisie",
+      "value": 20
+     }
+    },
+    {
+     "modifier": {
+      "name": "Market revival",
+      "target": "investment_rate",
+      "mult": 0.15,
+      "months": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "reform"
+  },
+  {
+   "id": "sov_reformed",
+   "name": "Socialism with Consent",
+   "description": "Elections within the party and a real trade-union voice.",
+   "prerequisites": [
+    "sov_nep_revival"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 100,
+   "days": 140,
+   "effects": [
+    {
+     "setFlag": "sov_reformed"
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.08
+     }
+    },
+    {
+     "privilege": {
+      "id": "trade_unions",
+      "granted": true
+     }
+    },
+    {
+     "stability": -0.5
+    }
+   ],
+   "ai": 1,
+   "branch": "reform",
+   "available": {
+    "any": [
+     {
+      "stat": {
+       "key": "stability",
+       "op": "<",
+       "value": 1.5
+      }
+     },
+     {
+      "ig": {
+       "id": "intelligentsia",
+       "key": "approval",
+       "op": ">",
+       "value": 20
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "sov_red_army_reform",
+   "name": "Modernise the Red Army",
+   "description": "Deep battle doctrine and mechanised corps.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "limited"
+     }
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 100,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "mil": 80
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "army"
+  },
+  {
+   "id": "sov_tank_programme",
+   "name": "Tank Programme",
+   "description": "Thousands of modern tanks from tractor factories.",
+   "prerequisites": [
+    "sov_red_army_reform"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 120,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "army"
+  },
+  {
+   "id": "sov_literacy",
+   "name": "Liquidate Illiteracy",
+   "description": "Teach every citizen to read by 1940.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Literacy drive",
+      "target": "literacy_target",
+      "add": 0.06,
+      "months": 120
+     }
+    },
+    {
+     "build": {
+      "building": "university",
+      "levels": 15,
+      "where": "capital"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "sov_polyclinics",
+   "name": "Polyclinics Everywhere",
+   "description": "Free medicine in every district town.",
+   "prerequisites": [
+    "sov_literacy"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "hospital",
+      "levels": 30,
+      "where": "largest"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 10
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "society"
+  },
+  {
+   "id": "sov_rebuild_west",
+   "name": "Rebuild the West",
+   "description": "Reconstruct the western cities and railways.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "sov_space_race",
+   "name": "Into Space",
+   "description": "Rockets for science — and for prestige.",
+   "prerequisites": [
+    "sov_rebuild_west"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 120,
+   "days": 210,
+   "effects": [
+    {
+     "pp": 100
+    },
+    {
+     "setFlag": "first_space_programme"
+    },
+    {
+     "modifier": {
+      "name": "Space prestige",
+      "target": "stability_target",
+      "add": 0.3,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  },
+  {
+   "id": "sov_perestroika",
+   "name": "Restructuring",
+   "description": "Loosen central planning before it seizes up.",
+   "prerequisites": [
+    "sov_space_race"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "stability": -1.0
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.1
+     }
+    },
+    {
+     "setFlag": "sov_collapsed_risk"
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}

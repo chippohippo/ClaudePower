@@ -1,0 +1,816 @@
+[
+ {
+  "id": "ig_demands",
+  "title": "{ig} Present Their Demands",
+  "description": "Leaders of the {ig} march on the ministries with a list of grievances.",
+  "scope": "ig",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 18,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Grant concessions",
+    "effects": [
+     {
+      "boundIgFavour": 25
+     },
+     {
+      "boundIgRadicalism": -15
+     },
+     {
+      "pp": -25
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Promise to consider",
+    "effects": [
+     {
+      "pp": 10
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Refuse",
+    "effects": [
+     {
+      "boundIgRadicalism": 15
+     }
+    ],
+    "ai": 1
+   }
+  ],
+  "bindIf": {
+   "all": [
+    {
+     "igBound": {
+      "key": "approval",
+      "op": "<",
+      "value": -20
+     }
+    },
+    {
+     "igBound": {
+      "key": "clout",
+      "op": ">",
+      "value": 10
+     }
+    }
+   ]
+  }
+ },
+ {
+  "id": "radical_rally",
+  "title": "Mass Rally",
+  "description": "Hundreds of thousands follow the {ig} into the streets.",
+  "scope": "ig",
+  "trigger": {
+   "always": true
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Allow it",
+    "effects": [
+     {
+      "boundIgRadicalism": 5
+     },
+     {
+      "pp": -10
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Ban it",
+    "effects": [
+     {
+      "boundIgRadicalism": -10
+     },
+     {
+      "boundIgFavour": -20
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 2
+   }
+  ],
+  "bindIf": {
+   "all": [
+    {
+     "igBound": {
+      "key": "radicalism",
+      "op": ">",
+      "value": 40
+     }
+    },
+    {
+     "igBound": {
+      "key": "clout",
+      "op": ">",
+      "value": 8
+     }
+    }
+   ]
+  }
+ },
+ {
+  "id": "coup_plot",
+  "title": "Plot in the Officers' Mess",
+  "description": "Intelligence uncovers officers plotting against {leader}.",
+  "scope": "country",
+  "trigger": {
+   "ig": {
+    "id": "armed_forces",
+    "key": "radicalism",
+    "op": ">",
+    "value": 40
+   }
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Purge the plotters",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "armed_forces",
+       "value": -25
+      }
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": -20
+      }
+     },
+     {
+      "points": {
+       "mil": -50
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Buy their loyalty",
+    "effects": [
+     {
+      "privilege": {
+       "id": "armed_forces",
+       "granted": true
+      }
+     },
+     {
+      "pp": -40
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "election_scandal",
+  "title": "Corruption Scandal",
+  "description": "Newspapers reveal ministers took bribes from contractors.",
+  "scope": "country",
+  "trigger": {
+   "government": "democracy"
+  },
+  "mtth": 72,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Sack the ministers",
+    "effects": [
+     {
+      "pp": -30
+     },
+     {
+      "stability": 0.2
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Deny everything",
+    "effects": [
+     {
+      "stability": -0.4
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": -15
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "leader_illness",
+  "title": "{leader} Falls Ill",
+  "description": "The head of government is confined to bed for weeks.",
+  "scope": "country",
+  "trigger": {
+   "year": {
+    "max": 2026
+   }
+  },
+  "mtth": 180,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Govern from the bedside",
+    "effects": [
+     {
+      "pp": -20
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Deputies take over",
+    "effects": [
+     {
+      "points": {
+       "adm": -30
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "general_strike",
+  "title": "General Strike",
+  "description": "Factories, railways and docks fall silent.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "trade_unions",
+      "key": "radicalism",
+      "op": ">",
+      "value": 50
+     }
+    },
+    {
+     "ig": {
+      "id": "trade_unions",
+      "key": "clout",
+      "op": ">",
+      "value": 15
+     }
+    }
+   ]
+  },
+  "mtth": 6,
+  "once": false,
+  "cooldown": 36,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Negotiate",
+    "effects": [
+     {
+      "privilege": {
+       "id": "trade_unions",
+       "granted": true
+      }
+     },
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": -25
+      }
+     },
+     {
+      "igFavour": {
+       "id": "industrialists",
+       "value": -15
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Send in the troops",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": -15
+      }
+     },
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": -30
+      }
+     },
+     {
+      "stability": -0.5
+     },
+     {
+      "setFlag": "strike_crushed"
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "landlord_revolt",
+  "title": "Landlords Resist Reform",
+  "description": "Estate owners arm their retainers against tax collectors.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "landowners",
+      "key": "radicalism",
+      "op": ">",
+      "value": 40
+     }
+    }
+   ]
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Exempt them",
+    "effects": [
+     {
+      "privilege": {
+       "id": "landowners",
+       "granted": true
+      }
+     },
+     {
+      "igRadicalism": {
+       "id": "landowners",
+       "value": -20
+      }
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Crush resistance",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "landowners",
+       "value": -10
+      }
+     },
+     {
+      "igFavour": {
+       "id": "landowners",
+       "value": -25
+      }
+     },
+     {
+      "points": {
+       "mil": -40
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "church_state",
+  "title": "Church and State",
+  "description": "Clergy denounce the government's schools from the pulpit.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "devout",
+      "key": "approval",
+      "op": "<",
+      "value": -20
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Return schools to the church",
+    "effects": [
+     {
+      "law": {
+       "category": "education",
+       "law": "no_schooling"
+      }
+     },
+     {
+      "igFavour": {
+       "id": "devout",
+       "value": 30
+      }
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Stand firm",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "devout",
+       "value": 10
+      }
+     },
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "intellectual_exodus",
+  "title": "Brain Drain",
+  "description": "Scientists and writers leave {country} for freer lands.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "intelligentsia",
+      "key": "approval",
+      "op": "<",
+      "value": -30
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Win them back",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "intelligentsia",
+       "value": 20
+      }
+     },
+     {
+      "pp": -20
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Good riddance",
+    "effects": [
+     {
+      "modifier": {
+       "name": "Brain drain",
+       "target": "literacy_target",
+       "add": -0.02,
+       "months": 60
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "veterans_march",
+  "title": "Veterans March",
+  "description": "Former soldiers demand pensions they were promised.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "ig": {
+      "id": "armed_forces",
+      "key": "approval",
+      "op": "<",
+      "value": -10
+     }
+    }
+   ]
+  },
+  "mtth": 36,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Pay the bonus",
+    "effects": [
+     {
+      "treasuryMonths": -0.5
+     },
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": 15
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Disperse them",
+    "effects": [
+     {
+      "igFavour": {
+       "id": "armed_forces",
+       "value": -15
+      }
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "constitutional_crisis",
+  "title": "Constitutional Crisis",
+  "description": "Parliament and the head of state deadlock over who governs.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "government": "democracy"
+    },
+    {
+     "stat": {
+      "key": "stability",
+      "op": "<",
+      "value": -1
+     }
+    }
+   ]
+  },
+  "mtth": 12,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Emergency powers",
+    "effects": [
+     {
+      "government": "autocracy"
+     },
+     {
+      "stability": 0.5
+     },
+     {
+      "ideologyShift": {
+       "id": "dem",
+       "amount": -0.05
+      }
+     },
+     {
+      "setFlag": "democracy_suspended"
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "New elections",
+    "effects": [
+     {
+      "stability": 0.3
+     },
+     {
+      "pp": -40
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "democratic_opening",
+  "title": "Calls for Democracy",
+  "description": "Students and workers demand free elections.",
+  "scope": "country",
+  "trigger": {
+   "all": [
+    {
+     "government": "autocracy"
+    },
+    {
+     "ideology": {
+      "id": "dem",
+      "op": ">",
+      "value": 35
+     }
+    }
+   ]
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Hold elections",
+    "effects": [
+     {
+      "government": "democracy"
+     },
+     {
+      "stability": -0.5
+     },
+     {
+      "setFlag": "democratic_wave"
+     }
+    ],
+    "ai": 1
+   },
+   {
+    "name": "Refuse",
+    "effects": [
+     {
+      "igRadicalism": {
+       "id": "intelligentsia",
+       "value": 15
+      }
+     },
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   }
+  ]
+ },
+ {
+  "id": "fascist_surge",
+  "title": "Blackshirts in the Streets",
+  "description": "A nationalist militia grows fast among the discontented.",
+  "scope": "country",
+  "trigger": {
+   "ideology": {
+    "id": "fas",
+    "op": ">",
+    "value": 25
+   }
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Ban the militia",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "fas",
+       "amount": -0.03
+      }
+     },
+     {
+      "stability": -0.2
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Tolerate them",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "fas",
+       "amount": 0.03
+      }
+     },
+     {
+      "igFavour": {
+       "id": "petite_bourgeoisie",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ },
+ {
+  "id": "communist_surge",
+  "title": "Red Banners",
+  "description": "Communist cells spread through factories and barracks.",
+  "scope": "country",
+  "trigger": {
+   "ideology": {
+    "id": "com",
+    "op": ">",
+    "value": 25
+   }
+  },
+  "mtth": 24,
+  "once": false,
+  "cooldown": 60,
+  "reactsTo": [],
+  "triggeredOnly": false,
+  "choices": [
+   {
+    "name": "Arrest the leaders",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "com",
+       "amount": -0.03
+      }
+     },
+     {
+      "igRadicalism": {
+       "id": "trade_unions",
+       "value": 10
+      }
+     }
+    ],
+    "ai": 2
+   },
+   {
+    "name": "Legalise the party",
+    "effects": [
+     {
+      "ideologyShift": {
+       "id": "com",
+       "amount": 0.03
+      }
+     },
+     {
+      "igFavour": {
+       "id": "trade_unions",
+       "value": 15
+      }
+     }
+    ],
+    "ai": 1
+   }
+  ]
+ }
+]

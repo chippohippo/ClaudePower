@@ -1,0 +1,309 @@
+{
+ "id": "jap",
+ "name": "Japan",
+ "countries": [
+  "JAP"
+ ],
+ "focuses": [
+  {
+   "id": "jap_zaibatsu",
+   "name": "Zaibatsu Expansion",
+   "description": "The great conglomerates build heavy industry.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "privilege": {
+      "id": "industrialists",
+      "granted": true
+     }
+    },
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 40,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "industry"
+  },
+  {
+   "id": "jap_shipyards",
+   "name": "Expand the Shipyards",
+   "description": "The fleet needs steel and slips.",
+   "prerequisites": [
+    "jap_zaibatsu"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "steel_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "points": {
+      "mil": 60
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "industry"
+  },
+  {
+   "id": "jap_army_ascendancy",
+   "name": "The Army Ascendant",
+   "description": "Young officers and the general staff dictate policy.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "jap_party_government"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "jap_militarist"
+    },
+    {
+     "law": {
+      "category": "mobilisation",
+      "law": "partial"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 30
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "fas",
+      "amount": 0.08
+     }
+    },
+    {
+     "government": "autocracy"
+    }
+   ],
+   "ai": 3,
+   "branch": "politics"
+  },
+  {
+   "id": "jap_national_mobilisation",
+   "name": "National Mobilisation Law",
+   "description": "The state may direct all labour and capital.",
+   "prerequisites": [
+    "jap_army_ascendancy"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "command_economy"
+     }
+    },
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 120,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "politics"
+  },
+  {
+   "id": "jap_party_government",
+   "name": "Party Government",
+   "description": "Restore cabinets responsible to the Diet.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "jap_army_ascendancy"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "jap_civilian"
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 20
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": -25
+     }
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.06
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "politics",
+   "available": {
+    "ig": {
+     "id": "armed_forces",
+     "key": "radicalism",
+     "op": "<",
+     "value": 50
+    }
+   }
+  },
+  {
+   "id": "jap_universal_suffrage",
+   "name": "Universal Suffrage",
+   "description": "Every adult votes.",
+   "prerequisites": [
+    "jap_party_government"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "government": "democracy"
+    },
+    {
+     "ideologyShift": {
+      "id": "dem",
+      "amount": 0.08
+     }
+    },
+    {
+     "stability": -0.3
+    }
+   ],
+   "ai": 1,
+   "branch": "politics"
+  },
+  {
+   "id": "jap_korea_industry",
+   "name": "Industrialise Korea and Taiwan",
+   "description": "Mills and power stations in the overseas territories.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "textile_mill",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "power_plant",
+      "levels": 60,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "jap_high_growth",
+   "name": "High-Growth Era",
+   "description": "Double national income in ten years.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Income doubling",
+      "target": "investment_rate",
+      "mult": 0.25,
+      "months": 120
+     }
+    },
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 120,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "jap_electronics",
+   "name": "Electronics Giants",
+   "description": "Transistors, televisions and cars for the world.",
+   "prerequisites": [
+    "jap_high_growth"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 100,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "office",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "setFlag": "jap_economic_power"
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}

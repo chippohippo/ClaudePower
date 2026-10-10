@@ -1,0 +1,73 @@
+{
+ "id": "generic_regional_union",
+ "name": "Regional Union",
+ "countries": "generic",
+ "focuses": [
+  {
+   "id": "gen_customs_union",
+   "name": "Regional Customs Union",
+   "description": "Free trade with neighbours.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Customs union",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 120
+     }
+    },
+    {
+     "points": {
+      "dip": 40
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "union",
+   "available": {
+    "flag": "era_reconstruction"
+   }
+  },
+  {
+   "id": "gen_common_market",
+   "name": "Common Market",
+   "description": "Free movement of goods, capital and people.",
+   "prerequisites": [
+    "gen_customs_union"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "migration",
+      "law": "open_borders"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Common market",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 120
+     }
+    },
+    {
+     "setFlag": "regional_union_formed"
+    }
+   ],
+   "ai": 1,
+   "branch": "union",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}

@@ -5,7 +5,7 @@ import { tickDay } from "../sim/tick";
 import { applyCommand, previewCommand, validateCommand, type Preview } from "../sim/commands";
 import "../sim/commands/player";
 import { formatDate } from "../sim/date";
-import { createWorld, neighborsOf, type StartScope } from "../sim/setup";
+import { AUTO_ALL, AUTO_FOCUS, PLAYER_EVENTS, createWorld, neighborsOf, type StartScope } from "../sim/setup";
 import { loadContent } from "../sim/content";
 import { updateStats } from "../sim/systems/stats";
 import { runLabour } from "../sim/systems/labour";
@@ -40,6 +40,8 @@ export class GameSession {
     this.world = start.world;
     this.srcIds = start.srcProvinceIds;
     this.player = Math.max(0, this.world.countryTags.indexOf(playerTag));
+    // The player decides events and picks focuses; other automation starts on (toggle in F1).
+    this.world.countries.cols.automation![this.player] = (AUTO_ALL & ~AUTO_FOCUS) | PLAYER_EVENTS;
     this.countries = start.countries.map((c, i) => ({ tag: c.tag, name: c.name, color: c.color, capital: this.world.countries.cols.capital![i]! }));
     // Day-zero derived state so the first frame is honest (employment, unemployment, manpower).
     runLabour(this.world);

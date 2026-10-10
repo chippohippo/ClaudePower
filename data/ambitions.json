@@ -1,0 +1,387 @@
+[
+ {
+  "id": "industrial_power",
+  "name": "Become an Industrial Power",
+  "description": "Reach $8,000 GDP per head.",
+  "eligible": {
+   "always": true
+  },
+  "goal": {
+   "stat": {
+    "key": "gdpPerCapita",
+    "op": ">",
+    "value": 8000
+   }
+  },
+  "reward": [
+   {
+    "pp": 100
+   },
+   {
+    "points": {
+     "adm": 100
+    }
+   }
+  ]
+ },
+ {
+  "id": "literate_nation",
+  "name": "A Literate Nation",
+  "description": "Reach 90% literacy.",
+  "eligible": {
+   "stat": {
+    "key": "literacy",
+    "op": "<",
+    "value": 0.7
+   }
+  },
+  "goal": {
+   "stat": {
+    "key": "literacy",
+    "op": ">",
+    "value": 0.9
+   }
+  },
+  "reward": [
+   {
+    "pp": 80
+   },
+   {
+    "igFavour": {
+     "id": "intelligentsia",
+     "value": 20
+    }
+   }
+  ]
+ },
+ {
+  "id": "full_employment",
+  "name": "Full Employment",
+  "description": "Unemployment below 3% after 1950.",
+  "eligible": {
+   "always": true
+  },
+  "goal": {
+   "all": [
+    {
+     "year": {
+      "min": 1950
+     }
+    },
+    {
+     "stat": {
+      "key": "unemployment",
+      "op": "<",
+      "value": 0.03
+     }
+    }
+   ]
+  },
+  "reward": [
+   {
+    "pp": 60
+   },
+   {
+    "igFavour": {
+     "id": "trade_unions",
+     "value": 20
+    }
+   }
+  ]
+ },
+ {
+  "id": "long_lives",
+  "name": "Long Lives",
+  "description": "Life expectancy above 75.",
+  "eligible": {
+   "stat": {
+    "key": "lifeExp",
+    "op": "<",
+    "value": 60
+   }
+  },
+  "goal": {
+   "stat": {
+    "key": "lifeExp",
+    "op": ">",
+    "value": 75
+   }
+  },
+  "reward": [
+   {
+    "pp": 80
+   },
+   {
+    "stability": 0.5
+   }
+  ]
+ },
+ {
+  "id": "stable_state",
+  "name": "A Stable State",
+  "description": "Stability above 2.",
+  "eligible": {
+   "always": true
+  },
+  "goal": {
+   "stat": {
+    "key": "stability",
+    "op": ">",
+    "value": 2
+   }
+  },
+  "reward": [
+   {
+    "pp": 60
+   }
+  ]
+ },
+ {
+  "id": "democracy",
+  "name": "Government by the People",
+  "description": "Be a democracy after 1960.",
+  "eligible": {
+   "government": "autocracy"
+  },
+  "goal": {
+   "all": [
+    {
+     "year": {
+      "min": 1960
+     }
+    },
+    {
+     "government": "democracy"
+    }
+   ]
+  },
+  "reward": [
+   {
+    "pp": 100
+   },
+   {
+    "ideologyShift": {
+     "id": "dem",
+     "amount": 0.05
+    }
+   }
+  ]
+ },
+ {
+  "id": "space",
+  "name": "Reach for the Stars",
+  "description": "Launch a space programme.",
+  "eligible": {
+   "any": [
+    {
+     "tag": "USA"
+    },
+    {
+     "tag": "SOV"
+    },
+    {
+     "tag": "FRA"
+    },
+    {
+     "tag": "GBR"
+    },
+    {
+     "tag": "CHI"
+    },
+    {
+     "tag": "JAP"
+    },
+    {
+     "tag": "GER"
+    }
+   ]
+  },
+  "goal": {
+   "any": [
+    {
+     "flag": "first_space_programme"
+    },
+    {
+     "flag": "first_moon_landing"
+    }
+   ]
+  },
+  "reward": [
+   {
+    "pp": 120
+   }
+  ]
+ },
+ {
+  "id": "debt_free",
+  "name": "Debt-Free",
+  "description": "No debt and a year of reserves.",
+  "eligible": {
+   "always": true
+  },
+  "goal": {
+   "all": [
+    {
+     "stat": {
+      "key": "debtRatio",
+      "op": "<",
+      "value": 0.01
+     }
+    },
+    {
+     "stat": {
+      "key": "treasuryMonths",
+      "op": ">",
+      "value": 12
+     }
+    },
+    {
+     "year": {
+      "min": 1950
+     }
+    }
+   ]
+  },
+  "reward": [
+   {
+    "pp": 50
+   }
+  ]
+ },
+ {
+  "id": "urban_nation",
+  "name": "A Nation of Cities",
+  "description": "Urbanisation above 70%.",
+  "eligible": {
+   "stat": {
+    "key": "urban",
+    "op": "<",
+    "value": 0.5
+   }
+  },
+  "goal": {
+   "stat": {
+    "key": "urban",
+    "op": ">",
+    "value": 0.7
+   }
+  },
+  "reward": [
+   {
+    "pp": 60
+   },
+   {
+    "build": {
+     "building": "office",
+     "levels": 20,
+     "where": "capital"
+    }
+   }
+  ]
+ },
+ {
+  "id": "big_population",
+  "name": "A Great People",
+  "description": "Population above 100 million.",
+  "eligible": {
+   "all": [
+    {
+     "stat": {
+      "key": "population",
+      "op": ">",
+      "value": 30000000
+     }
+    },
+    {
+     "stat": {
+      "key": "population",
+      "op": "<",
+      "value": 100000000
+     }
+    }
+   ]
+  },
+  "goal": {
+   "stat": {
+    "key": "population",
+    "op": ">",
+    "value": 100000000
+   }
+  },
+  "reward": [
+   {
+    "pp": 80
+   }
+  ]
+ },
+ {
+  "id": "calm_unions",
+  "name": "Industrial Peace",
+  "description": "Trade Unions approval above 40 after 1950.",
+  "eligible": {
+   "ig": {
+    "id": "trade_unions",
+    "key": "clout",
+    "op": ">",
+    "value": 15
+   }
+  },
+  "goal": {
+   "all": [
+    {
+     "year": {
+      "min": 1950
+     }
+    },
+    {
+     "ig": {
+      "id": "trade_unions",
+      "key": "approval",
+      "op": ">",
+      "value": 40
+     }
+    }
+   ]
+  },
+  "reward": [
+   {
+    "pp": 60
+   },
+   {
+    "stability": 0.3
+   }
+  ]
+ },
+ {
+  "id": "loyal_army",
+  "name": "A Loyal Army",
+  "description": "Armed Forces radicalism below 10 after 1945.",
+  "eligible": {
+   "always": true
+  },
+  "goal": {
+   "all": [
+    {
+     "year": {
+      "min": 1945
+     }
+    },
+    {
+     "ig": {
+      "id": "armed_forces",
+      "key": "radicalism",
+      "op": "<",
+      "value": 10
+     }
+    }
+   ]
+  },
+  "reward": [
+   {
+    "points": {
+     "mil": 100
+    }
+   }
+  ]
+ }
+]

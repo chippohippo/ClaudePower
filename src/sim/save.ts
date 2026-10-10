@@ -60,6 +60,12 @@ const MIGRATIONS: ((w: Record<string, unknown>) => void)[] = [
     w.igs = packTable(makeTable(ct.size * 8, IG_COLS));
     w.characterNames = []; w.chronicle = [];
   },
+  (w) => { // v5 → v6: focuses, events, flags, ambitions (M5).
+    const n = (w.countries as PackedTable).size;
+    w.flags = {}; w.countryFlags = Array.from({ length: n }, () => ({}));
+    w.focus = Array.from({ length: n }, () => ({ tree: "", current: null, progress: 0, done: [] }));
+    w.pendingEvents = []; w.eventLog = {}; w.ambitions = Array.from({ length: n }, () => []); w.nextEventId = 1;
+  },
 ];
 
 export function saveWorld(w: World): Uint8Array {

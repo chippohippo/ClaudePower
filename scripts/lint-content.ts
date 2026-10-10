@@ -9,6 +9,7 @@ export function lintContent(dir = "data"): string[] {
   const errors: string[] = [];
   for (const path of walk(dir).filter((f) => f.endsWith(".json"))) {
     const f = relative(dir, path).replaceAll("\\", "/");
+    if (f.startsWith("focuses/") || f.startsWith("events/") || ["flags.json", "ambitions.json", "headlines.json", "generated/content.json"].includes(f)) continue; // checked by lint-consistency / build-content
     const schema = DATA_SCHEMAS[f];
     if (!schema) { errors.push(`${f}: no schema`); continue; }
     const r = schema.safeParse(JSON.parse(readFileSync(path, "utf8")));
@@ -18,7 +19,8 @@ export function lintContent(dir = "data"): string[] {
 }
 
 if (process.argv[1]?.endsWith("lint-content.ts")) {
-  const errs = lintContent();
+  const { lintConsistency } = await import("./lint-consistency");
+  const errs = [...lintContent(), ...lintConsistency()];
   if (errs.length) { console.error(errs.join("\n")); process.exit(1); }
   console.log("content ok");
 }

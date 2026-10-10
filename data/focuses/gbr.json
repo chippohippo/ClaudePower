@@ -1,0 +1,430 @@
+{
+ "id": "gbr",
+ "name": "United Kingdom",
+ "countries": [
+  "GBR"
+ ],
+ "focuses": [
+  {
+   "id": "gbr_rearmament",
+   "name": "Rearmament White Paper",
+   "description": "Rebuild the air force and the navy.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "gbr_appeasement"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "arms_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "setFlag": "gbr_rearmament"
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": 20
+     }
+    }
+   ],
+   "ai": 3,
+   "branch": "defence"
+  },
+  {
+   "id": "gbr_shadow_factories",
+   "name": "Shadow Factories",
+   "description": "Car plants that can switch to aircraft overnight.",
+   "prerequisites": [
+    "gbr_rearmament"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "machine_works",
+      "levels": 60,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 60,
+      "where": "largest"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "defence"
+  },
+  {
+   "id": "gbr_radar_chain",
+   "name": "Radar Chain",
+   "description": "Early warning from the coast to the cities.",
+   "prerequisites": [
+    "gbr_rearmament"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "points": {
+      "mil": 80
+     }
+    },
+    {
+     "modifier": {
+      "name": "Radar",
+      "target": "stability_target",
+      "add": 0.2,
+      "months": 120
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "defence"
+  },
+  {
+   "id": "gbr_appeasement",
+   "name": "Peace in Our Time",
+   "description": "Negotiate rather than rearm.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [
+    "gbr_rearmament"
+   ],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "gbr_appeasement"
+    },
+    {
+     "pp": 60
+    },
+    {
+     "igFavour": {
+      "id": "petite_bourgeoisie",
+      "value": 15
+     }
+    },
+    {
+     "igFavour": {
+      "id": "armed_forces",
+      "value": -20
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "defence"
+  },
+  {
+   "id": "gbr_imperial_preference",
+   "name": "Imperial Preference",
+   "description": "Trade within the empire on favourable terms.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "modifier": {
+      "name": "Imperial trade",
+      "target": "investment_rate",
+      "mult": 0.1,
+      "months": 60
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": 15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "gbr_colonial_development",
+   "name": "Colonial Development Fund",
+   "description": "Roads, schools and clinics in the colonies.",
+   "prerequisites": [
+    "gbr_imperial_preference"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "hospital",
+      "levels": 20,
+      "where": "largest"
+     }
+    },
+    {
+     "build": {
+      "building": "university",
+      "levels": 10,
+      "where": "largest"
+     }
+    },
+    {
+     "treasuryMonths": -1
+    }
+   ],
+   "ai": 1,
+   "branch": "empire"
+  },
+  {
+   "id": "gbr_dominion_status",
+   "name": "Path to Self-Government",
+   "description": "Promise the colonies a timetable to independence.",
+   "prerequisites": [
+    "gbr_colonial_development"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "setFlag": "gbr_decolonisation"
+    },
+    {
+     "points": {
+      "dip": 100
+     }
+    },
+    {
+     "igFavour": {
+      "id": "intelligentsia",
+      "value": 20
+     }
+    },
+    {
+     "igFavour": {
+      "id": "landowners",
+      "value": -15
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "empire",
+   "available": {
+    "any": [
+     {
+      "flag": "era_reconstruction"
+     },
+     {
+      "stat": {
+       "key": "stability",
+       "op": "<",
+       "value": 0
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "gbr_beveridge",
+   "name": "Social Insurance Report",
+   "description": "Cradle to grave: abolish want, disease and squalor.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 20
+     }
+    },
+    {
+     "modifier": {
+      "name": "Welfare state",
+      "target": "stability_target",
+      "add": 0.3
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "welfare"
+  },
+  {
+   "id": "gbr_health_service",
+   "name": "National Health Service",
+   "description": "Free medicine for every citizen.",
+   "prerequisites": [
+    "gbr_beveridge"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 140,
+   "effects": [
+    {
+     "build": {
+      "building": "hospital",
+      "levels": 40,
+      "where": "largest"
+     }
+    },
+    {
+     "setFlag": "gbr_welfare_state"
+    },
+    {
+     "treasuryMonths": -1
+    }
+   ],
+   "ai": 1,
+   "branch": "welfare"
+  },
+  {
+   "id": "gbr_nationalise",
+   "name": "Nationalise Coal and Rail",
+   "description": "Bring the commanding heights into public hands.",
+   "prerequisites": [
+    "gbr_beveridge"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "law": {
+      "category": "economic",
+      "law": "interventionism"
+     }
+    },
+    {
+     "igFavour": {
+      "id": "industrialists",
+      "value": -25
+     }
+    },
+    {
+     "igFavour": {
+      "id": "trade_unions",
+      "value": 20
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "welfare"
+  },
+  {
+   "id": "gbr_council_housing",
+   "name": "Homes for Heroes",
+   "description": "A million new council homes.",
+   "prerequisites": [
+    "gbr_health_service"
+   ],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "consumer_factory",
+      "levels": 80,
+      "where": "largest"
+     }
+    },
+    {
+     "develop": {
+      "kind": "production",
+      "amount": 1,
+      "where": "all"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "welfare"
+  },
+  {
+   "id": "gbr_city",
+   "name": "Big Bang in the City",
+   "description": "Deregulate finance; London becomes the world's market.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "office",
+      "levels": 150,
+      "where": "capital"
+     }
+    },
+    {
+     "modifier": {
+      "name": "Financial centre",
+      "target": "investment_rate",
+      "mult": 0.15,
+      "months": 120
+     }
+    },
+    {
+     "law": {
+      "category": "economic",
+      "law": "laissez_faire"
+     }
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_globalisation"
+   }
+  },
+  {
+   "id": "gbr_north_sea",
+   "name": "North Sea Oil",
+   "description": "Rigs in the cold sea fund the treasury.",
+   "prerequisites": [],
+   "anyOf": [],
+   "exclusive": [],
+   "cost": 50,
+   "days": 70,
+   "effects": [
+    {
+     "build": {
+      "building": "oil_well",
+      "levels": 80,
+      "where": "capital"
+     }
+    },
+    {
+     "treasuryMonths": 2
+    }
+   ],
+   "ai": 1,
+   "branch": "eras",
+   "available": {
+    "flag": "era_cold_war"
+   }
+  }
+ ]
+}
