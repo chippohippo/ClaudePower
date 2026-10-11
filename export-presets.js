@@ -10,7 +10,7 @@ global.navigator={clipboard:{writeText:async()=>{}},userAgent:'node'};global.req
 const ctx={};new Function('with(this){'+code+'}\nthis.A={PRESETS,GAMES,RES,gameOfCard,cardDesc};').call(ctx);
 const strip=h=>h.replace(/<[^>]+>/g,'').replace(/&rarr;/g,'→').replace(/&deg;/g,'°').replace(/&rsquo;/g,'’').replace(/&mdash;/g,'—').replace(/&ndash;/g,'–').replace(/&times;/g,'×').replace(/&nbsp;/g,' ').replace(/&minus;/g,'−').replace(/&sup2;/g,'²').replace(/&ldquo;/g,'“').replace(/&rdquo;/g,'”').replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&');
 const out={schema:1,generated:new Date().toISOString().slice(0,10),tablet:{name:'Wacom DTC-141',reportHz:360,unitMm:0.01,widthMm:310},
- games:ctx.A.GAMES.map(g=>({id:g.id,name:g.name,K:g.K,fovMin:g.fovMin,fovMax:g.fovMax,fovLocked:!!g.fovLocked,fov3rd:!!g.fov3rd,fovEstimated:!!g.fovEstimated,maxW:g.maxW,thirdPerson:!!g.thirdPerson,cameraArmM:g.cameraArmM||null,cameraArmEstimated:!!g.cameraArmEstimated,note:strip(g.note||'')})),
+ games:ctx.A.GAMES.map(g=>({id:g.id,name:g.name,K:g.K,fovMin:g.fovMin,fovMax:g.fovMax,fovLocked:!!g.fovLocked,fov3rd:!!g.fov3rd,fovEstimated:!!g.fovEstimated,maxW:g.maxW,thirdPerson:!!g.thirdPerson,cameraArmM:g.cameraArmM||null,cameraArmEstimated:!!g.cameraArmEstimated,kMeasured:g.kMeasured||null,kEvidence:g.kEvidence||null,note:strip(g.note||'')})),
  monitors:ctx.A.RES,
  presets:ctx.A.PRESETS.map(p=>({id:p.id,name:p.name,group:p.group,game:(ctx.A.gameOfCard(p)||{}).id||null,tag:p.tag,field:p.field||null,desc:strip(ctx.A.cardDesc(p)),pxmm:p.pxmm,cm:p.cm,snap:p.snap,hdlMax:p.hdlMax,slider:p.slider,res:p.res,adv:p.adv||{},lut:p.lut||null,cohOv:p.cohOv||null,radialOv:p.radialOv||null,
   // 3.1: explicit filter plan, DERIVED from the authored state (single write path preserved)

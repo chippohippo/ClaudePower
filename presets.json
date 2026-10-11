@@ -21,6 +21,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Slider is 70–110 (verified) but its units are NOT 16:9 degrees: your conversion shows slider 90 → 105.54° real HFOV (empirical factor 1.3157, now modeled). One anomaly on record: the calculator reported ~99.7° at 5120-wide, implying Apex may cap/shrink at 32:9 — unconfirmed, tool assumes normal hor+ until you verify in-game."
     },
     {
@@ -36,6 +38,8 @@
       "thirdPerson": true,
       "cameraArmM": 2.5,
       "cameraArmEstimated": true,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Marvel Rivals has no player-facing FOV slider — engine-fixed at 90° horizontal (16:9 basis, hor+ scaling; your calculator screenshots confirm 90° at 2560 and 126.87° at 5120). With your full-screen mod it renders the full 5120 width. The only pseudo-FOV lever is the crosshair Center Gap, which doesn't change true FOV."
     },
     {
@@ -51,6 +55,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Slider is 80–103° (verified). Engine caps rendering at 3440×1440 — pillarboxes on any wider pick."
     },
     {
@@ -66,6 +72,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "FOV only exists for the 1st-person camera (range is an estimate — verify against Settings→Game). Your profile's camera is 3rd person, where Holdfast has no FOV control — this slider is inert until you switch camera modes. A separate mouseSensitivityFirearmAiming ADS multiplier (default 1.0) stacks on this base number per weapon."
     },
     {
@@ -81,6 +89,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Vanguard rules (OTD official FAQ): your VMulti Relative Mode is the right output, but VMulti only accepts the FIRST mouse source it sees — never touch the real mouse from launch to match end. Under Vanguard, left-click drops whenever a keyboard key is pressed (\"no fix for this\") — rebind FIRE to an unused keyboard key in Valorant, then map your pen tip to that key in OTD. FOV is fixed at 103, no slider. K re-verified from your conversion (0.471 ↔ 6.8244in @1600)."
     },
     {
@@ -96,6 +106,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Yaw 0.001°/count (K 914400) — NOT the OW2/CoD constant: the old 138545.5 was a copy and read 6.6x low (ev-20260910-finals-k). At the same cm/360 your Finals number is 6.6x your OW2 number (sens 8 = 78.95 cm/360 at 57 px/mm). FOV range is an ESTIMATE — verify against Settings; hor+ assumed at 32:9."
     },
     {
@@ -111,6 +123,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "ESTIMATED, calibrate before trusting: yaw 0.573 is corroborated by two converters but the slider-unit mapping is NOT verified. Do a marked 360 test and scale sens by measured-cm ÷ target-cm. The FOV slider (Options → Visuals) is VERTICAL, 45–90° (about 73–121° horizontal at 16:9); this tool converts it to horizontal before any FOV math."
     },
     {
@@ -126,6 +140,8 @@
       "thirdPerson": true,
       "cameraArmM": 2.5,
       "cameraArmEstimated": true,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "ESTIMATED, calibrate before trusting: Deadlock is Source 2 and is assumed to share the CS2 / Apex yaw (0.022°/count), so its number equals your Apex number. Do one marked 360 test and scale sens by measured-cm ÷ target-cm. The FOV range is an estimate. Third-person over-the-shoulder camera: pair it with the third-person match (Builds → Modes)."
     },
     {
@@ -141,6 +157,8 @@
       "thirdPerson": false,
       "cameraArmM": null,
       "cameraArmEstimated": false,
+      "kMeasured": null,
+      "kEvidence": null,
       "note": "Verified from your conversion: CoD's sens constant is IDENTICAL to OW2's (sens 5.00 ↔ 5.00 at the same cm/360) — whatever OW2 sens this tool shows, type the same number into BO6/BO7. FOV slider 60–120, true Hdeg 16:9, full hor+ at 32:9 (126.87° @5120 confirmed). Pair with Monitor Distance Coefficient 1.33 + Relative + Affected — the exact feel the \"BO6 1.33\" zoom philosophy imitates."
     }
   ],

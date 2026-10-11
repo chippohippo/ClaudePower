@@ -215,6 +215,38 @@ namespace AimForge.App
                         Console.WriteLine($"audit -> {aPath}  ({aRows.Length} cards, {aRows.Count(r => r.qc.blockers.Length + r.qc.curve.Length > 0)} with QC findings)");
                         return 0;
                     }
+                    case "--calib360":
+                        {
+                            // --calib360 <game> --yaw <deg/count>            | the game's own yaw (Source 2: m_yaw)
+                            // --calib360 <game> --card <id> --pen-mm <mm> [--turns n] [--sens s]   | a measured slow turn
+                            // [--write]: patch tuner.html's GAMES row + write the evidence record. Never touches a driver or presets.json.
+                            string? Val(string f) { int i = Array.IndexOf(args, f); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+                            double? Num(string f) => Val(f) is string v && double.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+                            var g = args.Length > 1 ? cat.games.FirstOrDefault(x => x.id == args[1]) : null;
+                            if (g == null) { Console.WriteLine("usage: --calib360 <game> (--yaw <deg/count> | --card <id> --pen-mm <mm> [--turns n] [--sens s]) [--write]\ngames: " + string.Join(", ", cat.games.Select(x => x.id + (x.fovEstimated || x.note.Contains("ESTIMATED") ? " (K estimated)" : "")))); return 2; }
+                            Core.Calib360.Result r;
+                            try
+                            {
+                                if (Num("--yaw") is double yaw) r = Core.Calib360.FromYaw(g.id, g.K, yaw);
+                                else if (Val("--card") is string cid && cat.Find(cid) is Preset cp && Num("--pen-mm") is double mm)
+                                {
+                                    var crg = Rig.From(cp); double printed = Curve.SensFor(g.K, crg, crg.Mult);
+                                    double band = Core.Calib360.UnityBandMmS(cp, crg.PxMm);
+                                    Console.WriteLine($"sweep bound: stay under {band:0.0} mm/s on the glass (the card's 1:1 band) - about {crg.Cm360 * 10 / Math.Max(band, 0.1):0} s for one turn at {crg.Cm360:0.00} cm/360");
+                                    r = Core.Calib360.FromTurn(g.id, g.K, mm, Num("--turns") ?? 1, Num("--sens") ?? Math.Round(printed, 3), crg.PxMm, crg.Mult, crg.Cm360);
+                                }
+                                else { Console.WriteLine("give --yaw, or --card <id> --pen-mm <mm>"); return 2; }
+                            }
+                            catch (ArgumentException ae) { Console.WriteLine(ae.Message); return 2; }
+                            Console.WriteLine(r.Summary);
+                            if (!args.Contains("--write")) { Console.WriteLine("(dry: add --write to patch tuner.html and record the evidence)"); return 0; }
+                            var when = DateTime.Now; string evId = Core.Calib360.EvidenceId(g.id, when);
+                            File.WriteAllText(tuner, Core.Calib360.PatchTuner(File.ReadAllText(tuner), r, evId));
+                            string evDir = Path.Combine(home, "evidence"); Directory.CreateDirectory(evDir);
+                            File.WriteAllText(Path.Combine(evDir, evId + ".json"), Core.Calib360.EvidenceJson(r, evId, when, Val("--note")));
+                            Console.WriteLine($"tuner.html patched ({g.id} K), evidence -> evidence\\{evId}.json. Now run: node export-presets.js tuner.html");
+                            return 0;
+                        }
                     case "--measure":
                         foreach (var p in cat.presets)
                         {
@@ -2477,6 +2509,37 @@ namespace AimForge.App
                 Ok("doctor: every FAIL gets its fix from the table, an OK row carries none, a row's own fix is kept, an UNVERIFIED row is told to become checkable (not to re-apply), and the level reads FAIL / WARN / OK",
                    rows.Take(3).All(r => r.Fix.Length > 0 && r.Level == "FAIL") && rows[3].Fix == "" && rows[3].Level == "OK" && rows[4].Fix == "own fix" && rows[4].Level == "WARN" &&
                    rows[0].ToString().Contains("fix: apply the card again") && !rows[3].ToString().Contains("fix:") && rows[5].Fix.StartsWith("check the driver is installed"));
+            }
+
+            // ---- 2026-10-11: 360 calibration - a measured K replaces an assumed one, through the tuner ----
+            {
+                var dg = cat.games.First(g => g.id == "deadlock"); var apexK = cat.games.First(g => g.id == "apex").K;
+                var y = Calib360.FromYaw("deadlock", dg.K, 0.022);
+                var dlb = cat.Find("dlb6")!; var drg = Rig.From(dlb); double printed = Curve.SensFor(dg.K, drg, drg.Mult);
+                var t1 = Calib360.FromTurn("deadlock", dg.K, drg.Cm360 * 10, 1, printed, drg.PxMm, drg.Mult, drg.Cm360);
+                var t2 = Calib360.FromTurn("deadlock", dg.K, drg.Cm360 * 10 * 2 * 1.1, 2, printed, drg.PxMm, drg.Mult, drg.Cm360);
+                Ok("360 calibration: the Source yaw 0.022 gives exactly the Apex K; a turn measuring the card's own base gives back the same K; a 10% long turn gives K x1.10",
+                   Math.Abs(y.NewK - apexK) < 0.05 && Math.Abs(t1.Ratio - 1) < 1e-9 && Math.Abs(t2.Ratio - 1.1) < 1e-9 && t1.Summary.Contains("assumed constant was right"),
+                   $"yaw K {y.NewK:0.0} vs Apex {apexK}; {t2.Summary}");
+                Ok("360 calibration: the slow sweep's bound is the card's 1:1 band (Deadlock Baseline: offset 0.5 at 57 px/mm = 8.8 mm/s)",
+                   Math.Abs(Calib360.UnityBandMmS(dlb, 57) - 8.77193) < 1e-4, Calib360.UnityBandMmS(dlb, 57).ToString("0.00"));
+                string tunerPath = Path.Combine(AppContext.BaseDirectory, "tuner.html");
+                if (File.Exists(tunerPath))
+                {
+                    string th = File.ReadAllText(tunerPath);
+                    string once = Calib360.PatchTuner(th, t2, "ev-x-deadlock-k"), twice = Calib360.PatchTuner(once, t2, "ev-x-deadlock-k");
+                    var diff = th.Split('\n').Zip(once.Split('\n')).Where(z => z.First != z.Second).ToList();
+                    Ok("360 calibration: the tuner patch changes only the game's GAMES row (K + kMeasured/kEvidence), and re-patching replaces rather than stacks",
+                       diff.Count == 1 && diff[0].Second.Contains("{id:'deadlock'") && diff[0].Second.Contains("K:" + Math.Round(t2.NewK, 1).ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture) + ",") &&
+                       diff[0].Second.Contains("kEvidence:'ev-x-deadlock-k'") && twice == once && th.Split('\n').Length == once.Split('\n').Length,
+                       diff.Count == 1 ? diff[0].Second.Trim().Substring(0, Math.Min(120, diff[0].Second.Trim().Length)) : diff.Count + " lines changed");
+                    var ev = System.Text.Json.Nodes.JsonNode.Parse(Calib360.EvidenceJson(t2, "ev-x-deadlock-k", new DateTime(2026, 10, 11), null))!;
+                    Ok("360 calibration: the evidence record has the project's shape and leaves the field verdict pending",
+                       ev["evidenceId"]!.GetValue<string>() == "ev-x-deadlock-k" && ev["results"]!["cm360_measured"]!.GetValue<double>() == Math.Round(drg.Cm360 * 1.1, 3) && ev["fieldVerdict"]!.GetValue<string>().StartsWith("pending"));
+                }
+                else Ok("360 calibration: tuner.html is next to the app for the patch test", false, tunerPath);
+                Ok("cards print their sens from the game's K: every Deadlock card's in-game number equals K / (eDPI x cm) (no hard-coded copy left to go stale)",
+                   cat.presets.Where(x => x.game == "deadlock").All(x => x.desc.Contains(Curve.SensFor(dg.K, Rig.From(x), Rig.From(x).Mult).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))));
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");

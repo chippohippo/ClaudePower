@@ -59,6 +59,9 @@ namespace AimForge.Core
         public bool thirdPerson { get; set; }
         public double? cameraArmM { get; set; }
         public bool cameraArmEstimated { get; set; }
+        /// Set when K was measured (Calib360): the date and the evidence record.
+        public string? kMeasured { get; set; }
+        public string? kEvidence { get; set; }
         public string note { get; set; } = "";
     }
 
