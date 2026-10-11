@@ -4,6 +4,13 @@ What a player notices on the next Desktop deploy. Newest first. Every item is ve
 
 ## 2026-10-11
 
+### From the community research (RESEARCH.md)
+- **Doctor, Valorant builds:** a new row checks how the pen tip clicks under Vanguard.
+  - OpenTabletDriver's built-in mouse and key bindings press through SendInput, which Vanguard blocks, so that is a FAIL with the fix (use the VMulti plugin's button binding).
+  - It always states Vanguard's two documented rules: touch the pen before the mouse, and taps can drop while keys are held. If taps vanish while you strafe, add a keyboard Fire bind.
+- **Measured and rejected:** RawAccel's speed smoothing on the pen. It doesn't remove the gain spikes you feel and delays a flick's gain; Cadence Lock does the job with no lag. No card changed.
+- **Worth a session at the tablet (pending):** the osu! "tapx" style. Aim in hover and fire with a keyboard key; the nib never touches, so there is no click skid.
+
 ### Applies you can trust
 - **An apply now either verifies completely or rolls back both drivers.**
   - Before, an apply whose filter chain could not be read back was reported as verified and saved as the OTD default.

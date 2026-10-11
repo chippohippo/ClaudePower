@@ -55,6 +55,7 @@ Everything below was **measured before it was believed**, most of it on a determ
 8. **Onset dead time is a quantisation problem already at its floor** once the low end is unity (two reports, 5.6 ms, on the corrected creep probe at 360 Hz) — the fine 90 px/mm grid buys nothing further and slightly hurts micro.
 
 ### The graveyard (negative results, kept on purpose)
+- **RawAccel input-speed EMA on the pen (2026-10-11, `ev-20261011-pen-speed-ema`):** at most about 30% less average gain noise, no change to the worst-report spike, and a flick that starts at the wrong gain. Cadence Lock does the job at zero lag. See `RESEARCH.md`.
 Rejected by measurement and documented so they are never rebuilt: the 2-unit-step discriminator (amplified tremor), Micro-Boost (125% overshoot), Tremor Notch (−279% hold), Track Rails on curves (up to 1.0 mm lag), the escape detector (twice), subtractive tremor cancellation (WFLC), the lead turn-gate, gear-shift curves in tracking games, a flick state machine (flick onset ≡ track-acquisition onset, causally), Temporal Resampler and the interpolator class generally (every field glitch traced there), and **rest deadzones in relative mode** (2026-09-16: the Valorant/Apex/Rivals Masters delivered 3–7% of a micro-correction and a 139 ms onset through the plan — retired).
 
 ---

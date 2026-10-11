@@ -2640,6 +2640,20 @@ namespace AimForge.App
                 Ok("speed EMA on the pen stays OFF: at no half-life does it cut the worst-report gain error by 10% on the steep-ramp cards, and Cadence Lock always beats it (the evidence's conclusion; re-open it if this fails)", keep, why.Trim());
             }
 
+            // ---- 2026-10-11: the tip binding under Vanguard (OTD FAQ; OTD v0.6.4.0 source: built-in bindings use SendInput) ----
+            {
+                System.Text.Json.Nodes.JsonObject J(string tip) => System.Text.Json.Nodes.JsonNode.Parse("{\"Profiles\":[{\"Bindings\":{\"TipActivationThreshold\":2" + tip + "}}]}")!.AsObject();
+                var mouse = Doctor.TipBinding(J(",\"TipButton\":{\"Path\":\"OpenTabletDriver.Desktop.Binding.MouseBinding\",\"Settings\":[{\"Property\":\"Button\",\"Value\":\"Left\"}],\"Enable\":true}"));
+                var keyB = Doctor.TipBinding(J(",\"TipButton\":{\"Path\":\"OpenTabletDriver.Desktop.Binding.KeyBinding\",\"Settings\":[{\"Property\":\"Key\",\"Value\":\"K\"}],\"Enable\":true}"));
+                var vmB = Doctor.TipBinding(J(",\"TipButton\":{\"Path\":\"VoiDPlugins.OutputMode.VMultiButtonHandler\",\"Settings\":[{\"Property\":\"Button\",\"Value\":\"Left\"}],\"Enable\":true}"));
+                var none = Doctor.TipBinding(J(""));
+                var rM = Doctor.VanguardRow(mouse.kind, mouse.text); var rV = Doctor.VanguardRow(vmB.kind, vmB.text);
+                Ok("doctor, Valorant: an OTD built-in tip binding (mouse or key - both SendInput) FAILS with the VMulti fix; a VMulti binding passes with the two Vanguard rules as a WARN; a missing binding is named",
+                   mouse.kind == Doctor.TipKind.SendInputMouse && keyB.kind == Doctor.TipKind.SendInputKey && vmB.kind == Doctor.TipKind.VMulti && none.kind == Doctor.TipKind.None &&
+                   rM.Level == "FAIL" && rM.Fix.Contains("VMulti") && rV.Level == "WARN" && rV.Detail.Contains("FIRST mouse") && rV.Detail.Contains("drop left clicks"),
+                   $"{mouse.text} | {keyB.text} | {vmB.text} | {none.text}");
+            }
+
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
             return fails == 0;
         }

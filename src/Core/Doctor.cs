@@ -38,6 +38,43 @@ namespace AimForge.Core
         public static List<string> NotLoaded(IEnumerable<string> enabledPaths, string getfiltersOutput) =>
             enabledPaths.Select(p => (p, n: OtdBridge.LiveName(p))).Where(x => x.n != null && !getfiltersOutput.Contains(x.n!)).Select(x => x.n!).Distinct().ToList();
 
+        /// What the pen tip is bound to in OTD (read-only). OTD's own "Mouse Button Binding" and "Key Binding" press through
+        /// Windows SendInput (OpenTabletDriver v0.6.4.0 source: WindowsVirtualKeyboard / the desktop mouse binding), which
+        /// Vanguard blocks (OTD FAQ, Windows app-specific); a VMulti plugin binding clicks through the VMulti HID device.
+        public enum TipKind { Unknown, None, SendInputMouse, SendInputKey, VMulti, Other }
+        public static (TipKind kind, string text) TipBinding(System.Text.Json.Nodes.JsonObject settingsRoot)
+        {
+            try
+            {
+                var tb = settingsRoot["Profiles"]?[0]?["Bindings"]?["TipButton"] as System.Text.Json.Nodes.JsonObject;
+                if (tb == null) return (TipKind.None, "no tip binding");
+                string path = tb["Path"]?.GetValue<string>() ?? "";
+                string val = string.Join(" ", (tb["Settings"] as System.Text.Json.Nodes.JsonArray ?? new()).Select(x => x?["Value"]?.ToString() ?? ""));
+                if (tb["Enable"]?.GetValue<bool>() == false || path.Length == 0) return (TipKind.None, "tip binding disabled");
+                if (path.Contains("VMulti", StringComparison.OrdinalIgnoreCase)) return (TipKind.VMulti, $"VMulti binding ({val})");
+                if (path == "OpenTabletDriver.Desktop.Binding.MouseBinding") return (TipKind.SendInputMouse, $"OTD mouse button binding ({val})");
+                if (path.EndsWith("KeyBinding")) return (TipKind.SendInputKey, $"OTD key binding ({val})");
+                return (TipKind.Other, path + (val.Length > 0 ? $" ({val})" : ""));
+            }
+            catch { return (TipKind.Unknown, "could not read the tip binding"); }
+        }
+
+        /// The Vanguard row for a Valorant build: the tip must click through VMulti, and two documented Vanguard restrictions
+        /// apply whatever the binding (OTD FAQ): the first mouse-type device it sees is the only one it accepts, and left
+        /// clicks can drop while keyboard keys are held.
+        public static Item VanguardRow(TipKind kind, string text)
+        {
+            const string rules = "Vanguard accepts only the FIRST mouse it sees after launch (touch the pen before the mouse), and can drop left clicks while keys are held (OTD FAQ) - if taps vanish while you strafe, add a keyboard Fire bind in Valorant and press it with the left hand";
+            bool sendInput = kind is TipKind.SendInputMouse or TipKind.SendInputKey;
+            return new Item
+            {
+                Name = "Valorant: pen tip clicks under Vanguard", Ok = !sendInput, Warn = !sendInput,
+                Detail = (sendInput ? "the tip is an " + text + ", which presses through SendInput - Vanguard blocks it, so taps may not fire in Valorant. "
+                                    : "tip: " + text + ". ") + rules,
+                Fix = sendInput ? "in OpenTabletDriver set the tip to the VMulti plugin's button binding (VoiDPlugins VMultiMode), then apply" : "",
+            };
+        }
+
         /// The fix for a row that is not OK, by row name - one table, so every row has an action.
         static readonly (string name, string fix)[] FixTable =
         {
@@ -248,6 +285,12 @@ namespace AimForge.Core
                         int liveTier = on.Count == 0 ? 0 : on.Max(f => f.LiveTier.Length > 1 && char.IsDigit(f.LiveTier[1]) ? f.LiveTier[1] - '0' : 0);
                         string role = RolePolicy.RoleOf(lastCard); int max = RolePolicy.MaxTier(role);
                         o.Add(new Item { Name = "live tier within the card's role", Ok = liveTier <= max, Detail = $"live chain T{liveTier}, last card {lastCard.name} ({role}, max T{max})" });
+                    }
+                    // 2026-10-11: the tip binding under Vanguard, for a live Valorant build (research: OTD FAQ + OTD source)
+                    if (lastCard?.game == "valorant")
+                    {
+                        var tk = TipBinding(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(otd.SettingsPath))!.AsObject());
+                        o.Add(VanguardRow(tk.kind, tk.text));
                     }
                     if (la != null)
                     {
