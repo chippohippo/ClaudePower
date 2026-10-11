@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -170,8 +170,11 @@ namespace AimForge.Core
         /// Returns the fit (Cal null / Refused set when it failed; Restored = the rig now live when the restore took).
         /// `waitForTaps` blocks until the user has tapped. `inFlight` (optional) is set while the press log may be live.
         /// `stateDir` (selftests) holds lastapply.json / nibtwin.json instead of the app folder.
+        /// `enableTwin` (2026-10-11): when the fit succeeds, the restore turns the twin ON with the new calibration (the user
+        /// opted in); when it fails, the build goes back exactly as it was. Off = the twin stays as the live build had it.
         public static NibFit.Result Run(RawAccelBridge ra, OtdBridge otd, Tablet tablet, Func<bool> waitForTaps, Action<string> log,
-                                        double unitsPerMm = 100, LastApply? live = null, Action<bool>? inFlight = null, string? stateDir = null)
+                                        double unitsPerMm = 100, LastApply? live = null, Action<bool>? inFlight = null, string? stateDir = null,
+                                        bool enableTwin = false)
         {
             string? laPath = stateDir == null ? null : Path.Combine(stateDir, "lastapply.json");
             string? calPath = stateDir == null ? null : Path.Combine(stateDir, "nibtwin.json");
@@ -237,6 +240,12 @@ namespace AimForge.Core
                     log("nib: re-applying your build without the press log");
                     var r2 = userRig.Clone(); r2.NibProbe = false;
                     if (r2.NibTwin && fresh != null) { fresh.ApplyTo(r2); log("nib: the live twin takes the NEW calibration"); }
+                    else if (enableTwin && fresh != null)
+                    {
+                        var t2 = r2.Clone(); t2.NibTwin = true; fresh.ApplyTo(t2);
+                        if (otd.NibBlocker(t2) is string nb) log("nib: the twin stays OFF - " + nb);
+                        else { r2 = t2; log("nib: re-applying with the Nib Twin ON (new calibration) - Ctrl+Tab compares it with the build before"); }
+                    }
                     bool restored = false;
                     try
                     {

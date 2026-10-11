@@ -1500,38 +1500,47 @@ namespace AimForge.App
         /// restore. Never the card browsed in the window (2026-09-24 review).
         async Task DoNibCalibrate()
         {
-            if (applying || redetecting) { Log("nib: an apply/redetect is in progress - try again when it finishes"); return; }
+            if (applying || redetecting) { Banner("⚠  CALIBRATION NOT STARTED - an apply/redetect is in progress; try again when it finishes", Warn); return; }
             var la = LastApply.Load();
-            var (lcard, _, why) = NibCalibrator.LiveBuild(la);
-            if (lcard == null) { Log("nib: " + why); return; }
-            var go = MessageBox.Show(this,
-                "Nib calibration measures how far the pen tip's click moves the reported position.\n\n" +
-                $"1. AimForge re-applies your LIVE build ({lcard.name}, applied {la!.At}) with the Nib Twin press log on. The twin itself is off; nothing else changes.\n" +
-                "2. Then hold the pen still in hover and TAP the tip about 20 times, about one tap a second, like firing.\n" +
-                "3. Click OK in the next box. Your live build is re-applied afterwards either way.\n\nStart?",
-                "AimForge - calibrate nib", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-            if (go != DialogResult.OK) return;
-            // the tray stays usable during a modal dialog: re-check before taking the lock, and make sure the live build is
-            // still the one the dialog named (2026-09-24 review)
-            if (applying || redetecting) { Log("nib: an apply/redetect started meanwhile - try again when it finishes"); return; }
-            var laNow = LastApply.Load();
-            if (laNow == null || System.Text.Json.JsonSerializer.Serialize(laNow) != System.Text.Json.JsonSerializer.Serialize(la)) { Log("nib: the live build changed while the dialog was open - press 'calibrate nib' again"); return; }
-            la = laNow; calibratingRig = laNow.AppliedRig();
-            applying = true; bApply.Enabled = bDry.Enabled = false;
-            try
+            var (lcard, lrig, why) = NibCalibrator.LiveBuild(la);
+            if (lcard == null) { Banner("⚠  CALIBRATION NOT STARTED - " + why, Warn); Log("nib: " + why); return; }
+            // 2026-10-11: one in-window flow (NibCalibrateForm) - live tap count, fit numbers explained, opt-in twin
+            using var dlg = new NibCalibrateForm(lcard.name, la!.At, lrig!.NibTwin, NibCalibrator.ProbeLog(otd), 1.0 / cat.tablet.unitMm);
+            dlg.Started += async optIn =>
             {
-                var res = await Task.Run(() => NibCalibrator.Run(ra, otd, cat.tablet,
-                    () => (DialogResult)Invoke(new Func<DialogResult>(() => MessageBox.Show(this, "Now tap the pen tip ~20 times with the pen still (one tap a second).\n\nClick OK when done.",
-                        "AimForge - calibrate nib", MessageBoxButtons.OKCancel, MessageBoxIcon.Information))) == DialogResult.OK,
-                    Log, 1.0 / cat.tablet.unitMm, la, f => calibrating = f));
-                // the live build was re-applied (with the new calibration when the twin was live): keep the A/B snapshot in step
-                if (res.Restored != null && lastApplied != null && lastApplied.P.id == la.CardId) lastApplied = lastApplied with { Rg = res.Restored.Clone() };
-                Log(res.Refused != null ? "nib: " + res.Refused
-                    : res.Restored?.NibTwin == true ? "nib: calibrated - the live twin now uses the new calibration"
-                    : "nib: calibrated - tick 'Nib twin' and apply (either engine)");
-            }
-            catch (Exception ex) { Log("nib: ERROR " + ex.Message); }
-            finally { applying = false; bApply.Enabled = bDry.Enabled = true; RefreshLive(); }
+                // the tray stays usable while the dialog is open: re-check before taking the lock, and make sure the live build
+                // is still the one the dialog named (2026-09-24 review)
+                var laNow = LastApply.Load();
+                if (applying || redetecting) { dlg.ShowResult(new NibFit.Result { Refused = "an apply/redetect started meanwhile - close this and try again" }, null); return; }
+                if (laNow == null || System.Text.Json.JsonSerializer.Serialize(laNow) != System.Text.Json.JsonSerializer.Serialize(la))
+                { dlg.ShowResult(new NibFit.Result { Refused = "the live build changed while this was open - close this and press 'calibrate nib' again" }, null); return; }
+                calibratingRig = laNow.AppliedRig();
+                applying = true; bApply.Enabled = bDry.Enabled = false;
+                var before = lastApplied;
+                try
+                {
+                    var res = await Task.Run(() => NibCalibrator.Run(ra, otd, cat.tablet,
+                        () => ((Task<bool>)dlg.Invoke(new Func<Task<bool>>(dlg.BeginTapping))).GetAwaiter().GetResult(),
+                        Log, 1.0 / cat.tablet.unitMm, laNow, f => calibrating = f, enableTwin: optIn));
+                    if (res.Restored != null && lastApplied != null && lastApplied.P.id == laNow.CardId)
+                    {
+                        lastApplied = lastApplied with { Rg = res.Restored.Clone() };
+                        // the twin was turned on by this calibration: Ctrl+Tab compares it with the build before
+                        if (before != null && !ApplyIdentity.Same(before.P, before.Rg, before.T, lastApplied.P, lastApplied.Rg, lastApplied.T)) prevApplied = before;
+                    }
+                    if (res.Restored?.NibTwin == true && !fTwin.Checked) fTwin.Checked = true;   // the Modes switch follows what is live (and persists it)
+                    Log(res.Refused != null ? "nib: " + res.Refused
+                        : res.Restored?.NibTwin == true ? "nib: calibrated - the live twin uses the new calibration"
+                        : "nib: calibrated - tick 'Nib twin' and apply (either engine)");
+                    Banner(res.Refused == null ? $"✓  NIB CALIBRATED {DateTime.Now:HH:mm} - swing {res.Cal?.MagMm:0.000} mm, R² {res.Cal?.R2:0.00}" + (res.Restored?.NibTwin == true ? " · twin live" : "")
+                                               : "⚠  NIB NOT CALIBRATED - " + res.Refused, res.Refused == null ? Good : Warn);
+                    dlg.ShowResult(res, null);
+                }
+                catch (Exception ex) { Log("nib: ERROR " + ex.Message); Banner("✖  NIB CALIBRATION ERROR - " + ex.Message + " (both drivers were rolled back)", Bad); dlg.ShowResult(new NibFit.Result(), ex.Message); }
+                finally { applying = false; bApply.Enabled = bDry.Enabled = true; RefreshLive(); }
+            };
+            dlg.ShowDialog(this);
+            await Task.CompletedTask;
         }
 
         /// A forced exit mid-calibration would leave the press log live and saved as the daemon default: switch it off

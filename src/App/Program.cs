@@ -2323,6 +2323,32 @@ namespace AimForge.App
                                !Core.OtdBridge.ReadBackMatches(Core.OtdBridge.FilterBlock(gfx, "Nib Twin"), "Probe", 0) && Core.OtdBridge.ReadBackMatches(Core.OtdBridge.FilterBlock(gfx, "Cadence Lock"), "Probe", 0) &&
                                Core.OtdBridge.FilterBlock(gfx, "Coherence Stabilizer") == "");
                         }
+                        // ---- 2026-10-11: the in-window calibration - live progress, and the twin turned on when the user opted in ----
+                        {
+                            var full = Core.NibLab.ModelLog(20, 0.30, 143.1, 21); var fit = Core.NibFit.Fit(full, 100);
+                            var half = full.Take(full.FindIndex(1, l => l.StartsWith("#press")) is int i1 && i1 > 0 ? full.Select((l, i) => (l, i)).Where(x => x.l.StartsWith("#press")).Skip(8).First().i : full.Count).ToList();
+                            var pg = Core.NibFit.Progress(full, 100); var ph = Core.NibFit.Progress(half, 100);
+                            Ok("nib calibration progress: the live counter uses the fit's own settled rule (20 taps -> the fit's count; a half-done log counts 8)",
+                               pg.presses == fit.Presses && pg.settled == fit.Settled && ph.presses == 8 && ph.settled <= 8 && Core.NibFit.Progress(Array.Empty<string>()).presses == 0,
+                               $"full {pg.presses}/{pg.settled} (fit {fit.Presses}/{fit.Settled}), half {ph.presses}/{ph.settled}");
+                        }
+                        {
+                            var (o, r) = Fresh(); var plain = Rig.From(cb); Setup(o, r, cb, plain);
+                            var res = Core.NibCalibrator.Run(r, o, t, Taps(o), _ => { }, 100, null, null, stDir, enableTwin: true);
+                            var la2 = Core.LastApply.Load(laP); var fresh = Core.NibCal.Load(Path.Combine(stDir, "nibtwin.json"));
+                            Ok("nib calibration, twin opted in: a good fit re-applies the build with the Nib Twin ON at the new calibration, verified, and the record says so",
+                               res.Refused == null && res.Restored?.NibTwin == true && NibOnIn(daemon) && NibIn(daemon, "Twin") == 1 && NibIn(daemon, "Probe") == 0 &&
+                               fresh != null && NibIn(daemon, "SkidXmm") == Math.Round(fresh.SkidXmm, 5) && la2?.AppliedRig()?.NibTwin == true,
+                               res.Refused ?? "ok");
+                        }
+                        {
+                            var (o, r) = Fresh(); var plain = Rig.From(cb); Setup(o, r, cb, plain); string laBefore = File.ReadAllText(laP);
+                            Func<bool> fewTaps = () => { phase = "taps"; File.WriteAllLines(Core.NibCalibrator.ProbeLog(o), Core.NibLab.ModelLog(5, 0.30, 143.1, 21)); return true; };
+                            var res = Core.NibCalibrator.Run(r, o, t, fewTaps, _ => { }, 100, null, null, stDir, enableTwin: true);
+                            Ok("nib calibration, twin opted in but the fit is refused (5 taps): the build goes back exactly as it was - twin off, press log off",
+                               res.Refused != null && res.Refused.Contains("settled taps") && !NibOnIn(daemon) && NibIn(daemon, "Twin") != 1 && Core.LastApply.Load(laP)?.AppliedRig()?.NibTwin == false,
+                               res.Refused ?? "(no refusal)");
+                        }
                         // ---- 2026-10-11: every OTD failure rolls back, and the daemon is left on the build before ----
                         string PxIn(System.Text.Json.Nodes.JsonObject root) => root["Profiles"]![0]!["RelativeModeSettings"]!["XSensitivity"]!.ToJsonString();
                         // 9. the chain cannot be read (getfilters fails twice): the engine is unverified, so it rolls back and nothing becomes the default

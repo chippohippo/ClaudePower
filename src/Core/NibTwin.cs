@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -104,10 +104,8 @@ namespace AimForge.Core
         /// A row across a longer gap is not pen motion (OTD's relative mode drops it; a lift re-enters anywhere).
         public const double GapMs = 50;
 
-        public static Result Fit(IEnumerable<string> lines, double unitsPerMm = 100, string source = "")
+        static List<Press> SettledOf(List<Press> presses, double unitsPerMm)
         {
-            var res = new Result();
-            var presses = Parse(lines); res.Presses = presses.Count;
             // settled: the 20-report lead-in (pressure 0) moved less than 0.3 mm and its median speed is under 10 mm/s, and
             // no gap/lift in the lead-in or the first reports of the press
             var ok = new List<Press>();
@@ -124,6 +122,22 @@ namespace AimForge.Core
                 sp.Sort(); double med = sp.Count > 0 ? sp[sp.Count / 2] : 0;
                 if (med < 10 && drift < 0.3) ok.Add(pr);
             }
+            return ok;
+        }
+
+        /// Live progress while the user taps (2026-10-11): presses logged so far and how many of them the fit will use. The
+        /// SAME settled rule as Fit, so the counter in the window can never promise a tap the fit then throws away.
+        public static (int presses, int settled) Progress(IEnumerable<string> lines, double unitsPerMm = 100)
+        {
+            var presses = Parse(lines);
+            return (presses.Count, SettledOf(presses, unitsPerMm).Count);
+        }
+
+        public static Result Fit(IEnumerable<string> lines, double unitsPerMm = 100, string source = "")
+        {
+            var res = new Result();
+            var presses = Parse(lines); res.Presses = presses.Count;
+            var ok = SettledOf(presses, unitsPerMm);
             res.Settled = ok.Count;
             if (ok.Count < NibCal.MinTaps) { res.Refused = $"only {ok.Count} settled taps in {presses.Count} presses (needs {NibCal.MinTaps}): tap with the pen still, one tap a second"; return res; }
             var peaks = ok.Select(pr => pr.P.Max()).OrderBy(v => v).ToList();
