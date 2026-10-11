@@ -1,0 +1,59 @@
+{
+  "evidenceId": "ev-20260924-xp-toggles",
+  "date": "2026-09-24",
+  "card": "breakslow",
+  "claim": "Intent Speed lowers per-report ramp-tracking gain noise ~3x without touching micro-aim, and (clamped to one lattice unit per report) keeps a turn\u0027s gain step within 1.25x plain and a track\u0027s trail under 0.4 mm; Reversal Carry adds gain to the first 40 ms of a strafe leg (strafe rhythm only: a stop-and-settle, rest tremor, a gapped stroke and a flick from rest never arm it - pinned in the selftest)",
+  "revised": "2026-09-24 after an adversarial review: the first version\u0027s carry armed on settles, rest tremor, small-flick corrections and across gaps, and Intent Speed trailed a fast track by up to 1.2 mm; both fixed and re-measured here",
+  "method": "XpLab.Run: the SHIPPING CadenceCore at 360 Hz on the 0.01 mm lattice; A 45-degree tracks at 15-60 mm/s with \u002B/-0.01 mm orthogonal tremor (gain std vs the true-speed gain); B one-unit rest tremor \u002B 1.1 mm/s creep for 3 s; C 40 mm minimum-jerk flicks at 100/150/200 ms; D a 90-degree turn in a 60 mm/s track; E 30 mm p-p strafe at 1.5 Hz; F a 40 mm/100 ms flick then a 1.5 mm correction at 20 mm/s",
+  "results": {
+    "TrackMms": [
+      15,
+      20,
+      30,
+      45,
+      60
+    ],
+    "GainNoiseOffPct": [
+      0.6845953288477058,
+      1.1865587652159015,
+      1.5013195334794898,
+      1.4851578036485429,
+      1.297621469327847
+    ],
+    "GainNoiseIntentPct": [
+      0.19958923400939088,
+      0.35279895835377617,
+      0.439117079509138,
+      0.4271700710024857,
+      0.3745217370429441
+    ],
+    "MicroOffMm": 3.2900009155273438,
+    "MicroIntentMm": 3.2900009155273438,
+    "MicroCarryMm": 3.2900009155273438,
+    "MicroHandMm": 3.2900000000000063,
+    "FlickMs": [
+      100,
+      150,
+      200
+    ],
+    "FlickOffMm": [
+      192.4635009765625,
+      184.7740478515625,
+      173.50650024414062
+    ],
+    "FlickIntentMm": [
+      192.4815673828125,
+      184.73895263671875,
+      173.5086669921875
+    ],
+    "TurnMaxGainStepOff": 0.04831954219087531,
+    "TurnMaxGainStepIntent": 0.054074737518853944,
+    "ReversalGainOff": 1.1370375217110287,
+    "ReversalGainCarry": 1.2015491112683672,
+    "ReversalTravelOffMm": 1.2133750915527344,
+    "ReversalTravelCarryMm": 1.2704906463623047,
+    "OvershootCorrOffMm": 1.43927001953125,
+    "OvershootCorrCarryMm": 1.43927001953125
+  },
+  "fieldVerdict": "pending"
+}

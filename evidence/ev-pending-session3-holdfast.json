@@ -1,0 +1,5 @@
+{
+  "evidenceId": "ev-pending-session3-holdfast",
+  "date": "2026-08-28",
+  "status": "PENDING - behavior shipped and selftest-covered, but no measurement artifact has been minted yet. Run measure-curve / --filter-evidence style harness for this family and replace this stub. Do not cite this id as a field pin."
+}

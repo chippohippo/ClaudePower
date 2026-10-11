@@ -1,0 +1,79 @@
+{
+  "id": "breakwide",
+  "name": "Breakpoint Wide",
+  "group": "Breakpoint \u2014 flick flagship",
+  "tag": "theory",
+  "field": null,
+  "desc": "Breakpoint at the speed you actually play The Finals. Identical DNA to Breakpoint - same 57px/mm, same snap 9\u00B0, same classic accel 0.246 / cap 5.0 / offset 0.5, same unity pocket to 8.8mm/s - with ONE change: the base is authored at cm/360 78.95 instead of 37.70. That number is not theory. On 2026-09-10 you played The Finals at Mouse Look Sensitivity 8 on this rig and rated it good; 8 at 57px/mm IS 78.95cm/360 once the Finals constant is right (ev-20260910-finals-k - the old K was a copy of Overwatch\u2019s and read 6.6x low). What it feels like: every distance at the same pen speed scales by 2.09x against Breakpoint - the slow base is twice as long, so micro-corrections and held tracking are far calmer, and because the cap is still 5.0 the flick end lands at ~15.8cm/360 instead of ~7.5cm. The two-phase play is unchanged: THROW committed so the flick rides the flat cap, then SETTLE under 8.8mm/s where the curve is pure 1:1. Why it is a separate card: cm/360 sets the recommended sens for EVERY game at once, so this speed could not be folded into Breakpoint without halving the recommendation for CoD, Rivals, Apex, OW2, Holdfast, Valorant and HD2. Keep Breakpoint for the BO6-derived 37.70 world and use this when you want that same flick character on a long, calm base. Measured against Breakpoint on the same rig: onset 5.6 ms (two reports), micro 99% and skid 0.389mm are BYTE-IDENTICAL - the curve is the curve - and the only number that moves is the 180, 41.0mm \u2192 78.95mm at 150ms, which is the long base at work and exactly the point of the card.",
+  "pxmm": 49,
+  "cm": 78.95,
+  "snap": 12,
+  "hdlMax": 87,
+  "slider": 0,
+  "res": 0,
+  "adv": {
+    "reset": 80,
+    "accel": 0.246,
+    "cap": 5,
+    "yx": 0.789,
+    "offset": 0.5,
+    "mult": 1
+  },
+  "lut": null,
+  "cohOv": {
+    "window": 70,
+    "hold": 0,
+    "fullPass": 8,
+    "engage": 3,
+    "floor": 0.3,
+    "ceiling": 0.55,
+    "rails": 0,
+    "anchor": 0,
+    "anchorMs": 350,
+    "settle": 0,
+    "settleSpeed": 80,
+    "tap": 1,
+    "tapArm": 1,
+    "tapHold": 30,
+    "tapBreak": 0.9,
+    "lead": 0,
+    "leadMax": 1.5,
+    "IsTapOnly": true
+  },
+  "filters": [
+    {
+      "id": "Hover_Distance_Limiter",
+      "on": true,
+      "settings": {
+        "Hover_max": 87
+      }
+    },
+    {
+      "id": "AimForge.Filters.CodMaster",
+      "on": true,
+      "settings": {
+        "RailStrength": 0.35,
+        "VerticalOnly": 1,
+        "SnapDeg": 9,
+        "FloorUntilMmS": 15,
+        "TapUntilMmS": 55,
+        "TrackUntilMmS": 150
+      }
+    },
+    {
+      "id": "AimForge.Filters.CodLab",
+      "on": false,
+      "settings": {
+        "HoldAssistMs": 120,
+        "FloorUntilMmS": 15,
+        "TapUntilMmS": 55,
+        "TrackUntilMmS": 150
+      }
+    }
+  ],
+  "radialOv": null,
+  "IsLut": false,
+  "RunsFilter": true,
+  "Yx": 0.789,
+  "ResetMs": 80
+}
