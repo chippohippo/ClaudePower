@@ -1,0 +1,388 @@
+{
+  "evidenceId": "ev-20261011-pen-speed-ema",
+  "date": "2026-10-11",
+  "claim": "RawAccel's input-speed EMA does not fix the RawAccel engine's report-timing gain noise on the pen: across 0.5-5 ms half-lives it lowers the aim-band noise std by at most ~30% (Psylocke 17.1% -> 11.9% at 5 ms) while the worst single-report gain error - the spike a player feels - does not improve (Psylocke 69.7% raw, 63-71% smoothed), and it delays the gain on a flick from rest (up to 0.8 mm of the first 30 ms delivered at the wrong gain at 5 ms). Cadence Lock removes the same noise to 0.000% with no lag. The 2026-09-16 decision to keep the pen's speed EMAs at 0 stands; Cadence Lock remains the answer for steep-ramp cards.",
+  "method": "SpeedEmaLab (AimForge --ema-lab): RawAccel's linear_ema_smoother ported line for line from RawAccelOfficial/rawaccel common/rawaccel.hpp (master 53a7213, 2025-07-27; input trend half-life 1.25 ms, dampening 0.75), fed the per-report speed from arrival-time dt. Aim band: CadenceLab's stream (25 mm amplitude, 1.5 Hz, 6 s, 360 Hz, 0.01 mm lattice, +/-10% arrival jitter), scored 55-220 mm/s. Flick: 200 ms rest then 300 mm/s. Tap: 40 mm/s for 60 ms. The user's RawAccel is 1.7.0; the port is from master - the smoother is assumed unchanged since 1.7 (UNVERIFIED against the 1.7.0 tag).",
+  "results": [
+    {
+      "card": "bo6og",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 2.91,
+      "aimWorstPct": 6.5,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 2.87,
+      "aimWorstPct": 6.4,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.013,
+      "tapOvershootPct": 0.1
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 2.68,
+      "aimWorstPct": 6.4,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.096,
+      "tapOvershootPct": 0.4
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 2.53,
+      "aimWorstPct": 6.5,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.189,
+      "tapOvershootPct": 0.8
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 2.41,
+      "aimWorstPct": 6.3,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.24,
+      "tapOvershootPct": 0.5
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 2.26,
+      "aimWorstPct": 6.3,
+      "flickSettleMs": 5.6,
+      "flickLostMm30ms": 0.421,
+      "tapOvershootPct": 1.0
+    },
+    {
+      "card": "bo6og",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 2.12,
+      "aimWorstPct": 6.1,
+      "flickSettleMs": 5.6,
+      "flickLostMm30ms": 0.636,
+      "tapOvershootPct": 0.8
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 17.08,
+      "aimWorstPct": 69.7,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 16.78,
+      "aimWorstPct": 65.6,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 15.55,
+      "aimWorstPct": 63.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 14.59,
+      "aimWorstPct": 65.7,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 13.9,
+      "aimWorstPct": 64.6,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.378,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 12.94,
+      "aimWorstPct": 68.1,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.625,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivpsy",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 11.86,
+      "aimWorstPct": 71.4,
+      "flickSettleMs": 5.6,
+      "flickLostMm30ms": 0.801,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 5.34,
+      "aimWorstPct": 22.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 5.25,
+      "aimWorstPct": 21.8,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 4.9,
+      "aimWorstPct": 22.2,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 4.63,
+      "aimWorstPct": 23.8,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 4.44,
+      "aimWorstPct": 25.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 4.26,
+      "aimWorstPct": 25.0,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "rivloki",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 4.39,
+      "aimWorstPct": 23.6,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.307,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 8.39,
+      "aimWorstPct": 37.2,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 8.25,
+      "aimWorstPct": 36.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 7.72,
+      "aimWorstPct": 36.9,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 7.29,
+      "aimWorstPct": 38.2,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 6.99,
+      "aimWorstPct": 37.0,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 6.55,
+      "aimWorstPct": 34.2,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.248,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owsol",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 6.23,
+      "aimWorstPct": 35.2,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.556,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 5.34,
+      "aimWorstPct": 22.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 5.25,
+      "aimWorstPct": 21.8,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 4.9,
+      "aimWorstPct": 22.2,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 4.63,
+      "aimWorstPct": 23.8,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 4.44,
+      "aimWorstPct": 25.3,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 4.26,
+      "aimWorstPct": 25.0,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "owfreja",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 4.39,
+      "aimWorstPct": 23.6,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.307,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 0.0,
+      "aimNoisePct": 4.23,
+      "aimWorstPct": 8.8,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.0,
+      "tapOvershootPct": 0.0
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 0.5,
+      "aimNoisePct": 4.16,
+      "aimWorstPct": 8.7,
+      "flickSettleMs": 0.0,
+      "flickLostMm30ms": 0.017,
+      "tapOvershootPct": 0.1
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 1.0,
+      "aimNoisePct": 3.9,
+      "aimWorstPct": 8.9,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.113,
+      "tapOvershootPct": 0.9
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 1.5,
+      "aimNoisePct": 3.67,
+      "aimWorstPct": 8.9,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.215,
+      "tapOvershootPct": 1.6
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 2.0,
+      "aimNoisePct": 3.5,
+      "aimWorstPct": 8.7,
+      "flickSettleMs": 2.8,
+      "flickLostMm30ms": 0.295,
+      "tapOvershootPct": 0.9
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 3.0,
+      "aimNoisePct": 3.29,
+      "aimWorstPct": 8.5,
+      "flickSettleMs": 5.6,
+      "flickLostMm30ms": 0.504,
+      "tapOvershootPct": 2.1
+    },
+    {
+      "card": "breakwide",
+      "halfLifeMs": 5.0,
+      "aimNoisePct": 3.12,
+      "aimWorstPct": 8.5,
+      "flickSettleMs": 8.3,
+      "flickLostMm30ms": 0.787,
+      "tapOvershootPct": 1.5
+    }
+  ],
+  "consequence": "No change to any card or default. The finding is pinned by a selftest (the EMA never beats Cadence Lock and never cuts the worst-report error by more than 10% on the steep-ramp cards) and recorded in the graveyard (AIMFORGE.md). Source of the idea: RawAccel guide (smoothing / coalescion) and community advice that speed-only smoothing matters more for tablets.",
+  "fieldVerdict": "not needed - a negative result in simulation; Cadence Lock's field verdict is the open one"
+}

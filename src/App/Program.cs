@@ -404,6 +404,22 @@ namespace AimForge.App
                             : "calibrated: tick Nib twin in the Builds tab (or --apply <id> --twin on)");
                         return res.Refused == null ? 0 : 1;
                     }
+                    case "--ema-lab":
+                    {
+                        // read-only: RawAccel's input-speed EMA (half-life sweep) on the pen - gain noise bought vs flick gain lag paid
+                        var ids = args.Length > 1 ? args.Skip(1).ToArray() : new[] { "bo6og", "rivpsy", "rivloki", "owsol", "owfreja", "breakwide" };
+                        Console.WriteLine("card        half-life  aim noise  aim worst  flick settle  flick lost(30ms)  tap overshoot");
+                        foreach (var id in ids)
+                        {
+                            var ep = cat.Find(id); if (ep == null) { Console.WriteLine($"{id,-10} unknown"); continue; }
+                            foreach (double h in Core.SpeedEmaLab.Sweep)
+                            {
+                                var row = Core.SpeedEmaLab.Run(ep, Rig.From(ep), h);
+                                Console.WriteLine(System.FormattableString.Invariant($"{id,-10} {h,6:0.0} ms  {row.AimNoisePct,7:0.00}%  {row.AimWorstPct,7:0.0}%  {row.FlickSettleMs,8:0.0} ms  {row.FlickLostMm,10:0.000} mm  {row.TapOvershootPct,8:0.0}%"));
+                            }
+                        }
+                        return 0;
+                    }
                     case "--noise":
                     {
                         // read-only: the RawAccel-engine gain noise across the aim band (CadenceLab.RunAimBand, +/-10% jitter)
@@ -2604,6 +2620,24 @@ namespace AimForge.App
                 var adv = cat.presets.Where(BuildState.CadenceRecommended).Select(x => x.id).OrderBy(x => x).ToList();
                 Ok("build state: the one-click Cadence Lock offer appears on exactly the cards whose own copy recommends it (pinned to the measured noise by the character-card test)",
                    adv.Count >= 4 && adv.All(id => cat.Find(id)!.group.StartsWith("Specific Characters")), string.Join(", ", adv));
+            }
+
+            // ---- 2026-10-11: RawAccel's input-speed EMA on the pen - measured, and rejected (ev-20261011-pen-speed-ema) ----
+            {
+                var smoothed = new SpeedEmaLab.LinearEma(2); double v1 = 0; for (int i = 0; i < 200; i++) v1 = smoothed.Smooth(100, 1000.0 / 360);
+                Ok("speed EMA port: RawAccel's linear EMA settles on a steady speed exactly and returns 0 with 0 half-life semantics kept by the caller",
+                   Math.Abs(v1 - 100) < 1e-6, v1.ToString("0.000000"));
+                string why = ""; bool keep = true;
+                foreach (var id in new[] { "rivpsy", "owsol" })
+                {
+                    var cp = cat.Find(id)!; var raw = SpeedEmaLab.Run(cp, Rig.From(cp), 0); var cad = CadenceLab.RunAimBand(cp, Rig.From(cp));
+                    foreach (double h in SpeedEmaLab.Sweep.Where(x => x > 0))
+                    {
+                        var r = SpeedEmaLab.Run(cp, Rig.From(cp), h);
+                        if (r.AimWorstPct < raw.AimWorstPct * 0.9 || r.AimNoisePct <= cad.CadenceGainNoisePct) { keep = false; why += $" {id}@{h}: worst {r.AimWorstPct:0.0} vs {raw.AimWorstPct:0.0}"; }
+                    }
+                }
+                Ok("speed EMA on the pen stays OFF: at no half-life does it cut the worst-report gain error by 10% on the steep-ramp cards, and Cadence Lock always beats it (the evidence's conclusion; re-open it if this fails)", keep, why.Trim());
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
