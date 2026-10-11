@@ -681,11 +681,29 @@ namespace AimForge.App
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         static int RunWindow(Catalogue cat, RawAccelBridge ra, OtdBridge otd, string tuner)
         {
+            // 2026-10-11: never a silent failure - an exception that escapes a handler (an async void click, a timer) is written
+            // to crash.log next to the app and shown, instead of vanishing or killing the window without a word
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            Application.ThreadException += (s, e) => ReportCrash(e.Exception, fatal: false);
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => ReportCrash(e.ExceptionObject as Exception, fatal: true);
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm(cat, ra, otd, tuner));
             return 0;
+        }
+
+        static void ReportCrash(Exception? ex, bool fatal)
+        {
+            string text = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {(fatal ? "FATAL" : "error")}: {ex}";
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), text + Environment.NewLine + Environment.NewLine); } catch { }
+            try
+            {
+                MessageBox.Show((fatal ? "AimForge has to close" : "AimForge hit an unexpected error") + ":\n\n" + ex?.Message +
+                    "\n\nIf this happened during an apply, run the Doctor: its 'live = last apply' row says whether the drivers still carry your last verified build. Details: crash.log next to AimForge.exe." +
+                    (fatal ? "" : "\n\nThe window keeps running; run the Doctor if anything looks wrong."), "AimForge", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch { }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -2566,6 +2584,26 @@ namespace AimForge.App
                 else Ok("360 calibration: tuner.html is next to the app for the patch test", false, tunerPath);
                 Ok("cards print their sens from the game's K: every Deadlock card's in-game number equals K / (eDPI x cm) (no hard-coded copy left to go stale)",
                    cat.presets.Where(x => x.game == "deadlock").All(x => x.desc.Contains(Curve.SensFor(dg.K, Rig.From(x), Rig.From(x).Mult).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))));
+            }
+
+            // ---- 2026-10-11: what the window says about the build (BuildState) ----
+            {
+                var bsP = cat.Find("bo6og")!; var r0 = Rig.From(bsP); var t0 = FilterPlan.Prefill(bsP);
+                var rNext = r0.Clone(); rNext.Engine = "cadence"; rNext.NibTwin = true; new NibCal { SkidXmm = 0.1, SkidYmm = 0.1, R2 = 0.9, Taps = 20 }.ApplyTo(rNext);
+                var pend = BuildState.PendingChanges(bsP, r0, t0, bsP, rNext, t0);
+                var rTps = r0.Clone(); rTps.TpsGain = 1.2; rTps.Mult *= 1.2;
+                var rLive = r0.Clone(); rLive.MirrorMouse = true; rLive.MouseIdPrefixes = new[] { "HID\\VID_1" }; var rCompose = rLive.Clone(); rCompose.MouseIdPrefixes = Array.Empty<string>();
+                Ok("build state: pending changes read in the user's words, one item per change (the five calibration fields are one 'Nib calibration'; the match folded into the multiplier is one 'third-person match')",
+                   pend.SequenceEqual(new[] { "engine", "Nib Twin", "Nib calibration" }) && BuildState.PendingChanges(bsP, r0, t0, bsP, rTps, t0).SequenceEqual(new[] { "third-person match" }),
+                   string.Join(", ", pend));
+                Ok("build state: the same build is 'no changes', and a mouse device list that is only discovered at apply time is not a change",
+                   BuildState.PendingChanges(bsP, r0, t0, bsP, r0.Clone(), t0).Count == 0 && BuildState.PendingChanges(bsP, rLive, t0, bsP, rCompose, t0).Count == 0);
+                var rm = r0.Clone(); rm.Engine = "cadence"; rm.NibTwin = true; rm.ReversalCarryMs = 40; rm.TpsGain = 1.21; rm.MirrorMouse = true;
+                Ok("build state: the live line names the engine and every mode that is on, and only those",
+                   BuildState.Modes(rm) == "CADENCE LOCK  ·  NIB TWIN  ·  CARRY 40 MS  ·  3RD-PERSON x1.21  ·  MOUSE MIRROR" && BuildState.Modes(r0) == "RAWACCEL", BuildState.Modes(rm));
+                var adv = cat.presets.Where(BuildState.CadenceRecommended).Select(x => x.id).OrderBy(x => x).ToList();
+                Ok("build state: the one-click Cadence Lock offer appears on exactly the cards whose own copy recommends it (pinned to the measured noise by the character-card test)",
+                   adv.Count >= 4 && adv.All(id => cat.Find(id)!.group.StartsWith("Specific Characters")), string.Join(", ", adv));
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");

@@ -104,6 +104,8 @@ namespace AimForge.App
                 }
                 finally { suppress = false; }
                 if (tgL is FilterPlan.Toggles tge) { prefillExact = tge; prefillShown = CurrentToggles(); }
+                // 2026-10-11: the recorded live build is the A/B and 'next apply changes' baseline from the first second
+                if (la0.Card is Preset lc) lastApplied = new Applied(lc, lr.Clone(), tgL ?? CurrentToggles());
                 Recalc();
             }
             else if (la0 != null && liveCard != null && la0.CardId != liveCard.id)
@@ -116,7 +118,10 @@ namespace AimForge.App
         readonly SegTabs nav = new SegTabs { Big = true, Height = 58 }, setTabs = new SegTabs();
         readonly Dictionary<Control, List<Action>> shownHandlers = new();
         void OnShown(Control page, Action a) { if (!shownHandlers.TryGetValue(page, out var l)) shownHandlers[page] = l = new List<Action>(); l.Add(a); }
-        Label heroGroup = new Label(), heroName = new Label(), heroMeta = new Label(), applyBanner = new Label();
+        Label heroGroup = new Label(), heroName = new Label(), heroMeta = new Label(), applyBanner = new Label(), liveModes = new Label();
+        /// 2026-10-11: one-click actions that appear only when they apply (Cadence advice, a stale daemon, an estimated game constant)
+        readonly FlowLayoutPanel heroActions = new FlowLayoutPanel();
+        readonly Button bCadenceRec = new Button(), bRestartDaemon = new Button(), bCalib360 = new Button();
         /// The result of the last apply, big and coloured under the build name (2026-09-27: refusals only reached the console).
         void Banner(string text, Color c)
         {
@@ -197,7 +202,7 @@ namespace AimForge.App
             };
             Theme.Button(bExport, "EXPORT"); bExport.Width = 80; bExport.Click += (s, e) => DoExportBuild();
             Theme.Button(bImport, "IMPORT"); bImport.Width = 80; bImport.Click += (s, e) => DoImportBuild();
-            Theme.Button(bDoctor, "DOCTOR"); bDoctor.Width = 84; bDoctor.Click += (s, e) => { SetConsole(true); foreach (var i in Doctor.Run(ra, otd, cat)) Log(i.ToString()); };
+            Theme.Button(bDoctor, "DOCTOR"); bDoctor.Width = 84; bDoctor.Click += async (s, e) => await DoDoctor();
             Theme.Button(bTuner, "FULL TUNER"); bTuner.Width = 104; bTuner.Click += (s, e) => OpenTuner();
             var bConsole = new Button(); Theme.Button(bConsole, "CONSOLE  ▲"); bConsole.Width = 112;
             bConsole.Click += (s, e) => { SetConsole(!consoleOpen); bConsole.Text = consoleOpen ? "CONSOLE  ▼" : "CONSOLE  ▲"; };
@@ -239,7 +244,7 @@ namespace AimForge.App
 
             // center: hero, tiles, curve, sensitivity + checks
             var center = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Bg, Margin = new Padding(0, 0, 14, 0) };
-            center.RowStyles.Add(new RowStyle(SizeType.Absolute, 124)); center.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
+            center.RowStyles.Add(new RowStyle(SizeType.Absolute, 168)); center.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
             center.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); center.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));
             body.Controls.Add(center, 1, 0);
 
@@ -256,7 +261,21 @@ namespace AimForge.App
             heroBtns.Controls.Add(bApply); heroBtns.Controls.Add(bDry);
             applyBanner.Font = Theme.Caps; applyBanner.AutoSize = false; applyBanner.Location = new Point(20, 88); applyBanner.Size = new Size(900, 20); applyBanner.BackColor = Color.Transparent;
             applyBanner.ForeColor = Steel; applyBanner.Text = "NOT APPLIED YET THIS SESSION";
-            hero.Controls.Add(heroBtns); hero.Controls.Add(applyBanner); hero.Controls.Add(heroMeta); hero.Controls.Add(heroName); hero.Controls.Add(heroGroup);
+            // what is LIVE (the effective modes of the last apply, not the switches) and what the next apply would change
+            liveModes.Font = Theme.Small; liveModes.AutoSize = false; liveModes.Location = new Point(20, 110); liveModes.Size = new Size(900, 18); liveModes.BackColor = Color.Transparent; liveModes.ForeColor = Steel;
+            tip.SetToolTip(liveModes, "LIVE = what the last verified apply put in the drivers. NEXT APPLY = what Ctrl+Enter would change, from the switches and fields as they are now.");
+            heroActions.Location = new Point(16, 130); heroActions.Size = new Size(900, 32); heroActions.BackColor = Color.Transparent; heroActions.WrapContents = false;
+            Theme.Button(bCadenceRec, "APPLY THIS ON CADENCE LOCK", chip: true); bCadenceRec.Width = 220; bCadenceRec.Visible = false;
+            tip.SetToolTip(bCadenceRec, "This card's own measurement: on the RawAccel engine its steep ramp turns report-timing jitter into gain noise. Cadence Lock prices speed on the pen's clock instead. Ticks the engine and applies (Ctrl+Tab compares).");
+            bCadenceRec.Click += async (s, e) => { fCadence.Checked = true; await DoApply(false); };
+            Theme.Button(bRestartDaemon, "RESTART OTD DAEMON…", chip: true); bRestartDaemon.Width = 180; bRestartDaemon.Visible = false;
+            tip.SetToolTip(bRestartDaemon, "A plugin on disk is newer than the running OTD daemon, so the daemon still runs the old build. Restarting loads it; you confirm first.");
+            bRestartDaemon.Click += async (s, e) => await DoRestartDaemon(confirm: true);
+            Theme.Button(bCalib360, "360° CALIBRATION…", chip: true); bCalib360.Width = 160; bCalib360.Visible = false;
+            tip.SetToolTip(bCalib360, "This game's sensitivity constant is ESTIMATED. Measure it once (the game's yaw value, or one slow marked 360) and every card of the game prints the right in-game sens.");
+            bCalib360.Click += (s, e) => DoCalib360();
+            heroActions.Controls.AddRange(new Control[] { bCadenceRec, bRestartDaemon, bCalib360 });
+            hero.Controls.Add(heroBtns); hero.Controls.Add(heroActions); hero.Controls.Add(liveModes); hero.Controls.Add(applyBanner); hero.Controls.Add(heroMeta); hero.Controls.Add(heroName); hero.Controls.Add(heroGroup);
             center.Controls.Add(hero, 0, 0);
 
             var tiles = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, BackColor = Bg, Margin = new Padding(0, 0, 0, 10) };
@@ -350,13 +369,7 @@ namespace AimForge.App
             menu.Items.Add("Show", null, (s, e) => { Show(); WindowState = FormWindowState.Normal; Activate(); });
             menu.Items.Add("Apply current preset", null, async (s, e) => await DoApply(false));
             menu.Items.Add("Redetect tablet (Ctrl+D)", null, async (s, e) => await DoRedetect());
-            menu.Items.Add("Restart OTD daemon (loads new plugins)", null, async (s, e) =>
-            {
-                if (applying || redetecting) { Log("daemon restart: an apply or redetect is in progress - try again when it finishes"); return; }
-                redetecting = true;
-                try { await Task.Run(() => otd.RestartDaemon(Log)); } finally { redetecting = false; }
-                RefreshLive();
-            });
+            menu.Items.Add("Restart OTD daemon (loads new plugins)", null, async (s, e) => await DoRestartDaemon(confirm: false));
             menu.Items.Add("Restore last RawAccel backup", null, (s, e) => { if (applying) { Log("restore: an apply is in progress - try again when it finishes"); return; } try { ra.RestoreLastBackup(Log); } catch (Exception ex) { Log("restore: " + ex.Message); } RefreshLive(); });
             menu.Items.Add("Exit", null, (s, e) => Shutdown());
             tray.ContextMenuStrip = menu; tray.DoubleClick += (s, e) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
@@ -454,14 +467,19 @@ namespace AimForge.App
             if (sel) using (var red = new SolidBrush(Theme.Red)) g.FillRectangle(red, r.X, r.Y, 3, r.Height);
             string tier = RolePolicy.PlanTier(p);
             int right = r.Right - 10;
-            if (tier.Length > 1 && tier[1] >= '3')
+            // status chips, right to left: the latency tier when it is T3+, the card's own Cadence Lock advice, and LIVE
+            void Chip(string text, Color c, bool fill = false)
             {
-                var sz = TextRenderer.MeasureText(tier, Theme.Caps); right -= sz.Width + 8;
+                var sz = TextRenderer.MeasureText(text, Theme.Caps); right -= sz.Width + 8;
                 var br = new Rectangle(right, r.Y + 7, sz.Width + 8, 16);
-                using (var pen = new Pen(Theme.Amber)) g.DrawRectangle(pen, br);
-                TextRenderer.DrawText(g, tier, Theme.Caps, br, Theme.Amber, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                if (fill) using (var bgc = new SolidBrush(Color.FromArgb(60, c))) g.FillRectangle(bgc, br);
+                using (var pen = new Pen(c)) g.DrawRectangle(pen, br);
+                TextRenderer.DrawText(g, text, Theme.Caps, br, c, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                 right -= 6;
             }
+            if (tier.Length > 1 && tier[1] >= '3') Chip(tier, Theme.Amber);
+            if (BuildState.CadenceRecommended(p)) Chip("CADENCE", Theme.Steel);
+            if (lastApplied?.P.id == p.id) Chip("LIVE", Theme.Teal, fill: true);
             if (p.field == "good") { g.SmoothingMode = SmoothingMode.AntiAlias; using var dot = new SolidBrush(Theme.Teal); g.FillEllipse(dot, right - 8, r.Y + 12, 6, 6); right -= 14; }
             TextRenderer.DrawText(g, p.name, sel ? Theme.BodyB : Theme.Body, new Rectangle(r.X + 16, r.Y, right - r.X - 16, r.Height), sel ? Color.White : Ink,
                                   TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
@@ -569,12 +587,12 @@ namespace AimForge.App
                     if (parts.Length > 2 && double.TryParse(parts[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var mg)) savedMerge = mg;
                 }
             }
-            catch { }
+            catch (Exception ex) { Log("warning: engine.txt could not be read (" + ex.Message + ") - the setting holds for this session only"); }
             void SaveEngine()
             {
                 rig.Engine = fCadence.Checked ? "cadence" : "rawaccel";
                 rig.ReportHz = (double)fCadHz.Value; rig.MergeMax = (double)fCadMerge.Value;
-                if (!constructing) try { System.IO.File.WriteAllText(EnginePath, string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0};{1};{2}", rig.Engine, rig.ReportHz, rig.MergeMax)); } catch { }
+                if (!constructing) try { System.IO.File.WriteAllText(EnginePath, string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0};{1};{2}", rig.Engine, rig.ReportHz, rig.MergeMax)); } catch (Exception ex) { Log("warning: engine.txt could not be saved (" + ex.Message + ") - the setting holds for this session only"); }
             }
             fCadence.CheckedChanged += (s, e) =>
             {
@@ -606,7 +624,7 @@ namespace AimForge.App
             void SaveXp()
             {
                 xpState.Intent = fIntent.Checked; xpState.CarryMs = fCarry.Checked ? (double)fCarryMs.Value : 0; xpState.Twin = fTwin.Checked;
-                if (!constructing) try { xpState.Save(); } catch { }
+                if (!constructing) try { xpState.Save(); } catch (Exception ex) { Log("warning: xp.txt could not be saved (" + ex.Message + ") - the setting holds for this session only"); }
                 xpState.ApplyTo(rig);
             }
             fIntent.CheckedChanged += (s, e) => { SaveXp(); Log(fIntent.Checked ? "experimental: Intent Speed ON - the next Cadence Lock apply selects gain from the coherent velocity (needs the Cadence Lock engine)" : "experimental: Intent Speed off"); };
@@ -653,7 +671,7 @@ namespace AimForge.App
                 tpsState.On = fTps.Checked; tpsState.FightM = (double)fTpsFight.Value;
                 // the arm control edits the selected card's game only, and only when the user changed it (not when a select pushed it)
                 if (cur != null && ThirdPerson.IsThirdPerson(cur) && !tpsPushing && Math.Abs((double)fTpsCam.Value - tpsState.ArmFor(cur)) > 1e-9) tpsState.SetArm(cur, (double)fTpsCam.Value);
-                if (!constructing) try { tpsState.Save(); } catch { }
+                if (!constructing) try { tpsState.Save(); } catch (Exception ex) { Log("warning: tps.txt could not be saved (" + ex.Message + ") - the setting holds for this session only"); }
                 Recalc();
             }
             fTps.CheckedChanged += (s, e) => { SaveTps(); Log(fTps.Checked ? "third-person match ON - " + (cur != null && ThirdPerson.IsThirdPerson(cur) ? "the next apply of this card scales its output by x" + tpsState.KFor(cur).ToString("0.00") : "third-person cards will be scaled at apply") + " (in-game sensitivity unchanged)" : "third-person match off"); };
@@ -673,7 +691,7 @@ namespace AimForge.App
             {
                 mouseState.On = fMouse.Checked; mouseState.Dpi = (double)fMouseDpi.Value; mouseState.HalfLifeMs = (double)fMouseHl.Value;
                 mouseState.Yx = fMouseYx.Value == 0 ? (double?)null : (double)fMouseYx.Value;
-                if (!constructing) try { mouseState.Save(); } catch { }
+                if (!constructing) try { mouseState.Save(); } catch (Exception ex) { Log("warning: mouse.txt could not be saved (" + ex.Message + ") - the setting holds for this session only"); }
                 mouseState.ApplyTo(rig); UpdateMouseReadout();
             }
             fMouse.CheckedChanged += (s, e) => { SaveMouse(); Log(fMouse.Checked
@@ -725,6 +743,7 @@ namespace AimForge.App
                     ThirdPerson.FeelVsFps(tk, tarm, 25), ThirdPerson.FeelVsFps(1, tarm, 25),
                     tpsState.PresetName is string pn ? " (" + pn + ")" : "");
             tpsDiagram.Invalidate();
+            UpdateBuildState();
             desc.Text = cur.desc.Replace("\n", Environment.NewLine);
             heroGroup.Text = (cur.group ?? "").ToUpperInvariant();
             heroName.Text = cur.name.ToUpperInvariant();
@@ -856,8 +875,8 @@ namespace AimForge.App
         {
             if (applying || redetecting) { Log((applying ? "apply" : "redetect") + " already in progress - ignored"); Banner("⚠  " + (applying ? "AN APPLY" : "A REDETECT") + " IS ALREADY RUNNING - wait for it to finish", Warn); return; }
             Banner(dry ? "…  DRY RUN" : "…  APPLYING", Steel);
-            applying = true;
-            try { await DoApplyCore(dry, replay); } finally { applying = false; }
+            applying = true; UpdateBuildState();
+            try { await DoApplyCore(dry, replay); } finally { applying = false; UpdateBuildState(); }
         }
 
         async Task DoApplyCore(bool dry, Rig? replay = null)
@@ -937,11 +956,11 @@ namespace AimForge.App
                     var abDiff = lastApplied == null ? null : ApplyIdentity.Differences(lastApplied.P, lastApplied.Rg, lastApplied.T, p, rg, toggles);
                     if (lastApplied != null && abDiff!.Count > 0) { prevApplied = lastApplied; Log("A/B (Ctrl+Tab): " + lastApplied.P.name + " vs this apply - differs in " + string.Join(", ", abDiff)); }
                     LastApply.From(p, rg).Save();
-                    lastApplied = snap;
+                    lastApplied = snap; list.Invalidate();   // the LIVE chip moves
                     // the last APPLIED card, mirrored or not (the CLI --mouse on builds from it)
                     mouseState.LastCardId = p.id; mouseState.LastPxMm = rg.PxMm; mouseState.LastMult = rg.Mult;
                     if (rg.MirrorMouse && rg.MouseIdPrefixes.Length > 0) mouseState.Prefixes = rg.MouseIdPrefixes;
-                    try { mouseState.Save(); } catch { }
+                    try { mouseState.Save(); } catch (Exception ex) { Log("warning: mouse.txt could not be saved after the apply (" + ex.Message + ") - the setting holds for this session only"); }
                     // Watchdog: an apply occasionally costs OTD the tablet. Verify and self-heal
                     // once before telling the user anything is wrong.
                     bool alive = await Task.Run(() => otd.TabletResponding());
@@ -960,7 +979,7 @@ namespace AimForge.App
                 else { Log("dry run complete"); if (blockers.Count == 0) Banner("✓  DRY RUN OK - " + p.name + " would apply" + (skipped.Count > 0 ? " (" + string.Join("; ", skipped.Select(x => x.Split(':')[0])) + ")" : ""), Good); }
             }
             catch (Exception ex) { Log("ERROR: " + ex.Message); Banner("✖  NOT APPLIED - " + ex.Message, Bad); SetConsole(true); }
-            RefreshLive(); bApply.Enabled = bDry.Enabled = true;
+            RefreshLive(); bApply.Enabled = bDry.Enabled = true; UpdateBuildState();
         }
 
         /// A/B compare (mission item 10): the selected build vs the last APPLIED one - the two
@@ -1084,9 +1103,16 @@ namespace AimForge.App
                 {
                     ("LIVE  " + (la?.CardName ?? "no apply on record").ToUpperInvariant(), la == null ? Steel : Good),
                     (o.CadenceOn && r.Flat ? "CADENCE LOCK" : !o.CadenceOn && !r.Flat ? "RAWACCEL ENGINE" : "ENGINE MISMATCH", o.CadenceOn == r.Flat ? Good : Bad),
-                    (tab ? "TABLET CONNECTED" : "TABLET NOT FOUND", tab ? Good : Bad),
+                    (tab ? "TABLET CONNECTED" : "TABLET NOT FOUND  ·  PLUG IN, THEN CTRL+D", tab ? Good : Bad),
                 };
                 statusBar.Invalidate();
+                // a plugin rebuilt after the daemon started is NOT what the daemon runs: say so where the user looks, offer the fix
+                var stale = otd.PluginNewerThanDaemon() ?? otd.PluginNewerThanDaemon(otd.StabilizerDll);
+                bRestartDaemon.Visible = stale != null;
+                if (stale != null && !applying)
+                    Banner($"⚠  A PLUGIN BUILT {stale.Value.ToLocalTime():HH:mm} IS NOT LOADED - THE DAEMON STILL RUNS THE OLD ONE. RESTART THE OTD DAEMON (BUTTON BELOW) BEFORE APPLYING", Warn);
+                else if (la == null && applyBanner.Text.StartsWith("NOT APPLIED YET"))
+                    Banner(tab ? "NO BUILD APPLIED YET - PICK A CARD ON THE LEFT, THEN APPLY (CTRL+ENTER)" : "NO TABLET - PLUG IN THE WACOM, THEN REDETECT (CTRL+D)", tab ? Steel : Warn);
             }
             catch (Exception e) { live.Text = "live: " + e.Message; }
         }
@@ -1489,6 +1515,78 @@ namespace AimForge.App
             g.DrawString($"cam  L {L:0.0} m", f, ink, x0, y + 7);
             var dTxt = $"D {D:0} m  →  k = (D+L)/D = {k:0.00}";
             g.DrawString(dTxt, f, acc, Math.Max(xh + 4, xt - g.MeasureString(dTxt, f).Width), y + 7);
+        }
+
+        // ---- 2026-10-11: build state, one-click fixes, the Doctor panel, the 360 calibration ----
+
+        /// The build the next Ctrl+Enter would apply, composed exactly like DoApplyCore but on copies (nothing is saved,
+        /// no driver is read; the mouse device list is discovered at apply time and left empty here).
+        (Preset p, Rig rg, FilterPlan.Toggles t, List<string> skipped) ComposeNext()
+        {
+            var p = EffectivePreset(); var t = CurrentToggles(); var r = rig.Clone();
+            r.HdlEnabled = fHdl.Checked; r.Engine = fCadence.Checked ? "cadence" : "rawaccel";
+            r.ReportHz = (double)fCadHz.Value; r.MergeMax = (double)fCadMerge.Value;
+            xpState.ApplyTo(r);
+            mouseState.ApplyTo(r); r.MirrorMouse = fMouse.Checked; if (!r.MirrorMouse) r.MouseIdPrefixes = Array.Empty<string>();
+            ThirdPerson.ApplyTo(r, p, tpsState);
+            var skipped = Experiments.Soften(r, p, otd.NibBlocker(r));
+            return (p, r, t, skipped);
+        }
+
+        void UpdateBuildState()
+        {
+            if (cur == null) return;
+            bCadenceRec.Visible = BuildState.CadenceRecommended(cur) && !fCadence.Checked;
+            var g = cat.GameOf(cur);
+            bCalib360.Visible = g != null && g.kMeasured == null && (g.note.Contains("calibrate before trusting", StringComparison.OrdinalIgnoreCase) || g.id == "deadlock");
+            if (applying) { bApply.Text = "APPLYING…"; return; }
+            try
+            {
+                var (p, rg, t, skipped) = ComposeNext();
+                var la = lastApplied;
+                List<string> pend = la == null ? new List<string> { "first apply" } : BuildState.PendingChanges(la.P, la.Rg, la.T, p, rg, t);
+                string liveTxt = la == null ? "LIVE: nothing applied this session" : "LIVE: " + la.P.name.ToUpperInvariant() + "  ·  " + BuildState.Modes(la.Rg);
+                string next = pend.Count == 0 ? "   ✓ NEXT APPLY: no changes" : "   ● NEXT APPLY CHANGES: " + string.Join(", ", pend);
+                if (skipped.Count > 0) next += "   ·  will skip: " + string.Join("; ", skipped.Select(x => x.Split(':')[0]));
+                liveModes.Text = liveTxt + next; liveModes.ForeColor = pend.Count == 0 ? Steel : Warn;
+                bApply.Text = la == null ? "APPLY TO DRIVERS" : pend.Count == 0 ? "RE-APPLY (NO CHANGES)" : "APPLY CHANGES";
+            }
+            catch (Exception ex) { liveModes.Text = "could not compose the next apply: " + ex.Message; liveModes.ForeColor = Bad; }
+        }
+
+        async Task DoRestartDaemon(bool confirm)
+        {
+            if (applying || redetecting) { Banner("⚠  DAEMON NOT RESTARTED - an apply or redetect is in progress; try again when it finishes", Warn); return; }
+            if (confirm && MessageBox.Show(this, "Restart the OpenTabletDriver daemon now?\n\nIt loads the newer plugin build from disk. The pen stops for a few seconds while it restarts; your settings are kept. Do it outside a match.",
+                    "AimForge - restart OTD daemon", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
+            redetecting = true;
+            try { await Task.Run(() => otd.RestartDaemon(Log)); Banner($"✓  OTD DAEMON RESTARTED {DateTime.Now:HH:mm} - plugins reloaded; apply your build again to be sure it carries them", Good); }
+            catch (Exception ex) { Log("daemon restart: " + ex.Message); Banner("✖  DAEMON RESTART FAILED - " + ex.Message, Bad); }
+            finally { redetecting = false; }
+            RefreshLive();
+        }
+
+        async Task DoDoctor()
+        {
+            bDoctor.Enabled = false;
+            try
+            {
+                var rows = await Task.Run(() => Doctor.Run(ra, otd, cat));
+                Log("doctor:"); foreach (var i in rows) Log(i.ToString());
+                int bad = rows.Count(i => i.Level == "FAIL"), warn = rows.Count(i => i.Level == "WARN");
+                Banner(bad > 0 ? $"✖  DOCTOR: {bad} FAIL, {warn} WARN - see the Doctor panel" : warn > 0 ? $"⚠  DOCTOR: all checks pass, {warn} WARN" : "✓  DOCTOR: every check passes", bad > 0 ? Bad : warn > 0 ? Warn : Good);
+                using var f = new DoctorForm(rows); f.ShowDialog(this);
+            }
+            catch (Exception ex) { Log("doctor: " + ex.Message); Banner("✖  DOCTOR COULD NOT RUN - " + ex.Message, Bad); }
+            finally { bDoctor.Enabled = true; }
+        }
+
+        void DoCalib360()
+        {
+            if (cur == null || cat.GameOf(cur) is not Game g) return;
+            using var f = new Calib360Form(g, cur, tunerHtml, Log);
+            f.ShowDialog(this);
+            if (f.Written) Banner($"✓  {g.name.ToUpperInvariant()} K MEASURED - run 'node export-presets.js tuner.html' and restart AimForge to load the new sens", Good);
         }
 
         static void SetNum(NumericUpDown n, double v) => n.Value = (decimal)Math.Clamp(v, (double)n.Minimum, (double)n.Maximum);
