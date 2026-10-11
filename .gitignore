@@ -2,3 +2,5 @@
 out-linux/
 out/
 crash.log
+AimForge-update-*/
+AimForge-update-*.zip
