@@ -112,7 +112,7 @@ namespace AimForge.App
                             {
                                 // cross-driver rollback (2026-09-16 review): never the curve in both places or in neither
                                 if (bak.Length > 0) ra.RestoreBackup(bak, log);
-                                Console.WriteLine("the OTD half did not take - RawAccel was rolled back to the build before this apply");
+                                Console.WriteLine("the OTD half did not take" + (otd.LastFailure != null ? " (" + otd.LastFailure + ")" : "") + " - RawAccel was rolled back to the build before this apply");
                                 return 1;
                             }
                             if (!dry) { try { xps.Save(); tpsS.Save(); } catch { } Core.LastApply.From(p, rig).Save(); }
@@ -2123,7 +2123,7 @@ namespace AimForge.App
                     string cx = Path.Combine(Path.GetTempPath(), "aimforge-selftest-calib");
                     string otdDir = Path.Combine(cx, "otd"), raDir = Path.Combine(cx, "ra"), stDir = Path.Combine(cx, "state");
                     var cmds = new List<string>(); System.Text.Json.Nodes.JsonObject daemon = new System.Text.Json.Nodes.JsonObject();
-                    string phase = ""; int ignoreLoads = 0; bool dropFade = false; string? throwOn = null;
+                    string phase = ""; int ignoreLoads = 0, failGf = 0; bool dropFade = false; string? throwOn = null; Func<string, bool> dropProp = _ => false;
                     string Disp(string path) => path.Contains("Hover_Distance") ? "Hover Distance Limiter" : path.Contains("CoherenceStabilizerTabletSpace") ? "Coherence Stabilizer (Tablet coordinates)"
                         : path.Contains("NibTwin") ? "AimForge Nib Twin (click-skid cancel, T1)" : path.Contains("CadenceLock") ? "AimForge Cadence Lock (tablet-space accel, T0)"
                         : path.EndsWith("CodMaster") ? "AimForge CoD Master (recoil rail, T1)" : path;
@@ -2142,9 +2142,10 @@ namespace AimForge.App
                         }
                         if (a.StartsWith("getsensitivity"))
                             return (true, "Horizontal Sensitivity: " + daemon["Profiles"]![0]!["RelativeModeSettings"]!["XSensitivity"]!.GetValue<double>().ToString(System.Globalization.CultureInfo.CurrentCulture) + "px/mm");
+                        if (a.StartsWith("getfilters") && failGf > 0) { failGf--; return (false, "timeout"); }
                         if (a.StartsWith("getfilters"))
                             return (true, "Filters: " + string.Join(", ", Fl(daemon).Where(f => f!["Enable"]?.GetValue<bool>() == true).Select(f => "'" + Disp(f!["Path"]!.GetValue<string>()) + ": " +
-                                string.Join(", ", (f["Settings"]?.AsArray() ?? new System.Text.Json.Nodes.JsonArray()).Where(s => !(dropFade && s!["Property"]!.GetValue<string>() == "TapMoveFade"))
+                                string.Join(", ", (f["Settings"]?.AsArray() ?? new System.Text.Json.Nodes.JsonArray()).Where(s => !(dropFade && s!["Property"]!.GetValue<string>() == "TapMoveFade") && !dropProp(s!["Property"]!.GetValue<string>()))
                                     .Select(s => "{ " + s!["Property"]!.GetValue<string>() + ": " + s["Value"]!.ToJsonString() + " }")) + "'")));
                         if (a.StartsWith("savedefaultsettings")) { File.WriteAllText(Path.Combine(otdDir, "settings.json"), daemon.ToJsonString()); return (true, ""); }
                         return (true, "");
@@ -2157,7 +2158,7 @@ namespace AimForge.App
                         File.WriteAllText(Path.Combine(otdDir, "Plugins", "AimForge Game Filters", "AimForge.Filters.dll"), "");
                         File.WriteAllText(Path.Combine(otdDir, "settings.json"), "{\"Profiles\":[{\"Tablet\":\"Wacom DTC-141\",\"RelativeModeSettings\":{\"XSensitivity\":90,\"YSensitivity\":90,\"RelativeResetDelay\":\"00:00:00.0800000\"},\"Bindings\":{\"TipActivationThreshold\":2},\"Filters\":[]}]}");
                         File.WriteAllText(Path.Combine(raDir, "settings.json"), RaFixture()); File.WriteAllText(Path.Combine(raDir, "writer.exe"), "stub");
-                        daemon = LoadJ(Path.Combine(otdDir, "settings.json")); cmds.Clear(); phase = "setup"; ignoreLoads = 0; dropFade = false; throwOn = null;
+                        daemon = LoadJ(Path.Combine(otdDir, "settings.json")); cmds.Clear(); phase = "setup"; ignoreLoads = 0; failGf = 0; dropFade = false; throwOn = null; dropProp = _ => false;
                         return (new Core.OtdBridge(otdDir, otdDir), new RawAccelBridge(raDir) { WriterRunner = () => 0 });
                     }
                     string laP = Path.Combine(stDir, "lastapply.json");
@@ -2289,6 +2290,53 @@ namespace AimForge.App
                             Ok("read-back: a key is read inside its own filter's block",
                                !Core.OtdBridge.ReadBackMatches(Core.OtdBridge.FilterBlock(gfx, "Nib Twin"), "Probe", 0) && Core.OtdBridge.ReadBackMatches(Core.OtdBridge.FilterBlock(gfx, "Cadence Lock"), "Probe", 0) &&
                                Core.OtdBridge.FilterBlock(gfx, "Coherence Stabilizer") == "");
+                        }
+                        // ---- 2026-10-11: every OTD failure rolls back, and the daemon is left on the build before ----
+                        string PxIn(System.Text.Json.Nodes.JsonObject root) => root["Profiles"]![0]!["RelativeModeSettings"]!["XSensitivity"]!.ToJsonString();
+                        // 9. the chain cannot be read (getfilters fails twice): the engine is unverified, so it rolls back and nothing becomes the default
+                        {
+                            var (o, r) = Fresh(); var rc = Rig.From(cb); rc.Engine = "cadence"; Setup(o, r, cb, Rig.From(cb));
+                            string dflt = File.ReadAllText(o.SettingsPath); string? prevP = o.ReadPresetText(); failGf = 2; var lg = new List<string>();
+                            bool ok9 = o.Apply(cb, rc, false, lg.Add);
+                            Ok("apply: an unreadable filter chain is a failed apply - rolled back to the previous preset, never saved as the default, and the reason is reported",
+                               !ok9 && File.ReadAllText(o.SettingsPath) == dflt && o.ReadPresetText() == prevP && !cmds.Contains("setup:savedefaultsettings") &&
+                               o.LastFailure != null && o.LastFailure.Contains("unavailable") && !Fl(daemon).Any(f => f!["Path"]!.GetValue<string>().Contains("CadenceLock") && f["Enable"]?.GetValue<bool>() == true),
+                               (o.LastFailure ?? "(no failure)") + " | " + string.Join(",", cmds));
+                        }
+                        // 10. one transient getfilters failure is retried and the apply verifies
+                        {
+                            var (o, r) = Fresh(); failGf = 1; var lg = new List<string>();
+                            bool ok10 = o.Apply(cb, Rig.From(cb), false, lg.Add);
+                            Ok("apply: a single getfilters timeout is retried once and the apply still verifies", ok10 && o.LastFailure == null && lg.Any(l => l.Contains("VERIFIED by read-back")), string.Join(",", cmds));
+                        }
+                        // 11. a stabilizer property the daemon does not carry (TapAnchor was written but never read back before): rolled back, not a partial apply
+                        {
+                            var (o, r) = Fresh(); var rm = cat.Find("rivmp")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
+                            bool ok11 = o.Apply(rm, Rig.From(rm), false, lg.Add);
+                            Ok("apply: a stabilizer read-back mismatch (TapAnchor) rolls back instead of saving a partial apply as the default",
+                               !ok11 && !cmds.Contains("setup:savedefaultsettings") && o.LastFailure != null && o.LastFailure.Contains("TapAnchor"), o.LastFailure ?? "(no failure)");
+                        }
+                        // 12. no previous AimForge preset: the failed chain is replaced by the daemon's saved default (it used to stay live)
+                        {
+                            var (o, r) = Fresh(); var rm = cat.Find("rivmp")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
+                            bool ok12 = o.Apply(rm, Rig.From(rm), false, lg.Add);
+                            Ok("rollback with no previous preset: the daemon is reloaded from its saved default, not left on the failed chain",
+                               !ok12 && o.ReadPresetText() == null && PxIn(daemon) == "90" && !Fl(daemon).Any() && lg.Any(l => l.Contains("daemon's saved default")),
+                               string.Join(" | ", lg.Where(l => l.Contains("rolled back"))));
+                        }
+                        // 13. an older Game Filters build without native classic keys runs the fallback table: noted, not a mismatch
+                        {
+                            var (o, r) = Fresh(); var rc = Rig.From(cb); rc.Engine = "cadence"; dropProp = k => k.StartsWith("Classic"); var lg = new List<string>();
+                            bool ok13 = o.Apply(cb, rc, false, lg.Add);
+                            Ok("apply: an older Cadence Lock without classic keys verifies on its fallback table (noted, not rolled back)",
+                               ok13 && lg.Any(l => l.Contains("8-point fallback table")) && o.LastFailure == null, o.LastFailure ?? "ok");
+                        }
+                        // 14. the stabilizer write and read-back share one property list
+                        {
+                            var rm = cat.Find("rivmp")!; var (o, r) = Fresh(); o.Apply(rm, Rig.From(rm), true, _ => { });
+                            var stab = Fl(o.LastPlanned!).First(f => f!["Path"]!.GetValue<string>().Contains("CoherenceStabilizer"))!["Settings"]!.AsArray().Select(x => x!["Property"]!.GetValue<string>()).ToHashSet();
+                            Ok("read-back covers every stabilizer property the apply writes", Core.OtdBridge.StabilizerPlan(rm.cohOv!).All(k => stab.Contains(k.key)) && stab.All(k => Core.OtdBridge.StabilizerPlan(rm.cohOv!).Any(x => x.key == k)),
+                               string.Join(",", stab.Except(Core.OtdBridge.StabilizerPlan(rm.cohOv!).Select(x => x.key))));
                         }
                     }
                     finally { Core.OtdBridge.Hook = prevHook; try { Directory.Delete(cx, true); } catch { } }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -898,7 +898,7 @@ namespace AimForge.App
                     {
                         // cross-driver rollback: the curve must never be live in both places or in neither
                         if (bak.Length > 0) ra.RestoreBackup(bak, Log);
-                        throw new InvalidOperationException("the OTD half did not take - RawAccel was rolled back to the build before this apply; nothing changed");
+                        throw new InvalidOperationException("the OTD half did not take" + (otd.LastFailure != null ? " (" + otd.LastFailure + ")" : "") + " - RawAccel was rolled back to the build before this apply; nothing changed");
                     }
                 });
                 if (!dry)

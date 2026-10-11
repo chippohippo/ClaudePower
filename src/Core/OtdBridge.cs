@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -356,6 +356,20 @@ namespace AimForge.Core
             return f;
         }
 
+        /// Every Coherence Stabilizer property an apply writes, with its value - the write and the read-back share this list.
+        internal static (string key, double val)[] StabilizerPlan(CohOv c) => new[]
+        {
+            ("TremorWindowMs", c.window), ("HoldTimeMs", c.hold), ("FullPassSpeed", c.fullPass), ("EngageSpeed", c.engage),
+            ("CoherenceFloor", c.floor), ("CoherenceCeiling", c.ceiling), ("RailStrength", c.rails), ("AnchorStrength", c.anchor),
+            ("AnchorTimeMs", c.anchorMs), ("SettleAssist", c.settle), ("SettleFlickSpeed", c.settleSpeed), ("MaxLagMm", 1.0), ("ResetMs", 50.0),
+            ("TapAnchor", c.tap), ("TapArmPressurePct", c.tapArm), ("TapHoldMs", c.tapHold), ("TapBreakMm", c.tapBreak),
+            ("TapMoveFade", 1.0),   // 2026-09-24: the pin fades out for a tap made while moving (the accel curve over-priced its hand-back)
+            ("LeadMs", c.lead), ("LeadMaxMm", c.leadMax),
+        };
+
+        /// Why the last Apply returned false, in one line for the window's banner (null after a success).
+        public string? LastFailure { get; private set; }
+
         static void SetProp(JsonObject filter, string prop, double value)
         {
             foreach (var s in filter["Settings"]!.AsArray())
@@ -372,6 +386,7 @@ namespace AimForge.Core
 
         public bool Apply(Preset p, Rig rig, bool dryRun, Action<string> log)
         {
+            LastFailure = null;
             var root = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
             var prof = root["Profiles"]![0]!.AsObject();
             var rel = prof["RelativeModeSettings"]!.AsObject();
@@ -412,19 +427,9 @@ namespace AimForge.Core
                     "TapAnchor","TapArmPressurePct","TapHoldMs","TapBreakMm","TapMoveFade","LeadMs","LeadMaxMm"
                 });
                 coh["Enable"] = true;
-                SetProp(coh, "TremorWindowMs", c.window); SetProp(coh, "HoldTimeMs", c.hold);
-                SetProp(coh, "FullPassSpeed", c.fullPass); SetProp(coh, "EngageSpeed", c.engage);
-                SetProp(coh, "CoherenceFloor", c.floor); SetProp(coh, "CoherenceCeiling", c.ceiling);
-                SetProp(coh, "RailStrength", c.rails); SetProp(coh, "AnchorStrength", c.anchor);
-                SetProp(coh, "AnchorTimeMs", c.anchorMs); SetProp(coh, "SettleAssist", c.settle);
-                SetProp(coh, "SettleFlickSpeed", c.settleSpeed); SetProp(coh, "MaxLagMm", 1.0); SetProp(coh, "ResetMs", 50);
-                SetProp(coh, "TapAnchor", c.tap); SetProp(coh, "TapArmPressurePct", c.tapArm);
-                SetProp(coh, "TapHoldMs", c.tapHold); SetProp(coh, "TapBreakMm", c.tapBreak);
-                // 2026-09-24: the pin fades out for a tap made while moving (the accel curve over-priced its hand-back)
-                SetProp(coh, "TapMoveFade", 1);
+                foreach (var (key, val) in StabilizerPlan(c)) SetProp(coh, key, val);
                 if (StabilizerHasMoveFade() == false)
                     log("OTD: note - the INSTALLED Coherence Stabilizer predates the moving-tap fade, so it ignores TapMoveFade (moving taps are still pinned) - " + StabilizerInstallHint + RestartHint);
-                SetProp(coh, "LeadMs", c.lead); SetProp(coh, "LeadMaxMm", c.leadMax);
                 log(c.IsTapOnly ? "OTD: Coherence Stabilizer ON in tap-anchor-only mode (hold 0 = exact passthrough)"
                                 : $"OTD: Coherence Stabilizer ON  hold {c.hold}  tap {c.tap}  lead {c.lead}");
             }
@@ -493,8 +498,14 @@ namespace AimForge.Core
                 try
                 {
                     if (prevPreset != null) File.WriteAllText(presetPath, prevPreset, new UTF8Encoding(false)); else File.Delete(presetPath);
-                    if (daemonTouched && prevPreset != null) Run($"applypreset {PresetName}", 8000);
-                    log("OTD: rolled back to the previous AimForge preset" + (daemonTouched && prevPreset != null ? " and re-applied it" : "") + " (nothing saved as default)");
+                    if (!daemonTouched) { log("OTD: rolled back the preset file (the daemon was not touched; nothing saved as default)"); return false; }
+                    // 2026-10-11: with no previous preset the daemon used to keep the failed chain; its saved default is untouched
+                    // (savedefaultsettings only runs after a verified apply), so that is what goes back live
+                    if (prevPreset != null) Run($"applypreset {PresetName}", 8000);
+                    else if (File.Exists(SettingsPath)) Run($"loadsettings \"{SettingsPath}\"", 8000);
+                    double back = LiveDaemonPxMm();
+                    log("OTD: rolled back to " + (prevPreset != null ? "the previous AimForge preset" : "the daemon's saved default") +
+                        (back > 0 ? $" (daemon now {back} px/mm)" : " - the daemon did not answer, check it before playing") + " (nothing saved as default)");
                 }
                 catch (Exception ex) { log("OTD: could not restore the previous preset (" + ex.Message + ")"); }
                 return false;
@@ -502,8 +513,8 @@ namespace AimForge.Core
 
             CloseUx(log);
             if (DaemonElevatedLockout() && !FixElevatedDaemon(log))
-            { log("OTD: cannot reach the elevated daemon - fix the daemon and press Ctrl+Enter"); return Revert(false); }
-            if (!EnsureDaemon(log)) { log("OTD: daemon unavailable - NOT applied"); return Revert(false); }
+            { log("OTD: cannot reach the elevated daemon - fix the daemon and press Ctrl+Enter"); LastFailure = "cannot reach the elevated OTD daemon"; return Revert(false); }
+            if (!EnsureDaemon(log)) { log("OTD: daemon unavailable - NOT applied"); LastFailure = "OTD daemon unavailable"; return Revert(false); }
 
             // applypreset is COMPLETELY SILENT - no output, exit 0 - whether or not it worked.
             // So: apply, then VERIFY against the daemon, then fall back to loadsettings, then
@@ -547,8 +558,8 @@ namespace AimForge.Core
                     if (p.cohOv is CohOv cv)
                     {
                         if (!Has("Coherence Stabilizer")) missing.Add("Coherence Stabilizer enabled");
-                        foreach (var (key, val) in new[] { ("HoldTimeMs", cv.hold), ("TapHoldMs", cv.tapHold), ("TapBreakMm", cv.tapBreak), ("LeadMs", cv.lead),
-                                                           ("LeadMaxMm", cv.leadMax), ("AnchorStrength", cv.anchor), ("SettleAssist", cv.settle), ("TapArmPressurePct", cv.tapArm), ("TapMoveFade", 1.0) })
+                        // every property this apply writes (2026-10-11: TapAnchor, the tremor window, the coherence and rail keys were written but never read back)
+                        foreach (var (key, val) in StabilizerPlan(cv))
                         {
                             if (key == "TapMoveFade" && StabilizerHasMoveFade() != true) continue;   // an echo of a key the plugin lacks proves nothing
                             if (!ReadBackMatches(B("Coherence Stabilizer"), key, val)) missing.Add($"{key} {val}");
@@ -582,7 +593,10 @@ namespace AimForge.Core
                         if (!Has("Cadence Lock")) { missing.Add("Cadence Lock enabled"); engineOk = false; }
                         else
                         {
-                            foreach (var kv in cadencePts) if (!ReadBackMatches(B("Cadence Lock"), kv.Key, kv.Value)) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.######}");
+                            // an older plugin without native classic curves runs the 8-point fallback table: its Classic* keys are absent by design
+                            bool nativeClassic = B("Cadence Lock").Contains("ClassicAccel");
+                            foreach (var kv in cadencePts)
+                                if (!(kv.Key.StartsWith("Classic") && !nativeClassic) && !ReadBackMatches(B("Cadence Lock"), kv.Key, kv.Value)) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.######}");
                             if (cadencePts["ClassicAccel"] > 0 && !B("Cadence Lock").Contains("ClassicAccel") && !classicNoted)
                             {
                                 classicNoted = true;
@@ -603,16 +617,29 @@ namespace AimForge.Core
                     Run($"loadsettings \"{presetPath}\"", 8000);
                     readOk = ReadBack();
                 }
-                if (!readOk) log("OTD: filter read-back unavailable (" + gfErr + ")");
-                else if (missing.Count == 0)
-                    log("OTD: filter plan VERIFIED by read-back (" + (p.cohOv == null ? "HDL only" : "HDL + Coherence Stabilizer, properties match") + ")");
-                else
-                    log("OTD: FILTER READ-BACK MISMATCH - daemon chain does not carry: " + string.Join(", ", missing) +
-                        ". The written preset is correct; re-apply (Ctrl+Enter), and if the stock GUI is open close it first.");
+                if (!readOk) { readOk = ReadBack(); }   // one retry: the console can time out under load
                 if (UxRunning())
                     log("OTD: note - while the GUI stays open it can still overwrite this at any time");
-                if (!engineOk) { log("OTD: the curve's ENGINE is not where this apply put it - rolling back both drivers"); return Revert(true); }
-                if (!nibOk) { log("OTD: the Nib Twin entry is not what this apply wrote - rolling back both drivers"); return Revert(true); }
+                // 2026-10-11: an apply is verified field by field or it is rolled back. An unreadable chain used to pass with the
+                // engine unverified (and was saved as the default); a stabilizer or game-filter mismatch used to be saved as a
+                // partial apply. Both now roll back both drivers.
+                if (!readOk)
+                {
+                    log("OTD: filter read-back UNAVAILABLE (" + gfErr + ") - the engine cannot be verified, rolling back both drivers. " +
+                        "Check the OTD daemon is running (tray > Restart OTD daemon) and apply again.");
+                    LastFailure = "OTD filter read-back unavailable: " + gfErr;
+                    return Revert(true);
+                }
+                if (missing.Count > 0)
+                {
+                    log("OTD: FILTER READ-BACK MISMATCH - daemon chain does not carry: " + string.Join(", ", missing) + ". If the stock OTD GUI is open, close it first.");
+                    log(!engineOk ? "OTD: the curve's ENGINE is not where this apply put it - rolling back both drivers"
+                      : !nibOk ? "OTD: the Nib Twin entry is not what this apply wrote - rolling back both drivers"
+                      : "OTD: the filter chain is not what this apply wrote - rolling back both drivers");
+                    LastFailure = (!engineOk ? "engine" : !nibOk ? "Nib Twin" : "filter chain") + " read-back mismatch: " + string.Join(", ", missing);
+                    return Revert(true);
+                }
+                log("OTD: filter plan VERIFIED by read-back (" + (p.cohOv == null ? "HDL only" : "HDL + Coherence Stabilizer, properties match") + ")");
                 // the calibration build (press log on) is never the daemon default: a crash while tapping cannot persist it
                 if (rig.NibProbe) { log("OTD: calibration build - not saved as the daemon default"); return true; }
                 // saved as the daemon default only once the engine is verified: a failed apply never persists
@@ -623,6 +650,7 @@ namespace AimForge.Core
             else
             {
                 log($"OTD: APPLY FAILED VERIFICATION - daemon reports {liveNow} px/mm, wanted {rig.PxMm}. If the OTD GUI is open, close it and apply again.");
+                LastFailure = $"OTD px/mm read back {liveNow}, wanted {rig.PxMm}";
                 return Revert(true);
             }
         }
