@@ -52,7 +52,7 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **255 selftests pass on Windows (246 headless + the live-machine block)**, all stabilizer suites pass, QC passes on all 86 cards.
+- Current state: **246 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
 - Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
