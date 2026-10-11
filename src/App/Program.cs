@@ -2440,6 +2440,25 @@ namespace AimForge.App
                    ApplyIdentity.Differences(ab, ra0, t0, ab, ra0, new FilterPlan.Toggles(!t0.Tap, t0.Hold, t0.HoldMs, t0.TapArm, t0.TapHold, t0.TapBreak)).Contains("Tap Anchor"));
             }
 
+            // ---- 2026-10-11: the Doctor as data - severity, a fix on every failing row, the daemon asked whether plugins loaded ----
+            {
+                string gf = "Filters: 'Hover Distance Limiter: { Hover_max: 87 }', 'AimForge Cadence Lock (tablet-space accel, T0): { NominalHz: 360 }'";
+                var nl = Doctor.NotLoaded(new[] { "Hover_Distance_Limiter.Hover_Distance_Limiter", OtdBridge.CadenceId, OtdBridge.NibTwinId, "AimForge.Filters.CodMaster" }, gf);
+                Ok("doctor: an enabled first-party filter the daemon does not print is named as not loaded (Nib Twin, CoD Master); a loaded one and third-party filters are not",
+                   nl.SequenceEqual(new[] { "Nib Twin", "AimForge CoD Master" }), string.Join(", ", nl));
+                var c0 = new NibCal { CalibratedAt = "2026-09-01 12:00" };
+                Ok("doctor: calibration age is read from the stamp; an unreadable stamp is unknown, not zero",
+                   Math.Abs(Doctor.CalibrationAgeDays(c0, new DateTime(2026, 10, 11, 12, 0, 0))!.Value - 40) < 1e-9 && Doctor.CalibrationAgeDays(new NibCal { CalibratedAt = "" }, DateTime.Now) == null);
+                var rows = Doctor.WithFixes(new List<Doctor.Item> {
+                    new Doctor.Item { Name = "engine pairing", Ok = false }, new Doctor.Item { Name = "vmulti.sys signature", Ok = false },
+                    new Doctor.Item { Name = "plugins loaded by the daemon (live chain)", Ok = false }, new Doctor.Item { Name = "live = last apply", Ok = true },
+                    new Doctor.Item { Name = "nib twin calibration", Ok = true, Warn = true, Fix = "own fix" },
+                    new Doctor.Item { Name = "engine pairing", Ok = false, Detail = "could not read OTD settings.json (x) - pairing UNVERIFIED" } });
+                Ok("doctor: every FAIL gets its fix from the table, an OK row carries none, a row's own fix is kept, an UNVERIFIED row is told to become checkable (not to re-apply), and the level reads FAIL / WARN / OK",
+                   rows.Take(3).All(r => r.Fix.Length > 0 && r.Level == "FAIL") && rows[3].Fix == "" && rows[3].Level == "OK" && rows[4].Fix == "own fix" && rows[4].Level == "WARN" &&
+                   rows[0].ToString().Contains("fix: apply the card again") && !rows[3].ToString().Contains("fix:") && rows[5].Fix.StartsWith("check the driver is installed"));
+            }
+
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
             return fails == 0;
         }

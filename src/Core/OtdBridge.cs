@@ -112,7 +112,7 @@ namespace AimForge.Core
         public const string RestartHint = "restart the OTD daemon (tray menu > Restart OTD daemon, or AimForge --daemon-restart)";
 
         /// getfilters prints each enabled filter by its plugin name.
-        static readonly Dictionary<string, string> GameFilterNames = new()
+        internal static readonly Dictionary<string, string> GameFilterNames = new()
         {
             ["AimForge.Filters.CodMaster"] = "AimForge CoD Master", ["AimForge.Filters.CodLab"] = "AimForge CoD Lab",
             ["AimForge.Filters.ValMaster"] = "AimForge Valorant Master", ["AimForge.Filters.ValLab"] = "AimForge Valorant Lab",
@@ -120,6 +120,11 @@ namespace AimForge.Core
             ["AimForge.Filters.Ow2Lab"] = "AimForge OW2 Lab", ["AimForge.Filters.RivalsMaster"] = "AimForge Rivals Master",
             ["AimForge.Filters.FinalsMaster"] = "AimForge Finals Master", ["AimForge.Filters.HoldfastMaster"] = "AimForge Holdfast Master",
         };
+
+        /// The name getfilters prints for a first-party filter path (null = not one of ours).
+        public static string? LiveName(string path) =>
+            path.Contains(CadenceId) ? "Cadence Lock" : path.Contains(NibTwinId) ? "Nib Twin" : path.Contains("CoherenceStabilizer") ? "Coherence Stabilizer"
+            : GameFilterNames.FirstOrDefault(kv => path.Contains(kv.Key)).Value;
 
         public OtdBridge(string dir, string dataDir) { Dir = dir; DataDir = dataDir; }
 

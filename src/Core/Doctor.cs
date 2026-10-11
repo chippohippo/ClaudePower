@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,9 +14,74 @@ namespace AimForge.Core
     /// </summary>
     public static class Doctor
     {
-        public sealed class Item { public string Name = "", Detail = ""; public bool Ok; public override string ToString() => (Ok ? "OK   " : "FAIL ") + Name + (Detail.Length > 0 ? " - " + Detail : ""); }
+        /// One row. Ok = false is a FAIL; Ok with Warn is a WARN (works, but needs attention). Fix is the one action that
+        /// clears the row, so the window can show it without a terminal (2026-10-11).
+        public sealed class Item
+        {
+            public string Name = "", Detail = "", Fix = ""; public bool Ok, Warn;
+            public string Level => !Ok ? "FAIL" : Warn ? "WARN" : "OK";
+            public override string ToString() => Level.PadRight(5) + Name + (Detail.Length > 0 ? " - " + Detail : "") + (Fix.Length > 0 && Level != "OK" ? "\n      fix: " + Fix : "");
+        }
 
-        public static List<Item> Run(RawAccelBridge ra, OtdBridge otd, Catalogue? roster = null)
+        /// A Nib Twin calibration older than this gets a WARN. A REMINDER, not a measurement: nib wear has never been
+        /// measured on this rig (field verdict pending) - recalibrate after a nib change whatever the age.
+        public const int CalibrationReminderDays = 30;
+
+        /// Age of a calibration in days (null when the stamp is unreadable).
+        public static double? CalibrationAgeDays(NibCal cal, DateTime now) =>
+            DateTime.TryParseExact(cal.CalibratedAt, "yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var at)
+                ? (now - at).TotalDays : null;
+
+        /// First-party filters enabled in the saved settings that the daemon's getfilters does not print: the plugin file
+        /// exists but the running daemon did not load it (file-exists alone was the old check). Same evidence the apply's
+        /// engine read-back rests on: getfilters prints every enabled filter it constructed.
+        public static List<string> NotLoaded(IEnumerable<string> enabledPaths, string getfiltersOutput) =>
+            enabledPaths.Select(p => (p, n: OtdBridge.LiveName(p))).Where(x => x.n != null && !getfiltersOutput.Contains(x.n!)).Select(x => x.n!).Distinct().ToList();
+
+        /// The fix for a row that is not OK, by row name - one table, so every row has an action.
+        static readonly (string name, string fix)[] FixTable =
+        {
+            ("RawAccel installed", "install RawAccel to the folder in aimforge.config.json (default D:\\RawAccel)"),
+            ("rawaccel service", "reboot once after installing RawAccel; its driver loads at boot"),
+            ("signature", "reinstall the official driver package - AimForge never modifies drivers"),
+            ("OpenTabletDriver installed", "install OpenTabletDriver to the folder in aimforge.config.json (default D:\\Pen)"),
+            ("OTD daemon running", "press Apply - AimForge starts the daemon"),
+            ("Coherence Stabilizer plugin", "run CoherenceStabilizer\\build.ps1 -Install, then " + OtdBridge.RestartHint),
+            ("stabilizer has the moving-tap fade", OtdBridge.StabilizerInstallHint + OtdBridge.RestartHint),
+            ("AimForge Game Filters plugin", "run build.ps1 (it installs the plugin), then " + OtdBridge.RestartHint),
+            ("plugins loaded by the daemon", OtdBridge.RestartHint + ", then apply again"),
+            ("pen device config", "open RawAccel's GUI > Devices, reset the pen/VMulti entry to defaults, close the GUI, apply again"),
+            ("daemon pipe reachable", "press Ctrl+D (redetect) - it replaces the elevated daemon"),
+            ("tablet connected", "plug in / power on the tablet, then Ctrl+D"),
+            ("no interpolator", "disable the interpolator in OTD; apply again"),
+            ("filter conflict", "apply the card again - its plan replaces the conflicting chain"),
+            ("engine pairing", "apply the card again (Ctrl+Enter) - the apply writes both drivers together"),
+            ("mouse mirror", "apply again; turn the mirror off in Modes if you no longer want it"),
+            ("no dangling RawAccel profile refs", "open RawAccel's GUI > Devices, point the listed devices at an existing profile, then apply again"),
+            ("experimental modes", "apply again; untick the mode in Modes if it keeps failing"),
+            ("nib press log off", "apply your card again - the press log is switched off by every normal apply"),
+            ("nib twin calibration", "run 'calibrate nib' (20 taps), then apply"),
+            ("live tier within the card's role", "close any tool that added filters, then apply the card again"),
+            ("live = last apply", "apply your card again (Ctrl+Enter), or close the tool that changed the drivers"),
+            ("RawAccel GUI not running", "close the RawAccel GUI before applying"),
+            ("OTD GUI not running", "close the OpenTabletDriver GUI - AimForge replaces it"),
+            ("not running elevated", "start AimForge without 'Run as administrator'"),
+        };
+
+        internal static List<Item> WithFixes(List<Item> o)
+        {
+            foreach (var i in o)
+                if (i.Level != "OK" && i.Fix.Length == 0)
+                    // a row that could not be checked is not the fault the row names: its fix is to make it checkable
+                    i.Fix = i.Detail.Contains("UNVERIFIED") || i.Detail.StartsWith("could not")
+                        ? "check the driver is installed where aimforge.config.json points, then run the Doctor again"
+                        : FixTable.FirstOrDefault(f => i.Name.Contains(f.name)).fix ?? "";
+            return o;
+        }
+
+        public static List<Item> Run(RawAccelBridge ra, OtdBridge otd, Catalogue? roster = null) => WithFixes(RunChecks(ra, otd, roster));
+
+        static List<Item> RunChecks(RawAccelBridge ra, OtdBridge otd, Catalogue? roster)
         {
             var o = new List<Item>();
             o.Add(new Item { Name = "RawAccel installed", Ok = ra.Installed, Detail = ra.Dir });
@@ -72,6 +137,19 @@ namespace AimForge.Core
                     bool present = otd.TabletDevicePresent();
                     o.Add(new Item { Name = "tablet connected", Ok = present && r.ok && !r.output.Contains("not found", StringComparison.OrdinalIgnoreCase),
                         Detail = present ? otd.TabletName() + " (USB device present)" : "Windows sees NO " + otd.TabletName() + " USB device - plug it in / power it on; the pen is dead until then" });
+                    if (r.ok)
+                    {
+                        // 2026-10-11: ask the DAEMON, not the disk - an enabled first-party filter it does not print was not loaded
+                        try
+                        {
+                            var enabled = FilterCatalog.Discover(otd).Where(f => f.EnabledLive).Select(f => f.Path).ToList();
+                            var nl = NotLoaded(enabled, r.output);
+                            o.Add(new Item { Name = "plugins loaded by the daemon (live chain)", Ok = nl.Count == 0,
+                                Detail = nl.Count == 0 ? "every first-party filter enabled in the settings is running in the daemon"
+                                                       : "enabled in the settings but NOT running in the daemon: " + string.Join(", ", nl) + " - the plugin did not load" });
+                        }
+                        catch (Exception e) { o.Add(new Item { Name = "plugins loaded by the daemon (live chain)", Ok = true, Warn = true, Detail = "could not compare (" + e.Message + ") - UNVERIFIED" }); }
+                    }
                 }
             }
             // ---- filter pipeline health (doctor v2): the live chain, its tiers, its conflicts ----
@@ -152,9 +230,12 @@ namespace AimForge.Core
                 if (xps.Twin || cal != null)
                 {
                     string? bad = cal == null ? "no calibration (run 'calibrate nib')" : cal.Invalid();
-                    o.Add(new Item { Name = "nib twin calibration", Ok = bad == null || !xps.Twin,
-                        Detail = cal == null ? bad! : $"{cal.MagMm:0.000} mm at {cal.AngleDeg:0} deg, R2 {cal.R2:0.00}, {cal.Taps} taps, {cal.CalibratedAt}" + (bad != null ? " - REFUSED: " + bad : "") +
-                                 (cal != null && cal.PerTapMagSpreadPct > 35 ? " - per-tap spread high, recalibrate" : "") });
+                    double? age = cal == null ? null : CalibrationAgeDays(cal, DateTime.Now);
+                    bool old = age > CalibrationReminderDays, spread = cal != null && cal.PerTapMagSpreadPct > 35;
+                    o.Add(new Item { Name = "nib twin calibration", Ok = bad == null || !xps.Twin, Warn = old || spread,
+                        Detail = cal == null ? bad! : $"{cal.MagMm:0.000} mm at {cal.AngleDeg:0} deg, R2 {cal.R2:0.00}, {cal.Taps} taps, {cal.CalibratedAt}" + (age is double d ? $" ({d:0} days ago)" : "") + (bad != null ? " - REFUSED: " + bad : "") +
+                                 (spread ? $" - per-tap spread {cal.PerTapMagSpreadPct:0}% is high" : "") + (old ? $" - older than the {CalibrationReminderDays}-day reminder (a convention, not a measured wear rate)" : ""),
+                        Fix = old || spread ? "run 'calibrate nib' again (20 taps) - also after any nib change" : "" });
                 }
                 // the live chain's tier against the role of the card last applied
                 try
