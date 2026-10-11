@@ -52,7 +52,7 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **246 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
+- Current state: **261 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
 - Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
@@ -85,6 +85,18 @@ Feature notes: `AIMFORGE.md`, `CADENCE_LOCK.md`, `MOUSE_MIRROR.md`, `CHARACTER_C
 
 ## Recent work (newest first)
 
+- **2026-10-11 (second pass) — steps 4-8 of the overhaul.** See `CHANGELOG.md` for the player-facing list.
+  - **Third-person:** it is a GAMES property in the tuner, with a per-game camera arm in `tps.txt` and dive/mid/poke distances.
+  - **360 calibration** (`Calib360`, `--calib360`, window dialog). Cards may write `{SENS}` in the tuner. Every card's exported text was byte-identical at the switch.
+  - **Nib Twin calibration dialog** (`NibCalibrateForm`): live tap count via `NibFit.Progress`, and an opt-in `enableTwin`.
+  - **Window:**
+    - the LIVE / NEXT APPLY line (`BuildState`);
+    - one-click Cadence / daemon restart / 360;
+    - `DoctorForm`;
+    - `crash.log`.
+  - **New App files:** `NibCalibrateForm.cs`, `DoctorForm.cs`, `Calib360Form.cs`.
+  - **The window code compiles but has never been rendered:** run `.\build.ps1 -Shot` and look before trusting the layout. The hero row is now 168 px tall.
+
 - **2026-10-11 — Cloud build, apply holes closed, A/B identity, Doctor as data.**
   - `build.sh` runs the selftests on Linux.
   - Every OTD failure now rolls back both drivers. That covers an unreadable chain, which used to pass with the engine unverified, and stabilizer or game-filter mismatches, which used to be saved as a partial apply. With no previous preset, the rollback reloads the daemon's saved default.
@@ -101,6 +113,16 @@ Feature notes: `AIMFORGE.md`, `CADENCE_LOCK.md`, `MOUSE_MIRROR.md`, `CHARACTER_C
 - Earlier: Cadence Lock engine, mouse mirror, character cards, the 2026-09-16 audit. See `README.md`.
 
 ## Open items
+
+- **First Windows run after 2026-10-11:**
+  - `.\build.ps1 -Test`, then `-Shot`.
+  - Check the hero area layout.
+  - Check that the LIVE / NEXT APPLY line says "no changes" right after an untouched start-up. If it names a change there, the start-up baseline (`lastApplied` seeded from `lastapply.json`) and `EffectivePreset()` disagree; investigate before trusting the line.
+- **After the Deadlock 360:**
+  - edit the Deadlock card texts that say the constant is "assumed";
+  - update the selftest that pins the estimated 0.761.
+- **Helldivers 2** is also over-the-shoulder but not marked `thirdPerson`. Marking it is a tuner decision for the user (its first-person ADS changes the geometry).
+- **Intent Speed and Reversal Carry** still lack their own Lab-only tooltips and a dedicated one-click A/B. Plain Ctrl+Tab already pairs any mode change.
 
 Everything below needs the user at the tablet; none of it can be closed from the cloud.
 

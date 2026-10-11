@@ -36,6 +36,7 @@ Portable folder on the Desktop: double-click `AimForge.exe`. From source:
 .\build.ps1 [-Test] [-Shot]        SDK-less build (sibling CoherenceStabilizer\roslyn); also
                                    builds + installs the AimForge.Filters OTD plugin
 .\package.ps1                      build + stamp app host + deploy the portable folder
+./build.sh [--test]                Linux / cloud: same sources, headless selftests + --qc (HANDOFF.md)
 dotnet out\AimForge.exe
   --list | --doctor | --qc | --selftest | --filters
   --apply <id> [--dry-run] [--engine rawaccel|cadence] [--pen-hz <Hz>] [--merge-cap <reports>]
@@ -45,11 +46,12 @@ dotnet out\AimForge.exe
   --hero-lab <hero|all> | --psylocke-lab | --psylocke-refine (historical)
   --xp-lab [id] | --xp-evidence | --nib-lab [id] | --nib-evidence | --nib-calibrate [id] | --nib-fit <log> [--save]   (the experimental modes)
   --filter-evidence | --cadence-evidence | --pen-rate | --noise [ids]   (RawAccel-engine gain noise across the aim band)
+  --calib360 <game> (--yaw <deg/count> | --card <id> --pen-mm <mm> [--turns n] [--sens s]) [--write]   (measure a game's K)
   --redetect | --daemon-start | --daemon-restart | --screenshot out\x.png [id]
 ```
 
 Hotkeys: `Ctrl+Enter` apply · `Ctrl+D` redetect (restarts the daemon only when the tablet is absent; tray > Restart OTD daemon loads a new plugin build) ·
-`Ctrl+Tab` A/B the last two applied builds · `F5` refresh live readout.
+`Ctrl+Tab` A/B the last two applied builds (replays the exact applied rig: engine, modes, third-person gain, mirror, Nib calibration) · `F5` refresh live readout.
 
 ## Presets are data
 
@@ -194,5 +196,30 @@ A 22-dimension adversarial audit (every card's copy against recomputed numbers, 
 
 ## Third-person match (2026-09-27)
 
-Builds tab → Modes → **Feel like a first-person game** (`--apply <id> --tps on|off`). An over-the-shoulder camera orbits the hero, so a target at distance D moves on screen by only D/(D+L) of the turn; near targets feel heavy under a pen. The match scales Marvel Rivals cards' output by (D+L)/D at your fight distance, so targets there move like in a first-person game; in-game sensitivity and first-person cards are unchanged. See `THIRD_PERSON.md`.
+Builds tab → Modes → **Feel like a first-person game** (`--apply <id> --tps on|off`). An over-the-shoulder camera orbits the hero, so a target at distance D moves on screen by only D/(D+L) of the turn; near targets feel heavy under a pen. The match scales third-person games' cards (Marvel Rivals and Deadlock - the tuner's GAMES table says which) by (D+L)/D at your fight distance, so targets there move like in a first-person game; in-game sensitivity and first-person cards are unchanged. See `THIRD_PERSON.md`.
 
+## The window, 2026-10-11
+
+- **LIVE / NEXT APPLY line** under the build name. LIVE is what the last verified apply put in the drivers (engine and every mode on). NEXT APPLY names what Ctrl+Enter would change, including modes the apply would skip. The Apply button says APPLY CHANGES, RE-APPLY (NO CHANGES) or APPLYING.
+- **One-click actions** appear only when they apply:
+  - *Apply this on Cadence Lock*, on cards whose own measurement recommends it.
+  - *Restart OTD daemon…*, when a plugin on disk is newer than the running daemon. You confirm first; AimForge never restarts it by itself.
+  - *360° calibration…*, for games whose sensitivity constant is estimated.
+- **Doctor panel.** Rows are sorted FAIL / WARN / OK, each with what it found and the one fix that clears it, plus Copy report. No terminal needed.
+- **Calibrate nib** runs in one dialog:
+  - It shows a live count of the taps the fit will use and finishes by itself at 20.
+  - It shows the fit's swing, R², lag and spread, each with a tooltip saying what it means for aim.
+  - It can turn the Nib Twin on when the fit succeeds (opt-in).
+- **Applies fail closed.** An unreadable filter chain, or any filter that reads back different from what was written, rolls back both drivers, and the banner names the failed check. Unhandled errors go to `crash.log`.
+
+## 360° calibration (2026-10-11)
+
+A game whose sensitivity constant K is assumed (Deadlock: the Source/Apex yaw) can be measured once. Use the window's *360° calibration…* or `--calib360`. Two methods:
+- **Yaw:** enter the game's yaw (degrees per count at sens 1; Source 2 console `m_yaw`). Then K = 360 × 2.54 / yaw.
+- **Marked turn:** sweep slowly through whole turns, staying under the card's 1:1 speed (the tool prints the bound). Measure the pen travel on the glass. Then K = eDPI × cm/360 × sens.
+
+The result patches the game's row in `tuner.html` (`K`, `kMeasured`, `kEvidence`) and writes `evidence\ev-<date>-<game>-k.json`. Then run `node export-presets.js tuner.html`. Cards print their sens through `{SENS}`, computed from K, so no stale number survives.
+
+**After calibrating Deadlock:**
+- The Deadlock card texts still say the constant is "assumed"; edit that wording in the tuner.
+- Update the selftest that pins the estimated `0.761`.

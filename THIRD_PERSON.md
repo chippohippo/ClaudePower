@@ -1,6 +1,6 @@
 # Third-person match
 
-Builds tab → **Modes** → **Feel like a first-person game**. It is remembered in `tps.txt`. On the command line it is `--apply <id> --tps on|off`. It changes only Marvel Rivals cards; every first-person card applies exactly as authored.
+Builds tab → **Modes** → **Feel like a first-person game**. It is remembered in `tps.txt`. On the command line it is `--apply <id> --tps on|off`. It changes only the cards of third-person games - the tuner's GAMES table marks them (`thirdPerson`): Marvel Rivals and Deadlock. Every first-person card applies exactly as authored.
 
 ## Why third person feels harder with a pen
 
@@ -31,7 +31,14 @@ It is a pure output scale, written as RawAccel's output multiplier on either eng
 
 ## Setting it
 
-- **Camera arm** is the distance from the camera to your hero. It is an estimate: Marvel Rivals does not publish it, and it differs by hero size. Start at 2.5 m and use about 3.5 m for large heroes.
-- **Fight distance** is where most of your shots land. Use 8–10 m for divers and brawlers, and 15–20 m for pokes and hitscan.
+- **Camera arm** is the distance from the camera to your hero, set **per game** (2026-10-11). The control edits the selected card's game.
+  - The roster's value is an estimate (2.5 m for both games; neither game publishes it). The readout marks it "est." until you set your own.
+  - Large heroes sit further from the camera: try about 3.5 m.
+  - A camera arm saved before 2026-10-11 (one value for all games) is kept for both games.
+- **Fight distance** is where most of your shots land. The chips are starting points from the guidance below, not measurements:
+  - **dive 9 m** for divers and brawlers;
+  - **mid 12 m** for most fights (the default);
+  - **poke 18 m** for pokes and hitscan.
+- The Modes tab draws the geometry (camera, L, hero, D, target, with k = (D+L)/D) and says "MATCHED AT X M" with the feel at 5 m, X m and 25 m.
 
-Tune it by feel: track a strafing bot at your usual distance. If the crosshair still trails where your pen points, lower the fight distance (a stronger match). If it overshoots, raise it. Then compare with the match off using Ctrl+Tab. The field verdict is pending.
+Tune it by feel: track a strafing bot at your usual distance. If the crosshair still trails where your pen points, lower the fight distance (a stronger match). If it overshoots, raise it. Then compare with the match off using Ctrl+Tab, which replays the exact applied gain. The field verdict is pending.
