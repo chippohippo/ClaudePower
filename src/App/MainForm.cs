@@ -47,6 +47,9 @@ namespace AimForge.App
         CheckBox fIntent = new Switch(), fCarry = new Switch(); NumericUpDown fCarryMs = new NumericUpDown(); Experiments.State xpState = Experiments.State.Load();
         CheckBox fMouse = new Switch();
         CheckBox fTps = new Switch(); NumericUpDown fTpsCam = new NumericUpDown(), fTpsFight = new NumericUpDown(); Label tpsRead = new Label();
+        Panel tpsDiagram = new Panel(); bool tpsPushing;
+        /// every number in the window explains itself on hover (2026-10-11)
+        readonly ToolTip tip = new ToolTip { AutoPopDelay = 20000, InitialDelay = 350, ReshowDelay = 100 };
         ThirdPerson.State tpsState = ThirdPerson.State.Load(); NumericUpDown fMouseDpi = new NumericUpDown(), fMouseHl = new NumericUpDown(), fMouseYx = new NumericUpDown();
         Label mouseRead = new Label(); MouseMirror.State mouseState = MouseMirror.State.Load();
         bool applying, redetecting; System.Text.Json.Nodes.JsonObject? raRootCache; DateTime raRootStamp;
@@ -622,20 +625,38 @@ namespace AimForge.App
             // ---------- MODES: third-person match, then the mouse mirror ----------
             // 2026-09-27: third-person match (THIRD_PERSON.md) - an over-the-shoulder camera made to feel first-person
             pm.Controls.Add(Theme.SectionTitle("Third-person match", SideW));
-            Sw(fTps, "Feel like a first-person game", "Marvel Rivals and Deadlock cards · matched at your fight distance");
+            Sw(fTps, "Feel like a first-person game", "third-person games (Marvel Rivals, Deadlock) · matched at your fight distance");
             fTps.Checked = tpsState.On;
             pm.Controls.Add(fTps);
-            pm.Controls.Add(FRow("camera arm, m", fTpsCam, 0.5m, 8, 0.1m, 1, (decimal)tpsState.CameraM));
+            pm.Controls.Add(FRow("camera arm, m (this game)", fTpsCam, 0.5m, 8, 0.1m, 1, (decimal)ThirdPerson.DefaultCameraM));
+            tip.SetToolTip(fTpsCam, "Distance from the camera to your hero, for the selected card's game. The roster value is an ESTIMATE (the games do not publish it); raise it for large heroes.");
             pm.Controls.Add(FRow("fight distance, m", fTpsFight, 2, 60, 1, 0, (decimal)tpsState.FightM));
+            tip.SetToolTip(fTpsFight, "Targets at this distance move under the pen exactly like in a first-person game. Nearer targets still feel heavier, farther ones lighter.");
+            // 2026-10-11: named fight distances (starting points from THIRD_PERSON.md, not measurements)
+            var tpsChips = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(44, 2, 0, 0), BackColor = Color.Transparent };
+            foreach (var (name, m, who) in ThirdPerson.DistancePresets)
+            {
+                var chip = new Button(); Theme.Button(chip, name.ToUpperInvariant() + " " + m.ToString("0") + " M", chip: true); chip.Width = 78;
+                tip.SetToolTip(chip, $"Match at {m:0} m - a starting point for {who}. Tune by feel; field verdict pending.");
+                double mv = m; chip.Click += (s, e) => fTpsFight.Value = (decimal)mv;
+                tpsChips.Controls.Add(chip);
+            }
+            pm.Controls.Add(tpsChips);
+            // the (D+L)/D geometry, drawn: camera -L- hero -D- target
+            tpsDiagram.Size = new Size(SideW - 48, 46); tpsDiagram.Margin = new Padding(44, 6, 0, 0); tpsDiagram.BackColor = Color.Transparent;
+            Theme.DoubleBuffer(tpsDiagram); tpsDiagram.Paint += (s, e) => PaintTpsDiagram(e.Graphics, tpsDiagram.ClientSize);
+            pm.Controls.Add(tpsDiagram);
             tpsRead.Width = SideW - 44; tpsRead.Height = 72; tpsRead.Font = Theme.Small; tpsRead.ForeColor = Steel; tpsRead.Margin = new Padding(44, 4, 0, 0);
             pm.Controls.Add(tpsRead);
             void SaveTps()
             {
-                tpsState.On = fTps.Checked; tpsState.CameraM = (double)fTpsCam.Value; tpsState.FightM = (double)fTpsFight.Value;
+                tpsState.On = fTps.Checked; tpsState.FightM = (double)fTpsFight.Value;
+                // the arm control edits the selected card's game only, and only when the user changed it (not when a select pushed it)
+                if (cur != null && ThirdPerson.IsThirdPerson(cur) && !tpsPushing && Math.Abs((double)fTpsCam.Value - tpsState.ArmFor(cur)) > 1e-9) tpsState.SetArm(cur, (double)fTpsCam.Value);
                 if (!constructing) try { tpsState.Save(); } catch { }
                 Recalc();
             }
-            fTps.CheckedChanged += (s, e) => { SaveTps(); Log(fTps.Checked ? "third-person match ON - the next apply of a Marvel Rivals card scales its output by x" + tpsState.K.ToString("0.00") + " (in-game sensitivity unchanged)" : "third-person match off"); };
+            fTps.CheckedChanged += (s, e) => { SaveTps(); Log(fTps.Checked ? "third-person match ON - " + (cur != null && ThirdPerson.IsThirdPerson(cur) ? "the next apply of this card scales its output by x" + tpsState.KFor(cur).ToString("0.00") : "third-person cards will be scaled at apply") + " (in-game sensitivity unchanged)" : "third-person match off"); };
             fTpsCam.ValueChanged += (s, e) => SaveTps();
             fTpsFight.ValueChanged += (s, e) => SaveTps();
             // ---------- MOUSE ----------
@@ -693,13 +714,17 @@ namespace AimForge.App
         {
             UpdateMouseReadout();
             if (cur == null) return;
-            tpsRead.Text = !tpsState.On ? "Off: the card exactly as authored."
-                : !ThirdPerson.IsThirdPerson(cur) ? "On, but this card is a first-person game: it applies unchanged."
+            if (ThirdPerson.IsThirdPerson(cur)) { tpsPushing = true; try { SetNum(fTpsCam, tpsState.ArmFor(cur)); } finally { tpsPushing = false; } }
+            fTpsCam.Enabled = ThirdPerson.IsThirdPerson(cur);
+            double tk = tpsState.KFor(cur), tarm = tpsState.ArmFor(cur);
+            tpsRead.Text = !ThirdPerson.IsThirdPerson(cur) ? "This card is a first-person game: the match never changes it."
                 : string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "Output x{0:0.00}. Hand motion per on-screen offset vs an FPS:\n  5 m {1:0.00}x   (unmatched {2:0.00}x)\n  {3:0} m 1.00x   (unmatched {4:0.00}x)\n  25 m {5:0.00}x   (unmatched {6:0.00}x)",
-                    tpsState.K, ThirdPerson.FeelVsFps(tpsState.K, tpsState.CameraM, 5), ThirdPerson.FeelVsFps(1, tpsState.CameraM, 5),
-                    tpsState.FightM, ThirdPerson.FeelVsFps(1, tpsState.CameraM, tpsState.FightM),
-                    ThirdPerson.FeelVsFps(tpsState.K, tpsState.CameraM, 25), ThirdPerson.FeelVsFps(1, tpsState.CameraM, 25));
+                    (tpsState.On ? "MATCHED AT {3:0} M{7} - output x{0:0.00}." : "OFF - would be x{0:0.00} matched at {3:0} m{7}.") + " Hand motion per on-screen offset vs an FPS:\n  5 m {1:0.00}x   (unmatched {2:0.00}x)\n  {3:0} m 1.00x   (unmatched {4:0.00}x)\n  25 m {5:0.00}x   (unmatched {6:0.00}x)",
+                    tk, ThirdPerson.FeelVsFps(tk, tarm, 5), ThirdPerson.FeelVsFps(1, tarm, 5),
+                    tpsState.FightM, ThirdPerson.FeelVsFps(1, tarm, tpsState.FightM),
+                    ThirdPerson.FeelVsFps(tk, tarm, 25), ThirdPerson.FeelVsFps(1, tarm, 25),
+                    tpsState.PresetName is string pn ? " (" + pn + ")" : "");
+            tpsDiagram.Invalidate();
             desc.Text = cur.desc.Replace("\n", Environment.NewLine);
             heroGroup.Text = (cur.group ?? "").ToUpperInvariant();
             heroName.Text = cur.name.ToUpperInvariant();
@@ -712,7 +737,7 @@ namespace AimForge.App
                 tTap.Set(s.tap.ToString("0.00")); tTrack.Set(s.track.ToString("0.00")); tCap.Set(s.cap.ToString("0.0"));
                 var effT = EffectivePreset();
                 heroMeta.Text = (RolePolicy.RoleOf(effT) + "  ·  latency tier " + RolePolicy.PlanTier(effT) + "  ·  " + (fCadence.Checked ? "Cadence Lock engine" : "RawAccel engine") + "  ·  "
-                    + (tpsState.On && ThirdPerson.IsThirdPerson(cur) ? $"3rd-person match x{tpsState.K:0.00}  ·  " : "")
+                    + (tpsState.On && ThirdPerson.IsThirdPerson(cur) ? $"3rd-person match x{tpsState.KFor(cur):0.00} @ {tpsState.FightM:0} m  ·  " : "")
                     + (cur.IsLut ? $"LUT, {cur.lut!.Length} points" : $"classic  accel {cur.adv.accel}  cap {cur.adv.cap}  offset {cur.adv.offset}")).ToUpperInvariant();
                 summary.Text = (cur.IsLut ? "" : $"classic  accel {cur.adv.accel}  cap {cur.adv.cap}  offset {cur.adv.offset} ({(cur.adv.offset ?? 0) * 1000 / rig.PxMm:0.0} mm/s)\n")
                     + $"floor {s.floor:0.00}   2-unit {s.twoUnit:0.00}   tap {s.tap:0.00}   track {s.track:0.00}   cap {s.cap:0.0}\n180° @150ms  {Curve.Turn180Mm(eff, rig):0.0} mm        eDPI {Curve.EDpi(rig, rig.Mult):0}";
@@ -1445,6 +1470,25 @@ namespace AimForge.App
             rig = a.Rg.Clone(); ThirdPerson.Strip(rig); PushRig();
             prefillExact = a.T; prefillShown = CurrentToggles();   // replay the applied toggles exactly
             Recalc();
+        }
+
+        /// camera --L-- hero --D-- target, to scale, with k = (D+L)/D. Pure drawing from the same numbers the apply uses.
+        void PaintTpsDiagram(Graphics g, Size sz)
+        {
+            if (cur == null || !ThirdPerson.IsThirdPerson(cur)) return;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            double L = tpsState.ArmFor(cur), D = tpsState.FightM, k = tpsState.KFor(cur);
+            float w = sz.Width - 12, y = 14, x0 = 6, xs = (float)(w / (L + D));
+            float xh = x0 + (float)(L * xs), xt = x0 + w;
+            using var line = new Pen(Steel, 1.5f); using var acc = new SolidBrush(tpsState.On ? Good : Steel); using var ink = new SolidBrush(Steel);
+            g.DrawLine(line, x0, y, xt, y);
+            g.FillRectangle(ink, x0 - 3, y - 4, 7, 8);                  // camera
+            g.FillEllipse(acc, xh - 4, y - 4, 9, 9);                     // hero (the orbit pivot)
+            g.FillEllipse(ink, xt - 4, y - 4, 9, 9);                     // target at the matched distance
+            var f = Theme.Small;
+            g.DrawString($"cam  L {L:0.0} m", f, ink, x0, y + 7);
+            var dTxt = $"D {D:0} m  →  k = (D+L)/D = {k:0.00}";
+            g.DrawString(dTxt, f, acc, Math.Max(xh + 4, xt - g.MeasureString(dTxt, f).Width), y + 7);
         }
 
         static void SetNum(NumericUpDown n, double v) => n.Value = (decimal)Math.Clamp(v, (double)n.Minimum, (double)n.Maximum);

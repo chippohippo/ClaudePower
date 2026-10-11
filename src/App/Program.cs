@@ -2347,7 +2347,7 @@ namespace AimForge.App
             {
                 var tRiv = cat.Find("rivmp")!; var tApex = cat.Find("apxmp")!;
                 double k = Core.ThirdPerson.Factor(2.5, 12);
-                var on = new Core.ThirdPerson.State { On = true, CameraM = 2.5, FightM = 12 }; var off = new Core.ThirdPerson.State { On = false };
+                var on = new Core.ThirdPerson.State { On = true, FightM = 12 }; var off = new Core.ThirdPerson.State { On = false };
                 var r1 = Rig.From(tRiv); double baseM = r1.Mult;
                 Core.ThirdPerson.ApplyTo(r1, tRiv, on); double once = r1.Mult;
                 Core.ThirdPerson.ApplyTo(r1, tRiv, on); double twice = r1.Mult;          // replaying an applied rig never compounds
@@ -2367,8 +2367,28 @@ namespace AimForge.App
                 on.Save(tp); var ld = Core.ThirdPerson.State.Load(tp); File.WriteAllText(tp, "on;NaN;900"); var bad = Core.ThirdPerson.State.Load(tp); File.Delete(tp);
                 var la = Core.LastApply.From(tRiv, once > 0 ? new Func<Rig>(() => { var x = Rig.From(tRiv); Core.ThirdPerson.ApplyTo(x, tRiv, on); return x; })() : r1);
                 Ok("tps.txt round-trips and clamps bad values; the applied factor is recorded with the build (lastapply.json)",
-                   ld.On && ld.CameraM == 2.5 && ld.FightM == 12 && bad.CameraM == Core.ThirdPerson.DefaultCameraM && bad.FightM == Core.ThirdPerson.DefaultFightM
+                   ld.On && ld.ArmFor(tRiv) == 2.5 && ld.FightM == 12 && bad.ArmFor(tRiv) == Core.ThirdPerson.DefaultCameraM && bad.FightM == Core.ThirdPerson.DefaultFightM
                    && Math.Abs((la.AppliedRig()?.TpsGain ?? 0) - k) < 1e-12);
+
+                // ---- 2026-10-11: third person is a GAME property from the tuner, the arm is per game, distances have names ----
+                var thirdIds = cat.presets.Where(Core.ThirdPerson.IsThirdPerson).Select(x => x.id).ToList();
+                var tpGames = cat.games.Where(g => g.thirdPerson).Select(g => g.id).OrderBy(x => x).ToList();
+                Ok("third person comes from the GAMES table (Marvel Rivals, Deadlock): every Rivals/Deadlock card and character card is matched, no other card is, and every roster card names its game",
+                   tpGames.SequenceEqual(new[] { "deadlock", "rivals" }) && thirdIds.All(id => cat.Find(id)!.game is "rivals" or "deadlock") &&
+                   cat.presets.Where(x => x.group.Contains("Marvel Rivals") || x.group == "Deadlock").All(Core.ThirdPerson.IsThirdPerson) &&
+                   cat.presets.Where(x => !x.group.StartsWith("Reference")).All(x => x.game != null),
+                   $"{thirdIds.Count} third-person cards");
+                var tDl = cat.Find("dlmp")!; var per = new Core.ThirdPerson.State { On = true, FightM = 12 }; per.SetArm(tDl, 3.5);
+                per.Save(tp); var perL = Core.ThirdPerson.State.Load(tp);
+                File.WriteAllText(tp, "on;3.2;12"); var legacy = Core.ThirdPerson.State.Load(tp); File.Delete(tp);
+                Ok("third-person arm is per game: a Deadlock arm leaves Marvel Rivals on its roster estimate, round-trips through tps.txt, and an old global arm migrates to both games",
+                   perL.ArmFor(tDl) == 3.5 && perL.ArmFor(tRiv) == 2.5 && Math.Abs(perL.KFor(tDl) - 15.5 / 12) < 1e-12 && Math.Abs(perL.KFor(tRiv) - 14.5 / 12) < 1e-12 &&
+                   legacy.ArmFor(tDl) == 3.2 && legacy.ArmFor(tRiv) == 3.2);
+                var dive = new Core.ThirdPerson.State { On = true, FightM = 9 };
+                Ok("third-person distance presets: dive 9 / mid 12 / poke 18 m; the readout names the preset and marks the arm as an estimate",
+                   Core.ThirdPerson.DistancePresets.Select(d => d.m).SequenceEqual(new[] { 9.0, 12, 18 }) && dive.PresetName == "dive" && new Core.ThirdPerson.State { FightM = 13 }.PresetName == null &&
+                   Core.ThirdPerson.Describe(dive, tRiv).Contains("matched at 9 m - dive") && Core.ThirdPerson.Describe(dive, tRiv).Contains("est."),
+                   Core.ThirdPerson.Describe(dive, tRiv));
             }
 
             // ---- 2026-09-27: a mode that cannot run is skipped with a note, never a silent refusal of the whole apply ----

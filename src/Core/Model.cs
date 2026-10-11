@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,10 +26,12 @@ namespace AimForge.Core
             var c = JsonSerializer.Deserialize<Catalogue>(File.ReadAllText(path), opts)
                     ?? throw new InvalidDataException("presets.json is empty");
             foreach (var p in c.presets) p.Normalise();
+            ThirdPerson.Register(c.games);
             return c;
         }
 
         public Preset? Find(string id) => presets.FirstOrDefault(p => p.id == id);
+        public Game? GameOf(Preset p) => p.game == null ? null : games.FirstOrDefault(g => g.id == p.game);
     }
 
     public sealed class Tablet
@@ -53,6 +55,10 @@ namespace AimForge.Core
         public bool fov3rd { get; set; }
         public double maxW { get; set; }
         public bool fovEstimated { get; set; }
+        /// Over-the-shoulder camera (third-person match applies) and its camera-arm estimate in metres.
+        public bool thirdPerson { get; set; }
+        public double? cameraArmM { get; set; }
+        public bool cameraArmEstimated { get; set; }
         public string note { get; set; } = "";
     }
 
@@ -116,6 +122,8 @@ namespace AimForge.Core
         public string id { get; set; } = "";
         public string name { get; set; } = "";
         public string group { get; set; } = "";
+        /// The game this card plays (GAMES id from the tuner, generated); null for reference cards.
+        public string? game { get; set; }
         public string tag { get; set; } = "";
         public string? field { get; set; }
         public string desc { get; set; } = "";

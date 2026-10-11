@@ -7,12 +7,12 @@ const ls={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)
 global.localStorage=ls;global.window={addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}}),location:{href:''},localStorage:ls};
 const c={};global.document={getElementById:id=>c[id]||(c[id]=mk()),querySelector:()=>mk(),querySelectorAll:()=>[],createElement:()=>mk(),addEventListener(){},body:mk(),documentElement:mk()};
 global.navigator={clipboard:{writeText:async()=>{}},userAgent:'node'};global.requestAnimationFrame=f=>f(0);global.alert=()=>{};global.fetch=async()=>({ok:false});
-const ctx={};new Function('with(this){'+code+'}\nthis.A={PRESETS,GAMES,RES};').call(ctx);
+const ctx={};new Function('with(this){'+code+'}\nthis.A={PRESETS,GAMES,RES,gameOfCard,cardDesc};').call(ctx);
 const strip=h=>h.replace(/<[^>]+>/g,'').replace(/&rarr;/g,'→').replace(/&deg;/g,'°').replace(/&rsquo;/g,'’').replace(/&mdash;/g,'—').replace(/&ndash;/g,'–').replace(/&times;/g,'×').replace(/&nbsp;/g,' ').replace(/&minus;/g,'−').replace(/&sup2;/g,'²').replace(/&ldquo;/g,'“').replace(/&rdquo;/g,'”').replace(/&gt;/g,'>').replace(/&lt;/g,'<').replace(/&amp;/g,'&');
 const out={schema:1,generated:new Date().toISOString().slice(0,10),tablet:{name:'Wacom DTC-141',reportHz:360,unitMm:0.01,widthMm:310},
- games:ctx.A.GAMES.map(g=>({id:g.id,name:g.name,K:g.K,fovMin:g.fovMin,fovMax:g.fovMax,fovLocked:!!g.fovLocked,fov3rd:!!g.fov3rd,fovEstimated:!!g.fovEstimated,maxW:g.maxW,note:strip(g.note||'')})),
+ games:ctx.A.GAMES.map(g=>({id:g.id,name:g.name,K:g.K,fovMin:g.fovMin,fovMax:g.fovMax,fovLocked:!!g.fovLocked,fov3rd:!!g.fov3rd,fovEstimated:!!g.fovEstimated,maxW:g.maxW,thirdPerson:!!g.thirdPerson,cameraArmM:g.cameraArmM||null,cameraArmEstimated:!!g.cameraArmEstimated,note:strip(g.note||'')})),
  monitors:ctx.A.RES,
- presets:ctx.A.PRESETS.map(p=>({id:p.id,name:p.name,group:p.group,tag:p.tag,field:p.field||null,desc:strip(p.desc),pxmm:p.pxmm,cm:p.cm,snap:p.snap,hdlMax:p.hdlMax,slider:p.slider,res:p.res,adv:p.adv||{},lut:p.lut||null,cohOv:p.cohOv||null,radialOv:p.radialOv||null,
+ presets:ctx.A.PRESETS.map(p=>({id:p.id,name:p.name,group:p.group,game:(ctx.A.gameOfCard(p)||{}).id||null,tag:p.tag,field:p.field||null,desc:strip(ctx.A.cardDesc(p)),pxmm:p.pxmm,cm:p.cm,snap:p.snap,hdlMax:p.hdlMax,slider:p.slider,res:p.res,adv:p.adv||{},lut:p.lut||null,cohOv:p.cohOv||null,radialOv:p.radialOv||null,
   // 3.1: explicit filter plan, DERIVED from the authored state (single write path preserved)
   filters:(c=>{
     const list=[{id:'Hover_Distance_Limiter',on:true,settings:{Hover_max:p.hdlMax}}];
