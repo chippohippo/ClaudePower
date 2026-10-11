@@ -48,6 +48,7 @@ namespace AimForge.App
         CheckBox fMouse = new Switch();
         CheckBox fTps = new Switch(); NumericUpDown fTpsCam = new NumericUpDown(), fTpsFight = new NumericUpDown(); Label tpsRead = new Label();
         Panel tpsDiagram = new Panel(); bool tpsPushing;
+        Label engineRead = new Label(); string engineReadKey = "";
         /// every number in the window explains itself on hover (2026-10-11)
         readonly ToolTip tip = new ToolTip { AutoPopDelay = 20000, InitialDelay = 350, ReshowDelay = 100 };
         ThirdPerson.State tpsState = ThirdPerson.State.Load(); NumericUpDown fMouseDpi = new NumericUpDown(), fMouseHl = new NumericUpDown(), fMouseYx = new NumericUpDown();
@@ -478,7 +479,7 @@ namespace AimForge.App
                 right -= 6;
             }
             if (tier.Length > 1 && tier[1] >= '3') Chip(tier, Theme.Amber);
-            if (BuildState.CadenceRecommended(p)) Chip("CADENCE", Theme.Steel);
+            if (BuildState.CadenceReason(p, p.pxmm) != null) Chip("CADENCE", Theme.Steel);
             if (lastApplied?.P.id == p.id) Chip("LIVE", Theme.Teal, fill: true);
             if (p.field == "good") { g.SmoothingMode = SmoothingMode.AntiAlias; using var dot = new SolidBrush(Theme.Teal); g.FillEllipse(dot, right - 8, r.Y + 12, 6, 6); right -= 14; }
             TextRenderer.DrawText(g, p.name, sel ? Theme.BodyB : Theme.Body, new Rectangle(r.X + 16, r.Y, right - r.X - 16, r.Height), sel ? Color.White : Ink,
@@ -601,6 +602,11 @@ namespace AimForge.App
                                      : "engine: RawAccel - next apply writes the curve into RawAccel and disables Cadence Lock");
             };
             pe.Controls.Add(fCadence);
+            // 2026-10-11: this card through the REAL chain (ChainLab: OTD -> VMulti counts -> RawAccel's packet clock)
+            engineRead.Width = SideW - 44; engineRead.Height = 58; engineRead.Font = Theme.Small; engineRead.ForeColor = Steel; engineRead.Margin = new Padding(44, 2, 0, 6);
+            tip.SetToolTip(engineRead, "Simulated from the drivers' own source code: a 50 mm strafe track at 1.5 Hz with ordinary USB timing jitter. " +
+                "Aim error = how far the crosshair wanders from where your hand put it, over any 100 ms, in degrees. Lower is steadier tracking. Evidence: ev-20261011-chain-lab.");
+            pe.Controls.Add(engineRead);
             pe.Controls.Add(FRow("pen rate, Hz (0 = auto)", fCadHz, 0, 2000, 1, 0, (decimal)savedHz));
             pe.Controls.Add(FRow("merge cap, reports", fCadMerge, 1, 16, 1, 0, (decimal)savedMerge));
             fCadHz.ValueChanged += (s, e) => { SaveEngine(); Log(fCadHz.Value == 0 ? "cadence: pen rate AUTO (running-mean estimate; use to VERIFY the hardware rate)" : $"cadence: pen rate pinned {fCadHz.Value} Hz"); };
@@ -743,6 +749,7 @@ namespace AimForge.App
                     ThirdPerson.FeelVsFps(tk, tarm, 25), ThirdPerson.FeelVsFps(1, tarm, 25),
                     tpsState.PresetName is string pn ? " (" + pn + ")" : "");
             tpsDiagram.Invalidate();
+            UpdateEngineRead();
             UpdateBuildState();
             desc.Text = cur.desc.Replace("\n", Environment.NewLine);
             heroGroup.Text = (cur.group ?? "").ToUpperInvariant();
@@ -1533,10 +1540,31 @@ namespace AimForge.App
             return (p, r, t, skipped);
         }
 
+        void UpdateEngineRead()
+        {
+            if (cur == null) return;
+            string key = cur.id + "|" + rig.PxMm + "|" + rig.Cm360 + "|" + rig.Mult;
+            if (key == engineReadKey) return;
+            engineReadKey = key;
+            try
+            {
+                var p = EffectivePreset(); var sc = ChainLab.Scenarios[2];
+                var w = ChainLab.Run(p, rig, sc, ChainLab.Engine.Wall); var c = ChainLab.Run(p, rig, sc, ChainLab.Engine.CadenceDropCheck);
+                double ratio = c.AimErrDeg100ms > 0 ? w.AimErrDeg100ms / c.AimErrDeg100ms : 1;
+                engineRead.Text = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "This card, tracking a strafe (real-chain sim):\n  RawAccel engine  {0:0.000}° aim error / 100 ms  ({1:0.0}% gain noise)\n  Cadence Lock     {2:0.000}°  -  {3}",
+                    w.AimErrDeg100ms, w.Track.NoisePct, c.AimErrDeg100ms, ratio >= 3 ? $"{ratio:0}x steadier" : ratio >= 1.5 ? $"{ratio:0.0}x steadier" : "about the same");
+                engineRead.ForeColor = ratio >= 3 ? Warn : Steel;
+            }
+            catch (Exception ex) { engineRead.Text = "engine comparison unavailable: " + ex.Message; }
+        }
+
         void UpdateBuildState()
         {
             if (cur == null) return;
-            bCadenceRec.Visible = BuildState.CadenceRecommended(cur) && !fCadence.Checked;
+            var why = BuildState.CadenceReason(cur, rig.PxMm);
+            bCadenceRec.Visible = why != null && !fCadence.Checked;
+            if (why != null) tip.SetToolTip(bCadenceRec, "Why: " + why + ". Ticks the Cadence Lock engine and applies (Ctrl+Tab compares).");
             var g = cat.GameOf(cur);
             bCalib360.Visible = g != null && g.kMeasured == null && (g.note.Contains("calibrate before trusting", StringComparison.OrdinalIgnoreCase) || g.id == "deadlock");
             if (applying) { bApply.Text = "APPLYING…"; return; }

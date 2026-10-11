@@ -66,10 +66,12 @@ namespace AimForge.Core
             double s = t / T; return A * (10 * s * s * s - 15 * s * s * s * s + 6 * s * s * s * s * s);
         }
 
-        public static Result Run(Preset p, Rig rig, Scenario sc, Engine eng, double jitterPct = 10, int seed = 11, int mergeEvery = 0, Timing timing = Timing.Late)
+        public static Result Run(Preset p, Rig rig, Scenario sc, Engine eng, double jitterPct = 10, int seed = 11, int mergeEvery = 0, Timing timing = Timing.Late, double latticeX = 1)
         {
             var rnd = new Random(seed);
-            double pxmm = rig.PxMm, mult = rig.Mult;
+            // latticeX: OTD px/mm x N with RawAccel's output multiplier / N - the same eDPI, in-game sens and PHYSICAL curve,
+            // a count lattice N times finer at RawAccel's input (gainMmS keeps the card's own px/mm: the physics)
+            double pxmm = rig.PxMm, mult = rig.Mult, cpmm = pxmm * latticeX, cmult = mult / latticeX;
             var lut = Curve.EffectiveLut(p, pxmm);
             // the curve in the driver's units: counts/ms in, gain out (the same formulas the apply writes)
             Func<double, double> gainMmS = p.IsLut ? v => Curve.GainAt(lut, v)
@@ -124,7 +126,7 @@ namespace AimForge.Core
                 else
                 {
                     // OTD: float px delta; VMulti: carry, split at 127, truncate
-                    double remaining = du / UPM * pxmm + vmErr;
+                    double remaining = du / UPM * cpmm + vmErr;
                     var packets = new List<int>();
                     while (Math.Abs(remaining) > 127) { int part = Math.Sign(remaining) * 127; packets.Add(part); remaining -= part; }
                     vmErr = remaining % 1; packets.Add((int)remaining);
@@ -137,9 +139,9 @@ namespace AimForge.Core
                         lastPacketArr = pa;
                         int c = packets[k];
                         if (c == 0) { res.ZeroPackets++; continue; }
-                        double vSeen = Math.Abs(c) / time * 1000.0 / pxmm;               // what RawAccel reads, in mm/s
+                        double vSeen = Math.Abs(c) / time * 1000.0 / cpmm;               // what RawAccel reads, in mm/s
                         double g = gainMmS(vSeen);
-                        double outv = c * g * mult + raCarry; int oc = (int)outv; raCarry = outv - oc; delivered += oc;
+                        double outv = c * g * cmult + raCarry; int oc = (int)outv; raCarry = outv - oc; delivered += oc;
                         if (k == 0 && du != 0) Score(vTrue, g / gTrue - 1);
                     }
                 }

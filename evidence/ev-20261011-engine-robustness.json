@@ -1,0 +1,84 @@
+{
+  "evidenceId": "ev-20261011-engine-robustness",
+  "date": "2026-10-11",
+  "claim": "Three follow-ups to ev-20261011-chain-lab. (1) The RawAccel engine's tracking error is not an artefact of the assumed USB jitter: with ZERO jitter it is still 2.4x (BO6) to 9.5x (Psylocke) Cadence Lock's, from the integer count lattice alone, and it grows steeply with jitter (Psylocke 0.12 deg at 0% -> 4.6 deg at +/-40%) while Cadence Lock stays at the one-count floor (~0.012 deg) at every jitter. Across the roster Cadence Lock tracks 4-9x steadier. (2) A finer count lattice for the RawAccel engine (OTD px/mm xN, RawAccel multiplier /N, same sens and physics) is REJECTED: under jitter it barely helps (BO6 0.049 -> 0.044 deg) and from x2 VMulti splits reports below the curve's cap, making fast flicks 2.5-7 deg wrong. (3) The VMulti split hazard: at 90 px/mm VMulti splits every report above 508 mm/s; two wildcard cards (owwx Guardrail, hdwx Cannonade) have curves that still change above that, and the RawAccel engine misprices their fast flicks by 7-8 deg per 100 ms (owwx delivers ~18% long). A closed-form rule (BuildState.SplitHazardMmS) flags exactly those two of 86 cards, in agreement with the chain lab on every card; Cadence Lock is immune (0.006 deg).",
+  "method": "ChainLab (see ev-20261011-chain-lab): --chain-lab --jitter N (0-40% of an interval), --lattice-lab (N = 1, 1.5, 2, 3, 4), --split-hazard; selftest pins the rule against the chain lab for all 86 cards.",
+  "results": {
+    "jitterSensitivity_aimBand": {
+      "0": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      1.0%/   0.2%      0.6%/   0.0%      0.5%/  -0.1%    0.0283\u00b0   -0.065\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%      2.4%/  -0.1%      0.0%/   0.0%    0.1203\u00b0   -0.089\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ],
+      "2": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      1.0%/   0.2%      0.7%/   0.0%      0.7%/  -0.1%    0.0286\u00b0   -0.065\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%      3.3%/  -0.1%      0.0%/   0.0%    0.1465\u00b0   -0.572\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ],
+      "5": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      1.0%/   0.2%      1.2%/   0.0%      1.3%/  -0.0%    0.0316\u00b0   -0.048\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%      6.3%/   0.1%      0.0%/   0.0%    0.2248\u00b0   -1.167\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ],
+      "10": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      1.2%/   0.2%      2.2%/   0.1%      2.4%/   0.0%    0.0485\u00b0    0.002\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%     12.0%/   0.4%      1.1%/  -0.1%    0.4989\u00b0   -0.145\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ],
+      "20": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      1.8%/   0.3%      4.2%/   0.4%      4.8%/   0.3%    0.1379\u00b0    0.119\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%     24.5%/   2.0%      6.1%/  -1.8%    1.5510\u00b0   -2.058\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ],
+      "40": [
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      3.2%/   0.7%      9.0%/   1.5%     10.2%/   1.4%    0.5365\u00b0    0.438\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/  -0.0%      0.0%/  -0.0%      0.0%/  -0.0%    0.0117\u00b0   -0.015\u00b0     0",
+        "aim band 50mm 1.5Hz    Wall                  0.0%/   0.0%      0.0%/   0.0%     52.3%/   8.3%     17.0%/  -8.6%    4.6241\u00b0    0.951\u00b0     0",
+        "aim band 50mm 1.5Hz    CadenceDropCheck      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%      0.0%/   0.0%    0.0127\u00b0   -0.015\u00b0     0"
+      ]
+    },
+    "latticeLab": [
+      "bo6og     jitter  0%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0158\u00b0  tap 0.0199\u00b0  aim 0.0283\u00b0  flick 0.0182\u00b0  splits 28",
+      "bo6og     jitter  0%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0158\u00b0  tap 0.0163\u00b0  aim 0.0217\u00b0  flick 0.0129\u00b0  splits 42",
+      "bo6og     jitter  0%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0124\u00b0  tap 0.0142\u00b0  aim 0.0186\u00b0  flick 2.5237\u00b0  splits 75",
+      "bo6og     jitter  0%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0121\u00b0  tap 0.0124\u00b0  aim 0.0146\u00b0  flick 6.5463\u00b0  splits 124",
+      "bo6og     jitter  0%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0112\u00b0  tap 0.0114\u00b0  aim 0.1764\u00b0  flick 6.7258\u00b0  splits 707",
+      "bo6og     jitter 10%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0158\u00b0  tap 0.0206\u00b0  aim 0.0485\u00b0  flick 0.0458\u00b0  splits 28",
+      "bo6og     jitter 10%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0159\u00b0  tap 0.0161\u00b0  aim 0.0438\u00b0  flick 0.0427\u00b0  splits 42",
+      "bo6og     jitter 10%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0128\u00b0  tap 0.0149\u00b0  aim 0.0437\u00b0  flick 2.4723\u00b0  splits 75",
+      "bo6og     jitter 10%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0121\u00b0  tap 0.0129\u00b0  aim 0.0415\u00b0  flick 6.5233\u00b0  splits 124",
+      "bo6og     jitter 10%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0112\u00b0  tap 0.0126\u00b0  aim 0.2011\u00b0  flick 6.7142\u00b0  splits 707",
+      "rivpsy    jitter  0%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 0.1203\u00b0  flick 0.0247\u00b0  splits 28",
+      "rivpsy    jitter  0%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0164\u00b0  tap 0.0174\u00b0  aim 0.0444\u00b0  flick 0.0347\u00b0  splits 42",
+      "rivpsy    jitter  0%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 0.0418\u00b0  flick 0.0326\u00b0  splits 75",
+      "rivpsy    jitter  0%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0138\u00b0  tap 0.0148\u00b0  aim 0.0369\u00b0  flick 0.0135\u00b0  splits 124",
+      "rivpsy    jitter  0%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 6.9914\u00b0  flick 3.4820\u00b0  splits 707",
+      "rivpsy    jitter 10%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 0.4989\u00b0  flick 0.1812\u00b0  splits 28",
+      "rivpsy    jitter 10%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0164\u00b0  tap 0.0174\u00b0  aim 0.4561\u00b0  flick 0.1245\u00b0  splits 42",
+      "rivpsy    jitter 10%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 0.4714\u00b0  flick 0.1074\u00b0  splits 75",
+      "rivpsy    jitter 10%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0138\u00b0  tap 0.0148\u00b0  aim 0.4492\u00b0  flick 0.1575\u00b0  splits 124",
+      "rivpsy    jitter 10%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0108\u00b0  tap 0.0115\u00b0  aim 6.9100\u00b0  flick 3.6811\u00b0  splits 707",
+      "dlmp      jitter  0%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0159\u00b0  tap 0.0206\u00b0  aim 0.0290\u00b0  flick 0.0154\u00b0  splits 28",
+      "dlmp      jitter  0%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0152\u00b0  tap 0.0160\u00b0  aim 0.0210\u00b0  flick 0.0152\u00b0  splits 42",
+      "dlmp      jitter  0%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0123\u00b0  tap 0.0139\u00b0  aim 0.0186\u00b0  flick 2.5971\u00b0  splits 75",
+      "dlmp      jitter  0%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0132\u00b0  tap 0.0123\u00b0  aim 0.0171\u00b0  flick 6.9421\u00b0  splits 124",
+      "dlmp      jitter  0%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0112\u00b0  tap 0.0117\u00b0  aim 0.1745\u00b0  flick 7.1531\u00b0  splits 707",
+      "dlmp      jitter 10%  lattice x1   (   57 px/mm, split above  802 mm/s):  micro 0.0163\u00b0  tap 0.0209\u00b0  aim 0.0514\u00b0  flick 0.0511\u00b0  splits 28",
+      "dlmp      jitter 10%  lattice x1.5 (   86 px/mm, split above  535 mm/s):  micro 0.0152\u00b0  tap 0.0159\u00b0  aim 0.0465\u00b0  flick 0.0477\u00b0  splits 42",
+      "dlmp      jitter 10%  lattice x2   (  114 px/mm, split above  401 mm/s):  micro 0.0125\u00b0  tap 0.0151\u00b0  aim 0.0463\u00b0  flick 2.5450\u00b0  splits 75",
+      "dlmp      jitter 10%  lattice x3   (  171 px/mm, split above  267 mm/s):  micro 0.0131\u00b0  tap 0.0127\u00b0  aim 0.0443\u00b0  flick 6.9182\u00b0  splits 124",
+      "dlmp      jitter 10%  lattice x4   (  228 px/mm, split above  201 mm/s):  micro 0.0111\u00b0  tap 0.0127\u00b0  aim 0.2005\u00b0  flick 7.1425\u00b0  splits 707"
+    ],
+    "splitHazard": [
+      "owwx       Guardrail                  90 px/mm: VMulti splits above 508 mm/s while the curve still changes - RawAccel engine misprices faster flicks",
+      "hdwx       Cannonade                  90 px/mm: VMulti splits above 508 mm/s while the curve still changes - RawAccel engine misprices faster flicks"
+    ]
+  },
+  "consequence": "The window shows each card's real-chain tracking error on both engines (Engine tab). owwx and hdwx get the CADENCE chip and the one-click 'Apply this on Cadence Lock' with the reason; no card's curve or copy changed. Defaults unchanged: the RawAccel engine stays the default because the field-proven BO6 baseline was rated on it; Cadence Lock's field verdict is the open question this evidence sharpens.",
+  "fieldVerdict": "pending - A/B Cadence Lock vs the RawAccel engine on your main card (Ctrl+Tab), and on owwx/hdwx if you play them"
+}

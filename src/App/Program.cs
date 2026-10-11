@@ -405,6 +405,27 @@ namespace AimForge.App
                             : "calibrated: tick Nib twin in the Builds tab (or --apply <id> --twin on)");
                         return res.Refused == null ? 0 : 1;
                     }
+                    case "--split-hazard":
+                        foreach (var hp in cat.presets)
+                            if (BuildState.SplitHazardMmS(hp, hp.pxmm) is double sp)
+                                Console.WriteLine($"{hp.id,-10} {hp.name,-26} {hp.pxmm} px/mm: VMulti splits above {sp:0} mm/s while the curve still changes - RawAccel engine misprices faster flicks");
+                        return 0;
+                    case "--lattice-lab":
+                    {
+                        // RawAccel engine: a finer count lattice (OTD px/mm x N, RawAccel multiplier / N) - same sens, same physics
+                        foreach (var id in args.Skip(1).DefaultIfEmpty("bo6og"))
+                        {
+                            var cp = cat.Find(id); if (cp == null) continue;
+                            foreach (double jt in new[] { 0.0, 10 })
+                                foreach (double lx in new[] { 1.0, 1.5, 2, 3, 4 })
+                                {
+                                    var parts = Core.ChainLab.Scenarios.Select(sc => Core.ChainLab.Run(cp, Rig.From(cp), sc, Core.ChainLab.Engine.Wall, jt, 11, 0, Core.ChainLab.Timing.Late, lx)).ToArray();
+                                    Console.WriteLine(System.FormattableString.Invariant($"{id,-9} jitter {jt,2}%  lattice x{lx,-3} ({Rig.From(cp).PxMm * lx,5:0} px/mm, split above {127 * 360 / (Rig.From(cp).PxMm * lx),4:0} mm/s):  ") +
+                                        string.Join("  ", parts.Select(r => System.FormattableString.Invariant($"{r.Scenario.Split(' ')[0]} {r.AimErrDeg100ms:0.0000}°"))) + $"  splits {parts.Sum(r => r.SplitPackets)}");
+                                }
+                        }
+                        return 0;
+                    }
                     case "--dropcheck-stress":
                     {
                         // try to BREAK Cadence's drop check: drops / late reports at every spacing 3..17 across flicks and tracks;
@@ -431,8 +452,8 @@ namespace AimForge.App
                     case "--chain-lab":
                     {
                         // read-only: the RawAccel engine as the bytes flow (OTD -> VMulti counts -> RawAccel clock) vs constant time vs Cadence Lock
-                        var ids = args.Skip(1).Where(x => !x.StartsWith("--")).ToArray(); if (ids.Length == 0) ids = new[] { "bo6og", "breakwide", "rivpsy", "owsol", "apxmp" };
-                        int merge = args.Contains("--late") || args.Contains("--drop") ? 40 : 0; double jit = args.Contains("--no-jitter") ? 0 : 10;
+                        var ids = args.Skip(1).Where(x => !x.StartsWith("--") && !double.TryParse(x, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)).ToArray(); if (ids.Length == 0) ids = new[] { "bo6og", "breakwide", "rivpsy", "owsol", "apxmp" };
+                        int merge = args.Contains("--late") || args.Contains("--drop") ? 40 : 0; double jit = args.Contains("--no-jitter") ? 0 : 10; { int ji = Array.IndexOf(args, "--jitter"); if (ji >= 0 && ji + 1 < args.Length) jit = double.Parse(args[ji + 1], System.Globalization.CultureInfo.InvariantCulture); }
                         var timing = args.Contains("--drop") ? Core.ChainLab.Timing.Drop : Core.ChainLab.Timing.Late;
                         foreach (var id in ids)
                         {
@@ -2740,6 +2761,21 @@ namespace AimForge.App
                 var ts = PenTiming.FromNibLog(tl);
                 Ok("pen timing: from the press log, a late report (long gap, one report of travel, then a short gap) and a dropped one (long gap, two reports of travel) are told apart",
                    ts.Late == 1 && ts.Drop == 1 && ts.Short == 1 && ts.Plain == 56, ts.Summary);
+            }
+
+            // ---- 2026-10-11: the VMulti split hazard - a curve still changing above the 127-count split speed ----
+            {
+                var hz = cat.presets.Where(x => BuildState.SplitHazardMmS(x, x.pxmm) != null).Select(x => x.id).OrderBy(x => x).ToList();
+                var flick = ChainLab.Scenarios[3]; string bad = "";
+                foreach (var x in cat.presets)
+                {
+                    double w = ChainLab.Run(x, Rig.From(x), flick, ChainLab.Engine.Wall).AimErrDeg100ms;
+                    bool hazard = hz.Contains(x.id);
+                    if (hazard != (w > 1.0)) bad += $" {x.id} {w:0.00}deg hazard={hazard};";
+                }
+                Ok("split hazard: the closed-form rule (curve still changing above 127 counts a report) flags exactly the cards whose RawAccel-engine flick misprices > 1 deg in the chain lab - and those get the Cadence advice",
+                   bad.Length == 0 && hz.SequenceEqual(new[] { "hdwx", "owwx" }) && hz.All(id => BuildState.CadenceReason(cat.Find(id)!, cat.Find(id)!.pxmm)!.Contains("splits")),
+                   bad.Length == 0 ? string.Join(", ", hz) : bad);
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
