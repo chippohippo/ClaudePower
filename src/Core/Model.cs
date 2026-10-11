@@ -196,6 +196,9 @@ namespace AimForge.Core
         public double ReportHz = 360;   // MEASURED 360.2 Hz (ev-20260907-pen-rate); 0 = auto-estimate (re-verify)
         /// Cadence Lock: longest gap (in reports) still priced as merged travel.
         public double MergeMax = 8;
+        /// Cadence Lock's drop check (2026-10-11, ev-20261011-chain-lab): a long gap is priced as merged reports only when
+        /// the travel says so. On by default for Cadence applies; written as the plugin's DropCheck property.
+        public bool DropCheck = true;
         /// Mouse mirror (2026-09-14): the same build on the physical mouse through a second
         /// RawAccel profile (MouseMirror.cs). Apply-time MODE persisted in mouse.txt - never in
         /// presets.json. DPI is the sensor step as set on the mouse; AimForge cannot check it.

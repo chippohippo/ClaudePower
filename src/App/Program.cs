@@ -56,6 +56,7 @@ namespace AimForge.App
                             if (rig.Engine != "rawaccel" && rig.Engine != "cadence") throw new ArgumentException("--engine rawaccel|cadence");
                             int hi = Array.IndexOf(args, "--pen-hz"); if (hi >= 0 && hi + 1 < args.Length) rig.ReportHz = double.Parse(args[hi + 1], System.Globalization.CultureInfo.InvariantCulture);
                             int mi = Array.IndexOf(args, "--merge-cap"); if (mi >= 0 && mi + 1 < args.Length) rig.MergeMax = double.Parse(args[mi + 1], System.Globalization.CultureInfo.InvariantCulture);
+                            int dci = Array.IndexOf(args, "--drop-check"); if (dci >= 0 && dci + 1 < args.Length) rig.DropCheck = args[dci + 1] != "off";
                             // mouse mirror: a persisted MODE (mouse.txt). Flags change it for THIS apply and are
                             // saved only after a successful non-dry apply (review 2026-09-14).
                             var mst = Core.MouseMirror.State.Load(); var ci = System.Globalization.CultureInfo.InvariantCulture;
@@ -403,6 +404,50 @@ namespace AimForge.App
                             : res.Restored?.NibTwin == true ? "calibrated: the live twin now uses the new calibration"
                             : "calibrated: tick Nib twin in the Builds tab (or --apply <id> --twin on)");
                         return res.Refused == null ? 0 : 1;
+                    }
+                    case "--dropcheck-stress":
+                    {
+                        // try to BREAK Cadence's drop check: drops / late reports at every spacing 3..17 across flicks and tracks;
+                        // the check must never be worse than plain Cadence by more than 2% (or 0.002 deg)
+                        double worst = 0; string where = "";
+                        foreach (var id in new[] { "bo6og", "breakwide", "rivpsy", "owsol", "apxmp", "dlmp", "valmp" })
+                        {
+                            var cp = cat.Find(id); if (cp == null) continue;
+                            foreach (var sc in Core.ChainLab.Scenarios)
+                                foreach (var tm in new[] { Core.ChainLab.Timing.Drop, Core.ChainLab.Timing.Late })
+                                    for (int every = 3; every <= 17; every++)
+                                        foreach (int seed in new[] { 1, 2, 3 })
+                                        {
+                                            var a1 = Core.ChainLab.Run(cp, Rig.From(cp), sc, Core.ChainLab.Engine.Cadence, 10, seed, every, tm);
+                                            var a2 = Core.ChainLab.Run(cp, Rig.From(cp), sc, Core.ChainLab.Engine.CadenceDropCheck, 10, seed, every, tm);
+                                            double over = a2.AimErrDeg100ms - a1.AimErrDeg100ms * 1.02;
+                                            if (over > worst) { worst = over; where = $"{id} {sc.Name} {tm} every {every} seed {seed}: plain {a1.AimErrDeg100ms:0.0000} check {a2.AimErrDeg100ms:0.0000}"; }
+                                        }
+                        }
+                        Console.WriteLine(worst <= 0.002 ? "drop check never worse than plain Cadence (beyond 2% / 0.002 deg)" : "WORSE: " + where);
+                        if (where.Length > 0) Console.WriteLine("worst case: " + where);
+                        return 0;
+                    }
+                    case "--chain-lab":
+                    {
+                        // read-only: the RawAccel engine as the bytes flow (OTD -> VMulti counts -> RawAccel clock) vs constant time vs Cadence Lock
+                        var ids = args.Skip(1).Where(x => !x.StartsWith("--")).ToArray(); if (ids.Length == 0) ids = new[] { "bo6og", "breakwide", "rivpsy", "owsol", "apxmp" };
+                        int merge = args.Contains("--late") || args.Contains("--drop") ? 40 : 0; double jit = args.Contains("--no-jitter") ? 0 : 10;
+                        var timing = args.Contains("--drop") ? Core.ChainLab.Timing.Drop : Core.ChainLab.Timing.Late;
+                        foreach (var id in ids)
+                        {
+                            var cp = cat.Find(id); if (cp == null) { Console.WriteLine(id + " unknown"); continue; }
+                            Console.WriteLine($"== {id} {cp.name}  ({Rig.From(cp).PxMm} px/mm, {Rig.From(cp).Cm360} cm/360){(merge > 0 ? $"  every 40th report {timing}" : "")}");
+                            Console.WriteLine("scenario               engine     slow(<15) noise/bias   tap(15-55)        track(55-220)     fast(>220)        aim err 100ms   end err  splits");
+                            foreach (var sc in Core.ChainLab.Scenarios)
+                                foreach (var e in new[] { Core.ChainLab.Engine.Wall, Core.ChainLab.Engine.Constant, Core.ChainLab.Engine.Cadence, Core.ChainLab.Engine.CadenceDropCheck })
+                                {
+                                    var r = Core.ChainLab.Run(cp, Rig.From(cp), sc, e, jit, mergeEvery: merge, timing: timing);
+                                    string B(Core.ChainLab.Band b) => b.N < 2 ? "        -        " : System.FormattableString.Invariant($"{b.NoisePct,6:0.0}%/{b.BiasPct,+6:0.0;-0.0}%");
+                                    Console.WriteLine(System.FormattableString.Invariant($"{sc.Name,-22} {e,-16} {B(r.Slow),17} {B(r.Tap),17} {B(r.Track),17} {B(r.Fast),17}  {r.AimErrDeg100ms,8:0.0000}°  {r.EndErrDeg,7:0.000}°  {r.SplitPackets,4}"));
+                                }
+                        }
+                        return 0;
                     }
                     case "--ema-lab":
                     {
@@ -2652,6 +2697,49 @@ namespace AimForge.App
                    mouse.kind == Doctor.TipKind.SendInputMouse && keyB.kind == Doctor.TipKind.SendInputKey && vmB.kind == Doctor.TipKind.VMulti && none.kind == Doctor.TipKind.None &&
                    rM.Level == "FAIL" && rM.Fix.Contains("VMulti") && rV.Level == "WARN" && rV.Detail.Contains("FIRST mouse") && rV.Detail.Contains("drop left clicks"),
                    $"{mouse.text} | {keyB.text} | {vmB.text} | {none.text}");
+            }
+
+            // ---- 2026-10-11: the chain lab - the RawAccel engine as the bytes flow, and Cadence Lock's drop check ----
+            {
+                var cPsy = cat.Find("rivpsy")!; var cBo = cat.Find("bo6og")!; var aim = ChainLab.Scenarios[2]; var flick = ChainLab.Scenarios[3];
+                var w0 = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Wall, 0); var k0 = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Constant, 0);
+                Ok("chain lab is self-consistent: with no USB jitter the wall clock and constant time read the same packets the same (aim band, no splits)",
+                   Math.Abs(w0.AimErrDeg100ms - k0.AimErrDeg100ms) < 0.01 * k0.AimErrDeg100ms && w0.SplitPackets == 0, $"{w0.AimErrDeg100ms:0.0000} vs {k0.AimErrDeg100ms:0.0000}");
+                var wJ = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Wall); var cJ = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Cadence);
+                Ok("chain lab: through the real count lattice and packet clock, Psylocke's RawAccel engine tracks with >= 10x the aim error of Cadence Lock (ev-20261011-chain-lab)",
+                   wJ.AimErrDeg100ms >= 10 * cJ.AimErrDeg100ms && wJ.Track.NoisePct > 8 && cJ.Track.NoisePct < 0.1, $"wall {wJ.AimErrDeg100ms:0.000} deg / {wJ.Track.NoisePct:0.0}%, cadence {cJ.AimErrDeg100ms:0.0000} deg");
+                var kF = ChainLab.Run(cBo, Rig.From(cBo), flick, ChainLab.Engine.Constant); var wF = ChainLab.Run(cBo, Rig.From(cBo), flick, ChainLab.Engine.Wall);
+                var kD = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Constant, 10, 11, 40, ChainLab.Timing.Drop);
+                Ok("chain lab: RawAccel 'constant time interval' stays refused for the pen - VMulti splits a >800 mm/s report and a drop doubles a report, and constant time misprices both",
+                   kF.SplitPackets > 0 && kF.AimErrDeg100ms > 10 * wF.AimErrDeg100ms && kD.AimErrDeg100ms > 3 * cJ.AimErrDeg100ms * 10, $"flick {kF.AimErrDeg100ms:0.00} vs wall {wF.AimErrDeg100ms:0.000} deg; drop {kD.AimErrDeg100ms:0.00} deg");
+                var lPlain = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Cadence, 10, 11, 40, ChainLab.Timing.Late);
+                var lCheck = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.CadenceDropCheck, 10, 11, 40, ChainLab.Timing.Late);
+                var dPlain = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.Cadence, 10, 11, 40, ChainLab.Timing.Drop);
+                var dCheck = ChainLab.Run(cPsy, Rig.From(cPsy), aim, ChainLab.Engine.CadenceDropCheck, 10, 11, 40, ChainLab.Timing.Drop);
+                Ok("Cadence drop check: a LATE report is no longer priced at half speed (Psylocke tracking error back to the jitter-only level), and a real DROP is priced exactly as before",
+                   lPlain.AimErrDeg100ms > 0.5 && lCheck.AimErrDeg100ms < 1.5 * cJ.AimErrDeg100ms && Math.Abs(dPlain.AimErrDeg100ms - dCheck.AimErrDeg100ms) < 1e-9,
+                   $"late {lPlain.AimErrDeg100ms:0.000} -> {lCheck.AimErrDeg100ms:0.0000} deg; drop {dPlain.AimErrDeg100ms:0.0000} = {dCheck.AimErrDeg100ms:0.0000}");
+                // try to break it: drops and late reports at every spacing 3-17 across every scenario, three seeds
+                double worst = 0; string where = "";
+                foreach (var cp in new[] { cBo, cPsy, cat.Find("owsol")!, cat.Find("breakwide")! })
+                    foreach (var sc in ChainLab.Scenarios)
+                        foreach (var tm in new[] { ChainLab.Timing.Drop, ChainLab.Timing.Late })
+                            for (int every = 3; every <= 17; every += 2)
+                                foreach (int seed in new[] { 1, 2 })
+                                {
+                                    double a1 = ChainLab.Run(cp, Rig.From(cp), sc, ChainLab.Engine.Cadence, 10, seed, every, tm).AimErrDeg100ms;
+                                    double a2 = ChainLab.Run(cp, Rig.From(cp), sc, ChainLab.Engine.CadenceDropCheck, 10, seed, every, tm).AimErrDeg100ms;
+                                    if (a2 - a1 * 1.02 > worst) { worst = a2 - a1 * 1.02; where = $"{cp.id} {sc.Name} {tm}/{every}: {a1:0.0000} -> {a2:0.0000}"; }
+                                }
+                Ok("Cadence drop check is never worse than plain Cadence (drops and late reports at every 3rd-17th report, every scenario, 4 cards, 2 seeds; 2% / 0.002 deg)",
+                   worst <= 0.002, where.Length > 0 ? "worst " + where : "no case worse");
+                var plainCore = new Filters.CadenceCore { NominalHz = 360 }; var offCore = new Filters.CadenceCore { NominalHz = 360, DropCheck = 0 };
+                Ok("Cadence drop check OFF is the v1.2 core (the property defaults to 0 in the plugin)", plainCore.DropCheck == 0 && offCore.DropCheck == 0 && Rig.From(cBo).DropCheck);
+                var tl = new List<string> { "#press" }; double tx = 0;
+                for (int i = 0; i < 60; i++) { double dtl = 1000.0 / 360.2; if (i == 30) dtl *= 1.9; if (i == 31) dtl *= 0.1; if (i == 45) dtl *= 2; tx += i == 45 ? 20 : 10; tl.Add(System.FormattableString.Invariant($"{dtl:0.###} 0 {tx} 100")); }
+                var ts = PenTiming.FromNibLog(tl);
+                Ok("pen timing: from the press log, a late report (long gap, one report of travel, then a short gap) and a dropped one (long gap, two reports of travel) are told apart",
+                   ts.Late == 1 && ts.Drop == 1 && ts.Short == 1 && ts.Plain == 56, ts.Summary);
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");

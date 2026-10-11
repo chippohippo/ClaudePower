@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 using OpenTabletDriver.Plugin.Attributes;
 using OpenTabletDriver.Plugin.Output;
@@ -197,6 +197,8 @@ namespace AimForge.Filters
         public double IntentTauMs { get => core.IntentTauMs; set => core.IntentTauMs = value; }
         [Property("ReversalCarryMs"), DefaultPropertyValue(0.0d), Unit("ms"), ToolTip("EXPERIMENTAL, Lab-only (T1): hold the previous leg's gain through a strafe-tracking turnaround, fading over this many ms. 0 = off.")]
         public double ReversalCarryMs { get => core.ReversalCarryMs; set => core.ReversalCarryMs = value; }
+        [Property("DropCheck"), DefaultPropertyValue(0.0d), ToolTip("1 = a long gap is priced as merged reports only when its travel says so (a LATE single report carries one report of travel; a dropped pair carries two). Removes the half-speed misprice of late reports; never adds latency. 0 = gap alone (v1.2 behaviour).")]
+        public double DropCheck { get => core.DropCheck; set => core.DropCheck = value; }
 
         [Property("ClassicAccel"), DefaultPropertyValue(0.0d), ToolTip("Classic accel per mm/s (= RawAccel accel x px/mm / 1000). 0 = use the LUT points.")]
         public double ClassicAccel { get => core.ClassicAccel; set => core.ClassicAccel = value; }

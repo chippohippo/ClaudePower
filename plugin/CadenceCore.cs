@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 namespace AimForge.Filters
@@ -85,6 +85,14 @@ namespace AimForge.Filters
         /// one-report step); the tracking band tapers at both edges instead of cutting off.
         public double ReversalCarryMs;        // 0 = off
         public double CarryArmMms = 55, CarryMaxMms = 250;
+        /// DROP CHECK (2026-10-11, ChainLab): a long gap prices the report as k merged reports - right when reports were
+        /// DROPPED (the next one carries k reports of travel), wrong when one report merely arrived LATE (it carries one).
+        /// The gap alone cannot tell them apart; the travel can: hand speed barely changes in 3 ms, so a report carrying
+        /// one report's travel moves ~1x the per-report displacement its trend predicts and a dropped pair ~2x. On, a gap is
+        /// priced as ONE report when its travel is under 1.35x that prediction (>= 3 units, two plain reports of history).
+        /// It only ever LOWERS k (never invents a merge) and adds no latency. 0 = off (dt alone, the 2026-09 behaviour).
+        public double DropCheck;
+        double dPrev0, dPrev1; int dEmaN;
         // ---- state ----
         double vex, vey, cohNum, cohDen;                // velocity EMA (mm/s) and coherence EMAs
         double gEma = 1, carryGain = 1, carryAge = -1;  // carry: -1 = idle
@@ -109,7 +117,7 @@ namespace AimForge.Filters
         /// Stroke state of the XP modes. Cleared on a lift AND on every gap/rebase path (2026-09-24 review: the HDL drops
         /// hover-lift reports without an OutOfRange, so a gap carried the last stroke's velocity, peak and carry state
         /// into the next stroke).
-        void ResetXp() { vex = vey = cohNum = cohDen = 0; gEma = 1; carryAge = -1; pkN = 0; lastRevClock = -1e9; }
+        void ResetXp() { vex = vey = cohNum = cohDen = 0; gEma = 1; carryAge = -1; pkN = 0; lastRevClock = -1e9; dPrev0 = dPrev1 = 0; dEmaN = 0; }
 
         public int PointCount { get { int n = 0; for (int i = 0; i < MaxPoints; i++) if (Vs[i] > 0) n++; return n; } }
 
@@ -172,6 +180,18 @@ namespace AimForge.Filters
             double k = Math.Round(dtMs / nominal);
             double maxK = Math.Max(MergeMaxReports, Math.Ceiling(ResetMs / nominal));
             if (k < 1) k = 1; if (k > maxK) k = maxK;
+            double dLen = d.Length();
+            // a late single report carries ~1x the travel the hand's trend predicts for one report, a dropped pair ~2x: price
+            // it as ONE report only when the travel is clearly single. The prediction extrapolates the last two plain reports
+            // (a flick's tail halves its speed within a few reports - a plain average would read a dropped pair as single).
+            if (DropCheck >= 0.5 && k > 1 && dEmaN >= 2)
+            {
+                double pred = dPrev1 + (dPrev1 - dPrev0);
+                if (pred >= 3 && dLen / pred < 1.35) k = 1;
+            }
+            // the memory learns only from consecutive plain single-report gaps (a merged or late report never teaches it)
+            if (dtMs >= 0.5 * nominal && dtMs <= 1.5 * nominal) { dPrev0 = dEmaN == 0 ? dLen : dPrev1; dPrev1 = dLen; dEmaN++; }
+            else dEmaN = 0;
             double dtp = k * nominal;                                        // ms on the pen's clock
             double v = d.Length() / UnitsPerMm / dtp * 1000.0;              // mm/s, on the pen's clock
             double vx = d.X / UnitsPerMm / dtp * 1000.0, vy = d.Y / UnitsPerMm / dtp * 1000.0;

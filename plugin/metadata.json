@@ -1,8 +1,8 @@
 {
   "Name": "AimForge Game Filters",
   "Owner": "Chippo",
-  "Description": "First-party per-game aim policies for AimForge. One Master member per game (T0-T1: recoil rail, peek deadzone, track glue, hybrid rail, decel brake, identity) and Lab members (T3) for stillness cards. Pen signals only - position, dt, coherence - game-specificity is policy on those signals, never game memory. Compose with HDL / Coherence Stabilizer / Tap Anchor; the only stabilizing element is a coherence-and-speed-gated deadzone that is zero on committed motion. 1.1 adds Cadence Lock: the build's curve evaluated in tablet space on the pen's own report clock (T0), with RawAccel written flat.",
-  "PluginVersion": "1.2.0.0",
+  "Description": "First-party per-game aim policies for AimForge. One Master member per game (T0-T1: recoil rail, peek deadzone, track glue, hybrid rail, decel brake, identity) and Lab members (T3) for stillness cards. Pen signals only - position, dt, coherence - game-specificity is policy on those signals, never game memory. Compose with HDL / Coherence Stabilizer / Tap Anchor; the only stabilizing element is a coherence-and-speed-gated deadzone that is zero on committed motion. 1.1 adds Cadence Lock: the build's curve evaluated in tablet space on the pen's own report clock (T0), with RawAccel written flat. 1.3 adds the Cadence drop check: a long gap is priced as merged reports only when its travel says so.",
+  "PluginVersion": "1.3.0.0",
   "SupportedDriverVersion": "0.6.7.0",
   "RepositoryUrl": "",
   "DownloadUrl": "",

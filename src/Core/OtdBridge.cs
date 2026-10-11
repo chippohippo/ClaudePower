@@ -547,7 +547,7 @@ namespace AimForge.Core
                 // property values, so the plan can be verified field-by-field like RawAccel.
                 // Every key is read inside ITS filter's block (2026-09-24 review: Cadence Lock's 'Probe: 0' satisfied the
                 // Nib Twin's Probe check).
-                bool engineOk = true, nibOk = true, classicNoted = false; var missing = new List<string>(); string gfErr = "";
+                bool engineOk = true, nibOk = true, classicNoted = false, dropNoted = false; var missing = new List<string>(); string gfErr = "";
                 bool ReadBack()
                 {
                     var gf = Run("getfilters \"" + TabletName() + "\"", 5000);
@@ -600,8 +600,11 @@ namespace AimForge.Core
                         {
                             // an older plugin without native classic curves runs the 8-point fallback table: its Classic* keys are absent by design
                             bool nativeClassic = B("Cadence Lock").Contains("ClassicAccel");
+                            // an older plugin (v1.2) has no DropCheck: it prices gaps by dt alone - noted, not a mismatch
+                            bool hasDropCheck = B("Cadence Lock").Contains("DropCheck");
+                            if (!hasDropCheck && rig.DropCheck && !dropNoted) { dropNoted = true; log("OTD: the daemon runs an AimForge Game Filters build without the Cadence drop check (v1.3) - late reports are still priced as merged. " + RestartHint + " after installing v1.3."); }
                             foreach (var kv in cadencePts)
-                                if (!(kv.Key.StartsWith("Classic") && !nativeClassic) && !ReadBackMatches(B("Cadence Lock"), kv.Key, kv.Value)) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.######}");
+                                if (!(kv.Key.StartsWith("Classic") && !nativeClassic) && !(kv.Key == "DropCheck" && !hasDropCheck) && !ReadBackMatches(B("Cadence Lock"), kv.Key, kv.Value)) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.######}");
                             if (cadencePts["ClassicAccel"] > 0 && !B("Cadence Lock").Contains("ClassicAccel") && !classicNoted)
                             {
                                 classicNoted = true;
@@ -843,7 +846,7 @@ namespace AimForge.Core
             catch (Exception ex) { log("nib: could not switch the press log off (" + ex.Message + ") - apply your card again"); return false; }
         }
 
-        static readonly string[] CadenceProps = new[] { "NominalHz", "MergeMaxReports", "Probe", "ClassicAccel", "ClassicOffset", "ClassicCap", "ClassicExp", "IntentSpeed", "IntentTauMs", "ReversalCarryMs" }
+        static readonly string[] CadenceProps = new[] { "NominalHz", "MergeMaxReports", "Probe", "ClassicAccel", "ClassicOffset", "ClassicCap", "ClassicExp", "IntentSpeed", "IntentTauMs", "ReversalCarryMs", "DropCheck" }
             .Concat(Enumerable.Range(1, Filters.CadenceCore.MaxPoints).SelectMany(i => new[] { $"P{i}Speed", $"P{i}Gain" })).ToArray();
 
         /// The build's curve as Cadence Lock properties: the exact LUT (classic cards convert
@@ -851,7 +854,7 @@ namespace AimForge.Core
         public static Dictionary<string, double> CadencePoints(Preset p, Rig rig)
         {
             var d = new Dictionary<string, double> { ["NominalHz"] = rig.ReportHz, ["MergeMaxReports"] = rig.MergeMax, ["Probe"] = rig.ReportHz > 0 ? 0 : 1,
-                ["IntentSpeed"] = rig.IntentSpeed ? 1 : 0, ["IntentTauMs"] = 6, ["ReversalCarryMs"] = rig.ReversalCarryMs };
+                ["IntentSpeed"] = rig.IntentSpeed ? 1 : 0, ["IntentTauMs"] = 6, ["ReversalCarryMs"] = rig.ReversalCarryMs, ["DropCheck"] = rig.DropCheck ? 1 : 0 };
             if (!p.IsLut)
             {
                 // classic cards: the driver's formula, natively and exactly (plugin v1.2+). The P slots
@@ -928,7 +931,7 @@ namespace AimForge.Core
             for (int i = 0; i < Filters.CadenceCore.MaxPoints; i++) { c.Vs[i] = d[$"P{i + 1}Speed"]; c.Gs[i] = d[$"P{i + 1}Gain"]; }
             c.NominalHz = d["NominalHz"]; c.MergeMaxReports = d["MergeMaxReports"];
             c.ClassicAccel = d["ClassicAccel"]; c.ClassicOffset = d["ClassicOffset"]; c.ClassicCap = d["ClassicCap"]; c.ClassicExp = d["ClassicExp"];
-            c.IntentSpeed = d["IntentSpeed"]; c.IntentTauMs = d["IntentTauMs"]; c.ReversalCarryMs = d["ReversalCarryMs"];
+            c.IntentSpeed = d["IntentSpeed"]; c.IntentTauMs = d["IntentTauMs"]; c.ReversalCarryMs = d["ReversalCarryMs"]; c.DropCheck = d["DropCheck"];
             return c;
         }
 
