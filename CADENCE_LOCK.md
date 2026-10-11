@@ -145,3 +145,33 @@ flips, and the tuner's "exact LUT equivalent" readout becomes the primary view, 
 Cadence Lock every card *is* an mm/s LUT. The next candidate on the same principle: since
 speed is now exact, the game filters' zone gates (Floor/Tap/Track landmarks) can be driven
 from the engine's speed instead of re-deriving it from `dt`.
+
+## 9. The chain lab and the drop check (2026-10-11)
+
+`--chain-lab` models the RawAccel engine as the bytes actually flow, from source:
+- OpenTabletDriver's relative mode produces a float px delta.
+- VoiDPlugins VMulti carries the remainder, splits above 127 counts and truncates.
+- RawAccel reads integer counts on its own packet clock.
+
+Earlier labs priced the RawAccel engine on the tablet lattice. The real input is the coarser count lattice, timed by USB arrival.
+
+**What it showed:**
+- **Cadence Lock tracks 4–9× steadier than the RawAccel engine on every card tested**, for example BO6 0.049° vs 0.012° of aim error per 100 ms, and Psylocke 0.50° vs 0.013°.
+  - Even with zero USB jitter the RawAccel engine stays 2.4–9.5× worse, from integer counts alone.
+  - Cadence stays at the one-count floor at any jitter.
+  - Evidence: `ev-20261011-chain-lab`, `ev-20261011-engine-robustness`.
+- **RawAccel's "constant time interval" stays refused for the pen.** It would fix plain jitter, but it misprices VMulti's split packets (above about 800 mm/s at 57 px/mm) and any dropped report.
+- **VMulti split hazard** (`--split-hazard`): at 90 px/mm VMulti splits above 508 mm/s.
+  - Two wildcard cards (owwx, hdwx) still change gain above that, so the RawAccel engine misprices their fast flicks (7–8°).
+  - They now carry the CADENCE chip and the one-click Cadence apply.
+- **Cadence's one weakness, and the fix:**
+  - The problem: a single report arriving late (a gap of more than 1.5 intervals carrying one report of travel) was priced as two merged reports at half speed. At one late report per 40 that cost Psylocke 1.10° of tracking error.
+  - **Drop check** (Game Filters 1.3, `DropCheck`, on by default; `--drop-check off` to A/B): a gap is priced as merged only when its travel says so. The travel is judged against the trend of the last two plain reports, because a flick's tail halves its speed within a few reports.
+  - Result: late reports go from 1.10° to 0.013°, and real drops are priced exactly as before.
+  - `--dropcheck-stress` and a selftest try to break it (drops and late reports at every 3rd–17th report, every hand scenario, several cards and seeds). It is never worse than plain Cadence beyond 0.002°.
+- **How often reports are late on your rig is a field question.** Every Nib calibration now records the press log's own intervals as `evidence\ev-<date>-pen-timing.json`; `--timing` reads it anytime.
+
+**Considered and not built:**
+- **A finer count lattice for the RawAccel engine** (px/mm ×N, multiplier ÷N): rejected by the lab.
+- **Finer output resolution on Cadence** (higher px/mm, lower in-game sens): one count is already about 0.017°, under half a pixel at 2560 px and 103° FOV, so not perceptible.
+- **The lift-and-replace yank:** OTD only re-origins after its 80 ms reset, and the hover limiter drops reports without an out-of-range report. A reposition faster than 80 ms would therefore jump the camera. Realistic edge repositions take well over 100 ms, so no change.

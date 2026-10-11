@@ -52,7 +52,7 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **261 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
+- Current state: **272 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
 - Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
@@ -84,6 +84,21 @@ cd ..\CoherenceStabilizer
 Feature notes: `AIMFORGE.md`, `CADENCE_LOCK.md`, `MOUSE_MIRROR.md`, `CHARACTER_CARDS.md`, `XP_TOGGLES.md`, `THIRD_PERSON.md`, `OVERHAUL.md`. The Coherence Stabilizer has its own `README.md`.
 
 ## Recent work (newest first)
+
+- **2026-10-11 (third pass) — theories tested in labs.**
+  - **Research:** `RESEARCH.md`.
+  - **Rejected with evidence:**
+    - RawAccel's speed EMA on the pen;
+    - RawAccel constant time for the pen;
+    - a finer RawAccel count lattice.
+  - **Enacted:**
+    - the Cadence drop check (Game Filters 1.3.0.0, a new `DropCheck` property; the read-back tolerates 1.2);
+    - the VMulti split hazard (owwx, hdwx);
+    - the real-chain engine comparison in the Engine tab;
+    - the Vanguard tip-binding Doctor row;
+    - pen-timing evidence from every Nib calibration.
+  - **New labs:** `--chain-lab`, `--dropcheck-stress`, `--lattice-lab`, `--split-hazard`, `--ema-lab`, `--timing`. See CADENCE_LOCK.md section 9.
+  - **The plugin changed:** rebuild/install it and restart the daemon before trusting Cadence applies.
 
 - **2026-10-11 (second pass) — steps 4-8 of the overhaul.** See `CHANGELOG.md` for the player-facing list.
   - **Third-person:** it is a GAMES property in the tuner, with a per-game camera arm in `tps.txt` and dive/mid/poke distances.

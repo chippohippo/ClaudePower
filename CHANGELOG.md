@@ -4,6 +4,14 @@ What a player notices on the next Desktop deploy. Newest first. Every item is ve
 
 ## 2026-10-11
 
+### Engine research (CADENCE_LOCK.md section 9)
+- **Cadence Lock 1.3: drop check.** A report that arrives late is no longer priced at half speed. Measured fix: 1.10° → 0.013° of tracking error at one late report in 40, and never worse anywhere.
+  - **Needs the new plugin:** install `AimForge.Filters.dll` 1.3 and restart the OTD daemon.
+  - An older plugin still applies, with a note.
+- **Engine tab: this card's real-chain tracking error on both engines.** Cadence Lock reads 4–9× steadier on every card tested. That's simulation; your A/B decides.
+- **owwx (Guardrail) and hdwx (Cannonade) show CADENCE.** At their 90 px/mm the RawAccel engine misprices fast flicks.
+- **Every Nib calibration now records your pen's real report timing as evidence.**
+
 ### From the community research (RESEARCH.md)
 - **Doctor, Valorant builds:** a new row checks how the pen tip clicks under Vanguard.
   - OpenTabletDriver's built-in mouse and key bindings press through SendInput, which Vanguard blocks, so that is a FAIL with the fix (use the VMulti plugin's button binding).
