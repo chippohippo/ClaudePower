@@ -1,0 +1,89 @@
+{
+  "evidenceId": "ev-20260914-psylocke-card",
+  "date": "2026-09-14",
+  "card": {
+    "id": "rivpsy",
+    "pxmm": 57,
+    "cm360": 37.7,
+    "rivalsSens": 0.957,
+    "typeInGame": 0.96,
+    "classic": {
+      "accel": 0.754,
+      "cap": 3.0,
+      "offsetCms": 8.55,
+      "unityUntilMms": 150,
+      "capReachedMms": 260
+    },
+    "snapDeg": 5,
+    "yx": 0.85,
+    "filters": "none (Rivals Master OFF)",
+    "tier": "T0"
+  },
+  "kitFacts": {
+    "psionicCrossbow": "hitscan, 4 bolts per cast, 12 damage per bolt, crit 150%, 0.2 s between shots and 0.6 s between rounds, spread radius 0.2 m at 10 m, falloff from 15 m to 60% at 30 m, 16 ammo",
+    "psiBladeDash": "12 m max, 43 m/s average, 50 damage, 2 charges, 8 s cooldown, passes through enemies, recalls Wing Shurikens",
+    "psylocke": "150 health + 100 shield, 6 m/s",
+    "targets": "most heroes 6 m/s, Black Panther 7 m/s, Iron Man and Star-Lord up to 12 m/s flying",
+    "rivalsSettings": "per-hero sensitivity available; mouse acceleration and smoothing toggles in the keyboard settings (off by default since the 20250110 patch); FOV engine-fixed"
+  },
+  "sources": [
+    "https://marvelrivals.wiki.fextralife.com/Psionic_Crossbow",
+    "https://marvelrivals.wiki.fextralife.com/Psi-Blade+Dash",
+    "https://mobalytics.gg/marvel-rivals/psylocke-guide",
+    "https://deltiasgaming.com/7-marvel-rivals-heroes-with-the-highest-mobility/",
+    "https://aimbench.com/games/marvel-rivals",
+    "https://www.gamesradar.com/games/action/marvel-rivals-mouse-acceleration/",
+    "https://raw.githubusercontent.com/RawAccelOfficial/rawaccel/master/common/rawaccel.hpp"
+  ],
+  "measured": {
+    "trackingHeadRadii": {
+      "S1_backline_strafe_7m": 0.18,
+      "S2_point_blank_duel_4m": 0.23,
+      "S3_flyer_boost_8m": 0.34,
+      "S4_far_poke_12m": 0.23
+    },
+    "reacquire135SpreadPct": 8.8,
+    "flickSpread30mmPct": 16.1,
+    "turn180MmAt150ms": 62.8,
+    "microPct": 109.6,
+    "onsetMs": 2.8,
+    "vsTrackline": {
+      "trackingWorst": [
+        0.339,
+        0.336
+      ],
+      "reacquireSpreadPct": [
+        8.8,
+        47.1
+      ]
+    },
+    "vsBreakpoint": {
+      "trackingWorst": [
+        0.339,
+        0.5
+      ],
+      "reacquireSpreadPct": [
+        8.8,
+        26.3
+      ]
+    },
+    "rivalsMasterFilterOnFlyer": {
+      "headRadii": [
+        0.34,
+        0.53
+      ],
+      "injectedSpeedSpikes": [
+        0,
+        2
+      ],
+      "peakPenMms": [
+        155,
+        249
+      ]
+    },
+    "snap": "5 best worst-case (0.34) vs 9 (0.36) and 0 (0.34, worse point-blank)",
+    "yx": "0.85 weighted 0.24 vs 0.90 0.25 vs 1.00 0.25"
+  },
+  "limits": "Execution error only: reaction time, prediction and game netcode are identical for every curve and excluded. The human model is a parameterised simulation; the ranking was stable under five variants, but the field verdict decides.",
+  "fieldVerdict": "pending"
+}

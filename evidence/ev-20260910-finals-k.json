@@ -1,0 +1,17 @@
+{
+  "evidenceId": "ev-20260910-finals-k",
+  "date": "2026-09-10",
+  "claim": "The Finals sensitivity constant K is 914400 (yaw 0.001 deg per count per sens unit). AimForge carried 138545.5 - a copy of the Overwatch 2 constant - which is 6.60x too small, so every Finals sens the tool printed before today was 6.6x too low.",
+  "method": "User-supplied mouse-sensitivity.com calculation: THE FINALS hipfire, 1600 DPI, Mouse Look Sensitivity 8 -> 360 distance 28.125 in (71.4375 cm). K = DPI * cm360 * sens = 1600 * 71.4375 * 8. The same screenshot's Marvel Rivals row (1600 DPI, sens 0.46, 27.9503 in) reproduces AimForge's already-verified Rivals K to 5 decimals, which validates the method.",
+  "results": {
+    "finalsK_true": 914400.0,
+    "finalsK_wasInApp": 138545.5,
+    "ratio": 6.599,
+    "rivalsK_fromScreenshot": 52251.4,
+    "rivalsK_inApp": 52251,
+    "rivalsCheckRatio": 1.00001,
+    "finalsYawDegPerCountPerSens": 0.001
+  },
+  "consequence": "Finals family re-authored from 37.70 to 78.95 cm/360 (Stillframe 34.00 -> 71.20, keeping its 90px/mm identity), which is the speed the user actually played and rated good.",
+  "fieldVerdict": "user played sens 8 at 57px/mm (= 78.95 cm/360 base, ~15.8 cm at the curve's 5x cap) and rated it good, 2026-09-10"
+}

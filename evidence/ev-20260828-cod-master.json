@@ -1,0 +1,13 @@
+{
+  "evidenceId": "ev-20260828-cod-master",
+  "date": "2026-08-28",
+  "remintedAtMeasuredRate": "2026-09-16",
+  "claim": "Vertical recoil rail damps orthogonal chatter on a vertical track with along-axis travel preserved and flicks bit-exact",
+  "method": "GameFilterCore synthetic drive at 360Hz: 100mm/s vertical track with alternating horizontal jitter of 0.0369mm per report (13.3mm/s, the old 266Hz scenario as a velocity); 400mm/s flick",
+  "results": {
+    "alongPreserved": 1.0000030517578102,
+    "orthoRatio": 0.6499899957413089,
+    "railStrength": 0.35,
+    "flickWorstErrorMm": 0
+  }
+}

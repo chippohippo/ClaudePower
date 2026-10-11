@@ -1,0 +1,58 @@
+{
+  "evidenceId": "ev-20260907-cadence-lock",
+  "date": "2026-09-07",
+  "remintedWithDriverFormula": "2026-09-16",
+  "claim": "Evaluating the curve on the pen\u0027s fixed report clock removes the per-report gain noise a wall-clock (arrival-dt) engine injects under report-timing jitter, at zero temporal cost (same-report output)",
+  "method": "CadenceLab: 30mm p-p left-right track at 1.5Hz (peak ~140mm/s) for 6s at 360Hz on the 0.01mm lattice, arrival dt jittered uniformly; per-report gain scored against the true (pen-clock) gain in the 55-150mm/s track band; merged-frame case at 120mm/s",
+  "results": {
+    "bo6og_jitter25": {
+      "JitterPct": 25,
+      "WallGainNoisePct": 6.396775118364695,
+      "CadenceGainNoisePct": 9.670210476136603E-09,
+      "WallWorstGainErrPct": 15.795363255159224,
+      "CadenceWorstGainErrPct": 1.4267415027191532E-07,
+      "CadenceVsIdealMaxUnits": 0,
+      "MergedFrameWallSpikePct": 26.559730186723286,
+      "MergedFrameCadenceErrPct": 0.00021558870468840752,
+      "LiveHz": 360,
+      "Reports": 2160
+    },
+    "rivalsMaster_jitter25": {
+      "JitterPct": 25,
+      "WallGainNoisePct": 6.317025549343998,
+      "CadenceGainNoisePct": 0,
+      "WallWorstGainErrPct": 15.564980314863996,
+      "CadenceWorstGainErrPct": 0,
+      "CadenceVsIdealMaxUnits": 0,
+      "MergedFrameWallSpikePct": 26.15645434729956,
+      "MergedFrameCadenceErrPct": 0.0002128617704100222,
+      "LiveHz": 360,
+      "Reports": 2160
+    },
+    "bo6og_jitter10": {
+      "JitterPct": 10,
+      "WallGainNoisePct": 2.450023034601551,
+      "CadenceGainNoisePct": 9.670210476136603E-09,
+      "WallWorstGainErrPct": 5.288307489106203,
+      "CadenceWorstGainErrPct": 1.4267415027191532E-07,
+      "CadenceVsIdealMaxUnits": 0,
+      "MergedFrameWallSpikePct": 26.559730186723286,
+      "MergedFrameCadenceErrPct": 0.00021558870468840752,
+      "LiveHz": 360,
+      "Reports": 2160
+    },
+    "bo6og_jitter25_autoCadence": {
+      "JitterPct": 25,
+      "WallGainNoisePct": 6.396775118364695,
+      "CadenceGainNoisePct": 0.6546523260087551,
+      "WallWorstGainErrPct": 15.795363255159224,
+      "CadenceWorstGainErrPct": 7.964292281276252,
+      "CadenceVsIdealMaxUnits": 83.9619140625,
+      "MergedFrameWallSpikePct": 26.559730186723286,
+      "MergedFrameCadenceErrPct": 0.00021558870468840752,
+      "LiveHz": 361.3527517438205,
+      "Reports": 2160
+    }
+  },
+  "fieldVerdict": "pending"
+}

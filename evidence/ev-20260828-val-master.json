@@ -1,0 +1,12 @@
+{
+  "evidenceId": "ev-20260828-val-master",
+  "date": "2026-08-28",
+  "remintedAtMeasuredRate": "2026-09-16",
+  "claim": "Rest deadzone freezes tremor-scale jitter completely; a fast peek jig passes the hand\u0027s own delta the same report; a committed swipe is untouched (errors are per-report deltas - relative output). RETIRED 2026-09-16: through the whole plan the deadzone also ate micro-aim",
+  "method": "GameFilterCore synthetic drive at 360Hz: \u002B/-0.01mm (one tablet unit) alternating jitter at rest; heading jig; 60mm/s swipe",
+  "results": {
+    "restOutputMotionMm": 0,
+    "flushSameReportErrorMm": 0,
+    "committedSwipeWorstErrorMm": 0
+  }
+}

@@ -1,0 +1,855 @@
+{
+  "evidenceId": "ev-20260915-character-cards",
+  "date": "2026-09-15",
+  "request": "Specific Characters category: Psylocke moved in; research-backed presets for Marvel Rivals Loki, White Fox, Punisher, Hela and Overwatch 2 Soldier: 76, Emre, Illari, Freja",
+  "method": "HeroLab (src/Core/HeroLab.cs, AimForge --hero-lab all): the PsyLab human model and shipping curve math on five kit-derived fights per hero; projectile lead, recoil pull-down, descending aim, ballistic minimum-jerk switches with tempo variability and one corrective submovement; relative scoring per fight; snap x Y/X x game filter; robustness across five hand models. The selection rule is identical for every hero.",
+  "modelCorrectionsDuringTheWork": [
+    "v1 raw worst-case + narrow 3% pool picked a curve with 76% re-acquire spread for Loki - consistency was invisible inside the sim",
+    "v2 added throw-tempo variability to switches (hand plan learned at nominal tempo, executed at +-14%)",
+    "v3 added the kit's big re-acquire turn to every hero; v4 made switches two-component (ballistic throw, one corrective submovement)",
+    "v5 relative scoring per fight (raw worst-case let the hardest fight pick every card)",
+    "v6 switches as minimum-jerk throws at realistic tempo (the 2.5 Hz tracking follower made 90-degree flicks take ~350 ms and sit inside every ramp) - the shipped cards"
+  ],
+  "cards": [
+    {
+      "id": "rivloki",
+      "hero": "Loki",
+      "game": "rivals",
+      "group": "Specific Characters — Marvel Rivals",
+      "evidence": "ev-20260915-hero-loki",
+      "labWinner": "tl-sat cm37.7 off60 G3 @120 s9 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 1.1696,
+        "cap": 3,
+        "offsetCms": 3.42,
+        "unityUntilMms": 60.0,
+        "capReachedMms": 120,
+        "snapDeg": 9,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 0.957,
+      "typeInGame": "0.96",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "L1 heal-track ally 12m",
+            "targetRadii": 0.06992108442161726,
+            "onTargetPct": 100,
+            "peakPenMms": 43.350790143013
+          },
+          {
+            "Name": "L2 poke a diver 10m",
+            "targetRadii": 0.09924689242805262,
+            "onTargetPct": 100,
+            "peakPenMms": 68.49284648895264
+          },
+          {
+            "Name": "L3 flyer 15m",
+            "targetRadii": 0.1360948112220034,
+            "onTargetPct": 100,
+            "peakPenMms": 71.00225150585175
+          },
+          {
+            "Name": "L4 ally-enemy switch 40deg",
+            "targetRadii": 0.42546133793965063,
+            "onTargetPct": 91.93967758710347,
+            "peakPenMms": 86.39923095703125
+          },
+          {
+            "Name": "R re-acquire 90deg/200ms 8m",
+            "targetRadii": 0.38813793780741995,
+            "onTargetPct": 95.5177743431221,
+            "peakPenMms": 86.70134961605072
+          }
+        ],
+        "relScore": 1.1893349260178896,
+        "references": {
+          "rivmp": 2.195417362122807,
+          "rivllc": 2.448521691171769,
+          "breakpoint": 2.448521691171769,
+          "rivllb": 2.579663938715507,
+          "rivpsy": 3.4995787901983983,
+          "rivlla": 4.04736954030022
+        },
+        "regret": 1.2467098385034392,
+        "reacquireSpreadPct": 6.871361730514382,
+        "reacquire": {
+          "turnDeg": 90,
+          "ms": 200
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 0.4223994584909785,
+          "perScen": [
+            {
+              "HeadRadii": 0.06992108442161726,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.09828855191895251,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.14053775743378782,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.4223994584909785,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.3892384668718911,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Loki hero-specific sensitivity to 0.96; mouse acceleration and mouse smoothing OFF; NVIDIA Reflex ON; dynamic resolution OFF.",
+      "sources": [
+        "https://marvelrivals.wiki.fextralife.com/Mystical_Missile",
+        "https://mobalytics.gg/marvel-rivals/loki-guide",
+        "https://rivals-compendium.com/abilities/loki"
+      ]
+    },
+    {
+      "id": "rivwfox",
+      "hero": "White Fox",
+      "game": "rivals",
+      "group": "Specific Characters — Marvel Rivals",
+      "evidence": "ev-20260915-hero-whitefox",
+      "labWinner": "early-sat cm37.7 G3 @150 s9 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 0.2639,
+        "cap": 3,
+        "offsetCms": 0.5,
+        "unityUntilMms": 8.8,
+        "capReachedMms": 150,
+        "snapDeg": 9,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 0.957,
+      "typeInGame": "0.96",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "W1 heal-track ally 15m",
+            "targetRadii": 0.12763913551559103,
+            "onTargetPct": 100,
+            "peakPenMms": 36.17881000041962
+          },
+          {
+            "Name": "W2 poke a strafer 12m",
+            "targetRadii": 0.14043909851717992,
+            "onTargetPct": 100,
+            "peakPenMms": 36.179083585739136
+          },
+          {
+            "Name": "W3 Sanctuary re-target 60deg",
+            "targetRadii": 0.8707163231517132,
+            "onTargetPct": 77.72511848341232,
+            "peakPenMms": 75.6853723526001
+          },
+          {
+            "Name": "W4 Awakened claw brawl 3m",
+            "targetRadii": 0.0546820875968503,
+            "onTargetPct": 100,
+            "peakPenMms": 90.07200121879578
+          },
+          {
+            "Name": "R re-acquire 120deg/180ms 8m",
+            "targetRadii": 0.6098085166173898,
+            "onTargetPct": 95.10703363914372,
+            "peakPenMms": 97.26820707321167
+          }
+        ],
+        "relScore": 1.3192887888349267,
+        "references": {
+          "rivpsy": 1.6532441360648575,
+          "rivllc": 1.8542020720486194,
+          "breakpoint": 1.8542020720486194,
+          "rivmp": 2.114938235698682,
+          "rivllb": 2.134314298722123,
+          "rivlla": 2.770815455871204
+        },
+        "regret": 1.4210107018964977,
+        "reacquireSpreadPct": 2.7002257867813286,
+        "reacquire": {
+          "turnDeg": 120,
+          "ms": 180
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 0.8724646760057299,
+          "perScen": [
+            {
+              "HeadRadii": 0.12763913551559103,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.14043909851717992,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.8724646760057299,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.05456335831340255,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.6097401724983542,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the White Fox hero-specific sensitivity to 0.96; mouse acceleration and mouse smoothing OFF; NVIDIA Reflex ON; dynamic resolution OFF.",
+      "sources": [
+        "https://marvelrivals.gg/white-fox/",
+        "https://rivals-compendium.com/abilities/white-fox"
+      ]
+    },
+    {
+      "id": "rivpun",
+      "hero": "The Punisher",
+      "game": "rivals",
+      "group": "Specific Characters — Marvel Rivals",
+      "evidence": "ev-20260915-hero-punisher",
+      "labWinner": "early-sat cm37.7 G3 @150 s5 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 0.2639,
+        "cap": 3,
+        "offsetCms": 0.5,
+        "unityUntilMms": 8.8,
+        "capReachedMms": 150,
+        "snapDeg": 5,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 0.957,
+      "typeInGame": "0.96",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "P1 rifle strafe 15m",
+            "targetRadii": 0.2999913259859201,
+            "onTargetPct": 100,
+            "peakPenMms": 32.600587606430054
+          },
+          {
+            "Name": "P2 rifle lane 25m",
+            "targetRadii": 0.37467069408684095,
+            "onTargetPct": 100,
+            "peakPenMms": 22.767182886600494
+          },
+          {
+            "Name": "P3 flyer 18m",
+            "targetRadii": 0.5799173122470384,
+            "onTargetPct": 93.83402874362541,
+            "peakPenMms": 46.93606674671173
+          },
+          {
+            "Name": "P4 shotgun point-blank switch 5m",
+            "targetRadii": 0.3405065404275434,
+            "onTargetPct": 95.77850877192982,
+            "peakPenMms": 75.941641330719
+          },
+          {
+            "Name": "R re-acquire 90deg/160ms 8m",
+            "targetRadii": 1.7000935205770473,
+            "onTargetPct": 86.08169440242057,
+            "peakPenMms": 100.86385846138
+          }
+        ],
+        "relScore": 1.3494071216260348,
+        "references": {
+          "rivllc": 1.9932662295512102,
+          "breakpoint": 1.9932662295512102,
+          "rivmp": 2.116240592763182,
+          "rivllb": 2.2209845630923133,
+          "rivpsy": 2.869434405241232,
+          "rivlla": 2.9939920664691533
+        },
+        "regret": 1.106751851530825,
+        "reacquireSpreadPct": 3.876731142722445,
+        "reacquire": {
+          "turnDeg": 90,
+          "ms": 160
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 1.6995041175569214,
+          "perScen": [
+            {
+              "HeadRadii": 0.33122869634901614,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.49016274978080404,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.5795007389328826,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.34116271367514583,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.6995041175569214,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Punisher hero-specific sensitivity to 0.96; mouse acceleration and mouse smoothing OFF; NVIDIA Reflex ON; dynamic resolution OFF.",
+      "sources": [
+        "https://marvelrivals.wiki.fextralife.com/Adjudication",
+        "https://marvelrivals.wiki.fextralife.com/Deliverance",
+        "https://rivals-compendium.com/abilities/the-punisher"
+      ]
+    },
+    {
+      "id": "rivhela",
+      "hero": "Hela",
+      "game": "rivals",
+      "group": "Specific Characters — Marvel Rivals",
+      "evidence": "ev-20260915-hero-hela",
+      "labWinner": "early-sat cm37.7 G3 @80 s5 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 0.5533,
+        "cap": 3,
+        "offsetCms": 0.5,
+        "unityUntilMms": 8.8,
+        "capReachedMms": 80,
+        "snapDeg": 5,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 0.957,
+      "typeInGame": "0.96",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "H1 head poke 25m",
+            "targetRadii": 0.43747561196540374,
+            "onTargetPct": 99.58275382475661,
+            "peakPenMms": 21.899913400411606
+          },
+          {
+            "Name": "H2 flyer snipe 22m",
+            "targetRadii": 0.7611706914041024,
+            "onTargetPct": 82.98562818729717,
+            "peakPenMms": 38.93836855888367
+          },
+          {
+            "Name": "H3 head-to-head switch 15m",
+            "targetRadii": 1.1882815650000198,
+            "onTargetPct": 66.26367299942429,
+            "peakPenMms": 39.6002197265625
+          },
+          {
+            "Name": "H4 stun brawl 6m",
+            "targetRadii": 0.3988932859039063,
+            "onTargetPct": 99.67547519703292,
+            "peakPenMms": 57.71375119686127
+          },
+          {
+            "Name": "R re-acquire 90deg/180ms 8m",
+            "targetRadii": 1.3573544766339138,
+            "onTargetPct": 86.34046890927624,
+            "peakPenMms": 64.89717900753021
+          }
+        ],
+        "relScore": 1.786534576678805,
+        "references": {
+          "rivmp": 2.1736352541389987,
+          "rivllc": 2.236510155142608,
+          "breakpoint": 2.236510155142608,
+          "rivllb": 2.456580515871997,
+          "rivlla": 3.4925557440803794,
+          "rivpsy": 5.315104523309022
+        },
+        "regret": 1.4177306779725485,
+        "reacquireSpreadPct": 1.4466373050046926,
+        "reacquire": {
+          "turnDeg": 90,
+          "ms": 180
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 1.3539462275040426,
+          "perScen": [
+            {
+              "HeadRadii": 0.674446761096079,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.7611706914041024,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.2217919924569698,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.3989187032202715,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.3539462275040426,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Hela hero-specific sensitivity to 0.96; mouse acceleration and mouse smoothing OFF; NVIDIA Reflex ON; dynamic resolution OFF.",
+      "sources": [
+        "https://marvelrivals.wiki.fextralife.com/Nightsword+Thorn",
+        "https://rivals-compendium.com/abilities/hela"
+      ]
+    },
+    {
+      "id": "owsol",
+      "hero": "Soldier: 76",
+      "game": "ow2",
+      "group": "Specific Characters — Overwatch 2",
+      "evidence": "ev-20260915-hero-soldier76",
+      "labWinner": "tl-sat cm37.7 off100 G3 @160 s5 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 1.5595,
+        "cap": 3,
+        "offsetCms": 5.7,
+        "unityUntilMms": 100.0,
+        "capReachedMms": 160,
+        "snapDeg": 5,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 2.538,
+      "typeInGame": "2.54",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "S1 rifle strafe 15m + recoil",
+            "targetRadii": 0.2381658240510547,
+            "onTargetPct": 100,
+            "peakPenMms": 32.40142822265625
+          },
+          {
+            "Name": "S2 rifle lane 30m + recoil",
+            "targetRadii": 0.3605768140867267,
+            "onTargetPct": 99.58275382475661,
+            "peakPenMms": 18.35769832134247
+          },
+          {
+            "Name": "S3 Pharah/Echo flyer 25m",
+            "targetRadii": 0.35192367853444056,
+            "onTargetPct": 100,
+            "peakPenMms": 38.26894819736481
+          },
+          {
+            "Name": "S4 Genji/Lucio dive 6m",
+            "targetRadii": 0.2485420946839585,
+            "onTargetPct": 100,
+            "peakPenMms": 104.64548349380493
+          },
+          {
+            "Name": "R re-acquire 90deg/180ms 8m",
+            "targetRadii": 1.473888948739645,
+            "onTargetPct": 89.55147808358818,
+            "peakPenMms": 104.65096592903137
+          }
+        ],
+        "relScore": 1.060063514385626,
+        "references": {
+          "owlla": 1.3747845875788416,
+          "owmp": 1.8308376112867166,
+          "breakpoint": 2.2386358370719037,
+          "owllc": 2.4580201040719682,
+          "owllb": 4.243015586776219
+        },
+        "regret": 1.0477826721954455,
+        "reacquireSpreadPct": 11.543507012603087,
+        "reacquire": {
+          "turnDeg": 90,
+          "ms": 180
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 1.4876965431966573,
+          "perScen": [
+            {
+              "HeadRadii": 0.2318133005366951,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.3853428847766764,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.47196672421332986,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.2505380644203096,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.4876965431966573,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Soldier: 76 hero sensitivity to 2.54; NVIDIA Reflex ON; Reduce Buffering ON.",
+      "sources": [
+        "https://overwatch.weirdgloop.org/w/Soldier:_76",
+        "https://overwatch.fandom.com/wiki/October_1,_2020_Patch"
+      ]
+    },
+    {
+      "id": "owemre",
+      "hero": "Emre",
+      "game": "ow2",
+      "group": "Specific Characters — Overwatch 2",
+      "evidence": "ev-20260915-hero-emre",
+      "labWinner": "early-sat cm37.7 G3 @80 s9 yx0.85 +Master",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 0.5533,
+        "cap": 3,
+        "offsetCms": 0.5,
+        "unityUntilMms": 8.8,
+        "capReachedMms": 80,
+        "snapDeg": 9,
+        "yx": 0.85,
+        "gameMasterFilter": true
+      },
+      "sens": 2.538,
+      "typeInGame": "2.54",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "E1 volley mid-range 20m",
+            "targetRadii": 0.35215271516902386,
+            "onTargetPct": 99.9072786277237,
+            "peakPenMms": 21.899913400411606
+          },
+          {
+            "Name": "E2 Take Aim lane 35m",
+            "targetRadii": 0.47362216961216125,
+            "onTargetPct": 98.00649049605936,
+            "peakPenMms": 18.355005383491516
+          },
+          {
+            "Name": "E3 Siphon Blaster brawl 7m",
+            "targetRadii": 0.3989225028222312,
+            "onTargetPct": 97.58924432081595,
+            "peakPenMms": 50.528241991996765
+          },
+          {
+            "Name": "E4 volley-to-volley switch 12m",
+            "targetRadii": 1.4628114897487456,
+            "onTargetPct": 58.638743455497384,
+            "peakPenMms": 46.94006860256195
+          },
+          {
+            "Name": "R re-acquire 90deg/180ms 8m",
+            "targetRadii": 1.2285506310707845,
+            "onTargetPct": 90.87665647298674,
+            "peakPenMms": 64.90281701087952
+          }
+        ],
+        "relScore": 1.5164908445821577,
+        "references": {
+          "owmp": 1.8308376112867166,
+          "owlla": 2.031261252992341,
+          "breakpoint": 2.2386358370719037,
+          "owllc": 2.4580201040719682,
+          "owllb": 4.243015586776219
+        },
+        "regret": 1.184638239676683,
+        "reacquireSpreadPct": 1.4466373050046926,
+        "reacquire": {
+          "turnDeg": 90,
+          "ms": 180
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": false,
+          "Worst": 1.4657485589912191,
+          "perScen": [
+            {
+              "HeadRadii": 0.37289924519542134,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.46699829184680225,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.40213497541921006,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.4657485589912191,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.2336938713802212,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Emre hero sensitivity to 2.54; Relative Aim Sensitivity While Zoomed about 55 (community-measured 1:1 for Take Aim - confirm by feel); NVIDIA Reflex ON; Reduce Buffering ON.",
+      "sources": [
+        "https://overwatch.weirdgloop.org/w/Emre",
+        "https://us.forums.blizzard.com/en/overwatch/t/emre-relative-aim-sensitivity/1000383"
+      ]
+    },
+    {
+      "id": "owillari",
+      "hero": "Illari",
+      "game": "ow2",
+      "group": "Specific Characters — Overwatch 2",
+      "evidence": "ev-20260915-hero-illari",
+      "labWinner": "early-sat cm37.7 G3 @110 s9 yx0.85",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 0.3767,
+        "cap": 3,
+        "offsetCms": 0.5,
+        "unityUntilMms": 8.8,
+        "capReachedMms": 110,
+        "snapDeg": 9,
+        "yx": 0.85,
+        "gameMasterFilter": false
+      },
+      "sens": 2.538,
+      "typeInGame": "2.54",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "I1 charged poke 30m",
+            "targetRadii": 0.4137719700494205,
+            "onTargetPct": 99.49003245248029,
+            "peakPenMms": 18.35769832134247
+          },
+          {
+            "Name": "I2 flyer 25m",
+            "targetRadii": 0.5288920510379075,
+            "onTargetPct": 95.64209550301344,
+            "peakPenMms": 33.19149166345596
+          },
+          {
+            "Name": "I3 diver peel 6m",
+            "targetRadii": 0.35466842245642166,
+            "onTargetPct": 100,
+            "peakPenMms": 64.9000757932663
+          },
+          {
+            "Name": "I4 shot-to-shot switch 20m",
+            "targetRadii": 2.851749667807312,
+            "onTargetPct": 69.08809891808346,
+            "peakPenMms": 39.76358771324158
+          },
+          {
+            "Name": "R re-acquire 120deg/200ms 8m",
+            "targetRadii": 1.2491643537663497,
+            "onTargetPct": 89.9021123132406,
+            "peakPenMms": 71.9989013671875
+          }
+        ],
+        "relScore": 1.496113308887195,
+        "references": {
+          "owlla": 1.588168910843109,
+          "owmp": 1.92363844479312,
+          "breakpoint": 2.52640430913884,
+          "owllc": 2.8962867488659967,
+          "owllb": 5.185275538870312
+        },
+        "regret": 1.2027601787203126,
+        "reacquireSpreadPct": 1.8273642864240565,
+        "reacquire": {
+          "turnDeg": 120,
+          "ms": 200
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 2.861236222945493,
+          "perScen": [
+            {
+              "HeadRadii": 0.4190648503421249,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.6119065144274441,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.3523293557949083,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 2.861236222945493,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.2517731744601648,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Illari hero sensitivity to 2.54; NVIDIA Reflex ON; Reduce Buffering ON.",
+      "sources": [
+        "https://overwatch.weirdgloop.org/w/Illari"
+      ]
+    },
+    {
+      "id": "owfreja",
+      "hero": "Freja",
+      "game": "ow2",
+      "group": "Specific Characters — Overwatch 2",
+      "evidence": "ev-20260915-hero-freja",
+      "labWinner": "tl-sat cm37.7 off60 G3 @120 s9 yx0.90",
+      "preset": {
+        "pxmm": 57,
+        "cm360": 37.7,
+        "accel": 1.1696,
+        "cap": 3,
+        "offsetCms": 3.42,
+        "unityUntilMms": 60.0,
+        "capReachedMms": 120,
+        "snapDeg": 9,
+        "yx": 0.9,
+        "gameMasterFilter": false
+      },
+      "sens": 2.538,
+      "typeInGame": "2.54",
+      "measured": {
+        "perScenario": [
+          {
+            "Name": "F1 Quick Shot strafe 12m",
+            "targetRadii": 0.27166344920632834,
+            "onTargetPct": 100,
+            "peakPenMms": 39.76358771324158
+          },
+          {
+            "Name": "F2 Updraft dive-bomb 15m",
+            "targetRadii": 0.26394616389269954,
+            "onTargetPct": 100,
+            "peakPenMms": 41.04568898677826
+          },
+          {
+            "Name": "F3 Take Aim bolt 30m",
+            "targetRadii": 0.46378323175285535,
+            "onTargetPct": 98.00649049605933,
+            "peakPenMms": 32.60089069604874
+          },
+          {
+            "Name": "F4 Quick Dash re-aim 45deg",
+            "targetRadii": 1.4958596710417373,
+            "onTargetPct": 77.56911841418884,
+            "peakPenMms": 93.60076904296875
+          },
+          {
+            "Name": "R re-acquire 120deg/180ms 8m",
+            "targetRadii": 1.5987074438907012,
+            "onTargetPct": 88.83792048929665,
+            "peakPenMms": 90.64562916755676
+          }
+        ],
+        "relScore": 1.118990298191618,
+        "references": {
+          "owlla": 1.5666989156634086,
+          "owmp": 2.0460984222073186,
+          "breakpoint": 2.2783991893978497,
+          "owllc": 2.360179791754225,
+          "owllb": 4.432601481633607
+        },
+        "regret": 1.169375879958688,
+        "reacquireSpreadPct": 3.0398539626422183,
+        "reacquire": {
+          "turnDeg": 120,
+          "ms": 180
+        },
+        "turn180Mm": 62.83333333333333,
+        "microPct": 109.6487045288086,
+        "onsetMs": 2.7777777777777777,
+        "filterFlipped": {
+          "on": true,
+          "Worst": 1.5978129833028694,
+          "perScen": [
+            {
+              "HeadRadii": 0.27026581134242816,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.27855915601785103,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 0.45933800569901556,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.4948802352731512,
+              "Spikes": 0
+            },
+            {
+              "HeadRadii": 1.5978129833028694,
+              "Spikes": 0
+            }
+          ]
+        }
+      },
+      "inGame": "In game: set the Freja hero sensitivity to 2.54; Relative Aim Sensitivity While Zoomed 62.50 (the 1:1 value at FOV 103, 16:9); NVIDIA Reflex ON; Reduce Buffering ON.",
+      "sources": [
+        "https://overwatch.weirdgloop.org/w/Freja",
+        "https://x.com/Renanthera/status/1903563534036029807"
+      ]
+    }
+  ],
+  "gameSettingsNotEdited": "Rivals GameUserSettings.ini currently has bNvidiaReflex=False and bUseDynamicResolution=True - recommended ON / OFF in-game; not edited.",
+  "limits": "Execution error only (reaction time, prediction, netcode excluded). Parameterised human model with no cost for longer hand motions, hence the 37.7 cm/360 ceiling and the 70 mm 180 rule. All eight bases landed on 37.7 and cap 3; what differs per hero is the ramp position, snap, Y/X and filter. Field verdicts outrank the lab.",
+  "fieldVerdict": "pending"
+}

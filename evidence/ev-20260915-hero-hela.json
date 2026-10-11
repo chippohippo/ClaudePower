@@ -1,0 +1,6104 @@
+{
+  "evidenceId": "ev-20260915-hero-hela",
+  "date": "2026-09-15",
+  "hero": "Hela",
+  "game": "rivals",
+  "archetype": "hitscan precision tapper: crits at range \u002B flyers",
+  "kit": "Nightsword Thorn: hitscan 70 damage, crits, 2 rounds/s, 10 ammo, falloff from 18 m to 70% at 30 m; Piercing Night 3 m field \u002B stun; Soul Drainer 3 m field; Astral Flock flight escape; 250 HP, 6 m/s",
+  "method": "HeroLab (PsyLab generalised): trained-inverse feedforward \u002B 120 ms visual feedback, signal-dependent motor noise 2-12 Hz \u002B tremor, projectile lead / recoil pull-down / descending aim / target switching as a ballistic minimum-jerk throw (90 ms \u002B 0.45 ms/deg; re-acquire at the hero\u0027s tempo) with \u002B-14% log tempo variability, then one corrective submovement (seen 50 ms after landing, 150 ms long, after the 120 ms visual delay), scored from the landing on per scenario, shipping curve math at 360 Hz, RawAccel exact angle snap, integer counts with remainder, the game\u0027s Master filter simulated; error vs intended path in target radii; each engagement scored relative to the best legal curve in that engagement, excess scaled by frequency",
+  "rule": "legal (onset \u003C= 3 ms, micro 90-130%, 180 \u003C= 70 mm at 150 ms, peak hand \u003C= 600 mm/s, not a reference) -\u003E pool = 8 best relative score \u002B 4 most consistent within 10% -\u003E snap x Y/X x filter, best variant per curve -\u003E rescored under 5 hand models -\u003E regret within 5% of the most robust curve -\u003E most consistent re-acquire, then weighted error",
+  "humanModel": {
+    "KPar": 0.1,
+    "KPerp": 0.05,
+    "S0": 1.5,
+    "Kp": 3,
+    "VisDelay": 0.12,
+    "FollowHz": 2.5,
+    "Tremor": 0.03,
+    "Warm": 0.4,
+    "Vigor": 0.14,
+    "Seeds": [
+      3,
+      7,
+      11
+    ]
+  },
+  "scenarios": [
+    {
+      "Name": "H1 head poke 25m",
+      "D": 25,
+      "Lat": 6,
+      "Rev": 0.6,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.2125,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "H": 0,
+      "Fall": 0,
+      "StepDeg": 0,
+      "StepS": 0,
+      "TargetR": 0,
+      "FlickMs": 0,
+      "SettleOnly": false
+    },
+    {
+      "Name": "H2 flyer snipe 22m",
+      "D": 22,
+      "Lat": 12,
+      "Rev": 1.2,
+      "VAmp": 2,
+      "VHz": 0.5,
+      "Dur": 2.4,
+      "W": 0.255,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "H": 0,
+      "Fall": 0,
+      "StepDeg": 0,
+      "StepS": 0,
+      "TargetR": 0,
+      "FlickMs": 0,
+      "SettleOnly": false
+    },
+    {
+      "Name": "H3 head-to-head switch 15m",
+      "D": 15,
+      "Lat": 5,
+      "Rev": 0.6,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.2125,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "H": 0,
+      "Fall": 0,
+      "StepDeg": 15,
+      "StepS": 0.5,
+      "TargetR": 0,
+      "FlickMs": 0,
+      "SettleOnly": true
+    },
+    {
+      "Name": "H4 stun brawl 6m",
+      "D": 6,
+      "Lat": 9,
+      "Rev": 0.35,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.17,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "H": 0,
+      "Fall": 0,
+      "StepDeg": 0,
+      "StepS": 0,
+      "TargetR": 0,
+      "FlickMs": 0,
+      "SettleOnly": false
+    },
+    {
+      "Name": "R re-acquire 90deg/180ms 8m",
+      "D": 8,
+      "Lat": 6,
+      "Rev": 0.5,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "H": 0,
+      "Fall": 0,
+      "StepDeg": 90,
+      "StepS": 1.2,
+      "TargetR": 0,
+      "FlickMs": 180,
+      "SettleOnly": true
+    }
+  ],
+  "reacquire": {
+    "turnDeg": 90,
+    "ms": 180
+  },
+  "bestLegalPerEngagement": [
+    0.3329054136805017,
+    0.4309704500488283,
+    1.1995512015458771,
+    0.24883119495765413,
+    1.3531643308115724
+  ],
+  "winner": {
+    "name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+    "family": "early-sat",
+    "preset": {
+      "pxmm": 57,
+      "cm": 37.7,
+      "snap": 5,
+      "accel": 0.5533,
+      "cap": 3,
+      "offset": 0.5,
+      "yx": 0.85,
+      "gameFilter": false
+    },
+    "sens": 0.9572925609623381,
+    "rel": 1.3623887852854524,
+    "Worst": 1.3573544766339138,
+    "Weighted": 0.8109869565119499,
+    "Regret": 1.4177306779725485,
+    "reacqPct": 1.4466373050046926,
+    "reacqTravelMm": 31.7830665066249,
+    "Turn180Mm": 62.83333333333333,
+    "SpreadPct": 0.5296648305384846,
+    "MicroPct": 109.6487045288086,
+    "DeadMs": 2.7777777777777777,
+    "CapAtMms": 79.99735453415201,
+    "perScenario": [
+      {
+        "Name": "H1 head poke 25m",
+        "targetRadii": 0.43747561196540374,
+        "onTargetPct": 99.58275382475661,
+        "peakPenMms": 21.899913400411606
+      },
+      {
+        "Name": "H2 flyer snipe 22m",
+        "targetRadii": 0.7611706914041024,
+        "onTargetPct": 82.98562818729717,
+        "peakPenMms": 38.93836855888367
+      },
+      {
+        "Name": "H3 head-to-head switch 15m",
+        "targetRadii": 1.1882815650000198,
+        "onTargetPct": 66.26367299942429,
+        "peakPenMms": 39.6002197265625
+      },
+      {
+        "Name": "H4 stun brawl 6m",
+        "targetRadii": 0.3988932859039063,
+        "onTargetPct": 99.67547519703292,
+        "peakPenMms": 57.71375119686127
+      },
+      {
+        "Name": "R re-acquire 90deg/180ms 8m",
+        "targetRadii": 1.3573544766339138,
+        "onTargetPct": 86.34046890927624,
+        "peakPenMms": 64.89717900753021
+      }
+    ],
+    "filterFlipped": {
+      "on": true,
+      "Worst": 1.3539462275040426,
+      "perScen": [
+        {
+          "HeadRadii": 0.674446761096079,
+          "Spikes": 0
+        },
+        {
+          "HeadRadii": 0.7611706914041024,
+          "Spikes": 0
+        },
+        {
+          "HeadRadii": 1.2217919924569698,
+          "Spikes": 0
+        },
+        {
+          "HeadRadii": 0.3989187032202715,
+          "Spikes": 0
+        },
+        {
+          "HeadRadii": 1.3539462275040426,
+          "Spikes": 0
+        }
+      ]
+    }
+  },
+  "phase1": [
+    {
+      "Name": "flat cm37.7",
+      "Family": "flat",
+      "rel": 1.0015565399333788,
+      "Worst": 1.356744963151037,
+      "Weighted": 0.647981130499968,
+      "reacqPct": 6.315935428978671E-14,
+      "Turn180Mm": 188.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        1.042,
+        0.249,
+        1.357
+      ]
+    },
+    {
+      "Name": "flat cm34",
+      "Family": "flat",
+      "rel": 1.0639596754590759,
+      "Worst": 1.3437967976799772,
+      "Weighted": 0.6517163820328497,
+      "reacqPct": 1.578983857244667E-14,
+      "Turn180Mm": 170,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        1.027,
+        0.256,
+        1.344
+      ]
+    },
+    {
+      "Name": "flat cm30",
+      "Family": "flat",
+      "rel": 1.159005445213247,
+      "Worst": 1.362308350644479,
+      "Weighted": 0.6678895273330319,
+      "reacqPct": 7.894919286223339E-14,
+      "Turn180Mm": 150,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        1.025,
+        0.267,
+        1.362
+      ]
+    },
+    {
+      "Name": "flat cm26",
+      "Family": "flat",
+      "rel": 1.2776772376641117,
+      "Worst": 1.3628052668602326,
+      "Weighted": 0.6908331450834928,
+      "reacqPct": 6.315935428978666E-14,
+      "Turn180Mm": 130,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.3880742133953905,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.478,
+        1.049,
+        0.278,
+        1.363
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G2 @120",
+      "Family": "trackline-sat",
+      "rel": 1.3508357018250639,
+      "Worst": 1.7045656667492128,
+      "Weighted": 0.8148810855745353,
+      "reacqPct": 2.227242271113403,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        1.705,
+        0.364,
+        1.349
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G2 @120",
+      "Family": "trackline-sat",
+      "rel": 1.3925096544735007,
+      "Worst": 1.4642933278541774,
+      "Weighted": 0.7619471504133115,
+      "reacqPct": 1.7894256228201684,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        1.464,
+        0.395,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110",
+      "Family": "early-sat",
+      "rel": 1.5700832827486226,
+      "Worst": 1.8690398271015758,
+      "Weighted": 0.9218392728154899,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.406,
+        0.677,
+        1.869,
+        0.37,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @110",
+      "Family": "early-sat",
+      "rel": 1.6836631428618043,
+      "Worst": 2.183657934912887,
+      "Weighted": 1.000898884767654,
+      "reacqPct": 3.316410189145695,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.425,
+        0.684,
+        2.184,
+        0.372,
+        1.391
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @200",
+      "Family": "early-sat",
+      "rel": 1.71041857105295,
+      "Worst": 2.222171342154363,
+      "Weighted": 0.9988356392400356,
+      "reacqPct": 18.43907412757422,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.421,
+        0.585,
+        2.222,
+        0.333,
+        1.544
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G2 @120",
+      "Family": "trackline-sat",
+      "rel": 1.7231384100274107,
+      "Worst": 2.2404810599047043,
+      "Weighted": 0.9329191468055356,
+      "reacqPct": 2.8931279985627127,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.24,
+        0.325,
+        1.341
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @200",
+      "Family": "early-sat",
+      "rel": 1.7518629125044787,
+      "Worst": 2.2818288736569134,
+      "Weighted": 0.9840024606676308,
+      "reacqPct": 12.748008461574257,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.389,
+        0.574,
+        2.282,
+        0.33,
+        1.425
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @200",
+      "Family": "early-sat",
+      "rel": 1.7779291205981869,
+      "Worst": 2.3193501751431764,
+      "Weighted": 0.9804522410711111,
+      "reacqPct": 9.528318071548759,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.366,
+        0.565,
+        2.319,
+        0.325,
+        1.403
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G2 @170",
+      "Family": "trackline-sat",
+      "rel": 1.7861735830471526,
+      "Worst": 2.331217760947284,
+      "Weighted": 0.9322417702873483,
+      "reacqPct": 3.157246599220582,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        2.331,
+        0.314,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80",
+      "Family": "early-sat",
+      "rel": 1.786534576678805,
+      "Worst": 1.3775093513914527,
+      "Weighted": 0.8209040101750295,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.77,
+        1.2,
+        0.404,
+        1.378
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 1.802032927701878,
+      "Worst": 2.3540466760708516,
+      "Weighted": 0.9623664717638187,
+      "reacqPct": 12.314827528372234,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.354,
+        0.275,
+        1.434
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80",
+      "Family": "early-sat",
+      "rel": 1.8082396783358647,
+      "Worst": 1.3534251569815303,
+      "Weighted": 0.8480947406999191,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.465,
+        0.779,
+        1.313,
+        0.404,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @150",
+      "Family": "early-sat",
+      "rel": 1.8146540051078683,
+      "Worst": 2.3722142303514424,
+      "Weighted": 1.021579288620119,
+      "reacqPct": 8.433437818390683,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.431,
+        0.631,
+        2.372,
+        0.35,
+        1.37
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G4 @200",
+      "Family": "early-sat",
+      "rel": 1.8503059937278896,
+      "Worst": 2.77972808397922,
+      "Weighted": 1.2493663683238108,
+      "reacqPct": 31.975381693843463,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.434,
+        0.646,
+        2.424,
+        0.356,
+        2.78
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @150",
+      "Family": "early-sat",
+      "rel": 1.8523190979134276,
+      "Worst": 2.4264316791489375,
+      "Weighted": 1.0203179355607204,
+      "reacqPct": 6.288855417738122,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.402,
+        0.617,
+        2.426,
+        0.346,
+        1.354
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 1.853919722003201,
+      "Worst": 2.4287357158090708,
+      "Weighted": 0.9595410038406615,
+      "reacqPct": 8.778561668048615,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.429,
+        0.274,
+        1.389
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @150",
+      "Family": "early-sat",
+      "rel": 1.8570910804757266,
+      "Worst": 2.4333007640485715,
+      "Weighted": 1.019264433490363,
+      "reacqPct": 5.000120167789086,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.381,
+        0.61,
+        2.433,
+        0.346,
+        1.379
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @80",
+      "Family": "early-sat",
+      "rel": 1.857554256202042,
+      "Worst": 1.609391833301929,
+      "Weighted": 0.9248395560140317,
+      "reacqPct": 2.330749845260333,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.486,
+        0.801,
+        1.609,
+        0.408,
+        1.374
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @110",
+      "Family": "early-sat",
+      "rel": 1.8669595188199577,
+      "Worst": 2.4475060005364164,
+      "Weighted": 1.0629411797882098,
+      "reacqPct": 4.337837320191105,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.45,
+        0.699,
+        2.448,
+        0.374,
+        1.369
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G4 @200",
+      "Family": "early-sat",
+      "rel": 1.8856626892689627,
+      "Worst": 2.4744284932382015,
+      "Weighted": 1.14076419275586,
+      "reacqPct": 27.575521138103465,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.406,
+        0.632,
+        2.474,
+        0.353,
+        2.051
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G2 @370",
+      "Family": "trackline-sat",
+      "rel": 1.8920434950976812,
+      "Worst": 2.810820176413254,
+      "Weighted": 1.1951061197595636,
+      "reacqPct": 36.80411919545135,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.484,
+        0.267,
+        2.811
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 1.9094213334718075,
+      "Worst": 2.5086281454789496,
+      "Weighted": 0.9653174264849012,
+      "reacqPct": 6.8537705560120195,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        2.509,
+        0.279,
+        1.362
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G4 @200",
+      "Family": "early-sat",
+      "rel": 1.915482314452651,
+      "Worst": 2.517352693900691,
+      "Weighted": 1.0858201704552701,
+      "reacqPct": 23.224846391294555,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.385,
+        0.625,
+        2.517,
+        0.351,
+        1.667
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G2 @300",
+      "Family": "trackline-sat",
+      "rel": 1.9560755526317273,
+      "Worst": 2.5757850950595094,
+      "Weighted": 1.0320474816925236,
+      "reacqPct": 21.835223959799514,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.576,
+        0.267,
+        1.593
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G2 @350",
+      "Family": "trackline-sat",
+      "rel": 1.9628788970867541,
+      "Worst": 2.5855782470781787,
+      "Weighted": 1.1387563555188223,
+      "reacqPct": 32.97987100636322,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.586,
+        0.267,
+        2.291
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G4 @150",
+      "Family": "early-sat",
+      "rel": 1.9690637612924138,
+      "Worst": 2.594481120625336,
+      "Weighted": 1.1315802691680124,
+      "reacqPct": 20.949428267777325,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.453,
+        0.711,
+        2.594,
+        0.378,
+        1.589
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G5 @200",
+      "Family": "early-sat",
+      "rel": 1.9766903342993212,
+      "Worst": 3.2936089992038533,
+      "Weighted": 1.3771753211037023,
+      "reacqPct": 37.34134412715791,
+      "Turn180Mm": 34,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.427,
+        0.687,
+        2.605,
+        0.375,
+        3.294
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G2 @330",
+      "Family": "trackline-sat",
+      "rel": 1.9859162285812588,
+      "Worst": 2.6187395974877514,
+      "Weighted": 1.0881316722406242,
+      "reacqPct": 28.7627729801678,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.619,
+        0.267,
+        1.906
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G4 @150",
+      "Family": "early-sat",
+      "rel": 2.0055933981570258,
+      "Worst": 2.6470641243769117,
+      "Weighted": 1.1192899543426331,
+      "reacqPct": 14.365885637952852,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.428,
+        0.694,
+        2.647,
+        0.376,
+        1.5
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @200",
+      "Family": "early-sat",
+      "rel": 2.012487513585614,
+      "Worst": 2.87247477786863,
+      "Weighted": 1.3186950733162446,
+      "reacqPct": 34.01548732846295,
+      "Turn180Mm": 37.7,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.407,
+        0.68,
+        2.657,
+        0.372,
+        2.872
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G4 @150",
+      "Family": "early-sat",
+      "rel": 2.015049115070457,
+      "Worst": 2.660675264278892,
+      "Weighted": 1.0983363818297107,
+      "reacqPct": 10.859697076955548,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.408,
+        0.683,
+        2.661,
+        0.373,
+        1.39
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G2 @170",
+      "Family": "trackline-sat",
+      "rel": 2.024247353911677,
+      "Worst": 2.6739157744238025,
+      "Weighted": 1.0097981636176043,
+      "reacqPct": 3.932773115943621,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.674,
+        0.3,
+        1.348
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G2 @400",
+      "Family": "trackline-sat",
+      "rel": 2.0257134466023734,
+      "Worst": 2.676026158322245,
+      "Weighted": 1.1829494276866388,
+      "reacqPct": 36.61134842144625,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.676,
+        0.256,
+        2.549
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G5 @200",
+      "Family": "early-sat",
+      "rel": 2.0345493893701376,
+      "Worst": 3.7330203954811303,
+      "Weighted": 1.446400009108651,
+      "reacqPct": 41.01103095660159,
+      "Turn180Mm": 30.000202828535144,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.453,
+        0.703,
+        2.575,
+        0.375,
+        3.733
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G2 @400",
+      "Family": "trackline-sat",
+      "rel": 2.0352137092703497,
+      "Worst": 3.7345485832695964,
+      "Weighted": 1.2734252789967864,
+      "reacqPct": 41.745982651830246,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.2,
+        0.267,
+        3.735
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G2 @300",
+      "Family": "trackline-sat",
+      "rel": 2.0571062200259176,
+      "Worst": 2.7212148452183285,
+      "Weighted": 1.0307838056737577,
+      "reacqPct": 14.760880455748431,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.721,
+        0.256,
+        1.47
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G5 @150",
+      "Family": "early-sat",
+      "rel": 2.0817954433489385,
+      "Worst": 2.7567540302211664,
+      "Weighted": 1.3357255918441475,
+      "reacqPct": 32.700916141051096,
+      "Turn180Mm": 30,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.481,
+        0.787,
+        2.757,
+        0.403,
+        2.524
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G4 @110",
+      "Family": "early-sat",
+      "rel": 2.098680025311063,
+      "Worst": 2.7810587349174853,
+      "Weighted": 1.1605136477639533,
+      "reacqPct": 5.516519045549871,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.449,
+        0.775,
+        2.781,
+        0.406,
+        1.384
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G4 @110",
+      "Family": "early-sat",
+      "rel": 2.1018105812786994,
+      "Worst": 2.7855650495244677,
+      "Weighted": 1.185257215147155,
+      "reacqPct": 9.219933881900728,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.487,
+        0.812,
+        2.786,
+        0.41,
+        1.42
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G5 @150",
+      "Family": "early-sat",
+      "rel": 2.1040771588991163,
+      "Worst": 2.7888277006140285,
+      "Weighted": 1.2318332673148176,
+      "reacqPct": 27.157462036294216,
+      "Turn180Mm": 34,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.768,
+        2.789,
+        0.401,
+        1.855
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G4 @80",
+      "Family": "early-sat",
+      "rel": 2.1148297486748984,
+      "Worst": 1.9535822769727618,
+      "Weighted": 1.0388928257699126,
+      "reacqPct": 2.948748889024712,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.515,
+        0.911,
+        1.954,
+        0.443,
+        1.377
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @150",
+      "Family": "early-sat",
+      "rel": 2.1179345854590994,
+      "Worst": 2.8087749318304627,
+      "Weighted": 1.1921122303168825,
+      "reacqPct": 21.857411460351468,
+      "Turn180Mm": 37.7,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.438,
+        0.758,
+        2.809,
+        0.398,
+        1.608
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G4 @110",
+      "Family": "early-sat",
+      "rel": 2.11912058733468,
+      "Worst": 2.810482135800329,
+      "Weighted": 1.177346977470541,
+      "reacqPct": 6.934379685626574,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.465,
+        0.791,
+        2.81,
+        0.408,
+        1.402
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G2 @330",
+      "Family": "trackline-sat",
+      "rel": 2.128335343792526,
+      "Worst": 2.8237464224174826,
+      "Weighted": 1.0704761755969652,
+      "reacqPct": 21.81551428479146,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.824,
+        0.256,
+        1.59
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G2 @300",
+      "Family": "trackline-sat",
+      "rel": 2.1330016953371786,
+      "Worst": 2.8304634555401513,
+      "Weighted": 1.036481780215567,
+      "reacqPct": 11.058982315075223,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        2.83,
+        0.25,
+        1.412
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G2 @370",
+      "Family": "trackline-sat",
+      "rel": 2.1415289257909933,
+      "Worst": 2.8427380749842297,
+      "Weighted": 1.1314688323813966,
+      "reacqPct": 30.750731838414413,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.843,
+        0.256,
+        1.969
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G4 @80",
+      "Family": "early-sat",
+      "rel": 2.1465301386302684,
+      "Worst": 2.3375378004824037,
+      "Weighted": 1.1274097581720517,
+      "reacqPct": 3.6608928580241966,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.53,
+        0.925,
+        2.338,
+        0.448,
+        1.373
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G2 @350",
+      "Family": "trackline-sat",
+      "rel": 2.157372091357293,
+      "Worst": 2.865543700933843,
+      "Weighted": 1.1022319070628364,
+      "reacqPct": 26.411755410931782,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        2.866,
+        0.256,
+        1.742
+      ]
+    },
+    {
+      "Name": "ref rivmp",
+      "Family": "reference",
+      "rel": 2.1736352541389987,
+      "Worst": 4.052970648394148,
+      "Weighted": 1.2898918481966388,
+      "reacqPct": 37.53365322625547,
+      "Turn180Mm": 58.16584102773723,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.359,
+        0.512,
+        1.996,
+        0.3,
+        4.053
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G5 @110",
+      "Family": "early-sat",
+      "rel": 2.2023061027126754,
+      "Worst": 2.9302244777077937,
+      "Weighted": 1.2807001354920808,
+      "reacqPct": 17.732567621589503,
+      "Turn180Mm": 30,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.528,
+        0.915,
+        2.93,
+        0.441,
+        1.584
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G4 @80",
+      "Family": "early-sat",
+      "rel": 2.2267299394368676,
+      "Worst": 2.7237843662033416,
+      "Weighted": 1.2260870835298339,
+      "reacqPct": 4.774741095120213,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.549,
+        0.96,
+        2.724,
+        0.452,
+        1.393
+      ]
+    },
+    {
+      "Name": "ref rivllc",
+      "Family": "reference",
+      "rel": 2.236510155142608,
+      "Worst": 4.197606773074516,
+      "Weighted": 1.4363785480542397,
+      "reacqPct": 43.87041122104536,
+      "Turn180Mm": 41.03372764615793,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.375,
+        0.601,
+        2.428,
+        0.341,
+        4.198
+      ]
+    },
+    {
+      "Name": "ref breakpoint",
+      "Family": "reference",
+      "rel": 2.236510155142608,
+      "Worst": 4.197606773074516,
+      "Weighted": 1.4363785480542397,
+      "reacqPct": 43.87041122104536,
+      "Turn180Mm": 41.03372764615793,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.375,
+        0.601,
+        2.428,
+        0.341,
+        4.198
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G5 @110",
+      "Family": "early-sat",
+      "rel": 2.23714161156662,
+      "Worst": 2.980368849510447,
+      "Weighted": 1.262818022367869,
+      "reacqPct": 12.400811489788392,
+      "Turn180Mm": 34,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.508,
+        0.885,
+        2.98,
+        0.438,
+        1.476
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G2 @170",
+      "Family": "trackline-sat",
+      "rel": 2.237468491594931,
+      "Worst": 2.9808393807073137,
+      "Weighted": 1.0831743476169233,
+      "reacqPct": 5.139945925350622,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        2.981,
+        0.287,
+        1.337
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @110",
+      "Family": "early-sat",
+      "rel": 2.2480405147764415,
+      "Worst": 2.9960574004394958,
+      "Weighted": 1.2520970755142955,
+      "reacqPct": 9.666011941951135,
+      "Turn180Mm": 37.7,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.495,
+        0.871,
+        2.996,
+        0.434,
+        1.429
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G2 @330",
+      "Family": "trackline-sat",
+      "rel": 2.25709185959889,
+      "Worst": 3.0090864623083444,
+      "Weighted": 1.0852635163204223,
+      "reacqPct": 15.438082406721119,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.009,
+        0.249,
+        1.486
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G2 @400",
+      "Family": "trackline-sat",
+      "rel": 2.286268361437328,
+      "Worst": 3.051084911712989,
+      "Weighted": 1.1613548501137525,
+      "reacqPct": 30.883404690335865,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.051,
+        0.249,
+        1.934
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G2 @350",
+      "Family": "trackline-sat",
+      "rel": 2.305083889998745,
+      "Worst": 3.0781691395852717,
+      "Weighted": 1.1105833850370188,
+      "reacqPct": 19.70681527942726,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.078,
+        0.249,
+        1.557
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 2.3239248745795735,
+      "Worst": 3.1052900104159598,
+      "Weighted": 1.3622657526461457,
+      "reacqPct": 38.02741562235056,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.105,
+        0.285,
+        3.024
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G2 @370",
+      "Family": "trackline-sat",
+      "rel": 2.3239675216440343,
+      "Worst": 3.1053513992208592,
+      "Weighted": 1.131970140150352,
+      "reacqPct": 24.34291774738121,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.105,
+        0.249,
+        1.661
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 2.3773433841776757,
+      "Worst": 3.1821838952637918,
+      "Weighted": 1.2323055691513018,
+      "reacqPct": 32.144134481457925,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        3.182,
+        0.296,
+        2.116
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G2 @160",
+      "Family": "trackline-sat",
+      "rel": 2.3795856046160293,
+      "Worst": 3.1854114851289412,
+      "Weighted": 1.103671257990363,
+      "reacqPct": 3.666304236456118,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.185,
+        0.25,
+        1.357
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @80",
+      "Family": "early-sat",
+      "rel": 2.3983327023984877,
+      "Worst": 2.869533850440314,
+      "Weighted": 1.288631081703575,
+      "reacqPct": 5.020196846354762,
+      "Turn180Mm": 37.7,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.585,
+        1.034,
+        2.87,
+        0.478,
+        1.399
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 2.4357804990960057,
+      "Worst": 3.2663018689619805,
+      "Weighted": 1.1859096144887866,
+      "reacqPct": 26.406103326605407,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.266,
+        0.305,
+        1.728
+      ]
+    },
+    {
+      "Name": "ref rivllb",
+      "Family": "reference",
+      "rel": 2.456580515871997,
+      "Worst": 4.703852089167852,
+      "Weighted": 1.5590652310960218,
+      "reacqPct": 48.34149602651196,
+      "Turn180Mm": 36.85284161501636,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.392,
+        0.64,
+        2.568,
+        0.36,
+        4.704
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G5 @80",
+      "Family": "early-sat",
+      "rel": 2.469753863170508,
+      "Worst": 3.112810450187894,
+      "Weighted": 1.352748657435827,
+      "reacqPct": 6.267810488532723,
+      "Turn180Mm": 34,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.598,
+        1.064,
+        3.113,
+        0.486,
+        1.401
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G5 @80",
+      "Family": "early-sat",
+      "rel": 2.567095039426127,
+      "Worst": 3.155673486495233,
+      "Weighted": 1.3767357493913033,
+      "reacqPct": 8.259785190165065,
+      "Turn180Mm": 30,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.607,
+        1.106,
+        3.156,
+        0.493,
+        1.409
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G3 @300",
+      "Family": "trackline-sat",
+      "rel": 2.6622428137211633,
+      "Worst": 4.30003193503203,
+      "Weighted": 1.6540807306639564,
+      "reacqPct": 50.540743446744244,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.592,
+        0.267,
+        4.3
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 2.6678378804845564,
+      "Worst": 3.600339521768652,
+      "Weighted": 1.1917169362291486,
+      "reacqPct": 5.6871998751693,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.6,
+        0.25,
+        1.357
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 2.721954793014522,
+      "Worst": 4.7876014410439,
+      "Weighted": 1.7505378019393167,
+      "reacqPct": 54.91157431684115,
+      "Turn180Mm": 38.311095438153174,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.678,
+        0.297,
+        4.788
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G2 @160",
+      "Family": "trackline-sat",
+      "rel": 2.732644710124404,
+      "Worst": 3.693626454204081,
+      "Weighted": 1.2202894824326544,
+      "reacqPct": 4.568012686182337,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        3.694,
+        0.256,
+        1.356
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G3 @330",
+      "Family": "trackline-sat",
+      "rel": 2.7822847354232696,
+      "Worst": 5.204272556127404,
+      "Weighted": 1.8264359138387403,
+      "reacqPct": 58.78973806557731,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.765,
+        0.267,
+        5.204
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 2.7880526662559566,
+      "Worst": 4.208614607579744,
+      "Weighted": 1.675598064120767,
+      "reacqPct": 50.09401045252482,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        3.773,
+        0.318,
+        4.209
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G3 @300",
+      "Family": "trackline-sat",
+      "rel": 2.795689353736302,
+      "Worst": 3.784376787798902,
+      "Weighted": 1.579366968751641,
+      "reacqPct": 45.14213548619644,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        3.784,
+        0.256,
+        3.621
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 2.805341856568304,
+      "Worst": 3.798271193442966,
+      "Weighted": 1.2635081240840844,
+      "reacqPct": 9.506652170844886,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.798,
+        0.267,
+        1.404
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 2.8273514911298414,
+      "Worst": 3.8299532137436194,
+      "Weighted": 1.2507952258292425,
+      "reacqPct": 7.138578786975808,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        3.83,
+        0.256,
+        1.366
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 2.831164795729591,
+      "Worst": 3.835442318681007,
+      "Weighted": 1.6093997168990186,
+      "reacqPct": 45.76156518598148,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.835,
+        0.333,
+        3.714
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G2 @310",
+      "Family": "trackline-sat",
+      "rel": 2.8426396372684595,
+      "Worst": 3.851959910627605,
+      "Weighted": 1.3806349366604227,
+      "reacqPct": 34.98525777809273,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.852,
+        0.267,
+        2.109
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G3 @300",
+      "Family": "trackline-sat",
+      "rel": 2.889759397363382,
+      "Worst": 3.9197869884337067,
+      "Weighted": 1.4532196889201923,
+      "reacqPct": 39.571921928778515,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        3.92,
+        0.25,
+        2.648
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G3 @350",
+      "Family": "trackline-sat",
+      "rel": 2.9355272493797826,
+      "Worst": 5.80561127060832,
+      "Weighted": 1.9152126133591982,
+      "reacqPct": 63.725971426816166,
+      "Turn180Mm": 51.54996062630646,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.758,
+        0.267,
+        5.806
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G3 @330",
+      "Family": "trackline-sat",
+      "rel": 2.994692237623315,
+      "Worst": 4.517990827488159,
+      "Weighted": 1.7747378819561566,
+      "reacqPct": 53.82609547479499,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.071,
+        0.256,
+        4.518
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G3 @120",
+      "Family": "trackline-sat",
+      "rel": 3.007468988032525,
+      "Worst": 4.089225405538479,
+      "Weighted": 1.347459884521966,
+      "reacqPct": 5.506893973044022,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.089,
+        0.537,
+        1.377
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G2 @240",
+      "Family": "trackline-sat",
+      "rel": 3.052950977217716,
+      "Worst": 4.15469497526943,
+      "Weighted": 1.3517759761369121,
+      "reacqPct": 14.105040855283022,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.155,
+        0.267,
+        1.488
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G3 @350",
+      "Family": "trackline-sat",
+      "rel": 3.070532434643547,
+      "Worst": 5.090439704246183,
+      "Weighted": 1.8838036343324394,
+      "reacqPct": 58.95484669443718,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.18,
+        0.256,
+        5.09
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G3 @370",
+      "Family": "trackline-sat",
+      "rel": 3.080008236359296,
+      "Worst": 5.661544563940773,
+      "Weighted": 1.9723678741667308,
+      "reacqPct": 63.623006038856204,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.194,
+        0.256,
+        5.662
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G2 @280",
+      "Family": "trackline-sat",
+      "rel": 3.0835567973623346,
+      "Worst": 4.198750873263959,
+      "Weighted": 1.3964456915704742,
+      "reacqPct": 24.025652779477195,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.199,
+        0.267,
+        1.723
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 3.1156552756436455,
+      "Worst": 4.244955395092128,
+      "Weighted": 1.3836777351108895,
+      "reacqPct": 18.18958383117824,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.245,
+        0.267,
+        1.573
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G3 @330",
+      "Family": "trackline-sat",
+      "rel": 3.1389249292407757,
+      "Worst": 4.27845116421052,
+      "Weighted": 1.70920265974085,
+      "reacqPct": 48.72054632582947,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.278,
+        0.249,
+        3.847
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G3 @170",
+      "Family": "trackline-sat",
+      "rel": 3.147183125076031,
+      "Worst": 4.290338518694658,
+      "Weighted": 1.3929746753691796,
+      "reacqPct": 17.2366774995365,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.29,
+        0.314,
+        1.517
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G2 @160",
+      "Family": "trackline-sat",
+      "rel": 3.167924078601595,
+      "Worst": 4.320194321562016,
+      "Weighted": 1.3652760422719294,
+      "reacqPct": 5.97420686354085,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.32,
+        0.267,
+        1.343
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G2 @240",
+      "Family": "trackline-sat",
+      "rel": 3.191095706279026,
+      "Worst": 4.353548986148699,
+      "Weighted": 1.3566854430424522,
+      "reacqPct": 8.166424550952668,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.354,
+        0.249,
+        1.391
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G3 @370",
+      "Family": "trackline-sat",
+      "rel": 3.194973426024973,
+      "Worst": 6.402435901011226,
+      "Weighted": 1.9841372043554357,
+      "reacqPct": 68.14515747197927,
+      "Turn180Mm": 53.4735319687301,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.661,
+        0.267,
+        6.402
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G3 @170",
+      "Family": "trackline-sat",
+      "rel": 3.1980102517390927,
+      "Worst": 4.363502207726419,
+      "Weighted": 1.3837610721955678,
+      "reacqPct": 9.984462086792801,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.364,
+        0.372,
+        1.417
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G2 @240",
+      "Family": "trackline-sat",
+      "rel": 3.2011147764327026,
+      "Worst": 4.367971051318157,
+      "Weighted": 1.371249667617251,
+      "reacqPct": 10.380070170447883,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.368,
+        0.256,
+        1.407
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G3 @170",
+      "Family": "trackline-sat",
+      "rel": 3.211662547526234,
+      "Worst": 4.383154161104809,
+      "Weighted": 1.3963573181862414,
+      "reacqPct": 12.654229178751573,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.383,
+        0.345,
+        1.452
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G4 @300",
+      "Family": "trackline-sat",
+      "rel": 3.226960569494981,
+      "Worst": 6.327595557503574,
+      "Weighted": 2.1309542789652456,
+      "reacqPct": 69.97838620472628,
+      "Turn180Mm": 41.85212042520193,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.405,
+        0.267,
+        6.328
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G3 @400",
+      "Family": "trackline-sat",
+      "rel": 3.2427499308594325,
+      "Worst": 6.512339986739051,
+      "Weighted": 2.072080570210041,
+      "reacqPct": 69.81185176701565,
+      "Turn180Mm": 58.86851610770081,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.062,
+        0.256,
+        6.512
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G3 @350",
+      "Family": "trackline-sat",
+      "rel": 3.2612042619588224,
+      "Worst": 4.499148082745928,
+      "Weighted": 1.8443877348429547,
+      "reacqPct": 54.25919672250637,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.454,
+        0.249,
+        4.499
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G2 @190",
+      "Family": "trackline-sat",
+      "rel": 3.2929485286718525,
+      "Worst": 4.500162196727284,
+      "Weighted": 1.3841661136359817,
+      "reacqPct": 5.61179670604923,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.5,
+        0.249,
+        1.366
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G3 @370",
+      "Family": "trackline-sat",
+      "rel": 3.341853076378038,
+      "Worst": 5.040275783469705,
+      "Weighted": 1.9502261974226758,
+      "reacqPct": 59.32846003646035,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.571,
+        0.249,
+        5.04
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G3 @400",
+      "Family": "trackline-sat",
+      "rel": 3.351710024079238,
+      "Worst": 5.853683057520709,
+      "Weighted": 2.0752523864622563,
+      "reacqPct": 65.95419238867741,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.585,
+        0.249,
+        5.854
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 3.365924819892295,
+      "Worst": 4.605208754108696,
+      "Weighted": 1.430904569186592,
+      "reacqPct": 13.057488894496366,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.605,
+        0.256,
+        1.469
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G4 @300",
+      "Family": "trackline-sat",
+      "rel": 3.3765694401969384,
+      "Worst": 5.651473947182043,
+      "Weighted": 2.061571070493732,
+      "reacqPct": 64.96163288244779,
+      "Turn180Mm": 43.985742015837445,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.621,
+        0.256,
+        5.651
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G3 @120",
+      "Family": "trackline-sat",
+      "rel": 3.424899485220973,
+      "Worst": 4.6901005108956335,
+      "Weighted": 1.4730063152077841,
+      "reacqPct": 6.862028818083124,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.69,
+        0.491,
+        1.363
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G2 @280",
+      "Family": "trackline-sat",
+      "rel": 3.463703663690773,
+      "Worst": 4.7459576295857735,
+      "Weighted": 1.4715292756678346,
+      "reacqPct": 16.275100809944266,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.746,
+        0.256,
+        1.54
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G2 @310",
+      "Family": "trackline-sat",
+      "rel": 3.4644092053402864,
+      "Worst": 4.74697322958587,
+      "Weighted": 1.4962841880611129,
+      "reacqPct": 22.783232941971967,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        4.747,
+        0.256,
+        1.704
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G4 @300",
+      "Family": "trackline-sat",
+      "rel": 3.466330268263454,
+      "Worst": 5.068024377251426,
+      "Weighted": 1.9926407829374333,
+      "reacqPct": 60.46568824315565,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.75,
+        0.25,
+        5.068
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 3.466660622348978,
+      "Worst": 4.750214057559418,
+      "Weighted": 1.4448629367238135,
+      "reacqPct": 10.159202016539034,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.75,
+        0.249,
+        1.417
+      ]
+    },
+    {
+      "Name": "ref rivlla",
+      "Family": "reference",
+      "rel": 3.4925557440803794,
+      "Worst": 7.0869881240749875,
+      "Weighted": 2.2479837547349995,
+      "reacqPct": 76.18292609745104,
+      "Turn180Mm": 55.631977020952604,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        4.527,
+        0.249,
+        7.087
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G3 @400",
+      "Family": "trackline-sat",
+      "rel": 3.5827155793579726,
+      "Worst": 7.294389948463112,
+      "Weighted": 2.0371708411201297,
+      "reacqPct": 73.84350345616623,
+      "Turn180Mm": 56.482247347629155,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        3.281,
+        0.267,
+        7.294
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G2 @280",
+      "Family": "trackline-sat",
+      "rel": 3.6469503319340517,
+      "Worst": 5.009734142870378,
+      "Weighted": 1.5074316974006063,
+      "reacqPct": 12.501943385955915,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.01,
+        0.249,
+        1.466
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G2 @190",
+      "Family": "trackline-sat",
+      "rel": 3.6652104070660814,
+      "Worst": 5.036018816948311,
+      "Weighted": 1.5062432758341795,
+      "reacqPct": 7.011602091879301,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.036,
+        0.256,
+        1.361
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G4 @330",
+      "Family": "trackline-sat",
+      "rel": 3.6791063809209374,
+      "Worst": 7.5161253591017925,
+      "Weighted": 2.3751873151823863,
+      "reacqPct": 79.74790863734451,
+      "Turn180Mm": 44.75546929121997,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.716,
+        0.267,
+        7.516
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G4 @330",
+      "Family": "trackline-sat",
+      "rel": 3.691184069305881,
+      "Worst": 6.759577469359534,
+      "Weighted": 2.3240226696950987,
+      "reacqPct": 74.8736209681754,
+      "Turn180Mm": 46.82271169682738,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.073,
+        0.256,
+        6.76
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G4 @170",
+      "Family": "trackline-sat",
+      "rel": 3.751411388487082,
+      "Worst": 5.1601018059539046,
+      "Weighted": 1.7282398672521688,
+      "reacqPct": 41.52919500689295,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        5.16,
+        0.346,
+        2.484
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G2 @310",
+      "Family": "trackline-sat",
+      "rel": 3.7887678535374434,
+      "Worst": 5.213874996997906,
+      "Weighted": 1.5661542905102293,
+      "reacqPct": 16.82527865112215,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.214,
+        0.249,
+        1.568
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G4 @170",
+      "Family": "trackline-sat",
+      "rel": 3.7958846952022327,
+      "Worst": 5.224119416162158,
+      "Weighted": 1.6502001792760865,
+      "reacqPct": 30.955965839400978,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.224,
+        0.401,
+        1.89
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G4 @350",
+      "Family": "trackline-sat",
+      "rel": 3.826021239243064,
+      "Worst": 7.500185648364553,
+      "Weighted": 2.4763586392947063,
+      "reacqPct": 80.79847460996427,
+      "Turn180Mm": 48.81549506357118,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.267,
+        0.256,
+        7.5
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G4 @170",
+      "Family": "trackline-sat",
+      "rel": 3.830620402248769,
+      "Worst": 5.274120127111219,
+      "Weighted": 1.6244147652602603,
+      "reacqPct": 22.25380860081625,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.274,
+        0.436,
+        1.659
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 3.846636756201537,
+      "Worst": 5.297175051065332,
+      "Weighted": 1.5534242614130969,
+      "reacqPct": 7.1629769333624065,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.297,
+        0.249,
+        1.366
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G4 @330",
+      "Family": "trackline-sat",
+      "rel": 3.8546951710077972,
+      "Worst": 6.123395931667756,
+      "Weighted": 2.2695652091105734,
+      "reacqPct": 70.41328536527966,
+      "Turn180Mm": 48.61680020020016,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.309,
+        0.249,
+        6.123
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G3 @120",
+      "Family": "trackline-sat",
+      "rel": 3.8712815745543354,
+      "Worst": 5.332650316825706,
+      "Weighted": 1.6152306615408487,
+      "reacqPct": 8.978248103069593,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        5.333,
+        0.41,
+        1.414
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G4 @370",
+      "Family": "trackline-sat",
+      "rel": 4.001090218670011,
+      "Worst": 8.256810334479566,
+      "Weighted": 2.6070230729155237,
+      "reacqPct": 86.12992128234578,
+      "Turn180Mm": 50.87578462001822,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.348,
+        0.256,
+        8.257
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 4.015825898704664,
+      "Worst": 5.540716298079102,
+      "Weighted": 1.7478458861924349,
+      "reacqPct": 37.2446723512465,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        5.541,
+        0.267,
+        2.165
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G4 @350",
+      "Family": "trackline-sat",
+      "rel": 4.0228936323414,
+      "Worst": 8.306966457318657,
+      "Weighted": 2.5048890845073495,
+      "reacqPct": 85.45156282634093,
+      "Turn180Mm": 46.78561154696146,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.768,
+        0.267,
+        8.307
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G4 @350",
+      "Family": "trackline-sat",
+      "rel": 4.043430503317481,
+      "Worst": 6.835293211033176,
+      "Weighted": 2.4340812131501783,
+      "reacqPct": 76.46329718124669,
+      "Turn180Mm": 50.57444606124717,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.58,
+        0.249,
+        6.835
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G2 @190",
+      "Family": "trackline-sat",
+      "rel": 4.050486435564203,
+      "Worst": 5.590608804442405,
+      "Weighted": 1.647369038156996,
+      "reacqPct": 9.244093518060737,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        5.591,
+        0.267,
+        1.424
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 4.170453735267209,
+      "Worst": 5.763297106648351,
+      "Weighted": 1.7199028591970789,
+      "reacqPct": 25.004801468049877,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.763,
+        0.256,
+        1.755
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G4 @370",
+      "Family": "trackline-sat",
+      "rel": 4.18769281657981,
+      "Worst": 7.55446335986386,
+      "Weighted": 2.5860844934337424,
+      "reacqPct": 81.99332441555501,
+      "Turn180Mm": 52.60354816947215,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.788,
+        0.249,
+        7.554
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 4.206013151109121,
+      "Worst": 5.814483514647674,
+      "Weighted": 1.6764017921304677,
+      "reacqPct": 8.993908551755766,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.814,
+        0.256,
+        1.392
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 4.226813058852581,
+      "Worst": 5.844424179838526,
+      "Weighted": 1.7049437121257083,
+      "reacqPct": 18.8480034332187,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.844,
+        0.25,
+        1.599
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G4 @400",
+      "Family": "trackline-sat",
+      "rel": 4.281047842639156,
+      "Worst": 8.618160497125432,
+      "Weighted": 2.774195018111336,
+      "reacqPct": 89.27390687249937,
+      "Turn180Mm": 55.76229196444983,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        5.922,
+        0.249,
+        8.618
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G2 @230",
+      "Family": "trackline-sat",
+      "rel": 4.346799278696617,
+      "Worst": 6.017139716857958,
+      "Weighted": 1.7135023473317033,
+      "reacqPct": 8.949050172588958,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        6.017,
+        0.249,
+        1.413
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G4 @370",
+      "Family": "trackline-sat",
+      "rel": 4.367670049130784,
+      "Worst": 9.100083011136169,
+      "Weighted": 2.6105511377967288,
+      "reacqPct": 90.46042050134648,
+      "Turn180Mm": 48.879900053631445,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.705,
+        0.267,
+        9.1
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G3 @240",
+      "Family": "trackline-sat",
+      "rel": 4.475338279383941,
+      "Worst": 6.202166652121941,
+      "Weighted": 2.0953063302421895,
+      "reacqPct": 52.640711076784264,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.202,
+        0.267,
+        3.544
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G4 @400",
+      "Family": "trackline-sat",
+      "rel": 4.490494070548976,
+      "Worst": 9.382624855211057,
+      "Weighted": 2.7555305547857483,
+      "reacqPct": 93.02229508264661,
+      "Turn180Mm": 54.075123273948336,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        5.252,
+        0.256,
+        9.383
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G2 @210",
+      "Family": "trackline-sat",
+      "rel": 4.501316550985017,
+      "Worst": 6.23956137241773,
+      "Weighted": 1.7940316415324957,
+      "reacqPct": 11.979186140029686,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.24,
+        0.267,
+        1.483
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G3 @310",
+      "Family": "trackline-sat",
+      "rel": 4.504301188616738,
+      "Worst": 7.256099774853837,
+      "Weighted": 2.660949957552754,
+      "reacqPct": 76.4810948610632,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.244,
+        0.267,
+        7.256
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G2 @230",
+      "Family": "trackline-sat",
+      "rel": 4.634238600112157,
+      "Worst": 6.430897536908611,
+      "Weighted": 1.8193494616545483,
+      "reacqPct": 11.318005321896656,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        6.431,
+        0.256,
+        1.472
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 4.653936045601014,
+      "Worst": 6.459251250192863,
+      "Weighted": 2.3665094926184356,
+      "reacqPct": 61.32059316685099,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.459,
+        0.267,
+        4.988
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G3 @280",
+      "Family": "trackline-sat",
+      "rel": 4.701720895717317,
+      "Worst": 6.528035699440103,
+      "Weighted": 2.543676712907895,
+      "reacqPct": 68.5053346632664,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.528,
+        0.267,
+        6.072
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off60 G4 @120",
+      "Family": "trackline-sat",
+      "rel": 4.7423153591948966,
+      "Worst": 6.586469864368872,
+      "Weighted": 1.9159217467420118,
+      "reacqPct": 11.39903299886848,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        6.586,
+        0.673,
+        1.475
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G3 @240",
+      "Family": "trackline-sat",
+      "rel": 4.7480044212601475,
+      "Worst": 6.594659049852122,
+      "Weighted": 1.9902771458857642,
+      "reacqPct": 41.062087219173485,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        6.595,
+        0.256,
+        2.38
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G2 @230",
+      "Family": "trackline-sat",
+      "rel": 4.790745235910163,
+      "Worst": 6.656182804534292,
+      "Weighted": 1.8949792218415642,
+      "reacqPct": 15.329747965866655,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.656,
+        0.267,
+        1.566
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G4 @400",
+      "Family": "trackline-sat",
+      "rel": 4.889026032272353,
+      "Worst": 10.299399555208199,
+      "Weighted": 2.699910227604404,
+      "reacqPct": 96.71216201844149,
+      "Turn180Mm": 52.12172733427029,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        4.279,
+        0.267,
+        10.299
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 4.914073526603984,
+      "Worst": 6.833709123677939,
+      "Weighted": 1.9731659058970619,
+      "reacqPct": 21.9524585428649,
+      "Turn180Mm": 75,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.834,
+        0.267,
+        1.835
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G3 @240",
+      "Family": "trackline-sat",
+      "rel": 4.9303672485474035,
+      "Worst": 6.857163308159799,
+      "Weighted": 1.9717282745082516,
+      "reacqPct": 29.374184374915895,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        6.857,
+        0.249,
+        1.944
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 4.941385244300143,
+      "Worst": 6.87302328821239,
+      "Weighted": 1.9083422693248406,
+      "reacqPct": 12.13225078760561,
+      "Turn180Mm": 94.25,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        6.873,
+        0.249,
+        1.499
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 4.94649543008728,
+      "Worst": 6.88037920361369,
+      "Weighted": 2.5238134844496276,
+      "reacqPct": 66.16882444541255,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        6.88,
+        0.267,
+        5.44
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 5.0588477832336505,
+      "Worst": 7.042106083869572,
+      "Weighted": 2.2050907743350305,
+      "reacqPct": 51.05583925960205,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.042,
+        0.256,
+        3.178
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G2 @260",
+      "Family": "trackline-sat",
+      "rel": 5.0649710653620215,
+      "Worst": 7.050920312390962,
+      "Weighted": 1.9726878207676068,
+      "reacqPct": 15.648604869063204,
+      "Turn180Mm": 85,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": false,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.051,
+        0.256,
+        1.616
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off60 G4 @120",
+      "Family": "trackline-sat",
+      "rel": 5.113372202616405,
+      "Worst": 7.12059188321058,
+      "Weighted": 2.033302501181267,
+      "reacqPct": 14.316453596420098,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.121,
+        0.611,
+        1.519
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 5.115780678726542,
+      "Worst": 7.124058791704752,
+      "Weighted": 2.3352641853173903,
+      "reacqPct": 56.5114888391155,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.124,
+        0.256,
+        3.929
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 5.212646747915688,
+      "Worst": 7.263493763326591,
+      "Weighted": 2.1801290903171537,
+      "reacqPct": 46.85111754259328,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        7.263,
+        0.25,
+        2.757
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G3 @160",
+      "Family": "trackline-sat",
+      "rel": 5.227751155950564,
+      "Worst": 7.285235976294842,
+      "Weighted": 1.9952057515673318,
+      "reacqPct": 11.543507012603087,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        7.285,
+        0.25,
+        1.493
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G3 @280",
+      "Family": "trackline-sat",
+      "rel": 5.282116532956772,
+      "Worst": 7.363492840267191,
+      "Weighted": 2.4511895513865416,
+      "reacqPct": 59.80542522432983,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.363,
+        0.256,
+        4.363
+      ]
+    },
+    {
+      "Name": "ref rivpsy",
+      "Family": "reference",
+      "rel": 5.315104523309022,
+      "Worst": 7.41097778042354,
+      "Weighted": 2.1522869196623042,
+      "reacqPct": 40.09379446826903,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        7.411,
+        0.249,
+        2.363
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 5.315104523309022,
+      "Worst": 7.41097778042354,
+      "Weighted": 2.1522869196623042,
+      "reacqPct": 40.09379446826903,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        7.411,
+        0.249,
+        2.363
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off60 G4 @120",
+      "Family": "trackline-sat",
+      "rel": 5.373936055203976,
+      "Worst": 7.495663502151593,
+      "Weighted": 2.125364575628189,
+      "reacqPct": 19.166244009527915,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        7.496,
+        0.499,
+        1.649
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G3 @310",
+      "Family": "trackline-sat",
+      "rel": 5.411245276741323,
+      "Worst": 7.549368687980233,
+      "Weighted": 2.7860516182072663,
+      "reacqPct": 70.26799660189809,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.549,
+        0.256,
+        6.332
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G3 @280",
+      "Family": "trackline-sat",
+      "rel": 5.644568511650446,
+      "Worst": 7.885228488120805,
+      "Weighted": 2.3524898270984687,
+      "reacqPct": 50.00567631713122,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        7.885,
+        0.249,
+        3.026
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G4 @240",
+      "Family": "trackline-sat",
+      "rel": 5.653154581511804,
+      "Worst": 7.897587804623302,
+      "Weighted": 2.985196953017174,
+      "reacqPct": 80.8089172047739,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        7.898,
+        0.267,
+        7.075
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G3 @160",
+      "Family": "trackline-sat",
+      "rel": 5.67106877985469,
+      "Worst": 7.9233746023996305,
+      "Weighted": 2.14854063360648,
+      "reacqPct": 14.544502788493563,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        7.923,
+        0.256,
+        1.552
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G4 @240",
+      "Family": "trackline-sat",
+      "rel": 5.97357206689348,
+      "Worst": 8.358816420126379,
+      "Weighted": 2.927269496002925,
+      "reacqPct": 72.78025406089247,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        8.359,
+        0.256,
+        6.127
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 5.981690751725725,
+      "Worst": 8.370502953900969,
+      "Weighted": 3.247102060824721,
+      "reacqPct": 88.48844161693724,
+      "Turn180Mm": 38.60027006012453,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        8.371,
+        0.267,
+        8.151
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G3 @310",
+      "Family": "trackline-sat",
+      "rel": 5.996580321615211,
+      "Worst": 8.39193591564269,
+      "Weighted": 2.702658973427846,
+      "reacqPct": 62.689623782938185,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        8.392,
+        0.249,
+        4.643
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G4 @310",
+      "Family": "trackline-sat",
+      "rel": 6.00108533001678,
+      "Worst": 10.73464474239732,
+      "Weighted": 3.6405763525784405,
+      "reacqPct": 101.40581159210524,
+      "Turn180Mm": 44.358380778803905,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        8.398,
+        0.267,
+        10.735
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G3 @160",
+      "Family": "trackline-sat",
+      "rel": 6.064916851485383,
+      "Worst": 8.49030371546098,
+      "Weighted": 2.3063921571165213,
+      "reacqPct": 19.59953151570083,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        8.49,
+        0.267,
+        1.71
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G4 @280",
+      "Family": "trackline-sat",
+      "rel": 6.143702335592447,
+      "Worst": 9.21236789257029,
+      "Weighted": 3.455859307206174,
+      "reacqPct": 94.61476377621334,
+      "Turn180Mm": 40.8563184535616,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        8.604,
+        0.267,
+        9.212
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G4 @240",
+      "Family": "trackline-sat",
+      "rel": 6.185929262231185,
+      "Worst": 8.664496414715488,
+      "Weighted": 2.7979907772188866,
+      "reacqPct": 64.3691072366431,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        8.664,
+        0.249,
+        4.892
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 6.443113910704439,
+      "Worst": 9.034703799629783,
+      "Weighted": 3.223860461707643,
+      "reacqPct": 81.68073461856704,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        9.035,
+        0.256,
+        7.147
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G3 @190",
+      "Family": "trackline-sat",
+      "rel": 6.767988873007603,
+      "Worst": 9.502348781289301,
+      "Weighted": 2.496970199519314,
+      "reacqPct": 18.031870227930476,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        9.502,
+        0.249,
+        1.699
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 6.771739679963254,
+      "Worst": 9.507747923277803,
+      "Weighted": 3.19489034607605,
+      "reacqPct": 74.40190897553715,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        9.508,
+        0.249,
+        6.344
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G4 @280",
+      "Family": "trackline-sat",
+      "rel": 6.8256418946448765,
+      "Worst": 9.585338082942592,
+      "Weighted": 3.489455034426207,
+      "reacqPct": 89.00836900094907,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        9.585,
+        0.256,
+        8.137
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G4 @310",
+      "Family": "trackline-sat",
+      "rel": 7.148463639081482,
+      "Worst": 10.05002753665147,
+      "Weighted": 3.8093030021925225,
+      "reacqPct": 97.10994244485667,
+      "Turn180Mm": 45.5822416132028,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        10.05,
+        0.256,
+        9.611
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G3 @190",
+      "Family": "trackline-sat",
+      "rel": 7.178488117304197,
+      "Worst": 10.093246615364885,
+      "Weighted": 2.6626829556866816,
+      "reacqPct": 23.20540588985038,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        10.093,
+        0.256,
+        1.906
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G4 @280",
+      "Family": "trackline-sat",
+      "rel": 7.311591615798057,
+      "Worst": 10.284843969222807,
+      "Weighted": 3.504185475481794,
+      "reacqPct": 82.86209325939491,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        10.285,
+        0.249,
+        7.305
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G3 @190",
+      "Family": "trackline-sat",
+      "rel": 7.420106818226266,
+      "Worst": 10.441047418973312,
+      "Weighted": 2.813055124882311,
+      "reacqPct": 32.8553308926267,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        10.441,
+        0.267,
+        2.324
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 7.709555018441555,
+      "Worst": 10.857696942597562,
+      "Weighted": 2.8257406578303477,
+      "reacqPct": 23.635119475744006,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        10.858,
+        0.249,
+        1.97
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off100 G4 @160",
+      "Family": "trackline-sat",
+      "rel": 7.765714366578204,
+      "Worst": 10.938536158839982,
+      "Weighted": 2.8414423598018383,
+      "reacqPct": 24.910465016445233,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        10.939,
+        0.25,
+        1.959
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G4 @310",
+      "Family": "trackline-sat",
+      "rel": 7.904576220325803,
+      "Worst": 11.138422443054168,
+      "Weighted": 3.8942114139076915,
+      "reacqPct": 92.61848115512846,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        11.138,
+        0.249,
+        8.696
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 8.08447644763921,
+      "Worst": 11.397381883652775,
+      "Weighted": 3.0017643717118734,
+      "reacqPct": 31.328042324119014,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        11.397,
+        0.256,
+        2.319
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off100 G4 @160",
+      "Family": "trackline-sat",
+      "rel": 8.110527278380916,
+      "Worst": 11.434881050033752,
+      "Weighted": 3.00698066478949,
+      "reacqPct": 32.757148826088525,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        11.435,
+        0.256,
+        2.301
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G3 @210",
+      "Family": "trackline-sat",
+      "rel": 8.119825529509384,
+      "Worst": 11.448265524009868,
+      "Weighted": 3.1455346840371274,
+      "reacqPct": 48.92195590889561,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        11.448,
+        0.267,
+        3.114
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off100 G4 @160",
+      "Family": "trackline-sat",
+      "rel": 8.205745265166325,
+      "Worst": 11.571943670582414,
+      "Weighted": 3.1704892890005034,
+      "reacqPct": 49.86509394767724,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        11.572,
+        0.267,
+        3.105
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G3 @230",
+      "Family": "trackline-sat",
+      "rel": 8.555412312388917,
+      "Worst": 12.075275902546645,
+      "Weighted": 3.1450906971168355,
+      "reacqPct": 30.897278479665808,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        12.075,
+        0.249,
+        2.374
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G3 @230",
+      "Family": "trackline-sat",
+      "rel": 8.57011358054985,
+      "Worst": 12.096437811210677,
+      "Weighted": 3.4786709755198775,
+      "reacqPct": 63.40605710937953,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        12.096,
+        0.267,
+        4.416
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 8.769962669048464,
+      "Worst": 12.384112868294311,
+      "Weighted": 3.9876039649978487,
+      "reacqPct": 77.57493097411904,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        12.384,
+        0.267,
+        7.402
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G3 @230",
+      "Family": "trackline-sat",
+      "rel": 8.782011542310858,
+      "Worst": 12.401456756773326,
+      "Weighted": 3.3146051737671027,
+      "reacqPct": 44.25289469550847,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        12.401,
+        0.256,
+        2.982
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 9.497804769486315,
+      "Worst": 13.431813507633391,
+      "Weighted": 3.7899750033841353,
+      "reacqPct": 65.83020793776507,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        13.432,
+        0.256,
+        4.692
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G3 @260",
+      "Family": "trackline-sat",
+      "rel": 9.582108528070702,
+      "Worst": 13.553165517519075,
+      "Weighted": 3.6063883728249677,
+      "reacqPct": 49.30257254843094,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        13.553,
+        0.249,
+        3.356
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off130 G4 @190",
+      "Family": "trackline-sat",
+      "rel": 10.045056154081646,
+      "Worst": 14.21956077476016,
+      "Weighted": 3.692966842012686,
+      "reacqPct": 42.89155589018099,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        14.22,
+        0.249,
+        2.989
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off130 G4 @190",
+      "Family": "trackline-sat",
+      "rel": 10.272415740836507,
+      "Worst": 14.546836133329881,
+      "Weighted": 4.287589560123014,
+      "reacqPct": 77.09685420217725,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        14.547,
+        0.267,
+        6.338
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off130 G4 @190",
+      "Family": "trackline-sat",
+      "rel": 10.320740244342328,
+      "Worst": 14.6163973928233,
+      "Weighted": 3.9465631956650054,
+      "reacqPct": 60.652421850020424,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        14.616,
+        0.256,
+        4.057
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off150 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 11.499491769584317,
+      "Worst": 16.313164762936978,
+      "Weighted": 4.982852586899071,
+      "reacqPct": 89.63688724441428,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        16.313,
+        0.267,
+        8.471
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off150 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 11.506284494951336,
+      "Worst": 16.32294262918791,
+      "Weighted": 4.333795397971112,
+      "reacqPct": 62.38977278170338,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        16.323,
+        0.249,
+        4.282
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off150 G4 @210",
+      "Family": "trackline-sat",
+      "rel": 11.751601556715078,
+      "Worst": 16.67606708062599,
+      "Weighted": 4.70727988321582,
+      "reacqPct": 77.40638171165114,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        16.676,
+        0.256,
+        6.211
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off170 G4 @230",
+      "Family": "trackline-sat",
+      "rel": 12.452190006463752,
+      "Worst": 17.684537140648214,
+      "Weighted": 5.467594309258629,
+      "reacqPct": 97.55770587074434,
+      "Turn180Mm": 37.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        17.685,
+        0.267,
+        9.759
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off170 G4 @230",
+      "Family": "trackline-sat",
+      "rel": 12.902479570295078,
+      "Worst": 18.332711605453138,
+      "Weighted": 5.077102687561263,
+      "reacqPct": 78.42914230837007,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        18.333,
+        0.249,
+        6.39
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off170 G4 @230",
+      "Family": "trackline-sat",
+      "rel": 13.006553764455765,
+      "Worst": 18.48252239503958,
+      "Weighted": 5.454285858090357,
+      "reacqPct": 89.57579747033991,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        18.483,
+        0.256,
+        8.632
+      ]
+    },
+    {
+      "Name": "tl-sat cm30 off200 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 13.05718499391341,
+      "Worst": 18.555404097597577,
+      "Weighted": 5.9049200333670635,
+      "reacqPct": 102.5469644161344,
+      "Turn180Mm": 38.77495592100409,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.396,
+        0.455,
+        18.555,
+        0.267,
+        11.441
+      ]
+    },
+    {
+      "Name": "tl-sat cm34 off200 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 14.33353559717459,
+      "Worst": 20.39266157728048,
+      "Weighted": 6.108054277571398,
+      "reacqPct": 99.65373831367215,
+      "Turn180Mm": 42.5,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.358,
+        0.44,
+        20.393,
+        0.256,
+        10.284
+      ]
+    },
+    {
+      "Name": "tl-sat cm37.7 off200 G4 @260",
+      "Family": "trackline-sat",
+      "rel": 14.882811020301109,
+      "Worst": 21.183322369829725,
+      "Weighted": 6.127102522024026,
+      "reacqPct": 94.27631570002157,
+      "Turn180Mm": 47.125,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.333,
+        0.431,
+        21.183,
+        0.249,
+        9.351
+      ]
+    }
+  ],
+  "phase2Top40": [
+    {
+      "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3623887852854524,
+      "Worst": 1.3573544766339138,
+      "Weighted": 0.8109869565119499,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": 1.4177306779725485,
+      "perScen": [
+        0.437,
+        0.761,
+        1.188,
+        0.399,
+        1.357
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s3 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3623887852854524,
+      "Worst": 1.4528349034625407,
+      "Weighted": 0.8399141687120802,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.437,
+        0.761,
+        1.252,
+        0.405,
+        1.453
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s0 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3623887852854524,
+      "Worst": 1.6096979532860967,
+      "Weighted": 0.8781192810989196,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.437,
+        0.761,
+        1.321,
+        0.405,
+        1.61
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s9 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.368868970925648,
+      "Worst": 1.2418812857859856,
+      "Weighted": 0.7743451427659004,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.437,
+        0.765,
+        1.104,
+        0.385,
+        1.242
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s9 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.377939062404044,
+      "Worst": 1.2409943942723165,
+      "Weighted": 0.7776366159454005,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.77,
+        1.106,
+        0.387,
+        1.241
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s5 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3780910801565691,
+      "Worst": 1.3775093513914527,
+      "Weighted": 0.8209040101750295,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.77,
+        1.2,
+        0.404,
+        1.378
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s3 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3780910801565691,
+      "Worst": 1.485296274381569,
+      "Weighted": 0.8513702446091005,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.77,
+        1.263,
+        0.409,
+        1.485
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s0 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3780910801565691,
+      "Worst": 1.6415860214593156,
+      "Weighted": 0.8917719024041679,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.444,
+        0.77,
+        1.342,
+        0.409,
+        1.642
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s5 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.3866274219456054,
+      "Worst": 1.4006349647925218,
+      "Weighted": 0.8317535181135939,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.775,
+        1.215,
+        0.407,
+        1.401
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s3 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.3866274219456054,
+      "Worst": 1.5119067431540067,
+      "Weighted": 0.8682251383746635,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.775,
+        1.3,
+        0.417,
+        1.512
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s0 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.3866274219456054,
+      "Worst": 1.7104896210443903,
+      "Weighted": 0.917108888995558,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.775,
+        1.39,
+        0.417,
+        1.71
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3948338890436447,
+      "Worst": 1.3534251569815303,
+      "Weighted": 0.8480947406999191,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": 1.4636255935770892,
+      "perScen": [
+        0.465,
+        0.779,
+        1.313,
+        0.404,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s3 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3948338890436447,
+      "Worst": 1.5130817386719606,
+      "Weighted": 0.8841115514373419,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.465,
+        0.779,
+        1.364,
+        0.411,
+        1.513
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s0 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3948338890436447,
+      "Worst": 1.642073693931219,
+      "Weighted": 0.9196576296457388,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.465,
+        0.779,
+        1.44,
+        0.411,
+        1.642
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s9 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3952628356981909,
+      "Worst": 1.2468792216200668,
+      "Weighted": 0.8081560615223412,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.465,
+        0.78,
+        1.209,
+        0.392,
+        1.247
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s9 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3958787836757518,
+      "Worst": 1.247958569420511,
+      "Weighted": 0.8070022653771843,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.78,
+        1.215,
+        0.388,
+        1.248
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s5 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3960433902501823,
+      "Worst": 1.3483440685627028,
+      "Weighted": 0.8437091826490118,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.78,
+        1.306,
+        0.402,
+        1.348
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s3 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3960433902501823,
+      "Worst": 1.4785625982499067,
+      "Weighted": 0.8750820638312948,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.78,
+        1.358,
+        0.407,
+        1.479
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s0 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3960433902501823,
+      "Worst": 1.6122842706670877,
+      "Weighted": 0.9082940670552498,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.78,
+        1.42,
+        0.407,
+        1.612
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @80 s9 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.3968043017875444,
+      "Worst": 1.2516927159396969,
+      "Weighted": 0.7827980513874125,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.455,
+        0.78,
+        1.098,
+        0.389,
+        1.252
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s9 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.406752390009042,
+      "Worst": 1.2518699863319982,
+      "Weighted": 0.8140500397655885,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.471,
+        0.786,
+        1.218,
+        0.394,
+        1.252
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s5 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.4183587443854435,
+      "Worst": 1.3903750197559726,
+      "Weighted": 0.8657781210396943,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.471,
+        0.792,
+        1.341,
+        0.413,
+        1.39
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s3 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.4183587443854435,
+      "Worst": 1.5169800239233364,
+      "Weighted": 0.897227323723723,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.471,
+        0.792,
+        1.394,
+        0.419,
+        1.517
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s0 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.4183587443854435,
+      "Worst": 1.7126011133761712,
+      "Weighted": 0.9480534206131834,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.471,
+        0.792,
+        1.495,
+        0.419,
+        1.713
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.4775194223985446,
+      "Worst": 1.7268166713137116,
+      "Weighted": 0.9048498852194045,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": 1.6269352166005802,
+      "perScen": [
+        0.562,
+        0.679,
+        1.727,
+        0.357,
+        1.233
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.5063831679607378,
+      "Worst": 1.7648395513171369,
+      "Weighted": 0.8757704025562685,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.399,
+        0.67,
+        1.765,
+        0.355,
+        1.231
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx0.90 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.5134928432652148,
+      "Worst": 1.7742052911301822,
+      "Weighted": 0.906304187173479,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.53,
+        0.675,
+        1.774,
+        0.352,
+        1.231
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.5156016480148957,
+      "Worst": 1.7769832684295936,
+      "Weighted": 0.884911595960162,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.416,
+        0.679,
+        1.777,
+        0.357,
+        1.235
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.5174030759662567,
+      "Worst": 1.7793563311591634,
+      "Weighted": 0.8814422425640778,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.406,
+        0.675,
+        1.779,
+        0.355,
+        1.231
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx0.85 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.536509249636392,
+      "Worst": 1.8045253358962239,
+      "Weighted": 0.9164646293323089,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.558,
+        0.67,
+        1.805,
+        0.352,
+        1.225
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx0.85 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.5544672397868236,
+      "Worst": 1.8281818119111362,
+      "Weighted": 0.9460502965392227,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.563,
+        0.672,
+        1.828,
+        0.368,
+        1.359
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.5700366884458008,
+      "Worst": 1.848691806942938,
+      "Weighted": 0.9153780514391928,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.399,
+        0.672,
+        1.849,
+        0.368,
+        1.358
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.5854831795190805,
+      "Worst": 1.8690398271015758,
+      "Weighted": 0.9218392728154899,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.406,
+        0.677,
+        1.869,
+        0.37,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.5868473402709449,
+      "Worst": 1.8708368676298661,
+      "Weighted": 0.9300020898369113,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.416,
+        0.683,
+        1.871,
+        0.376,
+        1.373
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx0.90 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.587134725062318,
+      "Worst": 1.8712154462662955,
+      "Weighted": 0.9465298458837861,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.524,
+        0.677,
+        1.871,
+        0.369,
+        1.349
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s5 yx1.00 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.589122409535893,
+      "Worst": 1.8738338690229879,
+      "Weighted": 0.9653191663756134,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.584,
+        0.683,
+        1.874,
+        0.375,
+        1.368
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s3 yx0.90 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.5977810491159397,
+      "Worst": 1.885240095322885,
+      "Weighted": 0.9725865199086893,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.551,
+        0.677,
+        1.885,
+        0.379,
+        1.453
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s3 yx0.85 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.6053467930750596,
+      "Worst": 1.8952066249291828,
+      "Weighted": 0.9749181950946657,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.554,
+        0.672,
+        1.895,
+        0.375,
+        1.462
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s3 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.6159365541839021,
+      "Worst": 1.909156762309616,
+      "Weighted": 0.9443014557272023,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.399,
+        0.672,
+        1.909,
+        0.374,
+        1.459
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s3 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.6205559652525268,
+      "Worst": 1.9152420194142543,
+      "Weighted": 0.9489656443434732,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": null,
+      "perScen": [
+        0.406,
+        0.677,
+        1.915,
+        0.379,
+        1.459
+      ]
+    }
+  ],
+  "bestVariantPerCurve": [
+    {
+      "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.3623887852854524,
+      "Worst": 1.3573544766339138,
+      "Weighted": 0.8109869565119499,
+      "reacqPct": 1.4466373050046926,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": 1.4177306779725485,
+      "perScen": [
+        0.437,
+        0.761,
+        1.188,
+        0.399,
+        1.357
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.3948338890436447,
+      "Worst": 1.3534251569815303,
+      "Weighted": 0.8480947406999191,
+      "reacqPct": 1.7977392591806565,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": 1.4636255935770892,
+      "perScen": [
+        0.465,
+        0.779,
+        1.313,
+        0.404,
+        1.353
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+      "Family": "early-sat",
+      "rel": 1.4775194223985446,
+      "Worst": 1.7268166713137116,
+      "Weighted": 0.9048498852194045,
+      "reacqPct": 2.6732425964164497,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": 1.6269352166005802,
+      "perScen": [
+        0.562,
+        0.679,
+        1.727,
+        0.357,
+        1.233
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+      "Family": "early-sat",
+      "rel": 1.752064390846539,
+      "Worst": 2.088481111860735,
+      "Weighted": 0.9515550809412349,
+      "reacqPct": 3.316410189145695,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": 1.7274637504018333,
+      "perScen": [
+        0.416,
+        0.678,
+        2.088,
+        0.355,
+        1.24
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.7864182922341763,
+      "Worst": 2.1337363011880197,
+      "Weighted": 0.9609332685242601,
+      "reacqPct": 18.43907412757422,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": 1.778872699456696,
+      "perScen": [
+        0.421,
+        0.585,
+        2.134,
+        0.312,
+        1.44
+      ]
+    },
+    {
+      "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+      "Family": "early-sat",
+      "rel": 1.8328647493995365,
+      "Worst": 2.1949212940912255,
+      "Weighted": 0.946327141467825,
+      "reacqPct": 12.748008461574257,
+      "Turn180Mm": 56.66666666666666,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.0614685161258868,
+      "Legal": true,
+      "regret": 1.756467206525898,
+      "perScen": [
+        0.389,
+        0.574,
+        2.195,
+        0.31,
+        1.32
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.8686408511983403,
+      "Worst": 2.2420499809331726,
+      "Weighted": 0.9458060942096107,
+      "reacqPct": 9.528318071548759,
+      "Turn180Mm": 62.83333333333333,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 0.9572925609623381,
+      "Legal": true,
+      "regret": 1.7614426122946825,
+      "perScen": [
+        0.377,
+        0.572,
+        2.242,
+        0.313,
+        1.267
+      ]
+    },
+    {
+      "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+      "Family": "early-sat",
+      "rel": 1.9177698281267377,
+      "Worst": 2.306768719199986,
+      "Weighted": 0.9961608713966895,
+      "reacqPct": 8.433437818390683,
+      "Turn180Mm": 50,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "Sens": 1.2029976516093384,
+      "Legal": true,
+      "regret": 1.7915071846959036,
+      "perScen": [
+        0.442,
+        0.64,
+        2.307,
+        0.338,
+        1.275
+      ]
+    }
+  ],
+  "robustness": [
+    {
+      "model": "base model",
+      "minima": [
+        0.3774635003458188,
+        0.5724582590539676,
+        1.1882815650000198,
+        0.31011277912054797,
+        1.2326273433626593
+      ],
+      "order": [
+        {
+          "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+          "rel": 1.3296527377594254,
+          "perScen": [
+            0.437,
+            0.761,
+            1.188,
+            0.399,
+            1.357
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+          "rel": 1.3613182369949686,
+          "perScen": [
+            0.465,
+            0.779,
+            1.313,
+            0.404,
+            1.353
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+          "rel": 1.406452114590304,
+          "perScen": [
+            0.562,
+            0.679,
+            1.727,
+            0.357,
+            1.233
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+          "rel": 1.6313034815537035,
+          "perScen": [
+            0.416,
+            0.678,
+            2.088,
+            0.355,
+            1.24
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+          "rel": 1.6630406210360758,
+          "perScen": [
+            0.421,
+            0.585,
+            2.134,
+            0.312,
+            1.44
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+          "rel": 1.705949217439323,
+          "perScen": [
+            0.389,
+            0.574,
+            2.195,
+            0.31,
+            1.32
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+          "rel": 1.7390002272827871,
+          "perScen": [
+            0.377,
+            0.572,
+            2.242,
+            0.313,
+            1.267
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+          "rel": 1.7843870139481264,
+          "perScen": [
+            0.442,
+            0.64,
+            2.307,
+            0.338,
+            1.275
+          ]
+        }
+      ]
+    },
+    {
+      "model": "steadier hand (KPar .06, S0 .8)",
+      "minima": [
+        0.24649725361923727,
+        0.41258147037155335,
+        0.985207664426856,
+        0.20370574127231864,
+        0.7782499441739744
+      ],
+      "order": [
+        {
+          "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+          "rel": 1.266214321754454,
+          "perScen": [
+            0.287,
+            0.522,
+            0.985,
+            0.26,
+            0.93
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+          "rel": 1.3032643730852727,
+          "perScen": [
+            0.301,
+            0.538,
+            1.13,
+            0.269,
+            0.937
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+          "rel": 1.6269352166005802,
+          "perScen": [
+            0.432,
+            0.48,
+            1.594,
+            0.224,
+            0.778
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+          "rel": 1.6348605038466018,
+          "perScen": [
+            0.269,
+            0.419,
+            1.736,
+            0.204,
+            1.117
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+          "rel": 1.6724309844292518,
+          "perScen": [
+            0.253,
+            0.413,
+            1.78,
+            0.204,
+            0.981
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+          "rel": 1.716257022526138,
+          "perScen": [
+            0.246,
+            0.418,
+            1.832,
+            0.207,
+            0.914
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+          "rel": 1.7274637504018333,
+          "perScen": [
+            0.27,
+            0.473,
+            1.845,
+            0.225,
+            0.79
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+          "rel": 1.7823979531545389,
+          "perScen": [
+            0.282,
+            0.455,
+            1.91,
+            0.218,
+            0.897
+          ]
+        }
+      ]
+    },
+    {
+      "model": "shakier hand (KPar .14, S0 2.5)",
+      "minima": [
+        0.5784176255956149,
+        0.8074328993428889,
+        1.4573982309677376,
+        0.4385546367409477,
+        1.6951247903448603
+      ],
+      "order": [
+        {
+          "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+          "rel": 1.360417273132609,
+          "perScen": [
+            0.778,
+            0.998,
+            2.088,
+            0.516,
+            1.706
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+          "rel": 1.4169654864862875,
+          "perScen": [
+            0.693,
+            1.144,
+            1.457,
+            0.569,
+            1.831
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+          "rel": 1.4550181421249173,
+          "perScen": [
+            0.733,
+            1.175,
+            1.58,
+            0.58,
+            1.846
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+          "rel": 1.521263571027572,
+          "perScen": [
+            0.654,
+            0.994,
+            2.369,
+            0.513,
+            1.725
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+          "rel": 1.6541267962491821,
+          "perScen": [
+            0.655,
+            0.831,
+            2.601,
+            0.448,
+            1.816
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+          "rel": 1.6843117483202643,
+          "perScen": [
+            0.601,
+            0.807,
+            2.654,
+            0.439,
+            1.727
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+          "rel": 1.7215182077430466,
+          "perScen": [
+            0.578,
+            0.808,
+            2.719,
+            0.445,
+            1.695
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+          "rel": 1.7511164243122035,
+          "perScen": [
+            0.696,
+            0.925,
+            2.771,
+            0.486,
+            1.729
+          ]
+        }
+      ]
+    },
+    {
+      "model": "slow visual loop (Kp 2, delay 180ms)",
+      "minima": [
+        0.374675769747852,
+        0.5531492613136533,
+        1.3006756834721436,
+        0.3020301425994992,
+        1.3813532445901913
+      ],
+      "order": [
+        {
+          "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+          "rel": 1.4177306779725485,
+          "perScen": [
+            0.435,
+            0.784,
+            1.301,
+            0.394,
+            1.531
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+          "rel": 1.461888833457545,
+          "perScen": [
+            0.577,
+            0.686,
+            2.022,
+            0.347,
+            1.381
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+          "rel": 1.4636255935770892,
+          "perScen": [
+            0.459,
+            0.81,
+            1.435,
+            0.402,
+            1.524
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+          "rel": 1.6567287324383146,
+          "perScen": [
+            0.412,
+            0.68,
+            2.326,
+            0.345,
+            1.385
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+          "rel": 1.6763547853615524,
+          "perScen": [
+            0.415,
+            0.565,
+            2.356,
+            0.306,
+            1.62
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+          "rel": 1.7232692571024897,
+          "perScen": [
+            0.385,
+            0.555,
+            2.43,
+            0.302,
+            1.488
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+          "rel": 1.7614426122946825,
+          "perScen": [
+            0.375,
+            0.553,
+            2.489,
+            0.305,
+            1.435
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+          "rel": 1.7915071846959036,
+          "perScen": [
+            0.442,
+            0.628,
+            2.536,
+            0.327,
+            1.434
+          ]
+        }
+      ]
+    },
+    {
+      "model": "snappy reversals (follow 4 Hz)",
+      "minima": [
+        0.3909372117423347,
+        0.5706205989403995,
+        1.2478355335055864,
+        0.38053802006775195,
+        1.6599196026265715
+      ],
+      "order": [
+        {
+          "Name": "early-sat cm34 G3 @110 s9 yx0.85",
+          "rel": 1.1975502602360106,
+          "perScen": [
+            0.431,
+            0.683,
+            1.328,
+            0.438,
+            1.665
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @110 s9 yx1.00 \u002BMaster",
+          "rel": 1.2749526534965425,
+          "perScen": [
+            0.52,
+            0.677,
+            1.378,
+            0.438,
+            1.66
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @80 s5 yx0.85",
+          "rel": 1.3371471365132308,
+          "perScen": [
+            0.458,
+            0.763,
+            1.248,
+            0.479,
+            1.845
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @80 s5 yx0.90",
+          "rel": 1.3750992690709185,
+          "perScen": [
+            0.476,
+            0.785,
+            1.303,
+            0.487,
+            1.892
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @150 s9 yx1.00",
+          "rel": 1.5941211519269007,
+          "perScen": [
+            0.455,
+            0.641,
+            2.137,
+            0.418,
+            1.699
+          ]
+        },
+        {
+          "Name": "early-sat cm37.7 G3 @200 s9 yx1.00",
+          "rel": 1.6543833189579267,
+          "perScen": [
+            0.391,
+            0.571,
+            2.228,
+            0.382,
+            1.696
+          ]
+        },
+        {
+          "Name": "early-sat cm34 G3 @200 s9 yx0.90",
+          "rel": 1.756467206525898,
+          "perScen": [
+            0.4,
+            0.574,
+            2.381,
+            0.385,
+            1.728
+          ]
+        },
+        {
+          "Name": "early-sat cm30 G3 @200 s9 yx0.90",
+          "rel": 1.778872699456696,
+          "perScen": [
+            0.43,
+            0.587,
+            2.414,
+            0.381,
+            1.777
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Execution error only: reaction time, prediction and netcode are identical for every curve and excluded. Parameterised human model with no cost for longer hand motions (hence the 37.7 cm/360 ceiling and the 70 mm 180 rule); the pick is the most robust across five variants, but the field verdict decides.",
+  "fieldVerdict": "pending"
+}

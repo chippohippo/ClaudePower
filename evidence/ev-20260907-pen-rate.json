@@ -1,0 +1,16 @@
+{
+  "evidenceId": "ev-20260907-pen-rate",
+  "date": "2026-09-07",
+  "claim": "The Wacom One 14 (DTC-141) delivers 360 reports/s, not the 266 the catalogue carried",
+  "method": "Cadence Lock probe: reports counted against HPET elapsed time in 2s windows while the pen moved on the tablet; running-mean estimator (prior 300Hz, weight 8) read alongside",
+  "results": {
+    "windows": 42,
+    "rawHzMin": 360.1,
+    "rawHzMax": 361.2,
+    "rawHzMean": 360.25,
+    "estimatorFinalHz": 360.2,
+    "reportsTrained": 16582
+  },
+  "consequence": "tablet.reportHz 266->360; 1-unit step 2.66->3.60 mm/s; Cadence Lock pins 360",
+  "fieldVerdict": "measured on the user's rig, 2026-09-07 17:27-17:28"
+}

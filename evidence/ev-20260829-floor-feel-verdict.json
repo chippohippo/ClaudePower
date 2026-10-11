@@ -1,0 +1,11 @@
+{
+  "evidenceId": "ev-20260829-floor-feel-verdict",
+  "date": "2026-08-29",
+  "kind": "field verdict (overrules a sim measurement)",
+  "claim": "A 0.90 sub-unity floor recovering by 15 mm/s FEELS like added latency to this player even though it measures free (same 3.8 ms onset, same 102% micro-aim).",
+  "field": "User on Breakpoint Slow Center (floor 0.90@15): 'Breakpoint has been the best feeling but the slow center one was kinda high latency feeling.' Second occurrence of the same finding: the Feather-Deep era complaint 'responsiveness of the initial movement is lacking' was also a sub-unity floor.",
+  "mechanism": "The floor attenuates the GAIN of the first movement of every correction (90% delivered below 15 mm/s). Onset TIME is unchanged, but reduced first-motion gain reads as sluggishness. Dead-time metrics cannot see it - a felt-latency metric would need amplitude at onset, not time to first count.",
+  "decision": "Retired the floor from Breakpoint Slow Center and all seven Masters (2026-08-29). Replacement: floor exactly 1.00, unity pocket widened to 12.3 mm/s by raising the OFFSET - measured latency-free. Flick/track numbers unchanged: Slow Center 40.7mm / 11.8%; every Master keeps its 180 and spread to the decimal. The sim hold number (-2.6%) returns to -17.5%; the player's hands said that number was not worth what it cost.",
+  "supersedes": "ev-20260827-slowcenter-floor (the measurement stands; its APPLICATION was overruled by the field)",
+  "law": "Sub-unity floors are felt as latency by this player regardless of measured dead-time. Unity center is the feel. Widen the unity pocket via offset, never via a floor."
+}

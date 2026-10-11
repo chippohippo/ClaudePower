@@ -1,0 +1,34 @@
+{
+  "evidenceId": "ev-20260914-classic-formula",
+  "date": "2026-09-14",
+  "claim": "RawAccel's classic (legacy) sensitivity is 1 + min(accel^(p-1)*(x-offset)^p/x, cap-1) for x > offset (p = exponentClassic, x in counts/ms). For p = 2 that is a CURVE, 1 + accel*(x-offset)^2/x. AimForge had modelled it as the straight line 1 + accel*(x-offset); the two agree only at offset 0.",
+  "method": "Fetched RawAccelOfficial/rawaccel master common/accel-classic.hpp verbatim: base_fn(x) = accel_raised * pow(x - args.input_offset, args.exponent_classic) / x; accel_raised = pow(args.acceleration, args.exponent_classic - 1) in cap_mode::out; LEGACY operator(): if (x <= args.input_offset) return 1; return sign * minsd(base_fn(x, accel_raised, args), cap) + 1. Independently flagged by a driver-semantics reviewer and confirmed by a second source read.",
+  "results": {
+    "breakpoint_0.246_0.5_5.0": {
+      "sens_at_5cms_driver": 1.9963,
+      "sens_at_5cms_oldLinear": 2.107,
+      "sens_at_1cms_driver": 1.0615,
+      "sens_at_1cms_oldLinear": 1.123,
+      "capReachedMms_driver": 302.6,
+      "capReachedMms_oldLinear": 294.0,
+      "turn180mm_driver": 41.0,
+      "turn180mm_oldLinear": 40.5
+    },
+    "bo6og_0.105_0.5_3.6": {
+      "sens_at_5cms_driver": 1.42525,
+      "sens_at_5cms_oldLinear": 1.4725,
+      "capReachedMms_driver": 451.8,
+      "capReachedMms_oldLinear": 443.2,
+      "turn180mm_driver": 58.4,
+      "turn180mm_oldLinear": 57.9
+    },
+    "breakslow_0.246_0.7_5.0": {
+      "capReachedMms_driver": 309.3,
+      "capReachedMms_oldLinear": 297.5,
+      "turn180mm_driver": 41.5,
+      "turn180mm_oldLinear": 40.7
+    }
+  },
+  "consequence": "Curve.ClassicGain/ClassicCapSpeedCms implement the driver formula; EffectiveLut is now a 48-point log-spaced sample of it (error < 0.05%); Cadence Lock evaluates classic cards NATIVELY (CadenceCore.Classic*, exact to 1e-7) instead of through the 4-point linear table it shipped with on 2026-09-07 - so the pen now runs the same curve on both engines. Measurement pins re-taken. The old Cadence Lock table over-read the gain by up to 6% in the tap band for offset>0 classic cards.",
+  "fieldVerdict": "pending - the user rated Cadence Lock good on the OLD (linear) table; re-test on the driver-exact curve"
+}

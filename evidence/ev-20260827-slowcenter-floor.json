@@ -1,0 +1,15 @@
+{
+  "evidenceId": "ev-20260827-slowcenter-floor",
+  "date": "2026-08-27",
+  "claim": "A 0.90 floor recovering to unity by 15 mm/s calms the hold at zero cost anywhere else; deeper floors pay real costs.",
+  "method": "Floor ladder measured in CoherenceStabilizer/src/breakpoint.cs round 3 (deterministic sim, 0.01mm quantised input, 266Hz, 4 seeds), on the eff-14/cap-5 Breakpoint frame at 57 px/mm, cm/360 37.70.",
+  "results": [
+    { "floor": "none",     "holdPct": -17.5, "micro11Pct": 102.3, "deadMs": 3.8, "note": "the reference" },
+    { "floor": "0.95 @12", "holdPct": -15.5, "micro11Pct": 102.3, "deadMs": 3.8, "note": "too subtle to feel" },
+    { "floor": "0.90 @15", "holdPct": -2.6,  "micro11Pct": 102.3, "deadMs": 3.8, "note": "SHIPPED - 15 points calmer center, zero cost" },
+    { "floor": "0.92 @12", "holdPct": -6.2,  "micro11Pct": 102.3, "deadMs": 3.8, "note": "on record as the in-between" },
+    { "floor": "0.85 @15", "holdPct": 4.8,   "micro11Pct": 88.0,  "deadMs": 6.6, "note": "too far - onset doubles, micro sags" }
+  ],
+  "appliesTo": ["breakslow", "rivmp", "finmp", "apxmp", "owmp", "hfmp", "valmp", "hdmp"],
+  "flickCharacterUnchanged": "Master-family confirmation run (same harness): all seven masters measure hold -2.6 / micro 102.3 / dead 3.8 with per-game 180 and spread as carded."
+}

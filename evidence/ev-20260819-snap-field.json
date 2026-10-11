@@ -1,0 +1,17 @@
+{
+  "evidenceId": "ev-20260819-snap-field",
+  "date": "2026-08-19",
+  "claim": "Angle snapping 9-12 degrees is correct for a pen; the cone is sized by the SLOWEST deliberate turn, and snapping is memoryless (zero lag).",
+  "field": "User field-tested Feather + 90 px/mm + cm 27 + snap 12 (OW2 sens 2.25) and rated it 'by far the best feeling'. The BO6-era baseline runs snap 9 as originally trained.",
+  "method": "CoherenceStabilizer/src/snap.cs: axis-aligned turn with 6-14Hz tremor overlay, worst per-report delta angle vs turn speed.",
+  "results": [
+    { "turnMmPerS": 300, "worstDeltaDeg": 0.8 },
+    { "turnMmPerS": 176, "worstDeltaDeg": 1.3 },
+    { "turnMmPerS": 90,  "worstDeltaDeg": 2.5 },
+    { "turnMmPerS": 45,  "worstDeltaDeg": 5.1 },
+    { "turnMmPerS": 25,  "worstDeltaDeg": 9.1 },
+    { "turnMmPerS": 15,  "worstDeltaDeg": 14.9 }
+  ],
+  "readings": "On an axis turn, snapping removes 100% of perpendicular wander at zero added lag (vs Track Rails: 40% at up to 1.0mm curve lag). 12 deg covers turns down to ~15mm/s at 74%; snap 2-3 only cleans fast turns.",
+  "caution": "Deliberate shallow diagonals inside the cone are flattened (measured: an intended 11-degree recoil stroke delivered at 0.4 degrees at snap 12) - hence the projectile-role warning above 6 degrees."
+}

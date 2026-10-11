@@ -1,0 +1,218 @@
+{
+  "evidenceId": "ev-20260924-nib-twin",
+  "date": "2026-09-24",
+  "card": "bo6og",
+  "basis": "MODEL skid (tapdiag): 0.30 mm toward (-0.8, 0.6), saturating at 30% pressure, 12 ms press, 18 ms release, 15% flexion residual, click at 2%; replace with a --nib-calibrate log before a field claim",
+  "claim": "Nib Twin removes the pressure-locked nib swing from shots fired while moving; the moving-tap fade removes the pin\u0027s over-priced hand-back; rest one-taps keep the pin",
+  "method": "NibLab.Score: hand \u002B modelled swing on the 0.01 mm lattice at 360 Hz -\u003E SHIPPING CoherenceCore pin -\u003E SHIPPING CadenceCore (curve \u002B twin); error vs the hand\u0027s own aim through the same curve, degrees at the card\u0027s cm/360; 6 seeds; rest one-tap, 30 mm 1.5 Hz strafing spray held 400 ms, 40 mm/150 ms flick-shot \u002B follow-up, taps while moving at 30/60/100/141 mm/s with no swing",
+  "results": [
+    {
+      "config": "legacy pin (30/0.9)",
+      "RestAtClick": 0.10639704391360283,
+      "RestPeak": 0.11782153323292732,
+      "RestResidual": 0.03199651371687651,
+      "RestSkidPeak": 0,
+      "RestSkidEnd": 0,
+      "SprayFirst150": 0.42948986545642037,
+      "SprayAfterRelease": 0.6204427977403005,
+      "FlickShotAtClick": 0.05086748736600081,
+      "FlickShotFollow": 0.036715896179278694,
+      "movePermanent": [
+        0.21476676873862743,
+        0.5475354989369711,
+        0.7481252402067184,
+        0.48485661918918294
+      ],
+      "movePinCostNoSwing": [
+        0.1634541923801104,
+        0.4748820811510086,
+        0.6958356151978174,
+        0.8765268822511038
+      ],
+      "moveSpeeds": [
+        30,
+        60,
+        100,
+        141
+      ]
+    },
+    {
+      "config": "fade pin (the moving-tap fix)",
+      "RestAtClick": 0.10639704391360283,
+      "RestPeak": 0.11782153323292732,
+      "RestResidual": 0.03199651371687651,
+      "RestSkidPeak": 0,
+      "RestSkidEnd": 0,
+      "SprayFirst150": 0.5391288385611533,
+      "SprayAfterRelease": 0.23987833751986423,
+      "FlickShotAtClick": 0.05086748736600081,
+      "FlickShotFollow": 0.05799048083523909,
+      "movePermanent": [
+        0.09513605292886496,
+        0.11996323211739461,
+        0.11542952712625265,
+        0.11457534972578287
+      ],
+      "movePinCostNoSwing": [
+        9.289960265353632E-05,
+        0,
+        0,
+        0
+      ],
+      "moveSpeeds": [
+        30,
+        60,
+        100,
+        141
+      ]
+    },
+    {
+      "config": "fade pin \u002B NIB TWIN",
+      "RestAtClick": 0.10639704391360283,
+      "RestPeak": 0.11782153323292732,
+      "RestResidual": 0.03199651371687651,
+      "RestSkidPeak": 0,
+      "RestSkidEnd": 0,
+      "SprayFirst150": 0.12369132629541081,
+      "SprayAfterRelease": 0.12529910852511725,
+      "FlickShotAtClick": 0.021508528230090935,
+      "FlickShotFollow": 0.034836212793986,
+      "movePermanent": [
+        0.05000897807379564,
+        0.059613480232656,
+        0.07596522383391857,
+        0.09413684407869975
+      ],
+      "movePinCostNoSwing": [
+        0.06547431585689385,
+        0.0843872930854559,
+        0.08647138625383377,
+        0.08834659991165002
+      ],
+      "moveSpeeds": [
+        30,
+        60,
+        100,
+        141
+      ]
+    },
+    {
+      "config": "no pin, no twin",
+      "RestAtClick": 0.04974739315609137,
+      "RestPeak": 0.386037935813268,
+      "RestResidual": 0.07217281684279442,
+      "RestSkidPeak": 0.3382709175348282,
+      "RestSkidEnd": 0.03239862682918707,
+      "SprayFirst150": 0.5456102238738059,
+      "SprayAfterRelease": 0.1654186531280478,
+      "FlickShotAtClick": 0.05086748736600081,
+      "FlickShotFollow": 0.23100617776314417,
+      "movePermanent": [
+        0.09455020958557725,
+        0.11996323211739461,
+        0.11542952712625265,
+        0.11457534972578287
+      ],
+      "movePinCostNoSwing": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "moveSpeeds": [
+        30,
+        60,
+        100,
+        141
+      ]
+    }
+  ],
+  "robustness": [
+    {
+      "n": "calibration 0.6x",
+      "SprayFirst150": 0.27434184874787376,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "calibration 1.4x",
+      "SprayFirst150": 0.21351467757658274,
+      "RestSkidPeak": 0.030428340658545494,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "calibration \u002B25 deg",
+      "SprayFirst150": 0.27040300407895335,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "calibration -25 deg",
+      "SprayFirst150": 0.261144035777514,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "tap force 0.5x",
+      "SprayFirst150": 0.14084967540830007,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "tap force 1.5x",
+      "SprayFirst150": 0.15348402305540662,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "tap force 2x",
+      "SprayFirst150": 0.1484330002833618,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "fade pin, force 2x (no twin)",
+      "SprayFirst150": 0.41293365853252234,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "swing lag 2, fitted cal",
+      "SprayFirst150": 0.1359156290283167,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "swing lag 2, no twin",
+      "SprayFirst150": 0.44308216239332304,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "fitted cal (lag 0)",
+      "SprayFirst150": 0.13458955631717856,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    },
+    {
+      "n": "fade pin, approach 0.35 mm (no twin)",
+      "SprayFirst150": 0.4469040765967451,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.3264632026354472
+    },
+    {
+      "n": "legacy pin, approach 0.35 mm",
+      "SprayFirst150": 0.4401833691323797,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.3264632026354472
+    },
+    {
+      "n": "legacy pin, force 2x",
+      "SprayFirst150": 0.43332622829180806,
+      "RestSkidPeak": 0,
+      "RestPeak": 0.11676639318466187
+    }
+  ],
+  "revised": "2026-09-24/25 reviews 2-4: rest taps also scored on the swing alone against a flexion-only reference (RestSkidPeak/End); moving taps averaged over both travel directions; the fade pin classifies a tap by the hand\u0027s speed BEFORE the press (band 12-30 mm/s); the pin hands back only the offset frozen when its hold ends and breaks at the earlier of a press-position test and a rewind-plus-mechanics budget; the fit fits the knee and judges R2 on rows with a real predicted swing; the twin removes the swing across stalls, merged frames and lifts; lag-2 swing physics with the fitted calibration included",
+  "fieldVerdict": "pending"
+}

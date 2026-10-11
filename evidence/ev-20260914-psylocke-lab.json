@@ -1,0 +1,4381 @@
+{
+  "evidenceId": "ev-20260914-psylocke-lab",
+  "date": "2026-09-14",
+  "claim": "Candidate builds ranked by execution stability on Psylocke\u0027s real engagements (hitscan crossbow, dive range), using the shipping curve math at the pen\u0027s 360 Hz clock",
+  "method": "PsyLab: 4 scenarios (7m backline AD strafe 6 m/s; 4m point-blank duel 9 m/s relative; 8m flyer boost 12 m/s with vertical bob; 12m far poke), trained-inverse feedforward \u002B 120ms visual feedback, signal-dependent motor noise 2-12 Hz \u002B tremor, RawAccel exact angle snap, integer counts with remainder; error vs intended path in head radii (0.15 m); ranked by worst scenario, stress-tested under 4 alternative human models",
+  "scenarios": [
+    {
+      "Name": "S1 backline strafe 7m",
+      "D": 7,
+      "Lat": 6,
+      "Rev": 0.45,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.25
+    },
+    {
+      "Name": "S2 point-blank duel 4m",
+      "D": 4,
+      "Lat": 9,
+      "Rev": 0.35,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.3
+    },
+    {
+      "Name": "S3 flyer boost 8m",
+      "D": 8,
+      "Lat": 12,
+      "Rev": 1.2,
+      "VAmp": 1.5,
+      "VHz": 0.6,
+      "Dur": 2.4,
+      "W": 0.25
+    },
+    {
+      "Name": "S4 far poke 12m",
+      "D": 12,
+      "Lat": 6,
+      "Rev": 0.6,
+      "VAmp": 0,
+      "VHz": 0,
+      "Dur": 2.4,
+      "W": 0.2
+    }
+  ],
+  "humanModel": {
+    "KPar": 0.1,
+    "KPerp": 0.05,
+    "S0": 1.5,
+    "Kp": 3,
+    "VisDelay": 0.12,
+    "FollowHz": 2.5,
+    "Tremor": 0.03,
+    "Warm": 0.4,
+    "Seeds": [
+      3,
+      7,
+      11
+    ]
+  },
+  "phase1": [
+    {
+      "Name": "flat cm28",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.3537666715746639,
+      "Weighted": 0.2564476484003956,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.24226748730956038,
+          "HeadRadii": 0.19735391403605398,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4826933559151594,
+          "HeadRadii": 0.22476095691224232,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.42459487915039,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38000554502964407,
+          "HeadRadii": 0.3537666715746639,
+          "OnHeadPct": 100,
+          "PeakHandMms": 90.21660447120667,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.18347736682974725,
+          "HeadRadii": 0.25619607462021693,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.3571601626078216,
+      "Weighted": 0.24272517314030276,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2271543176030036,
+          "HeadRadii": 0.18504255014565715,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.40087890625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4486611906355509,
+          "HeadRadii": 0.2089142460754252,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.96753334999084,
+          "MeanGain": 1.0000075486821973
+        },
+        {
+          "ErrDeg": 0.3836507312872086,
+          "HeadRadii": 0.3571601626078216,
+          "OnHeadPct": 100,
+          "PeakHandMms": 122.40029096603394,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.15934637968692275,
+          "HeadRadii": 0.22250110564652756,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3575334759608446,
+      "Weighted": 0.2618894256487426,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25381147842689544,
+          "HeadRadii": 0.2067577835189304,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.48381927062205987,
+          "HeadRadii": 0.2252852269562017,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38405173329101777,
+          "HeadRadii": 0.3575334759608446,
+          "OnHeadPct": 100,
+          "PeakHandMms": 83.73699367046356,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3575334759608446,
+      "Weighted": 0.2618894256487426,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25381147842689544,
+          "HeadRadii": 0.2067577835189304,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.48381927062205987,
+          "HeadRadii": 0.2252852269562017,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38405173329101777,
+          "HeadRadii": 0.3575334759608446,
+          "OnHeadPct": 100,
+          "PeakHandMms": 83.73699367046356,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.35903167268133584,
+      "Weighted": 0.2516894709025946,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23442050716771703,
+          "HeadRadii": 0.19096167270993178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.471945951929055,
+          "HeadRadii": 0.21975654412172554,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2469081878662,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3856610512598297,
+          "HeadRadii": 0.35903167268133584,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.35903167268133584,
+      "Weighted": 0.2516894709025946,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23442050716771703,
+          "HeadRadii": 0.19096167270993178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.471945951929055,
+          "HeadRadii": 0.21975654412172554,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2469081878662,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3856610512598297,
+          "HeadRadii": 0.35903167268133584,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm32",
+      "Family": "flat",
+      "Cm": 32,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.35903167268133584,
+      "Weighted": 0.2516894709025946,
+      "Turn180Mm": 160,
+      "SpreadPct": 7.629393884498267E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23442050716771703,
+          "HeadRadii": 0.19096167270993178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.471945951929055,
+          "HeadRadii": 0.21975654412172554,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2469081878662,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3856610512598297,
+          "HeadRadii": 0.35903167268133584,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm24",
+      "Family": "flat",
+      "Cm": 24,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.503747064511673,
+      "Worst": 0.3667361229757442,
+      "Weighted": 0.2678941928231094,
+      "Turn180Mm": 120,
+      "SpreadPct": 7.62939388607725E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2592856831450861,
+          "HeadRadii": 0.21121713437680725,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.79901123046875,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.486595642983549,
+          "HeadRadii": 0.22657801481223064,
+          "OnHeadPct": 100,
+          "PeakHandMms": 100.799560546875,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3939369406200362,
+          "HeadRadii": 0.3667361229757442,
+          "OnHeadPct": 100,
+          "PeakHandMms": 77.29707956314087,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19849258793354452,
+          "HeadRadii": 0.2771623702065116,
+          "OnHeadPct": 100,
+          "PeakHandMms": 28.8006591796875,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm37.7 off150",
+      "Family": "trackline",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.37136856178511896,
+      "Weighted": 0.24887827204485644,
+      "Turn180Mm": 55.7490439429579,
+      "SpreadPct": 60.2994229216158,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23168313952548428,
+          "HeadRadii": 0.18873178117826292,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.49284648895264,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4551819992516895,
+          "HeadRadii": 0.2119505903019294,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.84198451042175,
+          "MeanGain": 1.000004580362975
+        },
+        {
+          "ErrDeg": 0.39891296740836363,
+          "HeadRadii": 0.37136856178511896,
+          "OnHeadPct": 99.72183588317107,
+          "PeakHandMms": 122.40158915519714,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.16209567504922748,
+          "HeadRadii": 0.2263400460671606,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm37.7 off250",
+      "Family": "trackline",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.37136856178511896,
+      "Weighted": 0.24891666718986297,
+      "Turn180Mm": 69.04020442316971,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23168313952548428,
+          "HeadRadii": 0.18873178117826292,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.49284648895264,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.455456855431468,
+          "HeadRadii": 0.21207857411861797,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.84198451042175,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.39891296740836363,
+          "HeadRadii": 0.37136856178511896,
+          "OnHeadPct": 99.72183588317107,
+          "PeakHandMms": 122.40158915519714,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.16209567504922748,
+          "HeadRadii": 0.2263400460671606,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm16",
+      "Family": "flat",
+      "Cm": 16,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 2.2556205967675096,
+      "Worst": 0.3871754699310426,
+      "Weighted": 0.3126239073755671,
+      "Turn180Mm": 80,
+      "SpreadPct": 7.629393884498267E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3236779200771484,
+          "HeadRadii": 0.26367179980965405,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.398681640625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5532033441484291,
+          "HeadRadii": 0.2575931727133775,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.40087890625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4158922739057466,
+          "HeadRadii": 0.3871754699310426,
+          "OnHeadPct": 99.9072786277237,
+          "PeakHandMms": 54.8330157995224,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.26008830199939115,
+          "HeadRadii": 0.3631706906318986,
+          "OnHeadPct": 99.95363931386184,
+          "PeakHandMms": 21.59912109375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G2.5 @40",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 1.0794,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.40141325170300296,
+      "Weighted": 0.29904722522342453,
+      "Turn180Mm": 157.89999999999998,
+      "SpreadPct": 0.046887875440129845,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.27239860721702763,
+          "HeadRadii": 0.22189907489963337,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 2.0550214543012992
+        },
+        {
+          "ErrDeg": 0.501257855748149,
+          "HeadRadii": 0.23340531610204088,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2468330860138,
+          "MeanGain": 2.322619472713112
+        },
+        {
+          "ErrDeg": 0.4007436576386665,
+          "HeadRadii": 0.3730728453092132,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 2.4390940760708215
+        },
+        {
+          "ErrDeg": 0.287476092450722,
+          "HeadRadii": 0.40141325170300296,
+          "OnHeadPct": 100,
+          "PeakHandMms": 43.20098876953125,
+          "MeanGain": 1.797858271058969
+        }
+      ]
+    },
+    {
+      "Name": "flat cm20",
+      "Family": "flat",
+      "Cm": 20,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.8044964774140075,
+      "Worst": 0.4213308800077635,
+      "Weighted": 0.29776853019073957,
+      "Turn180Mm": 100,
+      "SpreadPct": 7.629393886340414E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.283764327857893,
+          "HeadRadii": 0.23115772317813324,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5200832738903887,
+          "HeadRadii": 0.24217116908939088,
+          "OnHeadPct": 100,
+          "PeakHandMms": 82.87946462631226,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.45258099069227414,
+          "HeadRadii": 0.4213308800077635,
+          "OnHeadPct": 97.77468706536858,
+          "PeakHandMms": 69.24618244171143,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.22199178174958026,
+          "HeadRadii": 0.3099751433372406,
+          "OnHeadPct": 100,
+          "PeakHandMms": 25.45584261417389,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G2.5 @40",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 1.0794,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.43297109033812703,
+      "Weighted": 0.3583054575383796,
+      "Turn180Mm": 110,
+      "SpreadPct": 0.04688787544014682,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.43163178313559253,
+          "HeadRadii": 0.35161227274101875,
+          "OnHeadPct": 99.95363931386184,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1.8099826757958848
+        },
+        {
+          "ErrDeg": 0.595516730150209,
+          "HeadRadii": 0.27729594469358415,
+          "OnHeadPct": 100,
+          "PeakHandMms": 93.66726636886597,
+          "MeanGain": 2.2376093519641875
+        },
+        {
+          "ErrDeg": 0.43232931085018755,
+          "HeadRadii": 0.40247755150969705,
+          "OnHeadPct": 99.9072786277237,
+          "PeakHandMms": 72.45056927204132,
+          "MeanGain": 2.3870367297677144
+        },
+        {
+          "ErrDeg": 0.31007655244681637,
+          "HeadRadii": 0.43297109033812703,
+          "OnHeadPct": 99.81455725544738,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1.5414475475384428
+        }
+      ]
+    },
+    {
+      "Name": "ref rivb6",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.105,
+      "Cap": 3.6,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 451.7929272327651,
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.44514512581367266,
+      "Weighted": 0.29890743260121944,
+      "Turn180Mm": 58.41467030255892,
+      "SpreadPct": 30.738137502052886,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.27229996429045045,
+          "HeadRadii": 0.22181871922389593,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1.1055874960448697
+        },
+        {
+          "ErrDeg": 0.5881325800020353,
+          "HeadRadii": 0.2738575947910035,
+          "OnHeadPct": 100,
+          "PeakHandMms": 111.6599428653717,
+          "MeanGain": 1.269148469496378
+        },
+        {
+          "ErrDeg": 0.4781615390708527,
+          "HeadRadii": 0.44514512581367266,
+          "OnHeadPct": 98.19193324061196,
+          "PeakHandMms": 90.21660447120667,
+          "MeanGain": 1.26847580562388
+        },
+        {
+          "ErrDeg": 0.17907290431762304,
+          "HeadRadii": 0.2500459645226309,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 1.0567234560563028
+        }
+      ]
+    },
+    {
+      "Name": "ref rivmp",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "NaN",
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": true,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.44583360728273136,
+      "Weighted": 0.2994764449517527,
+      "Turn180Mm": 58.16584102773723,
+      "SpreadPct": 34.2156275481927,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2684755412995079,
+          "HeadRadii": 0.2187032997568686,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.601318359375,
+          "MeanGain": 1.1173900032322372
+        },
+        {
+          "ErrDeg": 0.5940422601239073,
+          "HeadRadii": 0.2766093736231751,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 1.2847239984824197
+        },
+        {
+          "ErrDeg": 0.4789010852093511,
+          "HeadRadii": 0.44583360728273136,
+          "OnHeadPct": 98.33101529902643,
+          "PeakHandMms": 90.21660447120667,
+          "MeanGain": 1.285629254735511
+        },
+        {
+          "ErrDeg": 0.1803269476500373,
+          "HeadRadii": 0.2517970305245008,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.59747314453125,
+          "MeanGain": 1.0656960133800262
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G2.5 @80",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 0.415,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99348783732808,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.4677765376146701,
+      "Weighted": 0.32915482254830103,
+      "Turn180Mm": 157.89999999999998,
+      "SpreadPct": 0.49402286690476543,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3360522438014733,
+          "HeadRadii": 0.2737520678954178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 75.6024169921875,
+          "MeanGain": 1.651919368580745
+        },
+        {
+          "ErrDeg": 0.590698031668238,
+          "HeadRadii": 0.27505216969936247,
+          "OnHeadPct": 100,
+          "PeakHandMms": 129.8001515865326,
+          "MeanGain": 2.152700983063142
+        },
+        {
+          "ErrDeg": 0.5024715226483002,
+          "HeadRadii": 0.4677765376146701,
+          "OnHeadPct": 97.54288363467778,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 2.2458253646376574
+        },
+        {
+          "ErrDeg": 0.21934912144888097,
+          "HeadRadii": 0.3062851013048515,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1.4512437318121496
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G3.5 @40",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 1.799,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.4855663026239558,
+      "Weighted": 0.3813461687130252,
+      "Turn180Mm": 112.78571428571428,
+      "SpreadPct": 0.06695695586129391,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.469895081357432,
+          "HeadRadii": 0.38278200068045076,
+          "OnHeadPct": 99.81455725544738,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 2.4525792766654306
+        },
+        {
+          "ErrDeg": 0.6259164364431723,
+          "HeadRadii": 0.29145124016746365,
+          "OnHeadPct": 100,
+          "PeakHandMms": 93.87740135192871,
+          "MeanGain": 3.100814653022329
+        },
+        {
+          "ErrDeg": 0.4344030952443547,
+          "HeadRadii": 0.40440814387152896,
+          "OnHeadPct": 99.9072786277237,
+          "PeakHandMms": 74.13076937198639,
+          "MeanGain": 3.334363098511801
+        },
+        {
+          "ErrDeg": 0.3477431368094401,
+          "HeadRadii": 0.4855663026239558,
+          "OnHeadPct": 98.5628187297172,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 2.0416089941470608
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G2.5 @150",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 0.1979,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.00608894942982,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.49900795506091516,
+      "Weighted": 0.333067819954487,
+      "Turn180Mm": 75.4,
+      "SpreadPct": 1.7869574898707936,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2995289345194098,
+          "HeadRadii": 0.24399975519175543,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1.1763261580700641
+        },
+        {
+          "ErrDeg": 0.6587273433412565,
+          "HeadRadii": 0.3067292852062027,
+          "OnHeadPct": 100,
+          "PeakHandMms": 93.67001295089722,
+          "MeanGain": 1.4265134478606278
+        },
+        {
+          "ErrDeg": 0.5360193742757079,
+          "HeadRadii": 0.49900795506091516,
+          "OnHeadPct": 97.2183588317107,
+          "PeakHandMms": 82.1706748008728,
+          "MeanGain": 1.4248783279468735
+        },
+        {
+          "ErrDeg": 0.19800786505828194,
+          "HeadRadii": 0.27648553414729277,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.181814074516296,
+          "MeanGain": 1.0977469504463373
+        }
+      ]
+    },
+    {
+      "Name": "ref breakpoint",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.246,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 302.55554747384343,
+      "Yx": 0.789,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5047954234325145,
+      "Weighted": 0.3402216516475639,
+      "Turn180Mm": 41.03372764615793,
+      "SpreadPct": 13.344673607259555,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3088106037922638,
+          "HeadRadii": 0.25156071097714877,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.00054931640625,
+          "MeanGain": 1.2080010414296982
+        },
+        {
+          "ErrDeg": 0.6812700928424061,
+          "HeadRadii": 0.31722607346156434,
+          "OnHeadPct": 100,
+          "PeakHandMms": 90.07200121879578,
+          "MeanGain": 1.4946183010829628
+        },
+        {
+          "ErrDeg": 0.5422360991670104,
+          "HeadRadii": 0.5047954234325145,
+          "OnHeadPct": 96.75475197032915,
+          "PeakHandMms": 77.29707956314087,
+          "MeanGain": 1.5024485732527626
+        },
+        {
+          "ErrDeg": 0.20039872628202823,
+          "HeadRadii": 0.2798239800333941,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.181814074516296,
+          "MeanGain": 1.116611705730908
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G2.5 @150",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 0.1979,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.00608894942982,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.5118346319649844,
+      "Weighted": 0.334312312832201,
+      "Turn180Mm": 110,
+      "SpreadPct": 1.786957489870783,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2903092296409309,
+          "HeadRadii": 0.2364892763229993,
+          "OnHeadPct": 100,
+          "PeakHandMms": 71.9989013671875,
+          "MeanGain": 1.276013351664164
+        },
+        {
+          "ErrDeg": 0.6671034683619096,
+          "HeadRadii": 0.3106295375129476,
+          "OnHeadPct": 100,
+          "PeakHandMms": 122.61018991470337,
+          "MeanGain": 1.597006192556611
+        },
+        {
+          "ErrDeg": 0.549797405784878,
+          "HeadRadii": 0.5118346319649844,
+          "OnHeadPct": 96.29114510894762,
+          "PeakHandMms": 103.15104246139526,
+          "MeanGain": 1.5997560893185956
+        },
+        {
+          "ErrDeg": 0.1935152779776632,
+          "HeadRadii": 0.270212372531604,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1.1729152713363995
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G2.5 @150",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 0.1979,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.00608894942982,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.5152905473161663,
+      "Weighted": 0.33574780563700074,
+      "Turn180Mm": 157.89999999999998,
+      "SpreadPct": 1.786957489870784,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.28644574348636115,
+          "HeadRadii": 0.23334203554836663,
+          "OnHeadPct": 100,
+          "PeakHandMms": 86.47423088550568,
+          "MeanGain": 1.3996620402164064
+        },
+        {
+          "ErrDeg": 0.6846770312393193,
+          "HeadRadii": 0.3188124775933956,
+          "OnHeadPct": 100,
+          "PeakHandMms": 151.24221324920654,
+          "MeanGain": 1.7997605518718682
+        },
+        {
+          "ErrDeg": 0.5535096463720331,
+          "HeadRadii": 0.5152905473161663,
+          "OnHeadPct": 96.80111265646731,
+          "PeakHandMms": 128.79554629325867,
+          "MeanGain": 1.806970458450423
+        },
+        {
+          "ErrDeg": 0.18958872387911704,
+          "HeadRadii": 0.26472958321424406,
+          "OnHeadPct": 100,
+          "PeakHandMms": 61.30517542362213,
+          "MeanGain": 1.2695809708342485
+        }
+      ]
+    },
+    {
+      "Name": "ref breakwide",
+      "Family": "reference",
+      "Cm": 78.95,
+      "Accel": 0.246,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 302.55554747384343,
+      "Yx": 0.789,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.5189573815339424,
+      "Weighted": 0.3430857380190533,
+      "Turn180Mm": 78.94999999999999,
+      "SpreadPct": 13.344673607259555,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2976260022128574,
+          "HeadRadii": 0.24244960439350202,
+          "OnHeadPct": 100,
+          "PeakHandMms": 82.87946462631226,
+          "MeanGain": 1.464273799369816
+        },
+        {
+          "ErrDeg": 0.7089939581264068,
+          "HeadRadii": 0.3301353924198169,
+          "OnHeadPct": 100,
+          "PeakHandMms": 140.5842089653015,
+          "MeanGain": 1.9170972591465893
+        },
+        {
+          "ErrDeg": 0.5574484496777744,
+          "HeadRadii": 0.5189573815339424,
+          "OnHeadPct": 96.47658785350023,
+          "PeakHandMms": 121.01941466331482,
+          "MeanGain": 1.9399800075001323
+        },
+        {
+          "ErrDeg": 0.19226521830392485,
+          "HeadRadii": 0.2684668690562354,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1.3157422410702788
+        }
+      ]
+    },
+    {
+      "Name": "ref rivllc",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.246,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 302.55554747384343,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5247638514758878,
+      "Weighted": 0.34894121077752976,
+      "Turn180Mm": 41.03372764615793,
+      "SpreadPct": 13.344673607259555,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3172867005126591,
+          "HeadRadii": 0.25846543798816835,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.00054931640625,
+          "MeanGain": 1.2080404398917504
+        },
+        {
+          "ErrDeg": 0.6846522601033067,
+          "HeadRadii": 0.318800943180987,
+          "OnHeadPct": 100,
+          "PeakHandMms": 90.07200121879578,
+          "MeanGain": 1.4946115597567988
+        },
+        {
+          "ErrDeg": 0.5636855854858646,
+          "HeadRadii": 0.5247638514758878,
+          "OnHeadPct": 95.82753824756605,
+          "PeakHandMms": 77.29580283164978,
+          "MeanGain": 1.4936180672288053
+        },
+        {
+          "ErrDeg": 0.20587308674569807,
+          "HeadRadii": 0.2874680272860983,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.002197265625,
+          "MeanGain": 1.1166261873982135
+        }
+      ]
+    },
+    {
+      "Name": "ref rivllb",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 6,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 294.8756291519165,
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5404180781497231,
+      "Weighted": 0.36282619146345685,
+      "Turn180Mm": 36.85284161501636,
+      "SpreadPct": 12.808793612171904,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3302241792880098,
+          "HeadRadii": 0.26900445873101925,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1.249918742908256
+        },
+        {
+          "ErrDeg": 0.7202103283815883,
+          "HeadRadii": 0.3353581742972614,
+          "OnHeadPct": 100,
+          "PeakHandMms": 82.87946462631226,
+          "MeanGain": 1.5828431916647592
+        },
+        {
+          "ErrDeg": 0.5805008861266227,
+          "HeadRadii": 0.5404180781497231,
+          "OnHeadPct": 96.01298099211868,
+          "PeakHandMms": 74.12596821784973,
+          "MeanGain": 1.5866847625665628
+        },
+        {
+          "ErrDeg": 0.21435778989806242,
+          "HeadRadii": 0.29931552477046436,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1.142005162790918
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G2.5 @40",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 1.0794,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5487679887765218,
+      "Weighted": 0.4278938498453869,
+      "Turn180Mm": 75.4,
+      "SpreadPct": 0.04688787544014655,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.4846435366883945,
+          "HeadRadii": 0.3947962639968991,
+          "OnHeadPct": 99.1655076495132,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 1.550518903775207
+        },
+        {
+          "ErrDeg": 0.7116225774539345,
+          "HeadRadii": 0.3313593806686151,
+          "OnHeadPct": 100,
+          "PeakHandMms": 64.89733457565308,
+          "MeanGain": 2.094726381672193
+        },
+        {
+          "ErrDeg": 0.5894701096110226,
+          "HeadRadii": 0.5487679887765218,
+          "OnHeadPct": 94.90032452480297,
+          "PeakHandMms": 53.15485954284668,
+          "MeanGain": 2.1671080205211246
+        },
+        {
+          "ErrDeg": 0.331564052108312,
+          "HeadRadii": 0.462974862257236,
+          "OnHeadPct": 99.53639313861845,
+          "PeakHandMms": 29.686705470085144,
+          "MeanGain": 1.3307144363928272
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G3.5 @150",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 0.3298,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.01957504453648,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.5505445330929185,
+      "Weighted": 0.36447756191660813,
+      "Turn180Mm": 78.57142857142856,
+      "SpreadPct": 2.1178404164783546,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3229122511342278,
+          "HeadRadii": 0.2630480769799037,
+          "OnHeadPct": 100,
+          "PeakHandMms": 64.80010986328125,
+          "MeanGain": 1.3954543493221603
+        },
+        {
+          "ErrDeg": 0.7294656157330693,
+          "HeadRadii": 0.3396677990644652,
+          "OnHeadPct": 100,
+          "PeakHandMms": 104.46240663528442,
+          "MeanGain": 1.8272302570669465
+        },
+        {
+          "ErrDeg": 0.5913784202164755,
+          "HeadRadii": 0.5505445330929185,
+          "OnHeadPct": 95.96662030598053,
+          "PeakHandMms": 88.54878008365631,
+          "MeanGain": 1.8328513080578086
+        },
+        {
+          "ErrDeg": 0.21190839657173635,
+          "HeadRadii": 0.29589534839531506,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.8017578125,
+          "MeanGain": 1.253307645268162
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G3.5 @150",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 0.3298,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.01957504453648,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.5541768943124243,
+      "Weighted": 0.3648822288484424,
+      "Turn180Mm": 112.78571428571428,
+      "SpreadPct": 2.1178404164783537,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3176696638086914,
+          "HeadRadii": 0.25877740434503876,
+          "OnHeadPct": 100,
+          "PeakHandMms": 75.6853723526001,
+          "MeanGain": 1.5635529636077135
+        },
+        {
+          "ErrDeg": 0.7390962867032697,
+          "HeadRadii": 0.34415221716644046,
+          "OnHeadPct": 100,
+          "PeakHandMms": 129.65022683143616,
+          "MeanGain": 2.0960092130099626
+        },
+        {
+          "ErrDeg": 0.5952801936617207,
+          "HeadRadii": 0.5541768943124243,
+          "OnHeadPct": 95.87389893370421,
+          "PeakHandMms": 109.49099063873291,
+          "MeanGain": 2.107835199654186
+        },
+        {
+          "ErrDeg": 0.2091115032113722,
+          "HeadRadii": 0.2919899451707226,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1.3873056140696178
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3.5 @150",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 0.3298,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 150.01957504453648,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5546993369671054,
+      "Weighted": 0.36961104323310384,
+      "Turn180Mm": 53.85714285714285,
+      "SpreadPct": 2.1178404164783617,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3355294808992449,
+          "HeadRadii": 0.2733262191527187,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.40252685546875,
+          "MeanGain": 1.2576698539135498
+        },
+        {
+          "ErrDeg": 0.7262998384092888,
+          "HeadRadii": 0.33819368898620455,
+          "OnHeadPct": 100,
+          "PeakHandMms": 82.8793466091156,
+          "MeanGain": 1.5990258008702114
+        },
+        {
+          "ErrDeg": 0.5958413858872492,
+          "HeadRadii": 0.5546993369671054,
+          "OnHeadPct": 95.22484932777006,
+          "PeakHandMms": 72.45056927204132,
+          "MeanGain": 1.598796694729395
+        },
+        {
+          "ErrDeg": 0.21895354064261005,
+          "HeadRadii": 0.3057327375364323,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.002197265625,
+          "MeanGain": 1.1466806571316424
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G2.5 @80",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 0.415,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99348783732808,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.5721556704015226,
+      "Weighted": 0.3723698814488331,
+      "Turn180Mm": 110,
+      "SpreadPct": 0.49402286690473285,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.34199061845458073,
+          "HeadRadii": 0.2785895369830702,
+          "OnHeadPct": 100,
+          "PeakHandMms": 61.20208740234375,
+          "MeanGain": 1.4603293708341638
+        },
+        {
+          "ErrDeg": 0.7009766787183027,
+          "HeadRadii": 0.32640223270357865,
+          "OnHeadPct": 100,
+          "PeakHandMms": 97.19879150390625,
+          "MeanGain": 1.941725150394925
+        },
+        {
+          "ErrDeg": 0.614592455544089,
+          "HeadRadii": 0.5721556704015226,
+          "OnHeadPct": 95.45665275846083,
+          "PeakHandMms": 82.25313663482666,
+          "MeanGain": 1.9574351536944021
+        },
+        {
+          "ErrDeg": 0.22116061054227032,
+          "HeadRadii": 0.30881454895805616,
+          "OnHeadPct": 100,
+          "PeakHandMms": 43.350790143013,
+          "MeanGain": 1.297359740099778
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G2.5 @80",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 0.415,
+      "Cap": 2.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99348783732808,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5834973580732606,
+      "Weighted": 0.3899606948897221,
+      "Turn180Mm": 75.4,
+      "SpreadPct": 0.4940228669047416,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.36122977763081643,
+          "HeadRadii": 0.29426197990291286,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1.3024263613145355
+        },
+        {
+          "ErrDeg": 0.7562287366949555,
+          "HeadRadii": 0.3521297577876113,
+          "OnHeadPct": 100,
+          "PeakHandMms": 79.200439453125,
+          "MeanGain": 1.6919046378512441
+        },
+        {
+          "ErrDeg": 0.6267753561719828,
+          "HeadRadii": 0.5834973580732606,
+          "OnHeadPct": 94.39035697728326,
+          "PeakHandMms": 67.63754367828369,
+          "MeanGain": 1.6921440136799804
+        },
+        {
+          "ErrDeg": 0.23232920820915626,
+          "HeadRadii": 0.3244096652969766,
+          "OnHeadPct": 100,
+          "PeakHandMms": 35.99945068359375,
+          "MeanGain": 1.1741195240388889
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G5 @150",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 0.5278,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 149.98923515157833,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.5996455258872402,
+      "Weighted": 0.40393259488703365,
+      "Turn180Mm": 55,
+      "SpreadPct": 2.3854117890081032,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3688758565302059,
+          "HeadRadii": 0.30049056473937036,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.601318359375,
+          "MeanGain": 1.5362617267669416
+        },
+        {
+          "ErrDeg": 0.7947434292947381,
+          "HeadRadii": 0.3700637091416663,
+          "OnHeadPct": 99.76819656930923,
+          "PeakHandMms": 90.07200121879578,
+          "MeanGain": 2.0938247928854667
+        },
+        {
+          "ErrDeg": 0.6441212335664459,
+          "HeadRadii": 0.5996455258872402,
+          "OnHeadPct": 93.64858599907278,
+          "PeakHandMms": 77.29580283164978,
+          "MeanGain": 2.1019314740237065
+        },
+        {
+          "ErrDeg": 0.24306275002700886,
+          "HeadRadii": 0.3393972974394058,
+          "OnHeadPct": 100,
+          "PeakHandMms": 43.20098876953125,
+          "MeanGain": 1.3494966054474784
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G5 @150",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 0.5278,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 149.98923515157833,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.6026576589315243,
+      "Weighted": 0.3983102738395305,
+      "Turn180Mm": 78.94999999999999,
+      "SpreadPct": 2.3854117890081015,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3506456283315769,
+          "HeadRadii": 0.2856400087331791,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.49284648895264,
+          "MeanGain": 1.7547972498952837
+        },
+        {
+          "ErrDeg": 0.7952289988531996,
+          "HeadRadii": 0.37028980937128386,
+          "OnHeadPct": 99.76819656930923,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 2.4384867988179093
+        },
+        {
+          "ErrDeg": 0.6473567765137229,
+          "HeadRadii": 0.6026576589315243,
+          "OnHeadPct": 94.06583217431618,
+          "PeakHandMms": 93.39604139328003,
+          "MeanGain": 2.4545322968114243
+        },
+        {
+          "ErrDeg": 0.23328521388942192,
+          "HeadRadii": 0.32574457055984735,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1.5259321378477484
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @150",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 0.5278,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 149.98923515157833,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.6145651643293711,
+      "Weighted": 0.41397130016138467,
+      "Turn180Mm": 37.7,
+      "SpreadPct": 2.3854117890081126,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3862198444184848,
+          "HeadRadii": 0.31461917907700987,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1.355173738339273
+        },
+        {
+          "ErrDeg": 0.800902299772099,
+          "HeadRadii": 0.37293152077616804,
+          "OnHeadPct": 99.76819656930923,
+          "PeakHandMms": 72.09163069725037,
+          "MeanGain": 1.7998630817787233
+        },
+        {
+          "ErrDeg": 0.6601474615675499,
+          "HeadRadii": 0.6145651643293711,
+          "OnHeadPct": 92.21140472878999,
+          "PeakHandMms": 62.9731285572052,
+          "MeanGain": 1.8004120478301273
+        },
+        {
+          "ErrDeg": 0.24992463149223224,
+          "HeadRadii": 0.348978790384695,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1.207061399877139
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G3.5 @80",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 0.6916,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99967477370022,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.6253439027704588,
+      "Weighted": 0.40822506997854563,
+      "Turn180Mm": 112.78571428571428,
+      "SpreadPct": 0.5720078156160763,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3815536679567287,
+          "HeadRadii": 0.31081805743853846,
+          "OnHeadPct": 100,
+          "PeakHandMms": 64.80010986328125,
+          "MeanGain": 1.883716663590097
+        },
+        {
+          "ErrDeg": 0.7451827887244201,
+          "HeadRadii": 0.34698633120956507,
+          "OnHeadPct": 99.72183588317107,
+          "PeakHandMms": 97.26820707321167,
+          "MeanGain": 2.6473636765656265
+        },
+        {
+          "ErrDeg": 0.6717256590212718,
+          "HeadRadii": 0.6253439027704588,
+          "OnHeadPct": 91.51599443671766,
+          "PeakHandMms": 87.0749706029892,
+          "MeanGain": 2.6874837179304834
+        },
+        {
+          "ErrDeg": 0.25097352825198316,
+          "HeadRadii": 0.3504434028171341,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93985939025879,
+          "MeanGain": 1.6200655026324846
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G3.5 @40",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 1.799,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.6264052830779273,
+      "Weighted": 0.4806957834776714,
+      "Turn180Mm": 78.57142857142856,
+      "SpreadPct": 0.06695695586128232,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.5445782498932883,
+          "HeadRadii": 0.4436197787366229,
+          "OnHeadPct": 98.51645804357905,
+          "PeakHandMms": 43.20098876953125,
+          "MeanGain": 2.063914434020435
+        },
+        {
+          "ErrDeg": 0.7517279255833881,
+          "HeadRadii": 0.35003400362004217,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.49284648895264,
+          "MeanGain": 2.8990245932207555
+        },
+        {
+          "ErrDeg": 0.672865761904418,
+          "HeadRadii": 0.6264052830779273,
+          "OnHeadPct": 91.70143718127026,
+          "PeakHandMms": 53.518009185791016,
+          "MeanGain": 3.0353334119074376
+        },
+        {
+          "ErrDeg": 0.3873684685967966,
+          "HeadRadii": 0.540896584690106,
+          "OnHeadPct": 97.2183588317107,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1.7139233481866534
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G3.5 @80",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 0.6916,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99967477370022,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.641376457842416,
+      "Weighted": 0.43074396950792376,
+      "Turn180Mm": 78.57142857142856,
+      "SpreadPct": 0.5720078156160904,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.3912289583341619,
+          "HeadRadii": 0.31869966155565216,
+          "OnHeadPct": 100,
+          "PeakHandMms": 53.997802734375,
+          "MeanGain": 1.6318363644961131
+        },
+        {
+          "ErrDeg": 0.8340256267661088,
+          "HeadRadii": 0.3883550408641456,
+          "OnHeadPct": 99.58275382475661,
+          "PeakHandMms": 82.80120849609375,
+          "MeanGain": 2.2736043779976143
+        },
+        {
+          "ErrDeg": 0.688947348676825,
+          "HeadRadii": 0.641376457842416,
+          "OnHeadPct": 89.8470097357441,
+          "PeakHandMms": 72.44565546512604,
+          "MeanGain": 2.2830750124521173
+        },
+        {
+          "ErrDeg": 0.2657613245954203,
+          "HeadRadii": 0.3710921369958151,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 1.4155810358363707
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3.5 @80",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 0.6916,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99967477370022,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.6535157564388423,
+      "Weighted": 0.4450633348384995,
+      "Turn180Mm": 53.85714285714285,
+      "SpreadPct": 0.5720078156160724,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.419166554088253,
+          "HeadRadii": 0.34145795212140956,
+          "OnHeadPct": 100,
+          "PeakHandMms": 43.34782361984253,
+          "MeanGain": 1.4219759167547943
+        },
+        {
+          "ErrDeg": 0.8538148701489611,
+          "HeadRadii": 0.3975696886830828,
+          "OnHeadPct": 99.30458970792768,
+          "PeakHandMms": 64.9000757932663,
+          "MeanGain": 1.9353031151289777
+        },
+        {
+          "ErrDeg": 0.7019870190303932,
+          "HeadRadii": 0.6535157564388423,
+          "OnHeadPct": 88.919796012981,
+          "PeakHandMms": 58.162511587142944,
+          "MeanGain": 1.93568472597693
+        },
+        {
+          "ErrDeg": 0.275897042108394,
+          "HeadRadii": 0.3852450054675585,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.600587606430054,
+          "MeanGain": 1.2488549598742495
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G5 @40",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 2.8784,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.6793892781534464,
+      "Weighted": 0.5250248544807337,
+      "Turn180Mm": 78.94999999999999,
+      "SpreadPct": 0.0937454912894991,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.6013285367021594,
+          "HeadRadii": 0.48984922268214315,
+          "OnHeadPct": 97.49652294853963,
+          "PeakHandMms": 43.20098876953125,
+          "MeanGain": 2.8303816758592557
+        },
+        {
+          "ErrDeg": 0.8064542078736223,
+          "HeadRadii": 0.3755167069244658,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.49284648895264,
+          "MeanGain": 4.090355704461544
+        },
+        {
+          "ErrDeg": 0.7297795798084633,
+          "HeadRadii": 0.6793892781534464,
+          "OnHeadPct": 89.47612424663885,
+          "PeakHandMms": 54.8330157995224,
+          "MeanGain": 4.3026944635619016
+        },
+        {
+          "ErrDeg": 0.4299115929958805,
+          "HeadRadii": 0.600301085972483,
+          "OnHeadPct": 94.85396383866481,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 2.300387336154064
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm78.95 G5 @80",
+      "Family": "early-sat",
+      "Cm": 78.95,
+      "Accel": 1.1066,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99735453415201,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.45712387014921024,
+      "Worst": 0.6905006754229271,
+      "Weighted": 0.4682746218707855,
+      "Turn180Mm": 78.94999999999999,
+      "SpreadPct": 0.6363538957094251,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.4371905451016329,
+          "HeadRadii": 0.3561405049168495,
+          "OnHeadPct": 99.72183588317107,
+          "PeakHandMms": 57.601318359375,
+          "MeanGain": 2.144939895486008
+        },
+        {
+          "ErrDeg": 0.9011470856243348,
+          "HeadRadii": 0.41960942449600197,
+          "OnHeadPct": 98.37737598516458,
+          "PeakHandMms": 82.87946462631226,
+          "MeanGain": 3.136502144899905
+        },
+        {
+          "ErrDeg": 0.7417151093953391,
+          "HeadRadii": 0.6905006754229271,
+          "OnHeadPct": 87.01900788131665,
+          "PeakHandMms": 72.44688391685486,
+          "MeanGain": 3.1573602881913807
+        },
+        {
+          "ErrDeg": 0.28908333117287704,
+          "HeadRadii": 0.40365749718520366,
+          "OnHeadPct": 100,
+          "PeakHandMms": 43.350790143013,
+          "MeanGain": 1.8093650086229056
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G5 @80",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 1.1066,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99735453415201,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.7239351629767912,
+      "Weighted": 0.4906317957462461,
+      "Turn180Mm": 55,
+      "SpreadPct": 0.6363538957094252,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.4572862336282378,
+          "HeadRadii": 0.37251068661154524,
+          "OnHeadPct": 99.44367176634215,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1.8250230322308056
+        },
+        {
+          "ErrDeg": 0.92321696412098,
+          "HeadRadii": 0.4298860254664838,
+          "OnHeadPct": 98.09921186833566,
+          "PeakHandMms": 68.49558770656586,
+          "MeanGain": 2.636658551578703
+        },
+        {
+          "ErrDeg": 0.7776294328366626,
+          "HeadRadii": 0.7239351629767912,
+          "OnHeadPct": 83.54195642095503,
+          "PeakHandMms": 61.203219294548035,
+          "MeanGain": 2.6466159549875776
+        },
+        {
+          "ErrDeg": 0.31351522178800106,
+          "HeadRadii": 0.4377726285460842,
+          "OnHeadPct": 99.76819656930923,
+          "PeakHandMms": 36.181814074516296,
+          "MeanGain": 1.5493659861788043
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @80",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 1.1066,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 79.99735453415201,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.7534114989565115,
+      "Weighted": 0.5160133642653895,
+      "Turn180Mm": 37.7,
+      "SpreadPct": 0.6363538957094367,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.4971204872355052,
+          "HeadRadii": 0.40496013308660594,
+          "OnHeadPct": 99.02642559109874,
+          "PeakHandMms": 39.6002197265625,
+          "MeanGain": 1.5583989524695416
+        },
+        {
+          "ErrDeg": 0.9496211512050868,
+          "HeadRadii": 0.4421808504993705,
+          "OnHeadPct": 97.68196569309225,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 2.2084707720413657
+        },
+        {
+          "ErrDeg": 0.8092920286080295,
+          "HeadRadii": 0.7534114989565115,
+          "OnHeadPct": 82.70746407046825,
+          "PeakHandMms": 51.54288947582245,
+          "MeanGain": 2.2067958293014867
+        },
+        {
+          "ErrDeg": 0.3357579873509009,
+          "HeadRadii": 0.4688310055239948,
+          "OnHeadPct": 99.1655076495132,
+          "PeakHandMms": 32.398681640625,
+          "MeanGain": 1.3357730986866152
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G3.5 @40",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 1.799,
+      "Cap": 3.5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.8501468007067207,
+      "Weighted": 0.5907404231706606,
+      "Turn180Mm": 53.85714285714285,
+      "SpreadPct": 0.06695695586125189,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.5989102430603199,
+          "HeadRadii": 0.48787925254374104,
+          "OnHeadPct": 97.96012980992118,
+          "PeakHandMms": 35.99945068359375,
+          "MeanGain": 1.728083312783191
+        },
+        {
+          "ErrDeg": 0.9793661659428218,
+          "HeadRadii": 0.45603129590926567,
+          "OnHeadPct": 96.61566991191471,
+          "PeakHandMms": 50.52804887294769,
+          "MeanGain": 2.5172215625377152
+        },
+        {
+          "ErrDeg": 0.9132021875316266,
+          "HeadRadii": 0.8501468007067207,
+          "OnHeadPct": 74.91886879925823,
+          "PeakHandMms": 45.108956694602966,
+          "MeanGain": 2.5346989357248275
+        },
+        {
+          "ErrDeg": 0.42763529254126653,
+          "HeadRadii": 0.597122605426327,
+          "OnHeadPct": 94.62216040797405,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1.4447581708382755
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm55 G5 @40",
+      "Family": "early-sat",
+      "Cm": 55,
+      "Accel": 2.8784,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.6561805372414573,
+      "Worst": 0.8911890365122827,
+      "Weighted": 0.6374040179279469,
+      "Turn180Mm": 55,
+      "SpreadPct": 0.09374549128950022,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.6643755648526598,
+          "HeadRadii": 0.5412080653895174,
+          "OnHeadPct": 94.99304589707928,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 2.335452908625427
+        },
+        {
+          "ErrDeg": 1.0165918086537193,
+          "HeadRadii": 0.4733650150807498,
+          "OnHeadPct": 96.15206305053316,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 3.5370327984691294
+        },
+        {
+          "ErrDeg": 0.9572885259000957,
+          "HeadRadii": 0.8911890365122827,
+          "OnHeadPct": 72.04450625869264,
+          "PeakHandMms": 46.9383841753006,
+          "MeanGain": 3.582059939727801
+        },
+        {
+          "ErrDeg": 0.49162675054028965,
+          "HeadRadii": 0.6864761896413594,
+          "OnHeadPct": 84.79369494668522,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1.8984026073987958
+        }
+      ]
+    },
+    {
+      "Name": "early-sat cm37.7 G5 @40",
+      "Family": "early-sat",
+      "Cm": 37.7,
+      "Accel": 2.8784,
+      "Cap": 5,
+      "OffMms": 8.771929824561404,
+      "CapAtMms": 40.00021747496624,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 1.0890370063298684,
+      "Weighted": 0.7610579657437024,
+      "Turn180Mm": 37.7,
+      "SpreadPct": 0.09374549128947797,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.7487045557859221,
+          "HeadRadii": 0.609903442603402,
+          "OnHeadPct": 92.11868335651367,
+          "PeakHandMms": 32.40142822265625,
+          "MeanGain": 1.9219093530131568
+        },
+        {
+          "ErrDeg": 1.2563908223023836,
+          "HeadRadii": 0.5850248403379238,
+          "OnHeadPct": 91.14510894761243,
+          "PeakHandMms": 43.350790143013,
+          "MeanGain": 2.924016765755987
+        },
+        {
+          "ErrDeg": 1.1698108793170785,
+          "HeadRadii": 1.0890370063298684,
+          "OnHeadPct": 60.964302271673624,
+          "PeakHandMms": 40.24799466133118,
+          "MeanGain": 2.8998292541409327
+        },
+        {
+          "ErrDeg": 0.5758477455193842,
+          "HeadRadii": 0.8040770070450388,
+          "OnHeadPct": 73.8062123319425,
+          "PeakHandMms": 28.8006591796875,
+          "MeanGain": 1.571064614119653
+        }
+      ]
+    }
+  ],
+  "phase2": [
+    {
+      "Name": "ref rivlla s5",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.33583294880462633,
+      "Weighted": 0.2428321063515179,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.221099733890033,
+          "HeadRadii": 0.18011041580570383,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.40087890625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4965582175014305,
+          "HeadRadii": 0.2312169802226892,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.96753334999084,
+          "MeanGain": 1.000007441905846
+        },
+        {
+          "ErrDeg": 0.36074167807093777,
+          "HeadRadii": 0.33583294880462633,
+          "OnHeadPct": 100,
+          "PeakHandMms": 120.74766397476196,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.15927816546222565,
+          "HeadRadii": 0.222405855660643,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla s0",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.33591547502701147,
+      "Weighted": 0.2493665554204912,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.221099733890033,
+          "HeadRadii": 0.18011041580570383,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.40087890625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.543188149415844,
+          "HeadRadii": 0.25292970526727926,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.9674153327942,
+          "MeanGain": 1.0000071525392484
+        },
+        {
+          "ErrDeg": 0.36083032526310294,
+          "HeadRadii": 0.33591547502701147,
+          "OnHeadPct": 100,
+          "PeakHandMms": 122.40029096603394,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.15927816546222565,
+          "HeadRadii": 0.222405855660643,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s5",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.34261512745466177,
+      "Weighted": 0.2520345771777209,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2350618829312087,
+          "HeadRadii": 0.19148414486952126,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.502861335717292,
+          "HeadRadii": 0.23415195926138352,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.39537382125854,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3680268909004092,
+          "HeadRadii": 0.34261512745466177,
+          "OnHeadPct": 100,
+          "PeakHandMms": 104.65068697929382,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s5",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.34261512745466177,
+      "Weighted": 0.2520345771777209,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2350618829312087,
+          "HeadRadii": 0.19148414486952126,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.502861335717292,
+          "HeadRadii": 0.23415195926138352,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.39537382125854,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3680268909004092,
+          "HeadRadii": 0.34261512745466177,
+          "OnHeadPct": 100,
+          "PeakHandMms": 104.65068697929382,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s0",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.34315262254096135,
+      "Weighted": 0.25993633337016914,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2350618829312087,
+          "HeadRadii": 0.19148414486952126,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5584650600609241,
+          "HeadRadii": 0.26004323399762813,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.39537382125854,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.36860425199638486,
+          "HeadRadii": 0.34315262254096135,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s0",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.34315262254096135,
+      "Weighted": 0.25993633337016914,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2350618829312087,
+          "HeadRadii": 0.19148414486952126,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71375119686127,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5584650600609241,
+          "HeadRadii": 0.26004323399762813,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.39537382125854,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.36860425199638486,
+          "HeadRadii": 0.34315262254096135,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s5",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.34700563763714004,
+      "Weighted": 0.2594127028554187,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.24429668908334556,
+          "HeadRadii": 0.19900692541150825,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5130606440723239,
+          "HeadRadii": 0.2389011572307107,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.25881290435791,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.37274304521597684,
+          "HeadRadii": 0.34700563763714004,
+          "OnHeadPct": 100,
+          "PeakHandMms": 88.54878008365631,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.18347736682974725,
+          "HeadRadii": 0.25619607462021693,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s0",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.3470653713131759,
+      "Weighted": 0.2663185277136711,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.24429668908334556,
+          "HeadRadii": 0.19900692541150825,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5623899042153445,
+          "HeadRadii": 0.26187079536152225,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.25615215301514,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.372807209338667,
+          "HeadRadii": 0.3470653713131759,
+          "OnHeadPct": 100,
+          "PeakHandMms": 88.54878008365631,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.18347736682974725,
+          "HeadRadii": 0.25619607462021693,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s5",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3498237597154808,
+      "Weighted": 0.2655251081092515,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25156600037385846,
+          "HeadRadii": 0.2049285909699415,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.526917084142941,
+          "HeadRadii": 0.2453532591531918,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.24074864387512,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.37577018740428203,
+          "HeadRadii": 0.3498237597154808,
+          "OnHeadPct": 100,
+          "PeakHandMms": 85.34451127052307,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s5",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3498237597154808,
+      "Weighted": 0.2655251081092515,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25156600037385846,
+          "HeadRadii": 0.2049285909699415,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.526917084142941,
+          "HeadRadii": 0.2453532591531918,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.24074864387512,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.37577018740428203,
+          "HeadRadii": 0.3498237597154808,
+          "OnHeadPct": 100,
+          "PeakHandMms": 85.34451127052307,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s0",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3498237597154808,
+      "Weighted": 0.27089781633011895,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25156600037385846,
+          "HeadRadii": 0.2049285909699415,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5653782504283894,
+          "HeadRadii": 0.26326228655608325,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.23819518089294,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.37577018740428203,
+          "HeadRadii": 0.3498237597154808,
+          "OnHeadPct": 100,
+          "PeakHandMms": 85.34451127052307,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s0",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3498237597154808,
+      "Weighted": 0.27089781633011895,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25156600037385846,
+          "HeadRadii": 0.2049285909699415,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5653782504283894,
+          "HeadRadii": 0.26326228655608325,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.23819518089294,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.37577018740428203,
+          "HeadRadii": 0.3498237597154808,
+          "OnHeadPct": 100,
+          "PeakHandMms": 85.34451127052307,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s9",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.3537666715746639,
+      "Weighted": 0.2564476484003956,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.24226748730956038,
+          "HeadRadii": 0.19735391403605398,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4826933559151594,
+          "HeadRadii": 0.22476095691224232,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.42459487915039,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38000554502964407,
+          "HeadRadii": 0.3537666715746639,
+          "OnHeadPct": 100,
+          "PeakHandMms": 90.21660447120667,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.18347736682974725,
+          "HeadRadii": 0.25619607462021693,
+          "OnHeadPct": 100,
+          "PeakHandMms": 32.60089069604874,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla s9",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.3571601626078216,
+      "Weighted": 0.24272517314030276,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2271543176030036,
+          "HeadRadii": 0.18504255014565715,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.40087890625,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4486611906355509,
+          "HeadRadii": 0.2089142460754252,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.96753334999084,
+          "MeanGain": 1.0000075486821973
+        },
+        {
+          "ErrDeg": 0.3836507312872086,
+          "HeadRadii": 0.3571601626078216,
+          "OnHeadPct": 100,
+          "PeakHandMms": 122.40029096603394,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.15934637968692275,
+          "HeadRadii": 0.22250110564652756,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s9",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3575334759608446,
+      "Weighted": 0.2618894256487426,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25381147842689544,
+          "HeadRadii": 0.2067577835189304,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.48381927062205987,
+          "HeadRadii": 0.2252852269562017,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38405173329101777,
+          "HeadRadii": 0.3575334759608446,
+          "OnHeadPct": 100,
+          "PeakHandMms": 83.73699367046356,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s9",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3575334759608446,
+      "Weighted": 0.2618894256487426,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25381147842689544,
+          "HeadRadii": 0.2067577835189304,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.48381927062205987,
+          "HeadRadii": 0.2252852269562017,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.06110501289368,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.38405173329101777,
+          "HeadRadii": 0.3575334759608446,
+          "OnHeadPct": 100,
+          "PeakHandMms": 83.73699367046356,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19060970315795786,
+          "HeadRadii": 0.2661552134596919,
+          "OnHeadPct": 100,
+          "PeakHandMms": 29.02487576007843,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s9",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.35903167268133584,
+      "Weighted": 0.2516894709025946,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23442050716771703,
+          "HeadRadii": 0.19096167270993178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.471945951929055,
+          "HeadRadii": 0.21975654412172554,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2469081878662,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3856610512598297,
+          "HeadRadii": 0.35903167268133584,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s9",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": false,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.35903167268133584,
+      "Weighted": 0.2516894709025946,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23442050716771703,
+          "HeadRadii": 0.19096167270993178,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.713579535484314,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.471945951929055,
+          "HeadRadii": 0.21975654412172554,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.2469081878662,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.3856610512598297,
+          "HeadRadii": 0.35903167268133584,
+          "OnHeadPct": 100,
+          "PeakHandMms": 101.44162774085999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.1728243314972978,
+          "HeadRadii": 0.24132085659130018,
+          "OnHeadPct": 100,
+          "PeakHandMms": 36.179083585739136,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s0 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3805145910777525,
+      "Weighted": 0.28770483023186244,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25964063008763805,
+          "HeadRadii": 0.2115062782861518,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5714487168305245,
+          "HeadRadii": 0.26608893378610504,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.02400469779968,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4087373576787477,
+          "HeadRadii": 0.3805145910777525,
+          "OnHeadPct": 100,
+          "PeakHandMms": 138.06870460510254,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.21439298128506756,
+          "HeadRadii": 0.2993646637752742,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s0 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.3805145910777525,
+      "Weighted": 0.28770483023186244,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25964063008763805,
+          "HeadRadii": 0.2115062782861518,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5714487168305245,
+          "HeadRadii": 0.26608893378610504,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.02400469779968,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4087373576787477,
+          "HeadRadii": 0.3805145910777525,
+          "OnHeadPct": 100,
+          "PeakHandMms": 138.06870460510254,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.21439298128506756,
+          "HeadRadii": 0.2993646637752742,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s5 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.38104654121374787,
+      "Weighted": 0.2807486035380764,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25964063008763805,
+          "HeadRadii": 0.2115062782861518,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5206997395849338,
+          "HeadRadii": 0.24245821969348888,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.0224597454071,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.40930876255546433,
+          "HeadRadii": 0.38104654121374787,
+          "OnHeadPct": 100,
+          "PeakHandMms": 138.06870460510254,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.21439298128506756,
+          "HeadRadii": 0.2993646637752742,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s5 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.38104654121374787,
+      "Weighted": 0.2807486035380764,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25964063008763805,
+          "HeadRadii": 0.2115062782861518,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.94006860256195,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5206997395849338,
+          "HeadRadii": 0.24245821969348888,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.0224597454071,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.40930876255546433,
+          "HeadRadii": 0.38104654121374787,
+          "OnHeadPct": 100,
+          "PeakHandMms": 138.06870460510254,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.21439298128506756,
+          "HeadRadii": 0.2993646637752742,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s0 \u002BRM",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.3812555282281885,
+      "Weighted": 0.2790563099295699,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2465337424918886,
+          "HeadRadii": 0.20082925514706843,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5694101456319586,
+          "HeadRadii": 0.26513969508681795,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.32996654510498,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4095332501364258,
+          "HeadRadii": 0.3812555282281885,
+          "OnHeadPct": 100,
+          "PeakHandMms": 174.33293223381042,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19333885574707357,
+          "HeadRadii": 0.26996602779855167,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s5 \u002BRM",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.39956371655139966,
+      "Weighted": 0.276335327110401,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2465337424918886,
+          "HeadRadii": 0.20082925514706843,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.528241991996765,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5171663367370715,
+          "HeadRadii": 0.24081292875357882,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.25416731834412,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4291993567577752,
+          "HeadRadii": 0.39956371655139966,
+          "OnHeadPct": 100,
+          "PeakHandMms": 174.33293223381042,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19333885574707357,
+          "HeadRadii": 0.26996602779855167,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off150 s9 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.4066703134009675,
+      "Weighted": 0.2828921973349245,
+      "Turn180Mm": 48.54403342988944,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25915708575274254,
+          "HeadRadii": 0.211112377444725,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.49036942892344887,
+          "HeadRadii": 0.22833523754720228,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.1264328956604,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.43683304988411037,
+          "HeadRadii": 0.4066703134009675,
+          "OnHeadPct": 100,
+          "PeakHandMms": 151.75901055335999,
+          "MeanGain": 1.0000001702527739
+        },
+        {
+          "ErrDeg": 0.21465445344498538,
+          "HeadRadii": 0.29972976679670343,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm26 off250 s9 \u002BRM",
+      "Family": "trackline",
+      "Cm": 26,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.3880742133953905,
+      "Worst": 0.4066737927196684,
+      "Weighted": 0.2828930671645997,
+      "Turn180Mm": 61.40011314247651,
+      "SpreadPct": 79.93422082641939,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.25915708575274254,
+          "HeadRadii": 0.211112377444725,
+          "OnHeadPct": 100,
+          "PeakHandMms": 46.93733274936676,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.49036942892344887,
+          "HeadRadii": 0.22833523754720228,
+          "OnHeadPct": 100,
+          "PeakHandMms": 108.1264328956604,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.43683678726387365,
+          "HeadRadii": 0.4066737927196684,
+          "OnHeadPct": 100,
+          "PeakHandMms": 151.75901055335999,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.21465445344498538,
+          "HeadRadii": 0.29972976679670343,
+          "OnHeadPct": 100,
+          "PeakHandMms": 55.89100241661072,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s0 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.41706169876455895,
+      "Weighted": 0.2800399906392781,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23510055238423622,
+          "HeadRadii": 0.19151564545589114,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.70886421203613,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5587881824381773,
+          "HeadRadii": 0.2601936924487777,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.29602479934692,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4479951642832087,
+          "HeadRadii": 0.41706169876455895,
+          "OnHeadPct": 100,
+          "PeakHandMms": 207.0866847038269,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s5 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.422249820025437,
+      "Weighted": 0.27390598212283335,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23510055238423622,
+          "HeadRadii": 0.19151564545589114,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.70886421203613,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5055922133981692,
+          "HeadRadii": 0.23542356300989695,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.1939721107483,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4535680884895629,
+          "HeadRadii": 0.422249820025437,
+          "OnHeadPct": 100,
+          "PeakHandMms": 214.5883083343506,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "flat cm28 s9 \u002BRM",
+      "Family": "flat",
+      "Cm": 28,
+      "Accel": 0.001,
+      "Cap": 1,
+      "OffMms": 0,
+      "CapAtMms": "Infinity",
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.2889260552957196,
+      "Worst": 0.42952426525547116,
+      "Weighted": 0.2799373260068271,
+      "Turn180Mm": 140,
+      "SpreadPct": 7.629393884761431E-05,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2468275736568931,
+          "HeadRadii": 0.20106861343291763,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.530983209609985,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4872861366954229,
+          "HeadRadii": 0.22689953576444766,
+          "OnHeadPct": 100,
+          "PeakHandMms": 115.21882653236389,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4613820793104704,
+          "HeadRadii": 0.42952426525547116,
+          "OnHeadPct": 100,
+          "PeakHandMms": 177.0451283454895,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.19414825988103404,
+          "HeadRadii": 0.271096228026978,
+          "OnHeadPct": 100,
+          "PeakHandMms": 54.12046551704407,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s0 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.44093969334781485,
+      "Weighted": 0.28600948928509207,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23510055238423622,
+          "HeadRadii": 0.19151564545589114,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.70886421203613,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5587881824381773,
+          "HeadRadii": 0.2601936924487777,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.29602479934692,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.47364418968584604,
+          "HeadRadii": 0.44093969334781485,
+          "OnHeadPct": 100,
+          "PeakHandMms": 207.0866847038269,
+          "MeanGain": 1.000376060654047
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s5 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.4487278525579852,
+      "Weighted": 0.2805254902559704,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23510055238423622,
+          "HeadRadii": 0.19151564545589114,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.70886421203613,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5055922133981692,
+          "HeadRadii": 0.23542356300989695,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.1939721107483,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4820099966519605,
+          "HeadRadii": 0.4487278525579852,
+          "OnHeadPct": 100,
+          "PeakHandMms": 214.5883083343506,
+          "MeanGain": 1.000388837860365
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off250 s9 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 250,
+      "CapAtMms": 553.6731455739176,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.46270671750406184,
+      "Weighted": 0.2795102122706633,
+      "Turn180Mm": 65.54498120341822,
+      "SpreadPct": 79.9342208264194,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23604893549967998,
+          "HeadRadii": 0.19228820937652724,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71116018295288,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4719242646411648,
+          "HeadRadii": 0.21974644566994606,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.18760991096497,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.49702567398833875,
+          "HeadRadii": 0.46270671750406184,
+          "OnHeadPct": 99.49003245248029,
+          "PeakHandMms": 212.83019542694092,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla s5 \u002BRM",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 5,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.47294352774610343,
+      "Weighted": 0.27792588533223656,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2207624549218595,
+          "HeadRadii": 0.17983566443386154,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.3931165933609,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4952657764042458,
+          "HeadRadii": 0.2306151689605366,
+          "OnHeadPct": 100,
+          "PeakHandMms": 155.0608742237091,
+          "MeanGain": 1.0000086947581928
+        },
+        {
+          "ErrDeg": 0.5080217484293733,
+          "HeadRadii": 0.47294352774610343,
+          "OnHeadPct": 95.78117756142791,
+          "PeakHandMms": 270.9601020812988,
+          "MeanGain": 1.0008517354779498
+        },
+        {
+          "ErrDeg": 0.16309302583583093,
+          "HeadRadii": 0.22773268299542157,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "trackline cm32 off150 s9 \u002BRM",
+      "Family": "trackline",
+      "Cm": 32,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 150,
+      "CapAtMms": 411.9354171284194,
+      "Yx": 0.9,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 1.1278102983837548,
+      "Worst": 0.48824975703106605,
+      "Weighted": 0.28589597215241436,
+      "Turn180Mm": 52.429701022575784,
+      "SpreadPct": 60.29942292161577,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.23604893549967998,
+          "HeadRadii": 0.19228820937652724,
+          "OnHeadPct": 100,
+          "PeakHandMms": 57.71116018295288,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.4719242646411648,
+          "HeadRadii": 0.21974644566994606,
+          "OnHeadPct": 100,
+          "PeakHandMms": 133.18760991096497,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5244632407154927,
+          "HeadRadii": 0.48824975703106605,
+          "OnHeadPct": 99.49003245248029,
+          "PeakHandMms": 212.83019542694092,
+          "MeanGain": 1.0003917467501686
+        },
+        {
+          "ErrDeg": 0.17845827417069957,
+          "HeadRadii": 0.24918773424766102,
+          "OnHeadPct": 100,
+          "PeakHandMms": 50.3997802734375,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla s0 \u002BRM",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 0,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.5241982712958417,
+      "Weighted": 0.29793279445710585,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.2207624549218595,
+          "HeadRadii": 0.17983566443386154,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.3931165933609,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.5467593144282892,
+          "HeadRadii": 0.25459257975198574,
+          "OnHeadPct": 100,
+          "PeakHandMms": 154.9674153327942,
+          "MeanGain": 1.0000075496163454
+        },
+        {
+          "ErrDeg": 0.5630780562247848,
+          "HeadRadii": 0.5241982712958417,
+          "OnHeadPct": 92.58229021789522,
+          "PeakHandMms": 274.4634532928467,
+          "MeanGain": 1.0012500035269827
+        },
+        {
+          "ErrDeg": 0.16309302583583093,
+          "HeadRadii": 0.22773268299542157,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    },
+    {
+      "Name": "ref rivlla s9 \u002BRM",
+      "Family": "reference",
+      "Cm": 37.7,
+      "Accel": 0.316,
+      "Cap": 4,
+      "OffMms": 149.12280701754386,
+      "CapAtMms": 410.6488684857547,
+      "Yx": 0.85,
+      "Snap": 9,
+      "Filter": true,
+      "IsLut": false,
+      "RivalsSens": 0.9572925609623381,
+      "Worst": 0.558430736284734,
+      "Weighted": 0.2960384012431771,
+      "Turn180Mm": 55.631977020952604,
+      "SpreadPct": 59.819216886163105,
+      "MicroPct": 109.6487045288086,
+      "DeadMs": 2.7777777777777777,
+      "HoldPct": -18.538583710111055,
+      "PerScen": [
+        {
+          "ErrDeg": 0.22924948916182916,
+          "HeadRadii": 0.18674930127558861,
+          "OnHeadPct": 100,
+          "PeakHandMms": 68.39315414428711,
+          "MeanGain": 1
+        },
+        {
+          "ErrDeg": 0.45925810407248574,
+          "HeadRadii": 0.2138485845642697,
+          "OnHeadPct": 100,
+          "PeakHandMms": 158.3806872367859,
+          "MeanGain": 1.0000120164888886
+        },
+        {
+          "ErrDeg": 0.599849543086194,
+          "HeadRadii": 0.558430736284734,
+          "OnHeadPct": 90.54242002781642,
+          "PeakHandMms": 275.3309226036072,
+          "MeanGain": 1.0013115983313563
+        },
+        {
+          "ErrDeg": 0.16324442163554895,
+          "HeadRadii": 0.22794408241907763,
+          "OnHeadPct": 100,
+          "PeakHandMms": 39.76358771324158,
+          "MeanGain": 1
+        }
+      ]
+    }
+  ],
+  "robustness": [
+    {
+      "model": "steadier hand (KPar .06, S0 .8)",
+      "order": [
+        {
+          "Name": "ref rivlla s0",
+          "Worst": 0.27152237745470525,
+          "Weighted": 0.19333407311510079
+        },
+        {
+          "Name": "ref rivlla s5",
+          "Worst": 0.2725950342840542,
+          "Weighted": 0.18572004631051056
+        },
+        {
+          "Name": "trackline cm32 off150 s0",
+          "Worst": 0.2770490757033075,
+          "Weighted": 0.2006653954740236
+        },
+        {
+          "Name": "trackline cm32 off250 s0",
+          "Worst": 0.2770490757033075,
+          "Weighted": 0.2006653954740236
+        },
+        {
+          "Name": "flat cm28 s0",
+          "Worst": 0.27800086123430434,
+          "Weighted": 0.20338597331259134
+        },
+        {
+          "Name": "flat cm28 s5",
+          "Worst": 0.27800488958985403,
+          "Weighted": 0.19301723469441737
+        },
+        {
+          "Name": "trackline cm32 off150 s5",
+          "Worst": 0.2794179744941847,
+          "Weighted": 0.1913078249613184
+        },
+        {
+          "Name": "trackline cm32 off250 s5",
+          "Worst": 0.2794179744941847,
+          "Weighted": 0.1913078249613184
+        }
+      ]
+    },
+    {
+      "model": "shakier hand (KPar .14, S0 2.5)",
+      "order": [
+        {
+          "Name": "ref rivlla s5",
+          "Worst": 0.41749965780906034,
+          "Weighted": 0.31748722889420034
+        },
+        {
+          "Name": "ref rivlla s0",
+          "Worst": 0.4179207431783892,
+          "Weighted": 0.3226844609710747
+        },
+        {
+          "Name": "trackline cm32 off150 s0",
+          "Worst": 0.4300419741139501,
+          "Weighted": 0.33927238814073213
+        },
+        {
+          "Name": "trackline cm32 off250 s0",
+          "Worst": 0.4300419741139501,
+          "Weighted": 0.33927238814073213
+        },
+        {
+          "Name": "trackline cm32 off150 s5",
+          "Worst": 0.4302373508771034,
+          "Weighted": 0.3338602019940689
+        },
+        {
+          "Name": "trackline cm32 off250 s5",
+          "Worst": 0.4302373508771034,
+          "Weighted": 0.3338602019940689
+        },
+        {
+          "Name": "flat cm28 s5",
+          "Worst": 0.4371735183041478,
+          "Weighted": 0.34773844386876246
+        },
+        {
+          "Name": "flat cm28 s0",
+          "Worst": 0.43850713359200205,
+          "Weighted": 0.35238865229184213
+        }
+      ]
+    },
+    {
+      "model": "slow visual loop (Kp 2, delay 180ms)",
+      "order": [
+        {
+          "Name": "ref rivlla s0",
+          "Worst": 0.3074911746350111,
+          "Weighted": 0.23830118138803497
+        },
+        {
+          "Name": "ref rivlla s5",
+          "Worst": 0.3091681003514472,
+          "Weighted": 0.2326545448637988
+        },
+        {
+          "Name": "trackline cm32 off150 s0",
+          "Worst": 0.3146234276749961,
+          "Weighted": 0.24960378058424765
+        },
+        {
+          "Name": "trackline cm32 off250 s0",
+          "Worst": 0.3146234276749961,
+          "Weighted": 0.24960378058424765
+        },
+        {
+          "Name": "trackline cm32 off150 s5",
+          "Worst": 0.3168487478323067,
+          "Weighted": 0.2420213229102287
+        },
+        {
+          "Name": "trackline cm32 off250 s5",
+          "Worst": 0.3168487478323067,
+          "Weighted": 0.2420213229102287
+        },
+        {
+          "Name": "flat cm28 s5",
+          "Worst": 0.31898900005102127,
+          "Weighted": 0.24998602947921475
+        },
+        {
+          "Name": "flat cm28 s0",
+          "Worst": 0.3192594348190034,
+          "Weighted": 0.2573824908817368
+        }
+      ]
+    },
+    {
+      "model": "snappy reversals (follow 4 Hz)",
+      "order": [
+        {
+          "Name": "ref rivlla s5",
+          "Worst": 0.33774442075690175,
+          "Weighted": 0.26873543339893274
+        },
+        {
+          "Name": "ref rivlla s0",
+          "Worst": 0.338128225190035,
+          "Weighted": 0.27714167428759007
+        },
+        {
+          "Name": "trackline cm32 off150 s0",
+          "Worst": 0.3445036242991614,
+          "Weighted": 0.2875610824657019
+        },
+        {
+          "Name": "trackline cm32 off250 s0",
+          "Worst": 0.3445036242991614,
+          "Weighted": 0.2875610824657019
+        },
+        {
+          "Name": "trackline cm32 off150 s5",
+          "Worst": 0.34518593248827295,
+          "Weighted": 0.28014375844300476
+        },
+        {
+          "Name": "trackline cm32 off250 s5",
+          "Worst": 0.34518593248827295,
+          "Weighted": 0.28014375844300476
+        },
+        {
+          "Name": "flat cm28 s5",
+          "Worst": 0.34808606651471186,
+          "Weighted": 0.2873567291356435
+        },
+        {
+          "Name": "flat cm28 s0",
+          "Worst": 0.34825720709206043,
+          "Weighted": 0.29391275790759963
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}
