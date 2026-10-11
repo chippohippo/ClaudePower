@@ -827,15 +827,15 @@ namespace AimForge.App
 
         /// Re-entrancy guard (review 2026-09-14): Ctrl+Enter / Ctrl+Tab could start a second apply
         /// while one was still inside writer.exe - two commits racing on one settings.json.
-        async Task DoApply(bool dry)
+        async Task DoApply(bool dry, Rig? replay = null)
         {
             if (applying || redetecting) { Log((applying ? "apply" : "redetect") + " already in progress - ignored"); Banner("⚠  " + (applying ? "AN APPLY" : "A REDETECT") + " IS ALREADY RUNNING - wait for it to finish", Warn); return; }
             Banner(dry ? "…  DRY RUN" : "…  APPLYING", Steel);
             applying = true;
-            try { await DoApplyCore(dry); } finally { applying = false; }
+            try { await DoApplyCore(dry, replay); } finally { applying = false; }
         }
 
-        async Task DoApplyCore(bool dry)
+        async Task DoApplyCore(bool dry, Rig? replay = null)
         {
             if (cur == null) return;
             // Ctrl+Enter is consumed before a NumericUpDown commits typed text: reading .Value validates it (2026-09-16 review)
@@ -861,7 +861,10 @@ namespace AimForge.App
                 catch (Exception ex) { Log("mouse: could not read RawAccel devices (" + ex.Message + ")"); }
             }
             var rg = rig.Clone();   // snapshot: a control edited mid-apply can no longer desync the verify
-            ThirdPerson.ApplyTo(rg, p, tpsState);
+            // A/B replays the rig that was APPLIED, exactly (2026-10-11): its third-person gain, mouse mirror and Nib Twin
+            // calibration, not whatever tps.txt / mouse.txt / nibtwin.json hold now
+            if (replay != null) rg = replay.Clone();
+            else ThirdPerson.ApplyTo(rg, p, tpsState);
             var skipped = Experiments.Soften(rg, p, otd.NibBlocker(rg));
             foreach (var sk in skipped) Log("note: " + sk);
             if (rg.TpsGain != 1.0) Log("third-person match: " + ThirdPerson.Describe(tpsState, p) + $" - output multiplier {rg.Mult:0.###} (in-game sensitivity unchanged)");
@@ -906,7 +909,8 @@ namespace AimForge.App
                     var snap = new Applied(p, rg.Clone(), toggles);
                     // a new A/B partner whenever the build, the rig or a mode differs - not only the card id (2026-09-24 review:
                     // applying the same card with a toggle off then on never became an A/B pair)
-                    if (lastApplied != null && !SameApply(lastApplied, p, rg, toggles)) prevApplied = lastApplied;
+                    var abDiff = lastApplied == null ? null : ApplyIdentity.Differences(lastApplied.P, lastApplied.Rg, lastApplied.T, p, rg, toggles);
+                    if (lastApplied != null && abDiff!.Count > 0) { prevApplied = lastApplied; Log("A/B (Ctrl+Tab): " + lastApplied.P.name + " vs this apply - differs in " + string.Join(", ", abDiff)); }
                     LastApply.From(p, rg).Save();
                     lastApplied = snap;
                     // the last APPLIED card, mirrored or not (the CLI --mouse on builds from it)
@@ -1085,7 +1089,7 @@ namespace AimForge.App
                 if (prevApplied is Applied pv)
                 {
                     if (applying || redetecting) { Log("A/B: an apply/redetect is in progress - ignored"); return true; }
-                    SelectApplied(pv); _ = DoApply(false); return true;
+                    SelectApplied(pv); _ = DoApply(false, pv.Rg); return true;
                 }
             }
             return base.ProcessCmdKey(ref msg, keyData);
@@ -1444,20 +1448,6 @@ namespace AimForge.App
         }
 
         static void SetNum(NumericUpDown n, double v) => n.Value = (decimal)Math.Clamp(v, (double)n.Minimum, (double)n.Maximum);
-
-        static bool SameApply(Applied a, Preset p, Rig rg, FilterPlan.Toggles t)
-            => a.P.id == p.id && a.Rg.Engine == rg.Engine && a.Rg.ReportHz == rg.ReportHz && a.Rg.MergeMax == rg.MergeMax &&
-               a.Rg.IntentSpeed == rg.IntentSpeed && a.Rg.ReversalCarryMs == rg.ReversalCarryMs && a.Rg.NibTwin == rg.NibTwin &&
-               a.Rg.PxMm == rg.PxMm && a.Rg.Cm360 == rg.Cm360 && a.Rg.SnapDeg == rg.SnapDeg && a.Rg.Yx == rg.Yx && a.Rg.ResetMs == rg.ResetMs &&
-               a.Rg.HdlEnabled == rg.HdlEnabled && a.Rg.HdlMin == rg.HdlMin && a.Rg.HdlMax == rg.HdlMax && a.Rg.Mult == rg.Mult &&
-               a.T.Tap == t.Tap && a.T.Hold == t.Hold && a.T.HoldMs == t.HoldMs && a.T.TapArm == t.TapArm && a.T.TapHold == t.TapHold && a.T.TapBreak == t.TapBreak &&
-               a.Rg.RotationDeg == rg.RotationDeg && a.Rg.TipThresholdPct == rg.TipThresholdPct &&
-               // the curve itself (2026-09-24 review: two Advanced-tab LUT edits share one id and never became an A/B pair)
-               System.Text.Json.JsonSerializer.Serialize(a.P.lut) == System.Text.Json.JsonSerializer.Serialize(p.lut) &&
-               System.Text.Json.JsonSerializer.Serialize(a.P.adv) == System.Text.Json.JsonSerializer.Serialize(p.adv) &&
-               // and the stabilizer overlay and plan (Advanced-tab Lead Sight / tap-strength edits share the id too)
-               System.Text.Json.JsonSerializer.Serialize(a.P.cohOv) == System.Text.Json.JsonSerializer.Serialize(p.cohOv) &&
-               System.Text.Json.JsonSerializer.Serialize(a.P.filters) == System.Text.Json.JsonSerializer.Serialize(p.filters);
 
         volatile bool calibrating;   // the calibration press log may be live (a forced exit switches it off first)
         Rig? calibratingRig;         // the user's live build while calibrating: a forced exit restores ITS twin (third review)

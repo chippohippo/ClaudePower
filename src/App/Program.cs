@@ -2421,6 +2421,25 @@ namespace AimForge.App
                    advice.Count == 0, advice.Count == 0 ? $"BO6 base {boN.WallGainNoisePct:0.0}% / worst {boN.WallWorstGainErrPct:0.0}%" : string.Join(", ", advice));
             }
 
+            // ---- 2026-10-11: A/B identity (what makes two applies a pair) - was private in the window and untested ----
+            {
+                var ab = cat.Find("bo6og")!; var ra0 = Rig.From(ab); var t0 = FilterPlan.Prefill(ab);
+                bool Diff(Action<Rig> edit, string name) { var r1 = ra0.Clone(); edit(r1); var d = ApplyIdentity.Differences(ab, ra0, t0, ab, r1, t0); return d.Count == 1 && d[0] == name; }
+                Ok("A/B identity: the same build re-applied is the same (no new A/B partner), including a 1e-15 round-trip drift",
+                   ApplyIdentity.Same(ab, ra0, t0, ab, ra0.Clone(), t0) && Diff(r => r.PxMm += 1e-13, "PxMm") == false && ApplyIdentity.Same(ab, ra0, t0, ab, ((Func<Rig>)(() => { var r = ra0.Clone(); r.PxMm += 1e-13; return r; }))(), t0));
+                Ok("A/B identity: the modes the old window check missed each make a pair - third-person gain, mouse mirror and its DPI, a Nib Twin recalibration",
+                   Diff(r => r.TpsGain = 1.2, "TpsGain") && Diff(r => r.MirrorMouse = true, "MirrorMouse") && Diff(r => r.MouseDpi = 800, "MouseDpi") &&
+                   Diff(r => r.SkidXmm = 0.1, "SkidXmm") && Diff(r => r.SkidLagReports = 2, "SkidLagReports") && Diff(r => r.MouseIdPrefixes = new[] { "HID\\VID_1" }, "MouseIdPrefixes"));
+                Ok("A/B identity: engine, Intent Speed and a different card are named",
+                   Diff(r => r.Engine = "cadence", "Engine") && Diff(r => r.IntentSpeed = true, "IntentSpeed") &&
+                   ApplyIdentity.Differences(ab, ra0, t0, cat.Find("rivmp")!, ra0, t0).Any(x => x.StartsWith("card bo6og -> rivmp")));
+                var abLut = new Preset { id = ab.id, name = ab.name, group = ab.group, lut = new[] { new[] { 1.0, 1.0 }, new[] { 50.0, 1.5 } } };
+                var abLut2 = new Preset { id = ab.id, name = ab.name, group = ab.group, lut = new[] { new[] { 1.0, 1.0 }, new[] { 50.0, 1.6 } } };
+                Ok("A/B identity: an Advanced-tab curve edit under the same id is a new partner; a tap-toggle change is too",
+                   ApplyIdentity.Differences(abLut, ra0, t0, abLut2, ra0, t0).Contains("curve table") &&
+                   ApplyIdentity.Differences(ab, ra0, t0, ab, ra0, new FilterPlan.Toggles(!t0.Tap, t0.Hold, t0.HoldMs, t0.TapArm, t0.TapHold, t0.TapBreak)).Contains("Tap Anchor"));
+            }
+
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
             return fails == 0;
         }
