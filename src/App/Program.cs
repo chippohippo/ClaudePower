@@ -223,23 +223,7 @@ namespace AimForge.App
                         }
                         return 0;
                     case "--screenshot":
-                        {
-                            Application.SetHighDpiMode(HighDpiMode.SystemAware); Application.EnableVisualStyles();
-                            // A real message loop, so layout/paint complete before the capture;
-                            // a one-shot timer takes the shot and ends the loop.
-                            var f = new MainForm(cat, ra, otd, tuner);
-                            string shot = args.Length > 1 ? args[1] : Path.Combine(home, "screenshot.png");
-                            if (args.Length > 2 && args[2] == "advanced") f.ShowAdvancedTab();
-                            else if (args.Length > 2 && args[2] == "filters") f.ShowFiltersTab();
-                            else if (args.Length > 2 && cat.Find(args[2]) is Preset sp) f.SelectById(sp.id);
-                            if (args.Length > 3 && int.TryParse(args[3], out var sideTab)) f.ShowSideTab(sideTab);
-                            var timer = new System.Windows.Forms.Timer { Interval = 600 };
-                            timer.Tick += (s, e) => { timer.Stop(); try { f.Snapshot(shot); } finally { f.Shutdown(); } };
-                            f.Shown += (s, e) => timer.Start();
-                            Application.Run(f);
-                            Console.WriteLine("screenshot -> " + shot);
-                            return 0;
-                        }
+                        return Screenshot(args, home, cat, ra, otd, tuner);
                     case "--daemon-start":
                         // Login helper: GUI-subsystem exe = no console flash. Make sure the daemon
                         // is up (it detects the tablet on startup) and exit.
@@ -657,11 +641,39 @@ namespace AimForge.App
                 }
             }
 
+            return RunWindow(cat, ra, otd, tuner);
+        }
+
+        // The window entry points live outside Main so the headless CLI (selftests, --qc, labs) never JITs a WinForms
+        // reference: build.sh runs them on Linux without the desktop runtime (2026-10-11).
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static int RunWindow(Catalogue cat, RawAccelBridge ra, OtdBridge otd, string tuner)
+        {
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm(cat, ra, otd, tuner));
             return 0;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        static int Screenshot(string[] args, string home, Catalogue cat, RawAccelBridge ra, OtdBridge otd, string tuner)
+        {
+                    Application.SetHighDpiMode(HighDpiMode.SystemAware); Application.EnableVisualStyles();
+                    // A real message loop, so layout/paint complete before the capture;
+                    // a one-shot timer takes the shot and ends the loop.
+                    var f = new MainForm(cat, ra, otd, tuner);
+                    string shot = args.Length > 1 ? args[1] : Path.Combine(home, "screenshot.png");
+                    if (args.Length > 2 && args[2] == "advanced") f.ShowAdvancedTab();
+                    else if (args.Length > 2 && args[2] == "filters") f.ShowFiltersTab();
+                    else if (args.Length > 2 && cat.Find(args[2]) is Preset sp) f.SelectById(sp.id);
+                    if (args.Length > 3 && int.TryParse(args[3], out var sideTab)) f.ShowSideTab(sideTab);
+                    var timer = new System.Windows.Forms.Timer { Interval = 600 };
+                    timer.Tick += (s, e) => { timer.Stop(); try { f.Snapshot(shot); } finally { f.Shutdown(); } };
+                    f.Shown += (s, e) => timer.Start();
+                    Application.Run(f);
+                    Console.WriteLine("screenshot -> " + shot);
+                    return 0;
         }
 
         /// Pins the numbers the tuner established, so a regression in the port is caught here.
