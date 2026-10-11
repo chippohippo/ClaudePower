@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -109,7 +109,8 @@ namespace AimForge.App
             count.Text = res.Refused == null ? (res.Restored?.NibTwin == true ? "✓  CALIBRATED - TWIN LIVE" : "✓  CALIBRATED") : saved ? "⚠  CALIBRATED, NOT RE-APPLIED" : "✖  NOT CALIBRATED";
             result.Text = (cal != null
                 ? $"swing {cal.MagMm:0.000} mm at {cal.AngleDeg:0}°   ·   R² {cal.R2:0.00}   ·   lag {cal.SkidLagReports:0} reports   ·   per-tap spread {cal.PerTapMagSpreadPct:0}%   ·   {cal.Taps} taps\n"
-                : "") + (res.Refused ?? (res.Restored?.NibTwin == true ? "The live build now cancels this swing. Ctrl+Tab A/Bs it against the build before." : "Tick 'Nib twin' in Modes and apply to use it."));
+                : "") + (res.Refused ?? (res.Restored?.NibTwin == true ? "The live build now cancels this swing. Ctrl+Tab A/Bs it against the build before." : "Tick 'Nib twin' in Modes and apply to use it."))
+                + (res.Timing is PenTiming.Stats ts && ts.Intervals > 0 ? $"\npen timing (recorded as evidence): {ts.Late} late and {ts.Drop} dropped reports in {ts.Intervals}" : "");
             tip.SetToolTip(result, "swing: how far the tip's click drags the reported point - what the twin removes from every shot.\n" +
                                    "R²: how well pressure predicts that drag (>= 0.8 needed; low = the skid is not consistent for this grip).\n" +
                                    "lag: reports between pressure and movement, matched by the twin.\n" +

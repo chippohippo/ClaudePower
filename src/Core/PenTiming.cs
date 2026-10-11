@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -28,6 +28,29 @@ namespace AimForge.Core
                 Intervals, NominalMs, P50Ms, P99Ms, Pct(Plain), Pct(Short), Late, Per1000(Late), Drop, Per1000(Drop), LongUnjudged);
             double Pct(int n) => Intervals > 0 ? 100.0 * n / Intervals : 0;
             double Per1000(int n) => Intervals > 0 ? 1000.0 * n / Intervals : 0;
+        }
+
+        /// The rig's own timing as an evidence record (evidence\ev-<date>-pen-timing.json).
+        public static string SaveEvidence(Stats s, DateTime when, string? dir = null)
+        {
+            string id = "ev-" + when.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "-pen-timing";
+            dir ??= RolePolicy.EvidenceDir; System.IO.Directory.CreateDirectory(dir);
+            var o = new System.Text.Json.Nodes.JsonObject
+            {
+                ["evidenceId"] = id, ["date"] = when.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                ["claim"] = $"How the pen's reports reached the filter during a nib calibration: {s.Summary}.",
+                ["method"] = "PenTiming.FromNibLog over the Nib Twin press log (the plugin's own HPET interval per report); late vs dropped judged by the Cadence drop check's own travel rule.",
+                ["results"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["intervals"] = s.Intervals, ["plain"] = s.Plain, ["short"] = s.Short, ["late"] = s.Late, ["dropped"] = s.Drop,
+                    ["longUnjudged"] = s.LongUnjudged, ["nominalMs"] = Math.Round(s.NominalMs, 4), ["medianMs"] = Math.Round(s.P50Ms, 4), ["p99Ms"] = Math.Round(s.P99Ms, 4),
+                },
+                ["consequence"] = s.Late > 0 ? "late reports occur on this rig: the Cadence drop check (Game Filters 1.3) is doing real work" : "no late reports seen in this sample: the drop check is idle insurance here",
+                ["fieldVerdict"] = "measured on the user's rig",
+            };
+            string path = System.IO.Path.Combine(dir, id + ".json");
+            System.IO.File.WriteAllText(path, o.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            return path;
         }
 
         public static Stats FromNibLog(IEnumerable<string> lines, double nominalMs = 1000.0 / 360.2)

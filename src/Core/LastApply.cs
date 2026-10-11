@@ -228,7 +228,17 @@ namespace AimForge.Core
                 if (!waitForTaps()) return res = new NibFit.Result { Refused = "cancelled" };
                 System.Threading.Thread.Sleep(400);   // the filter flushes 90 reports (250 ms) after the last release
                 if (!File.Exists(logPath)) return res = new NibFit.Result { Refused = "no presses were logged (was the tip tapped on the tablet?)" };
-                res = NibFit.Fit(File.ReadAllLines(logPath), unitsPerMm, logPath);
+                var logLines = File.ReadAllLines(logPath);
+                res = NibFit.Fit(logLines, unitsPerMm, logPath);
+                // 2026-10-11: the same log carries every report's own interval - how reports really arrive on this rig
+                // (late / dropped reports: ev-20261011-chain-lab). Recorded as evidence, whatever the fit's outcome.
+                try
+                {
+                    res.Timing = PenTiming.FromNibLog(logLines);
+                    log("nib: pen timing - " + res.Timing.Summary);
+                    if (stateDir == null && res.Timing.Intervals >= 500) PenTiming.SaveEvidence(res.Timing, DateTime.Now);
+                }
+                catch (Exception tex) { log("nib: pen timing not recorded (" + tex.Message + ")"); }
                 log("nib: " + res.Report);
                 if (res.Cal != null && res.Refused == null) { res.Cal.Save(calPath); fresh = res.Cal; log("nib: calibration saved -> " + (calPath ?? NibCal.DefaultPath)); }
                 else log("nib: calibration NOT saved - " + res.Refused);

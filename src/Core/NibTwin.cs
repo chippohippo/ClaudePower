@@ -77,7 +77,7 @@ namespace AimForge.Core
     /// </summary>
     public static class NibFit
     {
-        public sealed class Result { public NibCal? Cal; public string? Refused; public int Presses, Settled; public string Report = ""; public Rig? Restored; }
+        public sealed class Result { public NibCal? Cal; public string? Refused; public int Presses, Settled; public string Report = ""; public Rig? Restored; public PenTiming.Stats? Timing; }
 
         sealed class Press { public List<double> Dt = new(), P = new(), X = new(), Y = new(); }
 
