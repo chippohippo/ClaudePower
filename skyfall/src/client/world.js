@@ -1,0 +1,293 @@
+// Static world rendering: sky, lighting, terrain, instanced map geometry with a world-space panel
+// shader (gives strong scale/readability cues for movement), trees, beacons, ring wall and drop ship.
+
+import * as THREE from 'three';
+
+const SUN_DIR = new THREE.Vector3(-0.45, 0.8, 0.35).normalize();
+
+function patchPanels(mat, scale = 1, lineStrength = 0.18) {
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        #ifdef USE_INSTANCING
+          vWPos = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+          vWNrm = normalize(mat3(modelMatrix * instanceMatrix) * objectNormal);
+        #else
+          vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          vWNrm = normalize(mat3(modelMatrix) * objectNormal);
+        #endif`,
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos;
+        varying vec3 vWNrm;
+        float hash3(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }`)
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        {
+          vec3 n = abs(vWNrm);
+          vec2 uv = n.y > 0.5 ? vWPos.xz : (n.x > 0.5 ? vWPos.zy : vWPos.xy);
+          uv *= ${(1 / scale).toFixed(3)};
+          vec2 g = abs(fract(uv) - 0.5);
+          float line = smoothstep(0.47, 0.5, max(g.x, g.y));
+          float cell = hash3(floor(vec3(uv, n.y * 7.0 + n.x * 3.0)));
+          diffuseColor.rgb *= (1.0 - line * ${lineStrength.toFixed(2)}) * (0.93 + cell * 0.12);
+          // ambient-occlusion-ish darkening near the ground
+          diffuseColor.rgb *= mix(0.72, 1.0, clamp(vWPos.y * 0.6, 0.0, 1.0));
+          // top faces slightly lighter for silhouette readability
+          diffuseColor.rgb *= n.y > 0.5 ? 1.06 : 1.0;
+        }`,
+      );
+  };
+  return mat;
+}
+
+export class WorldView {
+  constructor(renderer, map) {
+    this.renderer = renderer;
+    this.map = map;
+    const scene = (this.scene = new THREE.Scene());
+    scene.background = new THREE.Color('#a9c4dc');
+    scene.fog = new THREE.Fog('#b9cde0', 160, 1100);
+
+    // sky dome
+    const skyGeo = new THREE.SphereGeometry(3000, 32, 16);
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide, depthWrite: false, fog: false,
+      uniforms: { sun: { value: SUN_DIR } },
+      vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: `varying vec3 vDir; uniform vec3 sun;
+        void main(){
+          float h = vDir.y;
+          vec3 top = vec3(0.24,0.46,0.78), hor = vec3(0.78,0.85,0.92), low = vec3(0.62,0.66,0.7);
+          vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, low, min(1.0, -h * 4.0));
+          float s = max(0.0, dot(vDir, sun));
+          c += vec3(1.0,0.86,0.6) * (pow(s, 600.0) * 4.0 + pow(s, 12.0) * 0.25);
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    });
+    this.sky = new THREE.Mesh(skyGeo, skyMat);
+    this.sky.frustumCulled = false;
+    scene.add(this.sky);
+
+    // lights
+    scene.add(new THREE.HemisphereLight('#cfe3ff', '#5a5040', 1.05));
+    const sun = (this.sun = new THREE.DirectionalLight('#fff1d6', 2.4));
+    sun.position.copy(SUN_DIR).multiplyScalar(200);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    const sc = sun.shadow.camera;
+    sc.left = -70; sc.right = 70; sc.top = 70; sc.bottom = -70; sc.near = 10; sc.far = 500;
+    sun.shadow.bias = -0.0006;
+    sun.shadow.normalBias = 0.04;
+    scene.add(sun);
+    scene.add(sun.target);
+
+    this._ground();
+    this._boxes();
+    this._trees();
+    this._beacons();
+    this._ring();
+    this._ship();
+    this._pois();
+  }
+
+  _ground() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#7d8a5c';
+    g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 9000; i++) {
+      const v = Math.random();
+      g.fillStyle = v < 0.33 ? 'rgba(92,110,64,0.5)' : v < 0.66 ? 'rgba(140,140,95,0.45)' : 'rgba(110,98,72,0.4)';
+      const s = 1 + Math.random() * 5;
+      g.fillRect(Math.random() * 512, Math.random() * 512, s, s);
+    }
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle = 'rgba(120,105,80,0.18)';
+      g.beginPath();
+      g.arc(Math.random() * 512, Math.random() * 512, 20 + Math.random() * 60, 0, Math.PI * 2);
+      g.fill();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(160, 160);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), mat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+    // POI concrete pads
+    const padMat = patchPanels(new THREE.MeshStandardMaterial({ color: '#8e8a82', roughness: 0.9 }), 4, 0.25);
+    for (const p of this.map.pois) {
+      const pad = new THREE.Mesh(new THREE.CircleGeometry(p.r * 0.95, 48), padMat);
+      pad.rotation.x = -Math.PI / 2;
+      pad.position.set(p.x, 0.02, p.z);
+      pad.receiveShadow = true;
+      this.scene.add(pad);
+    }
+  }
+
+  _boxes() {
+    const groups = new Map();
+    for (const b of this.map.boxes) {
+      if (b.kind === 'tree') continue;
+      const key = b.kind + '|' + b.color;
+      let g = groups.get(key);
+      if (!g) groups.set(key, (g = { kind: b.kind, color: b.color, list: [] }));
+      g.list.push(b);
+    }
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+    for (const g of groups.values()) {
+      const rough = g.kind === 'container' ? 0.55 : g.kind === 'rock' ? 0.95 : 0.85;
+      const metal = g.kind === 'container' ? 0.35 : 0.0;
+      const scale = g.kind === 'container' ? 0.6 : g.kind === 'rock' ? 2.5 : g.kind === 'wall' ? 1.2 : 1;
+      const mat = patchPanels(new THREE.MeshStandardMaterial({ color: g.color, roughness: rough, metalness: metal }), scale, g.kind === 'rock' ? 0.08 : 0.2);
+      if (g.kind === 'beacon') { mat.emissive = new THREE.Color('#1c6dd0'); mat.emissiveIntensity = 0.4; }
+      if (g.kind === 'bin') { mat.emissive = new THREE.Color('#0a3a6a'); mat.emissiveIntensity = 0.3; }
+      const mesh = new THREE.InstancedMesh(geo, mat, g.list.length);
+      g.list.forEach((b, i) => {
+        s.set(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]);
+        p.set((b.max[0] + b.min[0]) / 2, (b.max[1] + b.min[1]) / 2, (b.max[2] + b.min[2]) / 2);
+        m4.compose(p, q, s);
+        mesh.setMatrixAt(i, m4);
+      });
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.computeBoundingSphere();
+      this.scene.add(mesh);
+    }
+  }
+
+  _trees() {
+    const trees = this.map.trees;
+    const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.32, 1, 6), new THREE.MeshStandardMaterial({ color: '#5b4330', roughness: 1 }), trees.length);
+    const leafGeo = new THREE.ConeGeometry(1, 1, 7);
+    const leaf1 = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#3f6b3a', roughness: 0.9, flatShading: true }), trees.length);
+    const leaf2 = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#4f8045', roughness: 0.9, flatShading: true }), trees.length);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+    trees.forEach((t, i) => {
+      const h = t.h;
+      s.set(1, h * 0.6, 1); p.set(t.x, h * 0.3, t.z); m4.compose(p, q, s); trunk.setMatrixAt(i, m4);
+      s.set(h * 0.32, h * 0.55, h * 0.32); p.set(t.x, h * 0.55, t.z); m4.compose(p, q, s); leaf1.setMatrixAt(i, m4);
+      s.set(h * 0.24, h * 0.42, h * 0.24); p.set(t.x, h * 0.82, t.z); m4.compose(p, q, s); leaf2.setMatrixAt(i, m4);
+    });
+    for (const m of [trunk, leaf1, leaf2]) { m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); this.scene.add(m); }
+  }
+
+  _beacons() {
+    const mat = new THREE.MeshBasicMaterial({ color: '#4fb3ff', transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+    for (const b of this.map.beacons) {
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 30, 6, 1, true), mat);
+      beam.position.set(b.x, 17, b.z);
+      this.scene.add(beam);
+      const dish = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.12, 6, 16), new THREE.MeshStandardMaterial({ color: '#2b7de0', emissive: '#2b7de0', emissiveIntensity: 1.2 }));
+      dish.rotation.x = Math.PI / 2;
+      dish.position.set(b.x, 2.8, b.z);
+      this.scene.add(dish);
+    }
+  }
+
+  _ring() {
+    const geo = new THREE.CylinderGeometry(1, 1, 1, 128, 1, true);
+    const mat = (this.ringMat = new THREE.ShaderMaterial({
+      transparent: true, side: THREE.DoubleSide, depthWrite: false, fog: false,
+      uniforms: { time: { value: 0 }, radius: { value: 1000 } },
+      vertexShader: `varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: `varying vec2 vUv; varying vec3 vW; uniform float time; uniform float radius;
+        void main(){
+          float a = atan(vW.z, vW.x) * radius;
+          float stripes = 0.5 + 0.5 * sin(a * 0.08 + vW.y * 0.06 - time * 2.0);
+          float d = distance(cameraPosition.xz, vW.xz);
+          float near = 1.0 - smoothstep(30.0, 260.0, d);
+          float edge = smoothstep(0.0, 0.04, vUv.y) * (1.0 - smoothstep(0.45, 0.9, vUv.y));
+          vec3 col = mix(vec3(1.0,0.32,0.1), vec3(1.0,0.6,0.25), stripes);
+          float alpha = (0.05 + near * (0.28 + stripes * 0.16)) * edge;
+          gl_FragColor = vec4(col, alpha);
+        }`,
+    }));
+    this.ringMesh = new THREE.Mesh(geo, mat);
+    this.ringMesh.frustumCulled = false;
+    this.ringMesh.renderOrder = 5;
+    this.scene.add(this.ringMesh);
+    // next-ring marker on the ground (white line)
+    const nGeo = new THREE.RingGeometry(0.995, 1, 128);
+    this.nextRing = new THREE.Mesh(nGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
+    this.nextRing.rotation.x = -Math.PI / 2;
+    this.nextRing.position.y = 0.3;
+    this.scene.add(this.nextRing);
+  }
+
+  _ship() {
+    const g = new THREE.Group();
+    const hull = new THREE.MeshStandardMaterial({ color: '#4a5560', metalness: 0.6, roughness: 0.4 });
+    const accent = new THREE.MeshStandardMaterial({ color: '#ff7a1a', emissive: '#ff5a00', emissiveIntensity: 0.6 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(14, 6, 60), hull);
+    g.add(body);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 14), hull);
+    wing.position.set(0, 0, 4);
+    g.add(wing);
+    for (const x of [-26, -12, 12, 26]) {
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.6, 9, 10), hull);
+      eng.rotation.x = Math.PI / 2;
+      eng.position.set(x, -2, 6);
+      g.add(eng);
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(2.1, 12), accent);
+      glow.position.set(x, -2, 10.6);
+      g.add(glow);
+    }
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(14.2, 1, 40), accent);
+    stripe.position.y = 1;
+    g.add(stripe);
+    g.visible = false;
+    this.ship = g;
+    this.scene.add(g);
+  }
+
+  _pois() {
+    // floating POI name labels are drawn by the HUD/map; add tall landmark masts for readability
+    const mat = new THREE.MeshStandardMaterial({ color: '#444a52', metalness: 0.5, roughness: 0.5 });
+    const light = new THREE.MeshBasicMaterial({ color: '#ff3b3b' });
+    for (const p of this.map.pois) {
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 40, 6), mat);
+      mast.position.set(p.x, 20, p.z);
+      mast.castShadow = true;
+      this.scene.add(mast);
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), light);
+      l.position.set(p.x, 40.5, p.z);
+      this.scene.add(l);
+    }
+  }
+
+  update(dt, time, camPos, ring, ship) {
+    this.ringMat.uniforms.time.value = time;
+    this.ringMesh.visible = !!ring && ring.r < 3000;
+    if (ring) {
+      this.ringMesh.scale.set(ring.r, 700, ring.r);
+      this.ringMesh.position.set(ring.cx, 300, ring.cz);
+      this.ringMat.uniforms.radius.value = ring.r;
+      this.nextRing.visible = ring.st === 'wait' || ring.st === 'close';
+      this.nextRing.scale.set(Math.max(1, ring.nr), Math.max(1, ring.nr), 1);
+      this.nextRing.position.set(ring.nx, 0.3, ring.nz);
+    }
+    if (ship) {
+      this.ship.visible = true;
+      this.ship.position.set(ship.x, ship.y + 8, ship.z);
+      this.ship.rotation.y = Math.atan2(ship.dx, ship.dz);
+    } else this.ship.visible = false;
+    // shadow camera follows the viewer
+    this.sun.position.set(camPos.x + SUN_DIR.x * 200, camPos.y + SUN_DIR.y * 200, camPos.z + SUN_DIR.z * 200);
+    this.sun.target.position.set(camPos.x, camPos.y, camPos.z);
+    this.sky.position.copy(camPos);
+  }
+}
+
+export { patchPanels };

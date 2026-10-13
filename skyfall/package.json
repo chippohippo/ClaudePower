@@ -1,0 +1,23 @@
+{
+  "name": "skyfall",
+  "version": "0.1.0",
+  "description": "SKYFALL — browser battle royale with Apex-style movement, gunplay and legends",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "server": "node server/index.js",
+    "start": "vite build && node server/index.js",
+    "sim-test": "node tools/simtest.js"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "socket.io": "4.8.1",
+    "socket.io-client": "4.8.1",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.11"
+  }
+}

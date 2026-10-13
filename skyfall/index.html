@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SKYFALL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/client/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="dmgnums"></div>
+
+  <!-- ========================= HUD ========================= -->
+  <div id="hud" class="hidden">
+    <div id="vignette"></div>
+    <div id="dmgflash"></div>
+    <div id="tint"></div>
+    <div id="scope"><div class="reticle"></div></div>
+
+    <div id="crosshair">
+      <div class="ch t"></div><div class="ch b"></div><div class="ch l"></div><div class="ch r"></div><div class="dot"></div>
+    </div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmgdirs"></div>
+
+    <div id="compass"><div id="compass-strip"></div><div class="tick"></div></div>
+
+    <div id="topleft">
+      <canvas id="minimap" width="200" height="200"></canvas>
+      <div id="ringinfo"><span id="ring-label">RING 1</span> <span id="ring-time">--</span></div>
+      <div id="counts"><span id="alive">100</span> <small>ALIVE</small> · <span id="squadsleft">33</span> <small>SQUADS</small> · <span id="kills">0</span> <small>KILLS</small></div>
+    </div>
+
+    <div id="killfeed"></div>
+    <div id="announce"></div>
+    <div id="toasts"></div>
+
+    <div id="squad"></div>
+
+    <div id="player">
+      <div id="legendname"></div>
+      <div class="bars">
+        <div id="shieldbar" class="bar"><div class="segs"></div><div class="fill"></div></div>
+        <div id="hpbar" class="bar"><div class="fill"></div></div>
+      </div>
+      <div id="abilities">
+        <div class="abil" id="ab-tac"><div class="cd"></div><span class="key">Q</span><span class="nm"></span><span class="t"></span></div>
+        <div class="abil ult" id="ab-ult"><div class="cd"></div><span class="key">Z</span><span class="nm"></span><span class="t"></span></div>
+      </div>
+      <div id="fuel"><div></div></div>
+    </div>
+
+    <div id="weapons">
+      <div class="wslot" id="w0"><span class="nm"></span><span class="ammo"></span></div>
+      <div class="wslot" id="w1"><span class="nm"></span><span class="ammo"></span></div>
+      <div id="consumables"></div>
+    </div>
+
+    <div id="prompt"></div>
+    <div id="progress"><div class="label"></div><div class="track"><div class="fill"></div></div></div>
+    <div id="center-msg"></div>
+    <div id="heartbeat"></div>
+    <div id="netstats"></div>
+  </div>
+
+  <div id="bigmap" class="hidden"><canvas width="900" height="900"></canvas><div class="legend">M — close map · click to ping</div></div>
+
+  <div id="inventory" class="panel hidden">
+    <h2>INVENTORY <small>[TAB] close · right-click to drop</small></h2>
+    <div class="inv-grid">
+      <div id="inv-weapons"></div>
+      <div id="inv-gear"></div>
+      <div id="inv-bag"></div>
+    </div>
+  </div>
+
+  <div id="deathbox" class="panel hidden">
+    <h2 id="db-title">DEATH BOX <small>click to take · [E]/[ESC] close</small></h2>
+    <div id="db-items"></div>
+  </div>
+
+  <div id="spectate" class="hidden">
+    <div class="title">SPECTATING</div>
+    <div class="who"></div>
+    <div class="hint">[V] next player · [ESC] menu</div>
+  </div>
+
+  <div id="endscreen" class="hidden">
+    <div class="place"></div>
+    <div class="sub"></div>
+    <div class="stats"></div>
+    <button id="btn-back">BACK TO LOBBY</button>
+  </div>
+
+  <div id="pause" class="hidden">
+    <div class="panel">
+      <h2>PAUSED</h2>
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-settings2">SETTINGS</button>
+      <button id="btn-leave">LEAVE MATCH</button>
+    </div>
+  </div>
+
+  <!-- ========================= MENU ========================= -->
+  <div id="menu">
+    <div id="menu-bg"></div>
+    <div class="logo">SKY<span>FALL</span></div>
+    <div class="tagline">BATTLE ROYALE · 100 PLAYERS · MOVEMENT IS EVERYTHING</div>
+    <div id="menu-main">
+      <div class="col left">
+        <label>CALLSIGN <input id="name" maxlength="16" /></label>
+        <div class="modes">
+          <button class="mode active" data-mode="trios">TRIOS<small>squads of 3</small></button>
+          <button class="mode" data-mode="sixes">SIXES<small>squads of 6</small></button>
+        </div>
+        <button id="btn-play" class="big">PLAY <small>solo queue · bots fill</small></button>
+        <div class="party">
+          <div class="party-title">PLAY WITH FRIENDS <small id="server-status">checking server…</small></div>
+          <div class="row"><button id="btn-create">CREATE PARTY</button><input id="party-code" placeholder="CODE" maxlength="5" /><button id="btn-join">JOIN</button></div>
+          <div id="party-panel" class="hidden">
+            <div>Party <b id="party-id"></b> <small>share this code</small></div>
+            <div id="party-members"></div>
+            <button id="btn-party-start" class="big">START MATCH</button>
+            <button id="btn-party-leave">LEAVE</button>
+          </div>
+        </div>
+        <div class="row small">
+          <button id="btn-settings">SETTINGS</button>
+          <button id="btn-controls">CONTROLS</button>
+          <button id="btn-range">FIRING RANGE</button>
+        </div>
+      </div>
+      <div class="col right">
+        <div class="legend-title">SELECT LEGEND</div>
+        <div id="legend-grid"></div>
+        <div id="legend-detail"></div>
+      </div>
+    </div>
+    <div id="loading" class="hidden"><div class="spinner"></div><div class="txt">SYNTHESISING AUDIO…</div></div>
+  </div>
+
+  <div id="settings" class="panel hidden">
+    <h2>SETTINGS</h2>
+    <label>Mouse sensitivity <input type="range" id="s-sens" min="0.3" max="6" step="0.05" /><span></span></label>
+    <label>ADS sensitivity multiplier <input type="range" id="s-adssens" min="0.3" max="2" step="0.05" /><span></span></label>
+    <label>Field of view <input type="range" id="s-fov" min="70" max="110" step="1" /><span></span></label>
+    <label>Master volume <input type="range" id="s-vol" min="0" max="1" step="0.01" /><span></span></label>
+    <label class="cb"><input type="checkbox" id="s-toggleads" /> Toggle ADS</label>
+    <label class="cb"><input type="checkbox" id="s-invert" /> Invert Y</label>
+    <label class="cb"><input type="checkbox" id="s-fps" /> Show FPS / ping</label>
+    <label>Graphics quality <select id="s-quality"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+    <button id="btn-settings-close">DONE</button>
+  </div>
+
+  <div id="controls" class="panel hidden">
+    <h2>CONTROLS & MOVEMENT TECH</h2>
+    <div class="cols">
+      <div>
+        <p><b>WASD</b> move · <b>Mouse</b> aim · <b>LMB</b> fire · <b>RMB</b> ADS</p>
+        <p><b>Shift</b> sprint · <b>Space</b> jump · <b>Ctrl / C</b> crouch / slide</p>
+        <p><b>R</b> reload · <b>E</b> interact (tap pick up, hold revive / respawn)</p>
+        <p><b>Q</b> tactical · <b>Z</b> ultimate · <b>G</b> grenade</p>
+        <p><b>1 / 2 / wheel</b> weapons · <b>3</b> holster</p>
+        <p><b>H</b> best heal · <b>4</b> shields · <b>5</b> health</p>
+        <p><b>Tab</b> inventory · <b>M</b> map · <b>X / MMB</b> ping</p>
+      </div>
+      <div>
+        <p><b>Slide</b>: sprint then crouch. Boost has a 2s cooldown.</p>
+        <p><b>Slide jump / slide hop</b>: jump out of a slide and hold crouch as you land to chain slides with no speed loss.</p>
+        <p><b>Bunny hop</b>: jump on the exact landing frame — friction is skipped.</p>
+        <p><b>Tap strafe / air strafe</b>: in the air, tap a strafe key while turning the mouse to redirect momentum.</p>
+        <p><b>Wall bounce</b>: press jump just as you touch a wall in the air.</p>
+        <p><b>Climb / mantle</b>: jump into a wall and hold W; you'll climb then mantle any ledge.</p>
+        <p><b>Superglide</b>: at the very end of a mantle, press jump + crouch on the same frame.</p>
+        <p><b>Skydive</b>: look down to dive faster, look level to glide further.</p>
+      </div>
+    </div>
+    <button id="btn-controls-close">GOT IT</button>
+  </div>
+
+  <script type="module" src="/src/client/main.js"></script>
+</body>
+</html>
