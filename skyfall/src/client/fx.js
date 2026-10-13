@@ -178,32 +178,159 @@ export class FX {
   // ---- impacts / hits -----------------------------------------------------
   impact(x, y, z, nx = 0, ny = 1, nz = 0) {
     tmpC.set('#ffcf7a');
-    for (let i = 0; i < 6; i++) {
-      this.sparks.emit(x, y, z, nx * 3 + (Math.random() - 0.5) * 5, ny * 3 + Math.random() * 3, nz * 3 + (Math.random() - 0.5) * 5, tmpC, 0.08, 0.25 + Math.random() * 0.2, 14);
+    for (let i = 0; i < 7; i++) {
+      this.sparks.emit(x, y, z, nx * 4 + (Math.random() - 0.5) * 6, ny * 4 + Math.random() * 3, nz * 4 + (Math.random() - 0.5) * 6, tmpC, 0.07, 0.2 + Math.random() * 0.2, 14);
+    }
+    // occasional ricochet streak
+    if (Math.random() < 0.2) {
+      tmpC.set('#fff0c0');
+      const rx = nx * 18 + (Math.random() - 0.5) * 20, ry = ny * 18 + Math.random() * 8, rz = nz * 18 + (Math.random() - 0.5) * 20;
+      for (let k = 0; k < 4; k++) this.sparks.emit(x + rx * k * 0.006, y + ry * k * 0.006, z + rz * k * 0.006, rx, ry, rz, tmpC, 0.09 - k * 0.015, 0.12, 9);
     }
     tmpC.set('#9a9080');
-    this.smoke.emit(x + nx * 0.1, y + ny * 0.1, z + nz * 0.1, nx * 0.6, 0.4 + ny * 0.5, nz * 0.6, tmpC, 0.5, 0.7, -0.2, 1.4);
+    this.smoke.emit(x + nx * 0.1, y + ny * 0.1, z + nz * 0.1, nx * 0.6, 0.4 + ny * 0.5, nz * 0.6, tmpC, 0.45, 0.8, -0.2, 1.4);
+    this.decal(x, y, z, nx, ny, nz);
+  }
+
+  // bullet hole decals (pooled, fade out)
+  decal(x, y, z, nx, ny, nz) {
+    if (!this.decals) {
+      this.decals = [];
+      this.decalIdx = 0;
+      const c = document.createElement('canvas');
+      c.width = c.height = 32;
+      const g = c.getContext('2d');
+      const grd = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grd.addColorStop(0, 'rgba(10,8,6,1)'); grd.addColorStop(0.35, 'rgba(30,26,22,0.9)'); grd.addColorStop(0.6, 'rgba(60,55,50,0.35)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grd; g.fillRect(0, 0, 32, 32);
+      this.decalMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+      this.decalGeo = new THREE.PlaneGeometry(0.16, 0.16);
+      for (let i = 0; i < 160; i++) { const m = new THREE.Mesh(this.decalGeo, this.decalMat); m.visible = false; this.scene.add(m); this.decals.push(m); }
+    }
+    const m = this.decals[this.decalIdx];
+    this.decalIdx = (this.decalIdx + 1) % this.decals.length;
+    m.visible = true;
+    m.position.set(x + nx * 0.01, y + ny * 0.01, z + nz * 0.01);
+    m.lookAt(x + nx, y + ny, z + nz);
+    m.rotateZ(Math.random() * Math.PI);
+    const sc = 0.7 + Math.random() * 0.6;
+    m.scale.set(sc, sc, 1);
+  }
+
+  dust(x, y, z, amt = 1) {
+    for (let i = 0; i < 10 * amt; i++) {
+      tmpC.setHSL(0.09, 0.15, 0.45 + Math.random() * 0.1);
+      const a = Math.random() * Math.PI * 2;
+      this.smoke.emit(x + Math.cos(a) * 0.3, y + 0.1, z + Math.sin(a) * 0.3, Math.cos(a) * 2.5 * amt, 0.4 + Math.random() * 0.6, Math.sin(a) * 2.5 * amt, tmpC, 0.6 * amt, 0.6 + Math.random() * 0.4, -0.1, 1.6);
+    }
+  }
+
+  // world-space muzzle flash for other players' shots
+  muzzleFlashWorld(o, d, w) {
+    if (!this.mflash) {
+      this.mflash = [];
+      for (let i = 0; i < 16; i++) {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: SOFT, color: '#ffd28a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+        sp.visible = false;
+        this.scene.add(sp);
+        this.mflash.push({ sp, t: 0 });
+      }
+      this.mfi = 0;
+    }
+    const f = this.mflash[this.mfi];
+    this.mfi = (this.mfi + 1) % this.mflash.length;
+    f.sp.position.set(o.x + d[0] * 0.8, o.y + d[1] * 0.8 - 0.15, o.z + d[2] * 0.8);
+    const big = w.pellets || w.cls === 'Sniper' ? 1.6 : 1;
+    f.sp.scale.set(0.9 * big, 0.9 * big, 1);
+    f.sp.material.color.set(w.sound.zap ? '#c6ff7a' : '#ffd28a');
+    f.sp.visible = true;
+    f.t = 0.05;
+    this.flashLight(o.x, o.y, o.z, 5, 0.05, w.sound.zap ? '#b7ff6a' : '#ffbb66');
+  }
+
+  // Weighty death: the body is detached, thrown along the killing blow, tumbles and settles.
+  ragdoll(avatar, ev) {
+    const body = avatar.root.clone(true);
+    body.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    body.remove(...body.children.filter((c) => c.isSprite));
+    this.scene.add(body);
+    let dx = body.position.x - (ev.ax ?? body.position.x), dz = body.position.z - (ev.az ?? body.position.z);
+    const l = Math.hypot(dx, dz) || 1;
+    dx /= l; dz /= l;
+    if (!isFinite(dx)) { dx = 0; dz = 1; }
+    this.ragdolls = this.ragdolls || [];
+    this.ragdolls.push({
+      obj: body, vx: dx * 4 + (Math.random() - 0.5), vy: 3.5, vz: dz * 4 + (Math.random() - 0.5),
+      ax: -dz * 6, az: dx * 6, ay: (Math.random() - 0.5) * 4, t: 0, settled: false, ground: body.position.y,
+    });
+    avatar.root.visible = false;
+    avatar.dead = true;
+  }
+
+  deathBurst(x, y, z, mine) {
+    tmpC.set(mine ? '#ff3b3b' : '#ff7a5a');
+    for (let i = 0; i < 36; i++) {
+      const a = Math.random() * Math.PI * 2, e = Math.random();
+      this.sparks.emit(x, y, z, Math.cos(a) * 5 * (1 - e), e * 7, Math.sin(a) * 5 * (1 - e), tmpC, 0.16, 0.7, 6);
+    }
+    tmpC.set('#ffffff');
+    for (let i = 0; i < 14; i++) this.sparks.emit(x + (Math.random() - 0.5), y - 0.5 + Math.random(), z + (Math.random() - 0.5), 0, 2 + Math.random() * 2, 0, tmpC, 0.1, 1.2, -1);
+    this.flashLight(x, y, z, mine ? 25 : 12, 0.25, '#ff4a2a');
+  }
+
+  _updateRagdolls(dt) {
+    if (!this.ragdolls) return;
+    for (let i = this.ragdolls.length - 1; i >= 0; i--) {
+      const r = this.ragdolls[i], o = r.obj;
+      r.t += dt;
+      if (!r.settled) {
+        r.vy -= 19 * dt;
+        o.position.x += r.vx * dt; o.position.y += r.vy * dt; o.position.z += r.vz * dt;
+        o.rotation.x += r.ax * dt * 0.3; o.rotation.z += r.az * dt * 0.3; o.rotation.y += r.ay * dt;
+        const g = this.world.groundAt(o.position.x, o.position.z, o.position.y + 1, this.tmpBoxes);
+        if (o.position.y < g) {
+          o.position.y = g;
+          if (Math.abs(r.vy) > 3) { r.vy = -r.vy * 0.3; r.vx *= 0.5; r.vz *= 0.5; this.dust(o.position.x, g, o.position.z, 0.8); }
+          else r.settled = true;
+        }
+      } else {
+        // collapse flat
+        o.rotation.x += (-Math.PI / 2 - o.rotation.x) * Math.min(1, dt * 6);
+        o.rotation.z *= 1 - Math.min(1, dt * 6);
+      }
+      if (r.t > 5) o.position.y -= dt * 0.6; // sink into the ground
+      if (r.t > 7) { this.scene.remove(o); this.ragdolls.splice(i, 1); }
+    }
   }
 
   hitBurst(x, y, z, shieldTier, onShield, head) {
     const col = onShield ? SHIELD_COLORS[shieldTier] || '#ffffff' : head ? '#ffd23f' : '#ff3030';
     tmpC.set(col);
-    const n = head ? 16 : 10;
+    const n = head ? 18 : 11;
     for (let i = 0; i < n; i++) {
-      this.sparks.emit(x, y, z, (Math.random() - 0.5) * 7, Math.random() * 5, (Math.random() - 0.5) * 7, tmpC, onShield ? 0.12 : 0.1, 0.25 + Math.random() * 0.15, onShield ? 4 : 12);
+      this.sparks.emit(x, y, z, (Math.random() - 0.5) * 8, Math.random() * 5, (Math.random() - 0.5) * 8, tmpC, onShield ? 0.13 : 0.1, 0.25 + Math.random() * 0.15, onShield ? 4 : 12);
     }
+    // a bright flare at the impact point so hits read even at range
+    this.sparks.emit(x, y, z, 0, 0, 0, tmpC, onShield ? 0.7 : 0.45, 0.08, 0);
     if (!onShield) {
-      tmpC.set('#a01010');
-      this.smoke.emit(x, y, z, 0, 0.2, 0, tmpC, 0.35, 0.4, 0, 1.2);
+      tmpC.set('#8a0c0c');
+      for (let i = 0; i < 3; i++) this.smoke.emit(x, y, z, (Math.random() - 0.5) * 1.5, 0.3, (Math.random() - 0.5) * 1.5, tmpC, 0.3, 0.45, 2, 1.2);
     }
   }
 
   shieldBreak(x, y, z, tier) {
     tmpC.set(SHIELD_COLORS[tier] || '#fff');
-    for (let i = 0; i < 40; i++) {
+    // expanding ring of shards + bright pop
+    for (let i = 0; i < 60; i++) {
       const a = Math.random() * Math.PI * 2, e = (Math.random() - 0.3) * 2;
-      this.sparks.emit(x, y, z, Math.cos(a) * 6, e * 4, Math.sin(a) * 6, tmpC, 0.16, 0.6, 6);
+      this.sparks.emit(x, y, z, Math.cos(a) * 7, e * 4, Math.sin(a) * 7, tmpC, 0.18, 0.7, 6);
     }
+    for (let i = 0; i < 32; i++) {
+      const a = (i / 32) * Math.PI * 2;
+      this.sparks.emit(x, y, z, Math.cos(a) * 10, 0, Math.sin(a) * 10, tmpC, 0.22, 0.25, 0);
+    }
+    this.sparks.emit(x, y, z, 0, 0, 0, tmpC, 2.2, 0.15, 0);
+    this.flashLight(x, y, z, 18, 0.2, SHIELD_COLORS[tier] || '#fff');
   }
 
   explosion(x, y, z, r = 5) {
@@ -246,7 +373,7 @@ export class FX {
   }
 
   // ---- damage numbers -----------------------------------------------------
-  damageNumber(x, y, z, dmg, color, head, key) {
+  damageNumber(x, y, z, dmg, color, head, key, shieldStyle) {
     // merge rapid hits on the same target (shotgun pellets, fast SMG bursts) into one number
     if (key !== undefined) {
       const ex = this.dmgNums.find((d) => d.key === key && d.t < 0.12);
@@ -260,7 +387,7 @@ export class FX {
       }
     }
     const el = document.createElement('div');
-    el.className = 'dmgnum' + (head ? ' head' : '');
+    el.className = 'dmgnum' + (head ? ' head' : '') + (shieldStyle ? ' crack' : '');
     el.textContent = dmg;
     el.style.color = color;
     this.dmgLayer.appendChild(el);
@@ -489,9 +616,13 @@ export class FX {
     }
     this._updateEntities(dt, time);
     this._updateDmg(dt);
+    this._updateRagdolls(dt);
+    if (this.mflash) for (const f of this.mflash) { if (f.t > 0) { f.t -= dt; if (f.t <= 0) f.sp.visible = false; } }
   }
 
   clear() {
+    if (this.ragdolls) for (const r of this.ragdolls) this.scene.remove(r.obj);
+    this.ragdolls = [];
     for (const v of this.entityViews.values()) { this.scene.remove(v.obj); if (v.extra) this.scene.remove(v.extra); }
     this.entityViews.clear();
     for (const d of this.dmgNums) d.el.remove();

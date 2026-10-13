@@ -194,3 +194,28 @@ input, select { font-family: inherit; background: rgba(0,0,0,0.4); color: var(--
   .mate { padding: 3px 8px; width: 200px; }
   .abil { width: 60px; height: 60px; }
 }
+
+/* ---- juice pass: hit feedback ---- */
+#edgeflash { position: absolute; inset: 0; pointer-events: none; opacity: 0; --ec: #ff2a2a;
+  background: radial-gradient(ellipse at center, transparent 52%, color-mix(in srgb, var(--ec) 55%, transparent) 100%); mix-blend-mode: screen; }
+#hitmarker.pop { animation: hmpop 0.16s ease-out; }
+@keyframes hmpop { 0% { transform: scale(1.7); } 100% { transform: scale(1); } }
+#hitmarker.break i { background: #7fd4ff; height: 13px; }
+#hitmarker.kill i { box-shadow: 0 0 6px #ff2a2a, 0 0 2px #000; }
+.dmgnum.crack { text-shadow: 0 0 6px currentColor, 0 1px 2px #000; }
+#killconfirm { position: absolute; left: 50%; top: 27%; transform: translateX(-50%); text-align: center; opacity: 0; pointer-events: none; }
+#killconfirm.show { animation: kcin 2.1s ease-out forwards; }
+#killconfirm .skull { font-size: 38px; color: #ff2a2a; text-shadow: 0 0 18px rgba(255,40,40,0.8); }
+#killconfirm .txt { font-size: 22px; font-weight: 700; letter-spacing: 3px; text-shadow: 0 2px 6px #000; }
+#killconfirm .txt b { color: #ff5a3a; }
+#killconfirm .streak { font-size: 30px; font-weight: 700; letter-spacing: 5px; color: #ffd23f; text-shadow: 0 0 16px rgba(255,210,63,0.6); }
+@keyframes kcin { 0% { opacity: 0; transform: translateX(-50%) scale(1.6); } 8% { opacity: 1; transform: translateX(-50%) scale(0.95); } 14% { transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-12px); } }
+#compass-cues { position: absolute; inset: 0; }
+.gcue { position: absolute; left: 0; bottom: 2px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 9px solid #ff3b3b; margin-left: -6px; filter: drop-shadow(0 0 3px rgba(255,40,40,0.8)); }
+.kf { display: flex; align-items: center; gap: 5px; border-left: 3px solid transparent; transition: opacity 0.5s, transform 0.5s; }
+.kf.me { border-left-color: var(--accent); background: rgba(40, 18, 8, 0.85); }
+.kf.out { opacity: 0; transform: translateX(20px); }
+.kf .dot { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); }
+.kf .ki { font-style: normal; margin-right: 6px; }
+.kf .ki.kill { color: #ff3b3b; }
+.kf .ki.knock { color: #ffb347; }

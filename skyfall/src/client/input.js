@@ -19,6 +19,7 @@ export const settings = {
   invertY: false,
   showFps: true,
   quality: 'high',
+  shake: 1, // camera shake / FOV punch intensity 0..2
 };
 
 try {

@@ -7,6 +7,7 @@ import { LEGENDS } from '../shared/legends.js';
 import { WEAPONS, magSize } from '../shared/weapons.js';
 import { RARITY, itemName, itemRarity, CONSUMABLES } from '../shared/items.js';
 import { MAP_HALF } from '../shared/constants.js';
+import { FEEL } from './tuning.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -50,24 +51,67 @@ export class HUD {
   // ---- events ------------------------------------------------------------
   hitmarker(kind) {
     const hm = this.el.hm;
-    hm.className = kind === 'kill' ? 'kill' : kind === 'head' ? 'head' : '';
-    this.hmT = kind === 'kill' ? 0.45 : 0.22;
+    // restart the CSS pop animation every hit
+    hm.className = '';
+    void hm.offsetWidth;
+    hm.className = 'pop ' + (kind === 'kill' ? 'kill' : kind === 'head' ? 'head' : kind === 'break' ? 'break' : '');
+    this.hmT = kind === 'kill' ? FEEL.hit.killMarkerTime : FEEL.hit.markerTime;
   }
 
-  damageFrom(angle) {
+  damageFrom(angle, color = '#ff2a2a') {
     const d = document.createElement('div');
     d.className = 'dmgdir';
+    d.style.borderTopColor = color;
     this.el.dirs.appendChild(d);
-    this.dirs.push({ el: d, angle, t: 1.2 });
+    this.dirs.push({ el: d, angle, t: 1.3 });
     this.flashT = 0.25;
   }
 
-  killfeed(html) {
+  // Coloured flash on the screen edges (damage taken, shield break, kills).
+  edgeFlash(color, strength) {
+    const e = $('#edgeflash');
+    e.style.setProperty('--ec', color);
+    e.style.transition = 'none';
+    e.style.opacity = Math.min(1, strength);
+    void e.offsetWidth;
+    e.style.transition = 'opacity 0.45s ease-out';
+    e.style.opacity = 0;
+  }
+
+  killConfirm(name) {
+    const now = performance.now();
+    this.streak = now - (this.lastKillAt || 0) < 8000 ? (this.streak || 1) + 1 : 1;
+    this.lastKillAt = now;
+    const k = $('#killconfirm');
+    k.innerHTML = `<div class="skull">✖</div><div class="txt">ELIMINATED <b>${name}</b></div>${this.streak > 1 ? `<div class="streak">${['', '', 'DOUBLE', 'TRIPLE', 'QUAD', 'SQUAD WIPE'][Math.min(5, this.streak)] || this.streak + 'X'} KILL</div>` : ''}`;
+    k.classList.remove('show');
+    void k.offsetWidth;
+    k.classList.add('show');
+  }
+
+  // Third-party cue: distant enemy gunfire shown on the compass.
+  gunfireCue(angle, dist) {
+    this.cues = this.cues || [];
+    const near = this.cues.find((c) => Math.abs(((c.angle - angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.15);
+    if (near) { near.t = 3; near.dist = dist; return; }
+    if (this.cues.length > 8) return;
+    const el = document.createElement('div');
+    el.className = 'gcue';
+    $('#compass-cues').appendChild(el);
+    this.cues.push({ angle, dist, t: 3, el });
+  }
+
+  killfeed(ev, kind, g) {
+    const nm = (id) => (id ? g._name(id) : 'RING');
+    const col = (id) => { const m = g.meta.get(id); return m ? LEGENDS[m.legend].color : '#888'; };
+    const cls = (id) => (id === g.myId ? 'mine' : g._isMate(id) ? 'sq' : '');
+    const icon = kind === 'knock' ? '<i class="ki knock">⤓</i>' : '<i class="ki kill">✖</i>';
     const d = document.createElement('div');
-    d.className = 'kf';
-    d.innerHTML = html;
+    d.className = 'kf' + (ev.a === g.myId || ev.v === g.myId ? ' me' : '');
+    d.innerHTML = `<span class="dot" style="background:${col(ev.a)}"></span><span class="${cls(ev.a)}">${nm(ev.a)}</span><span class="w">${icon}${ev.w || ''}</span><span class="dot" style="background:${col(ev.v)}"></span><span class="${cls(ev.v)}">${nm(ev.v)}</span>`;
     this.el.killfeed.prepend(d);
     while (this.el.killfeed.children.length > 6) this.el.killfeed.lastChild.remove();
+    setTimeout(() => d.classList.add('out'), 6500);
     setTimeout(() => d.remove(), 7000);
   }
 
@@ -102,6 +146,17 @@ export class HUD {
       const rel = d.angle - g.viewYaw;
       d.el.style.transform = `rotate(${(-rel * 180) / Math.PI}deg)`;
       d.el.style.opacity = Math.min(1, d.t);
+    }
+    if (this.cues) {
+      for (let i = this.cues.length - 1; i >= 0; i--) {
+        const c = this.cues[i];
+        c.t -= dt;
+        if (c.t <= 0) { c.el.remove(); this.cues.splice(i, 1); continue; }
+        let rel = ((-(c.angle - g.viewYaw) * 180) / Math.PI + 540) % 360 - 180; // degrees right of center
+        c.el.style.display = Math.abs(rel) > 125 ? 'none' : '';
+        c.el.style.transform = `translateX(${260 + rel * 2}px) scale(${c.dist < 150 ? 1.2 : 0.85})`;
+        c.el.style.opacity = Math.min(1, c.t);
+      }
     }
     this.announceT -= dt;
     if (this.announceT <= 0) el.announce.style.opacity = 0;

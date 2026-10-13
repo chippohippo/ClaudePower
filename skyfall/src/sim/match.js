@@ -634,7 +634,7 @@ export class Match {
     }
     v.lastCombat = this.time;
     const evt = {
-      e: 'hit', a: a ? a.id : 0, v: v.id, dmg: dealt, sd: shieldDmg, part: info.part || 'body', brk: broke ? 1 : 0,
+      e: 'hit', a: a ? a.id : 0, v: v.id, dmg: dealt, sd: shieldDmg, rs: Math.round(v.shield), part: info.part || 'body', brk: broke ? 1 : 0,
       tier: v.armor, x: info.x ?? v.ms.x, y: info.y ?? v.ms.y + 1.2, z: info.z ?? v.ms.z, src: info.src || 0,
       to: a ? [a.id, v.id] : [v.id], ax: a ? a.ms.x : 0, az: a ? a.ms.z : 0,
     };

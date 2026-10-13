@@ -41,7 +41,7 @@ export function createMoveState(x = 0, y = 0, z = 0) {
 }
 
 export const MEV = {
-  JUMP: 1, LAND: 2, SLIDE: 4, WALLJUMP: 8, MANTLE: 16, SUPERGLIDE: 32, CLIMB: 64, STEP: 128, HARDLAND: 256, JET: 512, PAD: 1024,
+  JUMP: 1, LAND: 2, SLIDE: 4, WALLJUMP: 8, MANTLE: 16, SUPERGLIDE: 32, CLIMB: 64, STEP: 128, HARDLAND: 256, JET: 512, PAD: 1024, ZIP: 2048,
 };
 
 // Copies every field (used for snapshots/reconciliation).

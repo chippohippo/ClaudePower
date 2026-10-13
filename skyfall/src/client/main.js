@@ -31,6 +31,7 @@ const input = new Input(canvas);
 const hud = new HUD();
 const app = { renderer, input, hud, game: null, transport: null, socket: null };
 window.__skyfall = app;
+app.audio = audio;
 
 // ------------------------------------------------------------------ menu state
 const state = {

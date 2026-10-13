@@ -166,10 +166,14 @@ export class Avatar {
     if (mantle) {
       this.armL.rotation.set(-2.8, 0, 0.2); this.armR.rotation.set(-2.8, 0, -0.2);
     }
+    this.knockT = (this.knockT ?? 9) + dt;
     if (downed) {
-      body.rotation.x = -1.35;
-      body.position.y = 0.35;
-      body.position.z = 0.6;
+      // stagger then collapse over ~0.45 s when freshly knocked
+      const k = Math.min(1, this.knockT / 0.45), e = k * k * (3 - 2 * k);
+      body.rotation.x = -1.35 * e + Math.sin(k * Math.PI) * 0.25;
+      body.rotation.z = Math.sin(k * Math.PI) * 0.3;
+      body.position.y = 0.35 * e;
+      body.position.z = 0.6 * e;
       this.legL.rotation.x = sw * 0.4; this.legR.rotation.x = -sw * 0.4;
       this.armL.rotation.set(-2.6 + sw * 0.5, 0, 0.2); this.armR.rotation.set(-2.6 - sw * 0.5, 0, -0.2);
     }

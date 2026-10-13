@@ -20,6 +20,11 @@ import { FX } from './fx.js';
 import { LootView } from './lootview.js';
 import { audio } from './audio.js';
 import { settings } from './input.js';
+import { FEEL } from './tuning.js';
+
+// shield hits ring lower as the armor tier rises (white → red)
+const SHIELD_PITCH = [1, 1.12, 1.0, 0.9, 0.8];
+const SURFACE = { container: 'metal', bin: 'metal', beacon: 'metal', floor: 'concrete', roof: 'concrete', stair: 'concrete', wall: 'concrete', rock: 'concrete', crate: 'concrete', tree: 'dirt' };
 
 const PELLET_PATTERN = [[0, 0], [1, 0], [0.5, 0.87], [-0.5, 0.87], [-1, 0], [-0.5, -0.87], [0.5, -0.87], [0.45, 0.2], [-0.45, 0.2], [0, -0.45], [0, 0.45]];
 
@@ -60,6 +65,9 @@ export class Game {
     this.latch = 0;
 
     this.remotes = new Map();
+    this.remoteBursts = new Map();
+    this.lastCombatT = -99;
+    this.muffleT = 0;
     this.timeOffset = null;
     this.lastSnapAt = 0;
     this.meView = null;
@@ -259,53 +267,79 @@ export class Game {
         if (ev.id === this.myId) break;
         const w = WEAPONS[ev.w];
         const o = { x: ev.o[0], y: ev.o[1], z: ev.o[2] };
-        audio.gunshot(ev.w, o, false);
+        const dist = Math.hypot(o.x - camP.x, o.y - camP.y, o.z - camP.z);
+        const occluded = dist < 140 && this._occluded(o);
+        // auto weapons get their tail when the burst ends; single shots carry it immediately
+        const auto = w.mode === 'auto';
+        audio.gunshot(ev.w, o, false, { occluded, tail: !auto });
+        if (auto) this.remoteBursts.set(ev.id, { w: ev.w, x: o.x, y: o.y, z: o.z, t: this.time, occluded });
         const enemy = !this._isMate(ev.id);
+        if (enemy && dist > 55 && dist < 650) this.hud.gunfireCue(Math.atan2(-(o.x - camP.x), -(o.z - camP.z)), dist);
+        if (enemy) this.lastCombatT = this.time;
         for (const d of ev.d) {
           const b = this.fx.spawnBullet(o, { x: d[0], y: d[1], z: d[2] }, w.speed, w.drop, enemy ? '#ff9c5a' : '#ffe08a', w.pellets ? 0.6 : 1);
-          b.silent = Math.hypot(o.x - camP.x, o.z - camP.z) > 120;
+          b.silent = dist > 120;
           if (enemy) {
-            // near-miss whiz + crack
+            // near-miss whiz + supersonic crack, delayed by travel time
             const vx = camP.x - o.x, vy = camP.y - o.y, vz = camP.z - o.z;
             const t = vx * d[0] + vy * d[1] + vz * d[2];
             if (t > 3 && t < 300) {
               const cx = o.x + d[0] * t - camP.x, cy = o.y + d[1] * t - camP.y, cz = o.z + d[2] * t - camP.z;
               const miss = Math.hypot(cx, cy, cz);
               if (miss < 3 && Math.random() < (w.pellets ? 0.2 : 1)) {
-                audio.play('whiz', { x: camP.x + cx, y: camP.y + cy, z: camP.z + cz }, { vol: 0.9, var: 0.1, delay: t / w.speed, ref: 1 });
-                this.trauma = Math.min(1, this.trauma + 0.05);
+                audio.play('whiz', { x: camP.x + cx, y: camP.y + cy, z: camP.z + cz }, { vol: 0.9, var: 0.12, delay: t / w.speed, ref: 1 });
+                this.punch(0.06, 0);
+                this.lastCombatT = this.time;
               }
             }
           }
         }
-        this.fx.flashLight(o.x, o.y, o.z, 6, 0.05, '#ffbb66');
+        this.fx.muzzleFlashWorld(o, ev.d[0], w);
         break;
       }
       case 'hit': {
+        const M = FEEL.mix, C = FEEL.camera;
         if (ev.a === this.myId && ev.v !== this.myId) {
           const tier = ev.tier;
           const onShield = ev.sd > 0;
-          const color = onShield ? SHIELD_COLORS[tier] : ev.part === 'head' ? '#ffd23f' : '#ffffff';
-          this.fx.damageNumber(ev.x, ev.y, ev.z, ev.dmg, color, ev.part === 'head', ev.v);
+          const head = ev.part === 'head';
+          const color = onShield ? SHIELD_COLORS[tier] : head ? '#ffd23f' : '#ffffff';
+          this.fx.damageNumber(ev.x, ev.y, ev.z, ev.dmg, color, head, ev.v, onShield && !ev.brk);
+          this.lastCombatT = this.time;
           if (ev.src) { // explosive/ability damage: no client-side marker was shown yet
             this.hud.hitmarker('body');
-            audio.play(onShield ? 'hit_shield' : 'hit_flesh', null, { vol: 0.8 });
+            audio.play(onShield ? 'hit_shield' : 'hit_flesh', null, { vol: M.hit * 0.85, rate: SHIELD_PITCH[tier] || 1 });
+          }
+          // armor crack: a 25-point shield segment just shattered (but not the whole shield)
+          const before = (ev.rs ?? 0) + ev.sd;
+          if (onShield && !ev.brk && Math.ceil(before / 25) > Math.ceil((ev.rs ?? 0) / 25)) {
+            audio.play('shield_crack', null, { vol: M.shieldCrack, rate: SHIELD_PITCH[tier] || 1, var: 0.05 });
           }
           if (ev.brk) {
-            audio.play('shield_break', null, { vol: 0.9, important: true });
+            audio.play('shield_break', null, { vol: M.shieldBreak, important: true, rate: SHIELD_PITCH[tier] || 1 });
             this.fx.shieldBreak(ev.x, ev.y, ev.z, tier);
+            this.hud.edgeFlash(SHIELD_COLORS[tier], FEEL.hit.shieldBreakFlash);
+            this.hud.hitmarker('break');
+            this.punch(C.shieldBreakTrauma, C.shieldBreakFov);
+          } else this.punch(C.hitDealtTrauma, 0);
+          if (ev.knock) {
+            audio.play('knock', null, { vol: M.knock, important: true });
+            this.hud.hitmarker('kill');
+            this.hud.edgeFlash('#ff7a1a', 0.45);
+            this.punch(C.killTrauma * 0.7, C.killFov * 0.7);
           }
-          if (ev.knock) { audio.play('knock', null, { vol: 1, important: true }); this.hud.hitmarker('kill'); }
         }
         const viewing = this.spectating ? this.meView.id : this.myId;
         if (ev.v === viewing) {
           if (ev.a) {
             const ang = Math.atan2(-(ev.ax - this.pred.x), -(ev.az - this.pred.z));
-            this.hud.damageFrom(ang);
+            this.hud.damageFrom(ang, ev.sd > 0 ? SHIELD_COLORS[ev.tier] : '#ff2a2a');
           }
-          this.trauma = Math.min(1, this.trauma + Math.min(0.5, ev.dmg / 60));
-          audio.play(ev.sd > 0 ? 'hit_shield' : 'hit_flesh', null, { vol: 0.7, rate: 0.62, var: 0.05 });
-          if (ev.brk) audio.play('shield_break', null, { vol: 0.7, rate: 0.8 });
+          this.lastCombatT = this.time;
+          this.punch(Math.min(C.hitTakenMax, ev.dmg * C.hitTakenTrauma), C.hitTakenFovPunch * Math.min(1, ev.dmg / 25));
+          this.hud.edgeFlash(ev.sd > 0 ? SHIELD_COLORS[ev.tier] : '#ff1a1a', FEEL.hit.edgeFlashTaken * Math.min(1, 0.4 + ev.dmg / 40));
+          audio.play(ev.sd > 0 ? 'hit_shield' : 'hit_flesh', null, { vol: 0.75, rate: 0.6, var: 0.05 });
+          if (ev.brk) { audio.play('shield_break', null, { vol: 0.75, rate: 0.75 }); this.hud.toast('YOUR SHIELD IS BROKEN'); }
         }
         if (ev.v !== this.myId && ev.a !== this.myId) {
           this.fx.hitBurst(ev.x, ev.y, ev.z, ev.tier, ev.sd > 0, ev.part === 'head');
@@ -314,32 +348,47 @@ export class Game {
       }
       case 'knock': {
         const mine = ev.a === this.myId;
-        this.hud.killfeed(`<span class="${mine ? 'mine' : this._isMate(ev.a) ? 'sq' : ''}">${this._name(ev.a) || 'Ring'}</span><span class="w">⤓ ${ev.w || ''}</span><span class="${this._isMate(ev.v) ? 'sq' : ''}">${this._name(ev.v)}</span>`);
+        this.hud.killfeed(ev, 'knock', this);
         if (mine) this.hud.toast(`KNOCKED DOWN ${this._name(ev.v)}`);
-        if (ev.v === this.myId) { this.hud.announce('YOU ARE DOWN — CRAWL TO YOUR SQUAD', 3); audio.play('knock', null, { rate: 0.7 }); }
+        if (ev.v === this.myId) { this.hud.announce('YOU ARE DOWN — CRAWL TO YOUR SQUAD', 3); audio.play('knock', null, { rate: 0.7 }); this.punch(0.6, 6); }
+        const r = this.remotes.get(ev.v);
+        if (r && r.avatar) r.avatar.knockT = 0;
         break;
       }
       case 'kill': {
         const mine = ev.a === this.myId;
-        const killer = ev.a ? this._name(ev.a) : 'RING';
-        this.hud.killfeed(`<span class="${mine ? 'mine' : this._isMate(ev.a) ? 'sq' : ''}">${killer}</span><span class="w">✖ ${ev.w || ''}</span><span class="${this._isMate(ev.v) ? 'sq' : ''}">${this._name(ev.v)}</span>`);
+        this.hud.killfeed(ev, 'kill', this);
         if (mine) {
-          audio.play('kill', null, { vol: 1, important: true });
+          audio.play('kill', null, { vol: FEEL.mix.kill, important: true });
           this.hud.hitmarker('kill');
-          this.hud.toast(`ELIMINATED ${this._name(ev.v)}`);
+          this.hud.killConfirm(this._name(ev.v));
+          this.hud.edgeFlash('#ff2a2a', FEEL.hit.killFlash);
+          this.punch(FEEL.camera.killTrauma, FEEL.camera.killFov);
         }
-        if (pos) this.fx.burst(pos.x, pos.y + 1, pos.z, '#ff3b3b', 30, 4, 0.18, 0.8);
+        const r = this.remotes.get(ev.v);
+        if (r && r.avatar) this.fx.ragdoll(r.avatar, ev);
+        if (pos) this.fx.deathBurst(pos.x, pos.y + 1, pos.z, mine);
         break;
       }
-      case 'impact':
+      case 'impact': {
+        const d = Math.hypot(ev.x - camP.x, ev.z - camP.z);
         this.fx.impact(ev.x, ev.y, ev.z, ev.n[0], ev.n[1], ev.n[2]);
-        if (Math.hypot(ev.x - camP.x, ev.z - camP.z) < 25) audio.play('impact', ev, { vol: 0.5, var: 0.15 });
+        if (d < 30) {
+          const metal = this.surfaceAt(ev.x - ev.n[0] * 0.05, ev.y - ev.n[1] * 0.05, ev.z - ev.n[2] * 0.05) === 'metal';
+          audio.play(metal ? 'impact_metal' : Math.random() < 0.18 ? 'ricochet' : 'impact', ev, { vol: 0.55, var: 0.15 });
+        }
         break;
+      }
       case 'boom': {
         const d = Math.hypot(ev.x - camP.x, ev.y - camP.y, ev.z - camP.z);
         this.fx.explosion(ev.x, ev.y, ev.z, ev.r || 4);
-        audio.play('boom', ev, { vol: ev.k === 'land' ? 0.6 : 1, var: 0.08, ref: 10, rolloff: 0.8, delay: d / 343, important: true, reverb: 0.3 });
-        this.trauma = Math.min(1, this.trauma + Math.max(0, 1 - d / 30) * 0.8);
+        if (d < 140) audio.play('boom', ev, { vol: ev.k === 'land' ? 0.6 : 1, var: 0.08, ref: 10, rolloff: 0.8, delay: d / 343, important: true, reverb: 0.3, occluded: this._occluded(ev) });
+        else audio.play('boom_far', ev, { vol: 1, ref: 60, rolloff: 0.5, delay: Math.min(2, d / 343) });
+        const C = FEEL.camera;
+        const k = Math.max(0, 1 - d / C.explosionRadius);
+        if (k > 0) this.punch(k * C.explosionTrauma, k * 6);
+        if (d < 7 && ev.k !== 'land') { audio.play('tinnitus', null, { vol: 0.5 }); this.muffleT = 1.6; }
+        if (d < 300) this.lastCombatT = this.time;
         break;
       }
       case 'abil': this._abilEvent(ev, pos); break;
@@ -375,7 +424,7 @@ export class Game {
       case 'msg': this.hud.announce(ev.text.toUpperCase(), 3.5); break;
       case 'revive': if (this._isMate(ev.id)) this.hud.toast(`${this._name(ev.id)} was revived`); break;
       case 'respawn': if (this._isMate(ev.id)) audio.play('call', null, { vol: 0.5 }); break;
-      case 'banner': if (ev.sq === this.mySquad) audio.play('pickup_armor', null, { vol: 0.5 }); break;
+      case 'banner': if (ev.sq === this.mySquad) audio.play('banner', null, { vol: 0.6 }); break;
       case 'squadout':
         if (ev.sq !== this.mySquad) this.hud.toast(`SQUAD ELIMINATED · ${ev.place - 1} SQUADS REMAIN`);
         break;
@@ -383,7 +432,7 @@ export class Game {
       case 'loot-': this.loot.remove(ev.ids); break;
       case 'bin':
         this.binsOpened[ev.i] = 1;
-        audio.play('mag_in', pos, { vol: 0.6, rate: 0.6 });
+        audio.play('bin_open', pos, { vol: 0.8, ref: 5 });
         this.fx.burst(ev.x, ev.y + 0.5, ev.z, '#3fa9ff', 14, 2, 0.12, 0.5);
         break;
       case 'ping': {
@@ -620,26 +669,58 @@ export class Game {
 
   _localMoveFx(s) {
     const ev = s.events;
+    const C = FEEL.camera;
     if (ev) {
+      const surf = this.surfaceAt(s.x, s.y, s.z);
       if (ev & MEV.JUMP) audio.play('jump', null, { vol: 0.35, var: 0.1 });
-      if (ev & MEV.LAND) { audio.play('land', null, { vol: 0.25 + Math.min(0.4, s.lastLandSpeed / 25) }); this.landDip = Math.min(0.12, s.lastLandSpeed * 0.012); }
-      if (ev & MEV.HARDLAND) { audio.play('hardland', null, { vol: 0.7 }); this.landDip = 0.22; this.trauma = Math.min(1, this.trauma + 0.25); }
-      if (ev & MEV.SLIDE) { audio.play('slidestart', null, { vol: 0.55 }); this.fovKick = 6; }
-      if (ev & MEV.WALLJUMP) { audio.play('wallkick', null, { vol: 0.6 }); this.trauma = Math.min(1, this.trauma + 0.1); }
-      if (ev & MEV.MANTLE) audio.play('mantle', null, { vol: 0.45 });
-      if (ev & MEV.SUPERGLIDE) { audio.play('superglide', null, { vol: 0.8 }); this.fovKick = 10; this.hud.toast('SUPERGLIDE!'); }
-      if (ev & MEV.PAD) { audio.play('pad', null, { vol: 0.8 }); this.fovKick = 10; }
+      if (ev & MEV.LAND && !(ev & MEV.HARDLAND)) {
+        audio.play('land', null, { vol: 0.25 + Math.min(0.4, s.lastLandSpeed / 25) });
+        audio.play(`step_${surf}${(Math.random() * 3) | 0}`, null, { vol: 0.35, rate: 0.85 });
+        this.landDip = Math.min(0.12, s.lastLandSpeed * 0.012);
+      }
+      if (ev & MEV.HARDLAND) { audio.play('hardland', null, { vol: 0.75 }); this.landDip = 0.24; this.punch(C.landTrauma, 2); this.fx.dust(s.x, s.y, s.z, 1.4); }
+      if (ev & MEV.SLIDE) { audio.play('slidestart', null, { vol: 0.6 }); this.fovKick = Math.max(this.fovKick, C.slideFov); this.fx.dust(s.x, s.y, s.z, 0.6); }
+      if (ev & MEV.WALLJUMP) { audio.play('wallkick', null, { vol: 0.7 }); this.punch(0.14, 3); this.fx.dust(s.x - s.wallNx * 0.4, s.y + 1, s.z - s.wallNz * 0.4, 0.5); }
+      if (ev & MEV.MANTLE) audio.play('mantle', null, { vol: 0.5, var: 0.06 });
+      if (ev & MEV.SUPERGLIDE) { audio.play('superglide', null, { vol: 0.85 }); this.fovKick = C.superglideFov; this.hud.toast('SUPERGLIDE!'); }
+      if (ev & MEV.PAD) { audio.play('pad', null, { vol: 0.85 }); this.fovKick = 10; this.punch(0.2, 0); }
+      if (ev & MEV.ZIP) audio.play('zip_attach', null, { vol: 0.7 });
     }
-    // footsteps
+    // surface-aware footsteps
     if (s.onGround && s.mode === 'ground') {
       const sp = Math.hypot(s.vx, s.vz);
       this.stepDist += sp * SIM_DT;
       const stride = sp > 6 ? 2.3 : 1.7;
       if (this.stepDist > stride && sp > 1.2 && s.crouch < 0.5) {
         this.stepDist = 0;
-        audio.play(['step', 'step2', 'step3'][Math.floor(Math.random() * 3)], null, { vol: sp > 6 ? 0.28 : 0.16, var: 0.1 });
+        const surf = this.surfaceAt(s.x, s.y, s.z);
+        audio.play(`step_${surf}${(Math.random() * 3) | 0}`, null, { vol: FEEL.mix.footstepSelf * (sp > 6 ? 1.3 : 0.75), var: 0.08 });
       }
     }
+  }
+
+  // What the player is standing on (drives footsteps, slide scrape and impact sounds).
+  surfaceAt(x, y, z) {
+    const b = this.world.boxAt ? this.world.boxAt(x, y, z, this.tmpBoxes) : null;
+    if (b) return SURFACE[b.kind] || 'concrete';
+    for (const p of this.map.pois) if ((p.x - x) ** 2 + (p.z - z) ** 2 < (p.r * 0.95) ** 2) return 'concrete';
+    return 'dirt';
+  }
+
+  // Is there solid geometry between the listener and a sound source?
+  _occluded(p) {
+    const c = this.camera.position;
+    const dx = p.x - c.x, dy = (p.y ?? 0) + 1 - c.y, dz = p.z - c.z;
+    const d = Math.hypot(dx, dy, dz);
+    if (d < 2) return false;
+    return !!this.world.raycast(c.x, c.y, c.z, dx / d, dy / d, dz / d, d - 1, this.tmpBoxes, false);
+  }
+
+  // Camera trauma + FOV punch, scaled by the player's shake setting.
+  punch(trauma, fov) {
+    const k = settings.shake ?? 1;
+    this.trauma = Math.min(1, this.trauma + trauma * k);
+    if (fov) this.fovKick = Math.max(this.fovKick, fov * Math.min(1, k));
   }
 
   _actions(m) {
@@ -841,13 +922,16 @@ export class Game {
     this.yaw -= (kx + (Math.random() - 0.5) * rr) * DEG * bm * am;
     this.recoilIdx++;
     this.bloom = Math.min(3, this.bloom + (def.mode === 'auto' ? 0.22 : 0.5));
-    // feel
-    audio.gunshot(w.id, null, true);
-    const punch = def.sound.punch;
-    this.vm.fire(def.pellets || def.cls === 'Sniper' ? 1.8 : def.cls === 'Pistol' && def.damage > 30 ? 1.5 : 1);
-    this.trauma = Math.min(1, this.trauma + 0.04 * punch + (def.pellets ? 0.12 : 0) + (def.cls === 'Sniper' ? 0.2 : 0));
-    this.fovKick = Math.max(this.fovKick, def.pellets || def.cls === 'Sniper' ? 2.5 : 0.6);
-    this.fx.flashLight(c.x + Math.sin(-this.yaw) * 1, c.y, c.z - Math.cos(this.yaw) * 1, 4, 0.05, '#ffbb66');
+    // feel: per-class shake, FOV punch and viewmodel kick (all in tuning.js)
+    const cls = def.sound.cls;
+    const C = FEEL.camera;
+    const auto = def.mode === 'auto';
+    audio.gunshot(w.id, null, true, { tail: !auto });
+    this.burstWeapon = auto ? w.id : null;
+    this.vm.fire(C.fireKick[cls] || 1);
+    this.punch(C.fireTrauma[cls] || 0.05, (C.fireFovPunch[cls] || 0.6) * (ads ? 0.6 : 1));
+    this.fx.flashLight(c.x + Math.sin(-this.yaw) * 1, c.y, c.z - Math.cos(this.yaw) * 1, 5, 0.05, def.sound.zap ? '#b7ff6a' : '#ffbb66');
+    this.lastCombatT = this.time;
     if (def.sound.pump) audio.play('pump', null, { vol: 0.7, delay: 0.32 });
     if (def.sound.bolt) audio.play('bolt', null, { vol: 0.7, delay: 0.45 });
     const max = magSize(def, w.att.mag);
@@ -923,7 +1007,7 @@ export class Game {
       const dist = Math.hypot(s.x - cam.x, s.z - cam.z);
       if (!r.avatar && !inShip) r.avatar = new Avatar(this.scene, r.meta, r.meta.squad === this.mySquad);
       if (r.avatar) {
-        r.avatar.root.visible = !inShip && dist < 500;
+        r.avatar.root.visible = !inShip && dist < 500 && !r.avatar.dead;
         if (r.avatar.root.visible) r.avatar.update(dt, s, this.time);
         else r.avatar.reveal.visible = false;
       }
@@ -934,11 +1018,13 @@ export class Game {
         if (r.step > (sp > 6 ? 2.3 : 1.8) && sp > 2.5 && s.crouch < 0.5) {
           r.step = 0;
           const enemy = r.meta.squad !== this.mySquad;
-          audio.play(['step', 'step2', 'step3'][Math.floor(Math.random() * 3)], { x: s.x, y: s.y, z: s.z }, { vol: enemy ? 1.2 : 0.5, var: 0.1, ref: 3, rolloff: 1.4 });
+          const sp3 = { x: s.x, y: s.y, z: s.z };
+          const surf = this.surfaceAt(s.x, s.y, s.z);
+          audio.play(`step_${surf}${(Math.random() * 3) | 0}`, sp3, { vol: (enemy ? FEEL.mix.footstepEnemy : FEEL.mix.footstepMate) * (sp > 6 ? 1.15 : 0.8), var: 0.08, ref: 3, rolloff: 1.3, occluded: enemy && this._occluded(sp3) });
         }
       }
-      if (s.fl & 2 && dist < 40) audio.loop('slide' + r.id, 'slide', 0.4, 1, { x: s.x, y: s.y, z: s.z });
-      else audio.loop('slide' + r.id, 'slide', 0);
+      if (s.fl & 2 && dist < 40) audio.loop('rslide' + r.id, 'slide_' + this.surfaceAt(s.x, s.y, s.z), 0.45, 1, { x: s.x, y: s.y, z: s.z });
+      else audio.loop('rslide' + r.id, null, 0);
     }
   }
 
@@ -975,12 +1061,14 @@ export class Game {
     this.landDip *= Math.exp(-dt * 9);
     y -= this.landDip;
     // shake
-    this.trauma = Math.max(0, this.trauma - dt * 1.6);
+    const CF = FEEL.camera;
+    this.trauma = Math.max(0, this.trauma - dt * CF.traumaDecay);
     const sh = this.trauma * this.trauma;
-    const t = this.time * 40;
-    const shakeYaw = sh * 0.025 * (Math.sin(t * 1.1) + Math.sin(t * 2.3) * 0.5);
-    const shakePitch = sh * 0.025 * (Math.sin(t * 1.7 + 1) + Math.sin(t * 2.9) * 0.5);
-    const roll = sh * 0.02 * Math.sin(t * 1.3 + 2);
+    const t = this.time * CF.shakeFreq;
+    // layered sines ≈ smooth noise; squared trauma keeps small hits subtle and big ones violent
+    const shakeYaw = sh * CF.shakeAngle * (Math.sin(t * 1.1) + Math.sin(t * 2.3 + 0.7) * 0.5 + Math.sin(t * 4.7) * 0.25);
+    const shakePitch = sh * CF.shakeAngle * (Math.sin(t * 1.7 + 1) + Math.sin(t * 2.9) * 0.5 + Math.sin(t * 5.3 + 2) * 0.25);
+    const roll = sh * CF.shakeRoll * Math.sin(t * 1.3 + 2);
     cam.position.set(x, y, z);
     // slide tilt
     const ms = this.spectating ? this.meView.ms : this.pred;
@@ -1104,21 +1192,103 @@ export class Game {
   _audioLoops(dt) {
     const me = this.me;
     if (!me) return;
+    const M = FEEL.mix;
     const ms = this.spectating ? this.meView.ms : this.pred;
     const sp = Math.hypot(ms.vx, ms.vz);
-    audio.loop('slide', 'slide', ms.mode === 'slide' ? clamp(sp / 10, 0.15, 0.6) : 0, 0.8 + sp / 20);
+    // slide scrape on the surface we're on (swap buffer when the surface changes)
+    const slideSurf = ms.mode === 'slide' ? this.surfaceAt(ms.x, ms.y, ms.z) : this.slideSurf;
+    if (slideSurf !== this.slideSurf && this.slideSurf) audio.loop('slide', null, 0);
+    this.slideSurf = slideSurf;
+    if (slideSurf) audio.loop('slide', 'slide_' + slideSurf, ms.mode === 'slide' ? clamp(sp / 10, 0.15, 0.65) : 0, 0.8 + sp / 25);
     const dive = ms.mode === 'skydive' ? clamp((Math.abs(ms.vy) + sp) / 60, 0.2, 1) : 0;
     audio.loop('skywind', 'skywind', dive * 0.8, 0.8 + dive * 0.5);
     audio.loop('ship', 'ship', me.inShip ? 0.6 : 0);
-    audio.loop('jet', 'jet', ms.events & MEV.JET ? 0.35 : 0);
-    audio.loop('burn', 'ring_burn', me.out && me.alive ? 0.5 : 0);
+    audio.loop('jet', 'jet', ms.events & MEV.JET ? 0.4 : 0);
+    audio.loop('zip', 'zipline', ms.mode === 'zip' ? 0.45 : 0, 0.9 + sp / 30);
+    audio.loop('burn', 'ring_burn', me.out && me.alive ? 0.55 : 0);
     audio.loop('healloop', 'heal_loop', me.heal ? 0.35 : 0);
-    audio.loop('wind', 'wind', ms.mode === 'skydive' ? 0.05 : 0.22);
-    // ring proximity hum
-    if (this.ring && me.alive) {
-      const dr = this.ring.r - Math.hypot(ms.x - this.ring.cx, ms.z - this.ring.cz);
-      audio.loop('ringnear', 'ring_burn', dr > 0 && dr < 25 ? (1 - dr / 25) * 0.25 : 0, 0.6);
+    audio.loop('wind', 'wind', ms.mode === 'skydive' ? 0.05 : M.ambience);
+
+    // ring wall: positional hum at the closest point of the wall
+    if (this.ring && this.ring.r < 3000) {
+      const R = this.ring, c = this.camera.position;
+      const dx = c.x - R.cx, dz = c.z - R.cz, dc = Math.hypot(dx, dz) || 1;
+      const wallDist = Math.abs(dc - R.r);
+      const wp = { x: R.cx + (dx / dc) * R.r, y: c.y, z: R.cz + (dz / dc) * R.r };
+      audio.loop('ringwall', 'ring_wall', wallDist < 180 ? (1 - wallDist / 180) * 0.6 : 0, 1, wp);
     }
+
+    // tension bed: rises with ring stage, lobby size and recent combat
+    const R = this.ring;
+    const stage = R ? Math.max(0, R.idx) / 6 : 0;
+    const late = 1 - this.aliveCount / 100;
+    const combat = clamp(1 - (this.time - (this.lastCombatT ?? -99)) / 8, 0, 1);
+    const closing = R && R.st === 'close' ? 0.25 : 0;
+    const tension = clamp(stage * 0.4 + late * 0.35 + closing + combat * 0.35, 0, 1);
+    const alive = me.alive && !me.inShip;
+    audio.loop('tension_low', 'tension_low', alive ? M.tension * (0.25 + tension * 0.75) : 0);
+    audio.loop('tension_high', 'tension_high', alive ? M.tension * 0.8 * Math.max(0, tension - 0.45) * 1.8 * (0.4 + combat * 0.6) : 0);
+
+    // master muffle: knocked / low health / phased / explosion tinnitus
+    this.muffleT = Math.max(0, (this.muffleT || 0) - dt);
+    let mf = 20000;
+    if (me.down) mf = M.downedLowpass;
+    else if (me.alive && me.hp < 30) mf = M.lowHpLowpass;
+    if (me.st && me.st.phase > 0) mf = Math.min(mf, 2200);
+    if (this.muffleT > 0) mf = Math.min(mf, 700 + (1.6 - this.muffleT) * 6000);
+    audio.setMuffle(mf);
+
+    // burst tails: when an automatic weapon stops firing, play its reverb tail
+    if (this.burstWeapon) {
+      const def = WEAPONS[this.burstWeapon];
+      if (this.time - this.lastFireT > fireInterval(def) * 1.7) {
+        audio.play('guntail_' + this.burstWeapon, null, { vol: M.gunTailLocal, var: 0.03, reverb: 0.3 });
+        this.burstWeapon = null;
+      }
+    }
+    for (const [id, b] of this.remoteBursts) {
+      if (this.time - b.t > 0.18) {
+        const d = Math.hypot(b.x - this.camera.position.x, b.z - this.camera.position.z);
+        if (d < 70) audio.play('guntail_' + b.w, b, { vol: 0.5, ref: 10, rolloff: 0.7, occluded: b.occluded, delay: d / 343 });
+        this.remoteBursts.delete(id);
+      }
+    }
+
+    // ability entities: travel, linger and warning loops
+    const keep = new Set();
+    const c = this.camera.position;
+    const E = (id, name, vol, pos, rate = 1) => {
+      if ((pos.x - c.x) ** 2 + (pos.z - c.z) ** 2 > 120 * 120) return;
+      keep.add(id);
+      audio.loop(id, name, vol * M.ability, rate, pos);
+    };
+    for (const e of this.entityList) {
+      const p = { x: e.x, y: e.y + 1, z: e.z };
+      switch (e.k) {
+        case 'dome': E('ent' + e.id, 'dome_hum', 0.5, p); break;
+        case 'gas': E('ent' + e.id, 'gas_loop', 0.55, p); break;
+        case 'smoke': E('ent' + e.id, 'smoke_loop', 0.35, p); break;
+        case 'drone': E('ent' + e.id, 'drone_hum', 0.35, p); break;
+        case 'jumppad': E('ent' + e.id, 'pad_hum', 0.3, p); break;
+        case 'exhibit': E('ent' + e.id, 'exhibit_drone', 0.25, p); break;
+        case 'portal':
+          E('ent' + e.id, 'portal_hum', 0.5, p);
+          if (e.open) E('ent' + e.id + 'b', 'portal_hum', 0.5, { x: e.x2, y: e.y2 + 1, z: e.z2 });
+          break;
+        case 'mortar': case 'thunder': E('ent' + e.id, 'incoming', 0.6, { x: e.x, y: e.y + 30, z: e.z }); break;
+        case 'proj':
+          if (e.pk === 'missile') E('ent' + e.id, 'missile_loop', 0.5, p, 1.2);
+          else if (e.pk === 'arc') E('ent' + e.id, 'arc_hum', 0.4, p);
+          else if (e.pk === 'frag') {
+            this.nadeTicks = this.nadeTicks || new Map();
+            const last = this.nadeTicks.get(e.id) || 0;
+            if (this.time - last > 0.45) { this.nadeTicks.set(e.id, this.time); audio.play('nade_tick', p, { vol: 0.8, ref: 3 }); }
+          }
+          break;
+      }
+    }
+    audio.sweepLoops('ent', keep);
+
     // echo heartbeat
     if (this.heartbeat > 0 && this.adsAmt > 0.5) {
       this.hbT -= dt;

@@ -72,6 +72,16 @@ export class CollisionWorld {
     return best;
   }
 
+  // Box whose top the point is standing on (within 0.15 m), or null for terrain.
+  boxAt(x, y, z, out = []) {
+    this.query(x, z, x, z, out);
+    let best = null;
+    for (const b of out) {
+      if (x >= b.min[0] - 0.05 && x <= b.max[0] + 0.05 && z >= b.min[2] - 0.05 && z <= b.max[2] + 0.05 && Math.abs(b.max[1] - y) < 0.15) best = b;
+    }
+    return best;
+  }
+
   // Does an AABB overlap any solid box?
   overlaps(minX, minY, minZ, maxX, maxY, maxZ, tmp = []) {
     if (minY < 0) return true;
