@@ -50,8 +50,8 @@ export const MOVE = {
   landGrace: 0.05,
   // wall jump / bounce
   wallJumpWindow: 0.14,
-  wallJumpOut: 4.6,
-  wallJumpUp: 5.4,
+  wallJumpOut: 5.4,           // push away from the wall (tangential speed is kept)
+  wallJumpUp: 5.6,
   wallJumpCooldown: 0.35,
   // climbing / mantling
   climbSpeed: 5.4,

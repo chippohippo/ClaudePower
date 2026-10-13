@@ -393,6 +393,23 @@ export class WorldView {
     }
   }
 
+  // Atmosphere: the sky warms and the fog closes in as the ring shrinks; outside the ring the
+  // world turns a choking orange.
+  setAtmosphere(stage, outside, dt) {
+    const target = outside ? 1 : 0;
+    this.outsideK = (this.outsideK ?? 0) + (target - (this.outsideK ?? 0)) * Math.min(1, dt * 2.5);
+    const k = this.outsideK, st = Math.max(0, Math.min(1, stage));
+    const base = this._fogBase || (this._fogBase = new THREE.Color('#b9cde0'));
+    const late = this._fogLate || (this._fogLate = new THREE.Color('#d6b9a0'));
+    const burn = this._fogBurn || (this._fogBurn = new THREE.Color('#ff7a3a'));
+    const c = this.scene.fog.color;
+    c.copy(base).lerp(late, st * 0.6).lerp(burn, k * 0.75);
+    this.scene.background.copy(c);
+    this.scene.fog.near = 160 - st * 60 - k * 130;
+    this.scene.fog.far = 1100 - st * 350 - k * 800;
+    this.sun.color.setRGB(1, 0.94 - st * 0.08 - k * 0.2, 0.84 - st * 0.15 - k * 0.4);
+  }
+
   update(dt, time, camPos, ring, ship) {
     this.ringMat.uniforms.time.value = time;
     this.ringMesh.visible = !!ring && ring.r < 3000;

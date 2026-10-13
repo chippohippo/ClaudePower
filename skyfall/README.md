@@ -12,6 +12,11 @@ npm start              # production: build the client, then serve it and the gam
 npm run sim-test       # headless 100-bot match: performance and outcome report
 node tools/movetest.js # checks that every movement tech works in the shared movement code
 node tools/nettest.js  # two socket clients form a party, queue up and stream a match
+node tools/deathtest.js # knockdown → elimination → spectate → squad-out → end-of-match flow
+node tools/bottest.js   # bot quality: stuck events, A* usage, slides, wall bounces
+node tools/audio/capture.mjs <dir> && python3 tools/audio/analyze.py <dir>
+                       # render every sound in Chromium (needs `npm run dev`), print loudness /
+                       # transient / band metrics and write a spectrogram contact sheet
 ```
 
 Open the menu, pick a legend and press **PLAY**. If the server is reachable, PLAY uses online
@@ -44,7 +49,8 @@ src/
     constants.js          tick rates and every movement-tuning number
     movement.js           ★ the movement model: slide, slide-hop, bhop grace, air strafe, wall jump, climb, mantle, superglide, skydive, jetpack, jump pads
     physics.js            AABB world in a spatial hash: sweep/resolve, step-up, raycasts, dome blockers
-    map.js                seeded procedural map: POIs, multi-floor buildings (doors, windows, stairs), container yards, rock formations, bins, beacons, loot points
+    map.js                seeded procedural map: POIs, multi-floor buildings (rooms, doors, windows, stairs, balconies), cover, container yards, rock formations, bins, beacons, ziplines, loot points
+    terrain.js            seeded heightfield (flattened POI pads), normals, ray marching
     weapons.js            data-driven guns: damage, RPM, mag, ballistics, spread model, recoil patterns, ADS, audio profile
     items.js              loot tables, consumables, grenades, attachments, rarity
     legends.js            8 legends: passive / tactical / ultimate tuning
@@ -53,12 +59,14 @@ src/
     match.js              match lifecycle, drop ship, ring, squads, damage/shields/evo, knockdowns, banners/respawn, loot, snapshots
     inventory.js          pickup/swap rules, auto-attach, stacking
     abilities.js          ability implementations built from shared primitives (status, zones, projectiles, explosions, reveals)
-    bot.js                bot AI: drop, loot, rotate, third-party, fight (strafe, cover, heal, push), revive, banners, abilities
+    bot.js                bot AI: drop, loot, rotate, third-party, fight (strafe, cover, heal, push, wall-bounce), slide-hop travel, revive, banners, abilities
+    nav.js                1 m navigation grid + windowed A* with string pulling
   client/
     main.js               app shell, menu, parties, settings, main loop
     game.js               ★ prediction and reconciliation, interpolation, client-side hit detection, recoil/spread/ADS, camera feel, events → audio/VFX
     audio.js              procedural sound synthesis plus positional engine
-    world.js              sky, lighting, instanced map, trees, ring wall, drop ship
+    world.js              sky, IBL lighting, heightfield terrain, instanced map, trees, ziplines, bins, beacons, ring wall, drop ship, ring atmosphere
+    tuning.js             FEEL: camera shake / FOV punch / hit feedback / audio mix tuning
     avatars.js            third-person character models and procedural animation, reveal highlight, phase ghosting
     viewmodel.js          first-person weapon: ADS, sway, bob, recoil springs, reload, sprint/slide poses, muzzle flash
     fx.js                 tracers, sparks, shield-coloured hit bursts, explosions, damage numbers, ability visuals
@@ -127,7 +135,78 @@ WASD · Space jump · Shift sprint · Ctrl/C crouch-slide · LMB fire · RMB ADS
 (tap = pick up, hold = revive/respawn) · Q tactical · Z ultimate · G grenade · 1/2/wheel weapons ·
 H heal · 4 shields · 5 health · Tab inventory · M map · X/MMB ping · V spectate next.
 
-## 3. Vertical slice (what ships now) → expansion plan
+## 3. Feel & juice systems (tuning reference)
+
+All feel numbers are data, not code. Change them and reload.
+
+| File | What it tunes |
+|---|---|
+| `src/shared/constants.js` → `MOVE` | Movement: speeds, slide boost/friction/slope, bhop grace, wall bounce, climb/mantle, superglide window, zipline speeds, skydive |
+| `src/shared/weapons.js` → `WEAPONS[*]` | Per-gun stats, recoil pattern and **audio profile** (`sound: {cls, crack, snapHz, bodyHz, subHz, sub, subDecay, tail, …}`) |
+| `src/shared/weapons.js` → `GUNPLAY` | Slide hipfire multiplier (0.42), crouch, bloom, air ADS penalty, bullet gravity |
+| `src/shared/terrain.js` → `TERRAIN` | Hill/ridge amplitude and scale, POI pad blend |
+| `src/client/tuning.js` → `FEEL` | Camera trauma and FOV punch per weapon class, per hit taken/dealt, shield break, kill, explosion radius; hit-marker timings; the whole audio mix (gun, tail, hits, footsteps, tension, occlusion, low-HP/knocked muffle) |
+| Settings menu | Mouse/ADS sensitivity, FOV, volume, **camera shake 0–200%**, toggle ADS, graphics quality |
+
+**Sound (v2, `src/client/audio.js`)**
+- Every gun is assembled from layers, then shaped so the attack stays dominant: a one-sample click plus a 2 ms crack, a mechanical snap, a band-passed body and a sub-bass punch. The sniper adds an N-wave supersonic crack. Shotguns add pellet scatter, LMGs a feed rattle, the energy SMG a square-wave zap, and the revolver a cylinder ring.
+- Each gun has three buffers: near, **tail** and far. Automatic guns play the tail once, when the burst ends, so sprays stay articulate. Remote fire uses distance tiers with a speed-of-sound delay and air absorption, and stays audible to about 600 m. That far audio is paired with red compass chevrons as a third-party cue.
+- Gunshots, footsteps and explosions are low-passed when geometry blocks them (occlusion).
+- **Hit feedback sounds:**
+  - Shield hits are pitched by armor tier.
+  - An *armor crack* plays when a 25-point shield segment shatters.
+  - Shield break is a layered glass burst plus a chime.
+  - The knockdown "thunk" and the elimination chime are distinct.
+  - Headshots have their own ring.
+- **Movement and ability sounds:**
+  - Footsteps and slide scrapes change with the surface: dirt, concrete or metal.
+  - Mantle, wall-kick and hard landings have formant-synthesised effort grunts.
+  - Abilities loop while active: dome hum, gas hiss, portal hum, drone, missiles, arc-star buzz, frag ticks, artillery whistle.
+- **Ambience and mix:**
+  - The ring wall hums from its nearest point.
+  - A tension bed swells with ring stage, lobby size and recent combat.
+  - The master mix is muffled when you are low on HP or knocked, and close explosions add tinnitus.
+  - A glue compressor and a limiter sit on the master bus.
+
+**Visual feedback**
+- **Camera:** trauma-based shake and FOV punch on every shot, hit, explosion, slide and superglide.
+- **Hits:**
+  - Screen-edge flashes are tinted by shield colour.
+  - Hit markers pop, with distinct versions for headshot, shield break and kill.
+  - Damage numbers are coloured by shield tier and merged per target.
+  - Kill confirms show streak callouts.
+- **Shield break:** a ring of shards, a light pop and FOV punch.
+- **Gunfire:** layered star muzzle flashes, ejected brass, bullet-hole decals, ricochet streaks and world muzzle flashes for other players.
+- **Knockdowns and deaths:** a stagger into a crawl on knockdown; on death, the body is thrown along the killing blow, tumbles, settles and sinks.
+- **Abilities:**
+  - Portals get a vortex shader.
+  - Gas gets toxic motes and smoke is layered and thicker.
+  - Artillery is telegraphed by falling streaks onto flashing rings.
+  - Jump pads burst, the jetpack and stim leave trails, and care packages leave a re-entry trail.
+- **World:** beacons flare when you carry banners and bin lids swing open. Fog and light warm up as the ring closes and turn orange outside it.
+
+**World**
+- Seeded heightfield hills reach 0–46 m with slopes up to about 33°. Slides speed up downhill to 17 m/s and die out uphill in about 1 s.
+- Ziplines come in three kinds: vertical lines up buildings, roof-to-roof lines, and long hilltop lines. Riding is predicted, and a zip-jump keeps the cable momentum.
+- Buildings have interior partition rooms, interior windows you can mantle through, balconies and low cover walls.
+- The minimap is hill-shaded with contours and shows ziplines.
+
+**Characters & weapons**
+- Each legend has a distinct silhouette kit: fins, hood, halo and med-pack, pauldrons, sensor dish, gas tanks, beret, jetpack. Visors are emissive and squadmates wear accent belts.
+- Characters are animated procedurally, and the scene uses image-based lighting.
+- Viewmodel guns are assembled from parts:
+  - Sights are iron sights or optics (holo reticles or a tube scope).
+  - Attachments are visible: mags, stocks and muzzle brakes.
+  - ADS puts the sight line exactly at screen centre, using an eased curve with a fixed time per gun.
+  - The gun sways with inertia and reacts to movement: it rolls when strafing, lifts in jumps and dips on landing.
+
+**Bots**
+- Pathfinding uses a 1 m nav grid with A*. Bots request a path only when direct steering is blocked, which cut stuck events about 15×.
+- Bots chain slide-hops while travelling, wall-bounce in fights, and push toward gunfire up to 220 m away.
+
+See `docs/JUICE.md` for the measured audit this pass was based on.
+
+## 4. Vertical slice (what ships now) → expansion plan
 
 **Vertical slice (done):**
 - One procedurally generated map (seeded) with 12 POIs.
@@ -137,7 +216,7 @@ H heal · 4 shields · 5 health · Tab inventory · M map · X/MMB ping · V spe
 
 **Next steps:**
 1. **Feel**: tune recoil and TTK against playtest data, add per-surface footstep and impact sounds, add a recoil-learning overlay to the firing range.
-2. **Content**: hand-authored terrain with heightfields (slopes make slide-down-hill tech possible), ziplines, more weapons (energy LMG, auto-shotgun, burst AR), hop-ups, and red armor from care packages.
+2. **Content**: hand-authored landmark terrain (cliffs, canyons), more weapons (energy LMG, auto-shotgun, burst AR), hop-ups, and red armor from care packages.
 3. **Netcode**: a binary snapshot protocol with delta compression, WebTransport/WebRTC unreliable datagrams, server-side rewind for explosive damage, and horizontal sharding (one match per worker thread).
-4. **Bots**: navmesh pathfinding inside buildings, better team-level coordination (focus fire, flanks, rotate timing).
+4. **Bots**: multi-floor navigation (stairs/upper floors), team-level coordination (focus fire, flanks, rotate timing).
 5. **Meta**: accounts, ranked queue, cosmetics and the replay/kill-cam system (snapshot logs make this cheap).

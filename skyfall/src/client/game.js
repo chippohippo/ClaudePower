@@ -609,6 +609,7 @@ export class Game {
     const cp = this.camera.position;
     this.view.update(dt, this.time, cp, this.ring, this.phase === 'ship' ? this.shipNow : null);
     this.view.setBeaconHighlight(!!(me && me.banners), this.time);
+    this.view.setAtmosphere(this.ring ? Math.max(0, this.ring.idx) / 6 : 0, !!(me && me.alive && me.out), dt);
     this.fx.update(dt, this.time);
     this.loot.update(dt, this.time, cp.x, cp.z);
     this._updatePings(dt);

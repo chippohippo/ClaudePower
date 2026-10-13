@@ -87,6 +87,7 @@ bindRange('#s-sens', 'sens', (v) => (+v).toFixed(2));
 bindRange('#s-adssens', 'adsSens', (v) => (+v).toFixed(2));
 bindRange('#s-fov', 'fov');
 bindRange('#s-vol', 'volume', (v) => Math.round(v * 100));
+bindRange('#s-shake', 'shake', (v) => Math.round(v * 100) + '%');
 for (const [id, key] of [['#s-toggleads', 'toggleAds'], ['#s-invert', 'invertY'], ['#s-fps', 'showFps']]) {
   const el = $(id);
   el.checked = settings[key];
@@ -187,13 +188,9 @@ document.addEventListener('keydown', (e) => {
     else if (g.invOpen) g.toggleInventory();
     else if (g.mapOpen) g.toggleMap();
   }
-  // panels opened without pointer lock still need their toggle keys
-  if (!input.locked) {
-    if (e.code === input.binds.inventory && g.invOpen) { e.preventDefault(); g.toggleInventory(); }
-    else if (e.code === input.binds.inventory && g.boxOpen) { e.preventDefault(); g.closeBox(); }
-    else if (e.code === input.binds.map && g.mapOpen) g.toggleMap();
-    else if (e.code === input.binds.interact && g.boxOpen) g.closeBox();
-  }
+  // Tab / M / E while a panel is open are handled by the game loop (Input records key presses
+  // even without pointer lock), so only the browser default needs suppressing here.
+  if (!input.locked && e.code === input.binds.inventory) e.preventDefault();
 });
 $('#bigmap canvas').addEventListener('click', (e) => {
   const g = app.game;
