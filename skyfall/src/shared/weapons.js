@@ -131,14 +131,28 @@ export function magSize(w, magLevel) {
   return magLevel > 0 ? w.magExt[magLevel - 1] : w.mag;
 }
 
+// Gunplay tuning shared by every weapon (per-weapon values live in WEAPONS).
+export const GUNPLAY = {
+  slideHipMul: 0.42,      // sliding tightens hipfire dramatically (Apex slide-hipfire)
+  crouchHipMul: 0.8,
+  airAdsPenalty: 0.6,     // degrees added to ADS spread while airborne
+  adsBloomMul: 0.15,
+  bloomPerShotAuto: 0.22,
+  bloomPerShotSemi: 0.5,
+  bloomMax: 3,
+  bloomDecay: 4,          // degrees per second
+  bulletGravity: 6,       // m/s² × weapon drop factor
+};
+
 // Current spread cone (degrees, full angle) given player movement state.
 export function currentSpread(w, ms, ads, bloom = 0) {
+  const G = GUNPLAY;
   const hs = Math.hypot(ms.vx, ms.vz);
-  if (ads) return w.adsSpread + (ms.onGround ? 0 : 0.6) + bloom * 0.15;
+  if (ads) return w.adsSpread + (ms.onGround || ms.mode === 'zip' ? 0 : G.airAdsPenalty) + bloom * G.adsBloomMul;
   let s = w.hip + bloom;
-  if (ms.mode === 'slide') s += w.slideSpread;
-  else if (!ms.onGround && ms.mode !== 'mantle') s += w.airSpread;
+  if (ms.mode === 'slide') return Math.max(0.2, s * G.slideHipMul);
+  if (!ms.onGround && ms.mode !== 'mantle') s += w.airSpread;
   else s += Math.min(1, hs / 7) * w.moveSpread;
-  if (ms.crouch > 0.5 && ms.mode !== 'slide') s *= 0.8;
+  if (ms.crouch > 0.5) s *= G.crouchHipMul;
   return Math.max(0.2, s);
 }

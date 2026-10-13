@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { buildMap } from '../shared/map.js';
 import { createMoveState, stepMovement, copyMoveState, eyeHeight, playerHeight, MEV } from '../shared/movement.js';
 import { SIM_DT, BTN, INTERP_DELAY, SHIELD_COLORS, SHIELD_TIERS, MOVE, TEAM_COLORS } from '../shared/constants.js';
-import { WEAPONS, fireInterval, currentSpread, magSize } from '../shared/weapons.js';
+import { WEAPONS, fireInterval, currentSpread, magSize, GUNPLAY } from '../shared/weapons.js';
 import { ATTACHMENTS, itemName, itemRarity, RARITY } from '../shared/items.js';
 import { LEGENDS } from '../shared/legends.js';
 import { speedMul } from '../shared/mods.js';
@@ -26,6 +26,7 @@ import { FEEL } from './tuning.js';
 const SHIELD_PITCH = [1, 1.12, 1.0, 0.9, 0.8];
 const SURFACE = { container: 'metal', bin: 'metal', beacon: 'metal', floor: 'concrete', roof: 'concrete', stair: 'concrete', wall: 'concrete', rock: 'concrete', crate: 'concrete', tree: 'dirt' };
 
+const speedOf = (s) => Math.hypot(s.vx, s.vz);
 const PELLET_PATTERN = [[0, 0], [1, 0], [0.5, 0.87], [-0.5, 0.87], [-1, 0], [-0.5, -0.87], [0.5, -0.87], [0.45, 0.2], [-0.45, 0.2], [0, -0.45], [0, 0.45]];
 
 export class Game {
@@ -51,7 +52,7 @@ export class Game {
     this.fx = new FX(this.scene, this.camera, this.world);
     this.loot = new LootView(this.scene);
     this.loot.set(welcome.loot);
-    this.vm = new ViewModel();
+    this.vm = new ViewModel(this.renderer);
     this.binsOpened = welcome.bins.slice();
     this.binsOpened.forEach((o, i) => o && this.view.setBinOpened(i));
 
@@ -457,6 +458,8 @@ export class Game {
     const name = map[ev.k];
     if (!name) return;
     const self = ev.id === this.myId;
+    const ra = !self && this.remotes.get(ev.id);
+    if (ra && ra.avatar && ev.k !== 'portal') ra.avatar.cast();
     audio.play(name, self ? null : pos, { vol: self ? 0.8 : 1, ref: 6, important: true, reverb: 0.2 });
     if (ev.k === 'pulse' && pos) {
       for (let i = 0; i < 40; i++) {
@@ -611,13 +614,16 @@ export class Game {
     const ms = this.spectating ? this.meView.ms : this.pred;
     const specW = this.spectating ? this.meView.wpn : null;
     if (this.spectating) this.vm.setWeapon(specW, 0);
-    else this.vm.setWeapon(alive && w && !me.inShip && this.pred.mode !== 'skydive' ? w.id : null, w ? w.tier : 0);
+    else this.vm.setWeapon(alive && w && !me.inShip && this.pred.mode !== 'skydive' && this.pred.mode !== 'zip' ? w.id : null, w ? w.tier : 0, w ? w.att : null);
     this.vm.update(dt, {
       ads: this.adsWanted, adsTime: this._adsTime(def, w), sprint: this.sprinting, speed: Math.hypot(ms.vx, ms.vz), onGround: ms.onGround,
       slide: ms.mode === 'slide', mouseDX: m.dx, mouseDY: m.dy, healing: !!(me && me.heal), switching: this.localSwitch > 0,
       downed: me && me.down, aspect: innerWidth / innerHeight, hidden: ms.mode === 'skydive' || (me && me.inShip),
       scoped: zoom >= 3,
+      vSide: ms.vx * Math.cos(ms.yaw) - ms.vz * Math.sin(ms.yaw), vy: ms.onGround ? 0 : ms.vy,
+      landImpulse: this.vmLand || 0,
     });
+    this.vmLand = 0;
 
     // ---- HUD
     this.viewYaw = this.yaw;
@@ -682,6 +688,7 @@ export class Game {
         audio.play('land', null, { vol: 0.25 + Math.min(0.4, s.lastLandSpeed / 25) });
         audio.play(`step_${surf}${(Math.random() * 3) | 0}`, null, { vol: 0.35, rate: 0.85 });
         this.landDip = Math.min(0.12, s.lastLandSpeed * 0.012);
+        this.vmLand = s.lastLandSpeed;
       }
       if (ev & MEV.HARDLAND) { audio.play('hardland', null, { vol: 0.75 }); this.landDip = 0.24; this.punch(C.landTrauma, 2); this.fx.dust(s.x, s.y, s.z, 1.4); }
       if (ev & MEV.SLIDE) { audio.play('slidestart', null, { vol: 0.6 }); this.fovKick = Math.max(this.fovKick, C.slideFov); this.fx.dust(s.x, s.y, s.z, 0.6); }
@@ -841,7 +848,7 @@ export class Game {
     const me = this.me;
     const inp = this.input;
     this.fireCd = Math.max(-0.05, this.fireCd - dt);
-    this.bloom = Math.max(0, this.bloom - dt * 4);
+    this.bloom = Math.max(0, this.bloom - dt * GUNPLAY.bloomDecay);
     if (this.localSwitch > 0) this.localSwitch -= dt;
     if (this.localReload) {
       this.localReload.t -= dt;
@@ -926,7 +933,7 @@ export class Game {
     this.pitch = clamp(this.pitch + (ky + (Math.random() - 0.5) * rr) * DEG * bm * am, -1.55, 1.55);
     this.yaw -= (kx + (Math.random() - 0.5) * rr) * DEG * bm * am;
     this.recoilIdx++;
-    this.bloom = Math.min(3, this.bloom + (def.mode === 'auto' ? 0.22 : 0.5));
+    this.bloom = Math.min(GUNPLAY.bloomMax, this.bloom + (def.mode === 'auto' ? GUNPLAY.bloomPerShotAuto : GUNPLAY.bloomPerShotSemi));
     // feel: per-class shake, FOV punch and viewmodel kick (all in tuning.js)
     const cls = def.sound.cls;
     const C = FEEL.camera;
@@ -1015,6 +1022,11 @@ export class Game {
         r.avatar.root.visible = !inShip && dist < 500 && !r.avatar.dead;
         if (r.avatar.root.visible) r.avatar.update(dt, s, this.time);
         else r.avatar.reveal.visible = false;
+      }
+      // ability trails: jetpack flame, stim afterburn
+      if (r.avatar && r.avatar.root.visible && dist < 150) {
+        if (s.fl & 2048) this.fx.jetTrail(s.x, s.y + 0.9, s.z, s.yaw);
+        if (s.fl & 256 && speedOf(s) > 4) this.fx.stimTrail(s.x, s.y + 1, s.z);
       }
       // remote footsteps
       if (!inShip && !(s.fl & 4) && !(s.fl & 2) && dist < 55) {

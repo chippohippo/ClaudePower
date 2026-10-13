@@ -2,6 +2,7 @@
 // shader (gives strong scale/readability cues for movement), trees, beacons, ring wall and drop ship.
 
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 const SUN_DIR = new THREE.Vector3(-0.45, 0.8, 0.35).normalize();
 
@@ -53,6 +54,11 @@ export class WorldView {
     const scene = (this.scene = new THREE.Scene());
     scene.background = new THREE.Color('#a9c4dc');
     scene.fog = new THREE.Fog('#b9cde0', 160, 1100);
+    // image-based lighting so metal and armour materials have something to reflect
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = this.envMap;
+    scene.environmentIntensity = 0.45;
 
     // sky dome
     const skyGeo = new THREE.SphereGeometry(3000, 32, 16);

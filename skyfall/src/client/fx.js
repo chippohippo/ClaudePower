@@ -217,6 +217,20 @@ export class FX {
     m.scale.set(sc, sc, 1);
   }
 
+  jetTrail(x, y, z, yaw) {
+    const bx = x + Math.sin(yaw) * 0.3, bz = z + Math.cos(yaw) * 0.3; // behind the back
+    tmpC.set(Math.random() < 0.5 ? '#ff4d6d' : '#ffb347');
+    this.sparks.emit(bx, y, bz, (Math.random() - 0.5) * 0.6, -6 - Math.random() * 3, (Math.random() - 0.5) * 0.6, tmpC, 0.22, 0.25, 0);
+    tmpC.set('#777777');
+    if (Math.random() < 0.3) this.smoke.emit(bx, y - 0.6, bz, 0, -1, 0, tmpC, 0.4, 0.6, -0.5, 1.2);
+  }
+
+  stimTrail(x, y, z) {
+    if (Math.random() < 0.5) return;
+    tmpC.set('#ff7a1a');
+    this.sparks.emit(x + (Math.random() - 0.5) * 0.4, y + (Math.random() - 0.5) * 0.8, z + (Math.random() - 0.5) * 0.4, 0, 0.5, 0, tmpC, 0.14, 0.35, 0);
+  }
+
   padBurst(x, y, z) {
     tmpC.set('#ff9a3a');
     for (let i = 0; i < 40; i++) {

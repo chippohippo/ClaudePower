@@ -1291,6 +1291,7 @@ export class Match {
       if (q.ms.mode === 'mantle') fl |= 512;
       if (q.reviveT > 0) fl |= 1024;
       if (q.ms.events & MEV.JET) fl |= 2048;
+      if (q.ms.mode === 'zip') fl |= 4096;
       rows.set(q.id, [
         q.id, +q.ms.x.toFixed(2), +q.ms.y.toFixed(2), +q.ms.z.toFixed(2), +q.ms.yaw.toFixed(3), +q.ms.pitch.toFixed(3),
         fl, +q.ms.crouch.toFixed(2), w ? w.id : '', Math.round(q.hp), Math.round(q.shield), q.armor,
