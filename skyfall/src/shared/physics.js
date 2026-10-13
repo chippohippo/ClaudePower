@@ -15,6 +15,10 @@ export class CollisionWorld {
     this.bulletBlockers = [];
     // Jump pads (Jolt ult). Read by the shared movement code so launches are predicted.
     this.pads = [];
+    // Zipline cables (static map data) — read by movement for attach/ride.
+    this.zips = [];
+    // Heightfield terrain (shared/terrain.js); null = flat ground at y = 0.
+    this.terrain = null;
   }
 
   key(cx, cz) {
@@ -61,9 +65,13 @@ export class CollisionWorld {
   }
 
   // Ground height (top of highest box below y+0.01) at point; 0 = terrain.
+  terrainH(x, z) {
+    return this.terrain ? this.terrain.height(x, z) : 0;
+  }
+
   groundAt(x, z, y = 1e9, out = []) {
     this.query(x, z, x, z, out);
-    let best = 0;
+    let best = this.terrainH(x, z);
     for (const b of out) {
       if (x >= b.min[0] && x <= b.max[0] && z >= b.min[2] && z <= b.max[2]) {
         if (b.max[1] <= y + 0.01 && b.max[1] > best) best = b.max[1];
@@ -84,7 +92,7 @@ export class CollisionWorld {
 
   // Does an AABB overlap any solid box?
   overlaps(minX, minY, minZ, maxX, maxY, maxZ, tmp = []) {
-    if (minY < 0) return true;
+    if (minY < this.terrainH((minX + maxX) * 0.5, (minZ + maxZ) * 0.5) - 0.12) return true;
     this.query(minX, minZ, maxX, maxZ, tmp);
     for (const b of tmp) {
       if (maxX > b.min[0] && minX < b.max[0] && maxY > b.min[1] && minY < b.max[1] && maxZ > b.min[2] && minZ < b.max[2])
@@ -98,8 +106,14 @@ export class CollisionWorld {
     const ex = ox + dx * maxT, ez = oz + dz * maxT;
     this.query(Math.min(ox, ex), Math.min(oz, ez), Math.max(ox, ex), Math.max(oz, ez), tmp);
     let best = maxT, hit = null;
-    // terrain plane y = 0
-    if (dy < 0) {
+    // terrain
+    if (this.terrain) {
+      const t = this.terrain.raycast(ox, oy, oz, dx, dy, dz, best);
+      if (t >= 0 && t < best) {
+        const n = this.terrain.normal(ox + dx * t, oz + dz * t);
+        best = t; hit = { t, nx: n.x, ny: n.y, nz: n.z, box: null, terrain: true };
+      }
+    } else if (dy < 0) {
       const t = -oy / dy;
       if (t >= 0 && t < best) { best = t; hit = { t, nx: 0, ny: 1, nz: 0, box: null }; }
     }

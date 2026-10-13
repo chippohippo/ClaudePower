@@ -93,3 +93,43 @@ for (let i = 0; i < 80 && !sg2; i++) {
   if (ev & MEV.SUPERGLIDE) sg2 = true;
 }
 console.log('superglide (jump then crouch next tick)', sg2, 'speed', hs(s));
+
+// ---- terrain: slope sliding + ground following ------------------------------------------
+{
+  const tw = new CollisionWorld(800);
+  const k = 0.4; // height = -k * x  → downhill toward +x (≈22°)
+  tw.terrain = {
+    height: (x) => -k * x,
+    normal: (x, z, o = {}) => { const l = Math.hypot(k, 1); o.x = k / l; o.y = 1 / l; o.z = 0; return o; },
+    raycast: () => -1,
+  };
+  tw.finalize();
+  const yawDown = -Math.PI / 2; // facing +x
+  let st = createMoveState(-40, 16, 0); st.onGround = true; st.mode = 'ground';
+  for (let i = 0; i < 60; i++) stepMovement(st, { mx: 0, mz: 1, yaw: yawDown, pitch: 0, buttons: BTN.SPRINT }, SIM_DT, tw);
+  const groundedWalk = st.onGround && Math.abs(st.y - (-k * st.x)) < 0.05;
+  stepMovement(st, { mx: 0, mz: 1, yaw: yawDown, pitch: 0, buttons: BTN.SPRINT | BTN.CROUCH }, SIM_DT, tw);
+  for (let i = 0; i < 120; i++) stepMovement(st, { mx: 0, mz: 1, yaw: yawDown, pitch: 0, buttons: BTN.SPRINT | BTN.CROUCH }, SIM_DT, tw);
+  console.log('downhill walk stays grounded', groundedWalk, '| 2s downhill slide speed', hs(st), st.mode);
+  // uphill slide decays fast
+  st = createMoveState(40, -16, 0); st.onGround = true; st.mode = 'ground';
+  for (let i = 0; i < 60; i++) stepMovement(st, { mx: 0, mz: 1, yaw: Math.PI / 2, pitch: 0, buttons: BTN.SPRINT }, SIM_DT, tw);
+  stepMovement(st, { mx: 0, mz: 1, yaw: Math.PI / 2, pitch: 0, buttons: BTN.SPRINT | BTN.CROUCH }, SIM_DT, tw);
+  let tUp = 0;
+  while (st.mode === 'slide' && tUp < 300) { stepMovement(st, { mx: 0, mz: 1, yaw: Math.PI / 2, pitch: 0, buttons: BTN.SPRINT | BTN.CROUCH }, SIM_DT, tw); tUp++; }
+  console.log('uphill slide lasted', (tUp / 60).toFixed(2), 's');
+}
+
+// ---- zipline ride + zip jump --------------------------------------------------------------
+{
+  const zw = new CollisionWorld(800);
+  zw.zips = [{ ax: 0, ay: 6, az: 0, bx: 60, by: 6, bz: 0 }];
+  zw.finalize();
+  let st = createMoveState(5, 4.3, 0.5); st.onGround = true; st.mode = 'ground';
+  stepMovement(st, { mx: 0, mz: 0, yaw: -Math.PI / 2, pitch: 0, buttons: BTN.INTERACT }, SIM_DT, zw);
+  const attached = st.mode === 'zip';
+  for (let i = 0; i < 120; i++) stepMovement(st, { mx: 0, mz: 0, yaw: -Math.PI / 2, pitch: 0, buttons: 0 }, SIM_DT, zw);
+  const travelled = st.x - 5;
+  stepMovement(st, { mx: 0, mz: 0, yaw: -Math.PI / 2, pitch: 0, buttons: BTN.JUMP }, SIM_DT, zw);
+  console.log('zipline attached', attached, 'rode', travelled.toFixed(1), 'm in 2s; zip jump', st.mode, 'speed', hs(st), 'vy', st.vy.toFixed(1));
+}

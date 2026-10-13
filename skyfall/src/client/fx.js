@@ -217,6 +217,16 @@ export class FX {
     m.scale.set(sc, sc, 1);
   }
 
+  padBurst(x, y, z) {
+    tmpC.set('#ff9a3a');
+    for (let i = 0; i < 40; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.random() * 0.9;
+      this.sparks.emit(x + Math.cos(a) * r, y + 0.2, z + Math.sin(a) * r, Math.cos(a) * 1.5, 10 + Math.random() * 8, Math.sin(a) * 1.5, tmpC, 0.2, 0.7, 6);
+    }
+    this.ring(x, y, z, '#ff7a1a', 1.5);
+    this.flashLight(x, y + 1, z, 10, 0.2, '#ff8a2a');
+  }
+
   dust(x, y, z, amt = 1) {
     for (let i = 0; i < 10 * amt; i++) {
       tmpC.setHSL(0.09, 0.15, 0.45 + Math.random() * 0.1);
@@ -579,8 +589,13 @@ export class FX {
       g.position.z += (e.z - g.position.z) * Math.min(1, dt * 20);
       switch (v.kind) {
         case 'carepkg':
-          if (!e.landed) v.pod.position.y = 0.85 + (e.lt / 7) * 220;
-          else v.pod.position.y = 0.85;
+          if (!e.landed) {
+            v.pod.position.y = 0.85 + (e.lt / 7) * 220;
+            // re-entry flame trail
+            tmpC.set(Math.random() < 0.5 ? '#ffb347' : '#ff5a1a');
+            const wy = g.position.y + v.pod.position.y - 1;
+            for (let i = 0; i < 3; i++) this.sparks.emit(g.position.x + (Math.random() - 0.5) * 0.8, wy, g.position.z + (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 2, 12 + Math.random() * 6, (Math.random() - 0.5) * 2, tmpC, 0.5, 0.5, -4);
+          } else v.pod.position.y = 0.85;
           v.beam.material.opacity = e.landed && e.n === 0 ? 0.05 : 0.25;
           break;
         case 'dome': v.mat.uniforms.time.value = time; break;

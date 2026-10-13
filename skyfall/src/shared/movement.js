@@ -34,7 +34,8 @@ export function createMoveState(x = 0, y = 0, z = 0) {
     jetpack: 0,           // 1 if legend has jetpack passive
     fuel: 1,
     launchT: 0,           // skyward launch time remaining
-    sgPend: 0,            // superglide: jump seen in window, waiting one tick for crouch
+    sgPend: 0,
+    zip: -1, zipT: 0, zipDir: 1, zipCd: 0, // zipline ride state            // superglide: jump seen in window, waiting one tick for crouch
     lastLandSpeed: 0,
     events: 0,            // bit flags of things that happened this step (for audio/vfx)
   };
@@ -71,7 +72,8 @@ function moveAxis(world, s, axis, delta, h, allowStep) {
   const r = MOVE.radius;
   if (axis === 1) {
     s.y += delta;
-    if (s.y < 0) { s.y = 0; return 1; }
+    const th = world.terrainH(s.x, s.z);
+    if (s.y < th) { s.y = th; return 1; }
   } else if (axis === 0) s.x += delta;
   else s.z += delta;
   world.query(s.x - r, s.z - r, s.x + r, s.z + r, tmpBoxes);
@@ -171,6 +173,9 @@ export function stepMovement(s, inp, dt, world) {
   }
   if (s.mode === 'skydive') return skydive(s, wx, wz, wishAmt, dt, world);
   if (s.mode === 'mantle') return mantle(s, btn, pressed, dt, world);
+  s.zipCd = Math.max(0, s.zipCd - dt);
+  if (s.mode === 'zip') return zipRide(s, btn, pressed, dt, world);
+  if (pressed & BTN.INTERACT && s.zipCd <= 0 && !s.downed && world.zips.length && tryZip(s, world)) return s;
 
   // crouch transition (need headroom to stand)
   const wantCrouch = s.downed ? 1 : btn & BTN.CROUCH || s.mode === 'slide' ? 1 : 0;
@@ -211,7 +216,11 @@ export function stepMovement(s, inp, dt, world) {
         }
         s.vx = vx * ns; s.vz = vz * ns;
       }
-      if (ns < MOVE.slideEndSpeed || !(btn & BTN.CROUCH)) s.mode = 'ground';
+      // slopes: gravity along the hill accelerates (or brakes) the slide
+      const downhill = slopeAccel(s, world, dt);
+      const hs2 = Math.hypot(s.vx, s.vz);
+      if (hs2 > MOVE.slideMaxSlopeSpeed) { s.vx *= MOVE.slideMaxSlopeSpeed / hs2; s.vz *= MOVE.slideMaxSlopeSpeed / hs2; }
+      if ((hs2 < MOVE.slideEndSpeed && downhill < 0.5) || !(btn & BTN.CROUCH)) s.mode = 'ground';
     } else {
       s.mode = 'ground';
       if (pressed & BTN.CROUCH && hSpeed >= MOVE.slideMinSpeed && !s.downed) {
@@ -286,10 +295,12 @@ export function stepMovement(s, inp, dt, world) {
   const cz = moveAxis(world, s, 2, s.vz * dt, h, allowStep);
   if (cz === 1) { s.wallNz = s.vz > 0 ? -1 : 1; s.wallNx = cx === 1 ? s.wallNx : 0; s.wallT = 0; s.vz = 0; }
   if (cx === 2 || cz === 2) s.events |= MEV.STEP;
+  const thz = world.terrainH(s.x, s.z);
+  if (s.y < thz) s.y = thz; // walking up a hill
 
   // vertical: snap to ground while grounded so we stick to steps going down
   let vdelta = s.vy * dt;
-  if (wasGround && s.vy <= 0) vdelta = -0.06;
+  if (wasGround && s.vy <= 0) vdelta = -(0.06 + Math.hypot(s.vx, s.vz) * dt * 0.95); // follow downhill slopes
   const startY = s.y;
   const cy = moveAxis(world, s, 1, vdelta, h, false);
   if (cy && vdelta < 0) {
@@ -447,5 +458,89 @@ function skydive(s, wx, wz, wishAmt, dt, world) {
   const lim = 760;
   s.x = Math.max(-lim, Math.min(lim, s.x));
   s.z = Math.max(-lim, Math.min(lim, s.z));
+  return s;
+}
+
+// Downhill acceleration while sliding on terrain. Returns the downhill component (m/s²).
+function slopeAccel(s, world, dt) {
+  if (!world.terrain) return 0;
+  const th = world.terrain.height(s.x, s.z);
+  if (s.y - th > 0.08) return 0; // standing on a box, not the hill
+  const n = world.terrain.normal(s.x, s.z, slopeN);
+  const ax = MOVE.gravity * n.x * MOVE.slideSlope, az = MOVE.gravity * n.z * MOVE.slideSlope;
+  s.vx += ax * dt;
+  s.vz += az * dt;
+  const hs = Math.hypot(s.vx, s.vz) || 1;
+  return (ax * s.vx + az * s.vz) / hs;
+}
+const slopeN = { x: 0, y: 1, z: 0 };
+
+// ------------------------------------------------------------------ ziplines
+function tryZip(s, world) {
+  const cx = s.x, cy = s.y + 1.2, cz = s.z;
+  let best = -1, bt = 0, bd = MOVE.zipGrab;
+  for (let i = 0; i < world.zips.length; i++) {
+    const z = world.zips[i];
+    const dx = z.bx - z.ax, dy = z.by - z.ay, dz = z.bz - z.az;
+    const L2 = dx * dx + dy * dy + dz * dz;
+    let t = ((cx - z.ax) * dx + (cy - z.ay) * dy + (cz - z.az) * dz) / L2;
+    t = Math.max(0.02, Math.min(0.98, t));
+    const px = z.ax + dx * t, py = z.ay + dy * t - 1.0, pz = z.az + dz * t;
+    const d = Math.hypot(px - cx, py - cy, pz - cz);
+    if (d < bd) { bd = d; best = i; bt = t; }
+  }
+  if (best < 0) return false;
+  const z = world.zips[best];
+  const L = Math.hypot(z.bx - z.ax, z.by - z.ay, z.bz - z.az);
+  const ux = (z.bx - z.ax) / L, uy = (z.by - z.ay) / L, uz = (z.bz - z.az) / L;
+  if (Math.abs(uy) > 0.9) s.zipDir = (s.pitch > -0.35 ? 1 : -1) * Math.sign(uy);
+  else {
+    const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
+    s.zipDir = fx * ux + fz * uz >= 0 ? 1 : -1;
+  }
+  s.mode = 'zip';
+  s.zip = best;
+  s.zipT = bt;
+  s.onGround = false;
+  s.crouch = 0;
+  s.events |= MEV.ZIP;
+  return true;
+}
+
+function zipRide(s, btn, pressed, dt, world) {
+  const z = world.zips[s.zip];
+  if (!z) { s.mode = 'air'; return s; }
+  const L = Math.hypot(z.bx - z.ax, z.by - z.ay, z.bz - z.az);
+  const ux = (z.bx - z.ax) / L, uy = (z.by - z.ay) / L, uz = (z.bz - z.az) / L;
+  const vertical = Math.abs(uy) > 0.9;
+  const speed = vertical ? MOVE.zipVerticalSpeed : MOVE.zipSpeed;
+  s.zipT += (s.zipDir * speed * dt) / L;
+  const t = Math.max(0, Math.min(1, s.zipT));
+  s.x = z.ax + ux * L * t; s.y = z.ay + uy * L * t - 1.75; s.z = z.az + uz * L * t;
+  s.vx = ux * speed * s.zipDir; s.vy = uy * speed * s.zipDir; s.vz = uz * speed * s.zipDir;
+  const exit = (boost) => {
+    s.mode = 'air';
+    s.zip = -1;
+    s.zipCd = 0.5;
+    if (boost) {
+      const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
+      s.vx += fx * 3; s.vz += fz * 3;
+      s.vy = Math.max(s.vy, MOVE.jumpVel * 0.9);
+      s.events |= MEV.JUMP;
+    }
+    return s;
+  };
+  if (pressed & BTN.JUMP) return exit(true);   // zip jump keeps the cable momentum
+  if (pressed & BTN.CROUCH) return exit(false); // drop
+  if (s.zipT >= 1 || s.zipT <= 0) {
+    const atTop = vertical && ((s.zipT >= 1 && uy > 0) || (s.zipT <= 0 && uy < 0));
+    if (atTop && z.top) {
+      // vertical zip: hop onto the roof landing spot
+      s.x = z.top.x; s.y = z.top.y; s.z = z.top.z;
+      s.vx = 0; s.vy = 2; s.vz = 0;
+      return exit(false);
+    }
+    return exit(!vertical);
+  }
   return s;
 }

@@ -38,9 +38,11 @@ export const MOVE = {
   crouchTime: 0.12,            // seconds to transition stand <-> crouch
   // slide
   slideMinSpeed: 5.6,
-  slideBoost: 2.4,
+  slideBoost: 2.9,
   slideBoostCooldown: 2.0,
-  slideFriction: 1.15,         // m/s^2 deceleration while sliding
+  slideFriction: 1.0,          // m/s^2 deceleration while sliding
+  slideSlope: 0.9,             // fraction of gravity applied along the hill while sliding
+  slideMaxSlopeSpeed: 17,      // terminal slide speed down hills
   slideEndSpeed: 3.0,
   slideSteer: 1.4,
   slideMaxSpeed: 14,
@@ -59,6 +61,10 @@ export const MOVE = {
   mantleTime: 0.32,
   superglideWindow: 0.08,     // seconds at end of mantle where jump+crouch triggers a superglide
   superglideSpeed: 10.5,
+  // ziplines
+  zipSpeed: 13,
+  zipVerticalSpeed: 10,
+  zipGrab: 1.8,               // max distance from cable to attach
   // skydive
   skydiveFallSpeed: 32,
   skydiveDiveSpeed: 55,

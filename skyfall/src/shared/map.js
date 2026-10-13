@@ -5,6 +5,7 @@
 import { makeRng } from './util.js';
 import { CollisionWorld } from './physics.js';
 import { MAP_HALF } from './constants.js';
+import { Terrain } from './terrain.js';
 
 const POI_NAMES = [
   'Rusthaven', 'Signal Peak', 'The Forge', 'Glass Basin', 'Overpass', 'Drillsite', 'Boneyard',
@@ -23,8 +24,19 @@ export function buildMap(seed) {
   const beacons = [];
   const trees = [];
   const pois = [];
+  const buildings = [];
+  const zips = [];
 
+  // every structure is built relative to baseY (the terrain height it stands on)
+  let baseY = 0;
+  let terrain = null;
+  const sinkBase = (x0, z0, x1, z1, sink = 0.4) => {
+    let m = 1e9;
+    for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1], [(x0 + x1) / 2, (z0 + z1) / 2]]) m = Math.min(m, terrain.height(x, z));
+    return m - sink;
+  };
   const add = (x0, y0, z0, x1, y1, z1, kind, color) => {
+    y0 += baseY; y1 += baseY;
     const min = [Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1)];
     const max = [Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1)];
     const b = world.addBox(min, max, kind);
@@ -117,7 +129,7 @@ export function buildMap(seed) {
       // loot on this floor
       const nLoot = 2 + Math.floor(rng() * 3);
       for (let i = 0; i < nLoot; i++) {
-        lootPoints.push({ x: rng.range(x0 + 1, sx0 - 0.6), y: y + 0.05, z: rng.range(z0 + 1, z1 - 1), tier });
+        lootPoints.push({ x: rng.range(x0 + 1, sx0 - 0.6), y: baseY + y + 0.05, z: rng.range(z0 + 1, z1 - 1), tier });
       }
       // interior cover crate
       if (rng() < 0.5 && w > 8) {
@@ -126,7 +138,8 @@ export function buildMap(seed) {
       }
     }
     // roof loot sometimes (rewards climbing)
-    if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
+    if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: baseY + floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
+    buildings.push({ cx, cz, x0, x1, z0, z1, roof: baseY + floors * FLOOR_H + 0.3, floors });
     // parapet
     if (rng() < 0.5) {
       const ty = floors * FLOOR_H + 0.3;
@@ -159,8 +172,9 @@ export function buildMap(seed) {
 
   function tree(x, z) {
     const h = rng.range(7, 13);
+    baseY = terrain.height(x, z) - 0.3;
     add(x - 0.3, 0, z - 0.3, x + 0.3, h * 0.6, z + 0.3, 'tree', '#5b4330');
-    trees.push({ x, z, h });
+    trees.push({ x, z, h, y: baseY });
   }
 
   // --- POIs ---
@@ -178,6 +192,10 @@ export function buildMap(seed) {
   pois[order[1]].tier = 2;
   for (let i = 2; i < 6 && i < pois.length; i++) pois[order[i]].tier = 1;
 
+  // terrain with flattened pads under every POI
+  terrain = new Terrain(seed).build(pois.map((p) => ({ x: p.x, z: p.z, r: p.r * 1.05 })));
+  world.terrain = terrain;
+
   const palettes = ['#9b8f7a', '#8a929c', '#a07c62', '#7f8b77', '#a3978b', '#6f7f8f'];
   for (const p of pois) {
     const palette = rng.pick(palettes);
@@ -192,6 +210,7 @@ export function buildMap(seed) {
       if (!isFree(bx, bz, rad)) continue;
       blocked.push({ x: bx, z: bz, r: rad });
       const floors = rng() < 0.15 + p.tier * 0.15 ? 3 : rng() < 0.55 ? 2 : 1;
+      baseY = terrain.height(bx, bz);
       building(bx, bz, w, d, floors, p.tier, palette);
       placed++;
     }
@@ -202,9 +221,11 @@ export function buildMap(seed) {
       const ex = p.x + Math.cos(a) * rr, ez = p.z + Math.sin(a) * rr;
       if (!isFree(ex, ez, 5)) continue;
       blocked.push({ x: ex, z: ez, r: 5 });
+      baseY = sinkBase(ex - 6, ez - 6, ex + 6, ez + 6, 0.1);
       if (style === 0 || rng() < 0.4) containerStack(ex, ez, rng() < 0.5);
       else rockFormation(ex, ez, 0.8);
-      lootPoints.push({ x: ex + 4.5, y: 0.05, z: ez + rng.range(-2, 2), tier: p.tier });
+      const lx = ex + 4.5, lz = ez + rng.range(-2, 2);
+      lootPoints.push({ x: lx, y: terrain.height(lx, lz) + 0.05, z: lz, tier: p.tier });
     }
     // supply bins
     const nbins = 3 + Math.floor(rng() * 4);
@@ -213,8 +234,9 @@ export function buildMap(seed) {
       const bx = p.x + Math.cos(a) * rr, bz = p.z + Math.sin(a) * rr;
       if (!isFree(bx, bz, 1.5)) continue;
       blocked.push({ x: bx, z: bz, r: 1.5 });
+      baseY = terrain.height(bx, bz);
       add(bx - 0.75, 0, bz - 0.45, bx + 0.75, 0.85, bz + 0.45, 'bin', '#2c3440');
-      bins.push({ x: bx, y: 0.85, z: bz, tier: p.tier });
+      bins.push({ x: bx, y: baseY + 0.85, z: bz, tier: p.tier });
     }
     // respawn beacon near the edge of the POI
     {
@@ -222,8 +244,9 @@ export function buildMap(seed) {
       const bx = p.x + Math.cos(a) * (p.r + 12), bz = p.z + Math.sin(a) * (p.r + 12);
       if (isFree(bx, bz, 2.5)) {
         blocked.push({ x: bx, z: bz, r: 2.5 });
+        baseY = terrain.height(bx, bz) - 0.2;
         add(bx - 0.5, 0, bz - 0.5, bx + 0.5, 2.6, bz + 0.5, 'beacon', '#1c6dd0');
-        beacons.push({ x: bx, y: 0, z: bz });
+        beacons.push({ x: bx, y: baseY + 0.2, z: bz });
       }
     }
   }
@@ -233,8 +256,10 @@ export function buildMap(seed) {
     const x = rng.range(-MAP_HALF + 30, MAP_HALF - 30), z = rng.range(-MAP_HALF + 30, MAP_HALF - 30);
     if (!isFree(x, z, 10)) continue;
     blocked.push({ x, z, r: 10 });
-    rockFormation(x, z, rng.range(0.8, 1.6));
-    if (rng() < 0.5) lootPoints.push({ x: x + rng.range(-8, 8), y: 0.05, z: z + rng.range(-8, 8), tier: 0 });
+    const sc = rng.range(0.8, 1.6);
+    baseY = sinkBase(x - 8 * sc, z - 8 * sc, x + 8 * sc, z + 8 * sc, 0.5);
+    rockFormation(x, z, sc);
+    if (rng() < 0.5) { const lx = x + rng.range(-8, 8), lz = z + rng.range(-8, 8); lootPoints.push({ x: lx, y: world.groundAt(lx, lz) + 0.05, z: lz, tier: 0 }); }
   }
   for (let i = 0; i < 700; i++) {
     const x = rng.range(-MAP_HALF + 10, MAP_HALF - 10), z = rng.range(-MAP_HALF + 10, MAP_HALF - 10);
@@ -246,19 +271,70 @@ export function buildMap(seed) {
     if (!isFree(x, z, 3)) continue;
     blocked.push({ x, z, r: 3 });
     const s = rng.range(1, 1.6);
+    baseY = sinkBase(x - s / 2, z - s / 2, x + s / 2, z + s / 2, 0.15);
     add(x - s / 2, 0, z - s / 2, x + s / 2, s, z + s / 2, 'crate', '#8b6b43');
-    if (rng() < 0.6) lootPoints.push({ x: x + s, y: 0.05, z, tier: 0 });
+    if (rng() < 0.6) lootPoints.push({ x: x + s, y: terrain.height(x + s, z) + 0.05, z, tier: 0 });
   }
   // a few long walls / ridges as rotation cover
   for (let i = 0; i < 40; i++) {
     const x = rng.range(-MAP_HALF + 40, MAP_HALF - 40), z = rng.range(-MAP_HALF + 40, MAP_HALF - 40);
     if (!isFree(x, z, 14)) continue;
     blocked.push({ x, z, r: 14 });
-    const len = rng.range(10, 24), h = rng.range(1.2, 2.6);
+    const len = rng.range(10, 24), h = rng.range(1.2, 2.6) + 0.6;
+    baseY = sinkBase(x - len / 2, z - len / 2, x + len / 2, z + len / 2, 0.6);
     if (rng() < 0.5) add(x - len / 2, 0, z - 0.6, x + len / 2, h, z + 0.6, 'rock', '#867c6c');
     else add(x - 0.6, 0, z - len / 2, x + 0.6, h, z + len / 2, 'rock', '#867c6c');
   }
 
   world.finalize();
-  return { seed, world, boxes, pois, lootPoints, bins, beacons, trees };
+
+  // --- ziplines ---------------------------------------------------------------
+  const tmp = [];
+  const clear = (ax, ay, az, bx, by, bz) => {
+    const dx = bx - ax, dy = by - ay, dz = bz - az, L = Math.hypot(dx, dy, dz);
+    // check the cable and the hanging body below it
+    for (const off of [0, -1.0, -1.8]) {
+      const h = world.raycast(ax, ay + off, az, dx / L, dy / L, dz / L, L, tmp, false);
+      if (h && h.t > 1.5 && h.t < L - 1.5) return false;
+    }
+    return true;
+  };
+  for (const p of pois) {
+    const bs = buildings.filter((b) => Math.hypot(b.cx - p.x, b.cz - p.z) < p.r * 1.1).sort((a, b) => b.roof - a.roof);
+    // vertical zipline up the side of the tallest building
+    const tall = bs[0];
+    if (tall && tall.floors >= 2) {
+      const zx = tall.x0 - 0.9, zz = tall.cz;
+      const gy = terrain.height(zx, zz);
+      zips.push({ ax: zx, ay: gy + 2.2, az: zz, bx: zx, by: tall.roof + 2.3, bz: zz, top: { x: tall.x0 + 1.4, y: tall.roof + 0.05, z: tall.cz } });
+    }
+    // roof-to-roof line between two buildings
+    let made = 0;
+    for (let i = 0; i < bs.length && made < 2; i++) {
+      for (let j = i + 1; j < bs.length && made < 2; j++) {
+        const a = bs[i], b = bs[j];
+        const d = Math.hypot(a.cx - b.cx, a.cz - b.cz);
+        if (d < 22 || d > 75 || a.roof < 3.5 || b.roof < 3.5) continue;
+        const ay = a.roof + 2.4, by = b.roof + 2.4;
+        if (!clear(a.cx, ay, a.cz, b.cx, by, b.cz)) continue;
+        zips.push({ ax: a.cx, ay, az: a.cz, bx: b.cx, by, bz: b.cz, roofA: a.roof, roofB: b.roof });
+        made++;
+      }
+    }
+  }
+  // long wilderness lines between hilltops (rotation routes)
+  for (let k = 0, tries = 0; k < 10 && tries < 400; tries++) {
+    const ax = rng.range(-MAP_HALF + 60, MAP_HALF - 60), az = rng.range(-MAP_HALF + 60, MAP_HALF - 60);
+    const a = rng() * Math.PI * 2, len = rng.range(70, 160);
+    const bx = ax + Math.cos(a) * len, bz = az + Math.sin(a) * len;
+    if (Math.abs(bx) > MAP_HALF - 40 || Math.abs(bz) > MAP_HALF - 40) continue;
+    const ha = terrain.height(ax, az), hb = terrain.height(bx, bz);
+    if (Math.max(ha, hb) < terrain.minH + 12 || !isFree(ax, az, 4) || !isFree(bx, bz, 4)) continue;
+    const ay = ha + 5.5, by = hb + 5.5;
+    if (!clear(ax, ay, az, bx, by, bz)) continue;
+    zips.push({ ax, ay, az, bx, by, bz, poles: true });
+    k++;
+  }
+  world.zips = zips;
+  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips };
 }

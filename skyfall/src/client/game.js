@@ -53,6 +53,7 @@ export class Game {
     this.loot.set(welcome.loot);
     this.vm = new ViewModel();
     this.binsOpened = welcome.bins.slice();
+    this.binsOpened.forEach((o, i) => o && this.view.setBinOpened(i));
 
     this.pred = createMoveState(welcome.ship.ax, 300, welcome.ship.az);
     this.prev = copyMoveState(this.pred);
@@ -382,6 +383,7 @@ export class Game {
       case 'boom': {
         const d = Math.hypot(ev.x - camP.x, ev.y - camP.y, ev.z - camP.z);
         this.fx.explosion(ev.x, ev.y, ev.z, ev.r || 4);
+        if (ev.k === 'land') this.fx.ring(ev.x, ev.y, ev.z, '#ffd23f', 6);
         if (d < 140) audio.play('boom', ev, { vol: ev.k === 'land' ? 0.6 : 1, var: 0.08, ref: 10, rolloff: 0.8, delay: d / 343, important: true, reverb: 0.3, occluded: this._occluded(ev) });
         else audio.play('boom_far', ev, { vol: 1, ref: 60, rolloff: 0.5, delay: Math.min(2, d / 343) });
         const C = FEEL.camera;
@@ -400,7 +402,8 @@ export class Game {
         if (f & (MEV.WALLJUMP)) audio.play('wallkick', pos, { vol: 0.8 });
         if (f & MEV.MANTLE) audio.play('mantle', pos, { vol: 0.7 });
         if (f & MEV.SUPERGLIDE) audio.play('superglide', pos, { vol: 0.8 });
-        if (f & MEV.PAD) audio.play('pad', pos, { vol: 1 });
+        if (f & MEV.PAD) { audio.play('pad', pos, { vol: 1 }); this.fx.padBurst(pos.x, pos.y, pos.z); }
+        if (f & MEV.ZIP) audio.play('zip_attach', pos, { vol: 0.8 });
         if (f & MEV.HARDLAND) audio.play('hardland', pos, { vol: 0.9 });
         break;
       }
@@ -432,6 +435,7 @@ export class Game {
       case 'loot-': this.loot.remove(ev.ids); break;
       case 'bin':
         this.binsOpened[ev.i] = 1;
+        this.view.setBinOpened(ev.i);
         audio.play('bin_open', pos, { vol: 0.8, ref: 5 });
         this.fx.burst(ev.x, ev.y + 0.5, ev.z, '#3fa9ff', 14, 2, 0.12, 0.5);
         break;
@@ -598,6 +602,7 @@ export class Game {
     // ---- world + fx
     const cp = this.camera.position;
     this.view.update(dt, this.time, cp, this.ring, this.phase === 'ship' ? this.shipNow : null);
+    this.view.setBeaconHighlight(!!(me && me.banners), this.time);
     this.fx.update(dt, this.time);
     this.loot.update(dt, this.time, cp.x, cp.z);
     this._updatePings(dt);
@@ -683,7 +688,7 @@ export class Game {
       if (ev & MEV.WALLJUMP) { audio.play('wallkick', null, { vol: 0.7 }); this.punch(0.14, 3); this.fx.dust(s.x - s.wallNx * 0.4, s.y + 1, s.z - s.wallNz * 0.4, 0.5); }
       if (ev & MEV.MANTLE) audio.play('mantle', null, { vol: 0.5, var: 0.06 });
       if (ev & MEV.SUPERGLIDE) { audio.play('superglide', null, { vol: 0.85 }); this.fovKick = C.superglideFov; this.hud.toast('SUPERGLIDE!'); }
-      if (ev & MEV.PAD) { audio.play('pad', null, { vol: 0.85 }); this.fovKick = 10; this.punch(0.2, 0); }
+      if (ev & MEV.PAD) { audio.play('pad', null, { vol: 0.85 }); this.fovKick = 10; this.punch(0.2, 0); this.fx.padBurst(s.x, s.y, s.z); }
       if (ev & MEV.ZIP) audio.play('zip_attach', null, { vol: 0.7 });
     }
     // surface-aware footsteps
@@ -1178,6 +1183,16 @@ export class Game {
           const label = e.k === 'carepkg' ? 'OPEN CARE PACKAGE' : e.ban && e.sq === this.mySquad ? `COLLECT ${e.name.toUpperCase()}'S BANNER` : `OPEN ${e.name.toUpperCase()}'S BOX`;
           best = { html: `<b>[E]</b> ${label}`, color: '#ffd23f', tap: () => this.net.send({ t: 'act', a: 'box', id: e.id }) };
         }
+      }
+    }
+    // ziplines: prompt when a cable is within reach
+    if (this.pred.mode === 'zip') best = { html: '<b>[SPACE]</b> ZIP JUMP · <b>[C]</b> DROP' };
+    else if (bs < 2 && this.world.zips.length) {
+      const cx = px, cy = py + 1.2, cz = pz;
+      for (const z of this.world.zips) {
+        const dx = z.bx - z.ax, dy = z.by - z.ay, dz = z.bz - z.az, L2 = dx * dx + dy * dy + dz * dz;
+        const t = Math.max(0.02, Math.min(0.98, ((cx - z.ax) * dx + (cy - z.ay) * dy + (cz - z.az) * dz) / L2));
+        if (Math.hypot(z.ax + dx * t - cx, z.ay + dy * t - 1 - cy, z.az + dz * t - cz) < 1.8) { best = { html: '<b>[E]</b> ZIPLINE', color: '#ffb347' }; break; }
       }
     }
     if (best) {

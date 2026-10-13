@@ -90,6 +90,8 @@ export class WorldView {
     this._ground();
     this._boxes();
     this._trees();
+    this._ziplines();
+    this._bins();
     this._beacons();
     this._ring();
     this._ship();
@@ -116,22 +118,116 @@ export class WorldView {
     }
     const tex = new THREE.CanvasTexture(c);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(160, 160);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), mat);
-    ground.rotation.x = -Math.PI / 2;
+    const T = this.map.terrain;
+    // terrain mesh: heights from the shared heightfield, vertex colours from slope and altitude
+    const SIZE = 2000, SEG = 400;
+    const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, uv = geo.attributes.uv;
+    const cols = new Float32Array(pos.count * 3);
+    const grass = new THREE.Color('#8d9a66'), dry = new THREE.Color('#a59a72'), rock = new THREE.Color('#7e776c'), high = new THREE.Color('#b8b29a');
+    const tmpC = new THREE.Color(), n = { x: 0, y: 1, z: 0 };
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), z = pos.getZ(i);
+      const h = T.height(x, z);
+      pos.setY(i, h);
+      uv.setXY(i, x / 12.5, z / 12.5);
+      T.normal(x, z, n);
+      const slope = 1 - n.y; // 0 flat .. ~0.17 at 33°
+      const alt = (h - T.minH) / Math.max(1, T.maxH - T.minH);
+      tmpC.copy(grass).lerp(dry, Math.min(1, alt * 1.2 + Math.sin(x * 0.01) * Math.cos(z * 0.013) * 0.25));
+      tmpC.lerp(rock, Math.min(1, Math.max(0, (slope - 0.04) * 9)));
+      if (alt > 0.8) tmpC.lerp(high, (alt - 0.8) * 3);
+      cols[i * 3] = tmpC.r; cols[i * 3 + 1] = tmpC.g; cols[i * 3 + 2] = tmpC.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    geo.computeVertexNormals();
+    // canvas texture is a neutral detail map; tint comes from vertex colours
+    const mat = new THREE.MeshStandardMaterial({ map: tex, vertexColors: true, roughness: 0.95, metalness: 0, color: '#d8dccb' });
+    const ground = new THREE.Mesh(geo, mat);
     ground.receiveShadow = true;
     this.scene.add(ground);
-    // POI concrete pads
+    const outer = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshStandardMaterial({ color: '#7d875c', roughness: 1 }));
+    outer.rotation.x = -Math.PI / 2;
+    outer.position.y = -0.6;
+    this.scene.add(outer);
+    // POI concrete pads, at their flattened height
     const padMat = patchPanels(new THREE.MeshStandardMaterial({ color: '#8e8a82', roughness: 0.9 }), 4, 0.25);
     for (const p of this.map.pois) {
       const pad = new THREE.Mesh(new THREE.CircleGeometry(p.r * 0.95, 48), padMat);
       pad.rotation.x = -Math.PI / 2;
-      pad.position.set(p.x, 0.02, p.z);
+      pad.position.set(p.x, T.height(p.x, p.z) + 0.03, p.z);
       pad.receiveShadow = true;
       this.scene.add(pad);
+    }
+  }
+
+  _bins() {
+    // lids with a glowing seam; they swing open when a bin is looted
+    this.binLids = [];
+    const lidMat = new THREE.MeshStandardMaterial({ color: '#39465a', metalness: 0.5, roughness: 0.4 });
+    const seamMat = new THREE.MeshBasicMaterial({ color: '#4fb3ff' });
+    for (const b of this.map.bins) {
+      const pivot = new THREE.Group();
+      pivot.position.set(b.x, b.y, b.z + 0.45);
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.12, 0.95), lidMat);
+      lid.position.set(0, 0.06, -0.47);
+      pivot.add(lid);
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.04), seamMat);
+      seam.position.set(0, 0.0, -0.94);
+      pivot.add(seam);
+      this.scene.add(pivot);
+      this.binLids.push({ pivot, seam, open: false });
+    }
+  }
+
+  setBinOpened(i) {
+    const l = this.binLids && this.binLids[i];
+    if (!l || l.open) return;
+    l.open = true;
+    l.seam.visible = false;
+    l.pivot.rotation.x = -1.9;
+  }
+
+  _ziplines() {
+    const cableMat = new THREE.MeshStandardMaterial({ color: '#1b1d22', metalness: 0.7, roughness: 0.35 });
+    const glowMat = new THREE.MeshBasicMaterial({ color: '#ffb347' });
+    const poleMat = new THREE.MeshStandardMaterial({ color: '#3a3f47', metalness: 0.5, roughness: 0.5 });
+    const cableGeo = new THREE.CylinderGeometry(0.035, 0.035, 1, 5, 1, true);
+    cableGeo.translate(0, 0.5, 0);
+    cableGeo.rotateX(Math.PI / 2);
+    const up = new THREE.Vector3();
+    for (const z of this.map.zips) {
+      const a = new THREE.Vector3(z.ax, z.ay, z.az), b = new THREE.Vector3(z.bx, z.by, z.bz);
+      const L = a.distanceTo(b);
+      const cable = new THREE.Mesh(cableGeo, cableMat);
+      cable.position.copy(a);
+      cable.lookAt(b);
+      cable.scale.set(1, 1, L);
+      this.scene.add(cable);
+      // anchor heads with amber lights so lines read from a distance
+      for (const e of [a, b]) {
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), poleMat);
+        head.position.copy(e);
+        this.scene.add(head);
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), glowMat);
+        lamp.position.copy(e).add(up.set(0, 0.3, 0));
+        this.scene.add(lamp);
+        if (z.poles) {
+          const gy = this.map.terrain.height(e.x, e.z);
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, e.y - gy, 6), poleMat);
+          pole.position.set(e.x, (e.y + gy) / 2, e.z);
+          pole.castShadow = true;
+          this.scene.add(pole);
+        }
+      }
+      if (z.top) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), poleMat);
+        pole.position.set(z.bx, z.by + 0.3, z.bz);
+        this.scene.add(pole);
+      }
     }
   }
 
@@ -176,23 +272,46 @@ export class WorldView {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     trees.forEach((t, i) => {
       const h = t.h;
-      s.set(1, h * 0.6, 1); p.set(t.x, h * 0.3, t.z); m4.compose(p, q, s); trunk.setMatrixAt(i, m4);
-      s.set(h * 0.32, h * 0.55, h * 0.32); p.set(t.x, h * 0.55, t.z); m4.compose(p, q, s); leaf1.setMatrixAt(i, m4);
-      s.set(h * 0.24, h * 0.42, h * 0.24); p.set(t.x, h * 0.82, t.z); m4.compose(p, q, s); leaf2.setMatrixAt(i, m4);
+      s.set(1, h * 0.6, 1); p.set(t.x, t.y + h * 0.3, t.z); m4.compose(p, q, s); trunk.setMatrixAt(i, m4);
+      s.set(h * 0.32, h * 0.55, h * 0.32); p.set(t.x, t.y + h * 0.55, t.z); m4.compose(p, q, s); leaf1.setMatrixAt(i, m4);
+      s.set(h * 0.24, h * 0.42, h * 0.24); p.set(t.x, t.y + h * 0.82, t.z); m4.compose(p, q, s); leaf2.setMatrixAt(i, m4);
     });
     for (const m of [trunk, leaf1, leaf2]) { m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); this.scene.add(m); }
   }
 
   _beacons() {
-    const mat = new THREE.MeshBasicMaterial({ color: '#4fb3ff', transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+    // respawn beacons: emissive core, rotating holo rings and a beam that flares when you carry banners
+    this.beaconFx = [];
     for (const b of this.map.beacons) {
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 30, 6, 1, true), mat);
-      beam.position.set(b.x, 17, b.z);
+      const beamMat = new THREE.MeshBasicMaterial({ color: '#4fb3ff', transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending });
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.5, 60, 8, 1, true), beamMat);
+      beam.position.set(b.x, b.y + 31, b.z);
       this.scene.add(beam);
-      const dish = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.12, 6, 16), new THREE.MeshStandardMaterial({ color: '#2b7de0', emissive: '#2b7de0', emissiveIntensity: 1.2 }));
-      dish.rotation.x = Math.PI / 2;
-      dish.position.set(b.x, 2.8, b.z);
-      this.scene.add(dish);
+      const ringMat = new THREE.MeshBasicMaterial({ color: '#7fd0ff', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const rings = [];
+      for (let i = 0; i < 2; i++) {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(1.1 + i * 0.35, 0.05, 6, 32), ringMat);
+        r.position.set(b.x, b.y + 2.9 + i * 0.5, b.z);
+        r.rotation.x = Math.PI / 2;
+        this.scene.add(r);
+        rings.push(r);
+      }
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.4), new THREE.MeshStandardMaterial({ color: '#2b7de0', emissive: '#4fb3ff', emissiveIntensity: 1.6 }));
+      core.position.set(b.x, b.y + 3.4, b.z);
+      this.scene.add(core);
+      this.beaconFx.push({ beam, beamMat, rings, core });
+    }
+  }
+
+  setBeaconHighlight(on, time) {
+    for (const f of this.beaconFx) {
+      f.beamMat.opacity = on ? 0.55 + 0.25 * Math.sin(time * 6) : 0.22;
+      f.beam.scale.set(on ? 2 : 1, on ? 2.4 : 1, on ? 2 : 1);
+      f.rings[0].rotation.z = time * 1.5;
+      f.rings[1].rotation.z = -time * 2;
+      f.rings[0].rotation.x = Math.PI / 2 + Math.sin(time) * 0.2;
+      f.core.rotation.y = time * 2;
+      f.core.position.y = f.rings[0].position.y + 0.5 + Math.sin(time * 2) * 0.15;
     }
   }
 
@@ -258,11 +377,12 @@ export class WorldView {
     const light = new THREE.MeshBasicMaterial({ color: '#ff3b3b' });
     for (const p of this.map.pois) {
       const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 40, 6), mat);
-      mast.position.set(p.x, 20, p.z);
+      const py = this.map.terrain.height(p.x, p.z);
+      mast.position.set(p.x, py + 20, p.z);
       mast.castShadow = true;
       this.scene.add(mast);
       const l = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), light);
-      l.position.set(p.x, 40.5, p.z);
+      l.position.set(p.x, py + 40.5, p.z);
       this.scene.add(l);
     }
   }

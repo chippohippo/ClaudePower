@@ -312,6 +312,9 @@ export class HUD {
     ctx.fillRect(0, 0, size, size);
     const toX = (x) => size / 2 + (x - cx) * scale;
     const toY = (z) => size / 2 + (z - cz) * scale;
+    // hill-shaded terrain so high ground and valleys read at a glance
+    const W = MAP_HALF + 20, img = this._terrainImage(g.map, W);
+    ctx.drawImage(img, toX(-W), toY(-W), 2 * W * scale, 2 * W * scale);
     // POIs
     for (const p of g.map.pois) {
       ctx.fillStyle = 'rgba(160,150,135,0.55)';
@@ -368,6 +371,12 @@ export class HUD {
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    // ziplines
+    ctx.strokeStyle = 'rgba(255,179,71,0.8)';
+    ctx.lineWidth = big ? 2 : 1.2;
+    for (const z of g.map.zips) {
+      ctx.beginPath(); ctx.moveTo(toX(z.ax), toY(z.az)); ctx.lineTo(toX(z.bx) + (z.top ? 2 : 0), toY(z.bz)); ctx.stroke();
+    }
     // pings
     for (const p of g.pings) {
       ctx.fillStyle = p.color;
@@ -394,6 +403,29 @@ export class HUD {
         ctx.stroke();
       }
     }
+  }
+
+  _terrainImage(map, W) {
+    if (this.terrainImg && this.terrainSeed === map.seed) return this.terrainImg;
+    const N = 384, c = document.createElement('canvas');
+    c.width = c.height = N;
+    const ctx = c.getContext('2d'), img = ctx.createImageData(N, N), T = map.terrain;
+    const n = { x: 0, y: 1, z: 0 };
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = -W + ((i + 0.5) / N) * 2 * W, z = -W + ((j + 0.5) / N) * 2 * W;
+      const h = (T.height(x, z) - T.minH) / Math.max(1, T.maxH - T.minH);
+      T.normal(x, z, n);
+      const shade = Math.max(0, 0.55 + (-n.x * 0.6 - n.z * 0.4) * 2.2); // light from the north-west
+      const k = (j * N + i) * 4;
+      img.data[k] = (62 + h * 70) * shade; img.data[k + 1] = (78 + h * 55) * shade; img.data[k + 2] = (52 + h * 30) * shade; img.data[k + 3] = 255;
+      // contour lines every ~6 m
+      const hm = T.height(x, z);
+      if (Math.abs((hm % 6) - 3) > 2.75) { img.data[k] *= 0.8; img.data[k + 1] *= 0.8; img.data[k + 2] *= 0.8; }
+    }
+    ctx.putImageData(img, 0, 0);
+    this.terrainImg = c;
+    this.terrainSeed = map.seed;
+    return c;
   }
 
   _minimap(g) {
