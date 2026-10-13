@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { WEAPONS } from '../shared/weapons.js';
 import { RARITY } from '../shared/items.js';
+import { STYLE, toonify, addHulls } from './comic.js';
 
 const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const smooth = (t) => t * t * (3 - 2 * t);
@@ -202,6 +203,7 @@ export class ViewModel {
     this.gunHolder = new THREE.Group();
     this.root.add(this.gunHolder);
     this.arms = buildArms();
+    if (STYLE.comic) addHulls(toonify(this.arms));
     this.gunHolder.add(this.arms);
     this.gun = null;
     this.gunKey = null;
@@ -256,6 +258,7 @@ export class ViewModel {
     this.gunKey = key;
     this.gun = id ? buildGun(id, tier, att) : null;
     if (this.gun) {
+      if (STYLE.comic) addHulls(toonify(this.gun));
       this.gunHolder.add(this.gun);
       const mz = this.gun.userData.muzzleZ, my = this.gun.userData.muzzleY;
       this.flash.position.set(0, my, mz - 0.05);

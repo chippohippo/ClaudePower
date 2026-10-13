@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { LEGENDS } from '../shared/legends.js';
 import { WEAPONS } from '../shared/weapons.js';
 import { SHIELD_COLORS } from '../shared/constants.js';
+import { STYLE, toonify } from './comic.js';
 
 const SQUAD_ACCENT = '#38e8ff';
 
@@ -196,6 +197,7 @@ export class Avatar {
     this.gun.position.set(0.18, 0.08, -0.42);
     this.torso.add(this.gun);
     legendKit(meta.legend, this.torso, this.head, mk);
+    if (STYLE.comic) toonify(body);
 
     this.meshes = [];
     body.traverse((o) => { if (o.isMesh) this.meshes.push(o); });

@@ -21,6 +21,7 @@ import { LootView } from './lootview.js';
 import { audio } from './audio.js';
 import { settings } from './input.js';
 import { FEEL } from './tuning.js';
+import { STYLE, ComicPost } from './comic.js';
 
 // shield hits ring lower as the armor tier rises (white → red)
 const SHIELD_PITCH = [1, 1.12, 1.0, 0.9, 0.8];
@@ -46,6 +47,9 @@ export class Game {
     this.myLegend = mine.legend;
     this.shipInfo = welcome.ship;
 
+    STYLE.comic = settings.artStyle !== 'clean';
+    document.body.classList.toggle('comic', STYLE.comic);
+    this.post = STYLE.comic ? new ComicPost(this.renderer) : null;
     this.view = new WorldView(this.renderer, this.map);
     this.scene = this.view.scene;
     this.camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.05, 4000);
@@ -638,7 +642,8 @@ export class Game {
 
     // ---- render
     const r = this.renderer;
-    r.render(this.scene, this.camera);
+    if (this.post) this.post.render(this.scene, this.camera);
+    else r.render(this.scene, this.camera);
     r.autoClear = false;
     r.clearDepth();
     r.render(this.vm.scene, this.vm.camera);

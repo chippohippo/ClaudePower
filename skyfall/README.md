@@ -191,6 +191,19 @@ All feel numbers are data, not code. Change them and reload.
 - Buildings have interior partition rooms, interior windows you can mantle through, balconies and low cover walls.
 - The minimap is hill-shaded with contours and shows ziplines.
 
+**Art style: comic / pop-art (default; switch to "Clean" in Settings)**
+- `src/client/comic.js` turns every PBR material into 3-band cel shading (`toonify`). It keeps colours, vertex colours, emissive accents and the world-space panel shader.
+- A full-screen **ink pass** draws the outlines:
+  - thick silhouettes wherever depth jumps
+  - crease lines where 1/z bends (the Laplacian is zero on flat planes, so flat walls get no stray lines)
+  - creases only within ~90 m, and silhouettes that thin out with distance
+  - halftone dots in the shadows and a saturation/contrast grade
+- The first-person gun and arms get **inverted-hull outlines**.
+- The sky becomes a banded gradient with cel-shaded, ink-rimmed clouds.
+- In comic mode the HUD text gets inked strokes and offset drop shadows.
+- All values (bands, line thresholds, thickness, distance fade, halftone, grade) are in `COMIC` and can be tuned there.
+- External asset packs (for example CC0 packs on itch.io or kenney.nl) can be dropped in later. They go through the same `toonify` + ink pipeline, so they pick up the unified look automatically.
+
 **Characters & weapons**
 - Each legend has a distinct silhouette kit: fins, hood, halo and med-pack, pauldrons, sensor dish, gas tanks, beret, jetpack. Visors are emissive and squadmates wear accent belts.
 - Characters are animated procedurally, and the scene uses image-based lighting.

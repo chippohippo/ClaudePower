@@ -20,6 +20,7 @@ export const settings = {
   showFps: true,
   quality: 'high',
   shake: 1, // camera shake / FOV punch intensity 0..2
+  artStyle: 'comic', // 'comic' (cel + ink outlines + halftone) or 'clean'
 };
 
 try {

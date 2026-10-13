@@ -94,6 +94,8 @@ for (const [id, key] of [['#s-toggleads', 'toggleAds'], ['#s-invert', 'invertY']
   el.addEventListener('change', () => { settings[key] = el.checked; saveSettings(); if (app.game) app.game.showStats = settings.showFps; });
 }
 $('#s-quality').value = settings.quality;
+$('#s-art').value = settings.artStyle || 'comic';
+$('#s-art').addEventListener('change', (e) => { settings.artStyle = e.target.value; saveSettings(); hud.toast('Art style applies from the next match'); });
 $('#s-quality').addEventListener('change', (e) => { settings.quality = e.target.value; saveSettings(); applyQuality(); });
 $('#btn-settings').addEventListener('click', () => { click(); $('#settings').classList.remove('hidden'); });
 $('#btn-settings2').addEventListener('click', () => { click(); $('#settings').classList.remove('hidden'); });

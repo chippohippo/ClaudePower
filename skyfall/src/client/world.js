@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { STYLE, toonify } from './comic.js';
 
 const SUN_DIR = new THREE.Vector3(-0.45, 0.8, 0.35).normalize();
 
@@ -64,15 +65,33 @@ export class WorldView {
     const skyGeo = new THREE.SphereGeometry(3000, 32, 16);
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { sun: { value: SUN_DIR } },
+      uniforms: { sun: { value: SUN_DIR }, comic: { value: STYLE.comic ? 1 : 0 } },
       vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `varying vec3 vDir; uniform vec3 sun;
+      fragmentShader: `varying vec3 vDir; uniform vec3 sun; uniform float comic;
+        float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y); }
         void main(){
           float h = vDir.y;
           vec3 top = vec3(0.24,0.46,0.78), hor = vec3(0.78,0.85,0.92), low = vec3(0.62,0.66,0.7);
           vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, low, min(1.0, -h * 4.0));
           float s = max(0.0, dot(vDir, sun));
-          c += vec3(1.0,0.86,0.6) * (pow(s, 600.0) * 4.0 + pow(s, 12.0) * 0.25);
+          if (comic > 0.5) {
+            // pop-art sky: banded gradient + cel-shaded cloud blobs with ink rims
+            top = vec3(0.16,0.5,0.95); hor = vec3(0.7,0.88,1.0);
+            float band = floor(clamp(h, 0.0, 1.0) * 5.0) / 5.0;
+            c = h > 0.0 ? mix(hor, top, pow(band, 0.7)) : mix(hor, low, min(1.0, -h * 4.0));
+            vec2 uv = vDir.xz / (vDir.y + 0.3) * 3.2;
+            float n = vn(uv) * 0.6 + vn(uv * 2.1 + 7.0) * 0.3 + vn(uv * 4.3) * 0.1;
+            float cl = smoothstep(0.645, 0.66, n) * smoothstep(0.06, 0.2, h);
+            float rim = smoothstep(0.625, 0.635, n) - smoothstep(0.645, 0.655, n);
+            vec3 cloud = mix(vec3(0.93, 0.95, 1.0), vec3(0.78, 0.82, 0.92), step(0.72, n));
+            c = mix(c, cloud, cl);
+            c = mix(c, vec3(0.1, 0.12, 0.2), rim * smoothstep(0.06, 0.2, h) * 0.85);
+            c += vec3(1.0,0.9,0.5) * step(0.9985, s) * 2.0;
+          } else {
+            c += vec3(1.0,0.86,0.6) * (pow(s, 600.0) * 4.0 + pow(s, 12.0) * 0.25);
+          }
           gl_FragColor = vec4(c, 1.0);
         }`,
     });
@@ -102,6 +121,7 @@ export class WorldView {
     this._ring();
     this._ship();
     this._pois();
+    if (STYLE.comic) toonify(this.scene);
   }
 
   _ground() {
@@ -133,7 +153,7 @@ export class WorldView {
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position, uv = geo.attributes.uv;
     const cols = new Float32Array(pos.count * 3);
-    const grass = new THREE.Color('#8d9a66'), dry = new THREE.Color('#a59a72'), rock = new THREE.Color('#7e776c'), high = new THREE.Color('#b8b29a');
+    const grass = new THREE.Color(STYLE.comic ? '#93b858' : '#8d9a66'), dry = new THREE.Color(STYLE.comic ? '#d8c27a' : '#a59a72'), rock = new THREE.Color(STYLE.comic ? '#a08f7a' : '#7e776c'), high = new THREE.Color(STYLE.comic ? '#e8dcb4' : '#b8b29a');
     const tmpC = new THREE.Color(), n = { x: 0, y: 1, z: 0 };
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);

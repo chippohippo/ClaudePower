@@ -258,3 +258,11 @@ input, select { font-family: inherit; background: rgba(0,0,0,0.4); color: var(--
 .rcard .rs { color: var(--muted); font-weight: 600; font-size: 13px; }
 .rcard .rs b { color: #fff; font-size: 17px; }
 #endscreen::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 35%, rgba(255,122,26,0.18), transparent 60%); }
+
+/* ---- comic / pop-art HUD accents ---- */
+body.comic .dmgnum { font-style: italic; font-weight: 700; -webkit-text-stroke: 1.5px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 rgba(0,0,0,0.85); letter-spacing: 1px; }
+body.comic .dmgnum.head { font-size: 32px; }
+body.comic #killconfirm .txt, body.comic #announce, body.comic #center-msg { -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #000; }
+body.comic #killconfirm .streak { -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-shadow: 4px 4px 0 #000; transform: rotate(-4deg); }
+body.comic .kf, body.comic .wslot, body.comic .mate, body.comic #ringinfo, body.comic #counts { box-shadow: 3px 3px 0 rgba(0,0,0,0.55); border: 1px solid #111; }
+body.comic .abil { box-shadow: 3px 3px 0 rgba(0,0,0,0.6); border-color: #111; }

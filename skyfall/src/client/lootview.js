@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RARITY, itemRarity } from '../shared/items.js';
 import { AMMO } from '../shared/weapons.js';
 import { SHIELD_COLORS } from '../shared/constants.js';
+import { STYLE, toonify } from './comic.js';
 
 const POOL = 140;
 const GEOS = {
@@ -44,7 +45,10 @@ export class LootView {
 
   _mat(color, emissive = 0) {
     const k = color + emissive;
-    if (!this.mats.has(k)) this.mats.set(k, new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: emissive }));
+    if (!this.mats.has(k)) {
+      const m = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: emissive });
+      this.mats.set(k, STYLE.comic ? new THREE.MeshToonMaterial({ color, emissive: color, emissiveIntensity: emissive * 0.8 }) : m);
+    }
     return this.mats.get(k);
   }
 

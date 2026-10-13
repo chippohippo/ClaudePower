@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { SHIELD_COLORS } from '../shared/constants.js';
 import { RARITY } from '../shared/items.js';
+import { STYLE, toonify } from './comic.js';
 
 function softTex(inner = 'rgba(255,255,255,1)', outer = 'rgba(255,255,255,0)') {
   const c = document.createElement('canvas');
@@ -625,6 +626,7 @@ export class FX {
       default:
         return null;
     }
+    if (STYLE.comic) toonify(g);
     this.scene.add(g);
     return v;
   }
