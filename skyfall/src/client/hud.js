@@ -238,6 +238,7 @@ export class HUD {
     const sq = g.squadInfo || [];
     const key = JSON.stringify(sq.filter((m) => m.id !== g.myId).map((m) => [m.id, m.hp, m.sh, m.armor, m.down, m.elim, m.banner]));
     this.set('squad', this.el.squad, key, (e) => {
+      e.classList.toggle('compact', sq.length > 3);
       e.innerHTML = sq.filter((m) => m.id !== g.myId).map((m) => {
         const L = LEGENDS[m.legend];
         const ms = SHIELD_TIERS[m.armor] || 0;

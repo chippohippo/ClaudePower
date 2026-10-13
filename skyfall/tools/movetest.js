@@ -80,3 +80,16 @@ for (let i = 0; i < 400; i++) {
   stepMovement(s, { mx: 0, mz: 1, yaw: 0, pitch: 0, buttons: BTN.SPRINT | b }, SIM_DT, w);
 }
 console.log('bhop speed after 400 ticks', hs(s));
+// superglide with jump first, crouch on the following tick (the "real" input order)
+s = createMoveState(-17.5, 0, -20); s.onGround = true; s.mode = 'ground';
+run(s, { mx: 0, mz: 1, yaw: 0, pitch: 0, buttons: BTN.SPRINT }, 20);
+run(s, { mx: 0, mz: 1, yaw: 0, pitch: 0, buttons: BTN.JUMP }, 1);
+let sg2 = false, phase = 0;
+for (let i = 0; i < 80 && !sg2; i++) {
+  let b = 0;
+  if (phase === 0 && s.mode === 'mantle' && s.mantleDur - s.mantleT <= 0.06) { b = BTN.JUMP; phase = 1; }
+  else if (phase === 1) { b = BTN.JUMP | BTN.CROUCH; phase = 2; }
+  ev = run(s, { mx: 0, mz: 1, yaw: 0, pitch: 0, buttons: b }, 1);
+  if (ev & MEV.SUPERGLIDE) sg2 = true;
+}
+console.log('superglide (jump then crouch next tick)', sg2, 'speed', hs(s));

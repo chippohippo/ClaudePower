@@ -34,6 +34,7 @@ export function createMoveState(x = 0, y = 0, z = 0) {
     jetpack: 0,           // 1 if legend has jetpack passive
     fuel: 1,
     launchT: 0,           // skyward launch time remaining
+    sgPend: 0,            // superglide: jump seen in window, waiting one tick for crouch
     lastLandSpeed: 0,
     events: 0,            // bit flags of things that happened this step (for audio/vfx)
   };
@@ -371,22 +372,34 @@ function mantle(s, btn, pressed, dt, world) {
   s.x = s.msx + (s.mex - s.msx) * tf;
   s.z = s.msz + (s.mez - s.msz) * tf;
   const remaining = s.mantleDur - s.mantleT;
-  // superglide: jump + crouch on the same tick (or 1 tick apart) at the very end of a mantle
-  if (pressed & BTN.JUMP && remaining <= MOVE.superglideWindow + 0.03 && s.crouchPressT <= 1.5 / 60 + 1e-6) {
+  const superglide = () => {
     exitMantle(s, world);
     s.vx = s.mfx * MOVE.superglideSpeed; s.vz = s.mfz * MOVE.superglideSpeed;
     s.vy = 3.2;
     s.crouch = 1;
+    s.sgPend = 0;
     s.events |= MEV.SUPERGLIDE;
     return s;
-  }
-  if (pressed & BTN.JUMP && t > 0.35) {
-    // mantle jump
+  };
+  const mantleJump = () => {
     exitMantle(s, world);
     s.vx = s.mfx * 3.8; s.vz = s.mfz * 3.8; s.vy = MOVE.jumpVel * 0.92;
+    s.sgPend = 0;
     s.events |= MEV.JUMP;
     return s;
+  };
+  // jump was pressed in the glide window last tick: crouch now = superglide, otherwise mantle jump
+  if (s.sgPend > 0) {
+    if (pressed & BTN.CROUCH) return superglide();
+    return mantleJump();
   }
+  // superglide: jump + crouch on the same tick, crouch one tick before, or crouch one tick after
+  if (pressed & BTN.JUMP && remaining <= MOVE.superglideWindow + 0.03) {
+    if (s.crouchPressT <= 1.5 / 60 + 1e-6) return superglide();
+    s.sgPend = 1;
+    return s;
+  }
+  if (pressed & BTN.JUMP && t > 0.35) return mantleJump();
   if (t >= 1) {
     exitMantle(s, world);
     s.vx = s.mfx * 2.6; s.vz = s.mfz * 2.6;

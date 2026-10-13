@@ -123,6 +123,9 @@ input, select { font-family: inherit; background: rgba(0,0,0,0.4); color: var(--
 .mate.down { border-left-color: #ff3b3b; }
 .mate.down .n::after { content: 'DOWNED'; color: #ff3b3b; font-size: 12px; }
 .mate.elim { opacity: 0.55; }
+#squad.compact { gap: 3px; }
+#squad.compact .mate { padding: 2px 8px; }
+#squad.compact .mate .n { font-size: 13px; }
 #player { position: absolute; left: 16px; bottom: 16px; width: 360px; }
 #legendname { font-weight: 700; letter-spacing: 3px; font-size: 20px; }
 .bars { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 8px; }

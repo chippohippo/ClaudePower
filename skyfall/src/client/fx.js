@@ -246,13 +246,25 @@ export class FX {
   }
 
   // ---- damage numbers -----------------------------------------------------
-  damageNumber(x, y, z, dmg, color, head) {
+  damageNumber(x, y, z, dmg, color, head, key) {
+    // merge rapid hits on the same target (shotgun pellets, fast SMG bursts) into one number
+    if (key !== undefined) {
+      const ex = this.dmgNums.find((d) => d.key === key && d.t < 0.12);
+      if (ex) {
+        ex.val += dmg;
+        ex.el.textContent = ex.val;
+        ex.el.style.color = color;
+        if (head) ex.el.classList.add('head');
+        ex.t = 0;
+        return;
+      }
+    }
     const el = document.createElement('div');
     el.className = 'dmgnum' + (head ? ' head' : '');
     el.textContent = dmg;
     el.style.color = color;
     this.dmgLayer.appendChild(el);
-    this.dmgNums.push({ el, x: x + (Math.random() - 0.5) * 0.4, y: y + 0.2, z: z + (Math.random() - 0.5) * 0.4, t: 0, vx: (Math.random() - 0.5) * 30 });
+    this.dmgNums.push({ el, key, val: dmg, x: x + (Math.random() - 0.5) * 0.4, y: y + 0.2, z: z + (Math.random() - 0.5) * 0.4, t: 0, vx: (Math.random() - 0.5) * 30 });
   }
 
   _updateDmg(dt) {

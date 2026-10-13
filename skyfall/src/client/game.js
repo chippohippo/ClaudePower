@@ -286,7 +286,7 @@ export class Game {
           const tier = ev.tier;
           const onShield = ev.sd > 0;
           const color = onShield ? SHIELD_COLORS[tier] : ev.part === 'head' ? '#ffd23f' : '#ffffff';
-          this.fx.damageNumber(ev.x, ev.y, ev.z, ev.dmg, color, ev.part === 'head');
+          this.fx.damageNumber(ev.x, ev.y, ev.z, ev.dmg, color, ev.part === 'head', ev.v);
           if (ev.src) { // explosive/ability damage: no client-side marker was shown yet
             this.hud.hitmarker('body');
             audio.play(onShield ? 'hit_shield' : 'hit_flesh', null, { vol: 0.8 });
@@ -881,7 +881,10 @@ export class Game {
         this.net.send({ t: 'hit', id: b.id, k: b.k, v: target.id, part, x: +hx.toFixed(2), y: +hy.toFixed(2), z: +hz.toFixed(2) });
         const onShield = target.sh > 0 && !(target.fl & 1);
         this.hud.hitmarker(part === 'head' ? 'head' : 'body');
-        if (!b.k || Math.random() < 0.5) audio.play(part === 'head' ? 'hit_head' : onShield ? 'hit_shield' : 'hit_flesh', null, { vol: 0.85, var: 0.04 });
+        // one hit sound per shot per target (shotguns would otherwise stack 11 sounds)
+        const hk = b.id + ':' + target.id;
+        if (this.lastHitKey !== hk || part === 'head') audio.play(part === 'head' ? 'hit_head' : onShield ? 'hit_shield' : 'hit_flesh', null, { vol: 0.85, var: 0.04 });
+        this.lastHitKey = hk;
         this.fx.hitBurst(hx, hy, hz, target.armor, onShield, part === 'head');
         this.fx.killBullet(b.vis, hx, hy, hz);
         this.bullets.splice(i, 1);
@@ -1155,6 +1158,7 @@ export class Game {
       if (r.meta.squad === this.mySquad) dots.push({ x: last.x, z: last.z, color: LEGENDS[r.meta.legend].color });
       else if (last.rev) dots.push({ x: last.x, z: last.z, color: '#ff2a2a' });
     }
+    if (me && me.banners) for (const b of this.map.beacons) dots.push({ x: b.x, z: b.z, color: '#4fb3ff' });
     if (this.spectating && this.meView) dots.push({ x: this.meView.ms.x, z: this.meView.ms.z, color: '#fff', me: true, yaw: this.meView.ms.yaw });
     return dots;
   }
