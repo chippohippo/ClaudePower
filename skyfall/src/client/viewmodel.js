@@ -313,8 +313,12 @@ export class ViewModel {
     // inertial sway: spring toward the mouse-delta target, overshoots a little
     const S = this.sway;
     const tx = -st.mouseDX * 0.0011 * adsDamp, ty = st.mouseDY * 0.0011 * adsDamp;
-    S.vx += ((tx - S.x) * 160 - S.vx * 18) * dt; S.x += S.vx * dt;
-    S.vy += ((ty - S.y) * 160 - S.vy * 18) * dt; S.y += S.vy * dt;
+    // springs are integrated in fixed 1/240 s substeps so they stay stable at any frame rate
+    const steps = Math.min(48, Math.ceil(dt * 240)), h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      S.vx += ((tx - S.x) * 160 - S.vx * 18) * h; S.x += S.vx * h;
+      S.vy += ((ty - S.y) * 160 - S.vy * 18) * h; S.y += S.vy * h;
+    }
     S.x = Math.max(-0.06, Math.min(0.06, S.x)); S.y = Math.max(-0.06, Math.min(0.06, S.y));
     // strafe roll and vertical motion
     this.roll += ((st.vSide || 0) * -0.012 * adsDamp - this.roll) * Math.min(1, dt * 8);
@@ -327,10 +331,12 @@ export class ViewModel {
     const bx = Math.sin(this.bobT) * 0.02 * bobAmt, by = -Math.abs(Math.cos(this.bobT)) * 0.018 * bobAmt;
     // recoil springs
     const K = this.kick, stiff = 240, damp = 21;
-    K.vz += (-stiff * K.z - damp * K.vz) * dt; K.z += K.vz * dt;
-    K.vrx += (-stiff * K.rx - damp * K.vrx) * dt; K.rx += K.vrx * dt;
-    K.vry += (-stiff * K.ry - damp * K.vry) * dt; K.ry += K.vry * dt;
-    K.vroll += (-stiff * K.roll - damp * K.vroll) * dt; K.roll += K.vroll * dt;
+    for (let i = 0; i < steps; i++) {
+      K.vz += (-stiff * K.z - damp * K.vz) * h; K.z += K.vz * h;
+      K.vrx += (-stiff * K.rx - damp * K.vrx) * h; K.rx += K.vrx * h;
+      K.vry += (-stiff * K.ry - damp * K.vry) * h; K.ry += K.vry * h;
+      K.vroll += (-stiff * K.roll - damp * K.vroll) * h; K.roll += K.vroll * h;
+    }
     // hip → ADS: ADS puts the sight line on the screen centre
     const hip = { x: 0.2, y: -0.215, z: -0.62 }, ads = { x: 0, y: -this.sightY, z: -0.57 };
     let x = hip.x + (ads.x - hip.x) * this.ads, y = hip.y + (ads.y - hip.y) * this.ads, z = hip.z + (ads.z - hip.z) * this.ads;

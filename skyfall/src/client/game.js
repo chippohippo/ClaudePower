@@ -395,6 +395,7 @@ export class Game {
         break;
       }
       case 'abil': this._abilEvent(ev, pos); break;
+      case 'shell': this.fx.incomingShell(ev.x, ev.y, ev.z, ev.tt); break;
       case 'mv': {
         if (ev.id === this.myId) break;
         const f = ev.f;
@@ -504,6 +505,7 @@ export class Game {
     el.querySelector('.place').classList.remove('win');
     el.querySelector('.sub').textContent = 'SQUAD ELIMINATED';
     el.querySelector('.stats').innerHTML = `<span>KILLS ${m.kills}</span><span>DAMAGE ${m.damage}</span><span>SQUAD KILLS ${m.squadKills}</span>`;
+    this.hud.roster(m.squad);
     document.getElementById('btn-spectate').style.display = '';
   }
 
@@ -523,6 +525,7 @@ export class Game {
     place.classList.toggle('win', !!m.win);
     el.querySelector('.sub').textContent = m.win ? 'YOU ARE THE CHAMPIONS' : `CHAMPIONS: ${m.champs.join(' · ')}`;
     el.querySelector('.stats').innerHTML = `<span>KILLS ${m.kills}</span><span>DAMAGE ${m.damage}</span><span>SQUAD KILLS ${m.squadKills}</span>`;
+    this.hud.roster(m.squad);
     if (m.win) audio.play('victory', null, { vol: 0.9, important: true });
   }
 
@@ -1131,7 +1134,7 @@ export class Game {
       if (this.spectating) {
         const el = document.getElementById('spectate');
         el.classList.remove('hidden');
-        el.querySelector('.who').textContent = (this._name(this.meView.id) || '').toUpperCase();
+        this.hud.spectator(this);
       }
       return;
     }

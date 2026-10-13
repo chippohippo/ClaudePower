@@ -145,7 +145,7 @@ export function useUltimate(match, p) {
     }
     case 'bombard': {
       const a = match.aimPoint(p, 160);
-      match.spawnEntity({ k: 'mortar', x: a.x, y: a.y, z: a.z, r: L.radius, dur: L.dur + 1.5, owner: p.id, squad: p.squad, acc: 0 });
+      match.spawnEntity({ k: 'mortar', x: a.x, y: a.y, z: a.z, r: L.radius, dur: L.dur + 2.4, owner: p.id, squad: p.squad, acc: 0, stopT: L.dur + 1.5 });
       match.events.push({ e: 'abil', k: 'bombard', x: a.x, y: a.y, z: a.z, g: 1 });
       ev(match, p, 'call');
       return true;
@@ -167,7 +167,7 @@ export function useUltimate(match, p) {
     case 'thunder': {
       const a = match.aimPoint(p, 90);
       const f = dirFromAngles(p.ms.yaw, 0);
-      match.spawnEntity({ k: 'thunder', x: a.x, y: a.y, z: a.z, dx: +f.x.toFixed(3), dz: +f.z.toFixed(3), dur: 8, owner: p.id, squad: p.squad, acc: 0 });
+      match.spawnEntity({ k: 'thunder', x: a.x, y: a.y, z: a.z, dx: +f.x.toFixed(3), dz: +f.z.toFixed(3), dur: 9, owner: p.id, squad: p.squad, acc: 0, stopT: 8 });
       match.events.push({ e: 'abil', k: 'thunder', x: a.x, y: a.y, z: a.z, g: 1 });
       ev(match, p, 'call');
       return true;
@@ -280,6 +280,7 @@ export function updateEntity(match, e, dt) {
     }
     case 'mortar': {
       if (e.t < 1.5) break;
+      if (e.t > e.stopT) { tickShells(e, dt); break; }
       e.acc += dt;
       const owner = match.players.get(e.owner);
       while (e.acc >= 0.22) {
@@ -287,12 +288,14 @@ export function updateEntity(match, e, dt) {
         const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * e.r;
         const x = e.x + Math.cos(a) * d, z = e.z + Math.sin(a) * d;
         const y = match.world.groundAt(x, z, e.y + 20, match.tmp);
-        match.explode(x, y + 0.3, z, 4.5, 30, owner, 'Bombardment');
+        incoming(match, e, x, y, z, 0.75, () => match.explode(x, y + 0.3, z, 4.5, 30, owner, 'Bombardment'));
       }
+      tickShells(e, dt);
       break;
     }
     case 'thunder': {
       if (e.t < 1.2) break;
+      if (e.t > e.stopT) { tickShells(e, dt); break; }
       e.acc += dt;
       const owner = match.players.get(e.owner);
       while (e.acc >= 0.12) {
@@ -301,11 +304,14 @@ export function updateEntity(match, e, dt) {
         const lat = (Math.random() - 0.5) * 34;
         const x = e.x + e.dx * prog - e.dz * lat, z = e.z + e.dz * prog + e.dx * lat;
         const y = match.world.groundAt(x, z, e.y + 20, match.tmp);
-        match.explode(x, y + 0.3, z, 3.5, 20, owner, 'Rolling Thunder');
-        for (const q of match.queryPlayers(x, z, 5)) {
-          if (q.squad !== e.squad && q.legend !== 'bastion') q.status.slow = Math.max(q.status.slow || 0, 2);
-        }
+        incoming(match, e, x, y, z, 0.6, () => {
+          match.explode(x, y + 0.3, z, 3.5, 20, owner, 'Rolling Thunder');
+          for (const q of match.queryPlayers(x, z, 5)) {
+            if (q.squad !== e.squad && q.legend !== 'bastion') q.status.slow = Math.max(q.status.slow || 0, 2);
+          }
+        });
       }
+      tickShells(e, dt);
       break;
     }
     case 'exhibit': {
@@ -322,6 +328,22 @@ export function updateEntity(match, e, dt) {
       }
       break;
     }
+  }
+}
+
+// Artillery is telegraphed: a 'shell' event shows the round falling before it lands.
+function incoming(match, e, x, y, z, delay, land) {
+  e.shells = e.shells || [];
+  e.shells.push({ t: delay, land });
+  match.events.push({ e: 'shell', x, y, z, tt: delay, r: 500 });
+}
+
+function tickShells(e, dt) {
+  if (!e.shells) return;
+  for (let i = e.shells.length - 1; i >= 0; i--) {
+    const s = e.shells[i];
+    s.t -= dt;
+    if (s.t <= 0) { s.land(); e.shells.splice(i, 1); }
   }
 }
 

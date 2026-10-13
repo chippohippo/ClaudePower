@@ -231,6 +231,31 @@ export class FX {
     this.sparks.emit(x + (Math.random() - 0.5) * 0.4, y + (Math.random() - 0.5) * 0.8, z + (Math.random() - 0.5) * 0.4, 0, 0.5, 0, tmpC, 0.14, 0.35, 0);
   }
 
+  // telegraphed artillery round: a bright streak falling onto a flashing target marker
+  incomingShell(x, y, z, tt) {
+    this.shells = this.shells || [];
+    this.shells.push({ x, y, z, t: tt, tt });
+    tmpC.set('#ff3b3b');
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      this.sparks.emit(x + Math.cos(a) * 2.2, y + 0.2, z + Math.sin(a) * 2.2, 0, 0.2, 0, tmpC, 0.25, tt, 0);
+    }
+  }
+
+  _updateShells(dt) {
+    if (!this.shells) return;
+    for (let i = this.shells.length - 1; i >= 0; i--) {
+      const s = this.shells[i];
+      s.t -= dt;
+      if (s.t <= 0) { this.shells.splice(i, 1); continue; }
+      const h = (s.t / s.tt) * 90;
+      tmpC.set('#fff1c0');
+      this.sparks.emit(s.x + h * 0.15, s.y + h, s.z, 0, -40, 0, tmpC, 0.5, 0.06, 0);
+      tmpC.set('#ff8a3a');
+      this.sparks.emit(s.x + h * 0.15, s.y + h + 2, s.z, 0, 0, 0, tmpC, 0.35, 0.25, 0);
+    }
+  }
+
   padBurst(x, y, z) {
     tmpC.set('#ff9a3a');
     for (let i = 0; i < 40; i++) {
@@ -497,13 +522,13 @@ export class FX {
       }
       case 'smoke': case 'gas': {
         v.puffs = [];
-        const col = e.k === 'smoke' ? '#c9ccd2' : '#9bd84a';
-        const n = e.k === 'smoke' ? 36 : 26;
+        const col = e.k === 'smoke' ? '#d4d7dc' : '#a6e04f';
+        const n = e.k === 'smoke' ? 60 : 44;
         for (let i = 0; i < n; i++) {
-          const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: PUFF, color: col, transparent: true, opacity: e.k === 'smoke' ? 0.95 : 0.5, depthWrite: false }));
+          const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: PUFF, color: i % 5 === 0 && e.k === 'gas' ? '#e6ff7a' : col, transparent: true, opacity: e.k === 'smoke' ? 1 : 0.6, depthWrite: false }));
           const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * e.r * 0.85;
           s.position.set(Math.cos(a) * r, 1 + Math.random() * (e.k === 'smoke' ? 5 : 2.5), Math.sin(a) * r);
-          const sc = (e.k === 'smoke' ? 6 : 5) + Math.random() * 3;
+          const sc = (e.k === 'smoke' ? 7 : 5.5) + Math.random() * 3.5;
           s.scale.set(sc, sc, 1);
           s.userData.base = s.position.clone();
           s.userData.ph = Math.random() * 6;
@@ -536,13 +561,24 @@ export class FX {
       case 'portal': {
         const mk = () => {
           const pg = new THREE.Group();
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.08, 8, 32), basic('#b48bff', 1, true));
-          ring.position.y = 1.1;
-          pg.add(ring);
-          const disc = new THREE.Mesh(new THREE.CircleGeometry(0.85, 24), basic('#4b1d9e', 0.65, true));
-          disc.position.y = 1.1;
+          const vortex = new THREE.ShaderMaterial({
+            transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+            uniforms: { time: { value: 0 } },
+            vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+            fragmentShader: `uniform float time; varying vec2 vUv;
+              void main(){
+                vec2 p = vUv * 2.0 - 1.0; float r = length(p); if (r > 1.0) discard;
+                float a = atan(p.y, p.x);
+                float swirl = 0.5 + 0.5 * sin(a * 4.0 + r * 14.0 - time * 6.0);
+                float rim = smoothstep(0.75, 0.95, r) * (1.0 - smoothstep(0.95, 1.0, r));
+                vec3 col = mix(vec3(0.18,0.05,0.45), vec3(0.75,0.5,1.0), swirl * (1.0 - r * 0.5));
+                gl_FragColor = vec4(col * (0.6 + rim * 2.5) + rim * 0.6, 0.55 + rim * 0.45);
+              }`,
+          });
+          const disc = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32), vortex);
+          disc.position.y = 1.15;
           pg.add(disc);
-          pg.userData.ring = ring; pg.userData.disc = disc;
+          pg.userData.mat = vortex;
           return pg;
         };
         v.a = mk(); v.b = mk();
@@ -614,6 +650,12 @@ export class FX {
           break;
         case 'dome': v.mat.uniforms.time.value = time; break;
         case 'smoke': case 'gas':
+          if (v.kind === 'gas' && Math.random() < 0.6) {
+            // drifting toxic motes so the cloud reads as dangerous
+            const a = Math.random() * Math.PI * 2, r = Math.random() * e.r;
+            tmpC.set('#d4ff5a');
+            this.sparks.emit(g.position.x + Math.cos(a) * r, g.position.y + 0.3 + Math.random() * 2, g.position.z + Math.sin(a) * r, 0, 0.4, 0, tmpC, 0.12, 1.2, -0.2);
+          }
           for (const s of v.puffs) {
             const b = s.userData.base;
             s.position.set(b.x + Math.sin(time * 0.4 + s.userData.ph) * 0.6, b.y + Math.sin(time * 0.3 + s.userData.ph) * 0.3, b.z + Math.cos(time * 0.35 + s.userData.ph) * 0.6);
@@ -625,9 +667,27 @@ export class FX {
         case 'portal':
           v.b.position.set(e.x2, e.y2, e.z2);
           v.b.visible = !!e.open;
-          for (const pg of [v.a, v.b]) { pg.userData.ring.rotation.z = time; pg.userData.disc.rotation.z = -time * 2; pg.lookAt(this.camera.position.x, pg.position.y, this.camera.position.z); }
+          for (const pg of [v.a, v.b]) {
+            pg.userData.mat.uniforms.time.value = time;
+            pg.lookAt(this.camera.position.x, pg.position.y, this.camera.position.z);
+            if (pg.visible && Math.random() < 0.5) {
+              const a = Math.random() * Math.PI * 2, wp = pg.getWorldPosition(this.tmpV);
+              tmpC.set('#b48bff');
+              this.sparks.emit(wp.x + Math.cos(a) * 1.0, wp.y + 1.15 + Math.sin(a) * 1.0, wp.z, -Math.cos(a) * 1.5, -Math.sin(a) * 1.5, 0, tmpC, 0.12, 0.5, 0);
+            }
+          }
           break;
-        case 'drone': v.drone.position.y = Math.sin(time * 3) * 0.15; break;
+        case 'drone':
+          v.drone.position.y = Math.sin(time * 3) * 0.15;
+          if (Math.random() < 0.5) {
+            const a = Math.random() * Math.PI * 2, r = Math.random() * e.r;
+            tmpC.set('#4fe39b');
+            this.sparks.emit(g.position.x + Math.cos(a) * r, g.position.y - 1.4, g.position.z + Math.sin(a) * r, 0, 1.6, 0, tmpC, 0.14, 1.0, -0.5);
+          }
+          break;
+        case 'mortar': case 'thunder':
+          g.children.forEach((c, i) => { if (c.material) c.material.opacity = 0.35 + 0.35 * Math.sin(time * 8 + i); });
+          break;
         case 'proj':
           if (v.trail) { tmpC.set('#ffaa55'); this.sparks.emit(g.position.x, g.position.y, g.position.z, 0, 0, 0, tmpC, 0.25, 0.25, 0); }
           break;
@@ -646,6 +706,7 @@ export class FX {
     this._updateEntities(dt, time);
     this._updateDmg(dt);
     this._updateRagdolls(dt);
+    this._updateShells(dt);
     if (this.mflash) for (const f of this.mflash) { if (f.t > 0) { f.t -= dt; if (f.t <= 0) f.sp.visible = false; } }
   }
 

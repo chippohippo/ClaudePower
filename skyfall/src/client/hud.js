@@ -196,6 +196,8 @@ export class HUD {
       this.set('ringcls', el.ringinfo, closing, (e, v) => e.classList.toggle('closing', v));
       const label = R.st === 'final' ? 'FINAL RING' : closing ? `RING ${R.idx + 1} CLOSING` : `RING ${R.idx + 1}`;
       this.set('ringl', el.ringLabel, label, (e, v) => (e.textContent = v));
+      const frac = R.tot ? Math.max(0, Math.min(1, R.t / R.tot)) : 0;
+      el.ringinfo.querySelector('.rbar i').style.width = (frac * 100).toFixed(1) + '%';
       const t = Math.ceil(R.t);
       this.set('ringt', el.ringTime, t, (e, v) => (e.textContent = R.st === 'final' ? '' : `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`));
     }
@@ -277,13 +279,43 @@ export class HUD {
     el.net.textContent = g.showStats ? `${g.fps} FPS · ${g.pingMs} ms` : '';
   }
 
+  spectator(g) {
+    const v = g.meView, el = this.el.spect;
+    if (!v) return;
+    const L = LEGENDS[v.legend] || LEGENDS.jolt;
+    const key = `${v.id}|${v.hp}|${v.sh}|${v.armor}|${v.kills}|${v.down}`;
+    this.set('spect', el, key, (e) => {
+      e.style.setProperty('--c', L.color);
+      e.querySelector('.who').textContent = (g._name(v.id) || '').toUpperCase();
+      e.querySelector('.legend').textContent = L.name + ' · ' + L.role.toUpperCase();
+      const ms = SHIELD_TIERS[v.armor] || 0;
+      const sb = e.querySelector('.ssh i');
+      sb.style.width = (ms ? (v.sh / 125) * 100 : 0) + '%';
+      sb.style.background = SHIELD_COLORS[v.armor];
+      e.querySelector('.shp i').style.width = v.hp + '%';
+      e.querySelector('.sstats').textContent = `${v.kills || 0} KILLS · ${v.dmg || 0} DAMAGE${v.down ? ' · DOWNED' : ''}`;
+    });
+  }
+
+  roster(list) {
+    const r = this.el.end.querySelector('.roster');
+    if (!list) { r.innerHTML = ''; return; }
+    r.innerHTML = list.map((m, i) => {
+      const L = LEGENDS[m.legend] || LEGENDS.jolt;
+      return `<div class="rcard" style="--c:${L.color};animation-delay:${0.25 + i * 0.12}s"><div class="rl">${L.name}</div><div class="rn">${m.name}</div><div class="rs"><b>${m.kills}</b> KILLS<br><b>${m.damage}</b> DMG</div></div>`;
+    }).join('');
+  }
+
   _abil(el, key, name, cd, max, color, label) {
     const p = cd > 0 ? Math.min(100, (cd / max) * 100) : 0;
-    const k = `${name}|${Math.ceil(cd)}|${p.toFixed(0)}|${label}`;
+    const k = `${name}|${Math.ceil(cd)}|${p.toFixed(1)}|${label}`;
     this.set('ab' + key, el, k, (e) => {
       e.style.setProperty('--c', color);
-      e.style.setProperty('--p', p + '%');
-      e.classList.toggle('ready', cd <= 0);
+      // SVG ring fills clockwise as the ability recharges (circumference 2π·36 ≈ 226)
+      e.querySelector('.fg').style.strokeDashoffset = ((p / 100) * 226).toFixed(1);
+      const ready = cd <= 0;
+      if (ready && !e.classList.contains('ready')) { e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }
+      e.classList.toggle('ready', ready);
       e.querySelector('.nm').textContent = label || name.toUpperCase();
       e.querySelector('.t').textContent = cd > 0 ? Math.ceil(cd) : '';
     });
@@ -299,7 +331,7 @@ export class HUD {
         const ms = SHIELD_TIERS[m.armor] || 0;
         const cls = m.elim ? 'mate elim' : m.down ? 'mate down' : 'mate';
         const tag = m.elim ? (m.banner === 1 ? '<small>BANNER READY</small>' : m.banner === 2 ? '<small>BANNER TAKEN</small>' : '<small>ELIMINATED</small>') : `<small>${L.name}</small>`;
-        return `<div class="${cls}" style="--c:${L.color}"><div class="n"><span>${m.name}${m.bot ? ' <small>BOT</small>' : ''}</span>${tag}</div>
+        return `<div class="${cls}" style="--c:${L.color}"><i class="glyph">${L.name[0]}</i><div class="n"><span>${m.name}${m.bot ? ' <small>BOT</small>' : ''}</span>${tag}</div>
           <div class="bars2"><div class="sb"><i style="width:${ms ? (m.sh / 125) * 100 : 0}%;background:${SHIELD_COLORS[m.armor]}"></i></div><div class="hb"><i style="width:${m.hp}%"></i></div></div></div>`;
       }).join('');
     });

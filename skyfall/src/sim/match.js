@@ -747,7 +747,7 @@ export class Match {
       this.events.push({ e: 'squadout', sq: si, place: sq.placement, g: 1 });
       for (const id of sq.members) {
         const q = this.players.get(id);
-        if (!q.isBot) this.sendTo(q, { t: 'squadout', place: sq.placement, kills: q.kills, damage: Math.round(q.damage), squadKills: sq.kills });
+        if (!q.isBot) this.sendTo(q, { t: 'squadout', place: sq.placement, kills: q.kills, damage: Math.round(q.damage), squadKills: sq.kills, squad: this._roster(sq) });
       }
       if (left <= 1) this._endMatch();
     }
@@ -765,9 +765,13 @@ export class Match {
       const sq = this.squads[p.squad];
       this.sendTo(p, {
         t: 'end', win: sq === winner, place: sq.placement, champs, kills: p.kills, damage: Math.round(p.damage),
-        squadKills: sq.kills,
+        squadKills: sq.kills, squad: this._roster(sq),
       });
     }
+  }
+
+  _roster(sq) {
+    return sq.members.map((id) => { const q = this.players.get(id); return { name: q.name, legend: q.legend, kills: q.kills, damage: Math.round(q.damage) }; });
   }
 
   _autoSpectate(v) {

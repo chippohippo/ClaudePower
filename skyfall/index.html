@@ -31,7 +31,7 @@
 
     <div id="topleft">
       <canvas id="minimap" width="200" height="200"></canvas>
-      <div id="ringinfo"><span id="ring-label">RING 1</span> <span id="ring-time">--</span></div>
+      <div id="ringinfo"><span id="ring-label">RING 1</span> <span id="ring-time">--</span><div class="rbar"><i></i></div></div>
       <div id="counts"><span id="alive">100</span> <small>ALIVE</small> · <span id="squadsleft">33</span> <small>SQUADS</small> · <span id="kills">0</span> <small>KILLS</small></div>
     </div>
 
@@ -48,8 +48,8 @@
         <div id="hpbar" class="bar"><div class="fill"></div></div>
       </div>
       <div id="abilities">
-        <div class="abil" id="ab-tac"><div class="cd"></div><span class="key">Q</span><span class="nm"></span><span class="t"></span></div>
-        <div class="abil ult" id="ab-ult"><div class="cd"></div><span class="key">Z</span><span class="nm"></span><span class="t"></span></div>
+        <div class="abil" id="ab-tac"><svg class="ring" viewBox="0 0 80 80"><circle class="bg" cx="40" cy="40" r="36"/><circle class="fg" cx="40" cy="40" r="36"/></svg><span class="key">Q</span><span class="nm"></span><span class="t"></span></div>
+        <div class="abil ult" id="ab-ult"><svg class="ring" viewBox="0 0 80 80"><circle class="bg" cx="40" cy="40" r="36"/><circle class="fg" cx="40" cy="40" r="36"/></svg><span class="key">Z</span><span class="nm"></span><span class="t"></span></div>
       </div>
       <div id="fuel"><div></div></div>
     </div>
@@ -86,13 +86,17 @@
   <div id="spectate" class="hidden">
     <div class="title">SPECTATING</div>
     <div class="who"></div>
-    <div class="hint">[V] next player · [ESC] menu</div>
+    <div class="legend"></div>
+    <div class="sbars"><div class="ssh"><i></i></div><div class="shp"><i></i></div></div>
+    <div class="sstats"></div>
+    <div class="hint">[V] / CLICK next player · [ESC] menu</div>
   </div>
 
   <div id="endscreen" class="hidden">
     <div class="place"></div>
     <div class="sub"></div>
     <div class="stats"></div>
+    <div class="roster"></div>
     <div class="row"><button id="btn-spectate">SPECTATE</button><button id="btn-back">BACK TO LOBBY</button></div>
   </div>
 
