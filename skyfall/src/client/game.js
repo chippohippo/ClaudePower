@@ -438,8 +438,22 @@ export class Game {
   }
 
   _squadOut(m) {
-    this.hud.announce(`SQUAD ELIMINATED — #${m.place}`, 4);
     this.squadDone = m;
+    if (this.ended) return;
+    // show placement right away; the player can keep spectating or leave
+    this.input.unlock();
+    const el = document.getElementById('endscreen');
+    el.classList.remove('hidden');
+    el.querySelector('.place').textContent = `#${m.place}`;
+    el.querySelector('.place').classList.remove('win');
+    el.querySelector('.sub').textContent = 'SQUAD ELIMINATED';
+    el.querySelector('.stats').innerHTML = `<span>KILLS ${m.kills}</span><span>DAMAGE ${m.damage}</span><span>SQUAD KILLS ${m.squadKills}</span>`;
+    document.getElementById('btn-spectate').style.display = '';
+  }
+
+  spectate() {
+    document.getElementById('endscreen').classList.add('hidden');
+    this.input.lock();
   }
 
   _end(m) {
@@ -447,6 +461,7 @@ export class Game {
     this.input.unlock();
     const el = document.getElementById('endscreen');
     el.classList.remove('hidden');
+    document.getElementById('btn-spectate').style.display = 'none';
     const place = el.querySelector('.place');
     place.textContent = m.win ? 'CHAMPIONS' : `#${m.place}`;
     place.classList.toggle('win', !!m.win);

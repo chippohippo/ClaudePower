@@ -132,21 +132,24 @@ export class Match {
       sq.members.push(p.id);
       return p;
     };
-    const squadCount = this.practice ? 4 : Math.floor(MAX_PLAYERS / this.squadSize);
+    // exactly 100 players: trios = 32 squads of 3 + 2 of 2; sixes = 15 squads of 6 + 2 of 5
+    const squadCount = this.practice ? 4 : Math.ceil(MAX_PLAYERS / this.squadSize);
+    const fullSquads = MAX_PLAYERS - squadCount * (this.squadSize - 1);
     for (let i = 0; i < squadCount; i++) {
+      const cap = this.practice || i < fullSquads ? this.squadSize : this.squadSize - 1;
       const sq = { idx: i, members: [], alive: true, placement: 0, kills: 0 };
       this.squads.push(sq);
       const party = parties[i];
       const taken = new Set();
       if (party) {
-        for (const m of party.members.slice(0, this.squadSize)) {
+        for (const m of party.members.slice(0, cap)) {
           // unique legend within a squad
           let lg = m.legend && LEGENDS[m.legend] && !taken.has(m.legend) ? m.legend : LEGEND_IDS.find((l) => !taken.has(l));
           taken.add(lg);
           addPlayer(sq, { ...m, legend: lg }, false);
         }
       }
-      while (sq.members.length < this.squadSize) {
+      while (sq.members.length < cap) {
         const free = LEGEND_IDS.filter((l) => !taken.has(l));
         const lg = free.length ? free[Math.floor(this.rng() * free.length)] : LEGEND_IDS[Math.floor(this.rng() * LEGEND_IDS.length)];
         taken.add(lg);
@@ -195,8 +198,13 @@ export class Match {
   // Firing range: no ring, no drop ship, passive target dummies and a full weapon rack.
   _setupPractice() {
     this.phase = 'play';
-    const poi = this.map.pois[0];
-    const cx = poi.x, cz = poi.z + poi.r + 25;
+    // find an open 70 m square so the range is clear of buildings
+    let cx = 0, cz = 0;
+    for (let i = 0; i < 400; i++) {
+      const x = this.rng.range(-500, 500), z = this.rng.range(-500, 500);
+      if (!this.world.query(x - 30, z - 45, x + 30, z + 15, this.tmp).length) { cx = x; cz = z; break; }
+    }
+    this.rangeSpot = { x: cx, z: cz };
     let i = 0;
     for (const p of this.list) {
       p.inShip = false;
@@ -1205,8 +1213,7 @@ export class Match {
     p.ms.downed = 0;
     if (p.home) { p.ms.x = p.home.x; p.ms.z = p.home.z; p.ms.y = 1; }
     else {
-      const poi = this.map.pois[0];
-      p.ms.x = poi.x; p.ms.z = poi.z + poi.r + 25; p.ms.y = 2;
+      p.ms.x = this.rangeSpot.x; p.ms.z = this.rangeSpot.z; p.ms.y = 2;
       p.weapons = [makeWeapon('talon', 1), makeWeapon('breacher', 1)];
       p.inv = [{ item: 'a:light', n: 60, tier: 0 }, { item: 'a:shotgun', n: 16, tier: 0 }, { item: 'a:heavy', n: 60, tier: 0 }];
       p.helmet = 2; p.pack = 3;

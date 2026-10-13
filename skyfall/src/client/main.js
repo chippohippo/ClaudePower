@@ -164,6 +164,7 @@ function leaveGame() {
   if (app.socket && state.party) app.socket.emit('party:rejoin', { code: state.party.code });
 }
 $('#btn-back').addEventListener('click', () => { click(); leaveGame(); });
+$('#btn-spectate').addEventListener('click', () => { click(); if (app.game) app.game.spectate(); });
 $('#btn-leave').addEventListener('click', () => { click(); leaveGame(); });
 $('#btn-resume').addEventListener('click', () => { click(); $('#pause').classList.add('hidden'); input.lock(); });
 
@@ -173,7 +174,8 @@ canvas.addEventListener('click', () => {
 });
 document.addEventListener('pointerlockchange', () => {
   const g = app.game;
-  const showPause = g && !input.locked && !g.invOpen && !g.boxOpen && !g.mapOpen && !g.ended;
+  const endShown = !document.getElementById('endscreen').classList.contains('hidden');
+  const showPause = g && !input.locked && !g.invOpen && !g.boxOpen && !g.mapOpen && !g.ended && !endShown;
   $('#pause').classList.toggle('hidden', !showPause);
 });
 document.addEventListener('keydown', (e) => {

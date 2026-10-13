@@ -412,7 +412,7 @@ export class FX {
         break;
       }
       case 'exhibit': {
-        const m = add(new THREE.Mesh(new THREE.SphereGeometry(e.r, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd23f', wireframe: true, transparent: true, opacity: 0.12, depthWrite: false })));
+        const m = add(new THREE.Mesh(new THREE.SphereGeometry(e.r, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd23f', wireframe: true, transparent: true, opacity: 0.05, depthWrite: false })));
         m.renderOrder = 2;
         break;
       }

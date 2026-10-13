@@ -228,7 +228,7 @@ export class WorldView {
 
   _ship() {
     const g = new THREE.Group();
-    const hull = new THREE.MeshStandardMaterial({ color: '#4a5560', metalness: 0.6, roughness: 0.4 });
+    const hull = new THREE.MeshStandardMaterial({ color: '#7d8894', metalness: 0.15, roughness: 0.55 });
     const accent = new THREE.MeshStandardMaterial({ color: '#ff7a1a', emissive: '#ff5a00', emissiveIntensity: 0.6 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(14, 6, 60), hull);
     g.add(body);
