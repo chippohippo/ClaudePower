@@ -131,6 +131,15 @@ export function buildMap(seed) {
       for (let i = 0; i < nLoot; i++) {
         lootPoints.push({ x: rng.range(x0 + 1, sx0 - 0.6), y: baseY + y + 0.05, z: rng.range(z0 + 1, z1 - 1), tier });
       }
+      // interior partition: splits big floors into rooms with a doorway and a mantle-able window
+      if (w > 12) {
+        const px = (x0 + sx0) / 2 + rng.range(-1, 1);
+        const span = z1 - z0 - WALL_T;
+        const dz = rng.range(1.5, span - 3);
+        const ops = [{ a: z0 + WALL_T / 2 + dz, b: z0 + WALL_T / 2 + dz + 1.6, y0: 0, y1: 2.5 }];
+        if (span > 9) { const wz = dz > span / 2 ? dz - 3.5 : dz + 3; ops.push({ a: z0 + WALL_T / 2 + wz, b: z0 + WALL_T / 2 + wz + 1.6, y0: 1.0, y1: 2.3 }); }
+        wall('z', z0 + WALL_T / 2, z1 - WALL_T / 2, px, y, FLOOR_H, ops, color);
+      }
       // interior cover crate
       if (rng() < 0.5 && w > 8) {
         const ccx = rng.range(x0 + 2, sx0 - 2), ccz = rng.range(z0 + 2, z1 - 2);
@@ -140,6 +149,13 @@ export function buildMap(seed) {
     // roof loot sometimes (rewards climbing)
     if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: baseY + floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
     buildings.push({ cx, cz, x0, x1, z0, z1, roof: baseY + floors * FLOOR_H + 0.3, floors });
+    // balcony on the first upper floor: reach it by mantling out of a window or climbing up
+    if (floors >= 2 && rng() < 0.45) {
+      const by = FLOOR_H;
+      add(x0 + 1, by, z0 - 2.2, x1 - 1, by + 0.25, z0 - WALL_T / 2, 'floor', '#7a7468');
+      add(x0 + 1, by + 0.25, z0 - 2.2, x1 - 1, by + 1.15, z0 - 2.0, 'wall', color);
+      if (rng() < 0.6) lootPoints.push({ x: (x0 + x1) / 2, y: baseY + by + 0.3, z: z0 - 1.2, tier });
+    }
     // parapet
     if (rng() < 0.5) {
       const ty = floors * FLOOR_H + 0.3;
@@ -226,6 +242,19 @@ export function buildMap(seed) {
       else rockFormation(ex, ez, 0.8);
       const lx = ex + 4.5, lz = ez + rng.range(-2, 2);
       lootPoints.push({ x: lx, y: terrain.height(lx, lz) + 0.05, z: lz, tier: p.tier });
+    }
+    // low cover walls and barriers: crouch cover that creates third-party angles
+    const ncover = 5 + Math.floor(rng() * 5);
+    for (let i = 0; i < ncover; i++) {
+      const a = rng() * Math.PI * 2, rr = rng.range(0.15, 0.95) * p.r;
+      const cx2 = p.x + Math.cos(a) * rr, cz2 = p.z + Math.sin(a) * rr;
+      const len = rng.range(2.5, 5);
+      if (!isFree(cx2, cz2, len / 2 + 0.5)) continue;
+      blocked.push({ x: cx2, z: cz2, r: len / 2 + 0.5 });
+      baseY = terrain.height(cx2, cz2);
+      const h = rng() < 0.7 ? 1.1 : 1.6;
+      if (rng() < 0.5) add(cx2 - len / 2, 0, cz2 - 0.3, cx2 + len / 2, h, cz2 + 0.3, 'rock', '#8a8478');
+      else add(cx2 - 0.3, 0, cz2 - len / 2, cx2 + 0.3, h, cz2 + len / 2, 'rock', '#8a8478');
     }
     // supply bins
     const nbins = 3 + Math.floor(rng() * 4);

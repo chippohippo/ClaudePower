@@ -16,6 +16,7 @@ import { speedMul } from '../shared/mods.js';
 import { makeWeapon, pickup, countItem, takeItem, addStack, reloadAmount } from './inventory.js';
 import { useTactical, useUltimate, updateEntity, passiveTick } from './abilities.js';
 import { Bot, BOT_NAMES } from './bot.js';
+import { NavGrid } from './nav.js';
 
 export const RING_PHASES = [
   { wait: 60, close: 45, radius: 560, dmg: 2 },
@@ -61,6 +62,8 @@ export class Match {
     this.grid = new Map();
     this.smokes = [];
     this.tmp = [];
+    this.nav = new NavGrid(this.map);
+    this.navBudget = 0;
     this._spawnLoot();
     // drop ship path
     const a = this.rng() * Math.PI * 2;
@@ -824,7 +827,7 @@ export class Match {
 
   _alertNearby(p, x, z) {
     // bots hear gunfire (third-party magnet)
-    for (const q of this.queryPlayers(x, z, 160)) {
+    for (const q of this.queryPlayers(x, z, 220)) {
       if (q.bot && q.squad !== p.squad) q.bot.hearShot(p, x, z);
     }
   }
@@ -1027,6 +1030,7 @@ export class Match {
       }
     }
     this._rebuildGrid();
+    this.navBudget = 10; // A* queries allowed this tick
     this.alive = 0;
     for (const p of this.list) if (p.alive && !p.eliminated) this.alive++;
 

@@ -362,8 +362,23 @@ export class Bot {
     const p = this.p, m = this.m, inp = this.inp;
     let dx = gx - p.ms.x, dz = gz - p.ms.z;
     const d = Math.hypot(dx, dz);
-    if (d < stopDist) return true;
+    if (d < stopDist) { this.path = null; return true; }
     dx /= d; dz /= d;
+    // follow an A* path when one is active for this goal
+    this.pathCd = Math.max(0, (this.pathCd || 0) - dt);
+    if (this.path && Math.hypot(this.path.gx - gx, this.path.gz - gz) > 4) this.path = null;
+    let onPath = false;
+    if (this.path) {
+      const P = this.path;
+      let wp = P.pts[P.i];
+      while (wp && Math.hypot(wp.x - p.ms.x, wp.z - p.ms.z) < 1.1) { P.i++; wp = P.pts[P.i]; }
+      if (!wp || m.time > P.expire) this.path = null;
+      else {
+        const wd = Math.hypot(wp.x - p.ms.x, wp.z - p.ms.z) || 1;
+        dx = (wp.x - p.ms.x) / wd; dz = (wp.z - p.ms.z) / wd;
+        onPath = true;
+      }
+    }
     // stuck detection
     const st = this.stuck;
     st.t += dt;
@@ -376,33 +391,80 @@ export class Bot {
       st.x = p.ms.x; st.z = p.ms.z; st.t = 0;
       if (moved < 1.0) {
         st.n++;
-        const a = m.rng() * Math.PI * 2;
-        st.ex = Math.cos(a); st.ez = Math.sin(a);
-        st.escapeT = 0.9;
+        // stuck: try a real path first, fall back to a random escape
+        if (!this._requestPath(gx, gz, d)) {
+          const a = m.rng() * Math.PI * 2;
+          st.ex = Math.cos(a); st.ez = Math.sin(a);
+          st.escapeT = 0.9;
+        }
       } else st.n = Math.max(0, st.n - 1);
     }
-    // obstacle avoidance (probe ahead)
-    if (st.escapeT <= 0) {
+    // obstacle avoidance (probe ahead); a blocked direct line triggers pathfinding
+    if (st.escapeT <= 0 && !onPath) {
+      const dir = this._steer(dx, dz);
+      if (dir[0] * dx + dir[1] * dz < 0.95) {
+        this.blockedT = (this.blockedT || 0) + dt;
+        if (this.blockedT > 0.4) { this.blockedT = 0; this._requestPath(gx, gz, d); }
+      } else this.blockedT = 0;
+      dx = dir[0]; dz = dir[1];
+    } else if (onPath && this._probe(dx, dz, 1.0)) {
       const dir = this._steer(dx, dz);
       dx = dir[0]; dz = dir[1];
     }
     this._setMove(dx, dz);
     if (sprint) inp.buttons |= BTN.SPRINT;
-    // movement flair: slide-jumps when travelling
-    this.travelT -= dt;
-    const sp = Math.hypot(p.ms.vx, p.ms.vz);
-    if (d > 25 && sprint && p.ms.onGround) {
-      if (this.travelT < 0.35 && this.travelT > 0 && sp > 6) inp.buttons |= BTN.CROUCH;
-      if (this.travelT <= 0) {
-        this.wantJump = true;
-        this.travelT = 1.4 + m.rng() * 2.2;
-      }
-    }
+    this._travelFlair(dt, d, sprint && !onPath);
     if (this.wantJump) {
       inp.buttons |= BTN.JUMP;
       this.wantJump = false;
     }
     return false;
+  }
+
+  // Ask the match's nav grid for a path toward (gx, gz); far goals path to a point 45 m along the way.
+  _requestPath(gx, gz, d) {
+    const p = this.p, m = this.m;
+    if (this.pathCd > 0 || !m.nav || m.navBudget <= 0) return false;
+    if (p.ms.y - m.world.terrainH(p.ms.x, p.ms.z) > 1.5) return false; // upper floors: steer instead
+    m.navBudget--;
+    this.pathCd = 1.2;
+    let tx = gx, tz = gz;
+    if (d > 45) { tx = p.ms.x + ((gx - p.ms.x) / d) * 45; tz = p.ms.z + ((gz - p.ms.z) / d) * 45; }
+    const pts = m.nav.findPath(p.ms.x, p.ms.z, tx, tz);
+    if (!pts || !pts.length) return false;
+    this.path = { pts, i: 0, gx, gz, expire: m.time + 12 };
+    this.stuck.n = 0;
+    return true;
+  }
+
+  // Movement tech while travelling: slide-hop chains (crouch-slide, jump out holding crouch, land
+  // straight into the next slide), longer slides downhill, and opportunistic wall bounces.
+  _travelFlair(dt, d, allowed) {
+    const p = this.p, m = this.m, inp = this.inp, ms = p.ms;
+    const sp = Math.hypot(ms.vx, ms.vz);
+    const H = this.hop || (this.hop = { s: 0, t: 0, n: 0, cd: m.rng() * 2 });
+    H.cd -= dt;
+    if (!ms.onGround && ms.airT > 0.1 && ms.wallT < 0.08 && m.rng() < 0.25 + this.skill * 0.3) this.wantJump = true; // wall bounce
+    if (!allowed || d < 18) { H.s = 0; return; }
+    switch (H.s) {
+      case 0:
+        if (H.cd <= 0 && ms.onGround && sp > 6.2) { H.s = 1; H.t = 0; H.n = 0; }
+        break;
+      case 1: // sliding
+        inp.buttons |= BTN.CROUCH;
+        H.t += dt;
+        if (ms.mode === 'slide' && H.t > 0.28 && (sp < 9 || H.t > 0.9)) { H.s = 2; this.wantJump = true; }
+        else if (H.t > 1.2) { H.s = 0; H.cd = 1.5; }
+        break;
+      case 2: // airborne: hold crouch so the landing chains into a slide
+        inp.buttons |= BTN.CROUCH;
+        if (ms.onGround) {
+          H.n++;
+          if (H.n >= 2 + Math.floor(this.skill * 3)) { H.s = 0; H.cd = 2 + m.rng() * 3; }
+          else { H.s = 1; H.t = 0; }
+        }
+        break;
+    }
   }
 
   _probe(dx, dz, dist) {
@@ -755,7 +817,14 @@ export class Bot {
     let mvz = (dz / d) * fwd + (dx / d) * this.strafe * 0.9;
     const ml = Math.hypot(mvx, mvz) || 1;
     mvx /= ml; mvz /= ml;
-    if (this._probe(mvx, mvz, 1.0)) { this.strafe = -this.strafe; mvx = (dx / d) * fwd; mvz = (dz / d) * fwd; }
+    // wall at our strafe side: skilled bots kick off it (wall bounce) instead of just turning around
+    this.bounceT = Math.max(0, (this.bounceT || 0) - dt);
+    if (this.bounceT > 0) {
+      if (!p.ms.onGround && p.ms.airT > 0.1 && p.ms.wallT < 0.1) { this.wantJump = true; this.bounceT = 0; this.strafe = -this.strafe; }
+    } else if (this._probe(mvx, mvz, 1.0)) {
+      if (p.ms.onGround && this.skill > 0.4 && m.rng() < 0.35) { this.wantJump = true; this.bounceT = 0.7; }
+      else { this.strafe = -this.strafe; mvx = (dx / d) * fwd; mvz = (dz / d) * fwd; }
+    }
     if (this.stuck.escapeT > 0) { mvx = this.stuck.ex; mvz = this.stuck.ez; this.stuck.escapeT -= dt; }
     this._setMove(mvx, mvz);
     if (fwd > 0 && dist2d > 15) inp.buttons |= BTN.SPRINT;
