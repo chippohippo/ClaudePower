@@ -36,7 +36,9 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
   const pattern = PATTERNS[kind] || '';
   const tex = assets.textures[TEX_FOR[kind] || kind] || null;
   mat.onBeforeCompile = (sh) => {
-    if (tex) { sh.uniforms.detailMap = { value: tex.map }; sh.uniforms.detailK = { value: new THREE.Vector2(1 / tex.scale, tex.strength) }; }
+    if (tex) { sh.uniforms.detailMap = { value: tex.map }; sh.uniforms.detailK = { value: new THREE.Vector2(1 / tex.scale, tex.strength) }; sh.uniforms.detailRect = { value: new THREE.Vector4(...(tex.rect || [0, 0, 1, 1])) }; }
+    if (tex && tex.normal) { sh.uniforms.detailNrm = { value: tex.normal }; sh.uniforms.detailBump = { value: tex.bump }; }
+    if (tex && tex.orm) sh.uniforms.detailOrm = { value: tex.orm };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;\nvarying vec3 vLoc;\nvarying vec3 vScl;')
       .replace(
@@ -59,7 +61,12 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
         varying vec3 vWNrm;
         varying vec3 vLoc;
         varying vec3 vScl;
-        ${tex ? 'uniform sampler2D detailMap; uniform vec2 detailK;' : ''}
+        ${tex ? 'uniform sampler2D detailMap; uniform vec2 detailK; uniform vec4 detailRect;' : ''}
+        ${tex && tex.normal ? 'uniform sampler2D detailNrm; uniform float detailBump;' : ''}
+        ${tex && tex.orm ? 'uniform sampler2D detailOrm;' : ''}
+        // world-projected UV for the face's dominant axis (boxes are axis aligned)
+        vec2 faceUV(vec3 wp, vec3 wn) { vec3 n = abs(wn); return n.y > 0.5 ? wp.xz : (n.x > 0.5 ? vec2(-sign(wn.x) * wp.z, wp.y) : vec2(sign(wn.z) * wp.x, wp.y)); }
+        ${tex ? '' : '//'} vec2 kitUV(vec2 uv) { return detailRect.xy + fract(uv) * detailRect.zw; }
         float hash3(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }`)
       .replace(
         '#include <color_fragment>',
@@ -76,9 +83,9 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
           ${tex ? `{
             // imported surface texture (Poly Haven / ambientCG): luminance detail only, so the zone's
             // palette and the cel bands stay in charge of colour
-            vec2 duv = (n.y > 0.5 ? vWPos.xz : (n.x > 0.5 ? vWPos.zy : vWPos.xy)) * detailK.x;
+            vec2 duv = faceUV(vWPos, vWNrm) * detailK.x;
             vec3 lw = vec3(0.299, 0.587, 0.114);
-            float dl = dot(texture2D(detailMap, duv).rgb, lw) / max(dot(textureLod(detailMap, duv, 12.0).rgb, lw), 0.05);
+            float dl = dot(texture2D(detailMap, kitUV(duv)).rgb, lw) / max(dot(textureLod(detailMap, duv, 12.0).rgb, lw), 0.05);
             diffuseColor.rgb *= mix(1.0, clamp(dl, 0.4, 1.6), detailK.y);
           }` : ''}
           // ambient occlusion toward the bottom of each box's side faces
@@ -94,10 +101,28 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
           diffuseColor.rgb *= n.y > 0.5 ? 1.06 : 1.0;
         }`,
       );
+    if (tex && tex.orm) sh.fragmentShader = sh.fragmentShader.replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+        { vec3 orm = texture2D(detailOrm, kitUV(faceUV(vWPos, vWNrm) * detailK.x)).rgb;
+          roughnessFactor = clamp(roughnessFactor * mix(1.0, orm.g * 1.5 + 0.15, detailK.y), 0.08, 1.0);
+          metalnessFactor = max(metalnessFactor, orm.b * 0.6 * detailK.y);
+          diffuseColor.rgb *= mix(1.0, orm.r, 0.6); }`);
+    if (tex && tex.normal) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        {
+          // trim-sheet relief: tangent frame of the axis-aligned face, then back to view space
+          vec3 wn = normalize(vWNrm), an = abs(wn);
+          vec3 T = an.y > 0.5 ? vec3(1.0, 0.0, 0.0) : (an.x > 0.5 ? vec3(0.0, 0.0, -sign(wn.x)) : vec3(sign(wn.z), 0.0, 0.0));
+          vec3 B = an.y > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+          vec3 tn = texture2D(detailNrm, kitUV(faceUV(vWPos, vWNrm) * detailK.x)).xyz * 2.0 - 1.0;
+          tn.xy *= detailBump;
+          vec3 pn = normalize(T * tn.x + B * tn.y + wn * max(tn.z, 0.2));
+          normal = normalize((viewMatrix * vec4(pn, 0.0)).xyz);
+        }`);
   };
-  mat.customProgramCacheKey = () => 'panels' + scale + lineStrength + kind + (tex ? 'tex' : '');
+  mat.customProgramCacheKey = () => 'panels' + scale + lineStrength + kind + (tex ? 'tex' + !!tex.normal + !!tex.orm : '');
   return mat;
 }
+
+const MUTE = { wall: 0.35, floor: 0.3, roof: 0.25, stair: 0.3, dock: 0.2, container: 0.15 };
 
 export class WorldView {
   constructor(renderer, map) {
@@ -183,6 +208,7 @@ export class WorldView {
     this._ground();
     this._boxes();
     this._trees();
+    this._grass();
     this._ziplines();
     this._bins();
     this._dressing();
@@ -395,12 +421,15 @@ export class WorldView {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     for (const g of groups.values()) {
       if (g.kind === 'rock' && assets.natureKinds('rock')) { this._drape(g.list, assets.natureKinds('rock'), [1.12, 1.06], 0.45); continue; }
-      if (assets.propKinds(g.kind)) { this._drape(g.list, assets.propKinds(g.kind), [1.04, 1.02], 0.7); continue; }
+      if (assets.propKinds(g.kind)) { this._drape(g.list, assets.propKinds(g.kind), [1.04, 1.02], { pillar: 0.5, desk: 0.15, shelf: 0.15, locker: 0.3, dish: 0.1, vent: 0.15, crate: 0.35 }[g.kind] ?? 0.7); continue; }
       const metalKinds = { container: 1, catwalk: 1, crane: 1, stack: 1, pylon: 1, spire: 1 };
       const rough = metalKinds[g.kind] ? 0.5 : g.kind === 'rock' ? 0.95 : 0.85;
       const metal = metalKinds[g.kind] ? 0.35 : 0.0;
       const scale = g.kind === 'container' ? 0.6 : g.kind === 'rock' ? 2.5 : g.kind === 'wall' ? 1.2 : g.kind === 'dock' ? 0.4 : g.kind === 'bark' ? 0.7 : 1;
-      const mat = patchPanels(new THREE.MeshStandardMaterial({ color: g.color, roughness: rough, metalness: metal }), scale, g.kind === 'rock' ? 0.08 : g.kind === 'trim' ? 0 : 0.2, g.kind);
+      // realistic style: architecture palettes pulled toward neutral greys, accents stay saturated
+      const col = new THREE.Color(g.color);
+      if (!STYLE.comic && MUTE[g.kind]) { const l = col.r * 0.3 + col.g * 0.59 + col.b * 0.11; col.lerp(new THREE.Color(l, l, l), MUTE[g.kind]); }
+      const mat = patchPanels(new THREE.MeshStandardMaterial({ color: col, roughness: rough, metalness: metal }), scale, g.kind === 'rock' ? 0.08 : g.kind === 'trim' ? 0 : 0.2, g.kind);
       if (g.kind === 'trim') { mat.emissive = new THREE.Color(g.color); mat.emissiveIntensity = 0.9; }
       if (g.kind === 'beacon') { mat.emissive = new THREE.Color('#1c6dd0'); mat.emissiveIntensity = 0.4; }
       if (g.kind === 'bin') { mat.emissive = new THREE.Color('#0a3a6a'); mat.emissiveIntensity = 0.3; }
@@ -483,6 +512,7 @@ export class WorldView {
     const tv = assets.natureKinds('tree');
     if (!tv) return;
     const bv = assets.natureKinds('bush');
+    const dv = assets.natureKinds('deadtree');   // bare trees around desert zones
     const rnd = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
     const up = new THREE.Vector3(0, 1, 0);
     const far = [trunk, leaf1, leaf2], farM = far.map(() => []);
@@ -490,7 +520,8 @@ export class WorldView {
     trees.forEach((t, i) => {
       for (let k = 0; k < 3; k++) { const m = new THREE.Matrix4(); far[k].getMatrixAt(i, m); farM[k].push(m); }
       const sc = t.h * (0.9 + rnd(i, 2) * 0.2);
-      near.push({ x: t.x, z: t.z, v: Math.floor(rnd(i, 3) * tv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(t.x, t.y, t.z), new THREE.Quaternion().setFromAxisAngle(up, rnd(i, 1) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)) });
+      const desert = dv && this.map.pois.some((p) => p.theme === 'desert' && Math.hypot(t.x - p.x, t.z - p.z) < p.r * 2.2);
+      near.push({ x: t.x, z: t.z, v: desert ? tv.length + Math.floor(rnd(i, 3) * dv.length) : Math.floor(rnd(i, 3) * tv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(t.x, t.y, t.z), new THREE.Quaternion().setFromAxisAngle(up, rnd(i, 1) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)) });
       if (bv) for (let k = 0; k < 2; k++) {
         if (rnd(i, 4 + k) < 0.4) continue;
         const a = rnd(i, 6 + k) * Math.PI * 2, d = 1.5 + rnd(i, 8 + k) * 3.5;
@@ -508,7 +539,59 @@ export class WorldView {
       });
     });
     for (const m of far) m.frustumCulled = false;
-    this.treeLod = { far, farM, near, nearMeshes: pool(tv, near), bushes, bushMeshes: bv ? pool(bv, bushes) : [], t: 0 };
+    this.treeLod = { far, farM, near, nearMeshes: pool(dv ? tv.concat(dv) : tv, near), bushes, bushMeshes: bv ? pool(bv, bushes) : [], t: 0 };
+  }
+
+  // Ground cover (kit grass clumps, flowers, clover, pebbles) scattered on a world-space grid around
+  // the camera: each cell decides from a hash whether it holds a clump, so nothing pops or shuffles
+  // as you move. Skipped on POI pads, steep or high rocky ground, deserts and anything built.
+  _grass() {
+    const gv = assets.natureKinds('grass');
+    if (!gv) return;
+    const pv = assets.natureKinds('pebble') || [];
+    const variants = [...gv, ...pv];
+    const CAP = 900;
+    const meshes = variants.map((vt) => vt.parts.map((p) => {
+      const m = new THREE.InstancedMesh(p.geometry, p.material, CAP);
+      m.count = 0; m.castShadow = false; m.receiveShadow = true; m.frustumCulled = false;
+      this.scene.add(m);
+      return m;
+    }));
+    this.grass = { variants, meshes, nG: gv.length, at: null, cell: 2.3, R: 52 };
+  }
+
+  _updateGrass(cam) {
+    const G = this.grass;
+    if (G.at && Math.hypot(cam.x - G.at.x, cam.z - G.at.z) < 6) return;
+    G.at = { x: cam.x, z: cam.z };
+    const T = this.map.terrain, W = this.map.world, C = G.cell, n = G.variants.map(() => 0);
+    const h = (i, j, k) => { const v = Math.sin(i * 127.1 + j * 311.7 + k * 74.7) * 43758.5453; return v - Math.floor(v); };
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), nrm = { x: 0, y: 1, z: 0 };
+    const ci = Math.floor(cam.x / C), cj = Math.floor(cam.z / C), rc = Math.ceil(G.R / C);
+    for (let i = ci - rc; i <= ci + rc; i++) for (let j = cj - rc; j <= cj + rc; j++) {
+      const r0 = h(i, j, 1);
+      if (r0 < 0.28) continue;
+      const x = (i + h(i, j, 2)) * C, z = (j + h(i, j, 3)) * C;
+      const dd = (x - cam.x) ** 2 + (z - cam.z) ** 2;
+      if (dd > G.R * G.R) continue;
+      let skip = false;
+      for (const p of this.map.pois) { const d = Math.hypot(x - p.x, z - p.z); if (d < (p.landmark ? p.r * 0.6 : p.r * 1.02) || (p.theme === 'desert' && d < p.r * 1.8)) { skip = true; break; } }
+      if (skip) continue;
+      const y = T.height(x, z);
+      T.normal(x, z, nrm);
+      if (nrm.y < 0.93 || (y - T.minH) / Math.max(1, T.maxH - T.minH) > 0.78) continue;
+      if (W.groundAt(x, z) > y + 0.15) continue;
+      // mostly grass, some flowers and clover, a few pebbles / mushrooms
+      const pebble = G.variants.length > G.nG && h(i, j, 4) < 0.08;
+      const v = pebble ? G.nG + Math.floor(h(i, j, 5) * (G.variants.length - G.nG)) : Math.floor(h(i, j, 6) * G.nG);
+      if (n[v] >= 900) continue;
+      const s = 0.75 + h(i, j, 7) * 0.7;
+      q.setFromAxisAngle(up, h(i, j, 8) * Math.PI * 2);
+      m4.compose(pv.set(x, y - 0.03, z), q, sv.set(s, s * (0.85 + h(i, j, 9) * 0.4), s));
+      const k = n[v]++;
+      for (const m of G.meshes[v]) m.setMatrixAt(k, m4);
+    }
+    G.meshes.forEach((parts, v) => parts.forEach((m) => { m.count = n[v]; m.instanceMatrix.needsUpdate = true; }));
   }
 
   // Swap trees between the imported model (near) and the cone tree (far); bushes only up close.
@@ -804,6 +887,7 @@ export class WorldView {
       f.ring.material.opacity = 0.5 + 0.3 * Math.sin(time * 4);
     }
     if (this.treeLod && camPos && (this.treeLod.t -= dt) <= 0) { this.treeLod.t = 0.4; this._updateTreeLod(camPos); }
+    if (this.grass && camPos) this._updateGrass(camPos);
     if (this.zipTime) this.zipTime.value = time;
     for (const sp of this.spinners || []) sp.o.rotation.y += dt * sp.s;
     this.ringMat.uniforms.time.value = time;

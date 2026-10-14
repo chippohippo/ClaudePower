@@ -398,7 +398,15 @@ class AssetLibrary {
         jobs.push(tryLoad(`${cat} ${kind} ${def.file}`, async () => {
           const m = await loadModel(def.file);
           adaptModel(m.scene);
-          this[cat][kind].push({ parts: bakeParts(m.scene, def), def });
+          // packs (several models per file): "node" picks one top-level model by name
+          let src = m.scene;
+          if (def.node) {
+            const n = m.scene.getObjectByName(def.node) || m.scene.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(def.node));
+            if (!n) throw new Error(`no node ${def.node}`);
+            src = new THREE.Group().add(n.clone());
+            src.children[0].position.set(0, 0, 0);
+          }
+          this[cat][kind].push({ parts: bakeParts(src, def), def });
         }));
       }
     }
@@ -406,11 +414,10 @@ class AssetLibrary {
     const tl = new THREE.TextureLoader();
     for (const [kind, def] of Object.entries(M.textures || {})) {
       jobs.push(tryLoad(`texture ${kind}`, async () => {
-        const map = await tl.loadAsync(BASE + def.map);
-        map.wrapS = map.wrapT = THREE.RepeatWrapping;
-        map.colorSpace = THREE.SRGBColorSpace;
-        map.anisotropy = 4;
-        this.textures[kind] = { map, scale: def.scale || 2, strength: def.strength ?? 0.6 };
+        const ld = async (f, srgb) => { if (!f) return null; const t = await tl.loadAsync(BASE + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+        // kit trim sheets also bring a normal map (panel relief) and ORM (roughness variation)
+        const [map, normal, orm] = await Promise.all([ld(def.map, true), ld(def.normal), ld(def.orm)]);
+        this.textures[kind] = { map, normal, orm, scale: def.scale || 2, strength: def.strength ?? 0.6, bump: def.bump ?? 1, rect: def.rect || null };
       }));
     }
     for (const [name, file] of Object.entries(M.sounds || {})) {

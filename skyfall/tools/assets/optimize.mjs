@@ -93,3 +93,35 @@ export async function optimizeModel(src, dest, { hide = [], keepClips = null, ch
   await io.write(dest, doc);
   return fs.statSync(dest).size;
 }
+
+// Several models in one file: each source scene becomes a top-level node named after the model, so
+// shared textures (trim sheets, leaf atlases) are stored once. The manifest picks one with "node".
+export async function optimizePack(list, dest, { maxTex = 512, pbr = true } = {}) {
+  const { core, fn, io, MeshoptEncoder, sharp } = gt;
+  const doc = new core.Document();
+  const scene = doc.createScene('pack');
+  doc.getRoot().setDefaultScene(scene);
+  for (const [name, file] of list) {
+    const src = await io.read(file);
+    if (src.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_materials_pbrSpecularGlossiness')) await src.transform(fn.metalRough());
+    const srcScene = src.getRoot().getDefaultScene() || src.getRoot().listScenes()[0];
+    const map = fn.mergeDocuments(doc, src);
+    const group = doc.createNode(name);
+    for (const n of srcScene.listChildren()) group.addChild(map.get(n));
+    scene.addChild(group);
+    map.get(srcScene).dispose();
+  }
+  for (const mat of doc.getRoot().listMaterials()) { mat.setOcclusionTexture(null); if (!pbr) { mat.setNormalTexture(null); mat.setMetallicRoughnessTexture(null); } }
+  await doc.transform(
+    fn.unpartition(),
+    fn.prune(),
+    fn.dedup(),
+    fn.weld(),
+    fn.quantize({ quantizeTexcoord: 12 }),
+    ...(sharp ? [fn.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [maxTex, maxTex], quality: 85 })] : []),
+    fn.meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+  );
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  await io.write(dest, doc);
+  return fs.statSync(dest).size;
+}

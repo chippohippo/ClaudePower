@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { optimizerAvailable, optimizeModel } from './optimize.mjs';
+import { optimizerAvailable, optimizeModel, optimizePack } from './optimize.mjs';
 import { usefulClips } from '../../src/shared/clips.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -60,6 +60,32 @@ if (all || what.has('anims')) {
     console.log(out, [...keep].join(' '));
     await opt(path.join(pack, file), `animations/${out}.glb`, { animOnly: true, keepClips: keep });
   }
+}
+
+if (all || what.has('kits')) {
+  const ESS = 'SciFiEssentials/glTF', MEGA = 'SciFiMega/Modular SciFi MegaKit[Standard]/glTF', NAT = 'NatureMega/glTF';
+  const pack = async (dest, entries, o) => {
+    const list = entries.map(([dir, n]) => { const f = path.join(X, dir, n + '.gltf'); fixUris(f); return [n, f]; });
+    const size = await optimizePack(list, path.join(OUT, dest), o);
+    done.push(`${dest}  ${(size / 1024).toFixed(0)} KB  (${list.length} models)`);
+    console.log(dest, (size / 1024).toFixed(0), 'KB');
+  };
+  const E = (...n) => n.map((x) => [ESS, x]), Mg = (sub, ...n) => n.map((x) => [`${MEGA}/${sub}`, x]), N = (...n) => n.map((x) => [NAT, x]);
+  await pack('props/kit_props.glb', [
+    ...E('Prop_Crate', 'Prop_Crate_Large', 'Prop_Crate_Tarp', 'Prop_Crate_Tarp_Large', 'Prop_Chest', 'Prop_Barrel1', 'Prop_Barrel2_Closed',
+      'Prop_Desk_L', 'Prop_Desk_Medium', 'Prop_Desk_Small', 'Prop_Locker', 'Prop_Shelves_WideTall', 'Prop_Shelves_ThinTall', 'Prop_Shelves_WideShort',
+      'Prop_SatelliteDish', 'Prop_Chair', 'Prop_Ammo_Closed', 'Prop_HealthPack'),
+  ], { maxTex: 1024 });
+  await pack('props/kit_station.glb', [
+    ...Mg('Props', 'Prop_Crate3', 'Prop_Crate4', 'Prop_Vent_Big', 'Prop_Vent_Wide', 'Prop_Vent_Small', 'Prop_Computer', 'Prop_AccessPoint', 'Prop_Light_Wide', 'Prop_Light_Small',
+      'Prop_Light_Floor', 'Prop_Fan_Small', 'Prop_PipeHolder', 'Prop_Barrel_Large', 'Prop_Chest', 'Prop_ItemHolder'),
+    ...Mg('Columns', 'Column_Astra', 'Column_Hollow', 'Column_Large_Straight', 'Column_MetalSupport', 'Column_Pipes', 'Column_Round', 'Column_Simple'),
+  ], { maxTex: 1024 });
+  await pack('nature/kit_trees.glb', N('CommonTree_1', 'CommonTree_2', 'CommonTree_3', 'CommonTree_4', 'CommonTree_5', 'Pine_1', 'Pine_2', 'Pine_3', 'Pine_4', 'Pine_5',
+    'TwistedTree_1', 'TwistedTree_2', 'TwistedTree_3', 'DeadTree_1', 'DeadTree_2', 'DeadTree_3'), { maxTex: 512 });
+  await pack('nature/kit_plants.glb', N('Bush_Common', 'Bush_Common_Flowers', 'Fern_1', 'Plant_1_Big', 'Plant_7_Big', 'Plant_1', 'Plant_7', 'Rock_Medium_1', 'Rock_Medium_2', 'Rock_Medium_3',
+    'Grass_Common_Short', 'Grass_Common_Tall', 'Grass_Wispy_Short', 'Grass_Wispy_Tall', 'Flower_3_Group', 'Flower_4_Group', 'Clover_1', 'Clover_2',
+    'Pebble_Round_1', 'Pebble_Round_2', 'Pebble_Square_1', 'Mushroom_Common'), { maxTex: 512 });
 }
 
 fs.writeFileSync(path.join(ROOT, 'assets-src/drive/import-drive.log'), done.join('\n') + '\n');

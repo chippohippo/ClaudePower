@@ -1,0 +1,29 @@
+<!doctype html><html><body style="margin:0;overflow:hidden"><script type="module">
+// Map preview: the real map + WorldView in the realistic style, camera orbiting a POI.
+// ?seed=1&poi=0&d=40&h=14&a=0.6  (d distance, h height, a angle) or ?x=&y=&z=&tx=&ty=&tz=
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+import { STYLE, ComicPost, CLEAN_GRADE } from '/src/client/comic.js';
+import { buildMap } from '/src/shared/map.js';
+import { WorldView } from '/src/client/world.js';
+STYLE.comic = false;
+await assets.load();
+const q = new URLSearchParams(location.search), num = (k, d) => (q.has(k) ? +q.get(k) : d);
+const W = innerWidth, H = innerHeight;
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); r.setPixelRatio(1);
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(r.domElement);
+const map = buildMap(num('seed', 1));
+const view = new WorldView(r, map);
+const post = new ComicPost(r, CLEAN_GRADE);
+const cam = new THREE.PerspectiveCamera(70, W / H, 0.05, 4000);
+const poi = map.pois[num('poi', 0) % map.pois.length];
+let tx = num('tx', poi.x), tz = num('tz', poi.z), ty = num('ty', map.terrain.height(tx, tz) + 2);
+const a = num('a', 0.6), d = num('d', 45);
+const cx = num('x', tx + Math.cos(a) * d), cz = num('z', tz + Math.sin(a) * d);
+cam.position.set(cx, num('y', map.terrain.height(cx, cz) + num('h', 14)), cz);
+cam.lookAt(tx, ty, tz);
+window.info = { pois: map.pois.map((p) => [p.name, Math.round(p.x), Math.round(p.z), p.theme || p.type || '']) };
+for (let i = 0; i < 3; i++) { view.update(0.5, i, cam.position, null, null); if (view.setAtmosphere) view.setAtmosphere(0, false, 1); post.render(view.scene, cam); }
+window.done = true;
+</script></body></html>

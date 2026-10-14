@@ -18,6 +18,8 @@ const WALL_T = 0.4;
 
 export function buildMap(seed) {
   const rng = makeRng(seed);
+  // furniture + roof cover draw from their own stream so the rest of the layout stays as it was
+  const frng = makeRng((seed ^ 0x5f3759df) >>> 0);
   const world = new CollisionWorld(MAP_HALF + 80);
   const boxes = [];
   const lootPoints = [];
@@ -115,12 +117,14 @@ export function buildMap(seed) {
     const stairW = 1.6, stairRun = 12 * 0.42;
     const sx0 = x1 - WALL_T / 2 - stairW, sx1 = x1 - WALL_T / 2;
     const sz0 = z0 + 1.2, sz1 = sz0 + stairRun;
+    let roofHalf = false;
     for (let f = 0; f < floors; f++) {
       const y = f * FLOOR_H;
       const sideX = (a) => makeOpenings(a, f).map((o) => ({ ...o, a: o.a + x0, b: o.b + x0 }));
       const sideZ = (a) => makeOpenings(a, f).map((o) => ({ ...o, a: o.a + z0, b: o.b + z0 }));
       wall('x', x0, x1, z0, y, FLOOR_H, sideX(w), color);
-      wall('x', x0, x1, z1, y, FLOOR_H, sideX(w), color);
+      const backOps = sideX(w);
+      wall('x', x0, x1, z1, y, FLOOR_H, backOps, color);
       wall('z', z0 + WALL_T / 2, z1 - WALL_T / 2, x0, y, FLOOR_H, sideZ(d), color);
       // stair wall side has fewer openings to keep stairs intact
       wall('z', z0 + WALL_T / 2, z1 - WALL_T / 2, x1, y, FLOOR_H, f === 0 ? sideZ(d).filter((o) => o.a > sz1 + 0.5) : [], color);
@@ -136,6 +140,7 @@ export function buildMap(seed) {
       const kind = f === floors - 1 ? 'roof' : 'floor';
       const roofGone = kind === 'roof' && ruin > 0 && rng() < ruin * 1.5;
       if (roofGone) {
+        roofHalf = true;
         // half-collapsed roof: open sky over one end
         add(x0, top, z0, x1, top + 0.3, (z0 + z1) / 2, kind, slabColor);
       } else if (f < floors - 1 && d > stairRun + 3) {
@@ -145,13 +150,15 @@ export function buildMap(seed) {
         add(x0, top, z0, x1, top + 0.3, z1, kind, slabColor);
       }
       // loot on this floor
+      const lootStart = lootPoints.length;
       const nLoot = 2 + Math.floor(rng() * 3);
       for (let i = 0; i < nLoot; i++) {
         lootPoints.push({ x: rng.range(x0 + 1, sx0 - 0.6), y: baseY + y + 0.05, z: rng.range(z0 + 1, z1 - 1), tier });
       }
       // interior partition: splits big floors into rooms with a doorway and a mantle-able window
+      let px = null;
       if (w > 12) {
-        const px = (x0 + sx0) / 2 + rng.range(-1, 1);
+        px = (x0 + sx0) / 2 + rng.range(-1, 1);
         const span = z1 - z0 - WALL_T;
         const dz = rng.range(1.5, span - 3);
         const ops = [{ a: z0 + WALL_T / 2 + dz, b: z0 + WALL_T / 2 + dz + 1.6, y0: 0, y1: 2.5 }];
@@ -163,6 +170,7 @@ export function buildMap(seed) {
         const ccx = rng.range(x0 + 2, sx0 - 2), ccz = rng.range(z0 + 2, z1 - 2);
         add(ccx - 0.6, y, ccz - 0.6, ccx + 0.6, y + 1.1, ccz + 0.6, 'crate', '#8b6b43');
       }
+      furnish(x0, sx0, z1, y, backOps, px, f === 0 ? [x0 + WALL_T / 2 + 0.6, x0 + WALL_T / 2 + 2.3] : null, lootStart);
     }
     // ground-floor bin against the back wall, away from the stairwell
     if (w > 7 && d > 6 && rng() < 0.3) supplyBin(x0 + WALL_T / 2 + 1.4, 0, z1 - WALL_T / 2 - 0.55, tier);
@@ -170,6 +178,10 @@ export function buildMap(seed) {
     if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: baseY + floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
     else if (w > 8 && d > 8 && floors >= 2 && rng() < 0.3) supplyBin(cx + 1.5, floors * FLOOR_H + 0.3, cz + 1.5, tier + 1);
     buildings.push({ cx, cz, x0, x1, z0, z1, roof: baseY + floors * FLOOR_H + 0.3, floors });
+    // structural corner columns (kit columns are draped over them)
+    const ph = floors * FLOOR_H + 0.3;
+    for (const [px2, pz2] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) add(px2 - 0.38, 0, pz2 - 0.38, px2 + 0.38, ph, pz2 + 0.38, 'pillar', '#a3abb3');
+    roofCover(x0, x1, z0, roofHalf ? (z0 + z1) / 2 : z1, ph, cx, cz);
     // accent trim along the roofline: readable edges + the zone's signature colour
     if (theme) {
       const ty = floors * FLOOR_H + 0.3;
@@ -189,6 +201,53 @@ export function buildMap(seed) {
       const ty = floors * FLOOR_H + 0.3;
       add(x0, ty, z0 - 0.15, x1, ty + 0.9, z0 + 0.15, 'wall', color);
       add(x0, ty, z1 - 0.15, x1, ty + 0.9, z1 + 0.15, 'wall', color);
+    }
+  }
+
+  // Desks under windows, shelves and lockers on blank wall along the inside of the back wall: cover
+  // inside rooms and something to read as an interior. Doors, the stairwell (x > xMax), the
+  // partition wall and the ground-floor bin stay clear; loot spawned inside furniture moves out.
+  function furnish(xMin, xMax, zWall, y, ops, partX, reserved, lootFrom) {
+    const zi = zWall - WALL_T / 2;
+    const placed = [];
+    if (partX != null) placed.push([partX - 0.6, partX + 0.6]);
+    if (reserved) placed.push(reserved);
+    const TYPES = [
+      { kind: 'desk', len: 1.6, d: 0.8, h: 0.78, underWindow: true },
+      { kind: 'desk', len: 1.2, d: 0.7, h: 0.78, underWindow: true },
+      { kind: 'shelf', len: 1.4, d: 0.5, h: 2.0 },
+      { kind: 'locker', len: 0.62, d: 0.52, h: 2.0, run: 3 },
+    ];
+    const n = 1 + Math.floor(frng() * 3);
+    for (let k = 0; k < n; k++) {
+      const t = TYPES[Math.floor(frng() * TYPES.length)];
+      const run = t.run ? 1 + Math.floor(frng() * t.run) : 1, len = t.len * run;
+      for (let tries = 0; tries < 6; tries++) {
+        const a = xMin + WALL_T / 2 + 0.3 + frng() * Math.max(0, xMax - xMin - WALL_T / 2 - 0.6 - len), b = a + len;
+        if (b > xMax - 0.3) continue;
+        const hitsOpening = ops.some((o) => a < o.b + 0.15 && b > o.a - 0.15 && (o.y0 < 0.05 || !t.underWindow || o.y0 < t.h + 0.05));
+        if (hitsOpening || placed.some(([p, q]) => a < q + 0.25 && b > p - 0.25)) continue;
+        placed.push([a, b]);
+        for (let i = 0; i < run; i++) add(a + i * t.len, y, zi - t.d, a + (i + 1) * t.len - (run > 1 ? 0.02 : 0), y + t.h, zi, t.kind, '#8a9098');
+        for (let i = lootFrom; i < lootPoints.length; i++) {
+          const L = lootPoints[i];
+          if (Math.abs(L.y - (baseY + y + 0.05)) < 0.1 && L.x > a - 0.3 && L.x < b + 0.3 && L.z > zi - t.d - 0.3) L.z = zi - t.d - 0.7;
+        }
+        break;
+      }
+    }
+  }
+
+  // Roof cover on big flat roofs: AC vents and dishes in the corners (loot and bins use the middle)
+  function roofCover(x0, x1, z0, z1, ty, cx, cz) {
+    if (x1 - x0 < 9 || z1 - z0 < 8 || frng() < 0.25) return;
+    const corners = [[x0 + 1.6, z0 + 1.4], [x1 - 1.6, z0 + 1.4], [x0 + 1.6, z1 - 1.4], [x1 - 1.6, z1 - 1.4]];
+    const n = 1 + Math.floor(frng() * 2);
+    for (let i = 0; i < n; i++) {
+      const [px, pz] = corners.splice(Math.floor(frng() * corners.length), 1)[0];
+      if (Math.hypot(px - cx, pz - cz) < 3) continue;
+      if (frng() < 0.6) add(px - 0.9, ty, pz - 0.6, px + 0.9, ty + 1.1, pz + 0.6, 'vent', '#7d848c');
+      else add(px - 0.7, ty, pz - 0.7, px + 0.7, ty + 1.7, pz + 0.7, 'dish', '#9aa1a8');
     }
   }
 

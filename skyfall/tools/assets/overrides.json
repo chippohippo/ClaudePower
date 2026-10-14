@@ -946,6 +946,346 @@
         },
         "height": 1.8
       }
+    },
+    "textures": {
+      "wall": {
+        "map": "textures/kit_trim02_BaseColor.jpg",
+        "normal": "textures/kit_trim02_Normal.jpg",
+        "orm": "textures/kit_trim02_ORM.jpg",
+        "scale": 3.6,
+        "strength": 0.6,
+        "bump": 1.0,
+        "rect": [
+          0,
+          0.4,
+          1,
+          0.355
+        ]
+      },
+      "metal": {
+        "map": "textures/kit_trim01_BaseColor.jpg",
+        "normal": "textures/kit_trim01_Normal.jpg",
+        "orm": "textures/kit_trim01_ORM.jpg",
+        "scale": 3.0,
+        "strength": 0.7,
+        "bump": 1.0
+      },
+      "floor": {
+        "map": "textures/kit_trim03_BaseColor.jpg",
+        "normal": "textures/kit_trim03_Normal.jpg",
+        "orm": "textures/kit_trim03_ORM.jpg",
+        "scale": 3.0,
+        "strength": 0.6,
+        "bump": 0.8
+      },
+      "roof": {
+        "map": "textures/kit_trim01_BaseColor.jpg",
+        "normal": "textures/kit_trim01_Normal.jpg",
+        "orm": "textures/kit_trim01_ORM.jpg",
+        "scale": 5.0,
+        "strength": 0.6,
+        "bump": 0.9
+      }
+    },
+    "nature": {
+      "tree": [
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "CommonTree_1"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "CommonTree_2"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "CommonTree_3"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "CommonTree_4"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "CommonTree_5"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "Pine_1"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "Pine_2"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "Pine_3"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "Pine_4"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "Pine_5"
+        }
+      ],
+      "deadtree": [
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "DeadTree_1"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "DeadTree_2"
+        },
+        {
+          "file": "nature/kit_trees.glb",
+          "node": "DeadTree_3"
+        }
+      ],
+      "bush": [
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Bush_Common_Flowers"
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Fern_1"
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Plant_1_Big"
+        }
+      ],
+      "rock": [
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Rock_Medium_1"
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Rock_Medium_2"
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Rock_Medium_3"
+        }
+      ],
+      "grass": [
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Common_Short",
+          "height": 0.38
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Common_Tall",
+          "height": 0.75
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Wispy_Short",
+          "height": 0.42
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Wispy_Tall",
+          "height": 0.85
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Clover_1",
+          "height": 0.16
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Flower_3_Group",
+          "height": 0.45
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Flower_4_Group",
+          "height": 0.5
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Common_Short",
+          "height": 0.38
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Grass_Wispy_Short",
+          "height": 0.42
+        }
+      ],
+      "pebble": [
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Pebble_Round_1",
+          "height": 0.14
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Pebble_Round_2",
+          "height": 0.12
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Pebble_Square_1",
+          "height": 0.16
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Mushroom_Common",
+          "height": 0.22
+        },
+        {
+          "file": "nature/kit_plants.glb",
+          "node": "Plant_1",
+          "height": 0.5
+        }
+      ]
+    },
+    "props": {
+      "crate": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Crate"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Crate_Large"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Crate_Tarp"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Crate_Tarp_Large"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Crate3"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Crate4"
+        }
+      ],
+      "pillar": [
+        {
+          "file": "props/kit_station.glb",
+          "node": "Column_Large_Straight"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Column_Simple"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Column_Round"
+        }
+      ],
+      "barrel": [
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Barrel_Large"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Barrel1"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Barrel2_Closed"
+        }
+      ],
+      "desk": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Desk_L"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Desk_Medium"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Desk_Small"
+        }
+      ],
+      "shelf": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Shelves_WideTall"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Shelves_ThinTall"
+        },
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Shelves_WideShort"
+        }
+      ],
+      "locker": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Locker"
+        }
+      ],
+      "dish": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_SatelliteDish"
+        }
+      ],
+      "vent": [
+        {
+          "file": "props/kit_props.glb",
+          "node": "Prop_Crate_Large"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Vent_Small"
+        }
+      ],
+      "decor": [
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Light_Wide"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Light_Small"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_AccessPoint"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Vent_Small"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Computer"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_Fan_Small"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Prop_PipeHolder"
+        },
+        {
+          "file": "props/kit_station.glb",
+          "node": "Column_Pipes"
+        }
+      ]
     }
   }
 }
