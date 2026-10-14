@@ -1,0 +1,15 @@
+<!doctype html><html><body><script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+const f = new URLSearchParams(location.search).get('f');
+const g = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/' + f);
+g.scene.updateMatrixWorld(true);
+const out = { bones: {}, box: null, meshes: [] };
+const v = new THREE.Vector3();
+g.scene.traverse((o) => { if (o.isBone && /^(root|pelvis|spine_0\d|neck_01|head|clavicle_l|upperarm_l|lowerarm_l|hand_l|thigh_l|calf_l|foot_l|ball_l|middle_04_leaf_l)$/i.test(o.name)) out.bones[o.name] = o.getWorldPosition(v).toArray().map((x) => +x.toFixed(3)); });
+const box = new THREE.Box3();
+g.scene.traverse((o) => { if (o.isSkinnedMesh) { out.meshes.push([o.name, o.geometry.attributes.position.count, o.material.name]); const p = o.geometry.attributes.position; for (let i = 0; i < p.count; i += 7) box.expandByPoint(v.fromBufferAttribute(p, i).applyMatrix4(o.bindMatrix)); } });
+out.box = [box.min.toArray().map((x) => +x.toFixed(3)), box.max.toArray().map((x) => +x.toFixed(3))];
+window.out = out; window.done = true;
+</script></body></html>

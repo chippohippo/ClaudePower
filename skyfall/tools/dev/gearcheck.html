@@ -1,0 +1,17 @@
+<!doctype html><html><body style="margin:0"><script type="module">
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+await assets.load();
+const q = new URLSearchParams(location.search), legend = q.get('l') || 'jolt';
+const clipsWanted = (q.get('c') || 'rest,Idle_Loop,Sprint_Loop').split(',');
+const W = 1500, H = 750, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); document.body.appendChild(r.domElement); r.setScissorTest(true);
+clipsWanted.forEach((cn, i) => {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color('#a8b2ba');
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x556070, 2.4)); const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(3, 5, 4); sc.add(d);
+  const c = assets.character(legend); sc.add(c.root);
+  if (cn !== 'rest') { const all = assets.chars.get(legend).clips; const clip = all.find((x) => x.name === cn); const m = new THREE.AnimationMixer(c.model); m.clipAction(clip).play(); m.update(clip.duration * 0.3); }
+  const cam = new THREE.PerspectiveCamera(30, (W / clipsWanted.length) / H, 0.1, 50); cam.position.set(+(q.get('cx') ?? 1.6), 1.1, +(q.get('cz') ?? 3.4)); cam.lookAt(0, 0.95, 0);
+  const cw = W / clipsWanted.length; r.setViewport(i * cw, 0, cw, H); r.setScissor(i * cw, 0, cw, H); r.render(sc, cam);
+});
+window.done = true;
+</script></body></html>

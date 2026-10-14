@@ -1,13 +1,8 @@
 {
   "characters": {
     "default": {
-      "file": "characters/Soldier.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "VanguardBodyMat"
-      ],
-      "rotY": 0,
       "animations": [
         "animations/UAL1.glb",
         "animations/UAL2.glb"
@@ -33,16 +28,30 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Buzzed.glb"
+      ],
+      "outfit": {
+        "primary": "#5b6470",
+        "secondary": "#2b3036",
+        "skin": "#e8c4a8",
+        "hairColor": "#3a2a1c",
+        "gear": [
+          "plates",
+          "belt",
+          "kneepads"
+        ]
       }
     },
     "jolt": {
-      "file": "characters/Xbot.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.6,
-      "tint": [
-        "asdf1:Beta_HighLimbsGeoSG2"
-      ],
       "role": "dps",
       "animations": [
         "animations/UAL1.glb",
@@ -69,16 +78,61 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Buzzed.glb",
+        "characters/hair/Hair_Beard.glb"
+      ],
+      "outfit": {
+        "primary": "#d8641c",
+        "secondary": "#2a2d31",
+        "tertiary": "#3b3f45",
+        "stripe": "#ff8a2a",
+        "skin": "#c99878",
+        "hairColor": "#1c140e",
+        "sleeves": "short",
+        "armStripe": true,
+        "legStripe": true,
+        "gloves": "fingerless",
+        "gear": [
+          [
+            "plates",
+            {
+              "pouches": 3,
+              "glow": true
+            }
+          ],
+          "belt",
+          "holster",
+          [
+            "kneepads",
+            {}
+          ],
+          [
+            "goggles",
+            {
+              "up": true
+            }
+          ],
+          [
+            "bracers",
+            {
+              "glow": true
+            }
+          ]
+        ],
+        "armor": "#40454c",
+        "glow": "#ffb04a"
       }
     },
     "phantom": {
-      "file": "characters/Michelle.glb",
-      "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "Ch03_Body"
-      ],
+      "file": "characters/UBC_Female.glb",
+      "height": 1.74,
       "role": "dps",
       "animations": [
         "animations/UAL1.glb",
@@ -105,16 +159,60 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_SimpleParted.glb"
+      ],
+      "outfit": {
+        "primary": "#3a2f55",
+        "secondary": "#17151d",
+        "tertiary": "#26213a",
+        "stripe": "#9b6bff",
+        "skin": "#d7b49a",
+        "hairColor": "#121016",
+        "mask": "lower",
+        "maskColor": "#141218",
+        "legStripe": true,
+        "gear": [
+          [
+            "mask",
+            {
+              "glow": true
+            }
+          ],
+          [
+            "collar",
+            {
+              "mat": "polymer"
+            }
+          ],
+          "belt",
+          [
+            "holster",
+            {
+              "side": "left"
+            }
+          ],
+          [
+            "bracers",
+            {
+              "glow": true,
+              "mat": "polymer"
+            }
+          ]
+        ],
+        "armor": "#2a2733",
+        "glow": "#a77bff"
       }
     },
     "halo": {
-      "file": "characters/Vanguard.glb",
-      "height": 1.8,
-      "tintAmount": 0.2,
-      "tint": [
-        "VanguardBodyMat"
-      ],
+      "file": "characters/UBC_Female.glb",
+      "height": 1.74,
       "role": "support",
       "animations": [
         "animations/UAL1.glb",
@@ -141,16 +239,65 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Buns.glb"
+      ],
+      "outfit": {
+        "primary": "#e6e9ec",
+        "secondary": "#2f3a36",
+        "tertiary": "#c9ced3",
+        "stripe": "#4fe39b",
+        "skin": "#a87454",
+        "hairColor": "#1a120c",
+        "chestStripe": true,
+        "armStripe": true,
+        "gear": [
+          [
+            "backpack",
+            {
+              "mat": "light",
+              "cross": true,
+              "w": 0.28,
+              "h": 0.34,
+              "d": 0.13
+            }
+          ],
+          [
+            "shoulders",
+            {
+              "size": 0.8,
+              "mat": "light"
+            }
+          ],
+          "belt",
+          [
+            "kneepads",
+            {
+              "mat": "light"
+            }
+          ],
+          [
+            "bracers",
+            {
+              "mat": "light",
+              "glow": true
+            }
+          ]
+        ],
+        "armor": "#d9dcdf",
+        "glow": "#4fe39b",
+        "light": "#e8ebee"
       }
     },
     "bastion": {
-      "file": "characters/Vanguard.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.2,
-      "tint": [
-        "VanguardBodyMat"
-      ],
       "role": "tank",
       "animations": [
         "animations/UAL1.glb",
@@ -177,17 +324,64 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Beard.glb"
+      ],
+      "outfit": {
+        "primary": "#2e5f94",
+        "secondary": "#22262c",
+        "tertiary": "#1c3e63",
+        "stripe": "#3fa9ff",
+        "skin": "#d9b090",
+        "hairColor": "#5a3a22",
+        "pants": "cargo",
+        "gear": [
+          [
+            "chestplate",
+            {
+              "glow": true
+            }
+          ],
+          [
+            "shoulders",
+            {
+              "size": 1.35,
+              "layers": true
+            }
+          ],
+          "belt",
+          [
+            "kneepads",
+            {
+              "shin": true
+            }
+          ],
+          "elbowpads",
+          [
+            "helmet",
+            {
+              "visor": true,
+              "ears": true
+            }
+          ],
+          [
+            "bracers",
+            {}
+          ]
+        ],
+        "armor": "#4c5866",
+        "glow": "#55c2ff"
       }
     },
     "echo": {
-      "file": "characters/Soldier.glb",
-      "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "VanguardBodyMat"
-      ],
-      "rotY": 0,
+      "file": "characters/UBC_Female.glb",
+      "height": 1.74,
       "role": "support",
       "animations": [
         "animations/UAL1.glb",
@@ -214,17 +408,66 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Long.glb"
+      ],
+      "outfit": {
+        "primary": "#7a6a3a",
+        "secondary": "#2f2c24",
+        "tertiary": "#5b5130",
+        "stripe": "#ffd23f",
+        "skin": "#e9c9b0",
+        "hairColor": "#c9a34a",
+        "pants": "cargo",
+        "legStripe": true,
+        "gear": [
+          [
+            "plates",
+            {
+              "pouches": 2,
+              "mat": "polymer",
+              "pouch": "webbing"
+            }
+          ],
+          [
+            "backpack",
+            {
+              "antenna": true,
+              "w": 0.24,
+              "h": 0.3,
+              "d": 0.11,
+              "glow": true
+            }
+          ],
+          "belt",
+          [
+            "holster",
+            {}
+          ],
+          [
+            "goggles",
+            {}
+          ],
+          [
+            "scarf",
+            {
+              "color": "#8a7a55"
+            }
+          ]
+        ],
+        "armor": "#4a4535",
+        "glow": "#ffd23f"
       }
     },
     "miasma": {
-      "file": "characters/Soldier.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "VanguardBodyMat"
-      ],
-      "rotY": 0,
       "role": "tank",
       "animations": [
         "animations/UAL1.glb",
@@ -251,16 +494,65 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [],
+      "outfit": {
+        "primary": "#4a5236",
+        "secondary": "#2b2d25",
+        "tertiary": "#3d4430",
+        "stripe": "#9bd84a",
+        "skin": "#d0a888",
+        "hairColor": "#2a2a2a",
+        "mask": "balaclava",
+        "maskColor": "#23251f",
+        "pants": "cargo",
+        "gear": [
+          [
+            "gasmask",
+            {
+              "filter": "accent"
+            }
+          ],
+          [
+            "backpack",
+            {
+              "tanks": true,
+              "w": 0.3,
+              "h": 0.36,
+              "d": 0.1
+            }
+          ],
+          [
+            "canisters",
+            {}
+          ],
+          "belt",
+          [
+            "kneepads",
+            {
+              "mat": "polymer"
+            }
+          ],
+          [
+            "shoulders",
+            {
+              "size": 0.9,
+              "mat": "polymer"
+            }
+          ]
+        ],
+        "armor": "#3a3d33",
+        "glow": "#9bd84a"
       }
     },
     "volt": {
-      "file": "characters/Michelle.glb",
-      "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "Ch03_Body"
-      ],
+      "file": "characters/UBC_Female.glb",
+      "height": 1.74,
       "role": "support",
       "animations": [
         "animations/UAL1.glb",
@@ -287,16 +579,70 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_BuzzedFemale.glb"
+      ],
+      "outfit": {
+        "primary": "#e3eef2",
+        "secondary": "#20313a",
+        "tertiary": "#b8cfd8",
+        "stripe": "#5ad1ff",
+        "skin": "#8a5a3e",
+        "hairColor": "#e8f6ff",
+        "chestStripe": true,
+        "legStripe": true,
+        "sleeves": "short",
+        "gear": [
+          [
+            "plates",
+            {
+              "pouches": 0,
+              "glow": true,
+              "mat": "light"
+            }
+          ],
+          [
+            "backpack",
+            {
+              "w": 0.26,
+              "h": 0.3,
+              "d": 0.12,
+              "glow": true,
+              "mat": "armor"
+            }
+          ],
+          "belt",
+          [
+            "goggles",
+            {}
+          ],
+          [
+            "bracers",
+            {
+              "glow": true
+            }
+          ],
+          [
+            "kneepads",
+            {
+              "mat": "light"
+            }
+          ]
+        ],
+        "armor": "#33424b",
+        "glow": "#5ad1ff",
+        "light": "#e9f2f6"
       }
     },
     "spectre": {
-      "file": "characters/Vanguard.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.2,
-      "tint": [
-        "VanguardBodyMat"
-      ],
       "role": "dps",
       "animations": [
         "animations/UAL1.glb",
@@ -323,16 +669,63 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_SimpleParted.glb"
+      ],
+      "outfit": {
+        "primary": "#9e2236",
+        "secondary": "#1c1e22",
+        "tertiary": "#5e1422",
+        "stripe": "#ff4d6d",
+        "skin": "#e2bb9c",
+        "hairColor": "#1e1612",
+        "armStripe": true,
+        "legStripe": true,
+        "gear": [
+          [
+            "jetpack",
+            {}
+          ],
+          [
+            "helmet",
+            {
+              "visor": true,
+              "crest": true,
+              "full": true
+            }
+          ],
+          [
+            "shoulders",
+            {
+              "size": 1
+            }
+          ],
+          [
+            "plates",
+            {
+              "pouches": 2,
+              "glow": true
+            }
+          ],
+          "belt",
+          [
+            "kneepads",
+            {}
+          ]
+        ],
+        "armor": "#2c2f35",
+        "glow": "#ff6a3a"
       }
     },
     "kodiak": {
-      "file": "characters/Michelle.glb",
+      "file": "characters/UBC_Male.glb",
       "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "Ch03_Body"
-      ],
       "role": "tank",
       "animations": [
         "animations/UAL1.glb",
@@ -359,7 +752,63 @@
         "slideIn": "Slide_Start",
         "knock": "Hit_Knockback",
         "roll": "Roll",
-        "revive": "Interact"
+        "revive": "Fixing_Kneeling",
+        "cast": "OverhandThrow",
+        "idlePistol": "Pistol_Idle_Loop",
+        "dive": "Swim_Fwd_Loop",
+        "getUp": "LayToIdle"
+      },
+      "parts": [
+        "characters/hair/Hair_Beard.glb",
+        "characters/hair/Hair_Buzzed.glb"
+      ],
+      "outfit": {
+        "primary": "#8d6a2c",
+        "secondary": "#2a2622",
+        "tertiary": "#5e4a26",
+        "stripe": "#e8b04a",
+        "skin": "#b07a58",
+        "hairColor": "#141010",
+        "pants": "cargo",
+        "gear": [
+          [
+            "chestplate",
+            {
+              "mat": "accent",
+              "mat2": "armor",
+              "glow": true
+            }
+          ],
+          [
+            "shoulders",
+            {
+              "size": 1.5,
+              "layers": true,
+              "mat": "armor",
+              "mat2": "accent"
+            }
+          ],
+          [
+            "kneepads",
+            {
+              "shin": true
+            }
+          ],
+          "elbowpads",
+          "belt",
+          [
+            "canisters",
+            {
+              "mat": "polymer"
+            }
+          ],
+          [
+            "collar",
+            {}
+          ]
+        ],
+        "armor": "#3e3a34",
+        "glow": "#ffc04a"
       }
     }
   },

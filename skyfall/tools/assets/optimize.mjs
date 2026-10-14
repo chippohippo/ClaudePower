@@ -54,11 +54,9 @@ function findFile(root, pred) {
 //   character  skinned model (no welding)
 //   maxTex     longest side for colour textures (they're re-encoded as WebP)
 //   simplify   0..1 triangle ratio (meshoptimizer simplifier) — rocks, bushes, and dense characters
-export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512, simplify = 0 } = {}) {
+export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512, simplify = 0, pbr = false, dropTextures = false } = {}) {
   const { fn, io, MeshoptEncoder, MeshoptSimplifier, sharp } = gt;
   const doc = await io.read(src);
-  // spec/gloss materials (older Sketchfab exports) render white in three.js: convert to metal/rough
-  if (doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_materials_pbrSpecularGlossiness')) await doc.transform(fn.metalRough());
   // spec/gloss materials (older Sketchfab exports) render white in three.js: convert to metal/rough
   if (doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_materials_pbrSpecularGlossiness')) await doc.transform(fn.metalRough());
   const root = doc.getRoot();
@@ -67,7 +65,10 @@ export async function optimizeModel(src, dest, { hide = [], keepClips = null, ch
     for (const m of root.listMeshes()) m.dispose();
   }
   // the cel / ink look only uses base colour: PBR detail maps are dead weight
+  // (realistic packs keep normal + roughness maps with `pbr`)
   for (const mat of root.listMaterials()) {
+    if (dropTextures) mat.setBaseColorTexture(null);
+    if (pbr) { mat.setOcclusionTexture(null); continue; }
     mat.setNormalTexture(null);
     mat.setOcclusionTexture(null);
     mat.setMetallicRoughnessTexture(null);

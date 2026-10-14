@@ -1,0 +1,34 @@
+<!doctype html><html><body style="margin:0"><script type="module">
+// All legends side by side in their idle pose (front row) and from behind (?back=1). ?s=<state>
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { assets } from '/src/client/assets.js';
+import { createAvatar } from '/src/client/modelavatar.js';
+import { LEGEND_IDS } from '/src/shared/legends.js';
+import { setRimStrength } from '/src/client/palette.js';
+setRimStrength(1, false);
+await assets.load();
+const q = new URLSearchParams(location.search), back = q.get('back') === '1', st = q.get('s') || 'idle';
+const ids = (q.get('l') || LEGEND_IDS.join(',')).split(',');
+const W = +(q.get('w') || 1800), H = +(q.get('h') || 700);
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
+r.toneMapping = THREE.ACESFilmicToneMapping; r.shadowMap.enabled = true; r.outputColorSpace = THREE.SRGBColorSpace;
+const sc = new THREE.Scene(); sc.background = new THREE.Color('#b9c3cc');
+sc.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+sc.add(new THREE.HemisphereLight(0xdfe8f0, 0x40382e, 1.2));
+const d = new THREE.DirectionalLight(0xfff2e0, 2.6); d.position.set(3, 6, 10); d.castShadow = true; d.shadow.mapSize.set(2048, 2048); Object.assign(d.shadow.camera, { left: -12, right: 12, top: 6, bottom: -2 }); sc.add(d);
+const g = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshStandardMaterial({ color: '#7d858a', roughness: 0.9 })); g.rotation.x = -Math.PI / 2; g.receiveShadow = true; sc.add(g);
+const S = { idle: {}, run: { v: 4.6 }, sprint: { v: 7.4 }, crouch: { crouch: 1 } }[st] || {};
+const sp = 1.15, x0 = -((ids.length - 1) * sp) / 2;
+ids.forEach((id, i) => {
+  const av = createAvatar(sc, { legend: id, name: id }, false);
+  const mk = () => ({ x: x0 + i * sp, y: 0, z: 0, yaw: back ? 0 : Math.PI, pitch: 0, fl: 0, crouch: S.crouch || 0, weapon: q.get('wpn') ?? 'talon', vx: 0, vz: back ? -(S.v || 0) : (S.v || 0), revealed: false });
+  for (let t = 0; t < 1.2; t += 1 / 60) av.update(1 / 60, mk(), t);
+  av.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  const lbl = document.createElement('div'); lbl.textContent = id; document.body.appendChild(lbl);
+  Object.assign(lbl.style, { position: 'absolute', top: '6px', left: (W / 2 + ((x0 + i * sp) / (ids.length * sp)) * W * 0.98 - 20) + 'px', font: '14px sans-serif' });
+});
+const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100); cam.position.set(0, 1.25, ids.length * 1.25 + 1.2); cam.lookAt(0, 0.95, 0);
+r.render(sc, cam);
+window.done = true;
+</script></body></html>

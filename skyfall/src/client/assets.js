@@ -19,6 +19,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { STYLE, toonify, toToon } from './comic.js';
 import { CLIP_PATTERNS, matchClip } from '../shared/clips.js';
 import { gunFacing } from '../shared/gunfacing.js';
+import { dressCharacter } from './outfits.js';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL ? import.meta.env.BASE_URL : '/') + 'assets/';
 
@@ -132,18 +133,33 @@ function styled(root) {
 
 // Scale/orient a model: uniform scale to a target size along an axis, optional rotation, then
 // rest it on the ground (characters) or centre it (props/guns).
+// bounds of everything but bone-attached outfit gear (antennas and helmets don't shrink the body)
+function bodyBox(root) {
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  let gear = false;
+  root.traverse((o) => { if (o.userData.gear) gear = true; });
+  if (!gear) return box.setFromObject(root);
+  root.traverse((o) => {
+    if (!o.isMesh || o.userData.gear) return;
+    if (o.isSkinnedMesh) o.computeBoundingBox(); else if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    tmp.copy(o.isSkinnedMesh ? o.boundingBox : o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    box.union(tmp);
+  });
+  return box;
+}
+
 function normalise(root, { height, length, rot, rotY, offset, ground = true, scale } = {}) {
   if (rot) root.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
   else if (rotY) root.rotation.y = rotY;
   root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
+  const box = bodyBox(root);
   const size = box.getSize(new THREE.Vector3());
   let k = scale || 1;
   if (!scale && height && size.y > 1e-4) k = height / size.y;
   else if (!scale && length && Math.max(size.x, size.z) > 1e-4) k = length / Math.max(size.x, size.z);
   root.scale.multiplyScalar(k);
   root.updateMatrixWorld(true);
-  box.setFromObject(root);
+  box.copy(bodyBox(root));
   const c = box.getCenter(new THREE.Vector3());
   root.position.x -= c.x; root.position.z -= c.z;
   root.position.y -= ground ? box.min.y : c.y;
@@ -340,7 +356,13 @@ class AssetLibrary {
     // characters (+ shared animation libraries retargeted by bone name)
     for (const [key, def] of Object.entries(M.characters || {})) {
       jobs.push(tryLoad(`character ${key}`, async () => {
-        const m = await loadModel(def.file);
+        const m0 = await loadModel(def.file);
+        // dressed legends (UBC bodies): each gets its own copy of the shared file, then its outfit
+        const m = def.outfit ? { scene: SkeletonUtils.clone(m0.scene), animations: m0.animations } : m0;
+        if (def.outfit) {
+          const parts = await Promise.all((def.parts || []).map((f) => loadModel(f).then((p) => p.scene)));
+          if (!dressCharacter(m.scene, def.outfit, parts)) this.report.push(`warn character ${key}: outfit skipped (rig not recognised)`);
+        }
         let clips = m.animations.map((c) => pruneClip(c, m.scene));
         for (const f of def.animations || []) {
           const a = await loadModel(f), key = f + '>' + def.file;

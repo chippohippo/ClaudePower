@@ -41,6 +41,7 @@ function findBone(model, name, re) {
 
 // Legend colour on the outfit materials (cached per legend so clones share materials).
 function tintModel(model, legend, def) {
+  if (def.outfit) return; // dressed in legend colours already (outfits.js)
   const col = new THREE.Color(LEGENDS[legend].color);
   const names = def.tint ? new RegExp(def.tint.join('|'), 'i') : TINT_NAMES;
   const mats = [];
@@ -66,11 +67,11 @@ function tintModel(model, legend, def) {
 
 // Transition clips (played once, then back to the state machine). Their root motion is removed: the
 // simulation already moves the body, so only the pose remains.
-const ONCE = { mantle: 1, jumpStart: 1, land: 1, roll: 1, slideIn: 1 };
+const ONCE = { mantle: 1, jumpStart: 1, land: 1, roll: 1, slideIn: 1, getUp: 1 };
 const LOCO = { walk: 1, run: 1, sprint: 1, crouch: 1 };
 // clip ground speed (m/s) at timeScale 1, measured with tools/dev/clipspeed.html on the UAL clips
 const NOMINAL = { walk: 1.4, run: 4.0, sprint: 5.9, crouch: 1.1, strafeL: 4.5, strafeR: 4.5, walkBack: 2.6 };
-const FALLBACK = { sprint: ['run', 'walk'], run: ['walk'], crouchIdle: ['crouch', 'idle'], crouch: ['walk'], zip: ['jump'], mantle: ['jump'], revive: ['crouchIdle', 'idle'] };
+const FALLBACK = { sprint: ['run', 'walk'], run: ['walk'], crouchIdle: ['crouch', 'idle'], crouch: ['walk'], zip: ['jump'], mantle: ['jump'], revive: ['crouchIdle', 'idle'], idlePistol: ['idle'], dive: ['skydive'] };
 // blend times: snappy into the air and slides, smooth between locomotion speeds, slow settles
 function fadeFor(from, to) {
   if (to === 'jump' || to === 'slide' || to === 'shoot') return 0.1;
@@ -82,6 +83,13 @@ function fadeFor(from, to) {
 }
 
 const HIPS = /hips|pelvis/i;
+const UPPER = /spine|chest|neck|head|clavicle|shoulder|upperarm|lowerarm|forearm|arm|hand|thumb|index|middle|ring|pinky/i;
+const upperCache = new Map();
+function upperBody(clip) {
+  let c = upperCache.get(clip);
+  if (!c) upperCache.set(clip, (c = new THREE.AnimationClip(clip.name + '_upper', clip.duration, clip.tracks.filter((t) => UPPER.test(t.name) && !/position$/.test(t.name)))));
+  return c;
+}
 function inPlace(clip) {
   const tracks = clip.tracks.map((t) => {
     if (!/\.position$/.test(t.name) || !HIPS.test(t.name)) return t;
@@ -129,7 +137,7 @@ export class ModelAvatar {
     this.mixer = new THREE.AnimationMixer(model);
     this.actions = {};
     for (const [st, c] of Object.entries(clips)) {
-      if (st === 'hit' || st === 'knock') continue; // additive reactions, below
+      if (st === 'hit' || st === 'knock' || st === 'cast') continue; // layered on top, below
       const clip = ONCE[st] ? inPlace(c) : c;
       const a = this.mixer.clipAction(clip);
       if (st === 'death' || ONCE[st] || (st === 'downed' && !/crawl/i.test(c.name))) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
@@ -142,6 +150,12 @@ export class ModelAvatar {
       const a = this.mixer.clipAction(upperAdditive(clips[st]));
       a.setLoop(THREE.LoopOnce, 1); a.blendMode = THREE.AdditiveAnimationBlendMode;
       this.react[st] = a;
+    }
+    // ability / grenade throw: upper body only, over whatever the legs are doing
+    if (clips.cast) {
+      const a = this.mixer.clipAction(upperBody(clips.cast));
+      a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false;
+      this.castAction = a;
     }
     this.state = null;
     this.once = null;            // transition clip playing over the state machine: { st, t, dur }
@@ -237,7 +251,11 @@ export class ModelAvatar {
     this.meshes.forEach((m, i) => { m.material = on ? phaseMat : this.baseMats[i]; m.castShadow = !on; });
   }
 
-  cast() { this.castT = 0; }
+  cast() {
+    this.castT = 0;
+    const a = this.castAction;
+    if (a) { a.reset(); a.setEffectiveTimeScale(1.5); a.setEffectiveWeight(3); a.play(); }
+  }
 
   _setWeapon(id) {
     this.weaponId = id;
@@ -281,6 +299,7 @@ export class ModelAvatar {
     this.fireKick = Math.max(0, (this.fireKick || 0) - dt * 9);
     if (this.fireKick > 0.3) this.firedT = 0.35; else this.firedT = Math.max(0, (this.firedT || 0) - dt);
 
+    const dive = skydive ? Math.max(0, Math.min(1, (-(s.pitch || 0) - 0.2) / 1.0)) : 0;
     const L = this.layer, A = this.actions;
     const crouched = (s.crouch || 0) > 0.5, reviving = fl & 1024;
     // edge-triggered transitions
@@ -295,6 +314,7 @@ export class ModelAvatar {
       }
     }
     if (downed && !this.wasDowned) { this.once = null; this._react('knock', 1); }
+    else if (!downed && this.wasDowned && !(fl & 16)) this._playOnce('getUp', 1.6, 1.1);
     if (this.knockT < this.lastKnock && !downed) this._react('hit', 0.8);
     this.lastKnock = this.knockT;
     if (!air) this.airT = 0;
@@ -308,11 +328,11 @@ export class ModelAvatar {
     let st = 'idle';
     if (this.once) st = this.once.st;
     else if (downed) st = 'downed';
-    else if (skydive) st = 'skydive';
+    else if (skydive) st = dive > 0.45 ? 'dive' : 'skydive';
     else if (zip) st = 'zip';
     else if (slide) st = 'slide';
     else if (air && !mantle) st = 'jump';
-    else if (reviving) st = 'crouchIdle';
+    else if (reviving) st = 'revive';
     else if (crouched) st = speed > 0.6 ? 'crouch' : 'crouchIdle';
     else if (speed > 0.6 && Math.abs(side) > Math.abs(fwd) * 1.2 && A.strafeL && A.strafeR) st = side > 0 ? 'strafeR' : 'strafeL';
     else if (speed > 0.6 && fwd < -0.5 && A.walkBack) st = 'walkBack';
@@ -322,6 +342,7 @@ export class ModelAvatar {
     else if (this.firedT > 0 && A.shoot) st = 'shoot';
     else if (fl & 128 && A.reload) st = 'reload';
     else if (healing && A.heal) st = 'heal';
+    else if (s.weapon && WEAPONS[s.weapon] && WEAPONS[s.weapon].cls === 'Pistol') st = 'idlePistol';
     if (!this.once) this._setState(st, fadeFor(this.state, st));
     // lock locomotion playback to ground speed (backwards only when there's no walk-back clip)
     const a = A[this.state];
@@ -344,8 +365,7 @@ export class ModelAvatar {
 
     // freefall: lean the whole body forward like an Apex skydive (most packs only have an upright
     // jump/fall clip); steeper when diving
-    const dive = skydive ? Math.max(0, Math.min(1, (-(s.pitch || 0) - 0.2) / 1.0)) : 0;
-    const lean = skydive ? 1.05 + dive * 0.45 : 0;
+    const lean = !skydive ? 0 : this.state === 'dive' ? 0.1 + dive * 0.5 : 1.05 + dive * 0.45; // the dive clip is already horizontal
     this.body.rotation.x += (-lean - this.body.rotation.x) * Math.min(1, dt * 6);
     this.body.position.y += ((skydive ? 1.0 : 0) - this.body.position.y) * Math.min(1, dt * 6);
 
@@ -355,9 +375,9 @@ export class ModelAvatar {
       if (ticked) {
         const w = s.weapon && WEAPONS[s.weapon];
         L.apply(tickDt || dt, {
-          moving: speed > 0.6, fwd, side, pitch: s.pitch || 0, crouch: reviving ? 1 : s.crouch || 0, size: this.size, time,
+          moving: speed > 0.6, fwd, side, pitch: s.pitch || 0, crouch: reviving && !A.revive ? 1 : s.crouch || 0, size: this.size, time,
           clipLean: /crouch/i.test(this.state || '') ? 0.35 : 1,
-          freeArms: (this.once && this.once.st === 'mantle') || (!!skydive && !!A.skydive) || (!!healing && !!A.heal),
+          freeArms: (this.once && (this.once.st === 'mantle' || this.once.st === 'getUp')) || (!!skydive && !!A.skydive) || (!!healing && !!A.heal) || (!!reviving && !!A.revive) || (this.castAction && this.castT < 0.55),
           downed: !!downed && !(A.downed && /crawl/i.test(A.downed.getClip().name)),
           slide: !!slide && !A.slide, skydive: !!skydive && !A.skydive, dive, zip: !!zip,
           tuck: air && !mantle && !skydive && !zip && !A.jump ? BODY.tuck : 0,

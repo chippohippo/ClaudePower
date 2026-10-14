@@ -12,7 +12,8 @@ const SC = {
   crouchIdle: { crouch: 1 }, crouch: { crouch: 1, v: 2.4 }, slide: { fl: 2, v: 9, crouch: 1 },
   jump: { fl: 4, v: 5, pre: 0.6 }, land: { fl: 4, v: 0, pre: 0.6, then: { fl: 0 }, after: 0.2 }, mantle: { fl: 4 | 512, v: 2, t: 0.18 },
   downed: { fl: 1, t: 1.2 }, hit: { v: 4.6, hit: 0.1 }, reload: { fl: 128, t: 0.6 }, aimUp: { pitch: 0.8 }, aimDown: { pitch: -0.7 },
-  skydive: { fl: 32 | 4, v: 25, pitch: -0.5 }, heal: { fl: 64, t: 0.7 }, revive: { fl: 1024 },
+  skydive: { fl: 32 | 4, v: 25, pitch: -0.5 }, heal: { fl: 64, t: 0.7 }, revive: { fl: 1024 }, dive: { fl: 32 | 4, v: 25, pitch: -1.2 },
+  getUp: { fl: 1, pre: 0.5, then: { fl: 0 }, after: 0.4 }, cast: { v: 4.6, cast: 0.3 }, pistol: { w: 'p20' },
 };
 const W = 1600, H = 900, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
 r.setScissorTest(true); r.shadowMap.enabled = true;
@@ -23,14 +24,14 @@ for (const [i, st] of states.entries()) {
   const g = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshStandardMaterial({ color: '#6c7a70' })); g.rotation.x = -Math.PI / 2; sc.add(g);
   const av = createAvatar(sc, { legend, name: legend }, false);
   const S = SC[st] || {};
-  const mk = (o) => ({ x: 0, y: 0, z: 0, yaw: 0, pitch: o.pitch || 0, fl: o.fl || 0, crouch: o.crouch || 0, weapon, vx: 0, vz: -(o.v || 0), revealed: false });
+  const mk = (o) => ({ x: 0, y: 0, z: 0, yaw: 0, pitch: o.pitch || 0, fl: o.fl || 0, crouch: o.crouch || 0, weapon: S.w || weapon, vx: 0, vz: -(o.v || 0), revealed: false });
   let t = 0; const dt = 1 / 60;
-  if (S.pre) { for (let k = 0; k < 6; k++) { av.update(dt, mk({ v: S.v }), t += dt); } }
+  if (S.pre) { for (let k = 0; k < (S.fl & 1 ? S.pre / dt : 6); k++) { av.update(dt, S.fl & 1 ? mk(S) : mk({ v: S.v }), t += dt); } }
   const total = S.t ?? (S.pre || 1.0);
-  for (; t < total; t += dt) { if (S.hit && Math.abs(t - (total - S.hit)) < dt / 2) av.knockT = 0; av.update(dt, mk(S), t); }
+  for (; t < total; t += dt) { if (S.hit && Math.abs(t - (total - S.hit)) < dt / 2) av.knockT = 0; if (S.cast && Math.abs(t - (total - S.cast)) < dt / 2) av.cast(); av.update(dt, mk(S), t); }
   if (S.then) for (let k = 0; k < S.after / dt; k++) av.update(dt, mk(S.then), t += dt);
   av.root.position.set(0, 0, 0); av.root.updateMatrixWorld(true);
-  const cam = new THREE.PerspectiveCamera(32, cw / ch, 0.1, 50); cam.position.set(3.0, 1.4, -2.2); cam.lookAt(0, 0.85, 0);
+  const cam = new THREE.PerspectiveCamera(32, cw / ch, 0.1, 50); { const kf = Math.max(1, 1.25 / (cw / ch)); cam.position.set(3.0 * kf, 1.1, -2.2 * kf); } cam.updateProjectionMatrix(); cam.lookAt(0, 0.85, 0);
   const x = (i % cols) * cw, y = H - (Math.floor(i / cols) + 1) * ch; r.setViewport(x, y, cw, ch); r.setScissor(x, y, cw, ch); r.render(sc, cam);
   const lbl = document.createElement('div'); lbl.textContent = st + ' → ' + (av.state || '?') + (av.gun.visible ? ' [gun]' : '') + (av.layer ? '' : ' (no IK)'); Object.assign(lbl.style, { position: 'absolute', left: x + 6 + 'px', top: (H - y - ch) + 4 + 'px', font: '14px sans-serif' }); document.body.appendChild(lbl);
 }

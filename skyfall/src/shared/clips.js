@@ -32,7 +32,11 @@ export const CLIP_PATTERNS = {
   slideIn: [/slide_?start/i],
   knock: [/hit_?knock/i, /knock.?back/i],
   roll: [/^roll/i],
-  revive: [/interact/i, /pickup/i],
+  revive: [/fixing.?kneel/i, /kneel/i, /interact/i, /pickup/i],
+  cast: [/overhand.?throw/i, /throw/i, /spell.*shoot/i],
+  idlePistol: [/pistol_?idle/i],
+  dive: [/swim_?fwd/i, /dive/i],
+  getUp: [/lay.?to.?idle/i, /get.?up/i, /stand.?up/i],
 };
 
 // Bare clip name: strips armature prefixes like "CharacterArmature|Run" or "mixamo.com|Run".
