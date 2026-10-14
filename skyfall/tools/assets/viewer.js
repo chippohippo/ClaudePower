@@ -76,9 +76,9 @@ function show(kind, key) {
     lines.push(`file: ${g.def.file}`, `size: ${box.getSize(new THREE.Vector3()).toArray().map((v) => v.toFixed(2)).join(' × ')} m`, 'The barrel must point along the red arrow (-Z); the yellow dot is the muzzle.', 'If it points backwards, add Math.PI to rotY in the manifest.');
     info.textContent = lines.join('\n');
     controls.target.set(0, 1.2, 0);
-  } else if (kind === 'nature') {
+  } else if (kind === 'nature' || kind === 'props') {
     const [k, i] = key.split(':');
-    const v = assets.natureKinds(k)[+i];
+    const v = (kind === 'nature' ? assets.natureKinds(k) : assets.propKinds(k))[+i];
     current = new THREE.Group();
     for (const p of v.parts) current.add(new THREE.Mesh(p.geometry, p.material));
     current.scale.setScalar(k === 'tree' ? 3 : 1.5);
@@ -113,6 +113,7 @@ function build() {
   section('CHARACTERS', [...assets.chars.keys()].map((k) => [k, () => show('character', k)]));
   section('WEAPONS', [...assets.guns.keys()].map((k) => [k, () => show('weapon', k)]));
   section('NATURE', Object.entries(assets.nature).flatMap(([k, vs]) => vs.map((v, i) => [`${k} ${i + 1}: ${v.def.file.split('/').pop()}`, () => show('nature', `${k}:${i}`)])));
+  section('PROPS (draped over map colliders)', Object.entries(assets.props).flatMap(([k, vs]) => vs.map((v, i) => [`${k} ${i + 1}: ${v.def.file.split('/').pop()}`, () => show('props', `${k}:${i}`)])));
   if (assets.arms) section('ARMS', [['first-person arms', () => show('arms', '')]]);
   const showTex = (k) => {
     clear();

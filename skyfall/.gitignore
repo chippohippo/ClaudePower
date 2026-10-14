@@ -1,6 +1,7 @@
 node_modules
 dist
 # raw downloaded packs (zips + extracted folders); the game only ships what import.mjs copies into public/assets
-assets-src/
+assets-src/*
+!assets-src/README.md
 .fixture-packs/
 public/assets/_fixtures/

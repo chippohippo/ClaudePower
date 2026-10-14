@@ -1,0 +1,241 @@
+{
+  "characters": {
+    "default": {
+      "file": "characters/Barbarian.glb",
+      "height": 1.8,
+      "hide": [
+        "1H_Axe_Offhand",
+        "Barbarian_Round_Shield",
+        "1H_Axe",
+        "2H_Axe",
+        "Mug"
+      ],
+      "tintAmount": 0.22,
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "jolt": {
+      "file": "characters/Rogue.glb",
+      "height": 1.8,
+      "hide": [
+        "Knife_Offhand",
+        "1H_Crossbow",
+        "2H_Crossbow",
+        "Knife",
+        "Throwable"
+      ],
+      "tintAmount": 0.22,
+      "role": "dps",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "phantom": {
+      "file": "characters/Rogue_Hooded.glb",
+      "height": 1.8,
+      "hide": [
+        "Knife_Offhand",
+        "1H_Crossbow",
+        "2H_Crossbow",
+        "Knife",
+        "Throwable"
+      ],
+      "tintAmount": 0.22,
+      "role": "dps",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "halo": {
+      "file": "characters/Mage.glb",
+      "height": 1.8,
+      "hide": [
+        "Spellbook",
+        "Spellbook_open",
+        "1H_Wand",
+        "2H_Staff"
+      ],
+      "tintAmount": 0.22,
+      "role": "support",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "bastion": {
+      "file": "characters/Barbarian.glb",
+      "height": 1.8,
+      "hide": [
+        "1H_Axe_Offhand",
+        "Barbarian_Round_Shield",
+        "1H_Axe",
+        "2H_Axe",
+        "Mug"
+      ],
+      "tintAmount": 0.22,
+      "role": "tank",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "echo": {
+      "file": "characters/Skeleton_Mage.glb",
+      "height": 1.8,
+      "tintAmount": 0.22,
+      "role": "support",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "miasma": {
+      "file": "characters/Skeleton_Warrior.glb",
+      "height": 1.8,
+      "tintAmount": 0.22,
+      "role": "tank",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "volt": {
+      "file": "characters/Skeleton_Minion.glb",
+      "height": 1.8,
+      "tintAmount": 0.22,
+      "role": "support",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "spectre": {
+      "file": "characters/Skeleton_Rogue.glb",
+      "height": 1.8,
+      "tintAmount": 0.22,
+      "role": "dps",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    },
+    "kodiak": {
+      "file": "characters/Knight.glb",
+      "height": 1.8,
+      "hide": [
+        "1H_Sword_Offhand",
+        "Badge_Shield",
+        "Rectangle_Shield",
+        "Round_Shield",
+        "Spike_Shield",
+        "1H_Sword",
+        "2H_Sword"
+      ],
+      "tintAmount": 0.22,
+      "role": "tank",
+      "animations": [
+        "animations/rig0_kaykit_adventurers_anims.glb"
+      ]
+    }
+  },
+  "weapons": {
+    "volt": {
+      "file": "weapons/blaster-repeater.glb",
+      "rotY": 3.1416,
+      "archetype": "SMG"
+    },
+    "hornet": {
+      "file": "weapons/blaster-repeater.glb",
+      "rotY": 3.1416,
+      "archetype": "SMG"
+    },
+    "viper": {
+      "file": "weapons/blaster.glb",
+      "rotY": 3.1416,
+      "archetype": "Pistol"
+    },
+    "p20": {
+      "file": "weapons/blaster.glb",
+      "rotY": 3.1416,
+      "archetype": "Pistol"
+    }
+  },
+  "props": {
+    "crate": [
+      "props/cargo_A.glb",
+      "props/cargo_A_packed.glb",
+      "props/cargo_B.glb",
+      "props/cargo_B_packed.glb"
+    ],
+    "container": [
+      "props/cargo_A_stacked.glb",
+      "props/cargo_B_stacked.glb"
+    ],
+    "barrel": [
+      "props/Prop_Barrel_Large.glb"
+    ],
+    "pillar": [
+      "props/Column_Astra.glb",
+      "props/Column_Hollow.glb",
+      "props/Column_Large_Straight.glb",
+      "props/Column_MetalSupport.glb"
+    ]
+  },
+  "nature": {
+    "tree": [
+      "nature/CommonTree_1.glb",
+      "nature/Pine_1.glb",
+      "nature/CommonTree_2.glb",
+      "nature/Pine_2.glb"
+    ],
+    "rock": [
+      "nature/Rock_Medium_1.glb",
+      "nature/Rock_Medium_2.glb",
+      "nature/Rock_Medium_3.glb"
+    ],
+    "bush": [
+      "nature/Bush_Common.glb",
+      "nature/Fern_1.glb"
+    ]
+  },
+  "textures": {
+    "ground": {
+      "map": "textures/ground_Grass004_1K-JPG_Color.jpg",
+      "scale": 4,
+      "strength": 0.55
+    },
+    "wall": {
+      "map": "textures/wall_Concrete015_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    },
+    "floor": {
+      "map": "textures/floor_PavingStones012_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    },
+    "metal": {
+      "map": "textures/metal_MetalPlates006_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    },
+    "wood": {
+      "map": "textures/wood_Planks012_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    },
+    "rock": {
+      "map": "textures/rock_Rock023_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    },
+    "roof": {
+      "map": "textures/roof_RoofingTiles006_1K-JPG_Color.jpg",
+      "scale": 2,
+      "strength": 0.5
+    }
+  },
+  "sounds": {
+    "draw": "audio/draw_weapon_change.ogg"
+  },
+  "hdri": {
+    "file": "hdri/quarry_01_1k.hdr",
+    "intensity": 0.6,
+    "background": false
+  }
+}

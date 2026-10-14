@@ -51,6 +51,7 @@ export function toToon(m) {
     color: m.color, map: m.map, gradientMap: getGradient(), vertexColors: m.vertexColors,
     emissive: m.emissive, emissiveIntensity: m.emissiveIntensity, emissiveMap: m.emissiveMap,
     transparent: m.transparent, opacity: m.opacity, side: m.side, depthWrite: m.depthWrite,
+    alphaTest: m.alphaTest, alphaMap: m.alphaMap, alphaToCoverage: m.alphaToCoverage, // leaf cards (alpha-masked foliage)
     polygonOffset: m.polygonOffset, polygonOffsetFactor: m.polygonOffsetFactor,
   });
   if (m.onBeforeCompile && m.onBeforeCompile.toString() !== THREE.Material.prototype.onBeforeCompile.toString()) {

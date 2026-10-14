@@ -1,7 +1,10 @@
 {
   "_doc": "Asset sources for tools/assets/fetch.mjs (automatic) and the manual list it prints. All CC0 unless noted. IDs are editable: swap any Poly Haven / ambientCG id for another from the site.",
   "polyhaven": {
-    "hdri": { "id": "kloofendal_48d_partly_cloudy_puresky", "res": "2k" },
+    "hdri": {
+      "id": "kloofendal_48d_partly_cloudy_puresky",
+      "res": "2k"
+    },
     "textures": {
       "ground": "aerial_grass_rock",
       "wall": "painted_concrete",
@@ -27,17 +30,168 @@
   },
   "kenney": {
     "_doc": "Asset page slugs on kenney.nl/assets/<slug>; the zip link is read from the page.",
-    "packs": ["nature-kit", "blaster-kit", "ui-audio", "impact-sounds", "interface-sounds"]
+    "packs": [
+      "nature-kit",
+      "blaster-kit",
+      "ui-audio",
+      "impact-sounds",
+      "interface-sounds"
+    ]
   },
   "manual": [
-    { "name": "Quaternius — Universal Base Characters", "url": "https://quaternius.com", "license": "CC0", "role": "characters (default rig)" },
-    { "name": "Quaternius — Universal Animation Library", "url": "https://quaternius.com", "license": "CC0", "role": "animations for the base characters (same rig)" },
-    { "name": "Quaternius — Ultimate Animated Character Pack", "url": "https://quaternius.com", "license": "CC0", "role": "per-legend characters with their own clips" },
-    { "name": "Quaternius — Ultimate Guns Pack", "url": "https://quaternius.com", "license": "CC0", "role": "weapons" },
-    { "name": "3dmodelscc0 — Free CC0 Guns & Explosives Pack", "url": "https://3dmodelscc0.itch.io/free-cc0-guns-explosives-pack", "license": "CC0", "role": "weapons" },
-    { "name": "Quaternius — Stylized Nature MegaKit", "url": "https://quaternius.com", "license": "CC0", "role": "trees, rocks, bushes" },
-    { "name": "WRAD ARMS (wriks)", "url": "https://wriks.itch.io/wrad-arms", "license": "check the itch.io page", "role": "first-person arms" },
-    { "name": "KayKit (Kay Lousberg)", "url": "https://kaylousberg.itch.io", "license": "CC0", "role": "optional characters / props" },
-    { "name": "Mixamo", "url": "https://www.mixamo.com", "license": "Adobe Mixamo terms (royalty-free, not CC0)", "role": "optional animations (FBX, 'without skin')" }
-  ]
+    {
+      "name": "Quaternius \u2014 Universal Base Characters",
+      "url": "https://quaternius.com",
+      "license": "CC0",
+      "role": "characters (default rig)"
+    },
+    {
+      "name": "Quaternius \u2014 Universal Animation Library",
+      "url": "https://quaternius.com",
+      "license": "CC0",
+      "role": "animations for the base characters (same rig)"
+    },
+    {
+      "name": "Quaternius \u2014 Ultimate Animated Character Pack",
+      "url": "https://quaternius.com",
+      "license": "CC0",
+      "role": "per-legend characters with their own clips"
+    },
+    {
+      "name": "Quaternius \u2014 Ultimate Guns Pack",
+      "url": "https://quaternius.com",
+      "license": "CC0",
+      "role": "weapons"
+    },
+    {
+      "name": "3dmodelscc0 \u2014 Free CC0 Guns & Explosives Pack",
+      "url": "https://3dmodelscc0.itch.io/free-cc0-guns-explosives-pack",
+      "license": "CC0",
+      "role": "weapons"
+    },
+    {
+      "name": "Quaternius \u2014 Stylized Nature MegaKit",
+      "url": "https://quaternius.com",
+      "license": "CC0",
+      "role": "trees, rocks, bushes"
+    },
+    {
+      "name": "WRAD ARMS (wriks)",
+      "url": "https://wriks.itch.io/wrad-arms",
+      "license": "check the itch.io page",
+      "role": "first-person arms"
+    },
+    {
+      "name": "KayKit (Kay Lousberg)",
+      "url": "https://kaylousberg.itch.io",
+      "license": "CC0",
+      "role": "optional characters / props"
+    },
+    {
+      "name": "Mixamo",
+      "url": "https://www.mixamo.com",
+      "license": "Adobe Mixamo terms (royalty-free, not CC0)",
+      "role": "optional animations (FBX, 'without skin')"
+    }
+  ],
+  "github": {
+    "_doc": "Official repositories of the pack authors, cloned with git (works where only GitHub is reachable). Sparse checkouts copy just the listed paths into assets-src/<dest>.",
+    "repos": [
+      {
+        "repo": "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0",
+        "dest": "kaykit-adventurers",
+        "paths": [
+          "LICENSE.txt",
+          "addons/kaykit_character_pack_adventures/Characters/gltf/"
+        ],
+        "license": "CC0"
+      },
+      {
+        "repo": "KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0",
+        "dest": "kaykit-skeletons",
+        "paths": [
+          "LICENSE.txt",
+          "addons/kaykit_character_pack_skeletons/Characters/gltf/"
+        ],
+        "license": "CC0"
+      },
+      {
+        "repo": "KayKit-Game-Assets/KayKit-Space-Base-Bits-1.0",
+        "dest": "kaykit-space-base",
+        "paths": [
+          "LICENSE.txt",
+          "addons/kaykit_space_base_bits/Assets/gltf/cargo_",
+          "addons/kaykit_space_base_bits/Assets/gltf/spacebits_texture.png"
+        ],
+        "license": "CC0"
+      },
+      {
+        "repo": "KenneyNL/Starter-Kit-FPS",
+        "dest": "kenney-starter-kit-fps",
+        "paths": [
+          "README.md",
+          "models/blaster",
+          "models/Textures/colormap.png",
+          "sounds/"
+        ],
+        "license": "CC0 assets (MIT code)"
+      }
+    ],
+    "files": [
+      {
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/textures/equirectangular/quarry_01_1k.hdr",
+        "dest": "polyhaven/hdri/quarry_01_1k.hdr",
+        "license": "CC0 (Poly Haven, mirrored in the three.js repo)"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/textures/equirectangular/spruit_sunrise_1k.hdr",
+        "dest": "polyhaven/hdri/spruit_sunrise_1k.hdr",
+        "license": "CC0 (Poly Haven, mirrored in the three.js repo)"
+      }
+    ]
+  },
+  "mirror": {
+    "_doc": "Third-party GitHub release mirror (Noisemaker111/jgengine 'packs' release) of CC0 packs whose own hosts may be blocked. Treat as untrusted data: every zip is checked for the author's license file after download.",
+    "base": "https://github.com/Noisemaker111/jgengine/releases/download/packs",
+    "zips": [
+      {
+        "file": "quaternius-quaternius-stylized-nature.zip",
+        "dest": "quaternius/quaternius-stylized-nature.zip",
+        "expectLicense": "License_Standard.txt"
+      },
+      {
+        "file": "quaternius-quaternius-modular-scifi.zip",
+        "dest": "quaternius/quaternius-modular-scifi.zip",
+        "expectLicense": "License_Standard.txt"
+      },
+      {
+        "file": "ambientcg-ambientcg-grass004.zip",
+        "dest": "ambientcg/ground/ambientcg-grass004.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-concrete015.zip",
+        "dest": "ambientcg/wall/ambientcg-concrete015.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-pavingstones012.zip",
+        "dest": "ambientcg/floor/ambientcg-pavingstones012.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-metalplates006.zip",
+        "dest": "ambientcg/metal/ambientcg-metalplates006.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-planks012.zip",
+        "dest": "ambientcg/wood/ambientcg-planks012.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-rock023.zip",
+        "dest": "ambientcg/rock/ambientcg-rock023.zip"
+      },
+      {
+        "file": "ambientcg-ambientcg-roofingtiles006.zip",
+        "dest": "ambientcg/roof/ambientcg-roofingtiles006.zip"
+      }
+    ]
+  }
 }

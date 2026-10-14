@@ -14,39 +14,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { STYLE, toonify, toToon } from './comic.js';
+import { CLIP_PATTERNS, matchClip } from '../shared/clips.js';
+import { gunFacing } from '../shared/gunfacing.js';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL ? import.meta.env.BASE_URL : '/') + 'assets/';
 
-// Animation states the game asks for → clip-name patterns tried in order (first match wins).
-// Covers Quaternius (Universal Animation Library / Ultimate Animated Character Pack), Mixamo and
-// Kenney naming. A manifest "clips" map overrides any of these per character.
-export const CLIP_PATTERNS = {
-  idle: [/^idle_?gun/i, /gun.*idle/i, /^idle$/i, /idle_?loop/i, /^idle/i, /breath/i],
-  walk: [/^walk_?gun/i, /^walk(_?loop)?$/i, /^walk/i, /walking/i],
-  run: [/^run_?gun/i, /gun.*run/i, /^run(_?loop)?$/i, /^sprint/i, /^run/i, /running/i, /jog/i],
-  crouch: [/crouch.*(walk|fwd|forward|move)/i, /^crouch/i, /sneak/i],
-  slide: [/slide/i, /^roll/i, /crouch/i],
-  jump: [/jump_?idle/i, /^jump$/i, /jump.*(loop|air|fall)/i, /fall/i, /^jump/i, /air/i],
-  skydive: [/sky.?dive/i, /fall/i, /^jump_?idle/i, /swim/i, /^jump/i],
-  downed: [/crawl/i, /^death/i, /dead/i, /die/i],
-  death: [/^death/i, /dead/i, /die/i, /dying/i],
-  shoot: [/shoot/i, /fire/i, /gun.*shoot/i, /punch/i],
-  reload: [/reload/i],
-  heal: [/interact/i, /use/i, /pickup/i],
-  zip: [/hang/i, /climb/i, /^jump_?idle/i],
-};
-
-function matchClip(names, state, overrides) {
-  if (overrides && overrides[state] && names.includes(overrides[state])) return overrides[state];
-  // strip armature prefixes like "CharacterArmature|Run" / "mixamo.com|Run"
-  const short = names.map((n) => n.split('|').pop());
-  for (const re of CLIP_PATTERNS[state] || []) {
-    const i = short.findIndex((n) => re.test(n));
-    if (i >= 0) return names[i];
-  }
-  return null;
-}
+export { CLIP_PATTERNS } from '../shared/clips.js';
 
 // Convert any imported material to MeshStandardMaterial so the PBR / toon pipeline can use it.
 function toStandard(m) {
@@ -117,6 +92,7 @@ class AssetLibrary {
     this.guns = new Map();     // weaponId -> { scene, def }
     this.arms = null;
     this.nature = {};          // kind -> [{ parts: [{ geometry, material }], def }]
+    this.props = {};           // map collider kind (crate, container …) -> same shape as nature
     this.textures = {};        // world kind -> { map, scale }
     this.hdri = null;
     this.sounds = {};          // sound name -> ArrayBuffer (decoded by audio.js)
@@ -140,12 +116,22 @@ class AssetLibrary {
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('json')) return; // dev servers answer index.html for missing files
     const M = (this.manifest = await res.json());
-    const gltf = new GLTFLoader(), fbx = new FBXLoader();
-    const loadModel = async (file) => {
-      const url = BASE + file;
-      if (/\.fbx$/i.test(file)) { const o = await fbx.loadAsync(url); return { scene: o, animations: o.animations || [] }; }
-      const g = await gltf.loadAsync(url);
-      return { scene: g.scene, animations: g.animations || [] };
+    const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), fbx = new FBXLoader();
+    const cache = new Map(); // shared animation libraries are loaded once
+    const loadModel = (file) => {
+      if (!cache.has(file)) cache.set(file, (async () => {
+        const url = BASE + file;
+        if (/\.fbx$/i.test(file)) {
+          const o = await fbx.loadAsync(url);
+          // Mixamo names every clip "mixamo.com": use the file name ("Rifle Run.fbx" → "Rifle Run")
+          const base = file.split('/').pop().replace(/\.fbx$/i, '');
+          for (const a of o.animations || []) if (/^(mixamo\.com|take 001|unreal take)$/i.test(a.name) || o.animations.length === 1) a.name = base;
+          return { scene: o, animations: o.animations || [] };
+        }
+        const g = await gltf.loadAsync(url);
+        return { scene: g.scene, animations: g.animations || [] };
+      })());
+      return cache.get(file);
     };
     const tryLoad = async (label, fn) => {
       try { await fn(); this.report.push(`ok   ${label}`); } catch (e) { this.report.push(`FAIL ${label}: ${e.message}`); console.warn('[assets]', label, e); }
@@ -157,6 +143,11 @@ class AssetLibrary {
         const m = await loadModel(def.file);
         let clips = m.animations.slice();
         for (const f of def.animations || []) { const a = await loadModel(f); clips = clips.concat(a.animations); }
+        // held props baked into the character file (swords, shields …): hidden, SKYFALL hands it a gun
+        if (def.hide && def.hide.length) {
+          const hide = new Set(def.hide.map((n) => THREE.PropertyBinding.sanitizeNodeName(n)));
+          m.scene.traverse((o) => { if (hide.has(o.name) || hide.has(THREE.PropertyBinding.sanitizeNodeName(o.name))) o.visible = false; });
+        }
         adaptModel(m.scene, { skinned: true });
         this.chars.set(key, { scene: m.scene, clips, def });
       }));
@@ -169,14 +160,14 @@ class AssetLibrary {
       }));
     }
     if (M.arms) jobs.push(tryLoad('arms', async () => { const m = await loadModel(M.arms.file); adaptModel(m.scene, { skinned: true, shadows: false }); this.arms = { scene: m.scene, clips: m.animations, def: M.arms }; }));
-    for (const [kind, list] of Object.entries(M.nature || {})) {
-      this.nature[kind] = [];
+    for (const [cat, kind, list] of [...Object.entries(M.nature || {}).map(([k, l]) => ['nature', k, l]), ...Object.entries(M.props || {}).map(([k, l]) => ['props', k, l])]) {
+      this[cat][kind] = [];
       for (const def0 of list) {
         const def = typeof def0 === 'string' ? { file: def0 } : def0;
-        jobs.push(tryLoad(`nature ${kind} ${def.file}`, async () => {
+        jobs.push(tryLoad(`${cat} ${kind} ${def.file}`, async () => {
           const m = await loadModel(def.file);
           adaptModel(m.scene);
-          this.nature[kind].push({ parts: bakeParts(m.scene, def), def });
+          this[cat][kind].push({ parts: bakeParts(m.scene, def), def });
         }));
       }
     }
@@ -218,7 +209,9 @@ class AssetLibrary {
     const g = this.guns.get(id);
     if (!g) return null;
     const def = g.def;
-    const root = normalise(styled(g.scene.clone(true)), { length: def.length || defaultLength, rot: def.rot, rotY: def.rotY, scale: def.scale, offset: def.offset, ground: false });
+    let rotY = def.rotY;
+    if (rotY === undefined && !def.rot) rotY = (g.facing ||= autoFacing(g.scene)).rotY;
+    const root = normalise(styled(g.scene.clone(true)), { length: def.length || defaultLength, rotY, rot: def.rot, scale: def.scale, offset: def.offset, ground: false });
     return { root, def };
   }
 
@@ -235,11 +228,27 @@ class AssetLibrary {
     return { root, model, clips: this.arms.clips, def };
   }
 
-  natureKinds(kind) {
-    const list = this.nature[kind];
+  natureKinds(kind) { return this._kinds(this.nature, kind); }
+  propKinds(kind) { return this._kinds(this.props, kind); }
+
+  _kinds(store, kind) {
+    const list = store[kind];
     if (!list || !list.length) return null;
     return list.map((v) => ({ def: v.def, parts: v.parts.map((p) => ({ geometry: p.geometry, material: STYLE.comic ? toToon(p.material) : p.material })) }));
   }
+}
+
+// Muzzle direction for guns whose manifest gives no rotation (same heuristic as the importer).
+function autoFacing(scene) {
+  scene.updateMatrixWorld(true);
+  const pts = [], v = new THREE.Vector3();
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const p = o.geometry.attributes.position;
+    const step = Math.max(1, Math.floor(p.count / 4000));
+    for (let i = 0; i < p.count; i += step) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld); pts.push(v.x, v.y, v.z); }
+  });
+  return gunFacing(pts);
 }
 
 // Flatten a static model into geometry+material parts in model space (unit-normalised so the

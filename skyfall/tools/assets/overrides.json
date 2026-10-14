@@ -1,0 +1,15 @@
+{
+  "_doc": [
+    "Manual corrections applied on top of the importer's automatic choices (deep merge; a value of null deletes a key).",
+    "Use it when the heuristics get something wrong: a gun pointing backwards (rotY + 3.1416), a legend that should use a",
+    "different character, a held prop that should stay visible, a clip mapping, a model size.",
+    "Example:",
+    "  \"manifest\": {",
+    "    \"weapons\": { \"p20\": { \"rotY\": 0, \"length\": 0.28 } },",
+    "    \"characters\": { \"kodiak\": { \"file\": \"characters/Knight.glb\", \"hide\": [\"1H_Sword\", \"Round_Shield\"] } },",
+    "    \"characters.default\": null",
+    "  }",
+    "Paths are relative to public/assets. Run `node tools/assets/import.mjs` again after editing."
+  ],
+  "manifest": {}
+}

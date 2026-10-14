@@ -380,7 +380,8 @@ export class WorldView {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     for (const g of groups.values()) {
-      if (g.kind === 'rock' && assets.natureKinds('rock')) { this._modelRocks(g.list); continue; }
+      if (g.kind === 'rock' && assets.natureKinds('rock')) { this._drape(g.list, assets.natureKinds('rock')); continue; }
+      if (assets.propKinds(g.kind)) { this._drape(g.list, assets.propKinds(g.kind), [1.04, 1.02]); continue; }
       const metalKinds = { container: 1, catwalk: 1, crane: 1, stack: 1, pylon: 1, spire: 1 };
       const rough = metalKinds[g.kind] ? 0.5 : g.kind === 'rock' ? 0.95 : 0.85;
       const metal = metalKinds[g.kind] ? 0.35 : 0.0;
@@ -421,23 +422,28 @@ export class WorldView {
     });
   }
 
-  // Imported boulders (Kenney / Quaternius nature packs) stretched over each rock collision box, so
-  // what you see is what you climb and take cover behind.
-  _modelRocks(list) {
-    const variants = assets.natureKinds('rock');
+  // Imported models stretched over existing collision boxes (rocks, crates, containers): what you
+  // see is exactly what you climb and take cover behind. Each model is turned 90° when that lines
+  // its long side up with the box's long side (less stretching), and mirrored on alternate boxes
+  // for variety. pad slightly oversizes the shell so no box face peeks through.
+  _drape(list, variants, pad = [1.12, 1.06]) {
     const sizes = variants.map((vt) => {
       const b = new THREE.Box3();
       for (const p of vt.parts) { p.geometry.computeBoundingBox(); b.union(p.geometry.boundingBox); }
       return b.getSize(new THREE.Vector3());
     });
-    const items = [];
+    const items = [], up = new THREE.Vector3(0, 1, 0);
     list.forEach((b, i) => {
-      const v = (i * 7 + Math.floor(b.min[0])) % variants.length, sz = sizes[(v + variants.length) % variants.length];
-      const flip = (i & 1) ? Math.PI : 0;
-      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), flip);
-      const s = new THREE.Vector3((b.max[0] - b.min[0]) / Math.max(sz.x, 0.01) * 1.12, (b.max[1] - b.min[1]) / Math.max(sz.y, 0.01) * 1.06, (b.max[2] - b.min[2]) / Math.max(sz.z, 0.01) * 1.12);
-      const p = new THREE.Vector3((b.max[0] + b.min[0]) / 2, b.min[1] - 0.05, (b.max[2] + b.min[2]) / 2);
-      items.push({ v: (v + variants.length) % variants.length, m4: new THREE.Matrix4().compose(p, q, s) });
+      const v = Math.abs(i * 7 + Math.floor(b.min[0])) % variants.length, sz = sizes[v];
+      const bw = b.max[0] - b.min[0], bh = b.max[1] - b.min[1], bd = b.max[2] - b.min[2];
+      const turn = (bw > bd) !== (sz.x > sz.z);
+      const mw = turn ? sz.z : sz.x, md = turn ? sz.x : sz.z;
+      const q = new THREE.Quaternion().setFromAxisAngle(up, (turn ? Math.PI / 2 : 0) + ((i & 1) ? Math.PI : 0));
+      // scale is applied in model space, so swap the horizontal factors when the model is turned
+      const kx = bw / Math.max(mw, 0.01) * pad[0], kz = bd / Math.max(md, 0.01) * pad[0], ky = bh / Math.max(sz.y, 0.01) * pad[1];
+      const s = turn ? new THREE.Vector3(kz, ky, kx) : new THREE.Vector3(kx, ky, kz);
+      const p = new THREE.Vector3((b.max[0] + b.min[0]) / 2, b.min[1] - 0.03, (b.max[2] + b.min[2]) / 2);
+      items.push({ v, m4: new THREE.Matrix4().compose(p, q, s) });
     });
     this._instanceVariants(variants, items);
   }

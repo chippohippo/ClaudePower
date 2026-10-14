@@ -38,7 +38,7 @@ export function teamRim(obj, team) {
         sh.uniforms.rimStrength = U.strength;
         sh.fragmentShader = 'uniform vec3 rimColor;\nuniform float rimStrength;\n' + sh.fragmentShader.replace(
           '#include <opaque_fragment>',
-          `float rimF = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.2);
+          `float rimF = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.2);
           float rimFar = mix(1.0, 1.9, smoothstep(25.0, 140.0, length(vViewPosition)));
           outgoingLight += rimColor * rimF * rimStrength * rimFar;
           #include <opaque_fragment>`);
