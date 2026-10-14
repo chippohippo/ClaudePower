@@ -193,9 +193,23 @@ export class HUD {
     this.announceT -= dt;
     if (this.announceT <= 0) el.announce.style.opacity = 0;
 
+    // freefall readout: height above ground and airspeed, like the Apex drop HUD
+    const sky = g.skydiving && me.alive && !me.inShip && !g.spectating;
+    if (sky || this.skyEl) {
+      if (!this.skyEl) { this.skyEl = document.createElement('div'); this.skyEl.id = 'skyhud'; el.announce.parentNode.appendChild(this.skyEl); }
+      this.skyEl.style.display = sky ? '' : 'none';
+      if (sky) {
+        const ms = g.pred;
+        const alt = Math.max(0, Math.round(ms.y - g.world.groundAt(ms.x, ms.z, ms.y, this.tmpB || (this.tmpB = []))));
+        const spd = Math.round(Math.hypot(ms.vx, ms.vy, ms.vz) * 3.6);
+        const k = `${alt}|${spd}`;
+        if (k !== this.skyK) { this.skyK = k; this.skyEl.innerHTML = `<div><small>ALT</small><b>${alt}</b><i>m</i></div><div><small>SPEED</small><b>${spd}</b><i>km/h</i></div>`; }
+      }
+    }
+
     // crosshair spread
     const sp = g.crosshairSpread; // px gap
-    const showCh = !g.adsFull && me.alive && !g.spectating;
+    const showCh = !g.adsFull && me.alive && !g.spectating && !g.skydiving;
     el.ch.style.display = showCh ? '' : 'none';
     if (showCh) {
       const gap = 4 + sp;
@@ -538,7 +552,7 @@ export class HUD {
     }).join('');
     const ev = inv.evo ?? 0;
     G.innerHTML = `<h4>GEAR</h4>
-      <div class="item" style="--rc:${SHIELD_COLORS[inv.armor]}">Evo Shield <small>Lv${inv.armor}${inv.armor && inv.armor < 4 ? ` · ${g.meView.evo || 0}/${EVO_THRESHOLDS[inv.armor]}` : ''}</small></div>
+      <div class="item" style="--rc:${SHIELD_COLORS[inv.armor]}">Adapt Armor <small>Lv${inv.armor}${inv.armor && inv.armor < 4 ? ` · ${g.meView.evo || 0}/${EVO_THRESHOLDS[inv.armor]}` : ''}</small></div>
       <div class="item" style="--rc:${RARITY[Math.max(0, inv.helmet - 1)]}">Helmet <small>Lv${inv.helmet}</small></div>
       <div class="item" style="--rc:${RARITY[Math.max(0, inv.pack - 1)]}">Backpack <small>Lv${inv.pack}</small></div>`;
     B.innerHTML = `<h4>BACKPACK (${inv.inv.length}/${[8, 10, 12, 14][inv.pack]})</h4>` + inv.inv.map((s, i) =>

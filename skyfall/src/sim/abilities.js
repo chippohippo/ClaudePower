@@ -5,6 +5,7 @@
 import { LEGENDS } from '../shared/legends.js';
 import { dirFromAngles } from '../shared/util.js';
 import { eyeHeight } from '../shared/movement.js';
+import { EVO_POINTS } from '../shared/constants.js';
 
 function ev(match, p, k, extra = {}) {
   match.events.push({ e: 'abil', k, id: p.id, x: p.ms.x, y: p.ms.y, z: p.ms.z, r: 200, ...extra });
@@ -231,7 +232,12 @@ export function updateEntity(match, e, dt) {
     case 'drone':
       for (const q of match.queryPlayers(e.x, e.z, e.r)) {
         if (q.squad !== e.squad || !q.alive || q.downed) continue;
-        if (q.hp < 100) q.hp = Math.min(100, q.hp + e.rate * dt);
+        if (q.hp >= 100) continue;
+        const healed = Math.min(100 - q.hp, e.rate * dt);
+        q.hp += healed;
+        // the medic earns evo points for healing the squad (less for healing themselves)
+        const owner = match.players.get(e.owner);
+        if (owner && owner.alive) match._evo(owner, healed * (q === owner ? EVO_POINTS.healSelf : EVO_POINTS.healAlly));
       }
       break;
     case 'carepkg':

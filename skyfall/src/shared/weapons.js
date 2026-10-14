@@ -46,7 +46,7 @@ export const WEAPONS = {
     tint: '#f5c542', rarityBase: 0,
   },
   volt: {
-    name: 'Volt SMG', cls: 'SMG', ammo: 'energy', mode: 'auto', rpm: 720, damage: 15, headMul: 1.5, legMul: 0.9,
+    name: 'Surge SMG', cls: 'SMG', ammo: 'energy', mode: 'auto', rpm: 720, damage: 15, headMul: 1.5, legMul: 0.9,
     mag: 19, magExt: [21, 23, 26], reload: 1.45, reloadEmpty: 2.0, speed: 900, drop: 0.3,
     hip: 1.8, adsSpread: 0.08, moveSpread: 1.0, airSpread: 2, slideSpread: -0.9,
     adsTime: 0.17, adsFov: 1.15, deploy: 0.4, moveMul: 1.04,
@@ -75,7 +75,7 @@ export const WEAPONS = {
     tint: '#d9452b', rarityBase: 0,
   },
   scout: {
-    name: 'Scout DMR', cls: 'Marksman', ammo: 'light', mode: 'semi', rpm: 240, damage: 34, headMul: 2.0, legMul: 0.85,
+    name: 'Marshal DMR', cls: 'Marksman', ammo: 'light', mode: 'semi', rpm: 240, damage: 34, headMul: 2.0, legMul: 0.85,
     mag: 10, magExt: [15, 18, 20], reload: 2.4, reloadEmpty: 3.0, speed: 850, drop: 0.7,
     hip: 3.0, adsSpread: 0.0, moveSpread: 2, airSpread: 3, slideSpread: 0,
     adsTime: 0.25, adsFov: 2.1, deploy: 0.6, moveMul: 0.97,
@@ -84,7 +84,7 @@ export const WEAPONS = {
     tint: '#e5a54b', rarityBase: 1,
   },
   sentinel: {
-    name: 'Sentinel', cls: 'Sniper', ammo: 'sniper', mode: 'bolt', rpm: 50, damage: 70, headMul: 2.0, legMul: 0.85,
+    name: 'Harrier', cls: 'Sniper', ammo: 'sniper', mode: 'bolt', rpm: 50, damage: 70, headMul: 2.0, legMul: 0.85,
     mag: 4, magExt: [5, 6, 7], reload: 3.0, reloadEmpty: 3.6, speed: 1100, drop: 0.6,
     hip: 6.0, adsSpread: 0.0, moveSpread: 4, airSpread: 6, slideSpread: 0,
     adsTime: 0.35, adsFov: 4.5, deploy: 0.75, moveMul: 0.92,
@@ -92,17 +92,20 @@ export const WEAPONS = {
     sound: { cls: 'sniper', gain: 1.0, crack: 1.4, snapHz: 2000, bodyHz: 250, bodyQ: 0.7, bodyDecay: 0.07, subHz: 46, sub: 1.0, subDecay: 0.14, mech: 0.5, tail: 1.9, tailHz: 900, pitchVar: 0.01, nwave: 1, slap: 1, bolt: 1 },
     tint: '#5a6ee6', rarityBase: 2,
   },
+  // Wingman-style magnum: sniper ammo, 45 body / ~97 head / 45 legs, 156 RPM, 6-round cylinder
+  // (7/8/9 with extended mags), 2.1 s reload, accepts mags and optics but no barrel. Each shot
+  // kicks hard straight up and recovers fast, so the rhythm is click-pause-click.
   viper: {
-    name: 'Viper Revolver', cls: 'Pistol', ammo: 'heavy', mode: 'semi', rpm: 156, damage: 45, headMul: 2.0, legMul: 0.9,
-    mag: 6, magExt: [7, 8, 9], reload: 2.1, reloadEmpty: 2.1, speed: 600, drop: 1.1,
-    hip: 1.6, adsSpread: 0.0, moveSpread: 1.2, airSpread: 2, slideSpread: -0.6,
-    adsTime: 0.18, adsFov: 1.2, deploy: 0.35, moveMul: 1.05,
-    recoil: pat([[0.1, 2.6], [-0.1, 2.6]]), recoilRand: 0.25, recover: 8,
+    name: 'Raptor Magnum', cls: 'Pistol', slots: ['mag', 'optic'], ammo: 'sniper', mode: 'semi', rpm: 156, damage: 45, headMul: 2.15, legMul: 1.0,
+    mag: 6, magExt: [7, 8, 9], reload: 2.1, reloadEmpty: 2.1, speed: 500, drop: 0.9,
+    hip: 1.5, adsSpread: 0.0, moveSpread: 1.1, airSpread: 2, slideSpread: -0.6,
+    adsTime: 0.2, adsFov: 1.25, deploy: 0.35, moveMul: 1.05,
+    recoil: pat([[0.12, 2.8], [-0.12, 2.8], [0.05, 2.7]]), recoilRand: 0.22, recover: 9,
     sound: { cls: 'revolver', gain: 0.97, crack: 1.2, snapHz: 2200, bodyHz: 300, bodyQ: 0.8, bodyDecay: 0.06, subHz: 55, sub: 0.9, subDecay: 0.1, mech: 0.5, tail: 1.3, tailHz: 1000, pitchVar: 0.03, ring: 1 },
-    tint: '#4fc2a0', rarityBase: 1,
+    tint: '#5a6ee6', rarityBase: 0,
   },
   p20: {
-    name: 'P20 Pistol', cls: 'Pistol', ammo: 'light', mode: 'semi', rpm: 420, damage: 18, headMul: 1.5, legMul: 0.9,
+    name: 'Stinger Pistol', cls: 'Pistol', ammo: 'light', mode: 'semi', rpm: 420, damage: 18, headMul: 1.5, legMul: 0.9,
     mag: 10, magExt: [12, 14, 16], reload: 1.25, reloadEmpty: 1.25, speed: 440, drop: 1.3,
     hip: 1.4, adsSpread: 0.05, moveSpread: 0.7, airSpread: 1.5, slideSpread: -0.5,
     adsTime: 0.14, adsFov: 1.1, deploy: 0.25, moveMul: 1.08,
@@ -113,6 +116,11 @@ export const WEAPONS = {
 };
 
 export const WEAPON_IDS = Object.keys(WEAPONS);
+
+// Attachment slots a weapon accepts (per-weapon override, else its class default).
+export function weaponSlots(w, classSlots) {
+  return w.slots || classSlots[w.cls];
+}
 
 export function fireInterval(w) {
   return 60 / w.rpm;

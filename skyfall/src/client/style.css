@@ -328,3 +328,11 @@ body.comic .abil { box-shadow: 3px 3px 0 rgba(0,0,0,0.6); border-color: #111; }
 @keyframes zonein { 0% { opacity: 0; letter-spacing: 0; clip-path: inset(0 50% 0 50%); } 12% { opacity: 1; clip-path: inset(0 0 0 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
 body.comic #announce .as { -webkit-text-stroke: 0; text-shadow: 2px 2px 0 #000; }
 body.comic #zonecall b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #000; background: rgba(0,0,0,0.35); transform: rotate(-1.5deg); }
+
+/* ---- freefall readout ---- */
+#skyhud { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); display: flex; gap: 28px; pointer-events: none; }
+#skyhud div { text-align: center; min-width: 90px; }
+#skyhud small { display: block; font-size: 11px; letter-spacing: 3px; color: var(--muted); font-weight: 700; }
+#skyhud b { font-size: 30px; font-weight: 700; }
+#skyhud i { font-style: normal; font-size: 13px; color: var(--muted); margin-left: 3px; }
+body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #000; }

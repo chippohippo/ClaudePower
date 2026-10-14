@@ -451,10 +451,17 @@ function skydive(s, wx, wz, wishAmt, dt, world) {
   const dive = Math.max(0, Math.min(1, (-s.pitch - 0.2) / 1.0));
   const deployed = alt < MOVE.deployHeight;
   const tgtVy = deployed ? -MOVE.deployFallSpeed : -(MOVE.skydiveFallSpeed + dive * (MOVE.skydiveDiveSpeed - MOVE.skydiveFallSpeed));
-  const glide = deployed ? 9 : MOVE.skydiveGlideSpeed * (1 - dive * 0.55);
+  // pulling up out of a dive: the fall speed above the new target becomes a forward surge
+  const surge = deployed ? 0 : Math.min(MOVE.skydiveSurgeMax, Math.max(0, tgtVy - s.vy) * MOVE.skydiveSurge);
+  const glide = deployed ? MOVE.deployGlide : MOVE.skydiveGlideSpeed * (1 - dive * 0.55);
   const k = Math.min(1, dt * (deployed ? 4 : 1.2));
   s.vy += (tgtVy - s.vy) * k;
-  const tvx = wx * glide * wishAmt, tvz = wz * glide * wishAmt;
+  // forward-biased steering: full speed ahead, half sideways, back = air brake
+  const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
+  const fwd = wx * fx + wz * fz;
+  const steer = fwd >= 0 ? MOVE.skydiveStrafeMul + (1 - MOVE.skydiveStrafeMul) * fwd : MOVE.skydiveBrakeMul;
+  const sp = (glide + (fwd > 0.5 ? surge : 0)) * steer * wishAmt;
+  const tvx = wx * sp, tvz = wz * sp;
   const kh = Math.min(1, dt * 1.1);
   s.vx += (tvx - s.vx) * kh;
   s.vz += (tvz - s.vz) * kh;
@@ -466,7 +473,7 @@ function skydive(s, wx, wz, wishAmt, dt, world) {
     s.mode = 'ground';
     s.onGround = true;
     s.vy = 0;
-    s.vx *= 0.4; s.vz *= 0.4;
+    s.vx *= MOVE.landKeep; s.vz *= MOVE.landKeep;
     s.landT = 0;
     s.events |= MEV.LAND;
   }

@@ -4,7 +4,7 @@
 import { buildMap } from '../shared/map.js';
 import { createMoveState, stepMovement, playerHeight, eyeHeight, MEV } from '../shared/movement.js';
 import {
-  SIM_DT, SNAPSHOT_RATE, MODES, MAX_PLAYERS, SHIELD_TIERS, EVO_THRESHOLDS, BLEEDOUT_TIME, DOWNED_HP,
+  SIM_DT, SNAPSHOT_RATE, MODES, MAX_PLAYERS, SHIELD_TIERS, EVO_THRESHOLDS, EVO_POINTS, BLEEDOUT_TIME, DOWNED_HP,
   REVIVE_TIME, BANNER_TIME, BTN, MAP_HALF,
 } from '../shared/constants.js';
 import { WEAPONS, falloff, fireInterval, magSize, currentSpread } from '../shared/weapons.js';
@@ -86,6 +86,8 @@ export class Match {
     for (const lp of this.map.lootPoints) {
       const l = rollLoot(r, lp.tier);
       this._addLoot(l, lp.x, lp.y, lp.z, false);
+      // companion ammo sits just beside the gun
+      for (const ex of l.extra || []) this._addLoot(ex, lp.x + 0.45, lp.y, lp.z + 0.25, false);
     }
   }
 
@@ -190,7 +192,7 @@ export class Match {
     ms.jetpack = legend === 'spectre' ? 1 : 0;
     const p = {
       id, name, legend, squad, isBot, ms,
-      hp: 100, shield: 0, armor: 0, evoDmg: 0, helmet: 0, pack: 0,
+      hp: 100, shield: SHIELD_TIERS[1], armor: 1, evoDmg: 0, helmet: 0, pack: 0,
       weapons: [null, null], active: 0, inv: [],
       inShip: true, alive: true, downed: false, bleed: 0, eliminated: false,
       tacCd: 0, ultCd: LEGENDS[legend].ultimate.cd * 0.5,
@@ -442,6 +444,7 @@ export class Match {
     for (let i = 0; i < n; i++) {
       const l = rollLoot(this.rng, b.tier + 1);
       this._addLoot(l, b.x + (i - 1) * 0.45, b.y + 0.02, b.z);
+      for (const ex of l.extra || []) this._addLoot(ex, b.x + (i - 1) * 0.45, b.y + 0.02, b.z + 0.25);
     }
     this.events.push({ e: 'bin', i: idx, g: 1, x: b.x, y: b.y, z: b.z });
   }
@@ -652,7 +655,7 @@ export class Match {
     const dealt = shieldDmg + hpDmg;
     if (a && a !== v) {
       a.damage += dealt;
-      if (!v.downed || hpDmg > 0) this._evo(a, dealt);
+      if (!v.downed || hpDmg > 0) this._evo(a, dealt * EVO_POINTS.damage);
       a.lastCombat = this.time;
     }
     v.lastCombat = this.time;
@@ -669,9 +672,10 @@ export class Match {
     return dealt;
   }
 
-  _evo(a, dealt) {
-    if (a.armor <= 0 || a.armor >= 4) return;
-    a.evoDmg += dealt;
+  // evo points toward the next Adapt Armor level (damage, healing, revives, respawns)
+  _evo(a, pts) {
+    if (a.armor <= 0 || a.armor >= 4 || !(pts > 0)) return;
+    a.evoDmg += pts;
     const need = EVO_THRESHOLDS[a.armor];
     if (a.evoDmg >= need) {
       a.evoDmg -= need;
@@ -706,7 +710,7 @@ export class Match {
     v.healing = null;
     v.reloading = null;
     v.status.phase = 0;
-    if (a) a.knocks++;
+    if (a) { a.knocks++; if (a !== v) this._evo(a, EVO_POINTS.knock); }
     evt.knock = 1;
     this.events.push({ e: 'knock', a: a ? a.id : 0, v: v.id, w: info.weapon || '', g: 1 });
   }
@@ -737,6 +741,8 @@ export class Match {
       k: 'box', x: v.ms.x, y: gy, z: v.ms.z, owner: v.id, squad: v.squad, items, dur: 9999,
       bannerUntil: this.time + BANNER_TIME, bannerTaken: false, name: v.name, tier: v.armor,
     });
+    // remember the loadout for a squad respawn: same guns and armor level, but almost no ammo
+    v.kept = { weapons: v.weapons.map((w) => w && { id: w.id, tier: w.tier, att: { ...w.att } }), armor: Math.max(1, v.armor), evo: v.evoDmg };
     v.weapons = [null, null];
     v.inv = [];
     v.armor = 0; v.shield = 0; v.helmet = 0; v.pack = 0;
@@ -1167,8 +1173,10 @@ export class Match {
       else if (p.healing.t <= 0) {
         const c = CONSUMABLES[p.healing.item.split(':')[1]];
         if (takeItem(p, p.healing.item, 1)) {
+          const before = p.hp + p.shield;
           if (c.heal) p.hp = Math.min(100, p.hp + c.heal);
           if (c.shield) p.shield = Math.min(SHIELD_TIERS[p.armor], p.shield + c.shield);
+          this._evo(p, (p.hp + p.shield - before) * EVO_POINTS.healSelf);
           this.events.push({ e: 'healed', id: p.id, to: [p.id] });
         }
         p.healing = null;
@@ -1211,6 +1219,7 @@ export class Match {
           q.downed = false; q.ms.downed = 0; q.hp = 30; q.shield = 0; q.bleed = 0;
           p.reviveT = 0; p.reviveTarget = 0;
           this.events.push({ e: 'revive', id: q.id, by: p.id, g: 1 });
+          this._evo(p, EVO_POINTS.revive);
         }
         return;
       }
@@ -1223,7 +1232,7 @@ export class Match {
           p.beaconT += dt;
           if (p.beaconT >= 5) {
             p.beaconT = 0;
-            for (const vid of p.banners) this._respawn(this.players.get(vid), b);
+            for (const vid of p.banners) { this._respawn(this.players.get(vid), b); this._evo(p, EVO_POINTS.respawn); }
             p.banners = [];
           }
           return;
@@ -1255,9 +1264,21 @@ export class Match {
     if (!v || !v.eliminated) return;
     const sq = this.squads[v.squad];
     v.alive = true; v.eliminated = false; v.downed = false;
-    v.hp = 100; v.armor = 1; v.shield = 50; v.evoDmg = 0;
-    v.weapons = [makeWeapon('p20', 0), null]; v.active = 0;
-    v.inv = [{ item: 'a:light', n: 40, tier: 0 }, { item: 'c:syringe', n: 2, tier: 0 }];
+    // respawned legends keep their guns (attachments included) and armor level, with a loaded mag
+    // and one spare mag per gun: enough to fight their way back to loot, not enough to coast
+    const kept = v.kept || { weapons: [null, null], armor: 1, evo: 0 };
+    v.hp = 100; v.armor = kept.armor; v.shield = SHIELD_TIERS[v.armor]; v.evoDmg = kept.evo;
+    v.weapons = kept.weapons.map((w) => {
+      if (!w) return null;
+      const nw = makeWeapon(w.id, 0);
+      nw.tier = w.tier; nw.att = { ...w.att }; nw.mag = magSize(WEAPONS[w.id], nw.att.mag);
+      return nw;
+    });
+    if (!v.weapons[0] && !v.weapons[1]) v.weapons[0] = makeWeapon('p20', 0);
+    v.active = v.weapons[0] ? 0 : 1;
+    v.inv = [];
+    for (const w of v.weapons) if (w) addStack(v, 'a:' + WEAPONS[w.id].ammo, magSize(WEAPONS[w.id], w.att.mag));
+    v.kept = null;
     v.ms.x = b.x; v.ms.z = b.z; v.ms.y = 140; v.ms.mode = 'skydive'; v.ms.vx = 0; v.ms.vz = 0; v.ms.vy = 0; v.ms.downed = 0;
     v.status = {};
     v.spect = 0;

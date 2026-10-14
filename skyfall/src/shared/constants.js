@@ -65,12 +65,19 @@ export const MOVE = {
   zipSpeed: 13,
   zipVerticalSpeed: 10,
   zipGrab: 1.8,               // max distance from cable to attach
-  // skydive
-  skydiveFallSpeed: 32,
-  skydiveDiveSpeed: 55,
-  skydiveGlideSpeed: 26,
-  deployHeight: 40,
-  deployFallSpeed: 9,
+  // skydive (Apex-style freefall, no parachute): look at the horizon + hold forward for the longest
+  // glide, look down to dive. Pulling out of a dive converts excess fall speed into a forward surge.
+  skydiveFallSpeed: 18,       // m/s down while gliding level
+  skydiveDiveSpeed: 58,       // m/s down looking straight down
+  skydiveGlideSpeed: 30,      // m/s forward while gliding level
+  skydiveStrafeMul: 0.5,      // sideways input is half as effective
+  skydiveBrakeMul: 0.3,       // holding back air-brakes
+  skydiveSurge: 0.6,          // forward m/s gained per m/s of excess fall speed when pulling up
+  skydiveSurgeMax: 18,
+  deployHeight: 22,           // landing jets fire this high above the ground
+  deployFallSpeed: 14,
+  deployGlide: 14,
+  landKeep: 0.75,             // horizontal speed kept on touchdown (land running)
 };
 
 export const BTN = {
@@ -89,7 +96,12 @@ export const BTN = {
 export const HEALTH = 100;
 export const SHIELD_TIERS = [0, 50, 75, 100, 125]; // evo: none, white, blue, purple, red
 export const SHIELD_COLORS = ['#888888', '#e8e8e8', '#3fa9ff', '#b94dff', '#ff3b3b'];
-export const EVO_THRESHOLDS = [0, 150, 300, 500]; // damage needed to reach next tier from 1,2,3
+// Adapt Armor: everyone drops in white (Lv1). Evo points level it white → blue → purple → red,
+// refilling shields on each level. Points needed to leave Lv1, Lv2, Lv3:
+export const EVO_THRESHOLDS = [0, 200, 400, 700];
+// Where points come from: every point of damage dealt, every point healed on a squadmate,
+// half a point per point restored on yourself with consumables, plus flat bonuses.
+export const EVO_POINTS = { damage: 1, healAlly: 1, healSelf: 0.5, knock: 25, revive: 50, respawn: 75 };
 
 export const BLEEDOUT_TIME = 90;
 export const DOWNED_HP = 100;

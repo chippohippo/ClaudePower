@@ -94,6 +94,7 @@ export const LANDMARKS = {
     spiral(ctx, x, z, 1.6, 9, 2.2, 3.6, '#6b5a3a');
     ctx.add(x - 5, 21.5, z - 5, x + 5, 22.1, z + 5, 'floor', '#6b5a3a');
     ctx.loot(x + 3, ctx.baseY() + 22.15, z, 2);
+    ctx.bin(x - 3, 22.1, z + 2.5, 2);
     ctx.decor({ type: 'canopy', x, y: ctx.baseY() + 23, z, r: 9 });
     ctx.decor({ type: 'canopy', x: x + 3, y: ctx.baseY() + 15, z: z - 2, r: 6 });
     // fallen pillars as cover
@@ -119,6 +120,7 @@ export const LANDMARKS = {
     spiral(ctx, x, z, 2.5, 10, 2.2, 3.4, '#b8c2cc');
     ctx.add(x - 4.5, 24.5, z - 4.5, x + 4.5, 25, z + 4.5, 'floor', '#b8c2cc');
     ctx.loot(x, ctx.baseY() + 25.05, z + 3.5, 2);
+    ctx.bin(x - 2.5, 25, z - 3.2, 2);
     ctx.pad(x + 5.5, ctx.baseY(), z + 5.5);
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2 + r(), d = p.r * r.range(0.5, 0.9);
@@ -141,6 +143,7 @@ export const LANDMARKS = {
       ctx.block(x, z, 14);
       mesa(ctx, x, z, r.range(9, 13), r.range(10, 14), '#c98f5e');
       ctx.loot(x, ctx.baseY() + 0.05 + mesa.lastTop, z, 2);
+      ctx.bin(x + 2.5, mesa.lastTop, z + 1, 2);
       ctx.pad(x - mesa.lastSize / 2 - 3, ctx.height(x - mesa.lastSize / 2 - 3, z), z);
     }
     const a = r() * Math.PI * 2, x = p.x + Math.cos(a) * p.r * 0.4, z = p.z + Math.sin(a) * p.r * 0.4;
@@ -175,6 +178,7 @@ export const LANDMARKS = {
       const dir = r() < 0.5 ? 1 : -1;
       ctx.add(dir > 0 ? x - 3 : x - 20, 22, z - 1, dir > 0 ? x + 20 : x + 3, 23.4, z + 1, 'crane', '#e8b62e');
       ctx.loot(x + dir * 15, ctx.baseY() + 23.45, z, 2);
+      ctx.bin(x + dir * 10, 23.4, z, 2);
       verticalZip(ctx, x - 2.2 * dir, z, ctx.baseY() + 23.4, x, z, ctx.baseY() + 23.4);
     }
   },

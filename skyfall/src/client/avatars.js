@@ -288,9 +288,12 @@ export class Avatar {
       LR.hip.rotation.x = -0.6; LR.knee.rotation.x = 1.7;
       AL.sh.rotation.set(-0.6, 0, 0.9);
     } else if (skydive) {
-      body.rotation.x = -1.25; body.position.y = 1.0;
-      LL.hip.rotation.x = 0.3; LR.hip.rotation.x = 0.5; LL.knee.rotation.x = 0.6; LR.knee.rotation.x = 0.4;
-      AL.sh.rotation.set(-0.3, 0, 1.3); AR.sh.rotation.set(-0.3, 0, -1.3); AL.el.rotation.x = AR.el.rotation.x = -0.2;
+      // spread-eagle when gliding, arrowed head-down with arms tucked when diving; bank into turns
+      const dive = Math.max(0, Math.min(1, (-(s.pitch || 0) - 0.2) / 1.0));
+      body.rotation.x = -1.15 - dive * 0.5; body.position.y = 1.0;
+      body.rotation.z = Math.max(-0.5, Math.min(0.5, -side * 0.03));
+      LL.hip.rotation.x = 0.3 - dive * 0.25; LR.hip.rotation.x = 0.5 - dive * 0.4; LL.knee.rotation.x = 0.6 * (1 - dive); LR.knee.rotation.x = 0.4 * (1 - dive);
+      AL.sh.rotation.set(-0.3 - dive * 0.4, 0, 1.3 - dive * 1.0); AR.sh.rotation.set(-0.3 - dive * 0.4, 0, -1.3 + dive * 1.0); AL.el.rotation.x = AR.el.rotation.x = -0.2;
     } else if (zip) {
       AL.sh.rotation.set(-3.0, 0, 0.1); AR.sh.rotation.set(-3.0, 0, -0.1); AL.el.rotation.x = AR.el.rotation.x = 0;
       LL.hip.rotation.x = -0.4; LR.hip.rotation.x = -0.2; LL.knee.rotation.x = 0.6; LR.knee.rotation.x = 0.4;

@@ -246,8 +246,9 @@ export class Bot {
     const hd = Math.hypot(dx, dz);
     const alt = p.ms.y;
     this.yaw = Math.atan2(-dx, -dz);
-    // glide when far, dive when above target
-    this.pitch = hd > alt * 0.8 ? -0.1 : -1.3;
+    // glide when far, shallow-dive on approach, dive when nearly above the target
+    const above = alt - this.m.world.groundAt(p.ms.x, p.ms.z, alt, this.m.tmp);
+    this.pitch = hd > above * 1.2 ? -0.1 : hd > above * 0.35 ? -0.7 : -1.3;
     this.inp.mz = hd > 4 ? 1 : 0;
     this.state = 'loot';
   }

@@ -431,7 +431,7 @@ export class Game {
       case 'pickup': audio.play(ev.item === 'armor' || ev.item === 'helmet' || ev.item === 'pack' ? 'pickup_armor' : 'pickup', null, { vol: 0.7 }); break;
       case 'evo':
         audio.play('evo', null, { vol: 0.9, important: true });
-        this.hud.announce(`EVO SHIELD UPGRADED — LV ${ev.tier}`, 2.5);
+        this.hud.announce(`ADAPT ARMOR UPGRADED — LV ${ev.tier}`, 2.5);
         this.fx.ring(this.pred.x, this.pred.y + 1, this.pred.z, SHIELD_COLORS[ev.tier], 2);
         break;
       case 'ring':
@@ -620,6 +620,8 @@ export class Game {
 
     this._zoneCheck(dt, me);
 
+    this._selfAvatar(dt);
+
     // ---- world + fx
     const cp = this.camera.position;
     this.view.update(dt, this.time, cp, this.ring, this.phase === 'ship' ? this.shipNow : null);
@@ -752,6 +754,21 @@ export class Game {
   }
 
   // Pop-art impact word (comic style only).
+  // your own legend, shown only while the freefall camera is in third person
+  _selfAvatar(dt) {
+    const show = (this.tpAmt || 0) > 0.05 && this.selfPos;
+    if (show && !this.selfAv) {
+      this.selfAv = new Avatar(this.scene, this.meta.get(this.myId), true);
+      if (this.selfAv.tag) this.selfAv.tag.visible = false;
+    }
+    if (!this.selfAv) return;
+    this.selfAv.root.visible = !!show;
+    if (!show) return;
+    const p = this.pred, sp = this.selfPos;
+    this.selfAv.update(dt, { x: sp.x, y: sp.y, z: sp.z, yaw: this.yaw, pitch: this.pitch, fl: 32, crouch: 0, weapon: '', vx: p.vx, vz: p.vz }, this.time);
+    this.fx.skyTrail(sp.x, sp.y + 1.0, sp.z, LEGENDS[this.myLegend].color, 1.4);
+  }
+
   // named-zone call-outs once on the ground, plus the Sixes squad composition on first landing
   _zoneCheck(dt, me) {
     this.zoneT = (this.zoneT || 0) - dt;
@@ -1088,6 +1105,10 @@ export class Game {
         if (s.fl & 256 && speedOf(s) > 4) this.fx.stimTrail(s.x, s.y + 1, s.z);
         if (s.fl & 4096) this.fx.zipSparks(s.x, s.y + 1.75, s.z, s.vx, 0, s.vz);
       }
+      // skydive contrails read from far away, so the drop shows where everyone is landing
+      if (r.avatar && r.avatar.root.visible && s.fl & 32 && dist < 420) {
+        this.fx.skyTrail(s.x, s.y + 1.0, s.z, r.meta.squad === this.mySquad ? LEGENDS[r.meta.legend].color : '#ffffff', dist < 150 ? 1 : 0.5);
+      }
       // remote footsteps
       if (!inShip && !(s.fl & 4) && !(s.fl & 2) && dist < 55) {
         const sp = Math.hypot(s.vx, s.vz);
@@ -1131,8 +1152,17 @@ export class Game {
       x = lerp(q.x, p.x, alpha) + this.corr.x;
       y = lerp(q.y, p.y, alpha) + this.corr.y;
       z = lerp(q.z, p.z, alpha) + this.corr.z;
+      this.selfPos = this.selfPos || { x: 0, y: 0, z: 0 };
+      this.selfPos.x = x; this.selfPos.y = y; this.selfPos.z = z;
       const eh = eyeHeight(p);
       y += eh;
+    }
+    // Apex-style third-person freefall camera: boom out behind the diver, ease back in on landing
+    const tpOn = !this.spectating && this.pred.mode === 'skydive' && !(me && me.inShip);
+    this.tpAmt = lerp(this.tpAmt || 0, tpOn ? 1 : 0, Math.min(1, dt * (tpOn ? 3 : 7)));
+    if (this.tpAmt > 0.002 && !this.spectating) {
+      const f = dirFromAngles(yaw, pitch), d = 7.5 * this.tpAmt;
+      x -= f.x * d; y -= f.y * d - 1.3 * this.tpAmt; z -= f.z * d;
     }
     // land dip
     this.landDip *= Math.exp(-dt * 9);

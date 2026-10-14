@@ -1,14 +1,14 @@
 // Inventory rules: picking up, swapping, auto-attaching, ammo/consumable stacking and dropping.
 // Pure functions over a sim player object so humans and bots share the exact same logic.
 
-import { WEAPONS, magSize, AMMO } from '../shared/weapons.js';
+import { WEAPONS, magSize, AMMO, weaponSlots } from '../shared/weapons.js';
 import { stackSize, ATTACHMENTS, CLASS_SLOTS, BACKPACK_SLOTS, CONSUMABLES } from '../shared/items.js';
 import { SHIELD_TIERS } from '../shared/constants.js';
 
 export function makeWeapon(id, tier = 0) {
   const w = WEAPONS[id];
   const att = { mag: 0, barrel: 0, stock: 0, optic: null };
-  const slots = CLASS_SLOTS[w.cls];
+  const slots = weaponSlots(w, CLASS_SLOTS);
   if (tier >= 1 && slots.includes('mag')) att.mag = Math.min(3, tier);
   if (tier >= 2 && slots.includes('barrel')) att.barrel = Math.min(3, tier);
   if (tier >= 2 && slots.includes('stock')) att.stock = Math.min(3, tier);
@@ -62,7 +62,7 @@ export function addStack(p, key, n, tier = 0) {
 
 function attachmentFits(weapon, attId) {
   const a = ATTACHMENTS[attId];
-  return CLASS_SLOTS[WEAPONS[weapon.id].cls].includes(a.slot);
+  return weaponSlots(WEAPONS[weapon.id], CLASS_SLOTS).includes(a.slot);
 }
 
 // Try to attach attachment (attId, level) to weapons. Returns the replaced attachment or true if attached, false if not.
@@ -97,12 +97,12 @@ export function pickup(p, wi) {
     if (old) {
       // move attachments from old weapon to new where compatible
       for (const k of ['mag', 'barrel', 'stock']) {
-        if (old.att[k] && CLASS_SLOTS[WEAPONS[nw.id].cls].includes(k) && old.att[k] > (nw.att[k] || 0)) {
+        if (old.att[k] && weaponSlots(WEAPONS[nw.id], CLASS_SLOTS).includes(k) && old.att[k] > (nw.att[k] || 0)) {
           nw.att[k] = old.att[k];
           old.att[k] = 0;
         }
       }
-      if (old.att.optic && !nw.att.optic && CLASS_SLOTS[WEAPONS[nw.id].cls].includes('optic')) {
+      if (old.att.optic && !nw.att.optic && weaponSlots(WEAPONS[nw.id], CLASS_SLOTS).includes('optic')) {
         nw.att.optic = old.att.optic;
         old.att.optic = null;
       }

@@ -101,6 +101,12 @@ export function buildMap(seed) {
     return ops;
   }
 
+  // supply bin at (x, baseY + y, z): a solid, mantle-able box with a lid the client animates
+  function supplyBin(x, y, z, tier) {
+    add(x - 0.75, y, z - 0.45, x + 0.75, y + 0.85, z + 0.45, 'bin', '#2c3440');
+    bins.push({ x, y: baseY + y + 0.85, z, tier });
+  }
+
   function building(cx, cz, w, d, floors, tier, palette) {
     const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2;
     const color = palette;
@@ -157,8 +163,11 @@ export function buildMap(seed) {
         add(ccx - 0.6, y, ccz - 0.6, ccx + 0.6, y + 1.1, ccz + 0.6, 'crate', '#8b6b43');
       }
     }
-    // roof loot sometimes (rewards climbing)
+    // ground-floor bin against the back wall, away from the stairwell
+    if (w > 7 && d > 6 && rng() < 0.3) supplyBin(x0 + WALL_T / 2 + 1.4, 0, z1 - WALL_T / 2 - 0.55, tier);
+    // roof loot sometimes (rewards climbing); bigger roofs can carry a bin instead
     if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: baseY + floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
+    else if (w > 8 && d > 8 && floors >= 2 && rng() < 0.3) supplyBin(cx + 1.5, floors * FLOOR_H + 0.3, cz + 1.5, tier + 1);
     buildings.push({ cx, cz, x0, x1, z0, z1, roof: baseY + floors * FLOOR_H + 0.3, floors });
     // accent trim along the roofline: readable edges + the zone's signature colour
     if (theme) {
@@ -246,6 +255,7 @@ export function buildMap(seed) {
     height: (x, z) => terrain.height(x, z), isFree, block: (x, z, r) => blocked.push({ x, z, r }),
     loot: (x, y, z, tier) => lootPoints.push({ x, y, z, tier }), decor: (o) => decor.push(o),
     pad: (x, y, z) => pads.push({ x, y, z }), zip: (z) => zips.push(z),
+    bin: (x, y, z, tier) => supplyBin(x, y, z, tier),
   };
   for (const p of pois) {
     theme = THEMES[p.theme];

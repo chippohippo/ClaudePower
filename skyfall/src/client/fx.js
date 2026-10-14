@@ -226,6 +226,13 @@ export class FX {
     if (Math.random() < 0.3) this.smoke.emit(bx, y - 0.6, bz, 0, -1, 0, tmpC, 0.4, 0.6, -0.5, 1.2);
   }
 
+  // freefall contrail: glowing streak left hanging in the air behind a skydiver
+  skyTrail(x, y, z, color, k = 1) {
+    if (Math.random() > 0.6 * k) return;
+    tmpC.set(color);
+    this.sparks.emit(x + (Math.random() - 0.5) * 0.3, y + (Math.random() - 0.5) * 0.3, z + (Math.random() - 0.5) * 0.3, 0, 0, 0, tmpC, 0.32, 1.3, 0);
+  }
+
   stimTrail(x, y, z) {
     if (Math.random() < 0.5) return;
     tmpC.set('#ff7a1a');
