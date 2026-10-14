@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { buildMap } from '../shared/map.js';
 import { createMoveState, stepMovement, copyMoveState, eyeHeight, playerHeight, MEV } from '../shared/movement.js';
 import { SIM_DT, BTN, INTERP_DELAY, SHIELD_COLORS, SHIELD_TIERS, MOVE, TEAM_COLORS } from '../shared/constants.js';
-import { WEAPONS, fireInterval, currentSpread, magSize, GUNPLAY } from '../shared/weapons.js';
+import { WEAPONS, fireInterval, currentSpread, magSize, GUNPLAY, SPRINT_OUT } from '../shared/weapons.js';
 import { ATTACHMENTS, itemName, itemRarity, RARITY } from '../shared/items.js';
 import { LEGENDS, ROLES, ROLE_IDS } from '../shared/legends.js';
 import { THEMES } from '../shared/themes.js';
@@ -695,9 +695,10 @@ export class Game {
       if (inp.mouse.left) b |= BTN.FIRE;
     }
     // firing cancels sprint
-    if (this.time - this.lastFireT < 0.25) b &= ~BTN.SPRINT;
+    if (this.time - this.lastFireT < 0.25 || (inp.locked && !panelOpen && inp.mouse.left)) b &= ~BTN.SPRINT;
     this.latch = 0;
     this.sprinting = !!(b & BTN.SPRINT) && mz > 0.3 && this.pred.onGround && this.pred.crouch < 0.5 && !(b & BTN.ADS);
+    if (this.sprinting) this.lastSprintT = this.time;
     return { seq: ++this.seq, mx, mz, yaw: this.yaw, pitch: this.pitch, buttons: b };
   }
 
@@ -949,6 +950,8 @@ export class Game {
     } else this.crosshairSpread = 6;
     if (!canAct || !def || me.st?.phase > 0) return;
     if (this.localReload || this.localSwitch > 0) return;
+    // sprint-out: the gun has to come back up before it can fire
+    if (this.time - (this.lastSprintT || -9) < (SPRINT_OUT[def.cls] || 0.2)) return;
     const wantFire = def.mode === 'auto' ? inp.mouse.left : inp.mousePressed.left || (inp.mouse.left && def.mode === 'semi' && this._semiHeld);
     this._semiHeld = false;
     if (!wantFire) return;

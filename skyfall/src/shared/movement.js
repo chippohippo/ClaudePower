@@ -201,7 +201,7 @@ export function stepMovement(s, inp, dt, world) {
   const ads = btn & BTN.ADS;
   const sprinting = !s.downed && btn & BTN.SPRINT && mz > 0.3 && !ads && s.crouch < 0.5;
   let wishSpeed = s.downed ? 1.4 : s.crouch > 0.5 ? MOVE.crouchSpeed : sprinting ? MOVE.sprintSpeed : MOVE.walkSpeed;
-  if (ads && !s.downed) wishSpeed *= MOVE.adsSpeedMul;
+  // ADS slow-down is per weapon class and comes in through s.speedMul (shared/mods.js)
   wishSpeed *= s.speedMul * wishAmt;
 
   const hSpeed = Math.hypot(s.vx, s.vz);

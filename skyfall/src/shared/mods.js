@@ -2,7 +2,7 @@
 // server agree exactly on how fast a stimmed / slowed / healing player moves.
 
 import { BTN } from './constants.js';
-import { WEAPONS } from './weapons.js';
+import { WEAPONS, ADS_MOVE } from './weapons.js';
 
 export function speedMul(status, healing, weaponId, buttons, legend) {
   let mul = 1;
@@ -12,6 +12,10 @@ export function speedMul(status, healing, weaponId, buttons, legend) {
   if (status.slow > 0) mul *= 0.6;
   if (status.gas > 0 && legend !== 'miasma') mul *= 0.85;
   if (healing) mul *= 0.55;
-  if (weaponId && WEAPONS[weaponId]) mul *= WEAPONS[weaponId].moveMul;
+  if (weaponId && WEAPONS[weaponId]) {
+    const w = WEAPONS[weaponId];
+    mul *= w.moveMul;
+    if (buttons & BTN.ADS) mul *= ADS_MOVE[w.cls] ?? 0.6;
+  }
   return mul;
 }
