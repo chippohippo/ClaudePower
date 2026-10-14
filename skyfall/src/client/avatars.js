@@ -81,7 +81,7 @@ function nameTag(text, color) {
   g.fillText(text, 128, 90);
   // constant on-screen size, so squadmates stay readable 200 m away
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, sizeAttenuation: false }));
-  s.scale.set(0.11, 0.048, 1);
+  s.scale.set(0.3, 0.13, 1);
   s.renderOrder = 10;
   return s;
 }
