@@ -67,3 +67,10 @@ and from headless browser screenshots. Status: ✅ done · ◐ partial · ☐ to
    - pop-art impact words, heavier shield-break and kill trauma, remote recoil and muzzle smoke
    - announcements slam in with subtitles, zone call-outs with a stinger, role call-out in Sixes
    - fixed: Riot Wall shape missing from snapshots; Breaching Charge sound overwriting the reload charging-handle sound
+
+## Apex gunplay + clarity pass
+11. ✅ **Gunplay**: pixel-accurate ADS, per-class ADS strafe speed, sprint-out, Apex projectile speeds, ~1 s TTK vs purple (tools/guntest.js)
+12. ✅ **Hit feedback**: tier-coloured / red / gold stacking damage numbers, X + shield-icon hitmarker, floating enemy shield/health bar, per-class reticles
+13. ✅ **Clarity**: friend/foe rim light (depth-tested), through-wall squadmate diamonds, colour-vision presets, enemy highlight setting, Apex-like clean grade
+14. ✅ **Downed**: Fallback Shields (raise while downed, frontal block), 90/60/30/15 s bleed-out, 20 HP revives, bots use their shield
+15. ✅ **Kill Leader** call-outs and kill-feed crown

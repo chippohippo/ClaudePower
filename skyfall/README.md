@@ -14,7 +14,8 @@ node tools/movetest.js # checks that every movement tech works in the shared mov
 node tools/nettest.js  # two socket clients form a party, queue up and stream a match
 node tools/deathtest.js # knockdown → elimination → spectate → squad-out → end-of-match flow
 node tools/bottest.js   # bot quality: stuck events, A* usage, slides, wall bounces
-node tools/loottest.js  # drop kit, floor loot, evo armor, ammo-specific mags, respawn loadout
+node tools/loottest.js  # drop kit, floor loot, evo armor, mags, respawn loadout, Fallback Shields
+node tools/guntest.js   # ADS precision, ADS strafe speeds, projectile speeds, TTK table
 node tools/audio/capture.mjs <dir> && python3 tools/audio/analyze.py <dir>
                        # render every sound in Chromium (needs `npm run dev`), print loudness /
                        # transient / band metrics and write a spectrogram contact sheet
@@ -95,11 +96,47 @@ server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick pe
   - Wall bounce, wall climb (about 4 m), mantle, mantle-jump and superglide (jump + crouch in the last frames of a mantle).
   - Skydiving: look down to dive, look level to glide.
   - Jetpack hover and jump pads are part of the predicted movement.
-- **Gunplay**
-  - Recoil patterns are deterministic and learnable, plus a small random jitter. Barrel attachments scale the kick.
-  - Hipfire spread grows when moving or airborne and tightens when sliding or crouched. Firing adds bloom.
-  - ADS time comes from the weapon and is modified by stocks. Optics change the zoom.
-  - Shotguns use a fixed pellet pattern and damage falls off with range. Headshot multipliers are reduced by helmets.
+- **Gunplay (Apex rules)**
+  - Recoil patterns are deterministic and learnable, plus a small random jitter. The view stays
+    where the kick leaves it (you pull down yourself); the pattern resets after a pause in firing.
+    Barrel attachments scale the kick.
+  - **ADS is pixel-accurate**: no spread, no bloom, no jump penalty — bullets land exactly where the
+    recoil-displaced sight points. Hipfire is a cone that grows when moving, airborne and with
+    sustained fire, and tightens when sliding or crouched.
+  - ADS strafe speed by class (Apex config values): AR ×0.5, SMG ×0.75, LMG ×0.4, marksman ×0.425,
+    sniper ×0.35, pistol ×1.0, shotgun ×0.9 (`ADS_MOVE` in `shared/weapons.js`).
+  - Sprint-out: the gun needs 0.12–0.3 s (by class, `SPRINT_OUT`) to come up after sprinting;
+    holding fire drops sprint.
+  - Projectile speeds come from Apex's units-per-second values × 0.0254 (R-301-like Talon 737 m/s,
+    SMGs 533–597 m/s, snipers 775–790 m/s), with drop.
+  - Time to kill a purple-armored target with body shots is about 1.0–1.2 s for the automatics
+    (`node tools/guntest.js` prints the table).
+  - ADS time comes from the weapon and is modified by stocks. Optics change zoom; aim sensitivity
+    scales with zoom and has an ADS multiplier setting.
+  - Shotguns use a fixed pellet pattern and damage falls off with range. Headshot multipliers are
+    reduced by helmets.
+- **Hit feedback (Apex style)**
+  - Damage numbers: gold on headshots, the target's armor colour while shields hold, red on health.
+    Hits within 0.7 s stack into one number that follows the target.
+  - Hitmarker X plus a shield icon in the target armor's colour; red X on knocks and kills.
+  - After you damage someone, their segmented shield bar and health bar float above them for 3 s.
+  - Per-class hipfire reticles: four lines, a shotgun ring sized to the real pellet spread, a
+    sniper dot and an open-top pistol reticle.
+- **Friend / foe clarity**
+  - Characters carry a fresnel rim light in the friend/foe colour (red-orange enemies, cyan allies),
+    stronger at range where silhouettes shrink. It is depth-tested, so it never shows through walls.
+  - Squadmates have an ally-coloured diamond and name above them, at a constant screen size,
+    visible through walls.
+  - Settings → **Colour vision** (default / protanopia / deuteranopia / tritanopia) recolours rims,
+    markers, health damage numbers, headshots and reveal highlights live; **Enemy highlight**
+    sets the rim strength (on / subtle / off). All colours live in `client/palette.js`.
+- **Downed (Apex rules)**
+  - Fallback Shield (knockdown shield) Lv1–4 with 100 / 250 / 750 / 750 HP. Hold aim while downed
+    to raise it: it blocks bullets from the front 130° and you back-crawl at half speed.
+  - Bleed-out is 90 / 60 / 30 / 15 s for repeated knocks in one life; revives return 20 HP.
+  - Downed bots turn their shield toward whoever shot them and crawl back to the squad.
+- **Kill Leader**: the living player with the most kills (3+) holds the title. Everyone hears when
+  it changes hands or the Kill Leader is eliminated, and the kill feed marks them with a crown.
 - **Adapt Armor (Evo-style)**
   - Everyone drops in white armor with full shields; there is no body armor on the floor.
   - Evo points level it white (50) → blue (75) → purple (100) → red (125) and refill shields each
@@ -131,6 +168,7 @@ server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick pe
   | Phoenix Kit | Ember Kit | full HP + shield, 10 s |
   | Evo Shield | Adapt Armor | levels with evo points |
   | Arc Star | Spark Disc | sticky, slows |
+  | Knockdown Shield | Fallback Shield | Lv1–4, raise while downed |
   | Extended mags | Extended Light / Heavy / Energy / Sniper Mag | ammo-specific, Lv1–3 |
   | Barrel Stabilizer / Standard Stock | Recoil Compensator / Tactical Stock | Lv1–3 |
   | HCOG / Ranger | 1x/2x Holo Sight, 3x Longsight | optics |
@@ -262,6 +300,9 @@ All feel numbers are data, not code. Change them and reload.
 - The minimap is hill-shaded with contours and shows ziplines.
 
 **Art style: comic / pop-art (default; switch to "Clean" in Settings)**
+- "Clean" is the Apex-leaning look: PBR materials with the same post pass running as a pure colour
+  grade (`CLEAN_GRADE`: saturation 1.16, contrast 1.07, warm highlights, cool shadows, no ink) and a
+  lighter friend/foe rim.
 - `src/client/comic.js` turns every PBR material into 3-band cel shading (`toonify`). It keeps colours, vertex colours, emissive accents and the world-space panel shader.
 - A full-screen **ink pass** draws the outlines:
   - thick silhouettes wherever depth jumps
