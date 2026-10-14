@@ -126,8 +126,8 @@
       "file": "weapons/fk-hornet.glb",
       "rotY": 0,
       "archetype": "SMG",
-      "grip": 0.58,
-      "fore": 0.2
+      "grip": 0.57,
+      "fore": 0.26
     },
     "viper": {
       "file": "weapons/fk-viper.glb",
@@ -166,8 +166,8 @@
       "file": "weapons/fk-breacher.glb",
       "rotY": 0,
       "archetype": "Shotgun",
-      "grip": 0.637,
-      "fore": 0.21
+      "grip": 0.689,
+      "fore": 0.314
     },
     "scout": {
       "file": "weapons/fk-scout.glb",

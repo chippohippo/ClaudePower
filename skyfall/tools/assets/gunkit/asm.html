@@ -7,7 +7,7 @@ const byName={};for(const c of root.children)byName[c.name]=c;
 const mats={};for(const [k,v] of Object.entries(MATS))mats[k]=new THREE.MeshStandardMaterial({...v,name:'gun_'+k});
 const box=o=>{o.updateMatrixWorld(true);return new THREE.Box3().setFromObject(o);};
 let meta;function build(id){meta={};const gun=new THREE.Group();gun.name=id;const keys={};
- for(const [pn,mk,o] of RECIPES[id]){const src=pn==='#box'?new THREE.Mesh(new RoundedBoxGeometry(...o.size,2,Math.min(...o.size)*0.15)):byName[pn.replace(/\./g,'')];if(!src)throw new Error('no part '+pn);
+ for(const [pn,mk,o] of RECIPES[id]){const src=pn==='#cyl'?new THREE.Mesh(new THREE.CylinderGeometry(o.r,o.r,o.len,20).rotateZ(Math.PI/2)):pn==='#box'?new THREE.Mesh(new RoundedBoxGeometry(...o.size,2,Math.min(...o.size)*0.15)):byName[pn.replace(/\./g,'')];if(!src)throw new Error('no part '+pn);
   const p=src.clone(true);p.position.set(0,0,0);p.rotation.set(0,0,0);p.scale.set(1,1,1);if(o.rot)p.rotation.set(...o.rot);if(o.s)p.scale.setScalar(o.s);
   p.traverse(m=>{if(m.isMesh){m.material=mats[mk];}});const wrap=new THREE.Group();wrap.add(p);wrap.name=o.name||pn.replace(/[._]\w*$/,'');gun.add(wrap);
   if(o.key!=='base'||Object.keys(keys).length){const r=keys[o.ref||'base'];const b=box(wrap);let dx=0,dy=0;
