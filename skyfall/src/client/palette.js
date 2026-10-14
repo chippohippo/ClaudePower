@@ -39,7 +39,7 @@ export function teamRim(obj, team) {
         sh.fragmentShader = 'uniform vec3 rimColor;\nuniform float rimStrength;\n' + sh.fragmentShader.replace(
           '#include <opaque_fragment>',
           `float rimF = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.2);
-          float rimFar = mix(1.0, 2.2, smoothstep(25.0, 140.0, length(vViewPosition)));
+          float rimFar = mix(1.0, 1.9, smoothstep(25.0, 140.0, length(vViewPosition)));
           outgoingLight += rimColor * rimF * rimStrength * rimFar;
           #include <opaque_fragment>`);
       };
@@ -49,6 +49,12 @@ export function teamRim(obj, team) {
     }
     o.material = m;
   });
+}
+
+// Rim strength per art style: cel shading absorbs it, the clean PBR look needs a lighter touch
+export function setRimStrength(enemyMul, comic) {
+  RIM.enemy.strength.value = 0.85 * enemyMul * (comic ? 1 : 0.45);
+  RIM.ally.strength.value = 0.55 * (comic ? 1 : 0.5);
 }
 
 export function applyPalette(name) {

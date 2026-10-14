@@ -49,6 +49,7 @@ export class Match {
     this.list = [];
     this.squads = [];
     this.entities = new Map();
+    this.killLeader = 0;
     this.loot = new Map();
     this.projectiles = [];
     this.events = [];
@@ -747,6 +748,7 @@ export class Match {
       a.kills++;
       this.squads[a.squad].kills++;
     }
+    if (!this.practice) this._killLeader(v, a);
     this.events.push({ e: 'kill', a: a ? a.id : 0, v: v.id, w: info.weapon || (info.ring ? 'Ring' : ''), g: 1, x: v.ms.x, y: v.ms.y, z: v.ms.z });
     // death box with banner
     const items = [];
@@ -1319,6 +1321,22 @@ export class Match {
     if (!p.isBot) this.send(p.id, msg);
   }
 
+  // Apex Kill Leader: the living player with the most kills (3+) holds the title; everyone is told
+  // when it changes hands and when the Kill Leader goes down
+  _killLeader(v, a) {
+    if (v.id === this.killLeader) {
+      this.killLeader = 0;
+      this.events.push({ e: 'kl', k: 'dead', id: v.id, by: a && a !== v ? a.id : 0, g: 1 });
+    }
+    let best = null;
+    for (const q of this.list) if (q.alive && !q.eliminated && q.kills >= 3 && (!best || q.kills > best.kills)) best = q;
+    const cur = this.players.get(this.killLeader);
+    if (best && (!cur || !cur.alive || cur.eliminated || best.kills > cur.kills) && best.id !== this.killLeader) {
+      this.killLeader = best.id;
+      this.events.push({ e: 'kl', k: 'new', id: best.id, n: best.kills, g: 1 });
+    }
+  }
+
   announce(text) {
     this.events.push({ e: 'msg', text, g: 1 });
   }
@@ -1424,7 +1442,7 @@ export class Match {
       });
       const msg = {
         t: 'snap', time: +this.time.toFixed(3), ack: h.ack, me: this._meState(h), ps, es, ev: evs, ring: ringMsg,
-        alive: this.alive, squads: squadsAlive, sq: sqm, phase: this.phase,
+        alive: this.alive, squads: squadsAlive, sq: sqm, phase: this.phase, kl: this.killLeader || 0,
         ship: this.phase === 'ship' ? { x: +this.ship.x.toFixed(1), z: +this.ship.z.toFixed(1), y: SHIP_ALT, dx: this.ship.dirx, dz: this.ship.dirz } : null,
         hb: h.legend === 'echo' ? this._heartbeat(h) : 0, warn: h.aimedAt > this.time ? 1 : 0,
       };

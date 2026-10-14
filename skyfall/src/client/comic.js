@@ -26,6 +26,10 @@ export const COMIC = {
   hullThickness: 0.0045,      // viewmodel outline thickness (m)
 };
 
+// Clean art style reuses the post pass as a pure colour grade (no ink, no halftone): punchy,
+// warm-lit and saturated like Apex's daylight maps, so characters read against the terrain.
+export const CLEAN_GRADE = { ink: 0, halftone: 0, saturation: 1.16, contrast: 1.07 };
+
 let gradientMap = null;
 function getGradient() {
   if (gradientMap) return gradientMap;
@@ -90,7 +94,7 @@ export function addHulls(obj, t = COMIC.hullThickness) {
 }
 
 export class ComicPost {
-  constructor(renderer) {
+  constructor(renderer, grade = null) {
     this.renderer = renderer;
     this.rt = null;
     this.size = new THREE.Vector2();
@@ -102,13 +106,14 @@ export class ComicPost {
         tColor: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2(1, 1) },
         near: { value: 0.05 }, far: { value: 4000 }, px: { value: 1 },
         silhouette: { value: C.silhouette }, crease: { value: C.crease }, fade: { value: new THREE.Vector2(C.fadeNear, C.fadeFar) },
-        halftone: { value: C.halftone }, htSize: { value: C.halftoneSize }, sat: { value: C.saturation }, contrast: { value: C.contrast },
-        ink: { value: new THREE.Vector3(...C.lineColor) },
+        halftone: { value: grade ? grade.halftone : C.halftone }, htSize: { value: C.halftoneSize },
+        sat: { value: grade ? grade.saturation : C.saturation }, contrast: { value: grade ? grade.contrast : C.contrast },
+        ink: { value: new THREE.Vector3(...C.lineColor) }, inkAmt: { value: grade ? grade.ink : 1 },
       },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: `
         uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 res; uniform float near, far, px;
-        uniform float silhouette, crease, halftone, htSize, sat, contrast; uniform vec2 fade; uniform vec3 ink;
+        uniform float silhouette, crease, halftone, htSize, sat, contrast, inkAmt; uniform vec2 fade; uniform vec3 ink;
         varying vec2 vUv;
         float lin(vec2 uv){ float d = texture2D(tDepth, uv).x; return (near * far) / (far - d * (far - near)); }
         void main(){
@@ -147,7 +152,7 @@ export class ComicPost {
           float dark = clamp((0.26 - lum) / 0.26, 0.0, 1.0) * (1.0 - sky);
           float dot_ = 1.0 - smoothstep(dark * 0.55 - 0.08, dark * 0.55, length(cell));
           col *= 1.0 - dot_ * halftone * dark;
-          col = mix(col, ink, clamp(line, 0.0, 1.0));
+          col = mix(col, ink, clamp(line, 0.0, 1.0) * inkAmt);
           gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
         }`,
       depthTest: false, depthWrite: false, toneMapped: true,

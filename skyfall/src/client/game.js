@@ -22,8 +22,8 @@ import { LootView } from './lootview.js';
 import { audio } from './audio.js';
 import { settings } from './input.js';
 import { FEEL } from './tuning.js';
-import { PAL } from './palette.js';
-import { STYLE, ComicPost } from './comic.js';
+import { PAL, setRimStrength } from './palette.js';
+import { STYLE, ComicPost, CLEAN_GRADE } from './comic.js';
 
 // shield hits ring lower as the armor tier rises (white → red)
 const SHIELD_PITCH = [1, 1.12, 1.0, 0.9, 0.8];
@@ -50,8 +50,9 @@ export class Game {
     this.shipInfo = welcome.ship;
 
     STYLE.comic = settings.artStyle !== 'clean';
+    setRimStrength(settings.enemyRim ?? 1, STYLE.comic);
     document.body.classList.toggle('comic', STYLE.comic);
-    this.post = STYLE.comic ? new ComicPost(this.renderer) : null;
+    this.post = new ComicPost(this.renderer, STYLE.comic ? null : CLEAN_GRADE);
     this.view = new WorldView(this.renderer, this.map);
     this.scene = this.view.scene;
     this.camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.05, 4000);
@@ -165,6 +166,7 @@ export class Game {
     this.ring = s.ring;
     this.aliveCount = s.alive;
     this.squadsLeft = s.squads;
+    this.killLeader = s.kl || 0;
     this.squadInfo = s.sq;
     this.shipNow = s.ship;
     this.heartbeat = s.hb;
@@ -442,6 +444,20 @@ export class Game {
         if (ev.s === 'close') { audio.play('ring_close', null, { vol: 0.8, important: true }); }
         break;
       case 'msg': this.hud.announce(ev.text.toUpperCase(), 3.5); break;
+      case 'kl': {
+        const who = this._name(ev.id);
+        if (ev.k === 'new') {
+          this.killLeader = ev.id;
+          const me = ev.id === this.myId;
+          this.hud.announce(me ? 'YOU ARE THE KILL LEADER' : 'NEW KILL LEADER', 3.5, `<span style="color:#ffd23f">♛ ${who}</span> · ${ev.n} kills`, '#ffd23f');
+          audio.play('ult_ready', null, { vol: 0.6, rate: 0.75 });
+        } else {
+          if (this.killLeader === ev.id) this.killLeader = 0;
+          this.hud.announce('KILL LEADER ELIMINATED', 3, `♛ ${who}${ev.by ? ` by ${this._name(ev.by)}` : ''}`, '#ffd23f');
+          audio.play('kill', null, { vol: 0.5, rate: 0.8 });
+        }
+        break;
+      }
       case 'kdhit':
         if (ev.a === this.myId) { this.hud.hitmarker('body', '#7fd4ff'); audio.play('hit_shield', null, { vol: 0.6, rate: 0.7 }); }
         if (ev.brk) { this.fx.shieldBreak(ev.x, ev.y, ev.z, 2); audio.play('shield_break', { x: ev.x, y: ev.y, z: ev.z }, { vol: 0.7, rate: 0.8 }); }
@@ -853,7 +869,7 @@ export class Game {
   }
 
   _pow(x, y, z, text, color, size) {
-    if (this.post && FEEL.hit.comicWords) this.fx.comicWord(x, y, z, text, color, size);
+    if (STYLE.comic && FEEL.hit.comicWords) this.fx.comicWord(x, y, z, text, color, size);
   }
 
   // Camera trauma + FOV punch, scaled by the player's shake setting.
@@ -999,7 +1015,10 @@ export class Game {
       const spread = currentSpread(def, this.pred, this.adsAmt > 0.6, this.bloom);
       const fovRad = this.camera.fov * DEG;
       this.crosshairSpread = (Math.tan((spread * 0.5 * DEG)) / Math.tan(fovRad / 2)) * (innerHeight / 2);
-    } else this.crosshairSpread = 6;
+      // shotgun reticle: a ring that matches where the pellet pattern will land
+      this.pelletPx = def.pellets ? (Math.tan(((def.pelletSpread * 0.5 + spread * 0.5) * DEG)) / Math.tan(fovRad / 2)) * (innerHeight / 2) : 0;
+      this.reticle = def.cls;
+    } else { this.crosshairSpread = 6; this.reticle = null; }
     if (!canAct || !def || me.st?.phase > 0) return;
     if (this.localReload || this.localSwitch > 0) return;
     // sprint-out: the gun has to come back up before it can fire

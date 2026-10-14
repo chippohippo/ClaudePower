@@ -358,3 +358,11 @@ body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; 
 #kdhud .kt b { color: #7fd4ff; }
 #kdhud .kb { width: 200px; height: 6px; margin: 5px auto 0; background: rgba(0,0,0,0.5); outline: 1px solid rgba(127,212,255,0.5); }
 #kdhud .kb i { display: block; height: 100%; background: #7fd4ff; box-shadow: 0 0 8px #7fd4ff; }
+
+/* ---- per-class hipfire reticles ---- */
+#crosshair .ring { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,0.9); border-radius: 50%; box-shadow: 0 0 2px #000, inset 0 0 2px #000; display: none; }
+#crosshair[data-rt="Shotgun"] .ring { display: block; }
+#crosshair[data-rt="Shotgun"] .ch, #crosshair[data-rt="Sniper"] .ch { display: none; }
+#crosshair[data-rt="Sniper"] .dot { width: 4px; height: 4px; left: -2px; top: -2px; }
+#crosshair[data-rt="Pistol"] .t { display: none; }
+.kf .kl { color: #ffd23f; margin-right: 3px; }

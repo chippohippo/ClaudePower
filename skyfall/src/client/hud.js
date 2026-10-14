@@ -113,7 +113,7 @@ export class HUD {
   }
 
   killfeed(ev, kind, g) {
-    const nm = (id) => (id ? g._name(id) : 'RING');
+    const nm = (id) => (id ? (id === g.killLeader ? '<span class="kl">♛</span>' : '') + g._name(id) : 'RING');
     const col = (id) => { const m = g.meta.get(id); return m ? LEGENDS[m.legend].color : '#888'; };
     const cls = (id) => (id === g.myId ? 'mine' : g._isMate(id) ? 'sq' : '');
     const icon = kind === 'knock' ? '<i class="ki knock">⤓</i>' : '<i class="ki kill">✖</i>';
@@ -222,6 +222,14 @@ export class HUD {
     const showCh = !g.adsFull && me.alive && !g.spectating && !g.skydiving;
     el.ch.style.display = showCh ? '' : 'none';
     if (showCh) {
+      // Apex-style hipfire reticles by weapon class (lines, shotgun ring, sniper dot)
+      const rt = g.reticle || 'AR';
+      if (el.ch.dataset.rt !== rt) el.ch.dataset.rt = rt;
+      if (rt === 'Shotgun') {
+        if (!this.chRing) { this.chRing = document.createElement('div'); this.chRing.className = 'ring'; el.ch.appendChild(this.chRing); }
+        const d = Math.max(16, g.pelletPx * 2);
+        this.chRing.style.width = this.chRing.style.height = d.toFixed(0) + 'px';
+      }
       const gap = 4 + sp;
       el.ch.children[0].style.transform = `translateY(${-gap - 9}px)`;
       el.ch.children[1].style.transform = `translateY(${gap}px)`;

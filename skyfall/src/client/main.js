@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { io } from 'socket.io-client';
 import { LEGENDS, LEGEND_IDS, ROLES, ROLE_IDS, roleTargets } from '../shared/legends.js';
 import { ROLE_ICON } from './roleicons.js';
-import { applyPalette, RIM } from './palette.js';
+import { applyPalette, setRimStrength } from './palette.js';
+import { STYLE } from './comic.js';
 import { Input, settings, saveSettings } from './input.js';
 import { HUD } from './hud.js';
 import { audio } from './audio.js';
@@ -131,7 +132,7 @@ $('#s-quality').value = settings.quality;
 // friend/foe clarity: colour-vision preset and enemy rim strength apply live
 const applyClarity = () => {
   applyPalette(settings.colorVision || 'default');
-  RIM.enemy.strength.value = 0.85 * (settings.enemyRim ?? 1);
+  setRimStrength(settings.enemyRim ?? 1, STYLE.comic);
 };
 applyClarity();
 $('#s-cv').value = settings.colorVision || 'default';
