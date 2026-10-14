@@ -36,6 +36,19 @@ function reticleTexture(kind) {
   }
   return new THREE.CanvasTexture(c);
 }
+// "Looking Glass" reticle: green bar — chevron — bar
+function glassReticle() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.strokeStyle = '#3dff6a'; g.lineWidth = 5; g.lineCap = 'round';
+  g.shadowColor = '#3dff6a'; g.shadowBlur = 6;
+  g.beginPath(); g.moveTo(22, 58); g.lineTo(50, 58); g.moveTo(78, 58); g.lineTo(106, 58); g.stroke();
+  g.lineWidth = 4;
+  g.beginPath(); g.moveTo(56, 70); g.lineTo(64, 62); g.lineTo(72, 70); g.moveTo(64, 63); g.lineTo(64, 78); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 const RETICLES = {};
 
 // Barrel height of an imported gun: the mean height of the vertices in its front-most 4 cm.
@@ -112,6 +125,24 @@ export function buildGun(id, tier = 0, att = null) {
     cyl(0.047, 0.05, body, 0, topY + 0.065, 0.03, 14);
     add(B(0.03, 0.05, 0.05), dark, 0, topY + 0.02, -0.12);
     sightY = topY + 0.065;
+  } else if (cls !== 'Sniper') {
+    // "Looking Glass" sight on every non-sniper gun (with or without a 1x/2x optic attached): a side
+    // body with a battery tube, an open hook-shaped ring and a glowing green bar–chevron–bar reticle
+    const k = cls === 'Pistol' ? 0.7 : 1;
+    const R = 0.034 * k, by = topY + 0.012 * k, cy = by + 0.012 * k + R, z = -0.07 * k;
+    add(B(0.03 * k, 0.018 * k, 0.07 * k), dark, 0, by, z + 0.01 * k); // mount on the rail
+    add(B(0.02 * k, 0.022 * k, 0.04 * k), dark, -0.03 * k, by + 0.012 * k, z + 0.01 * k); // side body
+    const bat = new THREE.CylinderGeometry(0.008 * k, 0.008 * k, 0.045 * k, 12); bat.rotateX(Math.PI / 2);
+    add(bat, body, -0.036 * k, by + 0.026 * k, z); // battery tube
+    const ringGeo = new THREE.TorusGeometry(R, 0.0022 * k, 6, 40, (265 / 180) * Math.PI);
+    const ring = add(ringGeo, dark, 0, cy, z);
+    ring.rotation.z = (-50 / 180) * Math.PI; // gap at the lower right, left end runs down into the body
+    add(B(0.003 * k, 0.012 * k, 0.003 * k), rare, 0, by + 0.014 * k, z - 0.03 * k); // little front post
+    RETICLES.glass = RETICLES.glass || glassReticle();
+    const ret = new THREE.Mesh(new THREE.PlaneGeometry(R * 1.3, R * 1.3), new THREE.MeshBasicMaterial({ map: RETICLES.glass, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    ret.position.set(0, cy, z);
+    g.add(ret);
+    sightY = cy;
   } else if (optic) {
     // holographic sight: frame + glowing reticle on a glass pane
     const big = optic === 'optic2';
