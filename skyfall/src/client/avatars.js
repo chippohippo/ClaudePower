@@ -302,6 +302,9 @@ export class Avatar {
       AL.sh.rotation.set(-2.9, 0, 0.2); AR.sh.rotation.set(-2.9, 0, -0.2); AL.el.rotation.x = AR.el.rotation.x = -0.5;
       LL.hip.rotation.x = -1.2; LL.knee.rotation.x = 1.4;
     }
+    // recoil: torso and arms kick back when this player fires
+    this.fireKick = Math.max(0, (this.fireKick || 0) - dt * 9);
+    if (this.fireKick > 0) { T.rotation.x -= this.fireKick * 0.12; AR.sh.rotation.x -= this.fireKick * 0.25; AL.sh.rotation.x -= this.fireKick * 0.2; this.gun.position.z += this.fireKick * 0.06; }
     // ability cast gesture: off-hand thrust forward
     this.castT += dt;
     if (this.castT < 0.5) { const k = Math.sin((this.castT / 0.5) * Math.PI); AL.sh.rotation.set(-1.6 * k + (1 - k) * AL.sh.rotation.x, 0, 0.1); AL.el.rotation.x = -0.1; }

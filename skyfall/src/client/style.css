@@ -299,3 +299,11 @@ body.comic .abil { box-shadow: 3px 3px 0 rgba(0,0,0,0.6); border-color: #111; }
 .rbadge svg { width: 16px; height: 16px; }
 .mate .gi { width: 13px; height: 13px; transform: rotate(-45deg); color: #111; display: block; }
 .mate .gi svg { width: 100%; height: 100%; display: block; }
+
+/* ---- pop-art impact words ---- */
+.pow { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; --ps: 1; }
+.pow::before { content: ''; position: absolute; inset: -18px -26px; background: var(--pc); opacity: 0.92;
+  clip-path: polygon(50% 0%, 61% 30%, 95% 12%, 72% 42%, 100% 55%, 70% 62%, 86% 95%, 55% 74%, 40% 100%, 34% 70%, 4% 88%, 24% 58%, 0% 40%, 30% 35%, 12% 6%, 42% 26%);
+  filter: drop-shadow(3px 3px 0 #000); }
+.pow span { position: relative; display: block; font-weight: 700; font-style: italic; font-size: calc(30px * var(--ps)); letter-spacing: 1px; color: #fff;
+  -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #111; white-space: nowrap; }

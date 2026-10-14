@@ -12,7 +12,7 @@ import * as THREE from 'three';
 export const STYLE = { comic: true };
 
 export const COMIC = {
-  bands: [0.42, 0.72, 1.0],   // cel-shading light bands
+  bands: [0.36, 0.7, 1.0],    // cel-shading light bands (deeper shadow band = punchier)
   lineColor: [0.05, 0.04, 0.06],
   silhouette: 0.025,          // relative depth jump that counts as an outline
   crease: 0.009,             // 1/z curvature that counts as a crease
@@ -127,7 +127,8 @@ export class ComicPost {
           float sky = step(far * 0.9, c);
           float dist = 1.0 - smoothstep(fade.x, fade.y, c);
           float creaseDist = 1.0 - smoothstep(25.0, 90.0, c); // creases are close-range detail only
-          float line = max(sil * (0.3 + 0.7 * dist), cr * (1.0 - sky) * creaseDist);
+          // far silhouettes fade to a soft tint so the horizon stays clean and readable
+          float line = max(sil * (0.18 + 0.82 * dist * dist), cr * (1.0 - sky) * creaseDist);
           // tone-map + sRGB first so grading and halftone work on display values
           gl_FragColor = vec4(texture2D(tColor, vUv).rgb, 1.0);
           #include <tonemapping_fragment>
@@ -136,6 +137,9 @@ export class ComicPost {
           float lum = dot(col, vec3(0.299, 0.587, 0.114));
           col = mix(vec3(lum), col, sat);
           col = (col - 0.5) * contrast + 0.5;
+          // painterly split-tone: cool shadows, warm highlights (keeps cel bands readable)
+          col = mix(col, col * vec3(0.78, 0.86, 1.12), clamp((0.45 - lum) * 2.2, 0.0, 1.0) * (1.0 - sky));
+          col = mix(col, col * vec3(1.06, 1.02, 0.94), clamp((lum - 0.6) * 2.5, 0.0, 1.0) * (1.0 - sky));
           // halftone dots in the shadows (screen-space, 45 degree grid)
           vec2 p = gl_FragCoord.xy / htSize;
           p = mat2(0.7071, -0.7071, 0.7071, 0.7071) * p;

@@ -279,6 +279,8 @@ export class Game {
         const auto = w.mode === 'auto';
         audio.gunshot(ev.w, o, false, { occluded, tail: !auto });
         if (auto) this.remoteBursts.set(ev.id, { w: ev.w, x: o.x, y: o.y, z: o.z, t: this.time, occluded });
+        const shooter = this.remotes.get(ev.id);
+        if (shooter && shooter.avatar) shooter.avatar.fireKick = Math.min(1.5, (shooter.avatar.fireKick || 0) + (w.pellets || w.cls === 'Sniper' ? 1.2 : 0.5));
         const enemy = !this._isMate(ev.id);
         if (enemy && dist > 55 && dist < 650) this.hud.gunfireCue(Math.atan2(-(o.x - camP.x), -(o.z - camP.z)), dist);
         if (enemy) this.lastCombatT = this.time;
@@ -322,6 +324,7 @@ export class Game {
             audio.play('shield_crack', null, { vol: M.shieldCrack, rate: SHIELD_PITCH[tier] || 1, var: 0.05 });
           }
           if (ev.brk) {
+            this._pow(ev.x, ev.y, ev.z, 'CRACK!', SHIELD_COLORS[tier], 1);
             audio.play('shield_break', null, { vol: M.shieldBreak, important: true, rate: SHIELD_PITCH[tier] || 1 });
             this.fx.shieldBreak(ev.x, ev.y, ev.z, tier);
             this.hud.edgeFlash(SHIELD_COLORS[tier], FEEL.hit.shieldBreakFlash);
@@ -329,6 +332,7 @@ export class Game {
             this.punch(C.shieldBreakTrauma, C.shieldBreakFov);
           } else this.punch(C.hitDealtTrauma, 0);
           if (ev.knock) {
+            this._pow(ev.x, ev.y + 0.3, ev.z, 'KNOCKED!', '#ff9a2a', 1.05);
             audio.play('knock', null, { vol: M.knock, important: true });
             this.hud.hitmarker('kill');
             this.hud.edgeFlash('#ff7a1a', 0.45);
@@ -365,6 +369,7 @@ export class Game {
         const mine = ev.a === this.myId;
         this.hud.killfeed(ev, 'kill', this);
         if (mine) {
+          if (pos) this._pow(pos.x, pos.y + 1.4, pos.z, ['K.O.!', 'WIPED!', 'BLAM!', 'POW!'][Math.floor(Math.random() * 4)], '#ff3b3b', 1.3);
           audio.play('kill', null, { vol: FEEL.mix.kill, important: true });
           this.hud.hitmarker('kill');
           this.hud.killConfirm(this._name(ev.v));
@@ -389,6 +394,7 @@ export class Game {
         const d = Math.hypot(ev.x - camP.x, ev.y - camP.y, ev.z - camP.z);
         this.fx.explosion(ev.x, ev.y, ev.z, ev.r || 4);
         if (ev.k === 'land') this.fx.ring(ev.x, ev.y, ev.z, '#ffd23f', 6);
+        else if (d < 45 && (ev.r || 4) >= 3) this._pow(ev.x, ev.y + 1, ev.z, ['KA-BOOM!', 'BOOM!', 'WHAM!'][Math.floor(Math.random() * 3)], '#ffb347', 0.9 + (ev.r || 4) * 0.04);
         if (d < 140) audio.play('boom', ev, { vol: ev.k === 'land' ? 0.6 : 1, var: 0.08, ref: 10, rolloff: 0.8, delay: d / 343, important: true, reverb: 0.3, occluded: this._occluded(ev) });
         else audio.play('boom_far', ev, { vol: 1, ref: 60, rolloff: 0.5, delay: Math.min(2, d / 343) });
         const C = FEEL.camera;
@@ -742,6 +748,11 @@ export class Game {
     return !!this.world.raycast(c.x, c.y, c.z, dx / d, dy / d, dz / d, d - 1, this.tmpBoxes, false);
   }
 
+  // Pop-art impact word (comic style only).
+  _pow(x, y, z, text, color, size) {
+    if (this.post && FEEL.hit.comicWords) this.fx.comicWord(x, y, z, text, color, size);
+  }
+
   // Camera trauma + FOV punch, scaled by the player's shake setting.
   punch(trauma, fov) {
     const k = settings.shake ?? 1;
@@ -991,6 +1002,7 @@ export class Game {
         this.net.send({ t: 'hit', id: b.id, k: b.k, v: target.id, part, x: +hx.toFixed(2), y: +hy.toFixed(2), z: +hz.toFixed(2) });
         const onShield = target.sh > 0 && !(target.fl & 1);
         this.hud.hitmarker(part === 'head' ? 'head' : 'body');
+        if (part === 'head' && this.time - (this.lastHeadPow || 0) > 0.6) { this.lastHeadPow = this.time; this._pow(hx, hy + 0.2, hz, 'HEADSHOT', '#ffd23f', 0.7); }
         // one hit sound per shot per target (shotguns would otherwise stack 11 sounds)
         const hk = b.id + ':' + target.id;
         if (this.lastHitKey !== hk || part === 'head') audio.play(part === 'head' ? 'hit_head' : onShield ? 'hit_shield' : 'hit_flesh', null, { vol: 0.85, var: 0.04 });

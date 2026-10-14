@@ -283,6 +283,12 @@ export class FX {
     }
   }
 
+  muzzleSmoke(x, y, z, k = 1) {
+    if (Math.random() > 0.6) return;
+    tmpC.setHSL(0, 0, 0.75);
+    this.smoke.emit(x, y, z, (Math.random() - 0.5) * 0.6, 0.5 + Math.random() * 0.4, (Math.random() - 0.5) * 0.6, tmpC, 0.25 * k, 0.6, -0.4, 1.2 * k);
+  }
+
   // world-space muzzle flash for other players' shots
   muzzleFlashWorld(o, d, w) {
     if (!this.mflash) {
@@ -304,6 +310,7 @@ export class FX {
     f.sp.visible = true;
     f.t = 0.05;
     this.flashLight(o.x, o.y, o.z, 5, 0.05, w.sound.zap ? '#b7ff6a' : '#ffbb66');
+    this.muzzleSmoke(f.sp.position.x, f.sp.position.y, f.sp.position.z, big);
   }
 
   // Weighty death: the body is detached, thrown along the killing blow, tumbles and settles.
@@ -452,17 +459,35 @@ export class FX {
     this.dmgNums.push({ el, key, val: dmg, x: x + (Math.random() - 0.5) * 0.4, y: y + 0.2, z: z + (Math.random() - 0.5) * 0.4, t: 0, vx: (Math.random() - 0.5) * 30 });
   }
 
+  // Pop-art impact word ("CRACK!", "K.O.!") on a starburst, projected at a world position.
+  comicWord(x, y, z, text, color = '#ffd23f', size = 1) {
+    const el = document.createElement('div');
+    el.className = 'pow';
+    el.innerHTML = `<span>${text}</span>`;
+    el.style.setProperty('--pc', color);
+    el.style.setProperty('--ps', size);
+    this.dmgLayer.appendChild(el);
+    this.dmgNums.push({ el, x, y: y + 0.6, z, t: 0, vx: 0, life: 1.0, pow: true, rot: (Math.random() - 0.5) * 18 });
+  }
+
   _updateDmg(dt) {
     const v = this.tmpV;
     const w = window.innerWidth, h = window.innerHeight;
     for (let i = this.dmgNums.length - 1; i >= 0; i--) {
       const d = this.dmgNums[i];
       d.t += dt;
-      if (d.t > 0.9) { d.el.remove(); this.dmgNums.splice(i, 1); continue; }
+      if (d.t > (d.life || 0.9)) { d.el.remove(); this.dmgNums.splice(i, 1); continue; }
       v.set(d.x, d.y, d.z).project(this.camera);
       if (v.z > 1) { d.el.style.display = 'none'; continue; }
       d.el.style.display = '';
       const sx = (v.x * 0.5 + 0.5) * w + d.vx * d.t, sy = (-v.y * 0.5 + 0.5) * h - d.t * 60;
+      if (d.pow) {
+        // overshoot pop, hold, then drift up and fade
+        const k = d.t < 0.12 ? 0.3 + (d.t / 0.12) * 1.1 : d.t < 0.2 ? 1.4 - ((d.t - 0.12) / 0.08) * 0.4 : 1;
+        d.el.style.transform = `translate(${sx}px, ${sy - d.t * 30}px) translate(-50%,-50%) rotate(${d.rot}deg) scale(${k})`;
+        d.el.style.opacity = d.t > 0.7 ? (1 - d.t) / 0.3 : 1;
+        continue;
+      }
       const sc = d.t < 0.08 ? 1.5 - d.t * 6 : 1;
       d.el.style.transform = `translate(${sx}px, ${sy}px) translate(-50%,-50%) scale(${sc})`;
       d.el.style.opacity = d.t > 0.6 ? (0.9 - d.t) / 0.3 : 1;
