@@ -14,6 +14,7 @@ node tools/movetest.js # checks that every movement tech works in the shared mov
 node tools/nettest.js  # two socket clients form a party, queue up and stream a match
 node tools/deathtest.js # knockdown → elimination → spectate → squad-out → end-of-match flow
 node tools/bottest.js   # bot quality: stuck events, A* usage, slides, wall bounces
+node tools/loottest.js  # drop kit, floor loot, evo armor, ammo-specific mags, respawn loadout
 node tools/audio/capture.mjs <dir> && python3 tools/audio/analyze.py <dir>
                        # render every sound in Chromium (needs `npm run dev`), print loudness /
                        # transient / band metrics and write a spectrogram contact sheet
@@ -71,7 +72,7 @@ src/
     viewmodel.js          first-person weapon: ADS, sway, bob, recoil springs, reload, sprint/slide poses, muzzle flash
     fx.js                 tracers, sparks, shield-coloured hit bursts, explosions, damage numbers, ability visuals
     lootview.js           pooled ground-loot rendering with rarity glows
-    hud.js                crosshair, hit and kill markers, damage arcs, evo shield bar, squad cards, ability cooldowns, minimap and big map, kill feed, inventory and death-box panels
+    hud.js                crosshair, hit and kill markers, damage arcs, armor bar, squad cards, ability cooldowns, minimap and big map, kill feed, inventory and death-box panels
     input.js              pointer-lock raw mouse, bindings, settings
     net.js / worker.js    transports (Socket.io / Web Worker)
 server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick per match, bot takeover on disconnect
@@ -99,15 +100,47 @@ server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick pe
   - Hipfire spread grows when moving or airborne and tightens when sliding or crouched. Firing adds bloom.
   - ADS time comes from the weapon and is modified by stocks. Optics change the zoom.
   - Shotguns use a fixed pellet pattern and damage falls off with range. Headshot multipliers are reduced by helmets.
-- **Survivability**
-  - Evo shields level up white → blue → purple → red from damage you deal, and refill when they level up.
+- **Adapt Armor (Evo-style)**
+  - Everyone drops in white armor with full shields; there is no body armor on the floor.
+  - Evo points level it white (50) → blue (75) → purple (100) → red (125) and refill shields each
+    time: 1 point per damage dealt and per HP healed on a squadmate, ½ point per HP/shield restored
+    on yourself, +25 per knock, +50 per revive, +75 per respawn. Thresholds 200 / 400 / 700
+    (`EVO_THRESHOLDS`, `EVO_POINTS` in `shared/constants.js`).
+  - Death boxes still hold the victim's armor (with its evo progress), so box swaps work.
   - Players are knocked down before they are eliminated, and can be revived.
-  - Eliminated players drop a death box carrying their banner for 90 s. A squadmate can take the banner to a respawn beacon.
+  - Eliminated players drop a death box carrying their banner for 90 s. A squadmate can take the
+    banner to a respawn beacon. **Respawned legends keep their guns (with attachments) and their
+    armor level**, with one loaded mag and one spare mag per gun.
+- **No fall damage**, from any height.
+- **Drop and freefall** (Apex-style, no parachute)
+  - Everyone drops empty-handed from the drop ship.
+  - Third-person camera while skydiving, contrails behind every diver (squadmates in legend
+    colours), altitude and speed readout.
+  - Hold forward at the horizon for the longest glide (~30 m/s forward, ~18 m/s down); look down
+    to dive (~58 m/s). Sideways input is half as strong and holding back air-brakes. Pulling out
+    of a dive turns the extra fall speed into a forward surge.
+  - Landing jets fire about 22 m up; you touch down keeping ¾ of your speed.
 - **Ring**: 7 phases, ring damage ignores shields, and a care package drops on rounds 2–5.
-- **Loot**
-  - Ground loot is tiered by POI; two hot zones carry top-tier loot.
-  - Supply bins, care packages and death boxes.
+- **Loot** (Apex layout, unique names)
+  | Apex | SKYFALL | Effect |
+  |---|---|---|
+  | Syringe | Quick Patch | +25 HP, 5 s |
+  | Med Kit | Trauma Kit | +100 HP, 8 s |
+  | Shield Cell | Aegis Cell | +25 shield, 3 s |
+  | Shield Battery | Aegis Battery | +100 shield, 5 s |
+  | Phoenix Kit | Ember Kit | full HP + shield, 10 s |
+  | Evo Shield | Adapt Armor | levels with evo points |
+  | Arc Star | Spark Disc | sticky, slows |
+  | Extended mags | Extended Light / Heavy / Energy / Sniper Mag | ammo-specific, Lv1–3 |
+  | Barrel Stabilizer / Standard Stock | Recoil Compensator / Tactical Stock | Lv1–3 |
+  | HCOG / Ranger | 1x/2x Holo Sight, 3x Longsight | optics |
+  - Ground loot is tiered by POI and sits on building floors, balconies, rooftops (one tier
+    higher), landmark platforms and mesa tops. Floor guns usually spawn with a stack of their ammo.
+  - Supply bins are spread around POIs, inside buildings, on rooftops and on landmark tops
+    (giant tree, spire, crane boom, mesas). Care packages and death boxes complete the set.
   - Attachments auto-attach. The inventory has backpack slots and drop support.
+- **Raptor Magnum** (Wingman-style): sniper ammo, 45 body / ~97 head / 45 legs, 156 RPM, 6-round
+  cylinder (7/8/9 with sniper mags), 2.1 s reload, takes mags and optics but no barrel.
 
 ### Legends (all 9 playable) and hero roles
 Every legend belongs to a role (`cls` in `shared/legends.js`).
@@ -269,7 +302,7 @@ See `docs/JUICE.md` for the measured audit this pass was based on.
 - One procedurally generated map (seeded) with 12 POIs.
 - All 9 legends with Tank / DPS / Support roles (2/2/2 in Sixes).
 - Six zone themes with landmarks, ziplines, jump pads and climbable mesas.
-- 10 weapons: 2 ARs, 2 SMGs, an LMG, a shotgun, a marksman rifle, a sniper and 2 pistols.
+- 10 weapons: 2 ARs (Talon, Mauler), 2 SMGs (Hornet, Surge), an LMG (Bulwark), a shotgun (Breacher), a marksman rifle (Marshal), a sniper (Harrier), the Raptor Magnum and a pistol (Stinger).
 - Full movement tech, ring, loot, bots, squads, respawn banners, spectating, Trios/Sixes, parties, firing range, procedural audio.
 
 **Next steps:**
