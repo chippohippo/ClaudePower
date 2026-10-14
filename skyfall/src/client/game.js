@@ -14,6 +14,8 @@ import { THEMES } from '../shared/themes.js';
 import { speedMul } from '../shared/mods.js';
 import { rayPlayer } from '../shared/physics.js';
 import { rayHitbox, poseOf, hitboxCapsules } from '../shared/hitbox.js';
+import { say, pingLine } from './voice.js';
+import { loadProfile, recordMatch, summaryHtml } from './progression.js';
 import { DEG, clamp, dirFromAngles, wrapAngle, lerp } from '../shared/util.js';
 import { WorldView } from './world.js';
 import { createAvatar } from './modelavatar.js';
@@ -90,6 +92,12 @@ export class Game {
     this.squadInfo = [];
     this.entityList = [];
     this.pings = [];
+    this.mapMarks = [];      // timed map markers: supply drops, Kill Leader sightings
+    this.killcam = null;     // { id, x, y, z, t } after being eliminated
+    this.secondAt = 0;       // Second Chance redeploy time (game clock)
+    this.lastPingT = -9;
+    this.tutorial = app.tutorial || null;
+    app.tutorial = null;
     this.phase = 'ship';
 
     // weapon feel state
@@ -137,7 +145,12 @@ export class Game {
       case 'toast': this.hud.toast(m.msg); break;
       case 'squadout': this._squadOut(m); break;
       case 'end': this._end(m); break;
-      case 'respawned': this.hud.announce('YOU HAVE BEEN RESPAWNED', 3); this.spectating = false; break;
+      case 'respawned': this.hud.announce('YOU HAVE BEEN RESPAWNED', 3); this.spectating = false; this.secondAt = 0; this.killcam = null; this._hideRecap(); break;
+      case 'recap': this._recap(m); break;
+      case 'second':
+        this.secondAt = this.time + m.at;
+        this.hud.announce('SECOND CHANCE', 3.5, `You redeploy next to your squad in ${m.at}s`, '#7dff9b');
+        break;
       case 'pong': this.pingMs = Math.round(performance.now() - m.c); break;
     }
   }
@@ -313,6 +326,7 @@ export class Game {
         break;
       }
       case 'hit': {
+        if (ev.a === this.myId && this.tutorial) this.tutorial.flag('hit');
         const M = FEEL.mix, C = FEEL.camera;
         if (ev.a === this.myId && ev.v !== this.myId) {
           const tier = ev.tier;
@@ -366,6 +380,8 @@ export class Game {
         break;
       }
       case 'knock': {
+        if (ev.a === this.myId && ev.v !== this.myId) say('Knocked one!', this.meta.get(this.myId)?.legend, { priority: true });
+        if (ev.v === this.myId) say("I'm down, need a revive!", this.meta.get(this.myId)?.legend, { priority: true });
         const mine = ev.a === this.myId;
         this.hud.killfeed(ev, 'knock', this);
         if (mine) this.hud.toast(`KNOCKED DOWN ${this._name(ev.v)}`);
@@ -375,6 +391,7 @@ export class Game {
         break;
       }
       case 'kill': {
+        if (ev.a === this.myId && ev.v !== this.myId) say('Enemy eliminated.', this.meta.get(this.myId)?.legend);
         const mine = ev.a === this.myId;
         this.hud.killfeed(ev, 'kill', this);
         if (mine) {
@@ -413,7 +430,7 @@ export class Game {
         if (d < 300) this.lastCombatT = this.time;
         break;
       }
-      case 'abil': this._abilEvent(ev, pos); break;
+      case 'abil': if (ev.id === this.myId && this.tutorial) this.tutorial.flag('abil'); this._abilEvent(ev, pos); break;
       case 'shell': this.fx.incomingShell(ev.x, ev.y, ev.z, ev.tt); break;
       case 'mv': {
         if (ev.id === this.myId) break;
@@ -436,7 +453,7 @@ export class Game {
       }
       case 'heal': if (ev.id !== this.myId) audio.play('stim', pos, { vol: 0.25, rate: 1.5 }); break;
       case 'healed': audio.play('healed', null, { vol: 0.6 }); break;
-      case 'pickup': audio.play(ev.item === 'armor' || ev.item === 'helmet' || ev.item === 'pack' || ev.item === 'kd' ? 'pickup_armor' : 'pickup', null, { vol: 0.7 }); break;
+      case 'pickup': if (this.tutorial) this.tutorial.flag('pickup'); audio.play(ev.item === 'armor' || ev.item === 'helmet' || ev.item === 'pack' || ev.item === 'kd' ? 'pickup_armor' : 'pickup', null, { vol: 0.7 }); break;
       case 'evo':
         audio.play('evo', null, { vol: 0.9, important: true });
         this.hud.announce(`ADAPT ARMOR UPGRADED — LV ${ev.tier}`, 2.5);
@@ -446,6 +463,20 @@ export class Game {
         if (ev.s === 'close') { audio.play('ring_close', null, { vol: 0.8, important: true }); }
         break;
       case 'msg': this.hud.announce(ev.text.toUpperCase(), 3.5); break;
+      case 'drop':
+        this.mapMarks.push({ x: ev.x, z: ev.z, color: '#ffd23f', label: 'SUPPLY', t: 90, k: 'drop' });
+        say(pingLine('drop'), this.meta.get(this.myId)?.legend);
+        break;
+      case 'klpos':
+        if (ev.id !== this.myId) {
+          this.mapMarks = this.mapMarks.filter((mk) => mk.k !== 'kl');
+          this.mapMarks.push({ x: ev.x, z: ev.z, color: '#ffd23f', label: '♛ KILL LEADER', t: 12, k: 'kl' });
+          this.hud.toast(`♛ KILL LEADER ${this._name(ev.id)} SPOTTED — check the map`);
+        } else this.hud.toast('♛ Your position was revealed to everyone');
+        break;
+      case 'balloon':
+        audio.play('skyward', pos, { vol: 0.6 });
+        break;
       case 'kl': {
         const who = this._name(ev.id);
         if (ev.k === 'new') {
@@ -479,9 +510,13 @@ export class Game {
         this.fx.burst(ev.x, ev.y + 0.5, ev.z, '#3fa9ff', 14, 2, 0.12, 0.5);
         break;
       case 'ping': {
-        const color = ev.k === 'enemy' ? '#ff3b3b' : ev.k === 'loot' ? '#ffd23f' : LEGENDS[this.meta.get(ev.id)?.legend || 'jolt'].color;
-        this.pings.push({ x: ev.x, y: ev.y, z: ev.z, t: 12, color, k: ev.k, who: this._name(ev.id), el: null });
-        audio.play(ev.k === 'enemy' ? 'enemy_down_ping' : 'ping', null, { vol: 0.6 });
+        const legend = this.meta.get(ev.id)?.legend || 'jolt';
+        const danger = ev.k === 'enemy' || ev.k === 'danger';
+        const color = danger ? '#ff3b3b' : ev.k === 'loot' ? '#ffd23f' : LEGENDS[legend].color;
+        this.pings.push({ x: ev.x, y: ev.y, z: ev.z, t: ev.k === 'danger' ? 20 : 12, color, k: ev.k, label: ev.l || '', who: this._name(ev.id), el: null });
+        audio.play(danger ? 'enemy_down_ping' : 'ping', null, { vol: 0.6 });
+        say(pingLine(ev.k, ev.l, ev.id === this.myId), legend, { priority: danger });
+        if (ev.id === this.myId && this.tutorial) this.tutorial.flag('ping');
         break;
       }
     }
@@ -536,6 +571,9 @@ export class Game {
   _squadOut(m) {
     this.squadDone = m;
     if (this.ended) return;
+    // let the kill cam and death recap play before the results screen covers them
+    if (this.killcam && this.killcam.t > 0 && !m.delayed) { setTimeout(() => this._squadOut({ ...m, delayed: true }), this.killcam.t * 1000 + 400); return; }
+    this._hideRecap();
     // show placement right away; the player can keep spectating or leave
     this.input.unlock();
     const el = document.getElementById('endscreen');
@@ -545,8 +583,37 @@ export class Game {
     el.querySelector('.sub').textContent = 'SQUAD ELIMINATED';
     el.querySelector('.stats').innerHTML = `<span>KILLS ${m.kills}</span><span>DAMAGE ${m.damage}</span><span>SQUAD KILLS ${m.squadKills}</span>`;
     this.hud.roster(m.squad);
+    this._progress(m, m.place, false);
     document.getElementById('btn-spectate').style.display = '';
   }
+
+  // XP, challenges and ranked points, once per match (not in the Firing Range)
+  _progress(m, place, win) {
+    if (this.practice || this.progressed || !m.stats) return;
+    this.progressed = true;
+    const r = recordMatch(loadProfile(), m.stats, place, win);
+    const el = document.querySelector('#endscreen .summary');
+    if (el) el.innerHTML = summaryHtml(r);
+  }
+
+  // Death recap: who, with what, from how far, their health left and the damage traded
+  _recap(m) {
+    const el = document.getElementById('recap');
+    if (!el) return;
+    const by = m.by;
+    const title = m.kind === 'knock' ? 'KNOCKED DOWN' : 'ELIMINATED';
+    const who = by ? `<b style="color:${LEGENDS[by.legend]?.color || '#fff'}">${by.isKL ? '♛ ' : ''}${by.name}</b> <small>${LEGENDS[by.legend]?.name || ''}</small>` : m.ring ? '<b>THE RING</b>' : '<b>yourself</b>';
+    const left = by ? `<div>They had <b>${by.hp}</b> HP${by.shield > 0 ? ` + <b>${by.shield}</b> shield` : ''} · ${by.kills} kills</div>` : '';
+    const trade = by ? `<div>You took <b>${m.taken}</b> in ${m.hits} hits${m.heads ? ` (${m.heads} headshots)` : ''} · you dealt <b>${m.dealt}</b></div>` : '';
+    const assists = m.assists && m.assists.length ? `<div class="assist">Also hit by ${m.assists.map((a) => `${a.name} (${a.dmg})`).join(', ')}</div>` : '';
+    el.innerHTML = `<div class="rt">${title} BY</div><div class="rw">${who}</div><div>${m.weapon || ''}${m.dist ? ` · ${m.dist} m` : ''}</div>${left}${trade}${assists}`;
+    el.classList.remove('hidden');
+    clearTimeout(this.recapTimer);
+    this.recapTimer = setTimeout(() => this._hideRecap(), m.kind === 'knock' ? 5000 : 9000);
+    if (m.kind === 'elim' && by && by.id !== this.myId) this.killcam = { id: by.id, x: this.pred.x, y: this.pred.y, z: this.pred.z, t: 3.5, dur: 3.5 };
+  }
+
+  _hideRecap() { const el = document.getElementById('recap'); if (el) el.classList.add('hidden'); }
 
   spectate() {
     document.getElementById('endscreen').classList.add('hidden');
@@ -565,6 +632,7 @@ export class Game {
     el.querySelector('.sub').textContent = m.win ? 'YOU ARE THE CHAMPIONS' : `CHAMPIONS: ${m.champs.join(' · ')}`;
     el.querySelector('.stats').innerHTML = `<span>KILLS ${m.kills}</span><span>DAMAGE ${m.damage}</span><span>SQUAD KILLS ${m.squadKills}</span>`;
     this.hud.roster(m.squad);
+    this._progress(m, m.place, !!m.win);
     if (m.win) audio.play('victory', null, { vol: 0.9, important: true });
   }
 
@@ -657,6 +725,9 @@ export class Game {
     this.fx.update(dt, this.time);
     this.loot.update(dt, this.time, cp.x, cp.z);
     this._updatePings(dt);
+    for (const mk of this.mapMarks) mk.t -= dt;
+    if (this.mapMarks.some((mk) => mk.t <= 0)) this.mapMarks = this.mapMarks.filter((mk) => mk.t > 0);
+    if (this.tutorial) this.tutorial.update(this);
 
     // ---- viewmodel
     const ms = this.spectating ? this.meView.ms : this.pred;
@@ -904,7 +975,7 @@ export class Game {
       return;
     }
     const w = this.activeWeapon();
-    if (inp.hit('reload')) this._reload();
+    if (inp.hit('reload')) { this._reload(); if (this.tutorial) this.tutorial.flag('reload'); }
     if (inp.hit('slot1')) this._switch(0);
     if (inp.hit('slot2')) this._switch(1);
     if (m.wheel) this._switch(1 - (this.inv ? this.inv.active : 0));
@@ -951,21 +1022,36 @@ export class Game {
     this._invChanged();
   }
 
+  // Contextual ping (Apex-style): enemy under the crosshair → "Enemy!", loot / boxes / supply drops
+  // under the crosshair → "<item> over here", otherwise a location ("Let's go here", or "Going
+  // here" for spots close by). Double-tap: "Enemy was here" danger marker.
   _ping() {
     const d = dirFromAngles(this.yaw, this.pitch);
     const c = this.camera.position;
-    let k = 'go';
-    // enemy under crosshair?
+    const send = (x, y, z, k, l = '') => this.net.send({ t: 'act', a: 'ping', x, y, z, k, l });
+    const hit = this.world.raycast(c.x, c.y, c.z, d.x, d.y, d.z, 600, this.tmpBoxes, false);
+    const t = hit ? hit.t : 300;
+    const px = c.x + d.x * t, py = c.y + d.y * t, pz = c.z + d.z * t;
+    const dbl = this.time - this.lastPingT < 0.35;
+    this.lastPingT = this.time;
+    if (dbl) { send(px, py, pz, 'danger'); return; }
     for (const r of this.remotes.values()) {
       if (r.meta.squad === this.mySquad || !r.avatar) continue;
       const p = r.avatar.root.position;
-      const hit = rayPlayer(c.x, c.y, c.z, d.x, d.y, d.z, p.x, p.y, p.z, 1.8, 0.8, 300);
-      if (hit) { this.net.send({ t: 'act', a: 'ping', x: p.x, y: p.y + 2, z: p.z, k: 'enemy' }); return; }
+      const h = rayPlayer(c.x, c.y, c.z, d.x, d.y, d.z, p.x, p.y, p.z, 1.8, 0.8, 300);
+      if (h) { send(p.x, p.y + 2, p.z, 'enemy'); return; }
     }
-    if (this.prompt && this.prompt.lootId) k = 'loot';
-    const hit = this.world.raycast(c.x, c.y, c.z, d.x, d.y, d.z, 600, this.tmpBoxes, false);
-    const t = hit ? hit.t : 300;
-    this.net.send({ t: 'act', a: 'ping', x: c.x + d.x * t, y: c.y + d.y * t, z: c.z + d.z * t, k });
+    if (this.prompt && this.prompt.lootId) {
+      const it = this.loot.items.get(this.prompt.lootId);
+      if (it) { send(it.x, it.y + 0.4, it.z, 'loot', itemName(it.item, it.tier)); return; }
+    }
+    // a looted-at supply drop / death box anywhere along the view ray
+    for (const e of this.entityList) {
+      if (e.k !== 'carepkg' && e.k !== 'box') continue;
+      const vx = e.x - c.x, vy = e.y + 0.5 - c.y, vz = e.z - c.z, L = Math.hypot(vx, vy, vz);
+      if (L < 150 && (vx * d.x + vy * d.y + vz * d.z) / L > 0.997) { send(e.x, e.y + 1, e.z, 'loot', e.k === 'carepkg' ? 'Supply drop' : `${e.name}'s box`); return; }
+    }
+    send(px, py, pz, t < 35 ? 'going' : 'go');
   }
 
   pingAt(x, z) {
@@ -1324,6 +1410,19 @@ export class Game {
     let fov = baseV + this.speedFov + this.fovKick;
     const zf = 1 + (zoom - 1) * this.adsAmt;
     fov = 2 * Math.atan(Math.tan((fov * DEG) / 2) / zf) / DEG;
+    // kill cam: from where you fell, zoomed onto whoever eliminated you
+    const kc = this.killcam;
+    if (kc && kc.t > 0) {
+      kc.t -= dt;
+      const r = this.remotes.get(kc.id);
+      if (r && r.avatar) {
+        const p = r.avatar.root.position, k = 1 - kc.t / kc.dur;
+        cam.position.set(kc.x, kc.y + 2.2 + k * 1.2, kc.z);
+        cam.lookAt(p.x, p.y + 1.3, p.z);
+        const dist = Math.hypot(p.x - kc.x, p.z - kc.z);
+        fov = Math.max(8, Math.min(45, (2 * Math.atan(4 / Math.max(1, dist)) / DEG) * (1.6 - k * 0.5)));
+      } else kc.t = 0;
+    }
     cam.fov = fov;
     cam.aspect = innerWidth / innerHeight;
     cam.updateProjectionMatrix();
@@ -1345,6 +1444,7 @@ export class Game {
       return;
     }
     if (!me.alive) {
+      if (this.secondAt > this.time) this.centerMsg = `<span style="color:#7dff9b">SECOND CHANCE</span> — REDEPLOYING IN ${Math.ceil(this.secondAt - this.time)}s`;
       if (this.spectating) {
         const el = document.getElementById('spectate');
         el.classList.remove('hidden');
@@ -1380,6 +1480,9 @@ export class Game {
       if (r.meta.squad !== this.mySquad || !(r.fl & 1) || !r.avatar) continue;
       const p = r.avatar.root.position;
       if (Math.hypot(p.x - px, p.z - pz) < 2.5) { best = { html: `HOLD <b>[E]</b> REVIVE ${r.meta.name.toUpperCase()}`, hold: true }; bs = 2; }
+    }
+    for (const b of this.map.balloons || []) {
+      if (Math.hypot(b.x - px, b.z - pz) < 2.4 && Math.abs(b.y - py) < 3) { best = { html: 'HOLD <b>[E]</b> REDEPLOY BALLOON', color: '#7ab8ff', hold: true }; bs = 2; }
     }
     if (me.banners) {
       for (const b of this.map.beacons) {
@@ -1558,7 +1661,8 @@ export class Game {
       if (v.z > 1) { p.el.style.display = 'none'; continue; }
       p.el.style.display = '';
       const dist = Math.round(Math.hypot(p.x - this.camera.position.x, p.z - this.camera.position.z));
-      p.el.innerHTML = `<div style="color:${p.color};text-align:center">◆<br>${p.k === 'enemy' ? 'ENEMY' : p.k === 'loot' ? 'LOOT' : p.who} ${dist}m</div>`;
+      const what = p.k === 'enemy' ? 'ENEMY' : p.k === 'danger' ? 'ENEMY WAS HERE' : p.k === 'loot' ? (p.label || 'LOOT').toUpperCase() : p.k === 'going' ? `${p.who} GOING` : p.who;
+      p.el.innerHTML = `<div style="color:${p.color};text-align:center">${p.k === 'danger' ? '⚠' : '◆'}<br>${what} ${dist}m</div>`;
       p.el.style.transform = `translate(${(v.x * 0.5 + 0.5) * innerWidth}px, ${(-v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`;
     }
   }
@@ -1584,6 +1688,8 @@ export class Game {
     audio.stopAll();
     this.hud.show(false);
     for (const p of this.pings) if (p.el) p.el.remove();
+    if (this.tutorial && !this.tutorial.done) this.tutorial.dispose();
+    this._hideRecap();
     for (const id of ['inventory', 'deathbox', 'bigmap', 'spectate', 'endscreen']) document.getElementById(id).classList.add('hidden');
   }
 }

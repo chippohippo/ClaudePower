@@ -20,6 +20,24 @@ export const BOT_NAMES = [
   'Axiom', 'Brisk', 'Cobalt', 'Dusk', 'Ether', 'Fang', 'Glitch', 'Husk', 'Ignis', 'Jolt', 'Knox', 'Lotus',
 ];
 
+// Human-looking gamer tags: a base word, optionally decorated like real players' names.
+const TAG_A = ['silent', 'lazy', 'toxic', 'salty', 'big', 'lil', 'its', 'not', 'dark', 'cozy', 'pro', 'sir', 'xX', 'tired', 'mega', 'shy', 'the', 'odd', 'real', 'just'];
+const TAG_B = ['rook', 'panda', 'wraith', 'taco', 'noodle', 'falcon', 'goose', 'reaper', 'bean', 'kraken', 'pixel', 'otter', 'viking', 'ghost', 'muffin', 'cobra', 'nova', 'pickle', 'drifter', 'ninja', 'bandit', 'moth', 'yeti', 'mango'];
+export function gamerTag(r) {
+  const cap = (w) => w[0].toUpperCase() + w.slice(1);
+  const a = TAG_A[Math.floor(r() * TAG_A.length)], b = TAG_B[Math.floor(r() * TAG_B.length)];
+  const n = Math.floor(r() * 9999);
+  switch (Math.floor(r() * 7)) {
+    case 0: return `${cap(a)}${cap(b)}`;
+    case 1: return `${a}_${b}${n % 100}`;
+    case 2: return a === 'xX' ? `xX_${cap(b)}_Xx` : `${b}${n % 1000}`;
+    case 3: return `${cap(b)}TTV`;
+    case 4: return BOT_NAMES[Math.floor(r() * BOT_NAMES.length)] + (n % 100);
+    case 5: return `${b}.${a}`;
+    default: return `${cap(a)}${cap(b)}${n % 10}`;
+  }
+}
+
 const tmpPlayers = [];
 const tmpLoot = [];
 const tmpBoxes = [];
@@ -29,7 +47,9 @@ export class Bot {
     this.m = match;
     this.p = p;
     const r = match.rng;
-    this.baseSkill = 0.22 + r() * 0.3;
+    // lobby difficulty (match.botSkill 0..1, from the host's rank / level) shifts the whole spread
+    const d = match.botSkill ?? 0.5;
+    this.baseSkill = 0.1 + d * 0.3 + r() * 0.3;
     this.inp = { mx: 0, mz: 0, yaw: 0, pitch: 0, buttons: 0 };
     this.yaw = r() * Math.PI * 2;
     this.pitch = 0;
@@ -178,6 +198,8 @@ export class Bot {
       case 'loot': this._loot(dt); break;
       case 'banner': this._banner(dt); break;
       case 'beacon': this._beacon(dt); break;
+      case 'hold': this._hold(dt); break;
+      case 'balloon': this._balloon(dt); break;
       default: this._roam(dt); break;
     }
     return this._finish(dt);
@@ -317,6 +339,12 @@ export class Bot {
     // outside ring or ring closing fast → rotate first
     if (ringDist > R.r - 15 || (R.state === 'close' && Math.hypot(p.ms.x - R.nx, p.ms.z - R.nz) > R.nr * 0.9 && R.t < 25)) {
       if (hurt && healItem && ringDist < R.r - 5) { this.state = 'heal'; return; }
+      // a long rotation with a redeploy balloon close by: fly instead of running
+      if (this.state === 'balloon' && this.balloonGoal) return;
+      if (Math.hypot(p.ms.x - R.nx, p.ms.z - R.nz) > R.nr + 80) {
+        const b = this._nearBalloon(160);
+        if (b && !(this.badBalloons && this.badBalloons.has(b))) { this.balloonGoal = b; this.balloonT = m.time; this.state = 'balloon'; return; }
+      }
       this.state = 'rotate';
       return;
     }
@@ -338,10 +366,22 @@ export class Bot {
         return;
       }
     }
-    // third party: head toward recent gunfire when kitted
+    // keep holding a building for a while once committed
+    if (this.state === 'hold' && m.time < this.holdUntil) return;
+    // third party: head toward recent gunfire when kitted, but stop short and hold an angle
+    // instead of sprinting into the middle of someone else's fight
     if (this.heard && m.time - this.heard.t < 10 && this.hasGun() && (this.kitted() || this.skill > 0.6)) {
+      const dh = Math.hypot(this.heard.x - p.ms.x, this.heard.z - p.ms.z);
+      if (dh < 38 && this.skill > 0.35) { this._startHold(this.heard.x, this.heard.z, 4 + m.rng() * 4); return; }
       this.goal = { x: this.heard.x, z: this.heard.z };
       this.state = 'thirdparty';
+      return;
+    }
+    // indoors, kitted, zone safe and enemies around (or late game): hold the building
+    const safe = ringDist < R.r - 40 && Math.hypot(p.ms.x - R.nx, p.ms.z - R.nz) < R.nr * 0.85;
+    if (safe && this.kitted() && this._indoors() && (m.time - this.lastSeen.t < 20 || (m.alive || 100) < 25) && m.rng() < 0.5 + this.skill * 0.3) {
+      const ref = m.time - this.lastSeen.t < 20 ? this.lastSeen : { x: R.nx, z: R.nz };
+      this._startHold(ref.x, ref.z, 6 + m.rng() * 8);
       return;
     }
     if (!this.kitted() || (m.time - (this.lootStart || 0) < 6)) {
@@ -568,6 +608,51 @@ export class Bot {
     this._lookMove(dt);
     this._opportunisticLoot();
     this._utilityUlt();
+  }
+
+  _indoors() {
+    const p = this.p, h = this.m.world.raycast(p.ms.x, p.ms.y + 1.6, p.ms.z, 0, 1, 0, 9, tmpBoxes, false);
+    return !!h;
+  }
+
+  _nearBalloon(r) {
+    const p = this.p;
+    let best = null, bd = r;
+    for (const b of this.m.map.balloons || []) {
+      const d = Math.hypot(b.x - p.ms.x, b.z - p.ms.z);
+      if (d < bd && Math.abs(b.y - p.ms.y) < 4) { best = b; bd = d; }
+    }
+    return best;
+  }
+
+  // hold position facing a threat: crouched, still, peeking; the fight state takes over on sight
+  _startHold(x, z, dur) {
+    this.state = 'hold';
+    this.holdAt = { x, z };
+    this.holdUntil = this.m.time + dur;
+  }
+
+  _hold(dt) {
+    const p = this.p, m = this.m;
+    if (m.time >= this.holdUntil) { this.state = 'roam'; return; }
+    const a = Math.atan2(-(this.holdAt.x - p.ms.x), -(this.holdAt.z - p.ms.z));
+    const sweep = Math.sin(m.time * 0.9 + p.id) * 0.5;
+    this.yaw = wrapAngle(this.yaw + wrapAngle(a + sweep - this.yaw) * Math.min(1, dt * 3));
+    this.pitch += (0 - this.pitch) * Math.min(1, dt * 3);
+    // crouch-peek rhythm
+    if (Math.sin(m.time * 1.3 + p.id * 0.7) > 0.2) this.inp.buttons |= BTN.CROUCH;
+    this._maybeReload();
+  }
+
+  _balloon(dt) {
+    const p = this.p, b = this.balloonGoal;
+    if (!b) { this.state = 'roam'; return; }
+    // can't get there (cliff, water, blocked path): give up on this balloon
+    if (this.m.time - this.balloonT > 25) { (this.badBalloons ||= new Set()).add(b); this.balloonGoal = null; this.state = 'rotate'; return; }
+    const d = Math.hypot(b.x - p.ms.x, b.z - p.ms.z);
+    if (d > 1.6) { this._moveTo(b.x, b.z, dt, true, 1.0); this._lookMove(dt); return; }
+    this.inp.buttons |= BTN.INTERACT;
+    if (p.ms.launchT > 0) { this.balloonGoal = null; this.state = 'roam'; }
   }
 
   _lookAround(dt) {

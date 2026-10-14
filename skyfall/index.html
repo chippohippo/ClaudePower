@@ -97,8 +97,11 @@
     <div class="sub"></div>
     <div class="stats"></div>
     <div class="roster"></div>
+    <div class="summary"></div>
     <div class="row"><button id="btn-spectate">SPECTATE</button><button id="btn-back">BACK TO LOBBY</button></div>
   </div>
+
+  <div id="recap" class="hidden"></div>
 
   <div id="pause" class="hidden">
     <div class="panel">
@@ -121,6 +124,7 @@
           <button class="mode active" data-mode="trios">TRIOS<small>squads of 3</small></button>
           <button class="mode" data-mode="sixes">SIXES<small>squads of 6</small></button>
         </div>
+        <label class="cb ranked"><input type="checkbox" id="ranked" /> RANKED <small>RP · tiers · tougher bots</small></label>
         <button id="btn-play" class="big">PLAY <small>solo queue · bots fill</small></button>
         <div class="party" id="online">
           <div class="party-title">ONLINE <small id="server-status">not connected — PLAY runs offline vs bots</small></div>
@@ -140,6 +144,7 @@
           <button id="btn-settings">SETTINGS</button>
           <button id="btn-controls">CONTROLS</button>
           <button id="btn-range">FIRING RANGE</button>
+          <button id="btn-tutorial">TUTORIAL</button>
         </div>
       </div>
       <div class="col right">
@@ -147,6 +152,7 @@
         <div id="role-bar" class="hidden"></div>
         <div id="legend-grid"></div>
         <div id="legend-detail"></div>
+        <div id="profile" class="party"></div>
       </div>
     </div>
     <div id="loading" class="hidden"><div class="spinner"></div><div class="txt">SYNTHESISING AUDIO…</div></div>
@@ -162,6 +168,7 @@
     <label class="cb"><input type="checkbox" id="s-toggleads" /> Toggle ADS</label>
     <label class="cb"><input type="checkbox" id="s-invert" /> Invert Y</label>
     <label class="cb"><input type="checkbox" id="s-fps" /> Show FPS / ping</label>
+    <label class="cb"><input type="checkbox" id="s-voice" /> Voice callouts (pings, knocks)</label>
     <label>Colour vision <select id="s-cv"><option value="default">Default (red foes / cyan allies)</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option></select><span></span></label>
     <label>Enemy highlight <select id="s-rim"><option value="1">On (rim light)</option><option value="0.5">Subtle</option><option value="0">Off</option></select><span></span></label>
     <label>Art style <select id="s-art"><option value="comic">Comic / pop-art (ink + cel)</option><option value="clean">Clean</option></select><span></span></label>

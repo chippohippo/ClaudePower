@@ -14,6 +14,8 @@ import { audio } from './audio.js';
 import { Game } from './game.js';
 import { WorkerTransport, SocketTransport } from './net.js';
 import { NET_VERSION } from '../shared/constants.js';
+import { loadProfile, saveProfile, profileHtml, botSkillFor } from './progression.js';
+import { Tutorial } from './tutorial.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
@@ -126,7 +128,8 @@ bindRange('#s-adssens', 'adsSens', (v) => (+v).toFixed(2));
 bindRange('#s-fov', 'fov');
 bindRange('#s-vol', 'volume', (v) => Math.round(v * 100));
 bindRange('#s-shake', 'shake', (v) => Math.round(v * 100) + '%');
-for (const [id, key] of [['#s-toggleads', 'toggleAds'], ['#s-invert', 'invertY'], ['#s-fps', 'showFps']]) {
+if (settings.voice === undefined) settings.voice = true;
+for (const [id, key] of [['#s-toggleads', 'toggleAds'], ['#s-invert', 'invertY'], ['#s-fps', 'showFps'], ['#s-voice', 'voice']]) {
   const el = $(id);
   el.checked = settings[key];
   el.addEventListener('change', () => { settings[key] = el.checked; saveSettings(); if (app.game) app.game.showStats = settings.showFps; });
@@ -189,12 +192,14 @@ function startSession(transport) {
   });
 }
 
-async function playOffline(practice = false) {
+async function playOffline(practice = false, tutorial = false) {
   click();
   await ensureAudio();
   const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   startSession(new WorkerTransport(worker));
-  worker.postMessage({ t: 'start', mode: state.mode, name: state.name, legend: state.legend, practice });
+  // the tutorial checklist rides along in the Firing Range; finishing it once grants 2000 XP
+  if (tutorial) app.tutorial = new Tutorial(() => { const p = loadProfile(); if (!p.tutorialDone) { p.tutorialDone = true; p.xp += 2000; saveProfile(p); hud.toast('Tutorial complete · +2000 XP'); } renderProfile(); });
+  worker.postMessage({ t: 'start', mode: state.mode, name: state.name, legend: state.legend, practice, botSkill: botSkillFor(loadProfile()) });
   $('#loading').classList.remove('hidden');
   $('#loading .txt').textContent = practice ? 'LOADING FIRING RANGE…' : 'DEPLOYING TO SKYFALL…';
   const wait = setInterval(() => { if (app.game) { clearInterval(wait); $('#loading').classList.add('hidden'); } }, 50);
@@ -213,6 +218,12 @@ $('#btn-play').addEventListener('click', async () => {
   playOffline(false);
 });
 $('#btn-range').addEventListener('click', () => playOffline(true));
+$('#btn-tutorial').addEventListener('click', () => playOffline(true, true));
+
+// ------------------------------------------------------------------ profile: level, rank, challenges
+function renderProfile() { const p = loadProfile(); $('#profile').innerHTML = profileHtml(p); $('#ranked').checked = !!p.ranked; }
+$('#ranked').addEventListener('change', (e) => { const p = loadProfile(); p.ranked = e.target.checked; saveProfile(p); renderProfile(); click(); });
+renderProfile();
 
 function leaveGame() {
   if (app.game) app.game.dispose();
@@ -222,6 +233,7 @@ function leaveGame() {
   input.unlock();
   $('#pause').classList.add('hidden');
   $('#menu').classList.remove('hidden');
+  renderProfile();
   if (app.socket && state.party) app.socket.emit('party:rejoin', { code: state.party.code });
 }
 $('#btn-back').addEventListener('click', () => { click(); leaveGame(); });

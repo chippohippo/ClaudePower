@@ -179,6 +179,7 @@ export class WorldView {
     this._ring();
     this._ship();
     this._pois();
+    this._balloons();
     if (STYLE.comic) toonify(this.scene);
   }
 
@@ -265,6 +266,7 @@ export class WorldView {
     // POI concrete pads, at their flattened height
     const PAD = { industrial: '#5d5a56', overgrown: '#7d8a6a', hightech: '#d4dbe0', desert: '#d3b38a', flooded: '#6b7a72', military: '#8a8770' };
     for (const p of this.map.pois) {
+      if (p.landmark) continue; // landmarks stand on natural ground
       const padMat = patchPanels(new THREE.MeshStandardMaterial({ color: PAD[p.theme] || '#8e8a82', roughness: 0.9 }), p.theme === 'hightech' ? 3 : 4, 0.25);
       const pad = new THREE.Mesh(new THREE.CircleGeometry(p.r * 0.95, 48), padMat);
       pad.rotation.x = -Math.PI / 2;
@@ -613,11 +615,43 @@ export class WorldView {
     this.scene.add(g);
   }
 
+  // Redeploy balloons: a tether up to a bobbing balloon, with a glowing ring at the anchor.
+  _balloons() {
+    this.balloonFx = [];
+    const skin = new THREE.MeshStandardMaterial({ color: '#4f8fe0', roughness: 0.5, emissive: '#1d3d6a', emissiveIntensity: 0.6 });
+    const stripe = new THREE.MeshStandardMaterial({ color: '#ff7a1a', roughness: 0.5 });
+    const rope = new THREE.LineBasicMaterial({ color: '#d0d6de' });
+    const ringMat = new THREE.MeshBasicMaterial({ color: '#7ab8ff', transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+    for (const b of this.map.balloons || []) {
+      const g = new THREE.Group();
+      g.position.set(b.x, b.y, b.z);
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(3.2, 18, 12), skin);
+      ball.scale.set(1, 1.2, 1);
+      ball.position.y = 38;
+      const band = new THREE.Mesh(new THREE.TorusGeometry(3.25, 0.35, 6, 24), stripe);
+      band.rotation.x = Math.PI / 2;
+      ball.add(band);
+      g.add(ball);
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.5, 0), new THREE.Vector3(0, 35, 0)]), rope);
+      g.add(line);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 1.0, 10), stripe);
+      base.position.y = 0.5;
+      g.add(base);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.2, 32), ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.08;
+      g.add(ring);
+      this.scene.add(g);
+      this.balloonFx.push({ ball, ring, ph: b.x * 0.01 });
+    }
+  }
+
   _pois() {
     // floating POI name labels are drawn by the HUD/map; add tall landmark masts for readability
     const mat = new THREE.MeshStandardMaterial({ color: '#444a52', metalness: 0.5, roughness: 0.5 });
     const light = new THREE.MeshBasicMaterial({ color: '#ff3b3b' });
     for (const p of this.map.pois) {
+      if (p.landmark) continue; // the Spire / crash hull are their own landmarks
       const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 40, 6), mat);
       const py = this.map.terrain.height(p.x, p.z);
       mast.position.set(p.x, py + 20, p.z);
@@ -753,6 +787,11 @@ export class WorldView {
       f.ring.material.opacity = 0.6 + 0.3 * Math.sin(time * 6);
     }
     for (const m of this.waterMats || []) m.uniforms.time.value = time;
+    for (const f of this.balloonFx || []) {
+      f.ball.position.y = 38 + Math.sin(time * 0.8 + f.ph) * 0.8;
+      f.ball.rotation.y = time * 0.15 + f.ph;
+      f.ring.material.opacity = 0.5 + 0.3 * Math.sin(time * 4);
+    }
     if (this.treeLod && camPos && (this.treeLod.t -= dt) <= 0) { this.treeLod.t = 0.4; this._updateTreeLod(camPos); }
     if (this.zipTime) this.zipTime.value = time;
     for (const sp of this.spinners || []) sp.o.rotation.y += dt * sp.s;

@@ -1,6 +1,6 @@
 {
   "name": "skyfall",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SKYFALL — battle royale with Apex-style movement, gunplay and legends",
   "type": "module",
   "private": true,

@@ -15,7 +15,7 @@ import { rayHitbox, poseOf } from '../shared/hitbox.js';
 import { speedMul } from '../shared/mods.js';
 import { makeWeapon, pickup, countItem, takeItem, addStack, reloadAmount } from './inventory.js';
 import { useTactical, useUltimate, updateEntity, passiveTick } from './abilities.js';
-import { Bot, BOT_NAMES } from './bot.js';
+import { Bot, gamerTag } from './bot.js';
 import { NavGrid } from './nav.js';
 
 export const RING_PHASES = [
@@ -31,11 +31,14 @@ export const RING_PHASES = [
 const SHIP_ALT = 300;
 const SHIP_SPEED = 62;
 const HIST = 40;
+const SECOND_CHANCE_DELAY = 45; // seconds before a Second Chance redeploy
 const CELL = 32;
 
 export class Match {
-  constructor({ seed = (Math.random() * 1e9) | 0, mode = 'trios', send = () => {}, log = () => {}, practice = false } = {}) {
+  // botSkill 0..1: lobby difficulty (the offline client derives it from the player's rank/level)
+  constructor({ seed = (Math.random() * 1e9) | 0, mode = 'trios', send = () => {}, log = () => {}, practice = false, botSkill = 0.5 } = {}) {
     this.seed = seed;
+    this.botSkill = Math.max(0, Math.min(1, botSkill));
     this.practice = practice;
     this.mode = mode;
     this.squadSize = MODES[mode].squadSize;
@@ -168,7 +171,7 @@ export class Match {
         const lg = free.length ? free[Math.floor(this.rng() * free.length)] : LEGEND_IDS[Math.floor(this.rng() * LEGEND_IDS.length)];
         taken.add(lg);
         let name;
-        do name = BOT_NAMES[Math.floor(this.rng() * BOT_NAMES.length)] + (this.rng() < 0.4 ? Math.floor(this.rng() * 99) : '');
+        do name = gamerTag(this.rng);
         while (used.has(name));
         used.add(name);
         addPlayer(sq, { name, legend: lg }, true);
@@ -311,10 +314,16 @@ export class Match {
       R.dmg = ph.dmg;
       this.events.push({ e: 'ring', s: 'close', g: 1 });
       this.announce(`Ring ${R.idx + 1} closing!`);
-      // care package with each ring after the first
-      if (R.idx >= 1 && R.idx <= 4) {
-        const a = this.rng() * Math.PI * 2, d = this.rng() * R.nr * 0.7;
-        this.spawnCarePackage(R.nx + Math.cos(a) * d, R.nz + Math.sin(a) * d, 3);
+      // supply drops: gold loot inside the next zone with every ring, announced and on the map
+      if (R.idx <= 4) {
+        const n = R.idx === 0 ? 2 : 1;
+        for (let i = 0; i < n; i++) {
+          const a = this.rng() * Math.PI * 2, d = this.rng() * R.nr * 0.7;
+          const x = R.nx + Math.cos(a) * d, z = R.nz + Math.sin(a) * d;
+          this.spawnCarePackage(x, z, 3);
+          this.events.push({ e: 'drop', x, z, g: 1 });
+        }
+        this.announce(n > 1 ? 'Supply drops inbound — gold loot!' : 'Supply drop inbound — gold loot!');
       }
     } else if (R.state === 'close') {
       const k = 1 - Math.max(0, R.t) / ph.close;
@@ -362,7 +371,11 @@ export class Match {
       case 'bin': return this._openBin(p, m.id);
       case 'box': return this._openBox(p, m.id);
       case 'boxtake': return this._boxTake(p, m.id, m.i);
-      case 'ping': this.events.push({ e: 'ping', id: p.id, x: m.x, y: m.y, z: m.z, k: m.k || 'go', sq: p.squad, g: 1 }); return;
+      case 'ping': {
+        const k = ['go', 'going', 'enemy', 'danger', 'loot'].includes(m.k) ? m.k : 'go';
+        this.events.push({ e: 'ping', id: p.id, x: +m.x || 0, y: +m.y || 0, z: +m.z || 0, k, l: String(m.l || '').slice(0, 40), sq: p.squad, g: 1 });
+        return;
+      }
       case 'cancel': p.healing = null; return;
     }
   }
@@ -671,6 +684,12 @@ export class Match {
     }
     const dealt = shieldDmg + hpDmg;
     if (a && a !== v) {
+      // ledger for the death recap: who hurt whom, with what, from how far
+      const L = (v.hurtBy ||= {});
+      const e = (L[a.id] ||= { dmg: 0, hits: 0, heads: 0, weapon: '', dist: 0 });
+      e.dmg += dealt; e.hits++; if (info.part === 'head') e.heads++;
+      if (info.weapon) e.weapon = info.weapon;
+      e.dist = Math.round(Math.hypot(a.ms.x - v.ms.x, a.ms.z - v.ms.z));
       a.damage += dealt;
       if (!v.downed || hpDmg > 0) this._evo(a, dealt * EVO_POINTS.damage);
       a.lastCombat = this.time;
@@ -731,6 +750,7 @@ export class Match {
     v.reloading = null;
     v.status.phase = 0;
     if (a) { a.knocks++; if (a !== v) this._evo(a, EVO_POINTS.knock); }
+    this._recap(v, a, 'knock', info);
     evt.knock = 1;
     this.events.push({ e: 'knock', a: a ? a.id : 0, v: v.id, w: info.weapon || '', g: 1 });
   }
@@ -749,6 +769,7 @@ export class Match {
       this.squads[a.squad].kills++;
     }
     if (!this.practice) this._killLeader(v, a);
+    this._recap(v, a, 'elim', info);
     this.events.push({ e: 'kill', a: a ? a.id : 0, v: v.id, w: info.weapon || (info.ring ? 'Ring' : ''), g: 1, x: v.ms.x, y: v.ms.y, z: v.ms.z });
     // death box with banner
     const items = [];
@@ -777,6 +798,14 @@ export class Match {
       else v.respawnAt = this.time + 2;
       return;
     }
+    // Second Chance: once per match, a player eliminated during the first two rings redeploys
+    // next to a living squadmate after a short countdown (cancelled if the squad is wiped)
+    if (!v.usedSecond && this.ring.idx <= 1 && this.squads[v.squad].members.some((id) => { const q = this.players.get(id); return q !== v && q.alive && !q.eliminated; })) {
+      v.usedSecond = true;
+      v.secondAt = this.time + SECOND_CHANCE_DELAY;
+      this.sendTo(v, { t: 'second', at: SECOND_CHANCE_DELAY });
+      this.announceSquad(v.squad, `${v.name} gets a Second Chance — redeploying in ${SECOND_CHANCE_DELAY}s`);
+    }
     this._checkSquad(v.squad);
     // choose spectate target
     this._autoSpectate(v);
@@ -798,7 +827,7 @@ export class Match {
       this.events.push({ e: 'squadout', sq: si, place: sq.placement, g: 1 });
       for (const id of sq.members) {
         const q = this.players.get(id);
-        if (!q.isBot) this.sendTo(q, { t: 'squadout', place: sq.placement, kills: q.kills, damage: Math.round(q.damage), squadKills: sq.kills, squad: this._roster(sq) });
+        if (!q.isBot) this.sendTo(q, { t: 'squadout', place: sq.placement, kills: q.kills, damage: Math.round(q.damage), squadKills: sq.kills, squad: this._roster(sq), stats: this._stats(q) });
       }
       if (left <= 1) this._endMatch();
     }
@@ -816,9 +845,14 @@ export class Match {
       const sq = this.squads[p.squad];
       this.sendTo(p, {
         t: 'end', win: sq === winner, place: sq.placement, champs, kills: p.kills, damage: Math.round(p.damage),
-        squadKills: sq.kills, squad: this._roster(sq),
+        squadKills: sq.kills, squad: this._roster(sq), stats: this._stats(p),
       });
     }
+  }
+
+  // per-player numbers the client turns into XP, challenge progress and ranked points
+  _stats(q) {
+    return { kills: q.kills, knocks: q.knocks || 0, damage: Math.round(q.damage), revives: q.revives || 0, respawns: q.respawns || 0, survived: Math.round(q.eliminated ? q.deathT : this.time), legend: q.legend, players: this.list.length, squads: this.squads.length, mode: this.mode };
   }
 
   _roster(sq) {
@@ -1086,6 +1120,7 @@ export class Match {
     for (const p of this.list) {
       if (p.eliminated) {
         if (p.respawnAt && this.time >= p.respawnAt) this._practiceRespawn(p);
+        if (p.secondAt && this.time >= p.secondAt) this._secondChance(p);
         continue;
       }
       this._statusTick(p, dt);
@@ -1138,6 +1173,12 @@ export class Match {
     }
 
     this._updateRing(dt);
+    // the hunt: the Kill Leader's position is revealed to everyone every 30 s
+    if (this.killLeader && (this.klRevealT = (this.klRevealT ?? 30) - dt) <= 0) {
+      this.klRevealT = 30;
+      const k = this.players.get(this.killLeader);
+      if (k && k.alive && !k.eliminated) this.events.push({ e: 'klpos', id: k.id, x: k.ms.x, z: k.ms.z, g: 1 });
+    }
 
     // inventory sync
     for (const p of this.list) if (p.invDirty) this._sendInv(p);
@@ -1244,6 +1285,7 @@ export class Match {
           q.downed = false; q.ms.downed = 0; q.hp = REVIVE_HP; q.shield = 0; q.bleed = 0; q.kdUp = false;
           p.reviveT = 0; p.reviveTarget = 0;
           this.events.push({ e: 'revive', id: q.id, by: p.id, g: 1 });
+          p.revives = (p.revives || 0) + 1;
           this._evo(p, EVO_POINTS.revive);
         }
         return;
@@ -1257,7 +1299,7 @@ export class Match {
           p.beaconT += dt;
           if (p.beaconT >= 5) {
             p.beaconT = 0;
-            for (const vid of p.banners) { this._respawn(this.players.get(vid), b); this._evo(p, EVO_POINTS.respawn); }
+            for (const vid of p.banners) { this._respawn(this.players.get(vid), b); this._evo(p, EVO_POINTS.respawn); p.respawns = (p.respawns || 0) + 1; }
             p.banners = [];
           }
           return;
@@ -1265,6 +1307,26 @@ export class Match {
       }
     }
     p.beaconT = 0;
+    // redeploy balloon: hold E at the tether to launch into a skydive (rotations, high ground)
+    for (const b of this.map.balloons || []) {
+      if ((b.x - p.ms.x) ** 2 + (b.z - p.ms.z) ** 2 < 2.4 * 2.4 && Math.abs(b.y - p.ms.y) < 3 && !p.downed) {
+        p.balloonT = (p.balloonT || 0) + dt;
+        if (p.balloonT >= 0.5) {
+          p.balloonT = 0;
+          this.launchBalloon(p);
+        }
+        return;
+      }
+    }
+    p.balloonT = 0;
+  }
+
+  launchBalloon(p) {
+    p.ms.launchT = 2.3;
+    p.ms.onGround = false;
+    p.ms.mode = 'air';
+    p.healing = null; p.reloading = null;
+    this.events.push({ e: 'balloon', id: p.id, x: p.ms.x, y: p.ms.y, z: p.ms.z, r: 200 });
   }
 
   _practiceRespawn(p) {
@@ -1283,6 +1345,31 @@ export class Match {
     }
     p.spect = 0;
     this.invDirty(p);
+  }
+
+  _secondChance(v) {
+    v.secondAt = 0;
+    const mate = this.squads[v.squad].members.map((id) => this.players.get(id)).find((q) => q !== v && q.alive && !q.eliminated && !q.inShip);
+    if (!mate) return;
+    const a = this.rng() * Math.PI * 2;
+    this._respawn(v, { x: mate.ms.x + Math.cos(a) * 60, y: mate.ms.y, z: mate.ms.z + Math.sin(a) * 60 });
+  }
+
+  // Death recap for humans: the attacker, their weapon, distance, health left and the damage
+  // traded both ways, plus everyone else who hurt the victim (assists)
+  _recap(v, a, kind, info) {
+    if (v.isBot) return;
+    const L = v.hurtBy || {};
+    const by = a && a !== v ? a : null;
+    const dealtBack = by && by.hurtBy && by.hurtBy[v.id] ? by.hurtBy[v.id].dmg : 0;
+    const e = by ? L[by.id] || {} : {};
+    const assists = Object.entries(L).filter(([id]) => !by || +id !== by.id).map(([id, x]) => ({ name: (this.players.get(+id) || {}).name, dmg: x.dmg })).sort((p, q) => q.dmg - p.dmg).slice(0, 3);
+    this.sendTo(v, {
+      t: 'recap', kind, ring: !!info.ring,
+      by: by ? { id: by.id, name: by.name, legend: by.legend, hp: Math.max(0, Math.round(by.hp)), shield: Math.round(by.shield), armor: by.armor, kills: by.kills, isKL: this.killLeader === by.id } : null,
+      weapon: info.weapon || e.weapon || '', dist: e.dist || 0, taken: e.dmg || 0, hits: e.hits || 0, heads: e.heads || 0, dealt: dealtBack, assists,
+    });
+    if (kind === 'elim') v.hurtBy = {};
   }
 
   _respawn(v, b) {
@@ -1304,6 +1391,7 @@ export class Match {
     v.inv = [];
     for (const w of v.weapons) if (w) addStack(v, 'a:' + WEAPONS[w.id].ammo, magSize(WEAPONS[w.id], w.att.mag));
     v.kept = null;
+    v.secondAt = 0;
     v.ms.x = b.x; v.ms.z = b.z; v.ms.y = 140; v.ms.mode = 'skydive'; v.ms.vx = 0; v.ms.vz = 0; v.ms.vy = 0; v.ms.downed = 0;
     v.status = {};
     v.spect = 0;

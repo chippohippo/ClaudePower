@@ -6,7 +6,7 @@ import { makeRng } from './util.js';
 import { CollisionWorld } from './physics.js';
 import { MAP_HALF } from './constants.js';
 import { Terrain } from './terrain.js';
-import { THEMES, THEME_IDS, LANDMARKS, mesa } from './themes.js';
+import { THEMES, THEME_IDS, LANDMARKS, MAJOR_LANDMARKS, mesa } from './themes.js';
 
 const POI_NAMES = [
   'Rusthaven', 'Signal Peak', 'The Forge', 'Glass Basin', 'Overpass', 'Drillsite', 'Boneyard',
@@ -27,6 +27,7 @@ export function buildMap(seed) {
   const pois = [];
   const buildings = [];
   const zips = [];
+  const balloons = [];   // redeploy balloons: hold E to launch into a skydive
 
   // every structure is built relative to baseY (the terrain height it stands on)
   let baseY = 0;
@@ -256,6 +257,7 @@ export function buildMap(seed) {
     loot: (x, y, z, tier) => lootPoints.push({ x, y, z, tier }), decor: (o) => decor.push(o),
     pad: (x, y, z) => pads.push({ x, y, z }), zip: (z) => zips.push(z),
     bin: (x, y, z, tier) => supplyBin(x, y, z, tier),
+    balloon: (x, y, z) => balloons.push({ x, y: y ?? terrain.height(x, z), z }),
   };
   for (const p of pois) {
     theme = THEMES[p.theme];
@@ -386,6 +388,33 @@ export function buildMap(seed) {
 
   world.finalize();
 
+  // --- major landmarks: The Spire and Crash Site, on open ground between the POIs ---------
+  for (const [kind, name] of [['spire', 'The Spire'], ['crash', 'Crash Site']]) {
+    for (let t = 0; t < 400; t++) {
+      const x = rng.range(-MAP_HALF + 160, MAP_HALF - 160), z = rng.range(-MAP_HALF + 160, MAP_HALF - 160);
+      if (pois.some((q) => Math.hypot(q.x - x, q.z - z) < q.r + 130) || !isFree(x, z, 32)) continue;
+      const h = terrain.height(x, z);
+      // reasonably flat ground: sample a ring around the site
+      let flat = true;
+      for (let a = 0; a < 6.28 && flat; a += 0.8) if (Math.abs(terrain.height(x + Math.cos(a) * 20, z + Math.sin(a) * 20) - h) > 3.5) flat = false;
+      if (!flat) continue;
+      const lm = { name, x, z, r: 38, tier: 2, theme: kind === 'spire' ? 'hightech' : 'military', landmark: kind, accent: '#ff7a1a' };
+      theme = THEMES[lm.theme];
+      MAJOR_LANDMARKS[kind](ctx, lm);
+      pois.push(lm);
+      break;
+    }
+  }
+  // redeploy balloons on hilltops between POIs: rotation routes for squads caught by the ring
+  for (let k = 0, t = 0; k < 6 && t < 600; t++) {
+    const x = rng.range(-MAP_HALF + 80, MAP_HALF - 80), z = rng.range(-MAP_HALF + 80, MAP_HALF - 80);
+    if (pois.some((q) => Math.hypot(q.x - x, q.z - z) < q.r + 60) || balloons.some((b) => Math.hypot(b.x - x, b.z - z) < 250) || !isFree(x, z, 4)) continue;
+    if (terrain.height(x, z) < terrain.minH + (terrain.maxH - terrain.minH) * 0.35) continue;
+    blocked.push({ x, z, r: 4 });
+    balloons.push({ x, y: terrain.height(x, z), z });
+    k++;
+  }
+
   // --- ziplines ---------------------------------------------------------------
   const tmp = [];
   const clear = (ax, ay, az, bx, by, bz) => {
@@ -435,5 +464,6 @@ export function buildMap(seed) {
   }
   world.zips = zips;
   world.staticPads = pads;
-  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips, pads, decor, waters };
+  world.balloons = balloons;
+  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips, pads, decor, waters, balloons };
 }

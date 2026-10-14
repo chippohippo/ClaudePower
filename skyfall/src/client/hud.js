@@ -515,6 +515,25 @@ export class HUD {
     for (const e of g.entityList) {
       if (e.k === 'carepkg') { ctx.fillStyle = '#ffd23f'; ctx.fillRect(toX(e.x) - 3, toY(e.z) - 3, 6, 6); }
     }
+    // redeploy balloons
+    ctx.fillStyle = '#7ab8ff';
+    for (const b of g.map.balloons || []) {
+      const x = toX(b.x), y = toY(b.z), r = big ? 6 : 4;
+      ctx.beginPath(); ctx.arc(x, y - r * 0.4, r * 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 0.6, y, 1.2, r);
+    }
+    // timed markers: supply drops, Kill Leader sightings
+    for (const mk of g.mapMarks || []) {
+      const x = toX(mk.x), y = toY(mk.z), pulse = 1 + 0.25 * Math.sin(performance.now() / 150);
+      ctx.strokeStyle = mk.color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, (big ? 11 : 7) * pulse, 0, Math.PI * 2); ctx.stroke();
+      if (big || scale > 0.2) {
+        ctx.fillStyle = mk.color;
+        ctx.font = `bold ${big ? 13 : 10}px Rajdhani, Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(mk.label, x, y - (big ? 15 : 10));
+      }
+    }
     // squad + revealed enemies
     for (const p of g.mapDots) {
       ctx.fillStyle = p.color;

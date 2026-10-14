@@ -377,3 +377,38 @@ body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; 
 .kf .kl { color: #ffd23f; margin-right: 3px; }
 #server-status.ok { color: #7dff9b; }
 #server-status.bad { color: #ffcf5a; }
+/* ---- ranked toggle, profile card, XP summary, recap, tutorial ---- */
+#menu-main label.cb.ranked { font-weight: 700; letter-spacing: 2px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; margin: 2px 0; }
+#menu-main label.cb.ranked input { width: auto; margin: 0; }
+#profile { margin-top: 10px; }
+label.cb.ranked small { color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
+#profile { font-size: 13px; gap: 6px; }
+#profile .prof-head { display: flex; justify-content: space-between; align-items: baseline; }
+#profile .prof-head b { font-size: 16px; letter-spacing: 2px; }
+#profile .prof-head span, #profile small { color: var(--muted); }
+#profile .prof-rank { font-weight: 700; letter-spacing: 1px; }
+#profile .prof-ch { display: flex; flex-direction: column; gap: 2px; max-height: 150px; overflow: auto; }
+#profile .ch { display: flex; justify-content: space-between; gap: 8px; }
+#profile .ch.done { color: #7dff9b; text-decoration: line-through; opacity: 0.7; }
+.xpbar { height: 6px; background: rgba(255,255,255,0.12); }
+.xpbar i { display: block; height: 100%; background: linear-gradient(90deg, #ff7a1a, #ffd23f); }
+#endscreen .summary { min-width: 380px; margin: 10px auto; }
+.xpsum { background: rgba(0,0,0,0.45); border: 1px solid var(--line); padding: 10px 14px; font-size: 14px; text-align: left; }
+.xpsum .xprow { display: flex; justify-content: space-between; color: #c9d1d9; }
+.xpsum .xprow b { color: #ffd23f; }
+.xpsum .xptotal { margin-top: 6px; font-weight: 800; letter-spacing: 2px; color: #ffd23f; }
+.xpsum .lvl { margin: 6px 0 4px; font-weight: 700; letter-spacing: 2px; }
+.xpsum em { color: #7dff9b; font-style: normal; }
+.xpsum .rankrow { margin-top: 8px; font-weight: 800; letter-spacing: 1px; }
+.xpsum .rankrow small { display: block; color: var(--muted); font-weight: 600; }
+.xpsum .chdone { margin-top: 8px; color: #7dff9b; }
+#recap { position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 40; background: rgba(10,14,20,0.82); border: 1px solid #ff3b3b; border-left: 5px solid #ff3b3b; padding: 10px 18px; min-width: 320px; color: #e8eef4; font-size: 15px; line-height: 1.5; pointer-events: none; }
+#recap .rt { color: #ff6b6b; font-weight: 800; letter-spacing: 3px; font-size: 13px; }
+#recap .rw { font-size: 22px; }
+#recap .rw small { color: var(--muted); font-size: 13px; letter-spacing: 1px; }
+#recap .assist { color: var(--muted); font-size: 13px; }
+#tutorial { position: fixed; right: 16px; top: 120px; z-index: 30; width: 360px; background: rgba(10,14,20,0.82); border: 1px solid var(--line); border-left: 4px solid #ff7a1a; padding: 10px 14px; color: #c9d1d9; font-size: 14px; line-height: 1.45; pointer-events: none; }
+#tutorial .tut-title { font-weight: 800; letter-spacing: 2px; color: #fff; margin-bottom: 6px; }
+#tutorial .tut-title small { color: var(--muted); font-weight: 600; letter-spacing: 0.5px; margin-left: 6px; }
+#tutorial .tut-step.ok { color: #7dff9b; opacity: 0.7; }
+#tutorial .tut-step.cur { color: #fff; font-weight: 700; }

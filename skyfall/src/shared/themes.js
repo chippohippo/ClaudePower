@@ -240,3 +240,83 @@ export function mesa(ctx, x, z, half, height, color) {
   mesa.lastTop = height;
   mesa.lastSize = half * 2;
 }
+
+// Major landmarks: two hand-shaped set pieces per map, placed between the themed POIs. Each gets
+// gold-tier loot and a redeploy balloon, so they're contested hot drops and rotation hubs.
+export const MAJOR_LANDMARKS = {
+  // The Spire: four stepped platforms on corner pillars, 34 m to the top. Ziplines connect the
+  // ground to tier 2 and tier 2 to the crown; parapets give cover on every level.
+  spire(ctx, p) {
+    const x = p.x, z = p.z, gy = ctx.height(x, z);
+    ctx.setBase(gy - 0.4);
+    ctx.block(x, z, 20);
+    const tiers = [{ y: 8.5, w: 19 }, { y: 17, w: 15 }, { y: 25.5, w: 11 }, { y: 34, w: 7.5 }];
+    const col = '#5f6b78';
+    for (const [i, t] of tiers.entries()) {
+      const h = t.w / 2, below = i ? tiers[i - 1].y : 0;
+      // slab with a centre hatch on the lower tiers (drop down / see up)
+      if (i < 3) {
+        ctx.add(x - h, t.y - 0.6, z - h, x + h, t.y, z - 1.6, 'slab', col);
+        ctx.add(x - h, t.y - 0.6, z + 1.6, x + h, t.y, z + h, 'slab', col);
+        ctx.add(x - h, t.y - 0.6, z - 1.6, x - 1.6, t.y, z + 1.6, 'slab', col);
+        ctx.add(x + 1.6, t.y - 0.6, z - 1.6, x + h, t.y, z + 1.6, 'slab', col);
+      } else ctx.add(x - h, t.y - 0.6, z - h, x + h, t.y, z + h, 'slab', col);
+      // corner pillars from the tier below
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) ctx.add(x + sx * (h - 0.8) - 0.6, below, z + sz * (h - 0.8) - 0.6, x + sx * (h - 0.8) + 0.6, t.y - 0.6, z + sz * (h - 0.8) + 0.6, 'spire', '#46505c');
+      // parapets with gaps to shoot through
+      for (const sx of [-1, 1]) {
+        ctx.add(x + sx * h - 0.25, t.y, z - h, x + sx * h + 0.25, t.y + 1.1, z - 1.2, 'trim', '#ff7a1a');
+        ctx.add(x + sx * h - 0.25, t.y, z + 1.2, x + sx * h + 0.25, t.y + 1.1, z + h, 'trim', '#ff7a1a');
+      }
+      ctx.loot(x + h * 0.55, ctx.baseY() + t.y + 0.05, z + h * 0.55, 2);
+      ctx.loot(x - h * 0.55, ctx.baseY() + t.y + 0.05, z - h * 0.55, i >= 2 ? 2 : 1);
+    }
+    ctx.bin(x + 2, 34, z - 2, 3);
+    // ziplines: ground → tier 2, tier 2 → crown
+    const t2 = ctx.baseY() + 17, top = ctx.baseY() + 34;
+    verticalZip(ctx, x + 10.4, z, t2, x + 6.2, z, t2);
+    ctx.zip({ ax: x - 7.2, ay: t2 + 2.2, az: z + 5.5, bx: x - 3.2, by: top + 2.3, bz: z + 3, top: { x: x - 2.5, y: top + 0.05, z: z + 2.5 } });
+    // ground loot under the tower and a redeploy balloon on the crown + one at the foot
+    for (let k = 0; k < 4; k++) ctx.loot(x + Math.cos(k * 1.57) * 6, ctx.baseY() + 0.45, z + Math.sin(k * 1.57) * 6, 1);
+    ctx.balloon(x, top, z - 2.5);
+    ctx.balloon(x + 14, null, z + 12);
+    ctx.decor({ type: 'glow', x, y: top + 3, z, color: '#ff7a1a' });
+  },
+  // Crash Site: a downed dropship hull lying across the field. Walk-through interior with gold
+  // loot, torn roof panels to jump through, broken wings for cover and a burning engine.
+  crash(ctx, p) {
+    const r = ctx.rng, x = p.x, z = p.z;
+    const alongX = r() < 0.5;
+    ctx.block(x, z, 28);
+    ctx.setBase(ctx.height(x, z) - 1.2);
+    const L = 23, W = 5, H = 6.5, hull = '#7a7f86', dark = '#3b4048';
+    // box helper in hull-local coordinates (u along the hull, v across)
+    const B = (u0, y0, v0, u1, y1, v1, kind, c) => (alongX ? ctx.add(x + u0, y0, z + v0, x + u1, y1, z + v1, kind, c) : ctx.add(x + v0, y0, z + u0, x + v1, y1, z + u1, kind, c));
+    const P = (u, v) => (alongX ? [x + u, z + v] : [x + v, z + u]);
+    B(-L, 0, -W, L, 1.4, W, 'slab', dark);                                   // floor (above the buried keel)
+    for (const s of [-1, 1]) {
+      // side walls with window gaps
+      for (let u = -L; u < L; u += 7) B(u, 1.4, s * W - 0.3 * (s > 0 ? 1 : 0), u + 4.5, H, s * W + 0.3 * (s < 0 ? 1 : 0), 'container', hull);
+      B(-L, H - 1.2, s * W - 0.3, L, H, s * W + 0.3, 'container', hull);
+    }
+    // roof with torn gaps; cockpit block at the front, open ramp at the back
+    for (let u = -L; u < L; u += 9) if (r() < 0.75) B(u, H, -W, u + 6, H + 0.5, W, 'roof', hull);
+    B(L - 6, 1.4, -W, L, H + 1.5, W, 'container', '#5c636d');
+    B(L - 6.5, 3.5, -2, L - 6, H + 1, 2, 'trim', '#9fd8ff');
+    // wings: broken stubs at different heights, good cover
+    B(-4, 1.2, W, 6, 2.2, W + 13, 'slab', hull);
+    B(-8, 0.3, -W - 10, 0, 1.6, -W, 'slab', hull);
+    B(2, 0, -W - 16, 7, 2.6, -W - 13, 'crate', '#6e5d48');
+    // engine pod, burning
+    B(-L - 5, 0.5, -3, -L, 5, 3, 'container', dark);
+    const [ex, ez] = P(-L - 2.5, 0);
+    ctx.decor({ type: 'smoke', x: ex, y: ctx.baseY() + 6, z: ez });
+    // gold loot inside, plus scattered crates outside
+    for (const u of [-16, -8, 0, 8, 15]) { const [lx, lz] = P(u, (u % 16 === 0 ? -2 : 2)); ctx.loot(lx, ctx.baseY() + 1.45, lz, 2); }
+    for (let k = 0; k < 4; k++) { const [lx, lz] = P(r.range(-L, L), (r() < 0.5 ? -1 : 1) * r.range(W + 4, W + 12)); ctx.loot(lx, ctx.height(lx, lz) + 0.05, lz, 1); }
+    const [bx, bz] = P(L - 9, 0);
+    ctx.bin(bx, 1.4, bz, 3);
+    const [gx, gz] = P(0, W + 18);
+    ctx.balloon(gx, null, gz);
+  },
+};

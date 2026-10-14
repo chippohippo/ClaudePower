@@ -34,6 +34,36 @@ router, and shows the LAN and internet addresses friends join with. **FIRING RAN
 weapon and some strafing target dummies (**B** shows hitboxes). **CREATE PARTY** / **JOIN** puts friends in the same squad,
 and bots fill the rest of the lobby.
 
+**0.3.0 additions:**
+- **Death recap and kill cam.** You see who downed you, with what and from how far, their health
+  left, the damage traded and any assists. On elimination the camera zooms onto your killer.
+- **Contextual pings with spoken callouts:**
+  - **X** pings an enemy, an item ("Talon AR over here"), a supply drop or a death box, otherwise a
+    location.
+  - Double-tap **X** for "enemy was here".
+  - Knocks and downs are called out too, in a per-legend voice. Turn this off in Settings with
+    "Voice callouts".
+- **Landmarks.** The Spire is a 34 m stepped tower with ziplines and gold loot. Crash Site is a
+  downed dropship with a walk-through hull.
+- **Redeploy balloons.** Hold **E** at the tether to launch into a skydive. There's one on the
+  Spire, one at each landmark and six on hilltops.
+- **Map events.** Supply drops with gold loot arrive at every ring and are announced and marked on
+  the map. The Kill Leader's position is revealed every 30 s.
+- **Second Chance.** Eliminated during the first two rings while a squadmate lives? You redeploy
+  next to them after 45 s, once per match.
+- **Progression** (stored locally):
+  - XP and account level, plus legend mastery;
+  - 3 daily and 4 weekly challenges;
+  - **RANKED**: RP with Rookie → Predator tiers, an entry cost, and placement and kill points;
+  - an XP and RP breakdown on the results screen.
+- **Tutorial.** A guided checklist in the Firing Range, worth 2000 XP the first time you finish it.
+- **Bots:**
+  - Difficulty follows your level, or your tier in ranked.
+  - They have human-looking gamer tags.
+  - They hold buildings when the zone is safe.
+  - They stop short of other squads' fights and hold an angle instead of charging in.
+  - They use redeploy balloons on long rotations.
+
 **Windows:** run `SKYFALL-Setup-<version>.exe`. It's a per-user installer with Start-menu and desktop
 shortcuts, a "SKYFALL Dedicated Server" shortcut and an uninstaller. CI builds it on every push
 (`.github/workflows/skyfall-desktop.yml`, artifact **SKYFALL-Setup-windows**). Hosting, port

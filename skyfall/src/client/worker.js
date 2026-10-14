@@ -15,6 +15,7 @@ self.onmessage = (e) => {
       seed: (Math.random() * 1e9) | 0,
       mode: m.mode,
       practice: !!m.practice,
+      botSkill: m.botSkill ?? 0.5,
       send: (pid, msg) => { if (pid === humanId) self.postMessage(msg); },
     });
     const ids = match.setupSquads([{ members: [{ id: 'local', name: m.name, legend: m.legend }] }]);
