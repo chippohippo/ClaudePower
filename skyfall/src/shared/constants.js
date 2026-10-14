@@ -18,19 +18,20 @@ export const MAP_SIZE = 1400;          // square map edge length, centered on or
 export const MAP_HALF = MAP_SIZE / 2;
 
 export const MOVE = {
-  gravity: 19.0,
+  // Helldivers-2-style weight: heavy gravity, short hops, momentum that takes a moment to build
+  gravity: 24.0,
   walkSpeed: 4.6,
   sprintSpeed: 7.4,
   crouchSpeed: 2.4,
   adsSpeedMul: 0.6,
-  groundAccel: 10.0,
-  groundFriction: 6.0,
+  groundAccel: 7.5,
+  groundFriction: 7.0,
   stopSpeed: 2.0,
   airAccel: 90.0,              // high air accel + low wish cap = Source/Apex strafe redirect
   airWishCap: 0.85,            // tap strafing lives in this cap
   airMaxGainSpeed: 11.5,       // soft cap: above this speed air strafing cannot add speed
   airDrag: 0.06,               // gentle drag above sprint speed in air
-  jumpVel: 5.6,
+  jumpVel: 5.4,              // 0.6 m hop at 24 m/s² gravity
   standHeight: 1.8,
   crouchHeight: 1.1,
   eyeStand: 1.62,
@@ -50,10 +51,15 @@ export const MOVE = {
   slideMaxSpeed: 14,
   // bunny hop: friction is not applied for this many seconds after landing
   landGrace: 0.05,
+  // hard landings stagger (slowed, no jump) unless you land into a slide
+  staggerFall: 9.0,           // fall speed (m/s) where staggering starts
+  staggerMax: 0.45,           // seconds at a 19 m/s+ impact
+  staggerSlow: 0.5,           // move speed multiplier while staggered
+  staggerBleed: 0.35,         // share of horizontal speed lost on the heaviest impact
   // wall jump / bounce
   wallJumpWindow: 0.14,
   wallJumpOut: 5.4,           // push away from the wall (tangential speed is kept)
-  wallJumpUp: 5.6,
+  wallJumpUp: 6.2,
   wallJumpCooldown: 0.35,
   // climbing / mantling
   climbSpeed: 5.4,

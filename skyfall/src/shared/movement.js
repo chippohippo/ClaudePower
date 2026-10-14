@@ -17,6 +17,7 @@ export function createMoveState(x = 0, y = 0, z = 0) {
     crouch: 0,            // 0 standing .. 1 crouched
     slideCd: 0,
     landT: 1,             // time since landing
+    stagger: 0,           // hard-landing stagger time left
     airT: 0,              // time airborne
     wallT: 9,             // time since last wall contact
     wallNx: 0, wallNz: 0,
@@ -102,11 +103,11 @@ function moveAxis(world, s, axis, delta, h, allowStep) {
   return hit;
 }
 
-function accelerate(s, wx, wz, wishSpeed, accel, dt) {
+function accelerate(s, wx, wz, wishSpeed, accel, dt, floor = 1) {
   const cur = s.vx * wx + s.vz * wz;
   const add = wishSpeed - cur;
   if (add <= 0) return;
-  let a = accel * dt * Math.max(wishSpeed, 1);
+  let a = accel * dt * Math.max(wishSpeed, floor);
   if (a > add) a = add;
   s.vx += a * wx;
   s.vz += a * wz;
@@ -203,6 +204,7 @@ export function stepMovement(s, inp, dt, world) {
   let wishSpeed = s.downed ? 1.4 : s.crouch > 0.5 ? MOVE.crouchSpeed : sprinting ? MOVE.sprintSpeed : MOVE.walkSpeed;
   // ADS slow-down is per weapon class and comes in through s.speedMul (shared/mods.js)
   wishSpeed *= s.speedMul * wishAmt;
+  if (s.stagger > 0) { s.stagger = Math.max(0, s.stagger - dt); wishSpeed *= MOVE.staggerSlow; s.jumpBuf = 0; }
 
   const hSpeed = Math.hypot(s.vx, s.vz);
 
@@ -241,7 +243,8 @@ export function stepMovement(s, inp, dt, world) {
         startSlide(s, hSpeed);
       } else {
         if (s.landT > MOVE.landGrace) applyFriction(s, MOVE.groundFriction, dt);
-        accelerate(s, wx, wz, wishSpeed, MOVE.groundAccel, dt);
+        // floor above friction's stop speed so slow ADS strafes (LMG, sniper) still reach their speed
+        accelerate(s, wx, wz, wishSpeed, MOVE.groundAccel, dt, MOVE.stopSpeed * 1.5);
       }
     }
     if (s.onGround) s.vy = 0;
@@ -372,7 +375,15 @@ function landed(s, fallSpeed, btn) {
   const hs = Math.hypot(s.vx, s.vz);
   // slide-hop: landing with crouch held at speed goes straight into a slide (momentum kept)
   if (btn & BTN.CROUCH && hs >= MOVE.slideMinSpeed && !s.downed) startSlide(s, hs);
-  else s.mode = 'ground';
+  else {
+    s.mode = 'ground';
+    // weight: a hard impact bleeds speed and briefly staggers (landing into a slide avoids it)
+    const k = Math.max(0, Math.min(1, (fallSpeed - MOVE.staggerFall) / 10));
+    if (k > 0) {
+      s.stagger = MOVE.staggerMax * k;
+      s.vx *= 1 - MOVE.staggerBleed * k; s.vz *= 1 - MOVE.staggerBleed * k;
+    }
+  }
 }
 
 function startMantle(s, top, fx, fz) {

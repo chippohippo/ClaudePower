@@ -318,6 +318,13 @@ All feel numbers are data, not code. Change them and reload.
 
 **World**
 - Seeded heightfield hills reach 0–46 m with slopes up to about 33°. Slides speed up downhill to 17 m/s and die out uphill in about 1 s.
+- Grounded, Helldivers-2-style weight (`MOVE` in `src/shared/constants.js`):
+  - Gravity is 24 m/s² and a jump is a 0.6 m hop.
+  - Acceleration from a standstill builds over about half a second, and stops are firm.
+  - Landings faster than 9 m/s stagger you for up to 0.45 s. You move at half speed, can't jump,
+    and lose up to 35% of your speed.
+  - Landing with crouch held goes straight into a slide instead. Every Apex trick is kept: slide-hops,
+    air strafing, wall jumps, superglides, mantles and ziplines.
 - Ziplines come in three kinds: vertical lines up buildings, roof-to-roof lines, and long hilltop lines. Riding is predicted, and a zip-jump keeps the cable momentum.
 - Buildings have interior partition rooms, interior windows you can mantle through, balconies and low cover walls.
 - The minimap is hill-shaded with contours and shows ziplines.
