@@ -1,0 +1,19 @@
+<!doctype html><html><body style="margin:0"><script type="module">
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+import { buildGun } from '/src/client/viewmodel.js';
+await assets.load();
+const ids = ['talon','mauler','hornet','volt','bulwark','breacher','scout','sentinel','viper','p20'];
+const W = 1600, H = 800, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); document.body.appendChild(r.domElement); r.setScissorTest(true);
+const cols = 5, cw = W / cols, ch = H / 2;
+ids.forEach((id, i) => {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color('#a8b0b8');
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 2.5)); const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(3, 4, 2); sc.add(d);
+  const g = buildGun(id, 0); sc.add(g);
+  const b = new THREE.Box3().setFromObject(g), c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3());
+  const m = Math.max(s.z, s.y) * 0.6, cam = new THREE.OrthographicCamera(-m * cw / ch, m * cw / ch, m, -m, -10, 10);
+  cam.position.set(c.x + 1, c.y, c.z); cam.lookAt(c); cam.updateProjectionMatrix();
+  const x = (i % cols) * cw, y = H - (Math.floor(i / cols) + 1) * ch; r.setViewport(x, y, cw, ch); r.setScissor(x, y, cw, ch); r.render(sc, cam);
+});
+window.done = true;
+</script></body></html>

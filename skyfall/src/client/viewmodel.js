@@ -51,6 +51,23 @@ function glassReticle() {
 }
 const RETICLES = {};
 
+// Height of an imported gun's top surface over a stretch of its length (centre line only), so a
+// sight sits on the receiver instead of floating at the height of a front post or carry handle.
+function topAt(model, z0, z1) {
+  model.updateMatrixWorld(true);
+  const v = new THREE.Vector3();
+  let top = -Infinity;
+  model.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    const p = o.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+      if (v.z > z0 && v.z < z1 && Math.abs(v.x) < 0.02 && v.y > top) top = v.y;
+    }
+  });
+  return top > -Infinity ? top : null;
+}
+
 // Barrel height of an imported gun: the mean height of the vertices in its front-most 4 cm.
 function muzzleHeight(model, box) {
   const v = new THREE.Vector3();
@@ -92,6 +109,7 @@ export function buildGun(id, tier = 0, att = null) {
     const shift = def.grip != null ? -(box.min.z + def.grip * size.z) : 0.14 - box.max.z; // grip / fore: fraction of the length from the muzzle
     model.position.z += shift;
     g.add(model);
+    g.userData.model = model;
     len = size.z;
     muzzleZ = def.muzzle ? def.muzzle[2] : box.min.z + shift;
     if (def.fore != null) g.userData.fore = Math.max(0.05, -(box.min.z + def.fore * size.z + shift));
@@ -129,7 +147,14 @@ export function buildGun(id, tier = 0, att = null) {
     // "Looking Glass" sight on every non-sniper gun (with or without a 1x/2x optic attached): a side
     // body with a battery tube, an open hook-shaped ring and a glowing green bar–chevron–bar reticle
     const k = cls === 'Pistol' ? 0.7 : 1;
-    const R = 0.034 * k, by = topY + 0.012 * k, cy = by + 0.012 * k + R, z = -0.07 * k;
+    const z = -0.07 * k;
+    // seat it on the receiver right under the mount (imported guns), not on the gun's highest point
+    let seat = topY;
+    if (g.userData.model) {
+      const t = topAt(g.userData.model, z - 0.05 * k, z + 0.06 * k);
+      if (t != null) seat = Math.min(topY, t);
+    }
+    const R = 0.034 * k, by = seat + 0.009 * k, cy = by + 0.012 * k + R;
     add(B(0.03 * k, 0.018 * k, 0.07 * k), dark, 0, by, z + 0.01 * k); // mount on the rail
     add(B(0.02 * k, 0.022 * k, 0.04 * k), dark, -0.03 * k, by + 0.012 * k, z + 0.01 * k); // side body
     const bat = new THREE.CylinderGeometry(0.008 * k, 0.008 * k, 0.045 * k, 12); bat.rotateX(Math.PI / 2);
