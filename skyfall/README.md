@@ -16,6 +16,9 @@ node tools/deathtest.js # knockdown → elimination → spectate → squad-out �
 node tools/bottest.js   # bot quality: stuck events, A* usage, slides, wall bounces
 node tools/loottest.js  # drop kit, floor loot, evo armor, mags, respawn loadout, Fallback Shields
 node tools/guntest.js   # ADS precision, ADS strafe speeds, projectile speeds, TTK table
+npm run assets:fetch    # download CC0 packs (Poly Haven, ambientCG, Kenney) into assets-src/
+npm run assets:import   # unzip + inspect + map packs → public/assets/manifest.json (docs/ASSETS.md)
+npm run assets:test     # end-to-end imported-asset pipeline test with generated stand-ins (needs npm run dev)
 node tools/audio/capture.mjs <dir> && python3 tools/audio/analyze.py <dir>
                        # render every sound in Chromium (needs `npm run dev`), print loudness /
                        # transient / band metrics and write a spectrogram contact sheet
@@ -298,6 +301,15 @@ All feel numbers are data, not code. Change them and reload.
 - Ziplines come in three kinds: vertical lines up buildings, roof-to-roof lines, and long hilltop lines. Riding is predicted, and a zip-jump keeps the cable momentum.
 - Buildings have interior partition rooms, interior windows you can mantle through, balconies and low cover walls.
 - The minimap is hill-shaded with contours and shows ziplines.
+
+**Imported art (optional CC0 packs)**
+- Quaternius characters + animation library, Ultimate Animated Characters, Quaternius / 3dmodelscc0 /
+  Kenney guns, WRAD first-person arms, Kenney / Quaternius nature, Poly Haven HDRIs and textures,
+  ambientCG textures and Kenney / freesound audio load from `public/assets/manifest.json`.
+- They are adapted to the cel/ink look (or kept PBR in Clean), and anything missing falls back to the
+  procedural art.
+- Workflow, role rules and the manifest reference: `docs/ASSETS.md`. The asset viewer is at
+  `/tools/assets/viewer.html`.
 
 **Art style: comic / pop-art (default; switch to "Clean" in Settings)**
 - "Clean" is the Apex-leaning look: PBR materials with the same post pass running as a pure colour

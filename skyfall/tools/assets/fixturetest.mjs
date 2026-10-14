@@ -9,10 +9,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const URL0 = process.argv[2] || 'http://localhost:5173';
-const SHOTS = process.argv[3] || null;
+const argv = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const IMPORT = process.argv.includes('--import'); // run the fixtures through tools/assets/import.mjs
+const URL0 = argv[0] || 'http://localhost:5173';
+const SHOTS = argv[1] || null;
+const PACKS = path.join(ROOT, '.fixture-packs');
 const PUB = path.join(ROOT, 'public', 'assets');
 const FIX = path.join(PUB, '_fixtures');
 const MAN = path.join(PUB, 'manifest.json');
@@ -62,6 +66,10 @@ const MANIFEST = {
 const { chromium } = await loadPlaywright();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const hadManifest = fs.existsSync(MAN);
+if (IMPORT && hadManifest) {
+  console.error('--import needs an empty public/assets (it writes and then removes asset folders); move your manifest aside first');
+  process.exit(2);
+}
 if (hadManifest) fs.copyFileSync(MAN, MAN + '.bak');
 let fails = 0;
 const check = (name, ok, extra = '') => { console.log((ok ? 'PASS ' : 'FAIL ') + name, extra); if (!ok) fails++; };
@@ -83,7 +91,29 @@ try {
   fs.writeFileSync(path.join(FIX, 'noise.png'), Buffer.from(png, 'base64'));
   fs.writeFileSync(path.join(FIX, 'sky.hdr'), makeHDR());
   fs.writeFileSync(path.join(FIX, 'click.wav'), makeWAV());
-  fs.writeFileSync(MAN, JSON.stringify(MANIFEST, null, 2));
+  if (IMPORT) {
+    // lay the fixtures out like real downloads and let the importer pick roles + write the manifest
+    const put = (rel, src) => { const t = path.join(PACKS, rel); fs.mkdirSync(path.dirname(t), { recursive: true }); fs.copyFileSync(path.join(FIX, src), t); };
+    put('quaternius_universal_base_characters/glTF/UBC_Superhero_Male.glb', 'character.glb');
+    put('quaternius_ultimate_guns/glTF/AK47.glb', 'gun.glb');
+    put('quaternius_ultimate_guns/glTF/Shotgun_Pump.glb', 'gun.glb');
+    put('quaternius_ultimate_guns/glTF/Pistol_1.glb', 'gun.glb');
+    put('kenney_nature-kit/Models/GLB format/tree_pineRoundA.glb', 'tree.glb');
+    put('kenney_nature-kit/Models/GLB format/rock_largeA.glb', 'rock.glb');
+    put('kenney_nature-kit/Models/GLB format/plant_bush.glb', 'bush.glb');
+    put('polyhaven/hdri/sky_2k.hdr', 'sky.hdr');
+    put('polyhaven/textures/ground/aerial_grass_rock_diff_1k.png', 'noise.png');
+    put('polyhaven/textures/wall/painted_concrete_diff_1k.png', 'noise.png');
+    put('kenney_ui-audio/Audio/click1.wav', 'click.wav');
+    // one pack as a zip, to exercise extraction
+    execFileSync('python3', ['-c', 'import sys,zipfile,os; z=zipfile.ZipFile(sys.argv[1],"w"); [z.write(os.path.join(r,f), os.path.relpath(os.path.join(r,f), sys.argv[2])) for r,_,fs in os.walk(sys.argv[2]) for f in fs]; z.close()', path.join(PACKS, 'kenney_nature-kit.zip'), path.join(PACKS, 'kenney_nature-kit')]);
+    fs.rmSync(path.join(PACKS, 'kenney_nature-kit'), { recursive: true });
+    const out = execFileSync('node', [path.join(ROOT, 'tools/assets/import.mjs'), '--fresh'], { env: { ...process.env, ASSETS_SRC: PACKS }, encoding: 'utf8' });
+    console.log(out.split('\n').map((l) => '  | ' + l).join('\n'));
+    const man = JSON.parse(fs.readFileSync(MAN, 'utf8'));
+    check('importer: base character + guns + nature + hdri + textures + sound', !!(man.characters?.default && man.weapons?.talon && man.weapons?.breacher && man.weapons?.p20 && man.nature?.tree && man.nature?.rock && man.nature?.bush && man.hdri && man.textures?.ground && man.sounds?.ui));
+    check('importer: X-long guns rotated to -Z', man.weapons?.talon?.rotY > 1.5);
+  } else fs.writeFileSync(MAN, JSON.stringify(MANIFEST, null, 2));
   console.log('fixtures:', fs.readdirSync(FIX).map((f) => `${f} ${fs.statSync(path.join(FIX, f)).size}B`).join(', '));
 
   // 2. play the firing range with the fixtures loaded
@@ -96,7 +126,7 @@ try {
   await page.waitForFunction(() => window.__skyfall && window.__skyfall.assets.done, null, { timeout: 60000 });
   const report = await page.evaluate(() => window.__skyfall.assets.report);
   console.log(report.map((l) => '  ' + l).join('\n'));
-  check('every manifest entry loaded', report.length >= 8 && report.every((l) => l.startsWith('ok')), `${report.length} entries`);
+  check('every manifest entry loaded', report.length >= (IMPORT ? 9 : 10) && report.every((l) => l.startsWith('ok')), `${report.length} entries`);
   await page.click('#btn-range');
   await page.waitForFunction(() => window.__skyfall.game && window.__skyfall.game.inv, null, { timeout: 90000 });
   await page.evaluate(() => { window.__skyfall.input.locked = true; const g = window.__skyfall.game; g.yaw = 0; g.pitch = -0.05; });
@@ -145,9 +175,26 @@ try {
     await page.screenshot({ path: path.join(SHOTS, 'assets_character.png') });
   }
   await page.close();
+
+  // 3. asset viewer renders every entry through the same pipeline
+  const vp = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  const verr = [];
+  vp.on('pageerror', (e) => verr.push(e.message));
+  await vp.goto(URL0 + '/tools/assets/viewer.html');
+  await vp.waitForFunction(() => document.querySelectorAll('#list button').length > 0, null, { timeout: 60000 });
+  const btns = await vp.$$eval('#list button', (b) => b.map((x) => x.textContent));
+  for (const label of ['default', 'talon']) {
+    await vp.click(`#list button:text-is("${label}")`);
+    await vp.waitForTimeout(1500);
+    if (SHOTS) await vp.screenshot({ path: path.join(SHOTS, `viewer_${label}.png`) });
+  }
+  check('asset viewer lists and shows entries', btns.length >= 5 && verr.length === 0, `${btns.length} entries ${verr.join(' | ')}`);
+  await vp.close();
 } finally {
   await browser.close();
   fs.rmSync(FIX, { recursive: true, force: true });
+  fs.rmSync(PACKS, { recursive: true, force: true });
+  for (const d of ['characters', 'animations', 'weapons', 'nature', 'hdri', 'textures', 'audio', 'arms', 'CREDITS.md', 'IMPORT_REPORT.md']) if (IMPORT) fs.rmSync(path.join(PUB, d), { recursive: true, force: true });
   if (hadManifest) fs.renameSync(MAN + '.bak', MAN);
   else fs.rmSync(MAN, { force: true });
 }

@@ -1,7 +1,7 @@
 {
   "name": "skyfall",
   "version": "0.1.0",
-  "description": "SKYFALL — browser battle royale with Apex-style movement, gunplay and legends",
+  "description": "SKYFALL \u2014 browser battle royale with Apex-style movement, gunplay and legends",
   "type": "module",
   "private": true,
   "scripts": {
@@ -9,7 +9,10 @@
     "build": "vite build",
     "server": "node server/index.js",
     "start": "vite build && node server/index.js",
-    "sim-test": "node tools/simtest.js"
+    "sim-test": "node tools/simtest.js",
+    "assets:fetch": "node tools/assets/fetch.mjs",
+    "assets:import": "node tools/assets/import.mjs",
+    "assets:test": "node tools/assets/fixturetest.mjs"
   },
   "dependencies": {
     "express": "4.21.2",

@@ -1,0 +1,43 @@
+{
+  "_doc": "Asset sources for tools/assets/fetch.mjs (automatic) and the manual list it prints. All CC0 unless noted. IDs are editable: swap any Poly Haven / ambientCG id for another from the site.",
+  "polyhaven": {
+    "hdri": { "id": "kloofendal_48d_partly_cloudy_puresky", "res": "2k" },
+    "textures": {
+      "ground": "aerial_grass_rock",
+      "wall": "painted_concrete",
+      "floor": "concrete_floor_02",
+      "metal": "rusty_metal_02",
+      "wood": "weathered_planks",
+      "rock": "aerial_rocks_02"
+    },
+    "res": "1k"
+  },
+  "ambientcg": {
+    "_doc": "Used for any texture role Poly Haven did not provide (or all, with --only ambientcg).",
+    "textures": {
+      "ground": "Ground037",
+      "wall": "Concrete034",
+      "floor": "PavingStones092",
+      "metal": "Metal032",
+      "wood": "Wood049",
+      "rock": "Rock030",
+      "roof": "RoofingTiles012"
+    },
+    "res": "1K-JPG"
+  },
+  "kenney": {
+    "_doc": "Asset page slugs on kenney.nl/assets/<slug>; the zip link is read from the page.",
+    "packs": ["nature-kit", "blaster-kit", "ui-audio", "impact-sounds", "interface-sounds"]
+  },
+  "manual": [
+    { "name": "Quaternius — Universal Base Characters", "url": "https://quaternius.com", "license": "CC0", "role": "characters (default rig)" },
+    { "name": "Quaternius — Universal Animation Library", "url": "https://quaternius.com", "license": "CC0", "role": "animations for the base characters (same rig)" },
+    { "name": "Quaternius — Ultimate Animated Character Pack", "url": "https://quaternius.com", "license": "CC0", "role": "per-legend characters with their own clips" },
+    { "name": "Quaternius — Ultimate Guns Pack", "url": "https://quaternius.com", "license": "CC0", "role": "weapons" },
+    { "name": "3dmodelscc0 — Free CC0 Guns & Explosives Pack", "url": "https://3dmodelscc0.itch.io/free-cc0-guns-explosives-pack", "license": "CC0", "role": "weapons" },
+    { "name": "Quaternius — Stylized Nature MegaKit", "url": "https://quaternius.com", "license": "CC0", "role": "trees, rocks, bushes" },
+    { "name": "WRAD ARMS (wriks)", "url": "https://wriks.itch.io/wrad-arms", "license": "check the itch.io page", "role": "first-person arms" },
+    { "name": "KayKit (Kay Lousberg)", "url": "https://kaylousberg.itch.io", "license": "CC0", "role": "optional characters / props" },
+    { "name": "Mixamo", "url": "https://www.mixamo.com", "license": "Adobe Mixamo terms (royalty-free, not CC0)", "role": "optional animations (FBX, 'without skin')" }
+  ]
+}
