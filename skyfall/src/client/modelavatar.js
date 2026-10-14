@@ -169,9 +169,11 @@ export class ModelAvatar {
     this.setGhost(!!phase);
     const speed = Math.hypot(s.vx, s.vz);
     const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
-    const fwd = s.vx * fx + s.vz * fz;
+    const fwd = s.vx * fx + s.vz * fz, side = s.vx * -fz + s.vz * fx;
     this.knockT += dt;
     this.castT += dt;
+    this.fireKick = Math.max(0, (this.fireKick || 0) - dt * 9);
+    if (this.fireKick > 0.3) this.firedT = 0.35; else this.firedT = Math.max(0, (this.firedT || 0) - dt);
 
     let st = 'idle';
     if (downed) st = 'downed';
@@ -180,43 +182,55 @@ export class ModelAvatar {
     else if (slide) st = 'slide';
     else if (air && !mantle) st = 'jump';
     else if ((s.crouch || 0) > 0.5) st = 'crouch';
+    else if (speed > 0.6 && Math.abs(side) > Math.abs(fwd) * 1.2 && this.actions.strafeL && this.actions.strafeR) st = side > 0 ? 'strafeR' : 'strafeL';
+    else if (speed > 0.6 && fwd < -0.5 && this.actions.walkBack) st = 'walkBack';
     else if (speed > 4.8) st = 'run';
     else if (speed > 0.6) st = 'walk';
+    else if (this.firedT > 0 && this.actions.shoot) st = 'shoot';
+    else if (fl & 128 && this.actions.reload) st = 'reload';
     else if (healing && this.actions.heal) st = 'heal';
-    this._setState(st, st === 'jump' || st === 'slide' ? 0.12 : 0.22);
-    // lock locomotion playback to ground speed; play backwards when back-pedalling
+    this._setState(st, st === 'jump' || st === 'slide' || st === 'shoot' ? 0.1 : 0.2);
+    // lock locomotion playback to ground speed (backwards only when there's no walk-back clip)
     const a = this.actions[this.state];
     if (a) {
-      const nominal = this.state === 'run' ? 6.5 : this.state === 'walk' ? 3.0 : this.state === 'crouch' ? 2.2 : 0;
-      a.timeScale = nominal ? Math.max(0.4, speed / nominal) * (fwd < -0.5 ? -1 : 1) : 1;
+      const nominal = { run: 6.5, walk: 3.0, crouch: 2.2, strafeL: 5.5, strafeR: 5.5, walkBack: 2.6 }[this.state] || 0;
+      a.timeScale = nominal ? Math.max(0.4, speed / nominal) * ((this.state === 'walk' || this.state === 'run') && fwd < -0.5 ? -1 : 1) : 1;
     }
-    // animation LOD: far characters tick at a lower rate
+    // animation LOD: the further away, the lower the update rate (pose holds in between)
     this.lodAcc += dt;
-    const step = dist > 140 ? 0.1 : dist > 60 ? 0.05 : 0;
+    const step = dist > 300 ? 0.25 : dist > 160 ? 1 / 7 : dist > 80 ? 1 / 15 : dist > 35 ? 1 / 30 : 0;
+    let ticked = false;
     if (this.lodAcc >= step) {
       this.mixer.update(this.lodAcc);
       this.lodAcc = 0;
+      ticked = true;
       if (this.spine) this.spinePose.copy(this.spine.quaternion); // clip pose before our layers
     }
 
+    // freefall: lean the whole body forward like an Apex skydive (most packs only have an upright
+    // jump/fall clip); steeper when diving
+    const dive = skydive ? Math.max(0, Math.min(1, (-(s.pitch || 0) - 0.2) / 1.0)) : 0;
+    const lean = skydive ? 1.05 + dive * 0.45 : 0;
+    this.body.rotation.x += (-lean - this.body.rotation.x) * Math.min(1, dt * 6);
+    this.body.position.y += ((skydive ? 1.0 : 0) - this.body.position.y) * Math.min(1, dt * 6);
+
     // procedural layers on top of the clip: aim pitch through the spine, fire kick
-    this.fireKick = Math.max(0, (this.fireKick || 0) - dt * 9);
     if (this.spine && !downed && !skydive) {
       const pitch = THREE.MathUtils.clamp(s.pitch || 0, -1.1, 1.1) * 0.6 + this.fireKick * 0.12;
       this.spine.quaternion.copy(this.spinePose);
       this.spine.rotateX(-pitch);
     }
 
-    // gun: at the right hand, pointing where the player aims
+    // gun: at the right hand, pointing where the player aims. The hand position (relative to the
+    // character) only changes when the animation ticks, and only the hand's parent chain is updated
     if (s.weapon !== this.weaponId) this._setWeapon(s.weapon && WEAPONS[s.weapon] ? s.weapon : null);
     this.gun.visible = !!s.weapon && !downed && !skydive && !zip;
     if (this.gun.visible) {
-      root.updateMatrixWorld(true);
-      if (this.hand) {
-        const p = this.hand.getWorldPosition(new THREE.Vector3());
-        root.worldToLocal(p);
-        this.gun.position.copy(p);
-      } else this.gun.position.set(0.2, 1.3, -0.3);
+      if (this.hand && (ticked || !this.handLocal)) {
+        root.updateWorldMatrix(false, false);
+        this.handLocal = root.worldToLocal(this.hand.getWorldPosition(this.handLocal || new THREE.Vector3()));
+      }
+      if (this.handLocal) this.gun.position.copy(this.handLocal); else this.gun.position.set(0.2, 1.3, -0.3);
       this.gun.position.z -= this.fireKick * 0.06;
       this.gun.rotation.set(THREE.MathUtils.clamp(s.pitch || 0, -1.1, 1.1) * 0.8, 0, 0);
     }
@@ -233,6 +247,14 @@ export class ModelAvatar {
     this.root.updateMatrixWorld(true);
     const c = SkeletonUtils.clone(this.root);
     c.remove(...c.children.filter((o) => o.isSprite));
+    // play the pack's death clip on the copy (it holds the last frame)
+    const clip = this.actions.death && this.actions.death.getClip();
+    if (clip) {
+      const mixer = new THREE.AnimationMixer(c);
+      const a = mixer.clipAction(clip);
+      a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.play();
+      c.userData.mixer = mixer;
+    }
     return c;
   }
 

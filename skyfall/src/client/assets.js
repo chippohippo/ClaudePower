@@ -14,6 +14,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { STYLE, toonify, toToon } from './comic.js';
 import { CLIP_PATTERNS, matchClip } from '../shared/clips.js';
@@ -54,6 +55,67 @@ export function adaptModel(root, { shadows = true, skinned = false } = {}) {
     o.material = Array.isArray(o.material) ? o.material.map(fix) : fix(o.material);
   });
   return root;
+}
+
+// Many character packs split a body into parts that share one texture atlas (KayKit: body, head,
+// arms, legs, helmet, cape …), each with its own skin. Merge parts that share a material into a
+// single SkinnedMesh on a union skeleton → one draw call per character instead of 7–10.
+export function mergeSkinnedParts(root) {
+  const groups = new Map();
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isSkinnedMesh || Array.isArray(o.material) || !o.visible) return;
+    const k = o.material.uuid + '|' + o.parent.uuid;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(o);
+  });
+  let merged = 0;
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    const ref = list[0];
+    if (!list.every((m) => m.bindMatrix.equals(ref.bindMatrix) && m.matrix.equals(ref.matrix))) continue;
+    const bones = [], inverses = [];
+    const geos = [];
+    let ok = true;
+    for (const m of list) {
+      const g = m.geometry.clone();
+      for (const n of Object.keys(g.attributes)) if (!['position', 'normal', 'uv', 'skinIndex', 'skinWeight'].includes(n)) g.deleteAttribute(n);
+      if (!g.attributes.skinIndex || !g.attributes.position) { ok = false; break; }
+      const si = g.attributes.skinIndex;
+      const remap = m.skeleton.bones.map((b, i) => {
+        let j = bones.indexOf(b);
+        if (j < 0) { j = bones.length; bones.push(b); inverses.push(m.skeleton.boneInverses[i].clone()); }
+        return j;
+      });
+      const arr = new Uint16Array(si.count * 4);
+      for (let i = 0; i < si.count; i++) for (let c = 0; c < 4; c++) arr[i * 4 + c] = remap[si.getComponent(i, c)] ?? 0;
+      g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(arr, 4));
+      // dequantize so parts with different quantization can be merged
+      for (const n of ['position', 'normal', 'uv', 'skinWeight']) {
+        const a = g.attributes[n];
+        if (a && !(a.array instanceof Float32Array)) {
+          const f = new Float32Array(a.count * a.itemSize);
+          for (let i = 0; i < a.count; i++) for (let c = 0; c < a.itemSize; c++) f[i * a.itemSize + c] = a.getComponent(i, c);
+          g.setAttribute(n, new THREE.BufferAttribute(f, a.itemSize));
+        }
+      }
+      geos.push(g);
+    }
+    if (!ok || geos.some((g) => Object.keys(g.attributes).sort().join() !== Object.keys(geos[0].attributes).sort().join())) continue;
+    const geo = mergeGeometries(geos.map((g) => (g.index ? g : g)), false);
+    if (!geo) continue;
+    const mesh = new THREE.SkinnedMesh(geo, ref.material);
+    mesh.name = ref.name + '_merged';
+    mesh.position.copy(ref.position); mesh.quaternion.copy(ref.quaternion); mesh.scale.copy(ref.scale);
+    ref.parent.add(mesh);
+    mesh.updateMatrixWorld(true);
+    mesh.bind(new THREE.Skeleton(bones, inverses), ref.bindMatrix);
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+    for (const m of list) m.parent.remove(m);
+    merged += list.length - 1;
+  }
+  return merged;
 }
 
 function styled(root) {
@@ -148,8 +210,13 @@ class AssetLibrary {
           const hide = new Set(def.hide.map((n) => THREE.PropertyBinding.sanitizeNodeName(n)));
           m.scene.traverse((o) => { if (hide.has(o.name) || hide.has(THREE.PropertyBinding.sanitizeNodeName(o.name))) o.visible = false; });
         }
+        // hidden props first so they're not merged in, then one draw call per material
+        const hidden = [];
+        m.scene.traverse((o) => { if (!o.visible && o !== m.scene) hidden.push(o); });
+        for (const o of hidden) if (o.parent) o.parent.remove(o);
+        const merged = mergeSkinnedParts(m.scene);
         adaptModel(m.scene, { skinned: true });
-        this.chars.set(key, { scene: m.scene, clips, def });
+        this.chars.set(key, { scene: m.scene, clips, def, merged });
       }));
     }
     for (const [id, def] of Object.entries(M.weapons || {})) {

@@ -343,9 +343,11 @@ export class FX {
     dx /= l; dz /= l;
     if (!isFinite(dx)) { dx = 0; dz = 1; }
     this.ragdolls = this.ragdolls || [];
+    // rigged models play their own death clip and only get shoved; procedural ones tumble
+    const anim = !!body.userData.mixer;
     this.ragdolls.push({
-      obj: body, vx: dx * 4 + (Math.random() - 0.5), vy: 3.5, vz: dz * 4 + (Math.random() - 0.5),
-      ax: -dz * 6, az: dx * 6, ay: (Math.random() - 0.5) * 4, t: 0, settled: false, ground: body.position.y,
+      obj: body, vx: dx * (anim ? 3 : 4) + (Math.random() - 0.5), vy: anim ? 2 : 3.5, vz: dz * (anim ? 3 : 4) + (Math.random() - 0.5),
+      ax: anim ? 0 : -dz * 6, az: anim ? 0 : dx * 6, ay: anim ? 0 : (Math.random() - 0.5) * 4, t: 0, settled: false, ground: body.position.y, anim,
     });
     avatar.root.visible = false;
     avatar.dead = true;
@@ -367,6 +369,7 @@ export class FX {
     for (let i = this.ragdolls.length - 1; i >= 0; i--) {
       const r = this.ragdolls[i], o = r.obj;
       r.t += dt;
+      if (o.userData.mixer) o.userData.mixer.update(dt);
       if (!r.settled) {
         r.vy -= 19 * dt;
         o.position.x += r.vx * dt; o.position.y += r.vy * dt; o.position.z += r.vz * dt;
@@ -377,7 +380,7 @@ export class FX {
           if (Math.abs(r.vy) > 3) { r.vy = -r.vy * 0.3; r.vx *= 0.5; r.vz *= 0.5; this.dust(o.position.x, g, o.position.z, 0.8); }
           else r.settled = true;
         }
-      } else {
+      } else if (!r.anim) {
         // collapse flat
         o.rotation.x += (-Math.PI / 2 - o.rotation.x) * Math.min(1, dt * 6);
         o.rotation.z *= 1 - Math.min(1, dt * 6);

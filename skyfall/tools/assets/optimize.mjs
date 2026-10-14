@@ -17,7 +17,8 @@ export async function optimizerAvailable() {
     try { sharp = (await import('sharp')).default; } catch { /* textures stay as they are */ }
     await mo.MeshoptEncoder.ready;
     const io = new core.NodeIO().registerExtensions(ext.ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': mo.MeshoptEncoder, 'meshopt.decoder': mo.MeshoptDecoder });
-    gt = { core, fn, ext, io, MeshoptEncoder: mo.MeshoptEncoder, sharp };
+    await mo.MeshoptSimplifier.ready;
+    gt = { core, fn, ext, io, MeshoptEncoder: mo.MeshoptEncoder, MeshoptSimplifier: mo.MeshoptSimplifier, sharp };
   } catch { gt = false; }
   return !!gt;
 }
@@ -52,8 +53,9 @@ function findFile(root, pred) {
 //   animOnly   write an animation library: skeleton + clips, no meshes, materials or textures
 //   character  skinned model (no welding)
 //   maxTex     longest side for colour textures (they're re-encoded as WebP)
-export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512 } = {}) {
-  const { fn, io, MeshoptEncoder, sharp } = gt;
+//   simplify   0..1 triangle ratio (meshoptimizer simplifier) — nature props and their far LODs
+export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512, simplify = 0 } = {}) {
+  const { fn, io, MeshoptEncoder, MeshoptSimplifier, sharp } = gt;
   const doc = await io.read(src);
   const root = doc.getRoot();
   if (animOnly) {
@@ -76,6 +78,7 @@ export async function optimizeModel(src, dest, { hide = [], keepClips = null, ch
     fn.prune(),
     fn.dedup(),
     ...(character ? [] : [fn.weld()]),
+    ...(simplify > 0 && !character ? [fn.simplify({ simplifier: MeshoptSimplifier, ratio: simplify, error: simplify < 0.2 ? 0.05 : 0.01 })] : []),
     fn.resample(),
     fn.quantize({ quantizeTexcoord: 12 }),
     ...(sharp && !animOnly ? [fn.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [maxTex, maxTex], quality: 85 })] : []),

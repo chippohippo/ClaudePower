@@ -1,6 +1,6 @@
 # SKYFALL asset import
 
-source: assets-src — 1819 files, 0 zips extracted, 282 models
+source: assets-src — 1820 files, 0 zips extracted, 282 models
 
 characters.default   ← kaykit-adventurers/Barbarian.glb (76 clips)
 characters.jolt     ← kaykit-adventurers/Rogue.glb  [DPS]  hides 5 held props
@@ -39,4 +39,4 @@ sounds.draw          ← kenney-starter-kit-fps/sounds/weapon_change.ogg
 overrides: applied tools/assets/overrides.json
 
 optimised models: 151.1 MB → 2.8 MB (meshopt + quantize, unused clips and held props removed)
-removed 1 stale files from earlier imports
+removed 4 stale files from earlier imports

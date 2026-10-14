@@ -283,7 +283,10 @@ for (const [kind, [re, not]] of Object.entries(NATURE)) {
   for (const m of c) { const f = family(m); if (!fams.has(f)) fams.set(f, []); fams.get(f).push(m); }
   const picks = [];
   for (let round = 0; picks.length < 4 && round < 4; round++) for (const list of fams.values()) if (list[round] && picks.length < 4) picks.push(list[round]);
-  if (picks.length) { manifest.nature[kind] = picks.map((m) => use('nature', m)); log(`nature.${kind.padEnd(14)}← ${picks.map((m) => rel(m.file)).join(', ')}`); }
+  // light simplification where it helps (rocks, bushes); tree foliage is leaf cards the simplifier
+  // can't merge, so trees get a distance LOD at runtime instead (client/world.js)
+  const SIMPLIFY = { rock: 0.8, bush: 0.6 };
+  if (picks.length) { manifest.nature[kind] = picks.map((m) => use('nature', m, { simplify: SIMPLIFY[kind] || 0 })); log(`nature.${kind.padEnd(14)}← ${picks.map((m) => rel(m.file)).join(', ')}`); }
 }
 
 // --- props draped over map colliders of the same kind (collision unchanged)

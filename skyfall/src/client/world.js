@@ -113,7 +113,8 @@ export class WorldView {
     const H = assets.hdri;
     this.envMap = H ? pmrem.fromEquirectangular(H).texture : pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = this.envMap;
-    scene.environmentIntensity = H ? (assets.manifest.hdri.intensity ?? 0.6) : 0.45;
+    // a real sky HDRI is much brighter than the room probe: keep stylised albedos from blowing out
+    scene.environmentIntensity = H ? (assets.manifest.hdri.intensity ?? 0.6) * (STYLE.comic ? 1 : 0.6) : 0.45;
     this.hdriBackground = !!(H && assets.manifest.hdri.background && !STYLE.comic);
 
     // sky dome
@@ -380,8 +381,8 @@ export class WorldView {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     for (const g of groups.values()) {
-      if (g.kind === 'rock' && assets.natureKinds('rock')) { this._drape(g.list, assets.natureKinds('rock')); continue; }
-      if (assets.propKinds(g.kind)) { this._drape(g.list, assets.propKinds(g.kind), [1.04, 1.02]); continue; }
+      if (g.kind === 'rock' && assets.natureKinds('rock')) { this._drape(g.list, assets.natureKinds('rock'), [1.12, 1.06], 0.45); continue; }
+      if (assets.propKinds(g.kind)) { this._drape(g.list, assets.propKinds(g.kind), [1.04, 1.02], 0.7); continue; }
       const metalKinds = { container: 1, catwalk: 1, crane: 1, stack: 1, pylon: 1, spire: 1 };
       const rough = metalKinds[g.kind] ? 0.5 : g.kind === 'rock' ? 0.95 : 0.85;
       const metal = metalKinds[g.kind] ? 0.35 : 0.0;
@@ -407,13 +408,13 @@ export class WorldView {
   // Instance imported model variants: items = [{ v (variant index), m4 (matrix) }]
   _instanceVariants(variants, items) {
     const byV = variants.map(() => []);
-    for (const it of items) byV[it.v % variants.length].push(it.m4);
+    for (const it of items) byV[it.v % variants.length].push(it);
     variants.forEach((vt, vi) => {
       const list = byV[vi];
       if (!list.length) return;
       for (const part of vt.parts) {
         const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
-        list.forEach((m4, i) => mesh.setMatrixAt(i, m4));
+        list.forEach((it, i) => { mesh.setMatrixAt(i, it.m4); if (it.color) mesh.setColorAt(i, it.color); });
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.computeBoundingSphere();
@@ -426,7 +427,7 @@ export class WorldView {
   // see is exactly what you climb and take cover behind. Each model is turned 90° when that lines
   // its long side up with the box's long side (less stretching), and mirrored on alternate boxes
   // for variety. pad slightly oversizes the shell so no box face peeks through.
-  _drape(list, variants, pad = [1.12, 1.06]) {
+  _drape(list, variants, pad = [1.12, 1.06], tint = 0.6) {
     const sizes = variants.map((vt) => {
       const b = new THREE.Box3();
       for (const p of vt.parts) { p.geometry.computeBoundingBox(); b.union(p.geometry.boundingBox); }
@@ -443,34 +444,14 @@ export class WorldView {
       const kx = bw / Math.max(mw, 0.01) * pad[0], kz = bd / Math.max(md, 0.01) * pad[0], ky = bh / Math.max(sz.y, 0.01) * pad[1];
       const s = turn ? new THREE.Vector3(kz, ky, kx) : new THREE.Vector3(kx, ky, kz);
       const p = new THREE.Vector3((b.max[0] + b.min[0]) / 2, b.min[1] - 0.03, (b.max[2] + b.min[2]) / 2);
-      items.push({ v, m4: new THREE.Matrix4().compose(p, q, s) });
+      // keep the zone palette: each instance is tinted toward its collider's colour
+      items.push({ v, m4: new THREE.Matrix4().compose(p, q, s), color: tint > 0 && b.color ? new THREE.Color('#ffffff').lerp(new THREE.Color(b.color), tint) : null });
     });
     this._instanceVariants(variants, items);
   }
 
   _trees() {
     const trees = this.map.trees;
-    // imported trees + bushes (Kenney Nature Kit / Quaternius Nature MegaKit)
-    const tv = assets.natureKinds('tree');
-    if (tv) {
-      const items = [], bushes = [];
-      const bv = assets.natureKinds('bush');
-      const rnd = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
-      trees.forEach((t, i) => {
-        const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd(i, 1) * Math.PI * 2);
-        const s = t.h * (0.9 + rnd(i, 2) * 0.2);
-        items.push({ v: Math.floor(rnd(i, 3) * tv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(t.x, t.y, t.z), q, new THREE.Vector3(s, s, s)) });
-        if (bv) for (let k = 0; k < 2; k++) {
-          if (rnd(i, 4 + k) < 0.4) continue;
-          const a = rnd(i, 6 + k) * Math.PI * 2, d = 1.5 + rnd(i, 8 + k) * 3.5;
-          const bx = t.x + Math.cos(a) * d, bz = t.z + Math.sin(a) * d, bs = 0.7 + rnd(i, 10 + k) * 0.8;
-          bushes.push({ v: Math.floor(rnd(i, 12 + k) * bv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(bx, this.map.terrain.height(bx, bz) - 0.05, bz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(bs, bs, bs)) });
-        }
-      });
-      this._instanceVariants(tv, items);
-      if (bv) this._instanceVariants(bv, bushes);
-      return;
-    }
     const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.32, 1, 6), new THREE.MeshStandardMaterial({ color: '#5b4330', roughness: 1 }), trees.length);
     const leafGeo = new THREE.ConeGeometry(1, 1, 7);
     const leaf1 = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#3f6b3a', roughness: 0.9, flatShading: true }), trees.length);
@@ -483,7 +464,62 @@ export class WorldView {
       s.set(h * 0.24, h * 0.42, h * 0.24); p.set(t.x, t.y + h * 0.82, t.z); m4.compose(p, q, s); leaf2.setMatrixAt(i, m4);
     });
     for (const m of [trunk, leaf1, leaf2]) { m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); this.scene.add(m); }
+    // imported trees + bushes (Quaternius Nature MegaKit / Kenney Nature Kit) replace the cone
+    // trees up close; the cone trees stay as the far LOD (leaf-card foliage is thousands of
+    // triangles per tree, far too many to instance across the whole map)
+    const tv = assets.natureKinds('tree');
+    if (!tv) return;
+    const bv = assets.natureKinds('bush');
+    const rnd = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
+    const up = new THREE.Vector3(0, 1, 0);
+    const far = [trunk, leaf1, leaf2], farM = far.map(() => []);
+    const near = [], bushes = [];
+    trees.forEach((t, i) => {
+      for (let k = 0; k < 3; k++) { const m = new THREE.Matrix4(); far[k].getMatrixAt(i, m); farM[k].push(m); }
+      const sc = t.h * (0.9 + rnd(i, 2) * 0.2);
+      near.push({ x: t.x, z: t.z, v: Math.floor(rnd(i, 3) * tv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(t.x, t.y, t.z), new THREE.Quaternion().setFromAxisAngle(up, rnd(i, 1) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)) });
+      if (bv) for (let k = 0; k < 2; k++) {
+        if (rnd(i, 4 + k) < 0.4) continue;
+        const a = rnd(i, 6 + k) * Math.PI * 2, d = 1.5 + rnd(i, 8 + k) * 3.5;
+        const bx = t.x + Math.cos(a) * d, bz = t.z + Math.sin(a) * d, bs = 0.7 + rnd(i, 10 + k) * 0.8;
+        bushes.push({ x: bx, z: bz, v: Math.floor(rnd(i, 12 + k) * bv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(bx, this.map.terrain.height(bx, bz) - 0.05, bz), new THREE.Quaternion().setFromAxisAngle(up, a), new THREE.Vector3(bs, bs, bs)) });
+      }
+    });
+    const pool = (variants, list) => variants.map((vt, vi) => {
+      const n = Math.max(1, list.filter((it) => it.v === vi).length);
+      return vt.parts.map((p) => {
+        const m = new THREE.InstancedMesh(p.geometry, p.material, n);
+        m.count = 0; m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+        this.scene.add(m);
+        return m;
+      });
+    });
+    for (const m of far) m.frustumCulled = false;
+    this.treeLod = { far, farM, near, nearMeshes: pool(tv, near), bushes, bushMeshes: bv ? pool(bv, bushes) : [], t: 0 };
   }
+
+  // Swap trees between the imported model (near) and the cone tree (far); bushes only up close.
+  _updateTreeLod(cam) {
+    const L = this.treeLod, R2 = 160 * 160, B2 = 140 * 140;
+    const nearN = L.nearMeshes.map(() => 0);
+    let farN = 0;
+    L.near.forEach((it, i) => {
+      if ((it.x - cam.x) ** 2 + (it.z - cam.z) ** 2 < R2) {
+        const j = nearN[it.v]++;
+        for (const m of L.nearMeshes[it.v]) m.setMatrixAt(j, it.m4);
+      } else {
+        for (let k = 0; k < 3; k++) L.far[k].setMatrixAt(farN, L.farM[k][i]);
+        farN++;
+      }
+    });
+    L.nearMeshes.forEach((parts, v) => parts.forEach((m) => { m.count = nearN[v]; m.instanceMatrix.needsUpdate = true; }));
+    for (const m of L.far) { m.count = farN; m.instanceMatrix.needsUpdate = true; }
+    const bN = L.bushMeshes.map(() => 0);
+    for (const it of L.bushes) if ((it.x - cam.x) ** 2 + (it.z - cam.z) ** 2 < B2) { const j = bN[it.v]++; for (const m of L.bushMeshes[it.v]) m.setMatrixAt(j, it.m4); }
+    L.bushMeshes.forEach((parts, v) => parts.forEach((m) => { m.count = bN[v]; m.instanceMatrix.needsUpdate = true; }));
+  }
+
+
 
   _beacons() {
     // respawn beacons: emissive core, rotating holo rings and a beam that flares when you carry banners
@@ -717,6 +753,7 @@ export class WorldView {
       f.ring.material.opacity = 0.6 + 0.3 * Math.sin(time * 6);
     }
     for (const m of this.waterMats || []) m.uniforms.time.value = time;
+    if (this.treeLod && camPos && (this.treeLod.t -= dt) <= 0) { this.treeLod.t = 0.4; this._updateTreeLod(camPos); }
     if (this.zipTime) this.zipTime.value = time;
     for (const sp of this.spinners || []) sp.o.rotation.y += dt * sp.s;
     this.ringMat.uniforms.time.value = time;
