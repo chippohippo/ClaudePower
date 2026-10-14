@@ -58,6 +58,9 @@ const gunMat = () => mat('gun', () => new THREE.MeshStandardMaterial({ color: '#
 const legendMat = (id) => mat('lg' + id, () => new THREE.MeshStandardMaterial({ color: LEGENDS[id].color, roughness: 0.5, metalness: 0.15 }));
 const glowMat = (c) => mat('glow' + c, () => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.6, roughness: 0.4 }));
 const phaseMat = new THREE.MeshBasicMaterial({ color: '#b48bff', transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending });
+const kdMat = new THREE.MeshBasicMaterial({ color: '#7fd4ff', transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+const kdGeo = new THREE.CylinderGeometry(0.85, 0.85, 1.0, 18, 1, true, Math.PI - 0.95, 1.9);
+kdGeo.translate(0, 0.5, 0);
 const revealMat = new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.55, depthTest: false, depthWrite: false });
 
 // Squadmate marker (Apex-style): an ally-coloured diamond over the name, drawn through walls
@@ -232,6 +235,10 @@ export class Avatar {
       this.tag.position.y = 2.6;
       root.add(this.tag);
     }
+    // Fallback Shield: curved energy panel a downed legend holds up in front of them
+    this.kd = new THREE.Mesh(kdGeo, kdMat);
+    this.kd.visible = false;
+    root.add(this.kd);
     this.walk = Math.random() * 6;
     this.castT = 9;
     this.knockT = 9;
@@ -333,6 +340,7 @@ export class Avatar {
     }
     if (healing) { AL.sh.rotation.set(-1.0, 0.4, 0.5); AL.el.rotation.x = -1.4; this.gun.rotation.x = -0.7; }
     this.gun.visible = !!s.weapon && !downed && !skydive && !zip;
+    this.kd.visible = !!(fl & 8192);
     if (s.weapon && s.weapon !== this.weaponId && WEAPONS[s.weapon]) {
       this.weaponId = s.weapon;
       const w = WEAPONS[s.weapon];

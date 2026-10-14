@@ -748,8 +748,16 @@ export class Bot {
 
   _downed(dt) {
     // crawl toward nearest squadmate / away from enemy
-    const p = this.p;
+    const p = this.p, m = this.m;
     const mate = this.squadmates().find((q) => q.alive && !q.downed && !q.eliminated);
+    // under fire with a Fallback Shield: turn it toward the shooter and back-crawl to the squad
+    const threat = p.kd > 0 && p.kdHp > 0 && m.time - p.lastHurt < 4 && m.players.get(p.lastAttacker);
+    if (threat && threat.alive && Math.hypot(threat.ms.x - p.ms.x, threat.ms.z - p.ms.z) < 80) {
+      this.yaw = Math.atan2(-(threat.ms.x - p.ms.x), -(threat.ms.z - p.ms.z));
+      if (mate) this._moveTo(mate.ms.x, mate.ms.z, dt, false, 1.5);
+      this.inp.buttons |= BTN.ADS;
+      return;
+    }
     if (mate) this._moveTo(mate.ms.x, mate.ms.z, dt, false, 1.5);
     this._lookMove(dt);
   }

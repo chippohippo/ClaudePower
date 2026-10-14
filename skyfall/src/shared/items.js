@@ -63,6 +63,7 @@ export function itemName(key, tier = 0) {
   }
   if (key === 'armor') return `Adapt Armor Lv${tier}`;
   if (key === 'helmet') return `Helmet Lv${tier}`;
+  if (key === 'kd') return `Fallback Shield Lv${tier}`;
   if (key === 'pack') return `Backpack Lv${tier}`;
   return key;
 }
@@ -113,12 +114,16 @@ export function rollLoot(rng, zoneTier) {
     return { item: 'c:' + c, n: c === 'syringe' || c === 'cell' ? 2 : 1, tier: 0 };
   }
   if (r < 0.79) return { item: 'g:' + rng.pick(['frag', 'frag', 'arc']), n: 1, tier: 0 };
-  if (r < 0.85) return { item: 'helmet', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
+  if (r < 0.83) return { item: 'helmet', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
+  if (r < 0.86) return { item: 'kd', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
   if (r < 0.9) return { item: 'pack', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
   const att = rng.pick(['mag_light', 'mag_light', 'mag_heavy', 'mag_heavy', 'mag_energy', 'mag_sniper', 'barrel', 'stock', 'optic1', 'optic2', 'optic3']);
   const lv = ATTACHMENTS[att].levels ? Math.min(3, 1 + Math.floor(tierRoll() * 0.8)) : 0;
   return { item: 'x:' + att, n: 1, tier: lv };
 }
+
+// Fallback Shield (Apex knockdown shield): HP of the frontal shield a downed legend can raise.
+export const KD_HP = [0, 100, 250, 750, 750];
 
 export const HELMET_HEAD_REDUCTION = [0, 0.2, 0.4, 0.5];
 export const BACKPACK_SLOTS = [8, 10, 12, 14];

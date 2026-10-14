@@ -104,6 +104,9 @@ export const EVO_THRESHOLDS = [0, 200, 400, 700];
 export const EVO_POINTS = { damage: 1, healAlly: 1, healSelf: 0.5, knock: 25, revive: 50, respawn: 75 };
 
 export const BLEEDOUT_TIME = 90;
+// Apex: each knock in the same life bleeds out faster (90 s, 60 s, 30 s, then 15 s)
+export const BLEEDOUT_STEPS = [90, 60, 30, 15];
+export const REVIVE_HP = 20;
 export const DOWNED_HP = 100;
 export const REVIVE_TIME = 5;
 export const BANNER_TIME = 90;

@@ -2,7 +2,8 @@
 // ammo, evo points from damage and healing, and respawns that keep guns + armor level with low ammo.
 import { Match } from '../src/sim/match.js';
 import { makeWeapon, pickup } from '../src/sim/inventory.js';
-import { SHIELD_TIERS, EVO_THRESHOLDS } from '../src/shared/constants.js';
+import { SHIELD_TIERS, EVO_THRESHOLDS, BTN, REVIVE_HP } from '../src/shared/constants.js';
+import { KD_HP } from '../src/shared/items.js';
 import { WEAPONS } from '../src/shared/weapons.js';
 import { buildMap } from '../src/shared/map.js';
 
@@ -60,5 +61,31 @@ pickup(t, { item: 'x:mag_light', n: 1, tier: 2 });
 check('light mag does not fit the Raptor (sniper ammo)', t.weapons[0].att.mag === 0);
 pickup(t, { item: 'x:mag_sniper', n: 1, tier: 2 });
 check('sniper mag fits the Raptor (8 rounds)', t.weapons[0].att.mag === 2);
+// Fallback Shield (knockdown shield) + Apex bleed-out / revive rules
+const m2 = new Match({ seed: 99, mode: 'trios' });
+m2.setupSquads([]);
+m2.start();
+const [d, mate] = [m2.list[0], m2.list[1]], shooter = m2.list[3];
+for (const q of [d, mate, shooter]) { q.inShip = false; q.ms.mode = 'ground'; q.ms.y = 0; }
+d.ms.x = 0; d.ms.z = 0; d.ms.yaw = 0; // facing -z
+mate.ms.x = 50; mate.ms.z = 50;
+shooter.ms.x = 0; shooter.ms.z = -20; // in front
+d.kd = 2; d.shield = 0; d.hp = 10;
+m2.damage(d, 20, shooter, { part: 'body' });
+check('knock sets 90 s bleed-out on first down', d.downed && d.bleed === 90, `bleed ${d.bleed}`);
+check('Fallback Shield charged on knock', d.kdHp === KD_HP[2], `kdHp ${d.kdHp}`);
+m2._applyMods(d, { buttons: BTN.ADS });
+check('aim while downed raises the shield', d.kdUp === true);
+const hp0 = d.hp;
+m2.damage(d, 30, shooter, { part: 'body' });
+check('shield blocks shots from the front', d.hp === hp0 && d.kdHp === KD_HP[2] - 30, `hp ${d.hp} kdHp ${d.kdHp}`);
+shooter.ms.z = 20; // behind
+m2.damage(d, 30, shooter, { part: 'body' });
+check('shots from behind still hurt', d.hp === hp0 - 30, `hp ${d.hp}`);
+// revive, then second knock bleeds faster
+d.downed = false; d.ms.downed = 0; d.hp = REVIVE_HP;
+check('revive HP is 20 (Apex)', REVIVE_HP === 20);
+m2.damage(d, 100, shooter, { part: 'body' });
+check('second knock bleeds out in 60 s', d.downed && d.bleed === 60, `bleed ${d.bleed}`);
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -6,7 +6,7 @@ import { SHIELD_COLORS, SHIELD_TIERS, EVO_THRESHOLDS } from '../shared/constants
 import { LEGENDS, ROLES } from '../shared/legends.js';
 import { ROLE_ICON } from './roleicons.js';
 import { WEAPONS, magSize } from '../shared/weapons.js';
-import { RARITY, itemName, itemRarity, CONSUMABLES } from '../shared/items.js';
+import { RARITY, itemName, itemRarity, CONSUMABLES, KD_HP } from '../shared/items.js';
 import { MAP_HALF } from '../shared/constants.js';
 import { FEEL } from './tuning.js';
 
@@ -229,6 +229,21 @@ export class HUD {
       el.ch.children[3].style.transform = `translateX(${gap}px)`;
     }
     el.scope.style.display = g.scoped ? 'block' : 'none';
+
+    // downed: Fallback Shield prompt and its remaining HP
+    const kdShow = me.alive && me.down && !g.spectating;
+    if (kdShow || this.kdEl) {
+      if (!this.kdEl) { this.kdEl = document.createElement('div'); this.kdEl.id = 'kdhud'; el.announce.parentNode.appendChild(this.kdEl); }
+      this.kdEl.style.display = kdShow ? '' : 'none';
+      if (kdShow) {
+        const max = KD_HP[me.kd || 0] || 0;
+        const k = `${me.kd}|${me.kdHp}|${me.kdUp}`;
+        if (k !== this.kdK) {
+          this.kdK = k;
+          this.kdEl.innerHTML = max ? `<div class="kt">${me.kdUp ? 'SHIELD UP' : '<b>[RMB]</b> RAISE FALLBACK SHIELD'}</div><div class="kb"><i style="width:${((me.kdHp || 0) / max * 100).toFixed(0)}%"></i></div>` : '<div class="kt dim">NO FALLBACK SHIELD</div>';
+        }
+      }
+    }
 
     // vignette when low
     const lowHp = me.alive && !me.down ? (100 - me.hp) / 100 : 0;
@@ -564,7 +579,8 @@ export class HUD {
     G.innerHTML = `<h4>GEAR</h4>
       <div class="item" style="--rc:${SHIELD_COLORS[inv.armor]}">Adapt Armor <small>Lv${inv.armor}${inv.armor && inv.armor < 4 ? ` · ${g.meView.evo || 0}/${EVO_THRESHOLDS[inv.armor]}` : ''}</small></div>
       <div class="item" style="--rc:${RARITY[Math.max(0, inv.helmet - 1)]}">Helmet <small>Lv${inv.helmet}</small></div>
-      <div class="item" style="--rc:${RARITY[Math.max(0, inv.pack - 1)]}">Backpack <small>Lv${inv.pack}</small></div>`;
+      <div class="item" style="--rc:${RARITY[Math.max(0, inv.pack - 1)]}">Backpack <small>Lv${inv.pack}</small></div>
+      <div class="item" style="--rc:${RARITY[Math.max(0, (inv.kd || 0) - 1)]}">Fallback Shield <small>Lv${inv.kd || 0}</small></div>`;
     B.innerHTML = `<h4>BACKPACK (${inv.inv.length}/${[8, 10, 12, 14][inv.pack]})</h4>` + inv.inv.map((s, i) =>
       `<div class="item" data-i="${i}" style="--rc:${RARITY[itemRarity(s.item, s.tier)]}">${itemName(s.item, s.tier)} <small>x${s.n}</small></div>`).join('');
     B.querySelectorAll('.item').forEach((d) => d.addEventListener('contextmenu', (e) => { e.preventDefault(); onDrop(+d.dataset.i); }));

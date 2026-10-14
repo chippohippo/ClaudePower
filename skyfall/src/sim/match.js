@@ -4,11 +4,11 @@
 import { buildMap } from '../shared/map.js';
 import { createMoveState, stepMovement, playerHeight, eyeHeight, MEV } from '../shared/movement.js';
 import {
-  SIM_DT, SNAPSHOT_RATE, MODES, MAX_PLAYERS, SHIELD_TIERS, EVO_THRESHOLDS, EVO_POINTS, BLEEDOUT_TIME, DOWNED_HP,
+  SIM_DT, SNAPSHOT_RATE, MODES, MAX_PLAYERS, SHIELD_TIERS, EVO_THRESHOLDS, EVO_POINTS, BLEEDOUT_STEPS, REVIVE_HP, BLEEDOUT_TIME, DOWNED_HP,
   REVIVE_TIME, BANNER_TIME, BTN, MAP_HALF,
 } from '../shared/constants.js';
 import { WEAPONS, falloff, fireInterval, magSize, currentSpread } from '../shared/weapons.js';
-import { CONSUMABLES, GRENADES, HELMET_HEAD_REDUCTION, rollLoot } from '../shared/items.js';
+import { CONSUMABLES, GRENADES, HELMET_HEAD_REDUCTION, KD_HP, rollLoot } from '../shared/items.js';
 import { LEGENDS, LEGEND_IDS, ROLES, roleTargets } from '../shared/legends.js';
 import { makeRng, dirFromAngles, clamp } from '../shared/util.js';
 import { rayPlayer } from '../shared/physics.js';
@@ -192,7 +192,7 @@ export class Match {
     ms.jetpack = legend === 'spectre' ? 1 : 0;
     const p = {
       id, name, legend, squad, isBot, ms,
-      hp: 100, shield: SHIELD_TIERS[1], armor: 1, evoDmg: 0, helmet: 0, pack: 0,
+      hp: 100, shield: SHIELD_TIERS[1], armor: 1, evoDmg: 0, helmet: 0, pack: 0, kd: 0, kdHp: 0, kdUp: false, downs: 0,
       weapons: [null, null], active: 0, inv: [],
       inShip: true, alive: true, downed: false, bleed: 0, eliminated: false,
       tacCd: 0, ultCd: LEGENDS[legend].ultimate.cd * 0.5,
@@ -493,7 +493,7 @@ export class Match {
     p.invDirty = false;
     if (p.isBot) return;
     this.sendTo(p, {
-      t: 'inv', weapons: p.weapons, active: p.active, inv: p.inv, armor: p.armor, helmet: p.helmet, pack: p.pack,
+      t: 'inv', weapons: p.weapons, active: p.active, inv: p.inv, armor: p.armor, helmet: p.helmet, pack: p.pack, kd: p.kd,
     });
   }
 
@@ -644,6 +644,18 @@ export class Match {
     if (a && a !== v && v.bot) v.bot.onDamaged(a);
     if (v.legend === 'volt' && !v.downed) v.status.doubletime = 2;
     let shieldDmg = 0, hpDmg = 0, broke = false;
+    // raised Fallback Shield soaks bullets coming from the front while downed
+    if (v.downed && v.kdUp && v.kdHp > 0 && a && a !== v && info.part && !info.src && !info.ring) {
+      const fx = -Math.sin(v.ms.yaw), fz = -Math.cos(v.ms.yaw);
+      const dx = a.ms.x - v.ms.x, dz = a.ms.z - v.ms.z, dl = Math.hypot(dx, dz) || 1;
+      if ((dx * fx + dz * fz) / dl > 0.42) {
+        v.kdHp = Math.max(0, v.kdHp - amount);
+        const brk = v.kdHp <= 0;
+        if (brk) v.kdUp = false;
+        this.events.push({ e: 'kdhit', a: a.id, v: v.id, dmg: amount, brk: brk ? 1 : 0, x: info.x ?? v.ms.x, y: info.y ?? v.ms.y + 0.6, z: info.z ?? v.ms.z, to: [a.id, v.id] });
+        return 0;
+      }
+    }
     if (v.downed) {
       hpDmg = Math.min(v.hp, amount);
       v.hp -= hpDmg;
@@ -710,7 +722,10 @@ export class Match {
     v.ms.downed = 1;
     v.hp = DOWNED_HP;
     v.shield = 0;
-    v.bleed = BLEEDOUT_TIME;
+    v.bleed = BLEEDOUT_STEPS[Math.min(v.downs, BLEEDOUT_STEPS.length - 1)];
+    v.downs++;
+    v.kdHp = KD_HP[v.kd] || 0;
+    v.kdUp = false;
     v.healing = null;
     v.reloading = null;
     v.status.phase = 0;
@@ -738,6 +753,7 @@ export class Match {
     for (const w of v.weapons) if (w) items.push({ item: 'w:' + w.id, n: 1, tier: w.tier, mag: w.mag, att: w.att });
     if (v.armor > 0) items.push({ item: 'armor', n: 1, tier: v.armor, charge: SHIELD_TIERS[v.armor], evo: v.evoDmg });
     if (v.helmet > 0) items.push({ item: 'helmet', n: 1, tier: v.helmet });
+    if (v.kd > 0) items.push({ item: 'kd', n: 1, tier: v.kd });
     if (v.pack > 0) items.push({ item: 'pack', n: 1, tier: v.pack });
     for (const s of v.inv) items.push({ ...s });
     const gy = this.world.groundAt(v.ms.x, v.ms.z, v.ms.y + 0.5, this.tmp);
@@ -749,7 +765,7 @@ export class Match {
     v.kept = { weapons: v.weapons.map((w) => w && { id: w.id, tier: w.tier, att: { ...w.att } }), armor: Math.max(1, v.armor), evo: v.evoDmg };
     v.weapons = [null, null];
     v.inv = [];
-    v.armor = 0; v.shield = 0; v.helmet = 0; v.pack = 0;
+    v.armor = 0; v.shield = 0; v.helmet = 0; v.pack = 0; v.kd = 0; v.kdUp = false; v.downs = 0;
     v.cmds.length = 0;
     this.invDirty(v);
     // banners carried by v are lost
@@ -997,6 +1013,7 @@ export class Match {
     const wid = this.rng.pick(['sentinel', 'mauler', 'hornet', 'bulwark', 'breacher', 'viper', 'scout']);
     items.push({ item: 'w:' + wid, n: 1, tier: 3 });
     items.push({ item: 'helmet', n: 1, tier: 3 });
+    items.push({ item: 'kd', n: 1, tier: 3 });
     items.push({ item: this.rng() < 0.5 ? 'c:battery' : 'c:phoenix', n: 2, tier: 0 });
     if (tier >= 3) items.push({ item: 'pack', n: 1, tier: 3 });
     const e = this.spawnEntity({ k: 'carepkg', x, y, z, items, dur: 9999, landT: 7, landed: false, alt: 220 });
@@ -1134,7 +1151,10 @@ export class Match {
 
   _applyMods(p, inp) {
     const w = p.weapons[p.active];
-    p.ms.speedMul = speedMul(p.status, p.healing, w ? w.id : null, inp.buttons, p.legend);
+    p.ms.speedMul = speedMul(p.status, p.healing, w ? w.id : null, p.downed ? inp.buttons & ~BTN.ADS : inp.buttons, p.legend);
+    // downed + aim = raise the Fallback Shield (crawl at half speed behind it)
+    p.kdUp = p.downed && p.kd > 0 && p.kdHp > 0 && !!(inp.buttons & BTN.ADS);
+    if (p.kdUp) p.ms.speedMul *= 0.5;
     p.ms.downed = p.downed ? 1 : 0;
     if (p.healing && inp.buttons & BTN.SPRINT) inp.buttons &= ~BTN.SPRINT;
   }
@@ -1220,7 +1240,7 @@ export class Match {
         p.reviveT += dt * (p.legend === 'halo' ? 2 : 1) * this.rolePerk(p, 'revive');
         p.healing = null;
         if (p.reviveT >= REVIVE_TIME) {
-          q.downed = false; q.ms.downed = 0; q.hp = 30; q.shield = 0; q.bleed = 0;
+          q.downed = false; q.ms.downed = 0; q.hp = REVIVE_HP; q.shield = 0; q.bleed = 0; q.kdUp = false;
           p.reviveT = 0; p.reviveTarget = 0;
           this.events.push({ e: 'revive', id: q.id, by: p.id, g: 1 });
           this._evo(p, EVO_POINTS.revive);
@@ -1314,7 +1334,7 @@ export class Match {
     const w = p.weapons[p.active];
     return {
       id: p.id, ms: p.ms, hp: Math.round(p.hp), sh: Math.round(p.shield), armor: p.armor, evo: Math.round(p.evoDmg),
-      helmet: p.helmet, alive: p.alive, down: p.downed, bleed: Math.round(p.bleed), elim: p.eliminated,
+      helmet: p.helmet, kd: p.kd, kdHp: Math.round(p.kdHp), kdUp: p.kdUp ? 1 : 0, alive: p.alive, down: p.downed, bleed: Math.round(p.bleed), elim: p.eliminated,
       st: p.status, tac: +p.tacCd.toFixed(1), ult: +p.ultCd.toFixed(1), heal: p.healing, rl: p.reloading ? +p.reloading.t.toFixed(2) : 0,
       act: p.active, mags: [p.weapons[0]?.mag ?? 0, p.weapons[1]?.mag ?? 0], sw: p.switchT, inShip: p.inShip,
       rev: p.reviveT ? +(p.reviveT / REVIVE_TIME).toFixed(2) : 0, bcn: p.beaconT ? +(p.beaconT / 5).toFixed(2) : 0,
@@ -1345,6 +1365,7 @@ export class Match {
       if (q.reviveT > 0) fl |= 1024;
       if (q.ms.events & MEV.JET) fl |= 2048;
       if (q.ms.mode === 'zip') fl |= 4096;
+      if (q.kdUp) fl |= 8192;
       rows.set(q.id, [
         q.id, +q.ms.x.toFixed(2), +q.ms.y.toFixed(2), +q.ms.z.toFixed(2), +q.ms.yaw.toFixed(3), +q.ms.pitch.toFixed(3),
         fl, +q.ms.crouch.toFixed(2), w ? w.id : '', Math.round(q.hp), Math.round(q.shield), q.armor,

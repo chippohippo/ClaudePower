@@ -350,3 +350,11 @@ body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; 
 .tbar .th b { background: var(--health, #ff4d3a); }
 .tbar.down .th b { background: #ff9a2a; }
 .dmgnum.head { color: var(--head, #ffd23f) !important; }
+
+/* ---- Fallback Shield (downed) ---- */
+#kdhud { position: absolute; left: 50%; bottom: 210px; transform: translateX(-50%); text-align: center; pointer-events: none; }
+#kdhud .kt { font-weight: 700; letter-spacing: 2px; font-size: 15px; text-shadow: 0 2px 4px #000; }
+#kdhud .kt.dim { color: var(--muted); }
+#kdhud .kt b { color: #7fd4ff; }
+#kdhud .kb { width: 200px; height: 6px; margin: 5px auto 0; background: rgba(0,0,0,0.5); outline: 1px solid rgba(127,212,255,0.5); }
+#kdhud .kb i { display: block; height: 100%; background: #7fd4ff; box-shadow: 0 0 8px #7fd4ff; }

@@ -16,6 +16,7 @@ const GEOS = {
   armor: new THREE.BoxGeometry(0.42, 0.45, 0.2),
   helmet: new THREE.SphereGeometry(0.17, 10, 8, 0, Math.PI * 2, 0, Math.PI / 1.6),
   pack: new THREE.BoxGeometry(0.36, 0.4, 0.2),
+  kd: new THREE.CylinderGeometry(0.26, 0.26, 0.05, 6),
   x: new THREE.BoxGeometry(0.16, 0.08, 0.2),
 };
 const discGeo = new THREE.CircleGeometry(0.45, 20);

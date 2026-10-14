@@ -251,7 +251,8 @@ export class Game {
     const me = this.me;
     if (!me) return;
     const w = this.inv && this.inv.weapons[this.inv.active];
-    this.pred.speedMul = speedMul(me.st || {}, me.heal, w ? w.id : null, c.buttons, this.myLegend);
+    this.pred.speedMul = speedMul(me.st || {}, me.heal, w ? w.id : null, me.down ? c.buttons & ~BTN.ADS : c.buttons, this.myLegend);
+    if (me.down && me.kd > 0 && me.kdHp > 0 && c.buttons & BTN.ADS) this.pred.speedMul *= 0.5; // Fallback Shield raised
     this.pred.downed = me.down ? 1 : 0;
     if (me.heal && c.buttons & BTN.SPRINT) c.buttons &= ~BTN.SPRINT;
   }
@@ -431,7 +432,7 @@ export class Game {
       }
       case 'heal': if (ev.id !== this.myId) audio.play('stim', pos, { vol: 0.25, rate: 1.5 }); break;
       case 'healed': audio.play('healed', null, { vol: 0.6 }); break;
-      case 'pickup': audio.play(ev.item === 'armor' || ev.item === 'helmet' || ev.item === 'pack' ? 'pickup_armor' : 'pickup', null, { vol: 0.7 }); break;
+      case 'pickup': audio.play(ev.item === 'armor' || ev.item === 'helmet' || ev.item === 'pack' || ev.item === 'kd' ? 'pickup_armor' : 'pickup', null, { vol: 0.7 }); break;
       case 'evo':
         audio.play('evo', null, { vol: 0.9, important: true });
         this.hud.announce(`ADAPT ARMOR UPGRADED — LV ${ev.tier}`, 2.5);
@@ -441,6 +442,10 @@ export class Game {
         if (ev.s === 'close') { audio.play('ring_close', null, { vol: 0.8, important: true }); }
         break;
       case 'msg': this.hud.announce(ev.text.toUpperCase(), 3.5); break;
+      case 'kdhit':
+        if (ev.a === this.myId) { this.hud.hitmarker('body', '#7fd4ff'); audio.play('hit_shield', null, { vol: 0.6, rate: 0.7 }); }
+        if (ev.brk) { this.fx.shieldBreak(ev.x, ev.y, ev.z, 2); audio.play('shield_break', { x: ev.x, y: ev.y, z: ev.z }, { vol: 0.7, rate: 0.8 }); }
+        break;
       case 'revive': if (this._isMate(ev.id)) this.hud.toast(`${this._name(ev.id)} was revived`); break;
       case 'respawn': if (this._isMate(ev.id)) audio.play('call', null, { vol: 0.5 }); break;
       case 'banner': if (ev.sq === this.mySquad) audio.play('banner', null, { vol: 0.6 }); break;
@@ -696,6 +701,7 @@ export class Game {
       if (inp.down('sprint') || this.autoSprint) b |= BTN.SPRINT;
       if (inp.down('interact')) b |= BTN.INTERACT;
       if (this.adsWanted) b |= BTN.ADS;
+      if (me && me.down && inp.ads()) b |= BTN.ADS; // raise the Fallback Shield
       if (inp.mouse.left) b |= BTN.FIRE;
     }
     // firing cancels sprint
@@ -1044,7 +1050,7 @@ export class Game {
       const tl = Math.hypot(td.x, td.y, td.z);
       const vis = this.fx.spawnBullet({ x: mx, y: my, z: mz }, { x: td.x / tl, y: td.y / tl, z: td.z / tl }, def.speed, def.drop, '#ffe7a8', def.pellets ? 0.6 : 1);
       vis.silent = true;
-      this.bullets.push({ id, k: i, x: c.x, y: c.y, z: c.z, vx: d.x * def.speed, vy: d.y * def.speed, vz: d.z * def.speed, g: 6 * def.drop, life: 2, vis, dist: 0 });
+      this.bullets.push({ id, k: i, ox: c.x, oz: c.z, x: c.x, y: c.y, z: c.z, vx: d.x * def.speed, vy: d.y * def.speed, vz: d.z * def.speed, g: 6 * def.drop, life: 2, vis, dist: 0 });
     }
     this.net.send({ t: 'fire', id, slot: this.inv.active, o: [+c.x.toFixed(3), +c.y.toFixed(3), +c.z.toFixed(3)], dirs });
     // recoil (learnable pattern)
@@ -1093,7 +1099,15 @@ export class Game {
         if (Math.abs(p.x - sx) > len + 3 || Math.abs(p.z - sz) > len + 3) continue;
         const h = r.fl & 1 ? 0.8 : MOVE.standHeight - (MOVE.standHeight - MOVE.crouchHeight) * r.crouch;
         const hit = rayPlayer(sx, sy, sz, ux, uy, uz, p.x, p.y, p.z, h, 0.45, best);
-        if (hit && hit.t < best) { best = hit.t; target = r; part = hit.part; }
+        if (hit && hit.t < best) {
+          // a raised Fallback Shield facing the shooter eats the round (the server agrees)
+          if (r.fl & 8192) {
+            const yaw = r.avatar.root.rotation.y, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+            const dx = b.ox - p.x, dz = b.oz - p.z, dl = Math.hypot(dx, dz) || 1;
+            if ((dx * fx + dz * fz) / dl > 0.42) { best = hit.t; target = null; part = 'kd'; continue; }
+          }
+          best = hit.t; target = r; part = hit.part;
+        }
       }
       b.dist += best;
       if (target) {
@@ -1109,6 +1123,13 @@ export class Game {
         this.lastHitKey = hk;
         this.fx.hitBurst(hx, hy, hz, target.armor, onShield, part === 'head');
         this.fx.killBullet(b.vis, hx, hy, hz);
+        this.bullets.splice(i, 1);
+        continue;
+      }
+      if (part === 'kd') {
+        const kx = sx + ux * best, ky = sy + uy * best, kz = sz + uz * best;
+        this.fx.burst(kx, ky, kz, '#7fd4ff', 8, 3, 0.1, 0.3);
+        this.fx.killBullet(b.vis, kx, ky, kz);
         this.bullets.splice(i, 1);
         continue;
       }

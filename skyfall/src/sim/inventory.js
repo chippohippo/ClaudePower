@@ -132,8 +132,8 @@ export function pickup(p, wi) {
     if (old > 0) drops.push({ item: 'armor', n: 1, tier: old, charge: oldCharge, evo: oldEvo });
     return drops;
   }
-  if (wi.item === 'helmet' || wi.item === 'pack') {
-    const cur = p[wi.item];
+  if (wi.item === 'helmet' || wi.item === 'pack' || wi.item === 'kd') {
+    const cur = p[wi.item] || 0;
     if (wi.tier <= cur) return null;
     p[wi.item] = wi.tier;
     if (cur > 0) drops.push({ item: wi.item, n: 1, tier: cur });
@@ -167,7 +167,7 @@ export function itemValue(p, wi) {
     return countItem(p, wi.item) < AMMO[id].stack * 2 ? 6 : 1;
   }
   if (wi.item === 'armor') return wi.tier > p.armor ? 9 : 0;
-  if (wi.item === 'helmet' || wi.item === 'pack') return wi.tier > p[wi.item] ? 5 : 0;
+  if (wi.item === 'helmet' || wi.item === 'pack' || wi.item === 'kd') return wi.tier > (p[wi.item] || 0) ? 5 : 0;
   if (t === 'c') return countItem(p, wi.item) < CONSUMABLES[id].stack * 2 ? 5 : 0;
   if (t === 'g') return countItem(p, wi.item) < 2 ? 3 : 0;
   if (t === 'x') {
