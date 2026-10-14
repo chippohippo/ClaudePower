@@ -18,6 +18,12 @@ const view = new WorldView(r, map);
 const post = new ComicPost(r, CLEAN_GRADE);
 const cam = new THREE.PerspectiveCamera(70, W / H, 0.05, 4000);
 const poi = map.pois[num('poi', 0) % map.pois.length];
+if (q.has('b')) {
+  // inside building b, eye height, near the front wall looking at the back wall
+  const B = map.buildings[num('b', 0) % map.buildings.length], gy = B.roof - B.floors * 3.6 - 0.3;
+  q.set('x', (B.x0 + B.x1) / 2 - 1); q.set('z', B.z0 + 0.8); q.set('y', gy + 1.6);
+  q.set('tx', (B.x0 + B.x1) / 2 - 1); q.set('tz', B.z1); q.set('ty', gy + 1.0);
+}
 let tx = num('tx', poi.x), tz = num('tz', poi.z), ty = num('ty', map.terrain.height(tx, tz) + 2);
 const a = num('a', 0.6), d = num('d', 45);
 const cx = num('x', tx + Math.cos(a) * d), cz = num('z', tz + Math.sin(a) * d);

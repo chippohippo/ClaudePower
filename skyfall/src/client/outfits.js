@@ -97,6 +97,8 @@ uniform vec3 uSkin, uPrim, uSec, uTert, uAcc, uGlove, uBoot, uMask;
 uniform vec4 uL1, uL2, uL3, uF;
 varying vec3 vRest, vRestN;
 bool bit(float v, float b) { return mod(floor(v / b), 2.0) > 0.5; }
+// first-person cut: only the arms from just outside the shoulder
+bool fpArm() { return abs(vRest.x) > uL2.w - 0.09 && vRest.y > uL1.z - 0.03; }
 // returns colour + mask (0 = keep skin texture), writes fabric roughness / metalness
 vec4 suitZone(out float rough, out float metal) {
   vec3 P = vRest, N = normalize(vRestN);
@@ -189,6 +191,20 @@ export function suitMaterial(base, spec, S) {
   };
   m.customProgramCacheKey = () => 'suit2';
   suitMatCache.set(key, m);
+  return m;
+}
+
+// The same suit with everything but the arms discarded (first-person arms, fparms.js)
+const fpCache = new Map();
+export function fpSuitMaterial(base) {
+  if (fpCache.has(base)) return fpCache.get(base);
+  const m = base.clone();
+  m.onBeforeCompile = (sh, r) => {
+    base.onBeforeCompile(sh, r);
+    sh.fragmentShader = sh.fragmentShader.replace('vec4 suit = suitZone(suitRough, suitMetal);', 'if (!fpArm()) discard;\n        vec4 suit = suitZone(suitRough, suitMetal);');
+  };
+  m.customProgramCacheKey = () => 'suitfp';
+  fpCache.set(base, m);
   return m;
 }
 

@@ -16,6 +16,7 @@ import { RARITY } from '../shared/items.js';
 import { STYLE, toonify, addHulls } from './comic.js';
 import { assets, GUN_CLASS_LEN } from './assets.js';
 import { buildProceduralGun, setGunAmmo } from './gunmodels.js';
+import { FpArms } from './fparms.js';
 export { setGunAmmo };
 
 const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
@@ -235,13 +236,17 @@ export class ViewModel {
     if (renderer) {
       const pm = new THREE.PMREMGenerator(renderer);
       this.scene.environment = assets.hdri ? pm.fromEquirectangular(assets.hdri).texture : pm.fromScene(new RoomEnvironment(), 0.04).texture;
-      this.scene.environmentIntensity = 0.6;
+      this.scene.environmentIntensity = 0.85;
     }
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.01, 10);
     this.scene.add(new THREE.HemisphereLight('#dfe9ff', '#4a4235', 1.3));
     const d = new THREE.DirectionalLight('#fff1d6', 1.8);
     d.position.set(-1, 2, 1);
     this.scene.add(d);
+    // cool rim from behind-right picks out gun edges and knuckles against bright skies
+    const rim = new THREE.DirectionalLight('#cfe0ff', 1.1);
+    rim.position.set(1.5, 0.6, -2);
+    this.scene.add(rim);
     this.root = new THREE.Group();
     this.scene.add(this.root);
     this.gunHolder = new THREE.Group();
@@ -304,6 +309,19 @@ export class ViewModel {
 
   buildGunForShowcase(id, tier, att) { return buildGun(id, tier, att); }
 
+  // first-person arms from the local legend's body (replaces the procedural pair)
+  setLegend(id) {
+    if (this.legend === id) return;
+    this.legend = id;
+    const fa = FpArms.create(id);
+    if (!fa) return;
+    if (this.fp) this.root.remove(this.fp.root);
+    if (this.arms) this.gunHolder.remove(this.arms);
+    this.fp = fa;
+    this.arms = new THREE.Group();          // keeps the setWeapon / visibility code paths happy
+    this.root.add(fa.root);
+  }
+
   setWeapon(id, tier, att) {
     const key = id ? `${id}:${tier}:${att ? `${att.mag}${att.barrel}${att.stock}${att.optic}` : ''}` : null;
     if (key === this.gunKey) return;
@@ -329,6 +347,7 @@ export class ViewModel {
       if (!sameGun) this.lower = 1; // draw animation (attachment swaps don't re-draw)
     }
     this.arms.visible = !!id;
+    if (this.fp) this.fp.root.visible = !!id;
   }
 
   fire(strength = 1) {
@@ -400,7 +419,7 @@ export class ViewModel {
       K.vroll += (-stiff * K.roll - damp * K.vroll) * h; K.roll += K.vroll * h;
     }
     // hip → ADS: ADS puts the sight line on the screen centre
-    const hip = { x: 0.2, y: -0.215, z: -0.62 }, ads = { x: 0, y: -this.sightY, z: -0.57 };
+    const hip = { x: 0.19, y: -0.205, z: -0.54 }, ads = { x: 0, y: -this.sightY, z: -0.57 };
     let x = hip.x + (ads.x - hip.x) * this.ads, y = hip.y + (ads.y - hip.y) * this.ads, z = hip.z + (ads.z - hip.z) * this.ads;
     x += bx + S.x; y += by + S.y;
     y += this.lift - this.land;
@@ -434,6 +453,18 @@ export class ViewModel {
     if (bolt) { const a = this.actionT > 0 && this.actionT < 0.4 ? Math.sin(((0.4 - this.actionT) / 0.4) * Math.PI) : 0; bolt.position.z = bolt.userData.base + a * 0.08; rz += a * 0.15; }
     this.gunHolder.position.set(x, y, z);
     this.gunHolder.rotation.set(rx + S.y * 2.2, ry + S.x * 2.2, rz);
+    if (this.fp && this.gun) {
+      // reload: the support hand leaves the handguard for the magazine well and back
+      let left = null;
+      if (this.reloadT > 0 && mag && mag.userData.base) {
+        const p = 1 - Math.max(0, this.reloadT) / this.reloadDur;
+        const w = p < 0.12 ? p / 0.12 : p > 0.8 ? Math.max(0, (1 - p) / 0.2) : 1;
+        this.gunHolder.updateMatrixWorld(true);
+        left = mag.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(-0.03, -0.09 - (p > 0.2 && p < 0.6 ? 0.18 * Math.sin((p - 0.2) / 0.4 * Math.PI) : 0), 0.04));
+        left.w = w;
+      }
+      this.fp.update(this.gunHolder, this.gun.userData.fore ?? 0.33, this.gun.userData.cls === 'Pistol', left, 1 - this.lower * 0.5);
+    }
     // flash
     this.flashT -= dt;
     const fl = this.flashT > 0;

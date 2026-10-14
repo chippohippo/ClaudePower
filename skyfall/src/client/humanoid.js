@@ -28,7 +28,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 // Rotate a bone by a world-space rotation (pre-multiplied). Descendants are not refreshed here: every
 // world-space read (getWorldPosition / getWorldQuaternion) updates its own ancestor chain, which is
 // far cheaper than re-walking a Mixamo hand's 20 finger bones after each rotation.
-function rotateWorld(bone, q) {
+export function rotateWorld(bone, q) {
   bone.parent.getWorldQuaternion(_q2);
   bone.getWorldQuaternion(_q3);
   _q3.premultiply(q);

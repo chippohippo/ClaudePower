@@ -1,0 +1,27 @@
+<!doctype html><html><body style="margin:0;background:#556"><script type="module">
+// First-person viewmodel states side by side: ?l=<legend>&w=talon,p20&s=hip,ads,sprint,reload
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+import { STYLE } from '/src/client/comic.js';
+import { ViewModel } from '/src/client/viewmodel.js';
+STYLE.comic = false;
+await assets.load();
+const q = new URLSearchParams(location.search);
+const ws = (q.get('w') || 'talon').split(','), ss = (q.get('s') || 'hip,ads,sprint,reload').split(',');
+const cells = ws.flatMap((w) => ss.map((s) => [w, s]));
+const W = innerWidth, H = innerHeight, r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
+r.setScissorTest(true); r.autoClear = false;
+const cols = Math.min(+(q.get('c') || 2), cells.length), rows = Math.ceil(cells.length / cols), cw = W / cols, ch = H / rows;
+const bg = new THREE.Scene(); bg.background = new THREE.Color('#8a98a6'); const bc = new THREE.PerspectiveCamera();
+for (const [i, [w, s]] of cells.entries()) {
+  const vm = new ViewModel(r); vm.setLegend(q.get('l') || 'jolt'); vm.setWeapon(w, 2, { mag: 1, barrel: 1, stock: 1, optic: 0 });
+  const st = { ads: s === 'ads', adsTime: 0.2, sprint: s === 'sprint', speed: s === 'sprint' ? 7 : 0, onGround: true, slide: false, mouseDX: 0, mouseDY: 0, aspect: cw / ch, vSide: 0, vy: 0 };
+  for (let t = 0; t < 1.5; t += 1 / 60) vm.update(1 / 60, st);
+  if (s === 'reload') { vm.startReload(2); for (let t = 0; t < 0.8; t += 1 / 60) vm.update(1 / 60, st); }
+  const x = (i % cols) * cw, y = H - (Math.floor(i / cols) + 1) * ch; r.setViewport(x, y, cw, ch); r.setScissor(x, y, cw, ch);
+  r.clear(); r.render(bg, bc); r.clearDepth();
+  if (q.get('ext')) { const ec = new THREE.PerspectiveCamera(50, cw / ch, 0.01, 20); ec.position.set(0.9, 0.3, 0.1); ec.lookAt(0.05, -0.25, -0.55); vm.scene.add(new THREE.AxesHelper(0.2)); r.render(vm.scene, ec); } else r.render(vm.scene, vm.camera);
+  const l = document.createElement('div'); l.textContent = w + ' ' + s; Object.assign(l.style, { position: 'absolute', left: x + 6 + 'px', top: H - y - ch + 4 + 'px', font: '13px sans-serif', color: '#fff' }); document.body.appendChild(l);
+}
+window.done = true;
+</script></body></html>

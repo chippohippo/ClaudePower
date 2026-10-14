@@ -64,6 +64,7 @@ export class Game {
     this.loot = new LootView(this.scene);
     this.loot.set(welcome.loot);
     this.vm = new ViewModel(this.renderer);
+    this.vm.setLegend(this.myLegend);
     this.binsOpened = welcome.bins.slice();
     this.binsOpened.forEach((o, i) => o && this.view.setBinOpened(i));
 

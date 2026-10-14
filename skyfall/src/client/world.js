@@ -209,6 +209,7 @@ export class WorldView {
     this._boxes();
     this._trees();
     this._grass();
+    this._ceilingLights();
     this._ziplines();
     this._bins();
     this._dressing();
@@ -540,6 +541,26 @@ export class WorldView {
     });
     for (const m of far) m.frustumCulled = false;
     this.treeLod = { far, farM, near, nearMeshes: pool(dv ? tv.concat(dv) : tv, near), bushes, bushMeshes: bv ? pool(bv, bushes) : [], t: 0 };
+  }
+
+  // Light panels under every floor slab: interiors read as lit rooms instead of dark boxes
+  _ceilingLights() {
+    const B = this.map.buildings || [];
+    const mats = [];
+    for (const b of B) {
+      const gy = b.roof - b.floors * 3.6 - 0.3;
+      for (let f = 0; f < b.floors; f++) {
+        const y = gy + (f + 1) * 3.6 - 0.035;
+        for (let x = b.x0 + 2.2; x < b.x1 - 3.2; x += 4.2) for (let z = b.z0 + 2; z < b.z1 - 1.5; z += 3.6) mats.push(new THREE.Matrix4().makeTranslation(x, y, z));
+      }
+    }
+    if (!mats.length) return;
+    const mat = new THREE.MeshStandardMaterial({ color: '#f4f1ea', emissive: '#fff4e0', emissiveIntensity: 1.6, roughness: 0.4 });
+    const frame = new THREE.MeshStandardMaterial({ color: '#2b2f35', roughness: 0.5, metalness: 0.4 });
+    const panel = new THREE.InstancedMesh(new THREE.BoxGeometry(1.5, 0.03, 0.32), mat, mats.length);
+    const rim = new THREE.InstancedMesh(new THREE.BoxGeometry(1.62, 0.05, 0.42).translate(0, 0.012, 0), frame, mats.length);
+    mats.forEach((m, i) => { panel.setMatrixAt(i, m); rim.setMatrixAt(i, m); });
+    for (const m of [panel, rim]) { m.computeBoundingSphere(); this.scene.add(m); }
   }
 
   // Ground cover (kit grass clumps, flowers, clover, pebbles) scattered on a world-space grid around

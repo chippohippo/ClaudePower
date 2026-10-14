@@ -524,5 +524,5 @@ export function buildMap(seed) {
   world.zips = zips;
   world.staticPads = pads;
   world.balloons = balloons;
-  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips, pads, decor, waters, balloons };
+  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips, pads, decor, waters, balloons, buildings };
 }
