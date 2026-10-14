@@ -361,4 +361,4 @@ export class Avatar {
   }
 }
 
-export { SHIELD_COLORS };
+export { SHIELD_COLORS, phaseMat, kdMat, kdGeo, revealMat, nameTag, gunMat, glowMat };

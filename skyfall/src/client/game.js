@@ -15,7 +15,7 @@ import { speedMul } from '../shared/mods.js';
 import { rayPlayer } from '../shared/physics.js';
 import { DEG, clamp, dirFromAngles, wrapAngle, lerp } from '../shared/util.js';
 import { WorldView } from './world.js';
-import { Avatar } from './avatars.js';
+import { createAvatar } from './modelavatar.js';
 import { ViewModel } from './viewmodel.js';
 import { FX } from './fx.js';
 import { LootView } from './lootview.js';
@@ -827,7 +827,7 @@ export class Game {
   _selfAvatar(dt) {
     const show = (this.tpAmt || 0) > 0.05 && this.selfPos;
     if (show && !this.selfAv) {
-      this.selfAv = new Avatar(this.scene, this.meta.get(this.myId), true);
+      this.selfAv = createAvatar(this.scene, this.meta.get(this.myId), true);
       if (this.selfAv.tag) this.selfAv.tag.visible = false;
     }
     if (!this.selfAv) return;
@@ -1183,10 +1183,10 @@ export class Game {
       r.fl = b.fl; r.crouch = s.crouch; r.sh = b.sh; r.armor = b.armor; r.hp = b.hp;
       const inShip = s.fl & 16;
       const dist = Math.hypot(s.x - cam.x, s.z - cam.z);
-      if (!r.avatar && !inShip) r.avatar = new Avatar(this.scene, r.meta, r.meta.squad === this.mySquad);
+      if (!r.avatar && !inShip) r.avatar = createAvatar(this.scene, r.meta, r.meta.squad === this.mySquad);
       if (r.avatar) {
         r.avatar.root.visible = !inShip && dist < 500 && !r.avatar.dead;
-        if (r.avatar.root.visible) r.avatar.update(dt, s, this.time);
+        if (r.avatar.root.visible) r.avatar.update(dt, s, this.time, dist);
         else r.avatar.reveal.visible = false;
       }
       // ability trails: jetpack flame, stim afterburn

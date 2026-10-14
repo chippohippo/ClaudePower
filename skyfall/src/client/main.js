@@ -6,6 +6,7 @@ import { io } from 'socket.io-client';
 import { LEGENDS, LEGEND_IDS, ROLES, ROLE_IDS, roleTargets } from '../shared/legends.js';
 import { ROLE_ICON } from './roleicons.js';
 import { applyPalette, setRimStrength } from './palette.js';
+import { assets } from './assets.js';
 import { STYLE } from './comic.js';
 import { Input, settings, saveSettings } from './input.js';
 import { HUD } from './hud.js';
@@ -34,6 +35,7 @@ const input = new Input(canvas);
 const hud = new HUD();
 const app = { renderer, input, hud, game: null, transport: null, socket: null };
 window.__skyfall = app;
+app.assets = assets; // debug / asset tests
 app.audio = audio;
 
 // ------------------------------------------------------------------ menu state
@@ -135,6 +137,7 @@ const applyClarity = () => {
   setRimStrength(settings.enemyRim ?? 1, STYLE.comic);
 };
 applyClarity();
+assets.load();
 $('#s-cv').value = settings.colorVision || 'default';
 $('#s-cv').addEventListener('change', (e) => { settings.colorVision = e.target.value; saveSettings(); applyClarity(); });
 $('#s-rim').value = String(settings.enemyRim ?? 1);
@@ -153,7 +156,7 @@ let audioReady = null;
 function ensureAudio() {
   if (!audioReady) {
     $('#loading').classList.remove('hidden');
-    audioReady = audio.init().then(() => {
+    audioReady = audio.init().then(() => assets.load()).then(() => audio.useSamples(assets.sounds)).then(() => {
       audio.setVolume(settings.volume);
       $('#loading').classList.add('hidden');
     });
@@ -165,7 +168,10 @@ function ensureAudio() {
 // ------------------------------------------------------------------ sessions
 function startSession(transport) {
   app.transport = transport;
-  transport.onMessage((msg) => {
+  // imported art (public/assets) must be ready before the match builds its scene; messages that
+  // arrive meanwhile are queued, not dropped
+  let queue = null;
+  const handle = (msg) => {
     if (msg.t === 'welcome') {
       if (app.game) app.game.dispose();
       app.game = new Game(app, transport, msg);
@@ -174,6 +180,11 @@ function startSession(transport) {
       return;
     }
     if (app.game) app.game.onMessage(msg);
+  };
+  transport.onMessage((msg) => {
+    if (assets.done && !queue) return handle(msg);
+    if (!queue) { queue = []; assets.load().then(() => { const q = queue; queue = null; q.forEach(handle); }); }
+    queue.push(msg);
   });
 }
 

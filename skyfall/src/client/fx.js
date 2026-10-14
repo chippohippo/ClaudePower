@@ -334,7 +334,7 @@ export class FX {
 
   // Weighty death: the body is detached, thrown along the killing blow, tumbles and settles.
   ragdoll(avatar, ev) {
-    const body = avatar.root.clone(true);
+    const body = avatar.ragdollClone ? avatar.ragdollClone() : avatar.root.clone(true);
     body.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     body.remove(...body.children.filter((c) => c.isSprite));
     this.scene.add(body);

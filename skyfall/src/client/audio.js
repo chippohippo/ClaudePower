@@ -445,6 +445,15 @@ export class AudioEngine {
     }
   }
 
+  // Recorded samples (manifest "sounds", e.g. Kenney UI/impact packs or freesound CC0) replace the
+  // synthesized recipe of the same name; everything else stays procedural.
+  async useSamples(map) {
+    if (!this.ctx) return;
+    for (const [name, data] of Object.entries(map || {})) {
+      try { this.buffers[name] = await this.ctx.decodeAudioData(data.slice(0)); } catch (e) { console.warn('[audio] sample', name, e.message); }
+    }
+  }
+
   resume() { if (this.ctx && this.ctx.state !== 'running') this.ctx.resume(); }
 
   setVolume(v) { this.volume = v; if (this.master) this.master.gain.value = v; }

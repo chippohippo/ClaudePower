@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { STYLE, toonify } from './comic.js';
 import { THEMES } from '../shared/themes.js';
+import { assets } from './assets.js';
 
 const SUN_DIR = new THREE.Vector3(-0.45, 0.8, 0.35).normalize();
 
@@ -28,9 +29,14 @@ const PATTERNS = {
 PATTERNS.stack = PATTERNS.catwalk;
 PATTERNS.spire = PATTERNS.catwalk;
 
+// Which imported texture (manifest "textures") details each world kind.
+const TEX_FOR = { wall: 'wall', floor: 'floor', roof: 'roof', slab: 'floor', container: 'metal', catwalk: 'metal', crane: 'metal', stack: 'metal', spire: 'metal', pylon: 'metal', rock: 'rock', dock: 'wood', bark: 'wood', crate: 'wood', stair: 'floor' };
+
 function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
   const pattern = PATTERNS[kind] || '';
+  const tex = assets.textures[TEX_FOR[kind] || kind] || null;
   mat.onBeforeCompile = (sh) => {
+    if (tex) { sh.uniforms.detailMap = { value: tex.map }; sh.uniforms.detailK = { value: new THREE.Vector2(1 / tex.scale, tex.strength) }; }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;\nvarying vec3 vLoc;\nvarying vec3 vScl;')
       .replace(
@@ -53,6 +59,7 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
         varying vec3 vWNrm;
         varying vec3 vLoc;
         varying vec3 vScl;
+        ${tex ? 'uniform sampler2D detailMap; uniform vec2 detailK;' : ''}
         float hash3(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }`)
       .replace(
         '#include <color_fragment>',
@@ -66,6 +73,14 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
           float cell = hash3(floor(vec3(uv, n.y * 7.0 + n.x * 3.0)));
           diffuseColor.rgb *= (1.0 - line * ${lineStrength.toFixed(2)}) * (0.92 + cell * 0.14);
           ${pattern}
+          ${tex ? `{
+            // imported surface texture (Poly Haven / ambientCG): luminance detail only, so the zone's
+            // palette and the cel bands stay in charge of colour
+            vec2 duv = (n.y > 0.5 ? vWPos.xz : (n.x > 0.5 ? vWPos.zy : vWPos.xy)) * detailK.x;
+            vec3 lw = vec3(0.299, 0.587, 0.114);
+            float dl = dot(texture2D(detailMap, duv).rgb, lw) / max(dot(textureLod(detailMap, duv, 12.0).rgb, lw), 0.05);
+            diffuseColor.rgb *= mix(1.0, clamp(dl, 0.4, 1.6), detailK.y);
+          }` : ''}
           // ambient occlusion toward the bottom of each box's side faces
           if (vScl.x > 0.0 && n.y < 0.5) diffuseColor.rgb *= mix(0.72, 1.0, clamp((vLoc.y + 0.5) * vScl.y * 0.9, 0.0, 1.0));
           // comic bevel: lighten the outer 6 cm of every box face edge
@@ -80,7 +95,7 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
         }`,
       );
   };
-  mat.customProgramCacheKey = () => 'panels' + scale + lineStrength + kind;
+  mat.customProgramCacheKey = () => 'panels' + scale + lineStrength + kind + (tex ? 'tex' : '');
   return mat;
 }
 
@@ -93,9 +108,13 @@ export class WorldView {
     scene.fog = new THREE.Fog('#b9cde0', 160, 1100);
     // image-based lighting so metal and armour materials have something to reflect
     const pmrem = new THREE.PMREMGenerator(renderer);
-    this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    // a Poly Haven HDRI (manifest "hdri") lights the world when present; the cel sky stays as the
+    // backdrop in Comic style, Clean style can show the HDRI itself
+    const H = assets.hdri;
+    this.envMap = H ? pmrem.fromEquirectangular(H).texture : pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = this.envMap;
-    scene.environmentIntensity = 0.45;
+    scene.environmentIntensity = H ? (assets.manifest.hdri.intensity ?? 0.6) : 0.45;
+    this.hdriBackground = !!(H && assets.manifest.hdri.background && !STYLE.comic);
 
     // sky dome
     const skyGeo = new THREE.SphereGeometry(3000, 32, 16);
@@ -134,6 +153,7 @@ export class WorldView {
     this.sky = new THREE.Mesh(skyGeo, skyMat);
     this.sky.frustumCulled = false;
     scene.add(this.sky);
+    if (this.hdriBackground) { this.sky.visible = false; scene.background = assets.hdri; scene.backgroundIntensity = assets.manifest.hdri.backgroundIntensity ?? 1; }
 
     // lights
     scene.add(new THREE.HemisphereLight('#cfe3ff', '#5a5040', 1.05));
@@ -216,7 +236,24 @@ export class WorldView {
     geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
     geo.computeVertexNormals();
     // canvas texture is a neutral detail map; tint comes from vertex colours
-    const mat = new THREE.MeshStandardMaterial({ map: tex, vertexColors: true, roughness: 0.95, metalness: 0, color: '#d8dccb' });
+    const gtex = assets.textures.ground;
+    const mat = new THREE.MeshStandardMaterial({ map: gtex ? gtex.map : tex, vertexColors: true, roughness: 0.95, metalness: 0, color: '#d8dccb' });
+    if (gtex) {
+      // imported ground texture: tile every `scale` m and use only its luminance (vertex colours
+      // still carry the biome / zone tint)
+      gtex.map.repeat.set(12.5 / gtex.scale, 12.5 / gtex.scale);
+      const k = gtex.strength;
+      mat.onBeforeCompile = (sh) => {
+        sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `
+          vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+          // detail = brightness relative to the texture's own average (its smallest mip), so any
+          // texture adds surface variation without shifting the biome tint
+          vec3 lw = vec3(0.299, 0.587, 0.114);
+          float gl = dot(sampledDiffuseColor.rgb, lw) / max(dot(textureLod(map, vMapUv, 12.0).rgb, lw), 0.05);
+          diffuseColor.rgb *= vec3(0.205, 0.254, 0.107) * mix(1.0, clamp(gl, 0.3, 1.8), ${k.toFixed(2)});`);
+      };
+      mat.customProgramCacheKey = () => 'groundtex';
+    }
     const ground = new THREE.Mesh(geo, mat);
     ground.receiveShadow = true;
     this.scene.add(ground);
@@ -343,6 +380,7 @@ export class WorldView {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     for (const g of groups.values()) {
+      if (g.kind === 'rock' && assets.natureKinds('rock')) { this._modelRocks(g.list); continue; }
       const metalKinds = { container: 1, catwalk: 1, crane: 1, stack: 1, pylon: 1, spire: 1 };
       const rough = metalKinds[g.kind] ? 0.5 : g.kind === 'rock' ? 0.95 : 0.85;
       const metal = metalKinds[g.kind] ? 0.35 : 0.0;
@@ -365,8 +403,68 @@ export class WorldView {
     }
   }
 
+  // Instance imported model variants: items = [{ v (variant index), m4 (matrix) }]
+  _instanceVariants(variants, items) {
+    const byV = variants.map(() => []);
+    for (const it of items) byV[it.v % variants.length].push(it.m4);
+    variants.forEach((vt, vi) => {
+      const list = byV[vi];
+      if (!list.length) return;
+      for (const part of vt.parts) {
+        const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length);
+        list.forEach((m4, i) => mesh.setMatrixAt(i, m4));
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.computeBoundingSphere();
+        this.scene.add(mesh);
+      }
+    });
+  }
+
+  // Imported boulders (Kenney / Quaternius nature packs) stretched over each rock collision box, so
+  // what you see is what you climb and take cover behind.
+  _modelRocks(list) {
+    const variants = assets.natureKinds('rock');
+    const sizes = variants.map((vt) => {
+      const b = new THREE.Box3();
+      for (const p of vt.parts) { p.geometry.computeBoundingBox(); b.union(p.geometry.boundingBox); }
+      return b.getSize(new THREE.Vector3());
+    });
+    const items = [];
+    list.forEach((b, i) => {
+      const v = (i * 7 + Math.floor(b.min[0])) % variants.length, sz = sizes[(v + variants.length) % variants.length];
+      const flip = (i & 1) ? Math.PI : 0;
+      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), flip);
+      const s = new THREE.Vector3((b.max[0] - b.min[0]) / Math.max(sz.x, 0.01) * 1.12, (b.max[1] - b.min[1]) / Math.max(sz.y, 0.01) * 1.06, (b.max[2] - b.min[2]) / Math.max(sz.z, 0.01) * 1.12);
+      const p = new THREE.Vector3((b.max[0] + b.min[0]) / 2, b.min[1] - 0.05, (b.max[2] + b.min[2]) / 2);
+      items.push({ v: (v + variants.length) % variants.length, m4: new THREE.Matrix4().compose(p, q, s) });
+    });
+    this._instanceVariants(variants, items);
+  }
+
   _trees() {
     const trees = this.map.trees;
+    // imported trees + bushes (Kenney Nature Kit / Quaternius Nature MegaKit)
+    const tv = assets.natureKinds('tree');
+    if (tv) {
+      const items = [], bushes = [];
+      const bv = assets.natureKinds('bush');
+      const rnd = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
+      trees.forEach((t, i) => {
+        const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd(i, 1) * Math.PI * 2);
+        const s = t.h * (0.9 + rnd(i, 2) * 0.2);
+        items.push({ v: Math.floor(rnd(i, 3) * tv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(t.x, t.y, t.z), q, new THREE.Vector3(s, s, s)) });
+        if (bv) for (let k = 0; k < 2; k++) {
+          if (rnd(i, 4 + k) < 0.4) continue;
+          const a = rnd(i, 6 + k) * Math.PI * 2, d = 1.5 + rnd(i, 8 + k) * 3.5;
+          const bx = t.x + Math.cos(a) * d, bz = t.z + Math.sin(a) * d, bs = 0.7 + rnd(i, 10 + k) * 0.8;
+          bushes.push({ v: Math.floor(rnd(i, 12 + k) * bv.length), m4: new THREE.Matrix4().compose(new THREE.Vector3(bx, this.map.terrain.height(bx, bz) - 0.05, bz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a), new THREE.Vector3(bs, bs, bs)) });
+        }
+      });
+      this._instanceVariants(tv, items);
+      if (bv) this._instanceVariants(bv, bushes);
+      return;
+    }
     const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.32, 1, 6), new THREE.MeshStandardMaterial({ color: '#5b4330', roughness: 1 }), trees.length);
     const leafGeo = new THREE.ConeGeometry(1, 1, 7);
     const leaf1 = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#3f6b3a', roughness: 0.9, flatShading: true }), trees.length);

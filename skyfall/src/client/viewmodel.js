@@ -14,6 +14,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { WEAPONS } from '../shared/weapons.js';
 import { RARITY } from '../shared/items.js';
 import { STYLE, toonify, addHulls } from './comic.js';
+import { assets } from './assets.js';
 
 const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const smooth = (t) => t * t * (3 - 2 * t);
@@ -47,9 +48,24 @@ export function buildGun(id, tier = 0, att = null) {
   const cyl = (r, len, mat, x, y, z, seg = 10) => { const geo = new THREE.CylinderGeometry(r, r, len, seg); geo.rotateX(Math.PI / 2); return add(geo, mat, x, y, z); };
   const cls = w.cls;
   let muzzleZ, barrelY = 0.02, topY = 0.07, len;
-
-  // receiver + barrel per class
-  if (cls === 'Pistol') {
+  // imported model (public/assets): sized per class, rear of the gun at the grip, barrel along -Z.
+  // Muzzle / sight heights come from the manifest or the model's bounds; optics still mount on top.
+  const CLASS_LEN = { Pistol: 0.3, SMG: 0.55, AR: 0.78, LMG: 0.95, Shotgun: 0.85, Marksman: 1.0, Sniper: 1.2 };
+  const imp = assets.gun(id, CLASS_LEN[cls]);
+  let imported = false;
+  if (imp) {
+    const model = imp.root, def = imp.def;
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    model.position.z += 0.14 - box.max.z;
+    g.add(model);
+    len = size.z;
+    muzzleZ = def.muzzle ? def.muzzle[2] : 0.14 - size.z;
+    barrelY = def.muzzle ? def.muzzle[1] : (box.min.y + box.max.y) / 2 + size.y * 0.15;
+    topY = def.sightY ?? box.max.y;
+    imported = true;
+  } else if (cls === 'Pistol') {
     len = 0.3;
     add(B(0.07, 0.1, len), body, 0, 0.03, -0.1);
     add(B(0.072, 0.03, len * 0.95), tint, 0, 0.085, -0.1);
@@ -103,9 +119,11 @@ export function buildGun(id, tier = 0, att = null) {
     mb.name = 'brake';
     muzzleZ -= 0.08 + att.barrel * 0.025;
   }
-  // rarity stripes
-  add(B(0.092, 0.015, 0.14), rare, 0, -0.035, -0.06);
-  add(B(0.092, 0.015, 0.06), rare, 0, 0.012, -0.32);
+  // rarity stripes (procedural guns only)
+  if (!imported) {
+    add(B(0.092, 0.015, 0.14), rare, 0, -0.035, -0.06);
+    add(B(0.092, 0.015, 0.06), rare, 0, 0.012, -0.32);
+  }
 
   // sights: optic if attached (or sniper default scope), otherwise iron sights
   let sightY;
@@ -130,6 +148,8 @@ export function buildGun(id, tier = 0, att = null) {
     glass.position.set(0, topY + fh / 2, -0.09);
     g.add(glass);
     sightY = topY + fh / 2;
+  } else if (imported) {
+    sightY = topY; // the model's own iron sights / top rail
   } else {
     // iron sights: rear notch (two ears) + front post
     add(B(0.05, 0.012, 0.03), dark, 0, topY + 0.006, 0.02);
@@ -190,7 +210,7 @@ export class ViewModel {
     this.scene = new THREE.Scene();
     if (renderer) {
       const pm = new THREE.PMREMGenerator(renderer);
-      this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      this.scene.environment = assets.hdri ? pm.fromEquirectangular(assets.hdri).texture : pm.fromScene(new RoomEnvironment(), 0.04).texture;
       this.scene.environmentIntensity = 0.6;
     }
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.01, 10);
@@ -202,8 +222,18 @@ export class ViewModel {
     this.scene.add(this.root);
     this.gunHolder = new THREE.Group();
     this.root.add(this.gunHolder);
-    this.arms = buildArms();
-    if (STYLE.comic) addHulls(toonify(this.arms));
+    // imported first-person arms (manifest "arms") or the procedural pair
+    const fa = assets.fpArms();
+    if (fa) {
+      this.arms = fa.root;
+      this.armsMixer = new THREE.AnimationMixer(fa.model);
+      const idle = fa.clips.find((c) => /idle/i.test(c.name)) || fa.clips[0];
+      if (idle) this.armsMixer.clipAction(idle).play();
+      if (STYLE.comic) addHulls(this.arms);
+    } else {
+      this.arms = buildArms();
+      if (STYLE.comic) addHulls(toonify(this.arms));
+    }
     this.gunHolder.add(this.arms);
     this.gun = null;
     this.gunKey = null;
@@ -302,6 +332,7 @@ export class ViewModel {
   cancelReload() { this.reloadT = 0; }
 
   update(dt, st) {
+    if (this.armsMixer) this.armsMixer.update(dt);
     // st: {ads, adsTime, sprint, speed, onGround, slide, mouseDX, mouseDY, healing, switching, downed,
     //      aspect, hidden, scoped, vSide, vy, landImpulse}
     // ADS: time-based with an eased curve, so every gun has a fixed, learnable ADS time

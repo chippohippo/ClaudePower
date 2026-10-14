@@ -43,7 +43,7 @@ function getGradient() {
 }
 
 const converted = new WeakMap();
-function toToon(m) {
+export function toToon(m) {
   if (!m || !m.isMeshStandardMaterial) return m;
   let t = converted.get(m);
   if (t) return t;
@@ -80,6 +80,24 @@ export function addHulls(obj, t = COMIC.hullThickness) {
   const meshes = [];
   obj.traverse((o) => { if (o.isMesh && !o.userData.isHull && !o.material.transparent && o.geometry) meshes.push(o); });
   for (const m of meshes) {
+    if (m.isSkinnedMesh) {
+      // skinned meshes (imported FPS arms): back-face copy bound to the same skeleton, pushed out
+      // along the skinned normal in object units so the ink follows the animation
+      const ws = m.getWorldScale(new THREE.Vector3()).x || 1;
+      const hm = hullMat.clone();
+      hm.onBeforeCompile = (sh) => {
+        sh.uniforms.hullT = { value: t / ws };
+        sh.vertexShader = 'uniform float hullT;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n  transformed += normalize(objectNormal) * hullT;');
+      };
+      const h = new THREE.SkinnedMesh(m.geometry, hm);
+      h.bind(m.skeleton, m.bindMatrix);
+      h.userData.isHull = true;
+      h.castShadow = false;
+      h.frustumCulled = false;
+      m.parent.add(h);
+      h.position.copy(m.position); h.quaternion.copy(m.quaternion); h.scale.copy(m.scale);
+      continue;
+    }
     if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
     const s = m.geometry.boundingBox.getSize(new THREE.Vector3());
     const c = m.geometry.boundingBox.getCenter(new THREE.Vector3());
