@@ -82,6 +82,208 @@
         "archetype": "Pistol",
         "grip": 0.88
       }
+    },
+    "characters": {
+      "default": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "jolt": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "phantom": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "halo": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "bastion": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "echo": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "miasma": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "volt": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "spectre": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      },
+      "kodiak": {
+        "animations": [
+          "animations/UAL1.glb",
+          "animations/UAL2.glb"
+        ],
+        "clips": {
+          "idle": "Idle_Loop",
+          "walk": "Walk_Loop",
+          "run": "Jog_Fwd_Loop",
+          "crouch": "Crouch_Fwd_Loop",
+          "slide": "Slide_Loop",
+          "jump": "Jump_Loop",
+          "skydive": "Swim_Idle_Loop",
+          "downed": "Death01",
+          "death": "Death01",
+          "hit": "Hit_Chest",
+          "heal": "Consume",
+          "zip": "Jump_Loop"
+        }
+      }
     }
   }
 }

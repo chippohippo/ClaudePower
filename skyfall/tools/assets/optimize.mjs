@@ -57,6 +57,8 @@ function findFile(root, pred) {
 export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512, simplify = 0 } = {}) {
   const { fn, io, MeshoptEncoder, MeshoptSimplifier, sharp } = gt;
   const doc = await io.read(src);
+  // spec/gloss materials (older Sketchfab exports) render white in three.js: convert to metal/rough
+  if (doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_materials_pbrSpecularGlossiness')) await doc.transform(fn.metalRough());
   const root = doc.getRoot();
   if (animOnly) {
     for (const n of root.listNodes()) { if (n.getMesh()) n.setMesh(null); if (n.getSkin()) n.setSkin(null); }

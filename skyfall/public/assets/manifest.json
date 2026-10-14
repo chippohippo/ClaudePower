@@ -9,8 +9,23 @@
       ],
       "rotY": 0,
       "animations": [
-        "animations/rig0_threejs_mixamo_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "jolt": {
       "file": "characters/Xbot.glb",
@@ -21,8 +36,23 @@
       ],
       "role": "dps",
       "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "phantom": {
       "file": "characters/Michelle.glb",
@@ -33,8 +63,23 @@
       ],
       "role": "dps",
       "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "halo": {
       "file": "characters/Vanguard.glb",
@@ -43,7 +88,25 @@
       "tint": [
         "VanguardBodyMat"
       ],
-      "role": "support"
+      "role": "support",
+      "animations": [
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "bastion": {
       "file": "characters/Vanguard.glb",
@@ -52,7 +115,25 @@
       "tint": [
         "VanguardBodyMat"
       ],
-      "role": "tank"
+      "role": "tank",
+      "animations": [
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "echo": {
       "file": "characters/Soldier.glb",
@@ -64,8 +145,23 @@
       "rotY": 0,
       "role": "support",
       "animations": [
-        "animations/rig0_threejs_mixamo_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "miasma": {
       "file": "characters/Soldier.glb",
@@ -77,8 +173,23 @@
       "rotY": 0,
       "role": "tank",
       "animations": [
-        "animations/rig0_threejs_mixamo_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "volt": {
       "file": "characters/Michelle.glb",
@@ -89,8 +200,23 @@
       ],
       "role": "support",
       "animations": [
-        "animations/Xbot_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "spectre": {
       "file": "characters/Vanguard.glb",
@@ -99,7 +225,25 @@
       "tint": [
         "VanguardBodyMat"
       ],
-      "role": "dps"
+      "role": "dps",
+      "animations": [
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     },
     "kodiak": {
       "file": "characters/Michelle.glb",
@@ -110,8 +254,23 @@
       ],
       "role": "tank",
       "animations": [
-        "animations/Xbot_anims.glb"
-      ]
+        "animations/UAL1.glb",
+        "animations/UAL2.glb"
+      ],
+      "clips": {
+        "idle": "Idle_Loop",
+        "walk": "Walk_Loop",
+        "run": "Jog_Fwd_Loop",
+        "crouch": "Crouch_Fwd_Loop",
+        "slide": "Slide_Loop",
+        "jump": "Jump_Loop",
+        "skydive": "Swim_Idle_Loop",
+        "downed": "Death01",
+        "death": "Death01",
+        "hit": "Hit_Chest",
+        "heal": "Consume",
+        "zip": "Jump_Loop"
+      }
     }
   },
   "weapons": {

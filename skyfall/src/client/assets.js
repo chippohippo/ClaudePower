@@ -159,43 +159,77 @@ function normalise(root, { height, length, rot, rotY, offset, ground = true, sca
 // translation is scaled by hip height, and the result is baked at 30 fps. Returns the clip untouched
 // when the rests already match, or null when no bones are shared.
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+// Canonical bone key so Mixamo ("mixamorigLeftForeArm") and Unreal-style rigs (Quaternius UAL:
+// "lowerarm_l") pair up: both become "lowerarm_l".
+const MIXAMO_PART = { Shoulder: 'clavicle', Arm: 'upperarm', ForeArm: 'lowerarm', Hand: 'hand', UpLeg: 'thigh', Leg: 'calf', Foot: 'foot', ToeBase: 'ball' };
+export function boneKey(name) {
+  let s = String(name);
+  if (/^mixamorig/i.test(s)) s = s.replace(/^mixamorig[:_]?/i, '').replace(/_\d+$/, ''); // Sketchfab exports add _NN
+  const m = s.match(/^(Left|Right)(.+)$/);
+  if (m) {
+    const side = m[1] === 'Left' ? 'l' : 'r';
+    const f = m[2].match(/^Hand(Thumb|Index|Middle|Ring|Pinky)(\d)$/);
+    if (f) return `${f[1].toLowerCase()}_0${f[2]}_${side}`;
+    return MIXAMO_PART[m[2]] ? `${MIXAMO_PART[m[2]]}_${side}` : `${m[2].toLowerCase()}_${side}`;
+  }
+  s = s.toLowerCase().replace(/_leaf/, '');
+  const MAP = { hips: 'pelvis', spine: 'spine1', spine1: 'spine2', spine2: 'spine3', spine_01: 'spine1', spine_02: 'spine2', spine_03: 'spine3', neck_01: 'neck' };
+  return MAP[s] || s;
+}
+
 export function retargetClip(clip, src, dst) {
   if (src === dst) return clip;
   const nodes = (root, bonesOnly) => { const m = new Map(); root.traverse((o) => { if (!bonesOnly || o.isBone) m.set(o.name, o); }); return m; };
-  const S0 = nodes(src, false), D = nodes(dst, true);
-  const names = [...new Set(clip.tracks.map((t) => THREE.PropertyBinding.parseTrackName(t.name).nodeName))].filter((n) => S0.has(n) && D.has(n));
+  const S0 = nodes(src, false), D0 = nodes(dst, true);
+  // pair source tracks with target bones: same name first, else the same canonical bone
+  const byKey = new Map();
+  for (const [n, o] of D0) if (!byKey.has(boneKey(n))) byKey.set(boneKey(n), o);
+  const map = new Map(); // source node name → target bone name
+  for (const t of clip.tracks) {
+    const sn = THREE.PropertyBinding.parseTrackName(t.name).nodeName;
+    if (map.has(sn) || !S0.has(sn)) continue;
+    const d = D0.get(sn) || byKey.get(boneKey(sn));
+    if (d && ![...map.values()].includes(d.name)) map.set(sn, d.name);
+  }
+  // look bones up by the target name on both sides
+  const S1 = new Map([...map].map(([sn, dn]) => [dn, S0.get(sn)])), D = D0;
+  const names = [...map.values()];
   if (!names.length) return null;
   src.updateMatrixWorld(true); dst.updateMatrixWorld(true);
   // facing: the left→right shoulder line of each skeleton, flattened
   const side = (M) => {
     for (const n of names) {
-      const r = n.replace(/Left/, 'Right').replace(/left/, 'right');
-      if (r === n || !M.has(r)) continue;
+      const k = boneKey(n);
+      if (!/_l$/.test(k)) continue;
+      const r = names.find((x) => boneKey(x) === k.replace(/_l$/, '_r'));
+      if (!r) continue;
       const v = M.get(n).getWorldPosition(new THREE.Vector3()).sub(M.get(r).getWorldPosition(_v1)); v.y = 0;
       if (v.lengthSq() > 1e-8) return v.normalize();
     }
     return null;
   };
-  const sS = side(S0), sD = side(D);
+  const sS = side(S1), sD = side(D);
   const F = sS && sD ? new THREE.Quaternion().setFromUnitVectors(sS, sD) : new THREE.Quaternion();
-  const same = F.angleTo(_q1.identity()) < 0.01 && names.every((n) => S0.get(n).quaternion.angleTo(D.get(n).quaternion) < 0.01);
+  const renamed = [...map].some(([a, b]) => a !== b);
+  const same = !renamed && F.angleTo(_q1.identity()) < 0.01 && names.every((n) => S1.get(n).quaternion.angleTo(D.get(n).quaternion) < 0.01);
   if (same) return clip;
   const Fi = F.clone().invert();
   const depth = (o) => { let d = 0; for (let p = o.parent; p; p = p.parent) d++; return d; };
   const order = names.slice().sort((a, b) => depth(D.get(a)) - depth(D.get(b)));
   const set = new Set(order);
-  const restS = new Map(order.map((n) => [n, S0.get(n).getWorldQuaternion(new THREE.Quaternion()).invert()]));
+  const restS = new Map(order.map((n) => [n, S1.get(n).getWorldQuaternion(new THREE.Quaternion()).invert()]));
   const restD = new Map(order.map((n) => [n, D.get(n).getWorldQuaternion(new THREE.Quaternion())]));
   const parentD = new Map(order.map((n) => [n, D.get(n).parent ? D.get(n).parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion()]));
   // the root-most bone with a position track carries the hips motion
-  const hips = order.find((n) => clip.tracks.some((t) => t.name === n + '.position'));
+  const srcOf = new Map([...map].map(([sn, dn]) => [dn, sn]));
+  const hips = order.find((n) => clip.tracks.some((t) => t.name === srcOf.get(n) + '.position'));
   let hip = null;
   if (hips) {
-    const sp = S0.get(hips).getWorldPosition(new THREE.Vector3()), dp = D.get(hips).getWorldPosition(new THREE.Vector3());
+    const sp = S1.get(hips).getWorldPosition(new THREE.Vector3()), dp = D.get(hips).getWorldPosition(new THREE.Vector3());
     hip = { sp, dp, k: sp.y > 0.05 && dp.y > 0.05 ? dp.y / sp.y : 1, inv: D.get(hips).parent ? D.get(hips).parent.matrixWorld.clone().invert() : new THREE.Matrix4() };
   }
   // sample the source on a private copy
-  const sc = SkeletonUtils.clone(src), S = nodes(sc, false);
+  const sc = SkeletonUtils.clone(src), Sc = nodes(sc, false), S = new Map(order.map((k) => [k, Sc.get(srcOf.get(k))]));
   const mixer = new THREE.AnimationMixer(sc);
   mixer.clipAction(clip).play();
   const n = Math.max(2, Math.ceil(clip.duration * 30) + 1);
