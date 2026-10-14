@@ -325,7 +325,7 @@ const RECIPES = {
 
   // --- ability linger loops (positional) ----------------------------------
   riotwall: () => norm(sat(mix(noise(0.05, 'lp', 300, 0.8, 0.03, 1.0), tone(0.6, 70, 34, 0.18, 1.2, 'sine', 0.05), noise(0.6, 'bp', 1800, 1, 0.2, 0.4, 0.02, 0.02), partials(0.9, [440, 660, 880], 0.35, 0.4, 0.05)), 1.5), 0.92),
-  charge: () => norm(sat(mix(noise(0.7, 'bp', 700, 0.6, 0.3, 1.0, 0, 0.05), tone(0.7, 60, 140, 0.4, 0.8, 'saw', 0.3), noise(0.06, 'lp', 400, 0.8, 0.03, 0.8, 0.45), tone(0.4, 110, 40, 0.12, 1.0, 'sine', 0.05, 0.45), grunt(0.3, 140, 110, VOWEL_UH, 0.6, 0.35)), 1.4), 0.92),
+  breach: () => norm(sat(mix(noise(0.7, 'bp', 700, 0.6, 0.3, 1.0, 0, 0.05), tone(0.7, 60, 140, 0.4, 0.8, 'saw', 0.3), noise(0.06, 'lp', 400, 0.8, 0.03, 0.8, 0.45), tone(0.4, 110, 40, 0.12, 1.0, 'sine', 0.05, 0.45), grunt(0.3, 140, 110, VOWEL_UH, 0.6, 0.35)), 1.4), 0.92),
   dome_hum: () => noiseLoop(2, (n) => { let p1 = 0, p2 = 0; for (let i = 0; i < n.length; i++) { p1 += 2 * Math.PI * 110 / SR; p2 += 2 * Math.PI * 165.7 / SR; n[i] = Math.sin(p1) * 0.4 + Math.sin(p2) * 0.25 + n[i] * 0.05 * (1 + Math.sin(i / SR * 6)); } filt(n, 'lp', 900, 0.8); }),
   gas_loop: () => noiseLoop(2, (n) => { filt(n, 'bp', 2000, 0.6); for (let i = 0; i < n.length; i++) n[i] *= 0.6 + 0.4 * Math.sin(i / SR * 2.1) ** 2; }),
   smoke_loop: () => noiseLoop(2, (n) => { filt(n, 'lp', 700, 0.7); }),
@@ -367,6 +367,8 @@ const RECIPES = {
   pickup: () => norm(mix(noise(0.05, 'bp', 2600, 2, 0.008, 0.8), partials(0.15, [1600, 2400], 0.04, 0.4, 0.02)), 0.5),
   pickup_armor: () => norm(mix(noise(0.1, 'bp', 1200, 1.5, 0.03, 0.8), partials(0.4, [740, 1110, 1480], 0.12, 0.6, 0.03)), 0.6),
   bin_open: () => norm(mix(noise(0.2, 'bp', 700, 1, 0.05, 0.9), tone(0.3, 180, 120, 0.1, 0.5), partials(0.5, [660, 990, 1320], 0.18, 0.4, 0.15)), 0.65),
+  // zone entry: airy whoosh into a two-note bell, quiet enough to sit under combat
+  zone_call: () => norm(mix(noise(0.6, 'bp', 1800, 0.6, 0.35, 0.5, 0, 0.25), partials(0.9, [587, 880, 1174], 0.4, 0.6, 0.18), partials(1.1, [784, 1175, 1568], 0.5, 0.55, 0.32), tone(0.5, 90, 70, 0.3, 0.35, 'sine', 0.15, 0.18)), 0.45),
   ui: () => norm(partials(0.06, [2200], 0.015, 1), 0.3),
   ui_hover: () => norm(partials(0.04, [1700], 0.01, 1), 0.15),
   heartbeat: () => norm(mix(tone(0.15, 90, 50, 0.04, 1), tone(0.15, 80, 45, 0.04, 0.8, 'sine', 0.06, 0.18)), 0.7),

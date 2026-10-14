@@ -465,7 +465,7 @@ export class Game {
     const map = {
       stim: 'stim', phase: 'phase', drone: 'drone', dome: 'dome', pulse: 'pulse', gastrap: 'throw', gas: 'gas', smoke: 'smoke',
       launch: 'launch', missiles: 'missiles', call: 'call', bombard: 'call', thunder: 'call', exhibit: 'pulse', riftstart: 'riftstart',
-      riftopen: 'riftopen', portal: 'portal', riotwall: 'riotwall', charge: 'charge', carepkg: 'carepkg', jumppad: 'launch', throw: 'throw', skyward: 'skyward', dropjump: 'dropjump',
+      riftopen: 'riftopen', portal: 'portal', riotwall: 'riotwall', charge: 'breach', carepkg: 'carepkg', jumppad: 'launch', throw: 'throw', skyward: 'skyward', dropjump: 'dropjump',
     };
     const name = map[ev.k];
     if (!name) return;
@@ -766,7 +766,7 @@ export class Game {
         for (const p of this.meta.values()) if (p.squad === this.mySquad && LEGENDS[p.legend]) n[LEGENDS[p.legend].cls]++;
         const sub = ROLE_IDS.map((r) => `<span style="color:${ROLES[r].color}">${n[r]} ${ROLES[r].label}</span>`).join(' · ');
         const myRole = ROLES[LEGENDS[this.myLegend]?.cls];
-        if (myRole) this.hud.announce(`YOU ARE ${myRole.label}`, 3.2, sub, myRole.color);
+        if (myRole) { this.hud.announce(`YOU ARE ${myRole.label}`, 3.2, sub, myRole.color); audio.play('ult_ready', null, { vol: 0.5, rate: 0.8 }); }
       }
     }
     let poi = null;
@@ -777,6 +777,7 @@ export class Game {
         this.lastZoneCall = poi;
         const T = THEMES[poi.theme];
         this.hud.zone(poi.name.toUpperCase(), T ? T.label : '', poi.accent || (T && T.trim));
+        audio.play('zone_call', null, { vol: 0.5 });
       }
     }
   }
