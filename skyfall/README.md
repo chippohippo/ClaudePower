@@ -109,17 +109,54 @@ server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick pe
   - Supply bins, care packages and death boxes.
   - Attachments auto-attach. The inventory has backpack slots and drop support.
 
-### Legends (all 8 playable)
+### Legends (all 9 playable) and hero roles
+Every legend belongs to a role (`cls` in `shared/legends.js`).
+
 | Legend | Role | Passive | Tactical | Ultimate |
 |---|---|---|---|---|
-| JOLT | Assault | Health regen out of combat | Stim (+40% speed, −10 HP) | Launch Pad |
-| PHANTOM | Skirmisher | Warned when aimed at | Phase Walk (2 s invulnerable) | Dimensional Rift (two-way portal) |
+| BASTION | Tank | −15% damage, slow immune | Dome of Protection (blocks bullets) | Bombardment (telegraphed mortar) |
+| MIASMA | Tank | Sees enemies in gas | Gas Trap | Nox Grenade |
+| KODIAK | Tank | Juggernaut: shields regen 4/s after 5 s, slow immune | Riot Wall (6 m bullet-blocking wall, 10 s) | Breaching Charge (24 m/s dash, 35 dmg + knockback + slow) |
+| JOLT | DPS | Health regen out of combat | Stim (+40% speed, −10 HP) | Launch Pad |
+| PHANTOM | DPS | Warned when aimed at | Phase Walk (2 s invulnerable) | Dimensional Rift (two-way portal) |
+| SPECTRE | DPS | Jetpack hover | Missile Swarm (damage + slow) | Skyward Dive (squad relaunch) |
 | HALO | Support | 2× revive, faster heals | Heal Drone | Care Package |
-| BASTION | Defender | −15% damage, slow immune | Dome of Protection (blocks bullets) | Bombardment |
-| ECHO | Recon | Heartbeat sensor while ADS | Sonar Pulse (reveals through walls) | Exhibit (reveals movers/shooters) |
-| MIASMA | Controller | Sees enemies in gas | Gas Trap | Nox Grenade |
-| VOLTA | Controller | Speed burst when shot | Smoke Launcher (blocks bot vision) | Rolling Thunder (creeping artillery + slow) |
-| SPECTRE | Skirmisher | Jetpack hover | Missile Swarm (damage + slow) | Skyward Dive (squad relaunch) |
+| ECHO | Support | Heartbeat sensor while ADS | Sonar Pulse (reveals through walls) | Exhibit (reveals movers/shooters) |
+| VOLTA | Support | Speed burst when shot | Smoke Launcher (blocks bot vision) | Rolling Thunder (creeping artillery + slow) |
+
+**Sixes = 2 Tank / 2 DPS / 2 Support, soft lock.**
+- Anyone can pick anything. The lobby shows a role bar with filled/open pips per role, and when you
+  are in a party it tags the most-needed role's legends **NEEDED** and full roles **ROLE FILLED**.
+- Bots fill whatever roles the humans left open (`roleTargets(size)`, priority tank → support → dps),
+  so a squad of three human DPS gets two tank bots and a support bot.
+- Role perks apply in Sixes only (`ROLES` in `shared/legends.js`, read through `match.rolePerk`):
+  Tank takes 10% less damage, DPS reloads and swaps 15% faster, Support heals 25% faster and revives 30% faster.
+- On landing the HUD announces your role and the squad's composition; squad cards show role icons
+  and switch to a compact two-column grid for five mates.
+- Trios is free pick with no perks.
+
+**Bots play their role** (`sim/bot.js`): tanks lead the formation toward the ring, peel for
+squadmates under fire and drop dome / riot wall when mates are hurt; DPS prefer broken-shield targets
+and take flank offsets; supports hang back, heal earlier and use drone / smoke / pulse for the squad.
+
+### Map zones and landmarks
+`shared/themes.js` defines six zone themes, each used twice across the 12 POIs, with their own names,
+palettes, roof/trim colours, ground tint, building density, ruin chance and a landmark generator:
+
+| Theme | Example names | Landmark |
+|---|---|---|
+| Industrial | Kiln Works, The Forge | Smokestacks with a catwalk ring, vertical zipline, live smoke |
+| Overgrown | Hollow Market, Mossgate | Giant tree with spiral platforms, canopy, fallen pillars |
+| High-tech | Cinder Labs, Signal Peak | Spire with spiral ramp, static jump pad, glowing pylons |
+| Desert | Glass Basin, Sunscar | Stepped mesas, rock arch, jump pads |
+| Flooded | Harbor 9, Tidewater | Docks on stilts, crane boom with zipline, animated water |
+| Military | Fort Rook, Skyrail | Perimeter wall, watchtowers with ziplines, spinning radar dish |
+
+- Buildings take the theme's palette, partly collapse according to its ruin chance, and get trim lines
+  on rooflines. Climbable mesas dot the wilderness between POIs for high-ground fights on rotations.
+- Static jump pads have chevron telegraphs; ziplines carry travelling light dashes and spark under riders.
+- Entering a POI shows a themed zone call-out with a stinger; the minimap tints zones by accent colour.
+- Gunfire draws bots from up to 220 m, so loud fights attract third parties.
 
 ### Bots
 - Bots produce the same input commands humans do, so they move with the same slides, jumps and mantles.
@@ -213,6 +250,13 @@ All feel numbers are data, not code. Change them and reload.
   - ADS puts the sight line exactly at screen centre, using an eased curve with a fixed time per gun.
   - The gun sways with inertia and reacts to movement: it rolls when strafing, lifts in jumps and dips on landing.
 
+**Comic impact words** (Comic style only, `FEEL.hit.comicWords`)
+- Pop-art starbursts pop at the impact point: CRACK! on shield break, KNOCKED!, K.O.!/WIPED!/BLAM!/POW!
+  on kills, KA-BOOM! for nearby explosions and HEADSHOT (throttled to one per 0.6 s).
+- Shading uses deeper cel bands, a cool-shadow / warm-highlight split tone, and outlines that thin out
+  with distance instead of turning to noise.
+- Remote characters kick back when they fire and leave muzzle smoke.
+
 **Bots**
 - Pathfinding uses a 1 m nav grid with A*. Bots request a path only when direct steering is blocked, which cut stuck events about 15×.
 - Bots chain slide-hops while travelling, wall-bounce in fights, and push toward gunfire up to 220 m away.
@@ -223,7 +267,8 @@ See `docs/JUICE.md` for the measured audit this pass was based on.
 
 **Vertical slice (done):**
 - One procedurally generated map (seeded) with 12 POIs.
-- All 8 legends.
+- All 9 legends with Tank / DPS / Support roles (2/2/2 in Sixes).
+- Six zone themes with landmarks, ziplines, jump pads and climbable mesas.
 - 10 weapons: 2 ARs, 2 SMGs, an LMG, a shotgun, a marksman rifle, a sniper and 2 pistols.
 - Full movement tech, ring, loot, bots, squads, respawn banners, spectating, Trios/Sixes, parties, firing range, procedural audio.
 

@@ -53,3 +53,17 @@ and from headless browser screenshots. Status: ✅ done · ◐ partial · ☐ to
    - cooldown rings, compact squad cards, kill feed, end and spectator screens
 7. ✅ **Bots**
    - grid A* pathfinding, slide-hop and wall-bounce flair, third-party pushes
+
+## Hero-shooter pass (roles, zones, polish)
+8. ✅ **Roles**
+   - Tank / DPS / Support with 2/2/2 soft lock in Sixes, lobby role bar and NEEDED tags, Sixes-only perks
+   - new tank KODIAK (Riot Wall, Breaching Charge, Juggernaut shield regen)
+   - bots fill missing roles and play them (peel, flank, hang back and heal)
+9. ✅ **Map personality**
+   - six zone themes with named POIs, landmarks, ruined buildings, roof trim, water, climbable mesas
+   - static jump pads with telegraphs, ziplines with flowing light and rider sparks
+10. ✅ **Look and feel**
+   - deeper cel bands, split tone, distance-faded outlines, per-material surface patterns
+   - pop-art impact words, heavier shield-break and kill trauma, remote recoil and muzzle smoke
+   - announcements slam in with subtitles, zone call-outs with a stinger, role call-out in Sixes
+   - fixed: Riot Wall shape missing from snapshots; Breaching Charge sound overwriting the reload charging-handle sound
