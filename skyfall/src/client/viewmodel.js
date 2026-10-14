@@ -15,6 +15,8 @@ import { WEAPONS } from '../shared/weapons.js';
 import { RARITY } from '../shared/items.js';
 import { STYLE, toonify, addHulls } from './comic.js';
 import { assets } from './assets.js';
+import { buildProceduralGun, setGunAmmo } from './gunmodels.js';
+export { setGunAmmo };
 
 const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const smooth = (t) => t * t * (3 - 2 * t);
@@ -65,50 +67,12 @@ export function buildGun(id, tier = 0, att = null) {
     barrelY = def.muzzle ? def.muzzle[1] : (box.min.y + box.max.y) / 2 + size.y * 0.15;
     topY = def.sightY ?? box.max.y;
     imported = true;
-  } else if (cls === 'Pistol') {
-    len = 0.3;
-    add(B(0.07, 0.1, len), body, 0, 0.03, -0.1);
-    add(B(0.072, 0.03, len * 0.95), tint, 0, 0.085, -0.1);
-    add(B(0.06, 0.16, 0.08), dark, 0, -0.08, 0, 0.25, 'mag');
-    cyl(0.018, 0.08, dark, 0, 0.04, -0.29);
-    if (id === 'viper') { cyl(0.045, 0.08, dark, 0, 0.025, -0.06, 8); add(B(0.05, 0.05, 0.16), body, 0, 0.04, -0.25); }
-    muzzleZ = -0.34; topY = 0.1; barrelY = 0.04;
-  } else if (cls === 'Shotgun') {
-    len = 0.55;
-    add(B(0.09, 0.12, len), body, 0, 0, -0.2);
-    cyl(0.03, 0.55, dark, 0, 0.035, -0.62);
-    const pump = add(B(0.085, 0.07, 0.24), tint, 0, -0.045, -0.56, 0, 'pump');
-    pump.userData.base = pump.position.z;
-    add(B(0.07, 0.15, 0.28), dark, 0, -0.04, 0.22, 0.18, 'stock');
-    add(B(0.06, 0.13, 0.07), dark, 0, -0.11, 0.0, 0.3);
-    muzzleZ = -0.92;
-  } else if (cls === 'Sniper' || cls === 'Marksman') {
-    len = 0.65;
-    add(B(0.08, 0.12, len), body, 0, 0, -0.2);
-    cyl(0.022, cls === 'Sniper' ? 0.8 : 0.5, dark, 0, 0.02, cls === 'Sniper' ? -0.88 : -0.72);
-    add(B(0.075, 0.07, 0.4), tint, 0, -0.03, -0.42);
-    add(B(0.07, 0.14, 0.32), tint, 0, -0.02, 0.28, 0, 'stock');
-    add(B(0.06, 0.13, 0.07), dark, 0, -0.11, 0.0, 0.3);
-    add(B(0.055, 0.12, 0.08), dark, 0, -0.11, -0.2, -0.1, 'mag');
-    if (cls === 'Sniper') { const bolt = add(B(0.03, 0.03, 0.06), body, 0.06, 0.04, 0.02, 0, 'bolt'); bolt.userData.base = 0.02; }
-    muzzleZ = cls === 'Sniper' ? -1.3 : -1.0;
   } else {
-    len = cls === 'SMG' ? 0.42 : cls === 'LMG' ? 0.72 : 0.56;
-    add(B(0.085, 0.13, len), body, 0, 0, -0.15);
-    add(B(0.09, 0.05, len * 0.62), tint, 0, 0.075, -0.2);
-    const guard = add(B(0.08, 0.09, 0.26), dark, 0, 0.0, -0.15 - len / 2 - 0.08);
-    guard.name = 'guard';
-    cyl(0.02, 0.24, dark, 0, 0.02, -0.15 - len / 2 - 0.3);
-    add(B(0.06, 0.13, 0.07), dark, 0, -0.11, 0.02, 0.3);
-    const magH = (cls === 'LMG' ? 0.11 : 0.18) * (1 + (att.mag || 0) * 0.14);
-    const mag = add(B(cls === 'LMG' ? 0.13 : 0.06, magH, cls === 'LMG' ? 0.13 : 0.08), cls === 'LMG' ? tint : dark, 0, -0.07 - magH / 2, -0.2, cls === 'LMG' ? 0 : -0.15, 'mag');
-    mag.userData.base = mag.position.clone();
-    add(B(0.07, 0.11, 0.24), body, 0, -0.02, 0.22, 0, 'stock');
-    if (w.sound.zap) { // energy coils
-      for (let i = 0; i < 3; i++) cyl(0.05, 0.02, new THREE.MeshStandardMaterial({ color: '#b7e34b', emissive: '#b7e34b', emissiveIntensity: 1.5 }), 0, 0.0, -0.35 - i * 0.06, 12);
-    }
-    muzzleZ = -0.15 - len / 2 - 0.43;
-    topY = 0.1; // sights sit above the tinted top rail
+    const built = buildProceduralGun(w, id, att, rc, tier);
+    for (const c of [...built.group.children]) g.add(c);
+    ({ len, muzzleZ, topY } = built);
+    barrelY = built.barrelY;
+    g.userData.fore = built.fore;
   }
   // stock upgrades bulk up the stock
   const stock = g.getObjectByName('stock');
@@ -118,11 +82,6 @@ export function buildGun(id, tier = 0, att = null) {
     const mb = cyl(0.034, 0.07 + att.barrel * 0.025, rare, 0, barrelY, muzzleZ - 0.03, 8);
     mb.name = 'brake';
     muzzleZ -= 0.08 + att.barrel * 0.025;
-  }
-  // rarity stripes (procedural guns only)
-  if (!imported) {
-    add(B(0.092, 0.015, 0.14), rare, 0, -0.035, -0.06);
-    add(B(0.092, 0.015, 0.06), rare, 0, 0.012, -0.32);
   }
 
   // sights: optic if attached (or sniper default scope), otherwise iron sights
@@ -167,21 +126,68 @@ export function buildGun(id, tier = 0, att = null) {
   return g;
 }
 
+// First-person arms: tactical sleeves, forearm guards and gloved hands with jointed fingers
+// wrapped around the pistol grip (right) and the handguard (left). setFore(z) moves the left
+// hand to the current gun's handguard.
 function buildArms() {
   const g = new THREE.Group();
-  const sleeve = new THREE.MeshStandardMaterial({ color: '#3a414b', roughness: 0.8 });
-  const glove = new THREE.MeshStandardMaterial({ color: '#1e2126', roughness: 0.6 });
-  const pad = new THREE.MeshStandardMaterial({ color: '#7d8590', roughness: 0.4, metalness: 0.3 });
-  const r = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.38, 3, 8), sleeve);
-  r.rotation.x = Math.PI / 2 - 0.65; r.position.set(0.07, -0.2, 0.24);
-  g.add(r);
-  const rh = new THREE.Mesh(B(0.08, 0.1, 0.1), glove); rh.position.set(0.02, -0.08, 0.05); g.add(rh);
-  const rp = new THREE.Mesh(B(0.07, 0.04, 0.12), pad); rp.position.set(0.07, -0.08, 0.2); rp.rotation.x = -0.3; g.add(rp);
-  const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.42, 3, 8), sleeve);
-  l.rotation.set(Math.PI / 2 - 0.55, -0.7, 0); l.position.set(-0.16, -0.18, -0.14);
-  g.add(l);
-  const lh = new THREE.Mesh(B(0.08, 0.08, 0.1), glove); lh.position.set(-0.03, -0.06, -0.33); g.add(lh);
-  g.userData.leftHand = lh;
+  const sleeve = new THREE.MeshStandardMaterial({ color: '#2f3329', roughness: 0.92 });
+  const cuff = new THREE.MeshStandardMaterial({ color: '#2c3036', roughness: 0.7 });
+  const glove = new THREE.MeshStandardMaterial({ color: '#23262b', roughness: 0.75 });
+  const knuckle = new THREE.MeshStandardMaterial({ color: '#3d434c', roughness: 0.5, metalness: 0.2 });
+  const plate = new THREE.MeshStandardMaterial({ color: '#6a717b', roughness: 0.35, metalness: 0.45 });
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // a capsule limb from a to b
+  const limb = (a, b, r, mat, parent = g) => {
+    const len = a.distanceTo(b);
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - r * 2), 4, 10), mat);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(V(0, 1, 0), b.clone().sub(a).normalize());
+    parent.add(m);
+    return m;
+  };
+  // hand: palm + 4 curled fingers + thumb, built around its own origin (grip contact point)
+  const hand = (side) => {
+    const h = new THREE.Group();
+    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.075, 0.07), glove);
+    palm.position.set(side * 0.022, -0.005, 0.0);
+    h.add(palm);
+    const kn = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.06, 0.05), knuckle);
+    kn.position.set(side * 0.038, 0.0, -0.005);
+    h.add(kn);
+    for (let i = 0; i < 4; i++) {
+      const y = 0.025 - i * 0.019;
+      limb(V(side * 0.03, y, -0.03), V(side * 0.005, y, -0.05), 0.0085, glove, h);
+      limb(V(side * 0.005, y, -0.05), V(-side * 0.02, y - 0.004, -0.04), 0.008, glove, h);
+    }
+    limb(V(side * 0.03, 0.035, 0.02), V(-side * 0.012, 0.045, -0.015), 0.009, glove, h); // thumb
+    return h;
+  };
+  // right arm: shoulder off-screen bottom-right → wrist at the grip
+  const rWrist = V(0.035, -0.09, 0.07);
+  limb(V(0.16, -0.32, 0.42), rWrist, 0.05, sleeve);
+  limb(V(0.1, -0.2, 0.24), rWrist.clone().add(V(0.005, 0.005, 0.02)), 0.042, cuff);
+  const rp = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.11), plate);
+  rp.position.set(0.075, -0.12, 0.16); rp.rotation.x = -0.55;
+  g.add(rp);
+  const rh = hand(1);
+  rh.position.set(0.0, -0.06, 0.02); rh.rotation.x = 0.35;
+  g.add(rh);
+  // left arm: rebuilt per gun so the hand sits on that gun's handguard
+  const left = new THREE.Group();
+  g.add(left);
+  g.userData.setFore = (fz) => {
+    left.clear();
+    const hz = -Math.max(0.05, fz), wrist = V(-0.045, -0.075, hz + 0.06);
+    limb(V(-0.22, -0.34, 0.1), wrist, 0.04, sleeve, left);
+    limb(V(-0.12, -0.17, hz + 0.18), wrist.clone().add(V(0, 0, 0.02)), 0.036, cuff, left);
+    const lh = hand(-1);
+    lh.position.set(-0.012, -0.045, hz);
+    lh.rotation.set(0.2, -0.35, -0.5);
+    left.add(lh);
+    g.userData.leftHand = lh;
+  };
+  g.userData.setFore(0.33);
   return g;
 }
 
@@ -290,6 +296,10 @@ export class ViewModel {
     if (this.gun) {
       if (STYLE.comic) addHulls(toonify(this.gun));
       this.gunHolder.add(this.gun);
+      if (this.arms.userData.setFore) {
+        this.arms.userData.setFore(this.gun.userData.fore ?? (this.gun.userData.cls === 'Pistol' ? 0.02 : 0.33));
+        if (STYLE.comic) addHulls(toonify(this.arms));
+      }
       const mz = this.gun.userData.muzzleZ, my = this.gun.userData.muzzleY;
       this.flash.position.set(0, my, mz - 0.05);
       this.flashSide.position.set(0, my, mz - 0.18);

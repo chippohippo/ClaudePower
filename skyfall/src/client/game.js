@@ -19,7 +19,7 @@ import { loadProfile, recordMatch, summaryHtml } from './progression.js';
 import { DEG, clamp, dirFromAngles, wrapAngle, lerp } from '../shared/util.js';
 import { WorldView } from './world.js';
 import { createAvatar } from './modelavatar.js';
-import { ViewModel } from './viewmodel.js';
+import { ViewModel, setGunAmmo } from './viewmodel.js';
 import { FX } from './fx.js';
 import { LootView } from './lootview.js';
 import { audio } from './audio.js';
@@ -734,6 +734,7 @@ export class Game {
     const specW = this.spectating ? this.meView.wpn : null;
     if (this.spectating) this.vm.setWeapon(specW, 0);
     else this.vm.setWeapon(alive && w && !me.inShip && this.pred.mode !== 'skydive' && this.pred.mode !== 'zip' ? w.id : null, w ? w.tier : 0, w ? w.att : null);
+    if (w && this.vm.gun && !this.spectating) setGunAmmo(this.vm.gun, this.localMag, magSize(WEAPONS[w.id], w.att.mag));
     this.vm.update(dt, {
       ads: this.adsWanted, adsTime: this._adsTime(def, w), sprint: this.sprinting, speed: Math.hypot(ms.vx, ms.vz), onGround: ms.onGround,
       slide: ms.mode === 'slide', mouseDX: m.dx, mouseDY: m.dy, healing: !!(me && me.heal), switching: this.localSwitch > 0,

@@ -28,7 +28,9 @@ export const COMIC = {
 
 // Clean art style reuses the post pass as a pure colour grade (no ink, no halftone): punchy,
 // warm-lit and saturated like Apex's daylight maps, so characters read against the terrain.
-export const CLEAN_GRADE = { ink: 0, halftone: 0, saturation: 1.16, contrast: 1.07 };
+// Realistic look: no ink or halftone; screen-space ambient occlusion from the depth buffer grounds
+// objects and darkens creases, a soft vignette frames the view, and the grade stays natural.
+export const CLEAN_GRADE = { ink: 0, halftone: 0, saturation: 1.08, contrast: 1.06, ao: 0.75, vignette: 0.32 };
 
 let gradientMap = null;
 function getGradient() {
@@ -128,11 +130,12 @@ export class ComicPost {
         halftone: { value: grade ? grade.halftone : C.halftone }, htSize: { value: C.halftoneSize },
         sat: { value: grade ? grade.saturation : C.saturation }, contrast: { value: grade ? grade.contrast : C.contrast },
         ink: { value: new THREE.Vector3(...C.lineColor) }, inkAmt: { value: grade ? grade.ink : 1 },
+        aoAmt: { value: grade ? grade.ao || 0 : 0 }, vign: { value: grade ? grade.vignette || 0 : 0.12 },
       },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: `
         uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 res; uniform float near, far, px;
-        uniform float silhouette, crease, halftone, htSize, sat, contrast, inkAmt; uniform vec2 fade; uniform vec3 ink;
+        uniform float silhouette, crease, halftone, htSize, sat, contrast, inkAmt, aoAmt, vign; uniform vec2 fade; uniform vec3 ink;
         varying vec2 vUv;
         float lin(vec2 uv){ float d = texture2D(tDepth, uv).x; return (near * far) / (far - d * (far - near)); }
         void main(){
@@ -149,6 +152,19 @@ export class ComicPost {
           float lap = abs(1.0 / l + 1.0 / r - 2.0 * ic) + abs(1.0 / d + 1.0 / u - 2.0 * ic);
           float cr = smoothstep(crease, crease * 2.5, lap / ic) * 0.85;
           float sky = step(far * 0.9, c);
+          // ambient occlusion: nearer neighbours on a ring (radius shrinks with distance) occlude
+          float occ = 0.0;
+          if (aoAmt > 0.0 && sky < 0.5 && c < 160.0) {
+            float rad = clamp(14.0 / c, 1.5, 22.0) * px;
+            for (int i = 0; i < 10; i++) {
+              float a = float(i) * 0.6283 + fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5) * 0.6;
+              float rr = rad * (0.45 + 0.55 * fract(float(i) * 0.618));
+              float t = lin(vUv + vec2(cos(a), sin(a)) * rr / res);
+              float dd = c - t;
+              occ += clamp(dd / (0.15 + c * 0.015), 0.0, 1.0) * (1.0 - smoothstep(0.8, 4.0, dd));
+            }
+            occ = occ / 10.0 * (1.0 - smoothstep(60.0, 160.0, c));
+          }
           float dist = 1.0 - smoothstep(fade.x, fade.y, c);
           float creaseDist = 1.0 - smoothstep(25.0, 90.0, c); // creases are close-range detail only
           // far silhouettes fade to a soft tint so the horizon stays clean and readable
@@ -157,7 +173,7 @@ export class ComicPost {
           gl_FragColor = vec4(texture2D(tColor, vUv).rgb, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
-          vec3 col = gl_FragColor.rgb;
+          vec3 col = gl_FragColor.rgb * (1.0 - occ * aoAmt);
           float lum = dot(col, vec3(0.299, 0.587, 0.114));
           col = mix(vec3(lum), col, sat);
           col = (col - 0.5) * contrast + 0.5;
@@ -172,6 +188,7 @@ export class ComicPost {
           float dot_ = 1.0 - smoothstep(dark * 0.55 - 0.08, dark * 0.55, length(cell));
           col *= 1.0 - dot_ * halftone * dark;
           col = mix(col, ink, clamp(line, 0.0, 1.0) * inkAmt);
+          col *= 1.0 - vign * smoothstep(0.45, 1.05, length((vUv - 0.5) * vec2(res.x / res.y, 1.0)) * 1.15);
           gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
         }`,
       depthTest: false, depthWrite: false, toneMapped: true,

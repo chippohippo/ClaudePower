@@ -22,12 +22,14 @@ export const settings = {
   shake: 1, // camera shake / FOV punch intensity 0..2
   colorVision: 'default', // friend/foe + damage colour preset (see client/palette.js)
   enemyRim: 1,            // enemy rim-light strength multiplier (0 = off)
-  artStyle: 'comic', // 'comic' (cel + ink outlines + halftone) or 'clean'
+  artStyle: 'clean', // 'clean' (realistic: PBR, ambient occlusion, film grade) or 'comic' (cel + ink)
 };
 
 try {
   const s = JSON.parse(localStorage.getItem('skyfall.settings') || '{}');
   Object.assign(settings, s);
+  // v0.4: the realistic look became the default; existing players switch once (Comic stays available)
+  if (!(s.gfxV >= 2)) { settings.artStyle = 'clean'; settings.gfxV = 2; }
 } catch {}
 
 export function saveSettings() {

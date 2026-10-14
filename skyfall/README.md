@@ -34,6 +34,11 @@ router, and shows the LAN and internet addresses friends join with. **FIRING RAN
 weapon and some strafing target dummies (**B** shows hitboxes). **CREATE PARTY** / **JOIN** puts friends in the same squad,
 and bots fill the rest of the lobby.
 
+**0.4.0 additions (graphics pass):**
+- New default "Realistic" art style (comic ink/halftone is now optional in Settings): natural sky with clouds and sun disk, retuned sun/hemisphere lighting, 4096 shadows, screen-space ambient occlusion and a subtle vignette.
+- Detailed procedural gun models per class (receivers, vented handguards, curved mags/drums, rails, pumps, bolts, stocks, energy coils), muted gunmetal paint with weapon-colour inlays and rarity stripes, and a live ammo counter on the receiver.
+- New first-person arms: gloved hands with fingers, sleeves, and a support hand that sits on each gun's foregrip.
+
 **0.3.0 additions:**
 - **Death recap and kill cam.** You see who downed you, with what and from how far, their health
   left, the damage traded and any assists. On elimination the camera zooms onto your killer.

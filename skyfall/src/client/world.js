@@ -105,7 +105,7 @@ export class WorldView {
     this.map = map;
     const scene = (this.scene = new THREE.Scene());
     scene.background = new THREE.Color('#a9c4dc');
-    scene.fog = new THREE.Fog('#b9cde0', 160, 1100);
+    scene.fog = new THREE.Fog(STYLE.comic ? '#b9cde0' : '#c6d3de', 160, 1100);
     // image-based lighting so metal and armour materials have something to reflect
     const pmrem = new THREE.PMREMGenerator(renderer);
     // a Poly Haven HDRI (manifest "hdri") lights the world when present; the cel sky stays as the
@@ -146,7 +146,16 @@ export class WorldView {
             c = mix(c, vec3(0.1, 0.12, 0.2), rim * smoothstep(0.06, 0.2, h) * 0.85);
             c += vec3(1.0,0.9,0.5) * step(0.9985, s) * 2.0;
           } else {
-            c += vec3(1.0,0.86,0.6) * (pow(s, 600.0) * 4.0 + pow(s, 12.0) * 0.25);
+            // realistic: deep zenith blue, warm haze toward the sun, soft drifting cumulus
+            top = vec3(0.13, 0.36, 0.78); hor = vec3(0.72, 0.8, 0.88);
+            c = h > 0.0 ? mix(hor, top, pow(h, 0.45)) : mix(hor, low, min(1.0, -h * 4.0));
+            c = mix(c, vec3(0.98, 0.86, 0.68), pow(s, 6.0) * 0.35 * (1.0 - clamp(h * 2.0, 0.0, 1.0)));
+            vec2 uv = vDir.xz / (vDir.y + 0.25) * 2.6;
+            float n = vn(uv) * 0.55 + vn(uv * 2.3 + 3.0) * 0.3 + vn(uv * 5.1) * 0.15;
+            float cl = smoothstep(0.52, 0.78, n) * smoothstep(0.03, 0.22, h);
+            vec3 cloud = mix(vec3(1.0, 0.98, 0.95), vec3(0.72, 0.76, 0.84), smoothstep(0.62, 0.85, n));
+            c = mix(c, cloud, cl * 0.9);
+            c += vec3(1.0,0.86,0.6) * (pow(s, 600.0) * 5.0 + pow(s, 12.0) * 0.3);
           }
           gl_FragColor = vec4(c, 1.0);
         }`,
@@ -157,11 +166,13 @@ export class WorldView {
     if (this.hdriBackground) { this.sky.visible = false; scene.background = assets.hdri; scene.backgroundIntensity = assets.manifest.hdri.backgroundIntensity ?? 1; }
 
     // lights
-    scene.add(new THREE.HemisphereLight('#cfe3ff', '#5a5040', 1.05));
-    const sun = (this.sun = new THREE.DirectionalLight('#fff1d6', 2.4));
+    // realistic: warmer, stronger sun against a cooler, dimmer sky fill → Apex-like contrast
+    const real = !STYLE.comic;
+    scene.add(new THREE.HemisphereLight(real ? '#a9c8ff' : '#cfe3ff', real ? '#6a5640' : '#5a5040', real ? 0.85 : 1.05));
+    const sun = (this.sun = new THREE.DirectionalLight(real ? '#ffe0b2' : '#fff1d6', real ? 3.1 : 2.4));
     sun.position.copy(SUN_DIR).multiplyScalar(200);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(real ? 4096 : 2048, real ? 4096 : 2048);
     const sc = sun.shadow.camera;
     sc.left = -70; sc.right = 70; sc.top = 70; sc.bottom = -70; sc.near = 10; sc.far = 500;
     sun.shadow.bias = -0.0006;
@@ -669,7 +680,7 @@ export class WorldView {
     const target = outside ? 1 : 0;
     this.outsideK = (this.outsideK ?? 0) + (target - (this.outsideK ?? 0)) * Math.min(1, dt * 2.5);
     const k = this.outsideK, st = Math.max(0, Math.min(1, stage));
-    const base = this._fogBase || (this._fogBase = new THREE.Color('#b9cde0'));
+    const base = this._fogBase || (this._fogBase = new THREE.Color(STYLE.comic ? '#b9cde0' : '#c6d3de'));
     const late = this._fogLate || (this._fogLate = new THREE.Color('#d6b9a0'));
     const burn = this._fogBurn || (this._fogBurn = new THREE.Color('#ff7a3a'));
     const c = this.scene.fog.color;
