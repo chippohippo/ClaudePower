@@ -34,6 +34,29 @@ router, and shows the LAN and internet addresses friends join with. **FIRING RAN
 weapon and some strafing target dummies (**B** shows hitboxes). **CREATE PARTY** / **JOIN** puts friends in the same squad,
 and bots fill the rest of the lobby.
 
+**0.6.0 additions (characters, animation, map):**
+- All 9 legends are now built on Quaternius' Universal Base Characters (male and female bodies on the
+  Universal Animation Library skeleton, so every clip plays natively). Each legend is dressed in code
+  (`src/client/outfits.js`): a per-pixel suit shader (panels, seams, collars, stripes, gloves, boots)
+  plus bone-attached gear (plate carriers, chest plates, shoulder armour, helmets with visors, a gas
+  mask with filters, medic / recon / gas-tank packs, Spectre's jetpack) and UBC hairstyles.
+- Animation: sprint, crouch idle and crouch walk, jump take-off and landing, ledge climb for mantles,
+  kneeling revives, an ability throw, pistol stance, skydive dive, getting up after a revive and
+  upper-body hit / knock-down reactions that play over the legs. Walk / jog / sprint are speed-matched
+  and keep their foot phase when blending. Gun-hold IK now also works on Sketchfab rigs.
+- First-person arms are cut from your own legend's body: the same sleeves, gloves and bracers, with
+  IK onto the grip and handguard, curled fingers and a support hand that goes to the mag on reloads.
+- Third-person guns are real size for their class and sit in the hand at the grip.
+- Map: buildings use the Modular SciFi MegaKit trim sheets with real normal / roughness relief,
+  interiors have desks, shelves, lockers and ceiling lights, roofs have AC units and dishes as cover,
+  corner columns frame every building (all with matching colliders), crates / barrels come from the
+  Sci-Fi Essentials Kit, and the wilderness gets the Stylized Nature MegaKit trees, bushes, rocks and
+  instanced grass, flowers and pebbles around the camera (dead trees near deserts).
+- Also since 0.5.1: Universal Animation Library clips for every character, floor loot shows the real gun
+  models with labels and rarity beams, bots time their ring rotations and avoid walls earlier.
+- Dev pages (`npx vite`): `tools/dev/lineup.html`, `avatarcheck.html`, `gearcheck.html`,
+  `vmcheck.html`, `mapview.html`, `kitview.html`. Pack import: `node tools/assets/import-drive.mjs`.
+
 **0.5.0 additions (real models):**
 - All 10 guns are now real 3D models assembled from the Firearms Kit parts: an M4-style carbine, a SCAR-style battle rifle, an MP5-style SMG, a bullpup, a belt-fed LMG, a pump shotgun, a DMR, a scoped bolt-action sniper and two pistols. Each one sits with its pistol grip in the hand and the support hand on its handguard. The sniper uses its own scope.
 - New character model: the Vanguard "Futuristic Soldier" (Mixamo rig) for Halo, Bastion and Spectre.

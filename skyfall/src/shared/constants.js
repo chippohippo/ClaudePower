@@ -3,7 +3,7 @@
 
 export const SIM_DT = 1 / 60;          // movement step for human players (client + server identical)
 // network protocol version: bump when messages change; servers refuse clients from another version
-export const NET_VERSION = 1;
+export const NET_VERSION = 2; // 2: 0.6.0 map (interior furniture, roof cover, corner columns)
 export const SERVER_TICK = 30;         // authoritative world tick (Hz)
 export const SNAPSHOT_RATE = 20;       // snapshots per second
 export const INTERP_DELAY = 0.1;       // remote entity interpolation buffer (s)
