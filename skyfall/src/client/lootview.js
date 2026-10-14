@@ -2,7 +2,8 @@
 // rarity-coloured glow discs and gentle bob/spin so loot reads instantly in a hot drop.
 
 import * as THREE from 'three';
-import { RARITY, itemRarity } from '../shared/items.js';
+import { RARITY, itemRarity, itemName } from '../shared/items.js';
+import { buildGun } from './viewmodel.js';
 import { AMMO } from '../shared/weapons.js';
 import { SHIELD_COLORS } from '../shared/constants.js';
 import { STYLE, toonify } from './comic.js';
@@ -21,6 +22,42 @@ const GEOS = {
 };
 const discGeo = new THREE.CircleGeometry(0.45, 20);
 discGeo.rotateX(-Math.PI / 2);
+// weapons get a light beam in their rarity colour so they read from across a POI
+const beamGeo = new THREE.CylinderGeometry(0.035, 0.09, 3.2, 8, 1, true);
+beamGeo.translate(0, 1.6, 0);
+
+// real gun models on the floor (one cached template per gun + rarity, cloned per slot)
+const GUNS = new Map();
+function gunModel(id, tier) {
+  const k = id + ':' + tier;
+  if (!GUNS.has(k)) {
+    const g = buildGun(id, tier);
+    const box = new THREE.Box3().setFromObject(g);
+    const c = box.getCenter(new THREE.Vector3());
+    for (const ch of g.children) ch.position.sub(c);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    GUNS.set(k, g);
+  }
+  return GUNS.get(k).clone();
+}
+
+// name labels ("TALON AR", "LIGHT AMMO ×60") as sprites, cached per text + colour
+const LABELS = new Map();
+function labelMat(text, color) {
+  const k = text + color;
+  if (!LABELS.has(k)) {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 96;
+    const x = c.getContext('2d');
+    x.font = '600 44px Rajdhani, "Segoe UI", sans-serif';
+    const w = Math.min(500, x.measureText(text).width + 44);
+    x.fillStyle = 'rgba(12,14,18,0.72)'; x.fillRect((512 - w) / 2, 14, w, 68);
+    x.fillStyle = color; x.fillRect((512 - w) / 2, 14, 6, 68);
+    x.fillStyle = '#f2f4f7'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 256 + 3, 50);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    LABELS.set(k, new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
+  }
+  return LABELS.get(k);
+}
 
 export class LootView {
   constructor(scene) {
@@ -34,9 +71,12 @@ export class LootView {
       mesh.castShadow = true;
       const disc = new THREE.Mesh(discGeo, new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
       disc.position.y = 0.03;
-      g.add(mesh, disc);
+      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const label = new THREE.Sprite(labelMat(' ', '#fff'));
+      label.scale.set(1.5, 0.28, 1); label.position.y = 0.95; label.renderOrder = 10;
+      g.add(mesh, disc, beam, label);
       g.visible = false;
-      g.userData = { mesh, disc, id: 0 };
+      g.userData = { mesh, disc, beam, label, gun: null, id: 0 };
       scene.add(g);
       this.pool.push(g);
     }
@@ -84,6 +124,17 @@ export class LootView {
           if (t === 'c') col = sub.includes('cell') || sub === 'battery' ? '#3fa9ff' : sub === 'phoenix' ? '#ff9f1c' : '#ff5a5a';
           g.userData.mesh.material = this._mat(col, 0.25);
           g.userData.disc.material.color.set(RARITY[rar]);
+          // weapons: the actual gun model + rarity beam instead of a placeholder box
+          if (g.userData.gun) { g.remove(g.userData.gun); g.userData.gun = null; }
+          g.userData.mesh.visible = t !== 'w';
+          g.userData.beam.visible = t === 'w';
+          if (t === 'w') {
+            g.userData.gun = gunModel(sub, it.tier || 0);
+            g.add(g.userData.gun);
+            g.userData.beam.material.color.set(RARITY[rar]);
+          }
+          const name = (itemName(it.item, it.tier) + (it.n > 1 ? ` ×${it.n}` : '')).toUpperCase();
+          g.userData.label.material = labelMat(name, RARITY[rar]);
           g.position.set(it.x, it.y, it.z);
           g.userData.phase = (it.id * 1.7) % 6;
         }
@@ -91,10 +142,15 @@ export class LootView {
     }
     for (const g of this.pool) {
       if (!g.visible) continue;
-      const m = g.userData.mesh;
+      const m = g.userData.gun || g.userData.mesh;
       m.position.y = 0.3 + Math.sin(time * 2 + g.userData.phase) * 0.05;
       m.rotation.y = time * 0.8 + g.userData.phase;
-      g.userData.disc.material.opacity = g.userData.id === this.highlight ? 0.9 : 0.3;
+      const hi = g.userData.id === this.highlight;
+      g.userData.disc.material.opacity = hi ? 0.9 : 0.3;
+      // names show up close, and always on the item you're aiming at
+      const d2 = (g.position.x - cx) ** 2 + (g.position.z - cz) ** 2;
+      g.userData.label.visible = hi || d2 < 9 * 9;
+      g.userData.label.scale.set(hi ? 1.9 : 1.4, hi ? 0.36 : 0.26, 1);
     }
   }
 }

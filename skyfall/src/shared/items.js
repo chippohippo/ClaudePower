@@ -1,6 +1,6 @@
 // Item catalogue + loot tables. Items live in the world as {id, item, n (count), x, y, z, tier}.
 
-import { WEAPONS, AMMO } from './weapons.js';
+import { WEAPONS, AMMO, magSize } from './weapons.js';
 
 export const RARITY = ['#c8c8c8', '#3fa9ff', '#b94dff', '#ffd23f', '#ff3b3b'];
 export const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
@@ -99,17 +99,17 @@ export function rollLoot(rng, zoneTier) {
   if (r < 0.27) {
     const wid = rng.pick(['talon', 'talon', 'mauler', 'hornet', 'hornet', 'volt', 'bulwark', 'breacher', 'breacher', 'scout', 'sentinel', 'viper', 'viper', 'p20', 'p20']);
     const out = { item: 'w:' + wid, n: 1, tier: Math.min(3, Math.max(WEAPONS[wid].rarityBase, tierRoll())) };
-    if (rng() < 0.7) {
-      const a = WEAPONS[wid].ammo;
-      out.extra = [{ item: 'a:' + a, n: Math.round(AMMO[a].stack * (a === 'shotgun' || a === 'sniper' ? 0.5 : 0.4)), tier: 0 }];
-    }
+    // every floor gun comes loaded plus two spare magazines beside it (split into ammo stacks)
+    const a = WEAPONS[wid].ammo;
+    out.extra = [];
+    for (let left = 2 * magSize(WEAPONS[wid], 0); left > 0; left -= AMMO[a].stack) out.extra.push({ item: 'a:' + a, n: Math.min(left, AMMO[a].stack), tier: 0 });
     return out;
   }
-  if (r < 0.5) {
+  if (r < 0.56) {
     const a = rng.pick(['light', 'light', 'heavy', 'heavy', 'energy', 'shotgun', 'sniper', 'sniper']);
-    return { item: 'a:' + a, n: Math.round(AMMO[a].stack * (a === 'shotgun' || a === 'sniper' ? 0.75 : 0.5)), tier: 0 };
+    return { item: 'a:' + a, n: AMMO[a].stack, tier: 0 }; // full stacks: ammo should never be the bottleneck
   }
-  if (r < 0.72) {
+  if (r < 0.75) {
     const c = rng.pick(['syringe', 'syringe', 'cell', 'cell', 'cell', 'medkit', 'battery', 'battery', 'phoenix']);
     return { item: 'c:' + c, n: c === 'syringe' || c === 'cell' ? 2 : 1, tier: 0 };
   }

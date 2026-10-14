@@ -58,4 +58,4 @@ sounds.draw          ← kenney-starter-kit-fps/sounds/weapon_change.ogg
 overrides: applied tools/assets/overrides.json
 
 optimised models: 126.8 MB → 2.7 MB (meshopt + quantize, unused clips and held props removed)
-removed 5 stale files from earlier imports
+removed 4 stale files from earlier imports

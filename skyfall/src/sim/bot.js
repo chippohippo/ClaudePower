@@ -336,8 +336,16 @@ export class Bot {
       this.state = 'chase';
       return;
     }
-    // outside ring or ring closing fast → rotate first
-    if (ringDist > R.r - 15 || (R.state === 'close' && Math.hypot(p.ms.x - R.nx, p.ms.z - R.nz) > R.nr * 0.9 && R.t < 25)) {
+    // ring timing: how long the run into the next zone takes vs. how long until the edge gets here.
+    // Bots leave early enough to arrive with time to spare (and earlier still when the squad is far
+    // from the zone), instead of reacting only once the storm is on top of them.
+    const nextDist = Math.hypot(p.ms.x - R.nx, p.ms.z - R.nz);
+    const runTime = Math.max(0, nextDist - R.nr * 0.75) / 6.5;
+    const slack = R.state === 'wait' ? R.t + (R.close || 60) * 0.5 : R.state === 'close' ? R.t * 0.6 : 1e9;
+    const ringUrgent = R.state !== 'final' && runTime > 0 && runTime + 12 + (1 - this.skill) * 8 > slack;
+    this.ringUrgent = ringUrgent;
+    // outside ring, or the next zone is far enough that it's time to go → rotate first
+    if (ringDist > R.r - 15 || ringUrgent) {
       if (hurt && healItem && ringDist < R.r - 5) { this.state = 'heal'; return; }
       // a long rotation with a redeploy balloon close by: fly instead of running
       if (this.state === 'balloon' && this.balloonGoal) return;
@@ -384,7 +392,7 @@ export class Bot {
       this._startHold(ref.x, ref.z, 6 + m.rng() * 8);
       return;
     }
-    if (!this.kitted() || (m.time - (this.lootStart || 0) < 6)) {
+    if (!this.kitted() || (m.time - (this.lootStart || 0) < 6 && !this.ringUrgent)) {
       this.state = 'loot';
       return;
     }
@@ -425,6 +433,15 @@ export class Bot {
         onPath = true;
       }
     }
+    // plan around walls before reaching them: a blocked straight line 3–8 m ahead asks for a path
+    if (!onPath && d > 6) {
+      this.lineT = (this.lineT || 0) - dt;
+      if (this.lineT <= 0) {
+        this.lineT = 0.5;
+        const look = Math.min(d - 1, 8);
+        if (this._probe(dx, dz, 3) || this._probe(dx, dz, look)) this._requestPath(gx, gz, d);
+      }
+    }
     // stuck detection
     const st = this.stuck;
     st.t += dt;
@@ -432,10 +449,10 @@ export class Bot {
       st.escapeT -= dt;
       dx = st.ex; dz = st.ez;
       if (st.escapeT > 0.5) this.wantJump = true;
-    } else if (st.t > 1.2) {
+    } else if (st.t > 0.8) {
       const moved = Math.hypot(p.ms.x - st.x, p.ms.z - st.z);
       st.x = p.ms.x; st.z = p.ms.z; st.t = 0;
-      if (moved < 1.0) {
+      if (moved < 0.8) {
         st.n++;
         // stuck: try a real path first, fall back to a random escape
         if (!this._requestPath(gx, gz, d)) {
@@ -450,7 +467,7 @@ export class Bot {
       const dir = this._steer(dx, dz);
       if (dir[0] * dx + dir[1] * dz < 0.95) {
         this.blockedT = (this.blockedT || 0) + dt;
-        if (this.blockedT > 0.4) { this.blockedT = 0; this._requestPath(gx, gz, d); }
+        if (this.blockedT > 0.15) { this.blockedT = 0; this._requestPath(gx, gz, d); }
       } else this.blockedT = 0;
       dx = dir[0]; dz = dir[1];
     } else if (onPath && this._probe(dx, dz, 1.0)) {
@@ -522,7 +539,9 @@ export class Bot {
 
   _steer(dx, dz) {
     const p = this.p, w = this.m.world;
-    if (!this._probe(dx, dz, 1.3)) { this.avoid.t = Math.max(0, this.avoid.t - 0.05); return [dx, dz]; }
+    // probe further ahead the faster we move (~0.3 s of travel), so sprinting bots turn before the wall
+    const ahead = Math.max(1.3, Math.hypot(p.ms.vx, p.ms.vz) * 0.3);
+    if (!this._probe(dx, dz, ahead) && !this._probe(dx, dz, 1.3)) { this.avoid.t = Math.max(0, this.avoid.t - 0.05); return [dx, dz]; }
     // climbable? mantle over it
     const px = p.ms.x + dx * 1.0, pz = p.ms.z + dz * 1.0;
     const top = w.groundAt(px, pz, p.ms.y + 2.3, tmpBoxes);
@@ -536,7 +555,7 @@ export class Bot {
       for (const sgn of [side, -side]) {
         const a = base + off * sgn;
         const ox = Math.cos(a), oz = Math.sin(a);
-        if (!this._probe(ox, oz, 1.3)) {
+        if (!this._probe(ox, oz, 1.3) && !this._probe(ox, oz, ahead)) {
           this.avoid.side = sgn;
           return [ox, oz];
         }
@@ -595,6 +614,11 @@ export class Bot {
       // stay near the human
       this._lookAround(dt);
       return;
+    } else if (this.state === 'rotate') {
+      // edge-in rotation: aim for a point just inside the next zone on our side of it
+      const R = m.ring, ex = p.ms.x - R.nx, ez = p.ms.z - R.nz, el = Math.hypot(ex, ez) || 1;
+      const k = Math.min(el, R.nr * 0.6) / el;
+      gx = R.nx + ex * k + this.rotOff.x * 10; gz = R.nz + ez * k + this.rotOff.z * 10;
     } else {
       const R = m.ring;
       const tr = R.idx >= 0 ? R.nr : R.r;

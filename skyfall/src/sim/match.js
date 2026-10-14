@@ -91,7 +91,7 @@ export class Match {
       const l = rollLoot(r, lp.tier);
       this._addLoot(l, lp.x, lp.y, lp.z, false);
       // companion ammo sits just beside the gun
-      for (const ex of l.extra || []) this._addLoot(ex, lp.x + 0.45, lp.y, lp.z + 0.25, false);
+      (l.extra || []).forEach((ex, i) => this._addLoot(ex, lp.x + 0.45 + i * 0.3, lp.y, lp.z + 0.25, false));
     }
   }
 
@@ -296,6 +296,7 @@ export class Match {
     R.nx = clamp(R.cx + Math.cos(a) * d, -MAP_HALF + ph.radius * 0.5, MAP_HALF - ph.radius * 0.5);
     R.nz = clamp(R.cz + Math.sin(a) * d, -MAP_HALF + ph.radius * 0.5, MAP_HALF - ph.radius * 0.5);
     R.nr = ph.radius;
+    R.close = ph.close;
     R.state = 'wait';
     R.t = ph.wait + (R.idx === 0 ? 30 : 0);
     R.total = R.t;

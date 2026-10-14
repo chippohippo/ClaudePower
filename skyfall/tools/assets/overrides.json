@@ -162,7 +162,8 @@
           "hit": "Hit_Chest",
           "heal": "Consume",
           "zip": "Jump_Loop"
-        }
+        },
+        "tintAmount": 0.2
       },
       "bastion": {
         "animations": [
@@ -182,7 +183,8 @@
           "hit": "Hit_Chest",
           "heal": "Consume",
           "zip": "Jump_Loop"
-        }
+        },
+        "tintAmount": 0.2
       },
       "echo": {
         "animations": [
@@ -262,7 +264,8 @@
           "hit": "Hit_Chest",
           "heal": "Consume",
           "zip": "Jump_Loop"
-        }
+        },
+        "tintAmount": 0.2
       },
       "kodiak": {
         "animations": [

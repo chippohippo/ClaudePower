@@ -84,7 +84,7 @@
     "halo": {
       "file": "characters/Vanguard.glb",
       "height": 1.8,
-      "tintAmount": 0.6,
+      "tintAmount": 0.2,
       "tint": [
         "VanguardBodyMat"
       ],
@@ -111,7 +111,7 @@
     "bastion": {
       "file": "characters/Vanguard.glb",
       "height": 1.8,
-      "tintAmount": 0.6,
+      "tintAmount": 0.2,
       "tint": [
         "VanguardBodyMat"
       ],
@@ -221,7 +221,7 @@
     "spectre": {
       "file": "characters/Vanguard.glb",
       "height": 1.8,
-      "tintAmount": 0.6,
+      "tintAmount": 0.2,
       "tint": [
         "VanguardBodyMat"
       ],
