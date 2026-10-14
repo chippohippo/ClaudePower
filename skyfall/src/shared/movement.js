@@ -35,7 +35,8 @@ export function createMoveState(x = 0, y = 0, z = 0) {
     fuel: 1,
     launchT: 0,           // skyward launch time remaining
     sgPend: 0,
-    zip: -1, zipT: 0, zipDir: 1, zipCd: 0, // zipline ride state            // superglide: jump seen in window, waiting one tick for crouch
+    zip: -1, zipT: 0, zipDir: 1, zipCd: 0, // zipline ride state
+    dashT: 0, dashX: 0, dashZ: 0, dashSpeed: 0, // Kodiak breaching charge            // superglide: jump seen in window, waiting one tick for crouch
     lastLandSpeed: 0,
     events: 0,            // bit flags of things that happened this step (for audio/vfx)
   };
@@ -169,6 +170,19 @@ export function stepMovement(s, inp, dt, world) {
     s.vx *= 0.95; s.vz *= 0.95;
     moveAxis(world, s, 1, s.vy * dt, MOVE.standHeight, false);
     if (s.launchT <= 0) { s.mode = 'skydive'; s.vy = 0; }
+    return s;
+  }
+  if (s.dashT > 0) {
+    // breaching charge: locked heading, collides with the world, keeps gravity
+    s.dashT -= dt;
+    s.vx = s.dashX * s.dashSpeed; s.vz = s.dashZ * s.dashSpeed;
+    if (!s.onGround) s.vy -= MOVE.gravity * dt;
+    const h = playerHeight(s);
+    if (moveAxis(world, s, 0, s.vx * dt, h, true) === 1 || moveAxis(world, s, 2, s.vz * dt, h, true) === 1) s.dashT = 0;
+    const th = world.terrainH(s.x, s.z);
+    if (s.y < th) s.y = th;
+    if (moveAxis(world, s, 1, s.onGround ? -0.1 : s.vy * dt, h, false) && s.vy <= 0) { s.onGround = true; s.vy = 0; }
+    if (s.dashT <= 0) { s.vx *= 0.4; s.vz *= 0.4; s.mode = s.onGround ? 'ground' : 'air'; }
     return s;
   }
   if (s.mode === 'skydive') return skydive(s, wx, wz, wishAmt, dt, world);

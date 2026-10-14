@@ -3,7 +3,8 @@
 
 import * as THREE from 'three';
 import { io } from 'socket.io-client';
-import { LEGENDS, LEGEND_IDS } from '../shared/legends.js';
+import { LEGENDS, LEGEND_IDS, ROLES, ROLE_IDS, roleTargets } from '../shared/legends.js';
+import { ROLE_ICON } from './roleicons.js';
 import { Input, settings, saveSettings } from './input.js';
 import { HUD } from './hud.js';
 import { audio } from './audio.js';
@@ -47,24 +48,56 @@ $('#name').addEventListener('input', (e) => { state.name = e.target.value.trim()
 document.querySelectorAll('.mode').forEach((b) => b.addEventListener('click', () => {
   state.mode = b.dataset.mode;
   document.querySelectorAll('.mode').forEach((x) => x.classList.toggle('active', x === b));
+  renderLegends();
   click();
   pushParty();
 }));
 
 function click() { audio.play('ui', null, { vol: 0.5 }); }
 
+// Sixes role picture: who has which role (party members, or just you when solo).
+function roleCounts() {
+  const picks = state.party ? state.party.members.map((m) => m.legend) : [state.legend];
+  const c = { tank: 0, dps: 0, support: 0 };
+  for (const l of picks) if (LEGENDS[l]) c[LEGENDS[l].cls]++;
+  return c;
+}
+
 function renderLegends() {
+  const sixes = state.mode === 'sixes';
+  const counts = roleCounts();
+  const target = roleTargets(6);
+  // when the player's current pick is counted, ask "would this card's role still be needed?"
+  const myRole = LEGENDS[state.legend].cls;
+  // nudges only matter once friends are in the party (solo: bots fill everything around you)
+  const party = sixes && state.party && state.party.members.length > 1;
+  const open = (r) => target[r] - (counts[r] - (r === myRole ? 1 : 0));
+  const mostOpen = Math.max(...ROLE_IDS.map(open));
+  const needed = (r) => party && open(r) > 0 && open(r) === mostOpen;
+  const full = (r) => party && open(r) <= 0;
+  $('#role-bar').classList.toggle('hidden', !sixes);
+  if (sixes) {
+    $('#role-bar').innerHTML = ROLE_IDS.map((r) => {
+      const R = ROLES[r], n = counts[r], t = target[r];
+      const st = n < t ? 'open' : n > t ? 'over' : 'done';
+      const pips = Array.from({ length: t }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+      return `<div class="rslot ${st}" style="--rc:${R.color}"><span class="ricon">${ROLE_ICON[r]}</span><div><b>${R.label}</b><div class="pips">${pips}</div></div><small>${n < t ? `${t - n} OPEN` : n > t ? 'OVER' : 'FILLED'}</small></div>`;
+    }).join('') + '<div class="rnote">Sixes plays 2 TANK · 2 DPS · 2 SUPPORT. Pick anything — bots fill the open roles.</div>';
+  }
   $('#legend-grid').innerHTML = LEGEND_IDS.map((id) => {
-    const L = LEGENDS[id];
-    return `<div class="lcard ${id === state.legend ? 'sel' : ''}" data-id="${id}" style="--c:${L.color}"><div class="glyph"></div><div class="nm">${L.name}</div><div class="rl">${L.role.toUpperCase()}</div></div>`;
+    const L = LEGENDS[id], R = ROLES[L.cls];
+    const tag = needed(L.cls) ? '<span class="need">NEEDED</span>' : full(L.cls) && id !== state.legend ? '<span class="full">ROLE FILLED</span>' : '';
+    const cls = ['lcard', id === state.legend ? 'sel' : '', needed(L.cls) ? 'needed' : '', full(L.cls) && id !== state.legend ? 'dim' : ''].join(' ');
+    return `<div class="${cls}" data-id="${id}" style="--c:${L.color};--rc:${R.color}"><div class="glyph"></div><span class="rchip" title="${R.label}">${ROLE_ICON[L.cls]}</span><div class="nm">${L.name}</div><div class="rl">${R.label} · ${L.role.toUpperCase()}</div>${tag}</div>`;
   }).join('');
   document.querySelectorAll('.lcard').forEach((c) => {
     c.addEventListener('click', () => { state.legend = c.dataset.id; localStorage.setItem('skyfall.legend', state.legend); renderLegends(); click(); pushParty(); });
     c.addEventListener('mouseenter', () => audio.play('ui_hover', null, { vol: 0.4 }));
   });
-  const L = LEGENDS[state.legend];
+  const L = LEGENDS[state.legend], R = ROLES[L.cls];
   $('#legend-detail').style.setProperty('--c', L.color);
-  $('#legend-detail').innerHTML = `<h3 style="color:${L.color}">${L.name}</h3><div class="blurb">${L.role.toUpperCase()} — ${L.blurb}</div>
+  $('#legend-detail').innerHTML = `<h3 style="color:${L.color}">${L.name} <span class="drole" style="color:${R.color}">${ROLE_ICON[L.cls]}${R.label}</span></h3><div class="blurb">${L.role.toUpperCase()} — ${L.blurb}</div>
+    ${sixes ? `<div class="ab perk" style="--rc:${R.color}"><i>ROLE PERK (SIXES)</i><b>${R.label}</b> — ${R.perk}</div>` : '<div class="ab perk free"><i>TRIOS</i>Free pick — no role limits.</div>'}
     <div class="ab"><i>PASSIVE</i><b>${L.passive.name}</b> — ${L.passive.desc}</div>
     <div class="ab"><i>TACTICAL [Q]</i><b>${L.tactical.name}</b> — ${L.tactical.desc}</div>
     <div class="ab"><i>ULTIMATE [Z]</i><b>${L.ultimate.name}</b> — ${L.ultimate.desc}</div>`;
@@ -261,6 +294,7 @@ function renderParty() {
   $('#btn-party-start').disabled = !p.isLeader;
   state.mode = p.mode;
   document.querySelectorAll('.mode').forEach((x) => x.classList.toggle('active', x.dataset.mode === p.mode));
+  renderLegends();
 }
 
 // ------------------------------------------------------------------ main loop

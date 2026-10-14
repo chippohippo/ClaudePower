@@ -9,7 +9,7 @@ import {
 } from '../shared/constants.js';
 import { WEAPONS, falloff, fireInterval, magSize, currentSpread } from '../shared/weapons.js';
 import { CONSUMABLES, GRENADES, HELMET_HEAD_REDUCTION, rollLoot } from '../shared/items.js';
-import { LEGENDS, LEGEND_IDS } from '../shared/legends.js';
+import { LEGENDS, LEGEND_IDS, ROLES, roleTargets } from '../shared/legends.js';
 import { makeRng, dirFromAngles, clamp } from '../shared/util.js';
 import { rayPlayer } from '../shared/physics.js';
 import { speedMul } from '../shared/mods.js';
@@ -152,8 +152,16 @@ export class Match {
           addPlayer(sq, { ...m, legend: lg }, false);
         }
       }
+      // Sixes: bots fill whichever roles are missing for a 2 Tank / 2 DPS / 2 Support comp
+      const need = this.mode === 'sixes' ? roleTargets(cap) : null;
+      if (need) for (const l of taken) need[LEGENDS[l].cls]--;
       while (sq.members.length < cap) {
-        const free = LEGEND_IDS.filter((l) => !taken.has(l));
+        let free = LEGEND_IDS.filter((l) => !taken.has(l));
+        if (need) {
+          const missing = ['tank', 'support', 'dps'].find((r) => need[r] > 0);
+          const ofRole = free.filter((l) => LEGENDS[l].cls === missing);
+          if (ofRole.length) { free = ofRole; need[missing]--; }
+        }
         const lg = free.length ? free[Math.floor(this.rng() * free.length)] : LEGEND_IDS[Math.floor(this.rng() * LEGEND_IDS.length)];
         taken.add(lg);
         let name;
@@ -164,6 +172,17 @@ export class Match {
       }
     }
     return this.list.filter((p) => !p.isBot).map((p) => ({ clientId: p.clientId, id: p.id }));
+  }
+
+  // Role perk value for a player (Sixes only), e.g. rolePerk(p, 'reload', 1).
+  rolePerk(p, key, def = 1) {
+    if (this.mode !== 'sixes') return def;
+    const r = ROLES[LEGENDS[p.legend].cls];
+    return r[key] ?? def;
+  }
+
+  slowImmune(q) {
+    return q.legend === 'bastion' || q.legend === 'kodiak';
   }
 
   _makePlayer(id, name, legend, squad, isBot) {
@@ -475,7 +494,7 @@ export class Match {
     if (!p.weapons[slot] || slot === p.active) return;
     p.active = slot;
     p.reloading = null;
-    p.switchT = WEAPONS[p.weapons[slot].id].deploy * 0.6;
+    p.switchT = WEAPONS[p.weapons[slot].id].deploy * 0.6 * this.rolePerk(p, 'reload');
     this.invDirty(p);
   }
 
@@ -485,7 +504,7 @@ export class Match {
     if (reloadAmount(p, w) <= 0) return;
     const def = WEAPONS[w.id];
     const stockMul = [1, 0.92, 0.85, 0.78][w.att.stock || 0];
-    p.reloading = { t: (w.mag === 0 ? def.reloadEmpty : def.reload) * stockMul, slot: p.active };
+    p.reloading = { t: (w.mag === 0 ? def.reloadEmpty : def.reload) * stockMul * this.rolePerk(p, 'reload'), slot: p.active };
     p.healing = null;
     this.events.push({ e: 'reload', id: p.id, w: w.id, x: p.ms.x, y: p.ms.y, z: p.ms.z });
   }
@@ -499,7 +518,7 @@ export class Match {
     if (c.shield && !c.heal && (p.armor === 0 || p.shield >= SHIELD_TIERS[p.armor])) return;
     if (c.heal && !c.shield && p.hp >= 100) return;
     if (c.heal && c.shield && p.hp >= 100 && p.shield >= SHIELD_TIERS[p.armor]) return;
-    const mul = p.legend === 'halo' ? 0.75 : 1;
+    const mul = (p.legend === 'halo' ? 0.75 : 1) * this.rolePerk(p, 'heal');
     p.healing = { item, t: c.time * mul, total: c.time * mul };
     p.reloading = null;
     this.events.push({ e: 'heal', id: p.id, item, x: p.ms.x, y: p.ms.y, z: p.ms.z });
@@ -609,6 +628,7 @@ export class Match {
     if (v.ms.mode === 'skydive' || v.ms.launchT > 0) return 0;
     if (a && a !== v && a.squad === v.squad && !info.self) return 0;
     if (v.legend === 'bastion') amount *= 0.85;
+    if (!info.ring) amount *= this.rolePerk(v, 'dmgTaken');
     amount = Math.round(amount);
     if (amount <= 0) return 0;
     v.lastHurt = this.time;
@@ -882,7 +902,7 @@ export class Match {
 
   _slowArea(x, y, z, r, owner, dur) {
     for (const q of this.queryPlayers(x, z, r)) {
-      if (q.squad === owner.squad || q.legend === 'bastion') continue;
+      if (q.squad === owner.squad || this.slowImmune(q)) continue;
       q.status.slow = Math.max(q.status.slow || 0, dur);
     }
   }
@@ -1185,7 +1205,7 @@ export class Match {
       if (q === p || !q.downed || !q.alive) continue;
       if ((q.ms.x - p.ms.x) ** 2 + (q.ms.z - p.ms.z) ** 2 < 2.6 * 2.6 && Math.abs(q.ms.y - p.ms.y) < 1.5) {
         if (p.reviveTarget !== q.id) { p.reviveTarget = q.id; p.reviveT = 0; }
-        p.reviveT += dt * (p.legend === 'halo' ? 2 : 1);
+        p.reviveT += dt * (p.legend === 'halo' ? 2 : 1) * this.rolePerk(p, 'revive');
         p.healing = null;
         if (p.reviveT >= REVIVE_TIME) {
           q.downed = false; q.ms.downed = 0; q.hp = 30; q.shield = 0; q.bleed = 0;

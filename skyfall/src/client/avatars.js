@@ -122,6 +122,13 @@ function legendKit(id, torso, head, mk) {
       for (const sx of [-1, 1]) mk(new THREE.BoxGeometry(0.06, 0.04, 0.3), glow, torso).position.set(sx * 0.3, 0.27, 0);
       break;
     }
+    case 'kodiak': { // riot shield on the off-arm, slab pauldrons, visor crest
+      for (const sx of [-1, 1]) { const pd = mk(new THREE.BoxGeometry(0.26, 0.14, 0.34), armor(), torso); pd.position.set(sx * 0.4, 0.3, 0); pd.rotation.z = -sx * 0.25; }
+      const crest = mk(new THREE.BoxGeometry(0.05, 0.1, 0.32), glow, head); crest.position.set(0, 0.17, 0);
+      const shield = mk(new THREE.BoxGeometry(0.06, 0.62, 0.42), lm, torso); shield.position.set(-0.48, -0.05, -0.12);
+      mk(new THREE.BoxGeometry(0.02, 0.5, 0.06), glow, shield).position.set(-0.035, 0, 0);
+      break;
+    }
     case 'spectre': { // jetpack with thrusters + wing fins
       const pack = mk(new THREE.BoxGeometry(0.36, 0.44, 0.18), armor(), torso);
       pack.position.set(0, 0.02, 0.27);

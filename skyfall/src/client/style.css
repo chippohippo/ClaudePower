@@ -266,3 +266,36 @@ body.comic #killconfirm .txt, body.comic #announce, body.comic #center-msg { -we
 body.comic #killconfirm .streak { -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-shadow: 4px 4px 0 #000; transform: rotate(-4deg); }
 body.comic .kf, body.comic .wslot, body.comic .mate, body.comic #ringinfo, body.comic #counts { box-shadow: 3px 3px 0 rgba(0,0,0,0.55); border: 1px solid #111; }
 body.comic .abil { box-shadow: 3px 3px 0 rgba(0,0,0,0.6); border-color: #111; }
+
+/* ---- hero roles ---- */
+#legend-grid { grid-template-columns: repeat(3, 1fr); }
+.lcard { height: 96px; }
+.lcard .rchip { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; color: var(--rc); filter: drop-shadow(1px 1px 0 #000); }
+.lcard .rchip svg, .ricon svg, .drole svg, .rbadge svg, .mate .ri svg { width: 100%; height: 100%; display: block; }
+.lcard .rl { color: color-mix(in srgb, var(--rc) 70%, #ccc); }
+.lcard .need, .lcard .full { position: absolute; bottom: 7px; right: 8px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; padding: 1px 6px; }
+.lcard .need { background: var(--rc); color: #111; }
+.lcard .full { color: #8d949c; border: 1px solid #555; }
+.lcard.needed { border-color: var(--rc); animation: needpulse 1.4s ease-in-out infinite; }
+@keyframes needpulse { 50% { box-shadow: 0 0 0 2px var(--rc), 0 0 18px color-mix(in srgb, var(--rc) 50%, transparent); } }
+.lcard.dim { opacity: 0.5; filter: saturate(0.5); }
+.lcard.dim:hover { opacity: 0.85; }
+#role-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.rslot { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-left: 4px solid var(--rc); }
+.rslot .ricon { width: 26px; height: 26px; color: var(--rc); }
+.rslot b { letter-spacing: 2px; }
+.rslot .pips { display: flex; gap: 4px; margin-top: 3px; }
+.rslot .pips i { width: 16px; height: 6px; background: rgba(255,255,255,0.15); transform: skewX(-20deg); }
+.rslot .pips i.on { background: var(--rc); }
+.rslot small { margin-left: auto; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+.rslot.open small { color: var(--rc); }
+.rslot.over small { color: #ffb347; }
+.rnote { grid-column: 1 / -1; color: var(--muted); font-weight: 600; font-size: 13px; }
+.drole { display: inline-flex; align-items: center; gap: 6px; font-size: 18px; letter-spacing: 2px; vertical-align: middle; margin-left: 10px; }
+.drole svg { width: 20px; height: 20px; }
+#legend-detail .perk { border-left: 3px solid var(--rc, #888); padding-left: 8px; }
+#legend-detail .perk.free { --rc: #888; color: var(--muted); }
+.rbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; letter-spacing: 2px; margin-left: 8px; vertical-align: middle; }
+.rbadge svg { width: 16px; height: 16px; }
+.mate .gi { width: 13px; height: 13px; transform: rotate(-45deg); color: #111; display: block; }
+.mate .gi svg { width: 100%; height: 100%; display: block; }

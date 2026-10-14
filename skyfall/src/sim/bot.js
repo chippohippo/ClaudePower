@@ -61,6 +61,8 @@ export class Bot {
     this.nadeT = 3 + r() * 6;
     this.wantJump = false;
     this.boxT = 0;
+    this.role = LEGENDS[p.legend].cls; // tank | dps | support
+    this.flankSide = r() < 0.5 ? -1 : 1;
   }
 
   get skill() {
@@ -266,6 +268,8 @@ export class Bot {
       const revealed = q.revealTo && q.revealTo[p.squad] > m.time;
       if (d > 22 && facing < 0.2 && !revealed && q !== this.target) continue;
       let score = d + (q.downed ? 40 : 0) - (q === this.target ? 15 : 0) - (q.shield <= 0 ? 8 : 0);
+      if (this.role === 'tank' && this._threatensMate(q)) score -= 25; // peel for the squad
+      if (this.role === 'dps' && q.shield <= 0) score -= 10;          // hunt broken targets
       if (score >= bestScore) continue;
       if (!this.canSee(q)) continue;
       best = q; bestScore = score;
@@ -288,7 +292,7 @@ export class Bot {
 
     // decide state
     const shMax = SHIELD_TIERS[p.armor] || 0;
-    const hurt = p.hp < 65 || (shMax > 0 && p.shield < shMax * 0.5);
+    const hurt = p.hp < (this.role === 'support' ? 80 : 65) || (shMax > 0 && p.shield < shMax * (this.role === 'support' ? 0.7 : 0.5));
     const healItem = m.bestHeal(p);
     const R = m.ring;
     const ringDist = Math.hypot(p.ms.x - R.cx, p.ms.z - R.cz);
@@ -541,6 +545,10 @@ export class Bot {
     else if (L && L !== p && Math.hypot(L.ms.x - p.ms.x, L.ms.z - p.ms.z) > 14) {
       const a = (p.id * 2.1) % (Math.PI * 2);
       gx = L.ms.x + Math.cos(a) * 5; gz = L.ms.z + Math.sin(a) * 5;
+      // formation: tanks walk point, supports trail the leader
+      const R = m.ring, hx = R.nx - L.ms.x, hz = R.nz - L.ms.z, hl = Math.hypot(hx, hz) || 1;
+      const off = this.role === 'tank' ? 7 : this.role === 'support' ? -6 : 0;
+      gx += (hx / hl) * off; gz += (hz / hl) * off;
     } else if (L && L !== p && !L.isBot) {
       // stay near the human
       this._lookAround(dt);
@@ -801,6 +809,8 @@ export class Bot {
     }
     const weak = t.downed || (t.shield <= 0 && t.hp < 70);
     const myStrong = p.shield > (SHIELD_TIERS[p.armor] || 0) * 0.5 || p.hp > 80;
+    if (this.role === 'tank') pref = Math.max(3, pref - 5);      // tanks take space up front
+    if (this.role === 'support') pref += 7;                       // supports hold the back line
     if (weak && myStrong) pref = 2.5; // aggressive push
     if (!this.targetVisible) pref = 0;
     // strafe ADAD
@@ -813,8 +823,10 @@ export class Bot {
     const dx = t.ms.x - p.ms.x, dz = t.ms.z - p.ms.z;
     const d = dist2d || 1;
     let fwd = dist2d > pref + 3 ? 1 : dist2d < pref - 3 ? -0.8 : 0;
-    let mvx = (dx / d) * fwd + (-dz / d) * this.strafe * 0.9;
-    let mvz = (dz / d) * fwd + (dx / d) * this.strafe * 0.9;
+    // DPS swing wide to flank while closing; everyone else strafes around the line
+    const flank = this.role === 'dps' && fwd > 0 && dist2d > 10 ? this.flankSide * 0.8 : 0;
+    let mvx = (dx / d) * fwd + (-dz / d) * (this.strafe * 0.9 + flank);
+    let mvz = (dz / d) * fwd + (dx / d) * (this.strafe * 0.9 + flank);
     const ml = Math.hypot(mvx, mvz) || 1;
     mvx /= ml; mvz /= ml;
     // wall at our strafe side: skilled bots kick off it (wall bounce) instead of just turning around
@@ -879,6 +891,17 @@ export class Bot {
     }
   }
 
+  // Is enemy q currently fighting one of our squadmates (tank peel)?
+  _threatensMate(q) {
+    for (const mate of this.squadmates()) {
+      if (!mate.alive || mate.eliminated) continue;
+      const near = Math.hypot(mate.ms.x - q.ms.x, mate.ms.z - q.ms.z) < 25;
+      const hurt = mate.downed || mate.hp < 70 || mate.shield <= 0;
+      if (near && (hurt || (q.bot && q.bot.target === mate))) return true;
+    }
+    return false;
+  }
+
   _pickWeapon(dist) {
     const p = this.p, m = this.m;
     if (p.switchT > 0 || p.reloading) return;
@@ -899,6 +922,10 @@ export class Bot {
   _combatAbilities(dist, weak) {
     const p = this.p, m = this.m;
     const L = LEGENDS[p.legend];
+    if (p.tacCd <= 0 && (this.role === 'support' || this.role === 'tank') && m.rng() < 0.3) {
+      const hurtMate = this.squadmates().some((q) => q.alive && !q.downed && (q.hp < 60 || q.shield <= 0) && Math.hypot(q.ms.x - p.ms.x, q.ms.z - p.ms.z) < 10);
+      if (hurtMate && (L.tactical.id === 'drone' || L.tactical.id === 'dome' || L.tactical.id === 'riotwall')) { m.useTac(p); return; }
+    }
     if (p.tacCd <= 0 && m.rng() < 0.25) {
       switch (L.tactical.id) {
         case 'stim': if (weak || dist > 12) m.useTac(p); break;
@@ -907,6 +934,7 @@ export class Bot {
         case 'missiles': if (dist > 8 && dist < 80) m.useTac(p); break;
         case 'dome': if (p.shield <= 0 && p.hp < 60) m.useTac(p); break;
         case 'gastrap': if (dist < 20) m.useTac(p); break;
+        case 'riotwall': if (dist > 8 && dist < 50) m.useTac(p); break;
         case 'smoke': if (p.hp < 50 && dist > 10) m.useTac(p); break;
       }
     }
@@ -914,6 +942,7 @@ export class Bot {
       switch (L.ultimate.id) {
         case 'bombard': case 'thunder': case 'gasnade': if (dist > 18 && dist < 90) m.useUlt(p); break;
         case 'exhibit': m.useUlt(p); break;
+        case 'charge': if (dist < 16 && dist > 4) m.useUlt(p); break;
       }
     }
   }

@@ -458,7 +458,7 @@ export class Game {
     const map = {
       stim: 'stim', phase: 'phase', drone: 'drone', dome: 'dome', pulse: 'pulse', gastrap: 'throw', gas: 'gas', smoke: 'smoke',
       launch: 'launch', missiles: 'missiles', call: 'call', bombard: 'call', thunder: 'call', exhibit: 'pulse', riftstart: 'riftstart',
-      riftopen: 'riftopen', portal: 'portal', carepkg: 'carepkg', jumppad: 'launch', throw: 'throw', skyward: 'skyward', dropjump: 'dropjump',
+      riftopen: 'riftopen', portal: 'portal', riotwall: 'riotwall', charge: 'charge', carepkg: 'carepkg', jumppad: 'launch', throw: 'throw', skyward: 'skyward', dropjump: 'dropjump',
     };
     const name = map[ev.k];
     if (!name) return;
@@ -480,6 +480,8 @@ export class Game {
     if (ev.k === 'dome' && pos) this.fx.ring(pos.x, pos.y, pos.z, '#3fa9ff', 3);
     if ((ev.k === 'bombard' || ev.k === 'thunder') && pos) this.hud.toast(ev.k === 'bombard' ? 'INCOMING BOMBARDMENT' : 'ROLLING THUNDER INCOMING');
     if (ev.k === 'skyward' && pos) this.fx.burst(pos.x, pos.y, pos.z, '#ff4d6d', 60, 8, 0.3, 1);
+    if (ev.k === 'riotwall' && pos) { this.fx.ring(pos.x, pos.y, pos.z, '#ffb84a', 3); this.fx.dust(pos.x, pos.y, pos.z, 1.2); }
+    if (ev.k === 'charge') { if (self) this.punch(0.35, 10); else if (pos) this.fx.dust(pos.x, pos.y, pos.z, 1); }
   }
 
   _openBox(m) {

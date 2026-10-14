@@ -3,7 +3,8 @@
 // sweeps, weapon/ammo panel, compass, minimap + full map, ring timer, kill feed and panels.
 
 import { SHIELD_COLORS, SHIELD_TIERS, EVO_THRESHOLDS } from '../shared/constants.js';
-import { LEGENDS } from '../shared/legends.js';
+import { LEGENDS, ROLES } from '../shared/legends.js';
+import { ROLE_ICON } from './roleicons.js';
 import { WEAPONS, magSize } from '../shared/weapons.js';
 import { RARITY, itemName, itemRarity, CONSUMABLES } from '../shared/items.js';
 import { MAP_HALF } from '../shared/constants.js';
@@ -207,7 +208,11 @@ export class HUD {
 
     // player bars
     const L = LEGENDS[me.legend || g.myLegend];
-    this.set('lname', el.legend, L.name, (e, v) => { e.textContent = v; e.style.color = L.color; });
+    this.set('lname', el.legend, L.name + g.mode, (e) => {
+      const R = ROLES[L.cls];
+      e.innerHTML = L.name + (g.mode === 'sixes' ? ` <span class="rbadge" style="color:${R.color}">${ROLE_ICON[L.cls]}${R.label}</span>` : '');
+      e.style.color = L.color;
+    });
     const maxS = SHIELD_TIERS[me.armor] || 0;
     const sFill = el.shield.querySelector('.fill');
     this.set('shw', sFill, maxS ? (me.sh / 125) * 100 : 0, (e, v) => (e.style.width = v + '%'));
@@ -331,7 +336,8 @@ export class HUD {
         const ms = SHIELD_TIERS[m.armor] || 0;
         const cls = m.elim ? 'mate elim' : m.down ? 'mate down' : 'mate';
         const tag = m.elim ? (m.banner === 1 ? '<small>BANNER READY</small>' : m.banner === 2 ? '<small>BANNER TAKEN</small>' : '<small>ELIMINATED</small>') : `<small>${L.name}</small>`;
-        return `<div class="${cls}" style="--c:${L.color}"><i class="glyph">${L.name[0]}</i><div class="n"><span>${m.name}${m.bot ? ' <small>BOT</small>' : ''}</span>${tag}</div>
+        const gi = g.mode === 'sixes' ? `<span class="gi">${ROLE_ICON[L.cls]}</span>` : '';
+        return `<div class="${cls}" style="--c:${L.color}"><i class="glyph">${gi}</i><div class="n"><span>${m.name}${m.bot ? ' <small>BOT</small>' : ''}</span>${tag}</div>
           <div class="bars2"><div class="sb"><i style="width:${ms ? (m.sh / 125) * 100 : 0}%;background:${SHIELD_COLORS[m.armor]}"></i></div><div class="hb"><i style="width:${m.hp}%"></i></div></div></div>`;
       }).join('');
     });

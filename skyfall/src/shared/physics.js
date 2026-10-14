@@ -123,6 +123,16 @@ export class CollisionWorld {
     }
     if (includeBlockers) {
       for (const s of this.bulletBlockers) {
+        if (s.type === 'wall') {
+          // oriented energy wall: transform the ray into the wall's frame and slab-test
+          const tx = -s.nz, tz = s.nx;
+          const rx = ox - s.x, rz = oz - s.z;
+          const la = rx * tx + rz * tz, lb = rx * s.nx + rz * s.nz;
+          const da = dx * tx + dz * tz, db = dx * s.nx + dz * s.nz;
+          const r = rayBox(la, oy, lb, da, dy, db, [-s.hw, s.y, -0.15], [s.hw, s.y + s.h, 0.15], best);
+          if (r) { best = r.t; hit = { t: r.t, nx: s.nx, ny: 0, nz: s.nz, box: null, blocker: s }; }
+          continue;
+        }
         const t = raySphereShell(ox, oy, oz, dx, dy, dz, s.x, s.y, s.z, s.r, best);
         if (t !== null) { best = t; hit = { t, nx: 0, ny: 1, nz: 0, box: null, blocker: s }; }
       }

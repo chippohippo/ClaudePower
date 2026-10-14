@@ -322,6 +322,8 @@ const RECIPES = {
   ult_ready: () => norm(mix(partials(0.5, [784, 1175], 0.2, 0.7), partials(0.8, [1046, 1568, 2093], 0.3, 0.8, 0.12), tone(0.5, 100, 200, 0.2, 0.3)), 0.6),
 
   // --- ability linger loops (positional) ----------------------------------
+  riotwall: () => norm(sat(mix(noise(0.05, 'lp', 300, 0.8, 0.03, 1.0), tone(0.6, 70, 34, 0.18, 1.2, 'sine', 0.05), noise(0.6, 'bp', 1800, 1, 0.2, 0.4, 0.02, 0.02), partials(0.9, [440, 660, 880], 0.35, 0.4, 0.05)), 1.5), 0.92),
+  charge: () => norm(sat(mix(noise(0.7, 'bp', 700, 0.6, 0.3, 1.0, 0, 0.05), tone(0.7, 60, 140, 0.4, 0.8, 'saw', 0.3), noise(0.06, 'lp', 400, 0.8, 0.03, 0.8, 0.45), tone(0.4, 110, 40, 0.12, 1.0, 'sine', 0.05, 0.45), grunt(0.3, 140, 110, VOWEL_UH, 0.6, 0.35)), 1.4), 0.92),
   dome_hum: () => noiseLoop(2, (n) => { let p1 = 0, p2 = 0; for (let i = 0; i < n.length; i++) { p1 += 2 * Math.PI * 110 / SR; p2 += 2 * Math.PI * 165.7 / SR; n[i] = Math.sin(p1) * 0.4 + Math.sin(p2) * 0.25 + n[i] * 0.05 * (1 + Math.sin(i / SR * 6)); } filt(n, 'lp', 900, 0.8); }),
   gas_loop: () => noiseLoop(2, (n) => { filt(n, 'bp', 2000, 0.6); for (let i = 0; i < n.length; i++) n[i] *= 0.6 + 0.4 * Math.sin(i / SR * 2.1) ** 2; }),
   smoke_loop: () => noiseLoop(2, (n) => { filt(n, 'lp', 700, 0.7); }),

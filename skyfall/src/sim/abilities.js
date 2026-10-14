@@ -84,6 +84,14 @@ export function useTactical(match, p) {
       });
       ev(match, p, 'launch');
       return true;
+    case 'riotwall': {
+      const f = dirFromAngles(p.ms.yaw, 0);
+      const x = p.ms.x + f.x * 3, z = p.ms.z + f.z * 3;
+      const y = match.world.groundAt(x, z, p.ms.y + 1.5, match.tmp);
+      match.spawnEntity({ k: 'wall', x, y, z, nx: +f.x.toFixed(3), nz: +f.z.toFixed(3), hw: L.width / 2, h: L.height, dur: L.dur, squad: p.squad });
+      match.events.push({ e: 'abil', k: 'riotwall', x, y, z, r: 250 });
+      return true;
+    }
     case 'missiles': {
       const tgt = match.aimPoint(p, 120);
       const ey = p.ms.y + eyeHeight(p.ms) + 0.5;
@@ -99,7 +107,7 @@ export function useTactical(match, p) {
           onExplode: (pr) => {
             match.explode(pr.x, pr.y, pr.z, 2.6, 14, p, 'Missile Swarm');
             for (const q of match.queryPlayers(pr.x, pr.z, 2.6)) {
-              if (q.squad !== p.squad && q.legend !== 'bastion') q.status.slow = Math.max(q.status.slow || 0, 1.2);
+              if (q.squad !== p.squad && !match.slowImmune(q)) q.status.slow = Math.max(q.status.slow || 0, 1.2);
             }
           },
         });
@@ -172,6 +180,14 @@ export function useUltimate(match, p) {
       ev(match, p, 'call');
       return true;
     }
+    case 'charge': {
+      const f = dirFromAngles(p.ms.yaw, 0);
+      p.ms.dashT = L.dur; p.ms.dashX = f.x; p.ms.dashZ = f.z; p.ms.dashSpeed = L.speed;
+      p.abil.chargeHit = new Set();
+      p.abil.chargeT = L.dur + 0.1;
+      ev(match, p, 'charge', { g: 0 });
+      return true;
+    }
     case 'skyward': {
       const sq = match.squads[p.squad];
       for (const id of sq.members) {
@@ -205,6 +221,9 @@ export function updateEntity(match, e, dt) {
       break;
     case 'dome':
       match.world.bulletBlockers.push({ x: e.x, y: e.y, z: e.z, r: e.r });
+      break;
+    case 'wall':
+      match.world.bulletBlockers.push({ type: 'wall', x: e.x, y: e.y, z: e.z, nx: e.nx, nz: e.nz, hw: e.hw, h: e.h });
       break;
     case 'smoke':
       match.smokes.push(e);
@@ -307,7 +326,7 @@ export function updateEntity(match, e, dt) {
         incoming(match, e, x, y, z, 0.6, () => {
           match.explode(x, y + 0.3, z, 3.5, 20, owner, 'Rolling Thunder');
           for (const q of match.queryPlayers(x, z, 5)) {
-            if (q.squad !== e.squad && q.legend !== 'bastion') q.status.slow = Math.max(q.status.slow || 0, 2);
+            if (q.squad !== e.squad && !match.slowImmune(q)) q.status.slow = Math.max(q.status.slow || 0, 2);
           }
         });
       }
@@ -348,6 +367,26 @@ function tickShells(e, dt) {
 }
 
 export function passiveTick(match, p, dt) {
+  // Kodiak: shields recharge out of combat; breaching charge smashes enemies it passes through
+  if (p.legend === 'kodiak') {
+    if (!p.downed && p.armor > 0 && match.time - p.lastHurt > 5) {
+      const max = [0, 50, 75, 100, 125][p.armor];
+      if (p.shield < max) p.shield = Math.min(max, p.shield + 4 * dt);
+    }
+    if (p.abil.chargeT > 0) {
+      p.abil.chargeT -= dt;
+      const L = LEGENDS.kodiak.ultimate;
+      for (const q of match.queryPlayers(p.ms.x, p.ms.z, 2.2)) {
+        if (q.squad === p.squad || !q.alive || q.inShip || p.abil.chargeHit.has(q.id)) continue;
+        if (Math.abs(q.ms.y - p.ms.y) > 2) continue;
+        p.abil.chargeHit.add(q.id);
+        match.damage(q, L.damage, p, { weapon: 'Breaching Charge', src: 1 });
+        q.ms.vx += p.ms.dashX * 9; q.ms.vz += p.ms.dashZ * 9; q.ms.vy = 5; q.ms.onGround = false; q.ms.mode = 'air';
+        if (!match.slowImmune(q)) q.status.slow = Math.max(q.status.slow || 0, 1.5);
+        match.events.push({ e: 'boom', x: q.ms.x, y: q.ms.y + 1, z: q.ms.z, r: 1.5, k: 'charge', rr: 300 });
+      }
+    }
+  }
   if (p.legend === 'jolt' && !p.downed && p.hp < 100 && match.time - p.lastHurt > 6) {
     p.hp = Math.min(100, p.hp + 2 * dt);
   }

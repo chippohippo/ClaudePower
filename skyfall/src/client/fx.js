@@ -543,6 +543,34 @@ export class FX {
         }
         break;
       }
+      case 'wall': {
+        // Kodiak riot wall: amber energy pane with hex shimmer and an ink frame
+        const mat = new THREE.ShaderMaterial({
+          transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+          uniforms: { time: { value: 0 } },
+          vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+          fragmentShader: `uniform float time; varying vec2 vUv;
+            void main(){
+              vec2 p = vUv * vec2(12.0, 6.0); p.x += mod(floor(p.y), 2.0) * 0.5;
+              vec2 c = abs(fract(p) - 0.5);
+              float hex = smoothstep(0.42, 0.48, max(c.x, c.y));
+              float edge = max(smoothstep(0.93, 1.0, abs(vUv.x * 2.0 - 1.0)), smoothstep(0.9, 1.0, vUv.y));
+              float scan = 0.5 + 0.5 * sin(vUv.y * 30.0 - time * 6.0);
+              gl_FragColor = vec4(vec3(1.0, 0.72, 0.25) * (0.25 + hex * 0.6 + edge * 1.2 + scan * 0.1), 0.35 + hex * 0.3 + edge * 0.5);
+            }`,
+        });
+        v.mat = mat;
+        const pane = add(new THREE.Mesh(new THREE.PlaneGeometry(e.hw * 2, e.h), mat));
+        pane.position.y = e.h / 2;
+        pane.rotation.y = Math.atan2(e.nx, e.nz);
+        const post = new THREE.MeshStandardMaterial({ color: '#3a3f47', metalness: 0.4 });
+        for (const sx of [-1, 1]) {
+          const pz = add(new THREE.Mesh(new THREE.BoxGeometry(0.25, e.h + 0.2, 0.25), post));
+          pz.position.set(Math.cos(Math.atan2(e.nx, e.nz)) * e.hw * sx, (e.h + 0.2) / 2, -Math.sin(Math.atan2(e.nx, e.nz)) * e.hw * sx);
+          pz.castShadow = true;
+        }
+        break;
+      }
       case 'gastrap': {
         const m = add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.8, 10), new THREE.MeshStandardMaterial({ color: '#5a6a3a', metalness: 0.4 })));
         m.position.y = 0.4;
@@ -650,7 +678,7 @@ export class FX {
           } else v.pod.position.y = 0.85;
           v.beam.material.opacity = e.landed && e.n === 0 ? 0.05 : 0.25;
           break;
-        case 'dome': v.mat.uniforms.time.value = time; break;
+        case 'dome': case 'wall': v.mat.uniforms.time.value = time; break;
         case 'smoke': case 'gas':
           if (v.kind === 'gas' && Math.random() < 0.6) {
             // drifting toxic motes so the cloud reads as dangerous
