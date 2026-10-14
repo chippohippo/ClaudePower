@@ -206,6 +206,7 @@ const VOWEL_HN = [[300, 60, 1], [2200, 150, 0.2], [2900, 200, 0.12]];
 
 function stepSurface(kind, v) {
   const r = 0.9 + v * 0.1;
+  if (kind === 'water') return norm(mix(noise(0.25, 'bp', 900 * r, 0.7, 0.06, 1, 0, 0.01), noise(0.2, 'hp', 3500, 0.7, 0.05, 0.5, 0.02, 0.01), tone(0.12, 300 * r, 120, 0.03, 0.4)), 0.65);
   if (kind === 'metal') return norm(mix(partials(0.25, [380 * r, 1090 * r, 2310 * r, 3900 * r], 0.05, 0.6), noise(0.06, 'bp', 2400, 1.5, 0.006, 0.8), noise(0.1, 'lp', 400, 0.8, 0.02, 0.6)), 0.7);
   if (kind === 'concrete') return norm(mix(noise(0.06, 'bp', 2800 * r, 1.4, 0.004, 1), noise(0.12, 'lp', 520 * r, 0.9, 0.018, 0.9), tone(0.08, 160, 90, 0.015, 0.4)), 0.65);
   // dirt / grass: soft thud + gritty crunch
@@ -216,6 +217,7 @@ function slideLoop(kind) {
   return noiseLoop(1.4, (n) => {
     if (kind === 'metal') { filt(n, 'bp', 1800, 2); filt(n, 'peak', 3400, 4, 10); }
     else if (kind === 'concrete') { filt(n, 'bp', 2200, 0.8); filt(n, 'lp', 5000, 0.7); }
+    else if (kind === 'water') { filt(n, 'bp', 1100, 0.6); for (let i = 0; i < n.length; i++) n[i] *= 0.6 + 0.4 * Math.abs(Math.sin(i / SR * 17)); }
     else { filt(n, 'bp', 900, 0.7); filt(n, 'lp', 2600, 0.7); }
     for (let i = 0; i < n.length; i++) n[i] *= 0.75 + 0.25 * Math.sin((i / SR) * 47) * Math.sin((i / SR) * 13);
   });
@@ -376,7 +378,7 @@ const RECIPES = {
   ping: () => norm(mix(partials(0.25, [1318, 1975], 0.08, 0.8), partials(0.25, [1760], 0.08, 0.6, 0.08)), 0.5),
   banner: () => norm(mix(partials(0.5, [523, 784], 0.2, 0.6), partials(0.6, [659, 988], 0.25, 0.6, 0.12)), 0.6),
 };
-for (const s of ['dirt', 'concrete', 'metal']) {
+for (const s of ['dirt', 'concrete', 'metal', 'water']) {
   for (let v = 0; v < 3; v++) RECIPES[`step_${s}${v}`] = () => stepSurface(s, v - 1);
   RECIPES[`slide_${s}`] = () => slideLoop(s);
 }

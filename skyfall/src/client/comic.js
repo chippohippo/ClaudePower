@@ -51,7 +51,9 @@ function toToon(m) {
   });
   if (m.onBeforeCompile && m.onBeforeCompile.toString() !== THREE.Material.prototype.onBeforeCompile.toString()) {
     t.onBeforeCompile = m.onBeforeCompile;
-    t.customProgramCacheKey = () => m.onBeforeCompile.toString();
+    // keep the source material's cache key: patch closures share source text but differ in params
+    const key = m.customProgramCacheKey();
+    t.customProgramCacheKey = () => 'toon' + key + m.onBeforeCompile.toString().length;
   }
   t.name = m.name;
   converted.set(m, t);

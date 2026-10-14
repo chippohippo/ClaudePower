@@ -257,6 +257,14 @@ export class FX {
     }
   }
 
+  splash(x, y, z, amt = 1) {
+    tmpC.set('#dff6ff');
+    for (let i = 0; i < 14 * amt; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.sparks.emit(x, y, z, Math.cos(a) * 1.8 * amt, 2.5 + Math.random() * 2.5 * amt, Math.sin(a) * 1.8 * amt, tmpC, 0.12, 0.45, 12);
+    }
+  }
+
   padBurst(x, y, z) {
     tmpC.set('#ff9a3a');
     for (let i = 0; i < 40; i++) {

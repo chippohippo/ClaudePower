@@ -354,8 +354,19 @@ export class HUD {
     const W = MAP_HALF + 20, img = this._terrainImage(g.map, W);
     ctx.drawImage(img, toX(-W), toY(-W), 2 * W * scale, 2 * W * scale);
     // POIs
+    for (const w of g.map.waters) {
+      ctx.fillStyle = 'rgba(70,170,210,0.75)';
+      ctx.beginPath();
+      ctx.arc(toX(w.x), toY(w.z), w.r * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
     for (const p of g.map.pois) {
-      ctx.fillStyle = 'rgba(160,150,135,0.55)';
+      ctx.fillStyle = (p.accent || '#a09687') + '55';
+      ctx.strokeStyle = p.accent || '#a09687';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(toX(p.x), toY(p.z), p.r * scale, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.beginPath();
       ctx.arc(toX(p.x), toY(p.z), p.r * scale, 0, Math.PI * 2);
       ctx.fill();

@@ -15,6 +15,7 @@ export class CollisionWorld {
     this.bulletBlockers = [];
     // Jump pads (Jolt ult). Read by the shared movement code so launches are predicted.
     this.pads = [];
+    this.staticPads = []; // map-placed jump pads
     // Zipline cables (static map data) — read by movement for attach/ride.
     this.zips = [];
     // Heightfield terrain (shared/terrain.js); null = flat ground at y = 0.

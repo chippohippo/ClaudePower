@@ -6,6 +6,7 @@ import { makeRng } from './util.js';
 import { CollisionWorld } from './physics.js';
 import { MAP_HALF } from './constants.js';
 import { Terrain } from './terrain.js';
+import { THEMES, THEME_IDS, LANDMARKS, mesa } from './themes.js';
 
 const POI_NAMES = [
   'Rusthaven', 'Signal Peak', 'The Forge', 'Glass Basin', 'Overpass', 'Drillsite', 'Boneyard',
@@ -29,6 +30,11 @@ export function buildMap(seed) {
 
   // every structure is built relative to baseY (the terrain height it stands on)
   let baseY = 0;
+  let ruin = 0;          // current theme's collapse chance for wall sections
+  let theme = null;      // current POI theme (palettes, trim, slabs)
+  const pads = [];       // static jump pads
+  const decor = [];      // non-colliding visual set dressing (smoke, canopies, glows, dishes)
+  const waters = [];     // flooded basins
   let terrain = null;
   const sinkBase = (x0, z0, x1, z1, sink = 0.4) => {
     let m = 1e9;
@@ -66,6 +72,7 @@ export function buildMap(seed) {
       const segs = op ? [[y0, y0 + op.y0], [y0 + op.y1, y0 + h]] : [[y0, y0 + h]];
       for (const [ya, yb] of segs) {
         if (yb - ya < 0.05) continue;
+        if (ruin > 0 && rng() < (ya - baseY > 1 ? ruin : ruin * 0.25)) continue; // collapsed section
         if (axis === 'x') add(s0, ya, fixed - WALL_T / 2, s1, yb, fixed + WALL_T / 2, 'wall', color);
         else add(fixed - WALL_T / 2, ya, s0, fixed + WALL_T / 2, yb, s1, 'wall', color);
       }
@@ -118,9 +125,13 @@ export function buildMap(seed) {
       }
       // floor slab above (with stair hole), or roof
       const top = y + FLOOR_H;
-      const slabColor = f === floors - 1 ? '#5a5e66' : '#7a7468';
+      const slabColor = f === floors - 1 ? (theme ? theme.roof : '#5a5e66') : (theme ? theme.slab : '#7a7468');
       const kind = f === floors - 1 ? 'roof' : 'floor';
-      if (f < floors - 1 && d > stairRun + 3) {
+      const roofGone = kind === 'roof' && ruin > 0 && rng() < ruin * 1.5;
+      if (roofGone) {
+        // half-collapsed roof: open sky over one end
+        add(x0, top, z0, x1, top + 0.3, (z0 + z1) / 2, kind, slabColor);
+      } else if (f < floors - 1 && d > stairRun + 3) {
         add(x0, top, z0, sx0, top + 0.3, z1, kind, slabColor);
         add(sx0, top, sz1, x1, top + 0.3, z1, kind, slabColor);
       } else {
@@ -149,6 +160,13 @@ export function buildMap(seed) {
     // roof loot sometimes (rewards climbing)
     if (rng() < 0.35) lootPoints.push({ x: cx - 1, y: baseY + floors * FLOOR_H + 0.35, z: cz, tier: tier + 1 });
     buildings.push({ cx, cz, x0, x1, z0, z1, roof: baseY + floors * FLOOR_H + 0.3, floors });
+    // accent trim along the roofline: readable edges + the zone's signature colour
+    if (theme) {
+      const ty = floors * FLOOR_H + 0.3;
+      add(x0 - 0.06, ty, z0 - 0.06, x1 + 0.06, ty + 0.14, z0 + 0.22, 'trim', theme.trim);
+      add(x0 - 0.06, ty, z1 - 0.22, x1 + 0.06, ty + 0.14, z1 + 0.06, 'trim', theme.trim);
+      if (floors >= 2) add(x0 - 0.05, FLOOR_H - 0.1, z0 - 0.25, x1 + 0.05, FLOOR_H + 0.05, z0 - 0.2, 'trim', theme.trim);
+    }
     // balcony on the first upper floor: reach it by mantling out of a window or climbing up
     if (floors >= 2 && rng() < 0.45) {
       const by = FLOOR_H;
@@ -202,6 +220,16 @@ export function buildMap(seed) {
     const r = rng.range(70, 105);
     pois.push({ name: POI_NAMES[pois.length], x, z, r, tier: 0 });
   }
+  // every POI gets a theme (each theme appears twice) and a themed name
+  const themeOrder = [...THEME_IDS, ...THEME_IDS].sort(() => rng() - 0.5);
+  const usedNames = new Set();
+  pois.forEach((p, i) => {
+    p.theme = themeOrder[i % themeOrder.length];
+    const T = THEMES[p.theme];
+    p.name = T.names.find((n) => !usedNames.has(n)) || p.name;
+    usedNames.add(p.name);
+    p.accent = T.trim;
+  });
   // hot zones: two POIs get top-tier loot
   const order = pois.map((p, i) => i).sort(() => rng() - 0.5);
   pois[order[0]].tier = 2;
@@ -212,10 +240,20 @@ export function buildMap(seed) {
   terrain = new Terrain(seed).build(pois.map((p) => ({ x: p.x, z: p.z, r: p.r * 1.05 })));
   world.terrain = terrain;
 
-  const palettes = ['#9b8f7a', '#8a929c', '#a07c62', '#7f8b77', '#a3978b', '#6f7f8f'];
+  // context handed to the theme landmark generators
+  const ctx = {
+    rng, add: (...a) => add(...a), setBase: (y) => { baseY = y; }, baseY: () => baseY,
+    height: (x, z) => terrain.height(x, z), isFree, block: (x, z, r) => blocked.push({ x, z, r }),
+    loot: (x, y, z, tier) => lootPoints.push({ x, y, z, tier }), decor: (o) => decor.push(o),
+    pad: (x, y, z) => pads.push({ x, y, z }), zip: (z) => zips.push(z),
+  };
   for (const p of pois) {
-    const palette = rng.pick(palettes);
-    const style = rng.int(0, 2);
+    theme = THEMES[p.theme];
+    const palette = rng.pick(theme.palettes);
+    const style = rng() < theme.containers ? 0 : 1;
+    if (theme.water) waters.push({ x: p.x, z: p.z, r: p.r * 0.92, y: terrain.height(p.x, p.z) + 0.45 });
+    // landmark first so it gets the best spot
+    LANDMARKS[p.theme](ctx, p);
     const nb = 7 + Math.floor(rng() * 6) + (p.tier === 2 ? 3 : 0);
     let placed = 0, t = 0;
     while (placed < nb && t++ < 300) {
@@ -225,9 +263,20 @@ export function buildMap(seed) {
       const rad = Math.hypot(w, d) / 2 + 3;
       if (!isFree(bx, bz, rad)) continue;
       blocked.push({ x: bx, z: bz, r: rad });
-      const floors = rng() < 0.15 + p.tier * 0.15 ? 3 : rng() < 0.55 ? 2 : 1;
+      const [fMin, fMax] = theme.floors;
+      const floors = Math.max(fMin, Math.min(fMax, rng() < 0.15 + p.tier * 0.15 ? 3 : rng() < 0.55 ? 2 : 1));
       baseY = terrain.height(bx, bz);
+      ruin = theme.ruin;
+      if (theme.stilts && rng() < theme.stilts) {
+        // stilt house: raised 2.6 m on pillars with a stair run up to the door side
+        const gy = baseY;
+        for (const [px, pz] of [[bx - w / 2 + 0.3, bz - d / 2 + 0.3], [bx + w / 2 - 0.3, bz - d / 2 + 0.3], [bx - w / 2 + 0.3, bz + d / 2 - 0.3], [bx + w / 2 - 0.3, bz + d / 2 - 0.3], [bx, bz]]) add(px - 0.25, 0, pz - 0.25, px + 0.25, 2.6, pz + 0.25, 'dock', '#6b5038');
+        add(bx - w / 2, 2.3, bz - d / 2, bx + w / 2, 2.6, bz + d / 2, 'dock', '#7a5c40');
+        for (let i = 0; i < 9; i++) add(bx - 1, i * 0.29, bz - d / 2 - 3.2 + i * 0.35, bx + 1, (i + 1) * 0.29, bz - d / 2 - 2.85 + i * 0.35, 'stair', '#7a5c40');
+        baseY = gy + 2.6;
+      }
       building(bx, bz, w, d, floors, p.tier, palette);
+      ruin = 0;
       placed++;
     }
     // container yard or rock garden flavour
@@ -238,7 +287,7 @@ export function buildMap(seed) {
       if (!isFree(ex, ez, 5)) continue;
       blocked.push({ x: ex, z: ez, r: 5 });
       baseY = sinkBase(ex - 6, ez - 6, ex + 6, ez + 6, 0.1);
-      if (style === 0 || rng() < 0.4) containerStack(ex, ez, rng() < 0.5);
+      if (style === 0) containerStack(ex, ez, rng() < 0.5);
       else rockFormation(ex, ez, 0.8);
       const lx = ex + 4.5, lz = ez + rng.range(-2, 2);
       lootPoints.push({ x: lx, y: terrain.height(lx, lz) + 0.05, z: lz, tier: p.tier });
@@ -280,6 +329,16 @@ export function buildMap(seed) {
     }
   }
 
+  theme = null;
+  // --- wilderness: big climbable mesas/cliffs between zones (rotation high ground) ---
+  for (let i = 0, t2 = 0; i < 7 && t2 < 300; t2++) {
+    const x = rng.range(-MAP_HALF + 80, MAP_HALF - 80), z = rng.range(-MAP_HALF + 80, MAP_HALF - 80);
+    if (!isFree(x, z, 20)) continue;
+    blocked.push({ x, z, r: 20 });
+    mesa(ctx, x, z, rng.range(8, 14), rng.range(8, 16), '#9a8a74');
+    lootPoints.push({ x, y: baseY + mesa.lastTop + 0.05, z, tier: 1 });
+    i++;
+  }
   // --- wilderness: rock formations, trees, crates, ridges ---
   for (let i = 0; i < 160; i++) {
     const x = rng.range(-MAP_HALF + 30, MAP_HALF - 30), z = rng.range(-MAP_HALF + 30, MAP_HALF - 30);
@@ -365,5 +424,6 @@ export function buildMap(seed) {
     k++;
   }
   world.zips = zips;
-  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips };
+  world.staticPads = pads;
+  return { seed, world, terrain, boxes, pois, lootPoints, bins, beacons, trees, zips, pads, decor, waters };
 }

@@ -4,28 +4,55 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { STYLE, toonify } from './comic.js';
+import { THEMES } from '../shared/themes.js';
 
 const SUN_DIR = new THREE.Vector3(-0.45, 0.8, 0.35).normalize();
 
-function patchPanels(mat, scale = 1, lineStrength = 0.18) {
+// Procedural surface detail for the toon/PBR box materials: world-space panels, per-kind patterns
+// (bricks, corrugation, rock strata, planks, plate seams), cell noise, ground AO and a comic bevel
+// highlight on box edges so cel shading + ink outlines read as rich instead of flat plastic.
+const PATTERNS = {
+  wall: `float py = vWPos.y * 2.0; float row = floor(py); float bx = (n.x > 0.5 ? vWPos.z : vWPos.x) * 1.0 + mod(row, 2.0) * 0.5;
+         float brick = max(smoothstep(0.44, 0.5, abs(fract(py) - 0.5)), smoothstep(0.46, 0.5, abs(fract(bx) - 0.5)));
+         diffuseColor.rgb *= 1.0 - brick * 0.12 * (1.0 - n.y);`,
+  container: `float cor = 0.5 + 0.5 * sin((n.x > 0.5 ? vWPos.z : vWPos.x) * 18.0);
+         diffuseColor.rgb *= 0.9 + cor * 0.14 * (1.0 - n.y);`,
+  rock: `float st = sin(vWPos.y * 3.1 + hash3(floor(vWPos * 0.5)) * 2.0);
+         diffuseColor.rgb *= 0.92 + 0.1 * step(0.3, st) + (hash3(floor(vWPos * 1.7)) - 0.5) * 0.1;`,
+  dock: `float pl = smoothstep(0.42, 0.5, abs(fract((n.y > 0.5 ? vWPos.x : vWPos.y) * 3.0) - 0.5));
+         diffuseColor.rgb *= 1.0 - pl * 0.25; diffuseColor.rgb *= 0.92 + hash3(floor(vWPos * vec3(3.0, 3.0, 0.4))) * 0.14;`,
+  bark: `diffuseColor.rgb *= 0.85 + 0.2 * abs(sin(vWPos.x * 9.0 + vWPos.z * 7.0 + sin(vWPos.y * 2.0) * 2.0));`,
+  catwalk: `vec2 gq = abs(fract(uv * 4.0) - 0.5); diffuseColor.rgb *= 1.0 - smoothstep(0.4, 0.5, max(gq.x, gq.y)) * 0.3;`,
+  crane: `float hz = step(0.5, fract((vWPos.x + vWPos.y + vWPos.z) * 0.8)); diffuseColor.rgb *= mix(1.0, 0.25, hz * step(0.98, 1.0 - n.y) * step(vWPos.y - floor(vWPos.y / 22.0) * 22.0, 1.2));`,
+};
+PATTERNS.stack = PATTERNS.catwalk;
+PATTERNS.spire = PATTERNS.catwalk;
+
+function patchPanels(mat, scale = 1, lineStrength = 0.18, kind = '') {
+  const pattern = PATTERNS[kind] || '';
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;\nvarying vec3 vLoc;\nvarying vec3 vScl;')
       .replace(
         '#include <project_vertex>',
         `#include <project_vertex>
+        vLoc = position;
         #ifdef USE_INSTANCING
           vWPos = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
           vWNrm = normalize(mat3(modelMatrix * instanceMatrix) * objectNormal);
+          vScl = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
         #else
           vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
           vWNrm = normalize(mat3(modelMatrix) * objectNormal);
+          vScl = vec3(0.0);
         #endif`,
       );
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos;
         varying vec3 vWNrm;
+        varying vec3 vLoc;
+        varying vec3 vScl;
         float hash3(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }`)
       .replace(
         '#include <color_fragment>',
@@ -37,14 +64,23 @@ function patchPanels(mat, scale = 1, lineStrength = 0.18) {
           vec2 g = abs(fract(uv) - 0.5);
           float line = smoothstep(0.47, 0.5, max(g.x, g.y));
           float cell = hash3(floor(vec3(uv, n.y * 7.0 + n.x * 3.0)));
-          diffuseColor.rgb *= (1.0 - line * ${lineStrength.toFixed(2)}) * (0.93 + cell * 0.12);
-          // ambient-occlusion-ish darkening near the ground
-          diffuseColor.rgb *= mix(0.72, 1.0, clamp(vWPos.y * 0.6, 0.0, 1.0));
-          // top faces slightly lighter for silhouette readability
+          diffuseColor.rgb *= (1.0 - line * ${lineStrength.toFixed(2)}) * (0.92 + cell * 0.14);
+          ${pattern}
+          // ambient occlusion toward the bottom of each box's side faces
+          if (vScl.x > 0.0 && n.y < 0.5) diffuseColor.rgb *= mix(0.72, 1.0, clamp((vLoc.y + 0.5) * vScl.y * 0.9, 0.0, 1.0));
+          // comic bevel: lighten the outer 6 cm of every box face edge
+          if (vScl.x > 0.0) {
+            vec3 dEdge = (0.5 - abs(vLoc)) * vScl;
+            vec3 m3 = dEdge + n * 1e3;          // ignore the axis the face points along
+            float e = min(min(m3.x, m3.y), m3.z);
+            float bev = 1.0 - smoothstep(0.03, 0.07, e);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.35 + 0.04, bev * 0.6);
+          }
           diffuseColor.rgb *= n.y > 0.5 ? 1.06 : 1.0;
         }`,
       );
   };
+  mat.customProgramCacheKey = () => 'panels' + scale + lineStrength + kind;
   return mat;
 }
 
@@ -117,6 +153,7 @@ export class WorldView {
     this._trees();
     this._ziplines();
     this._bins();
+    this._dressing();
     this._beacons();
     this._ring();
     this._ship();
@@ -166,6 +203,14 @@ export class WorldView {
       tmpC.copy(grass).lerp(dry, Math.min(1, alt * 1.2 + Math.sin(x * 0.01) * Math.cos(z * 0.013) * 0.25));
       tmpC.lerp(rock, Math.min(1, Math.max(0, (slope - 0.04) * 9)));
       if (alt > 0.8) tmpC.lerp(high, (alt - 0.8) * 3);
+      // zone identity: tint the ground around each themed POI
+      for (const p of this.map.pois) {
+        const d = Math.hypot(x - p.x, z - p.z);
+        if (d < p.r * 1.7) {
+          const k = 1 - Math.max(0, (d - p.r * 0.9) / (p.r * 0.8));
+          tmpC.lerp(this._themeGround(p.theme), Math.min(1, k) * 0.75);
+        }
+      }
       cols[i * 3] = tmpC.r; cols[i * 3 + 1] = tmpC.g; cols[i * 3 + 2] = tmpC.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
@@ -180,8 +225,9 @@ export class WorldView {
     outer.position.y = -0.6;
     this.scene.add(outer);
     // POI concrete pads, at their flattened height
-    const padMat = patchPanels(new THREE.MeshStandardMaterial({ color: '#8e8a82', roughness: 0.9 }), 4, 0.25);
+    const PAD = { industrial: '#5d5a56', overgrown: '#7d8a6a', hightech: '#d4dbe0', desert: '#d3b38a', flooded: '#6b7a72', military: '#8a8770' };
     for (const p of this.map.pois) {
+      const padMat = patchPanels(new THREE.MeshStandardMaterial({ color: PAD[p.theme] || '#8e8a82', roughness: 0.9 }), p.theme === 'hightech' ? 3 : 4, 0.25);
       const pad = new THREE.Mesh(new THREE.CircleGeometry(p.r * 0.95, 48), padMat);
       pad.rotation.x = -Math.PI / 2;
       pad.position.set(p.x, T.height(p.x, p.z) + 0.03, p.z);
@@ -257,6 +303,12 @@ export class WorldView {
     }
   }
 
+  _themeGround(id) {
+    this._tg = this._tg || {};
+    if (!this._tg[id]) this._tg[id] = new THREE.Color(THEMES[id] ? THEMES[id].ground : '#8d9a66');
+    return this._tg[id];
+  }
+
   _boxes() {
     const groups = new Map();
     for (const b of this.map.boxes) {
@@ -269,10 +321,12 @@ export class WorldView {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     for (const g of groups.values()) {
-      const rough = g.kind === 'container' ? 0.55 : g.kind === 'rock' ? 0.95 : 0.85;
-      const metal = g.kind === 'container' ? 0.35 : 0.0;
-      const scale = g.kind === 'container' ? 0.6 : g.kind === 'rock' ? 2.5 : g.kind === 'wall' ? 1.2 : 1;
-      const mat = patchPanels(new THREE.MeshStandardMaterial({ color: g.color, roughness: rough, metalness: metal }), scale, g.kind === 'rock' ? 0.08 : 0.2);
+      const metalKinds = { container: 1, catwalk: 1, crane: 1, stack: 1, pylon: 1, spire: 1 };
+      const rough = metalKinds[g.kind] ? 0.5 : g.kind === 'rock' ? 0.95 : 0.85;
+      const metal = metalKinds[g.kind] ? 0.35 : 0.0;
+      const scale = g.kind === 'container' ? 0.6 : g.kind === 'rock' ? 2.5 : g.kind === 'wall' ? 1.2 : g.kind === 'dock' ? 0.4 : g.kind === 'bark' ? 0.7 : 1;
+      const mat = patchPanels(new THREE.MeshStandardMaterial({ color: g.color, roughness: rough, metalness: metal }), scale, g.kind === 'rock' ? 0.08 : g.kind === 'trim' ? 0 : 0.2, g.kind);
+      if (g.kind === 'trim') { mat.emissive = new THREE.Color(g.color); mat.emissiveIntensity = 0.9; }
       if (g.kind === 'beacon') { mat.emissive = new THREE.Color('#1c6dd0'); mat.emissiveIntensity = 0.4; }
       if (g.kind === 'bin') { mat.emissive = new THREE.Color('#0a3a6a'); mat.emissiveIntensity = 0.3; }
       const mesh = new THREE.InstancedMesh(geo, mat, g.list.length);
@@ -430,7 +484,114 @@ export class WorldView {
     this.sun.color.setRGB(1, 0.94 - st * 0.08 - k * 0.2, 0.84 - st * 0.15 - k * 0.4);
   }
 
+  // Themed set dressing: static jump pads, flooded water, smoke plumes, canopies, glows, radar dish.
+  _dressing() {
+    const T = this.map.terrain;
+    this.padFx = [];
+    for (const p of this.map.pads) {
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y, p.z);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 0.25, 20), new THREE.MeshStandardMaterial({ color: '#2a2e35', metalness: 0.4 }));
+      base.position.y = 0.12;
+      g.add(base);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 1.2, 28), new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.26;
+      g.add(ring);
+      // telegraph: chevrons climbing a translucent column
+      const chevMat = new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const chevs = [];
+      for (let i = 0; i < 4; i++) {
+        const c = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 4, 4, Math.PI), chevMat);
+        c.rotation.set(0, 0, Math.PI / 4);
+        g.add(c);
+        chevs.push(c);
+      }
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 7, 16, 1, true), new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      col.position.y = 3.5;
+      g.add(col);
+      this.scene.add(g);
+      this.padFx.push({ g, chevs, ring });
+    }
+    this.waterMats = [];
+    for (const w of this.map.waters) {
+      const mat = new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, fog: true,
+        uniforms: { time: { value: 0 }, fogColor: { value: new THREE.Color() }, fogNear: { value: 1 }, fogFar: { value: 1000 } },
+        vertexShader: `varying vec2 vP;
+          #include <fog_pars_vertex>
+          void main(){
+            vP = position.xy;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+            #include <fog_vertex>
+          }`,
+        fragmentShader: `uniform float time; varying vec2 vP;
+          #include <fog_pars_fragment>
+          void main(){
+            float r = length(vP);
+            float rip = sin(vP.x * 0.7 + time * 1.3) * sin(vP.y * 0.6 - time * 1.1);
+            float foam = step(0.92, fract(r * 0.08 - time * 0.05)) * 0.6 + step(0.96, 0.5 + 0.5 * rip) * 0.5;
+            vec3 col = mix(vec3(0.16, 0.5, 0.62), vec3(0.3, 0.72, 0.82), 0.5 + 0.5 * rip);
+            col = mix(col, vec3(0.92, 0.98, 1.0), foam);
+            gl_FragColor = vec4(col, 0.82);
+            #include <fog_fragment>
+          }`,
+      });
+      this.waterMats.push(mat);
+      const m = new THREE.Mesh(new THREE.CircleGeometry(w.r, 64), mat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(w.x, w.y, w.z);
+      m.renderOrder = 2;
+      this.scene.add(m);
+    }
+    this.smokeEmitters = [];
+    this.spinners = [];
+    for (const d of this.map.decor) {
+      if (d.type === 'smoke') this.smokeEmitters.push(d);
+      else if (d.type === 'canopy') {
+        const mat = new THREE.MeshStandardMaterial({ color: '#4f9a3c', roughness: 0.9, flatShading: true });
+        for (let i = 0; i < 5; i++) {
+          const b = new THREE.Mesh(new THREE.IcosahedronGeometry(d.r * (0.45 + Math.random() * 0.25), 1), mat);
+          b.position.set(d.x + (Math.random() - 0.5) * d.r, d.y + Math.random() * 2.5, d.z + (Math.random() - 0.5) * d.r);
+          b.scale.y = 0.55;
+          b.castShadow = true;
+          this.scene.add(b);
+        }
+      } else if (d.type === 'glow') {
+        const b = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), new THREE.MeshStandardMaterial({ color: d.color, emissive: d.color, emissiveIntensity: 2 }));
+        b.position.set(d.x, d.y, d.z);
+        this.scene.add(b);
+        this.spinners.push({ o: b, s: 1.5 });
+      } else if (d.type === 'dish') {
+        const g = new THREE.Group();
+        g.position.set(d.x + 6, d.y, d.z + 6);
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 9, 8), new THREE.MeshStandardMaterial({ color: '#6f735c' }));
+        mast.position.y = 4.5;
+        g.add(mast);
+        const dish = new THREE.Mesh(new THREE.SphereGeometry(3.2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), new THREE.MeshStandardMaterial({ color: '#d8dccb', side: THREE.DoubleSide }));
+        dish.position.y = 9.5;
+        dish.rotation.x = -1.1;
+        const head = new THREE.Group();
+        head.position.y = 0;
+        head.add(dish);
+        g.add(head);
+        this.scene.add(g);
+        this.spinners.push({ o: head, s: 0.4 });
+      }
+    }
+  }
+
   update(dt, time, camPos, ring, ship) {
+    for (const f of this.padFx || []) {
+      f.chevs.forEach((c, i) => {
+        const k = ((time * 0.8 + i / f.chevs.length) % 1);
+        c.position.y = 0.4 + k * 6;
+        c.material.opacity = 0.9 * (1 - k);
+      });
+      f.ring.material.opacity = 0.6 + 0.3 * Math.sin(time * 6);
+    }
+    for (const m of this.waterMats || []) m.uniforms.time.value = time;
+    for (const sp of this.spinners || []) sp.o.rotation.y += dt * sp.s;
     this.ringMat.uniforms.time.value = time;
     this.ringMesh.visible = !!ring && ring.r < 3000;
     if (ring) {

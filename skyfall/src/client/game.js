@@ -643,6 +643,7 @@ export class Game {
     this.hud.update(dt, this);
 
     // ---- render
+    if (this.frameHook) { this.frameHook(); this.view.update(0, this.time, this.camera.position, this.ring, null); } // debug camera tours
     const r = this.renderer;
     if (this.post) this.post.render(this.scene, this.camera);
     else r.render(this.scene, this.camera);
@@ -718,12 +719,14 @@ export class Game {
         this.stepDist = 0;
         const surf = this.surfaceAt(s.x, s.y, s.z);
         audio.play(`step_${surf}${(Math.random() * 3) | 0}`, null, { vol: FEEL.mix.footstepSelf * (sp > 6 ? 1.3 : 0.75), var: 0.08 });
+        if (surf === 'water') this.fx.splash(s.x, s.y + 0.4, s.z, 0.5);
       }
     }
   }
 
   // What the player is standing on (drives footsteps, slide scrape and impact sounds).
   surfaceAt(x, y, z) {
+    for (const w of this.map.waters) if (y < w.y + 0.15 && (w.x - x) ** 2 + (w.z - z) ** 2 < w.r * w.r) return 'water';
     const b = this.world.boxAt ? this.world.boxAt(x, y, z, this.tmpBoxes) : null;
     if (b) return SURFACE[b.kind] || 'concrete';
     for (const p of this.map.pois) if ((p.x - x) ** 2 + (p.z - z) ** 2 < (p.r * 0.95) ** 2) return 'concrete';

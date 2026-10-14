@@ -332,8 +332,9 @@ export function stepMovement(s, inp, dt, world) {
   }
 
   // jump pads
-  for (let i = 0; i < world.pads.length; i++) {
-    const pd = world.pads[i];
+  const nPads = world.pads.length, nStatic = world.staticPads ? world.staticPads.length : 0;
+  for (let i = 0; i < nPads + nStatic; i++) {
+    const pd = i < nPads ? world.pads[i] : world.staticPads[i - nPads];
     if (Math.abs(s.y - pd.y) < 0.7 && (s.x - pd.x) ** 2 + (s.z - pd.z) ** 2 < 1.6 && s.vy < 4 && !s.downed) {
       s.vy = 16.5;
       const hs = Math.hypot(s.vx, s.vz);
