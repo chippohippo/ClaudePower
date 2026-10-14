@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { io } from 'socket.io-client';
 import { LEGENDS, LEGEND_IDS, ROLES, ROLE_IDS, roleTargets } from '../shared/legends.js';
 import { ROLE_ICON } from './roleicons.js';
+import { applyPalette, RIM } from './palette.js';
 import { Input, settings, saveSettings } from './input.js';
 import { HUD } from './hud.js';
 import { audio } from './audio.js';
@@ -127,6 +128,16 @@ for (const [id, key] of [['#s-toggleads', 'toggleAds'], ['#s-invert', 'invertY']
   el.addEventListener('change', () => { settings[key] = el.checked; saveSettings(); if (app.game) app.game.showStats = settings.showFps; });
 }
 $('#s-quality').value = settings.quality;
+// friend/foe clarity: colour-vision preset and enemy rim strength apply live
+const applyClarity = () => {
+  applyPalette(settings.colorVision || 'default');
+  RIM.enemy.strength.value = 0.85 * (settings.enemyRim ?? 1);
+};
+applyClarity();
+$('#s-cv').value = settings.colorVision || 'default';
+$('#s-cv').addEventListener('change', (e) => { settings.colorVision = e.target.value; saveSettings(); applyClarity(); });
+$('#s-rim').value = String(settings.enemyRim ?? 1);
+$('#s-rim').addEventListener('change', (e) => { settings.enemyRim = +e.target.value; saveSettings(); applyClarity(); });
 $('#s-art').value = settings.artStyle || 'comic';
 $('#s-art').addEventListener('change', (e) => { settings.artStyle = e.target.value; saveSettings(); hud.toast('Art style applies from the next match'); });
 $('#s-quality').addEventListener('change', (e) => { settings.quality = e.target.value; saveSettings(); applyQuality(); });

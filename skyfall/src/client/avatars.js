@@ -12,6 +12,7 @@ import { LEGENDS } from '../shared/legends.js';
 import { WEAPONS } from '../shared/weapons.js';
 import { SHIELD_COLORS } from '../shared/constants.js';
 import { STYLE, toonify } from './comic.js';
+import { PAL, teamRim } from './palette.js';
 
 const SQUAD_ACCENT = '#38e8ff';
 
@@ -59,19 +60,25 @@ const glowMat = (c) => mat('glow' + c, () => new THREE.MeshStandardMaterial({ co
 const phaseMat = new THREE.MeshBasicMaterial({ color: '#b48bff', transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending });
 const revealMat = new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.55, depthTest: false, depthWrite: false });
 
+// Squadmate marker (Apex-style): an ally-coloured diamond over the name, drawn through walls
 function nameTag(text, color) {
   const c = document.createElement('canvas');
-  c.width = 256; c.height = 64;
+  c.width = 256; c.height = 112;
   const g = c.getContext('2d');
+  g.beginPath();
+  g.moveTo(128, 6); g.lineTo(146, 28); g.lineTo(128, 50); g.lineTo(110, 28); g.closePath();
+  g.lineWidth = 6; g.strokeStyle = 'rgba(0,0,0,0.75)'; g.stroke();
+  g.fillStyle = PAL.ally; g.fill();
   g.font = 'bold 30px Rajdhani, Arial';
   g.textAlign = 'center';
   g.lineWidth = 5;
   g.strokeStyle = 'rgba(0,0,0,0.7)';
-  g.strokeText(text, 128, 42);
+  g.strokeText(text, 128, 90);
   g.fillStyle = color;
-  g.fillText(text, 128, 42);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
-  s.scale.set(2.4, 0.6, 1);
+  g.fillText(text, 128, 90);
+  // constant on-screen size, so squadmates stay readable 200 m away
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, sizeAttenuation: false }));
+  s.scale.set(0.11, 0.048, 1);
   s.renderOrder = 10;
   return s;
 }
@@ -205,6 +212,7 @@ export class Avatar {
     this.torso.add(this.gun);
     legendKit(meta.legend, this.torso, this.head, mk);
     if (STYLE.comic) toonify(body);
+    teamRim(body, isMate ? 'ally' : 'enemy');
 
     this.meshes = [];
     body.traverse((o) => { if (o.isMesh) this.meshes.push(o); });
@@ -221,7 +229,7 @@ export class Avatar {
     scene.add(this.reveal);
     if (isMate) {
       this.tag = nameTag(meta.name, LEGENDS[meta.legend].color);
-      this.tag.position.y = 2.4;
+      this.tag.position.y = 2.6;
       root.add(this.tag);
     }
     this.walk = Math.random() * 6;
@@ -243,6 +251,7 @@ export class Avatar {
 
   update(dt, s, time) {
     const root = this.root, body = this.body;
+    if (revealMat.userData.c !== PAL.enemy) { revealMat.userData.c = PAL.enemy; revealMat.color.set(PAL.enemy); }
     root.position.set(s.x, s.y, s.z);
     root.rotation.y = s.yaw;
     const fl = s.fl;
