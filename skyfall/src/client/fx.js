@@ -265,6 +265,17 @@ export class FX {
     }
   }
 
+  // trolley sparks while riding a zipline (vx/vz = travel direction, sprayed backwards)
+  zipSparks(x, y, z, vx, vy, vz) {
+    if (Math.random() > 0.7) return;
+    const sp = Math.hypot(vx, vy, vz) || 1;
+    for (let i = 0; i < 3; i++) {
+      tmpC.setHSL(0.09 + Math.random() * 0.05, 1, 0.6 + Math.random() * 0.2);
+      const back = 1 + Math.random() * 2;
+      this.sparks.emit(x, y, z, -(vx / sp) * back + (Math.random() - 0.5) * 2.5, 0.5 + Math.random() * 2, -(vz / sp) * back + (Math.random() - 0.5) * 2.5, tmpC, 0.07, 0.25 + Math.random() * 0.2, 14);
+    }
+  }
+
   padBurst(x, y, z) {
     tmpC.set('#ff9a3a');
     for (let i = 0; i < 40; i++) {

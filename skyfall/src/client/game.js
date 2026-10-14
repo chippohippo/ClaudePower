@@ -9,7 +9,8 @@ import { createMoveState, stepMovement, copyMoveState, eyeHeight, playerHeight, 
 import { SIM_DT, BTN, INTERP_DELAY, SHIELD_COLORS, SHIELD_TIERS, MOVE, TEAM_COLORS } from '../shared/constants.js';
 import { WEAPONS, fireInterval, currentSpread, magSize, GUNPLAY } from '../shared/weapons.js';
 import { ATTACHMENTS, itemName, itemRarity, RARITY } from '../shared/items.js';
-import { LEGENDS } from '../shared/legends.js';
+import { LEGENDS, ROLES, ROLE_IDS } from '../shared/legends.js';
+import { THEMES } from '../shared/themes.js';
 import { speedMul } from '../shared/mods.js';
 import { rayPlayer } from '../shared/physics.js';
 import { DEG, clamp, dirFromAngles, wrapAngle, lerp } from '../shared/util.js';
@@ -617,6 +618,8 @@ export class Game {
     // ---- audio loops
     this._audioLoops(dt);
 
+    this._zoneCheck(dt, me);
+
     // ---- world + fx
     const cp = this.camera.position;
     this.view.update(dt, this.time, cp, this.ring, this.phase === 'ship' ? this.shipNow : null);
@@ -749,6 +752,35 @@ export class Game {
   }
 
   // Pop-art impact word (comic style only).
+  // named-zone call-outs once on the ground, plus the Sixes squad composition on first landing
+  _zoneCheck(dt, me) {
+    this.zoneT = (this.zoneT || 0) - dt;
+    if (this.zoneT > 0 || !me || !me.alive || me.inShip || this.spectating) return;
+    this.zoneT = 0.4;
+    const s = this.pred;
+    if (s.mode === 'skydive') return;
+    if (!this.landedOnce) {
+      this.landedOnce = true;
+      if (this.mode === 'sixes') {
+        const n = { tank: 0, dps: 0, support: 0 };
+        for (const p of this.meta.values()) if (p.squad === this.mySquad && LEGENDS[p.legend]) n[LEGENDS[p.legend].cls]++;
+        const sub = ROLE_IDS.map((r) => `<span style="color:${ROLES[r].color}">${n[r]} ${ROLES[r].label}</span>`).join(' · ');
+        const myRole = ROLES[LEGENDS[this.myLegend]?.cls];
+        if (myRole) this.hud.announce(`YOU ARE ${myRole.label}`, 3.2, sub, myRole.color);
+      }
+    }
+    let poi = null;
+    for (const p of this.map.pois) if ((p.x - s.x) ** 2 + (p.z - s.z) ** 2 < p.r * p.r) { poi = p; break; }
+    if (poi !== this.curPoi) {
+      this.curPoi = poi;
+      if (poi && poi !== this.lastZoneCall) {
+        this.lastZoneCall = poi;
+        const T = THEMES[poi.theme];
+        this.hud.zone(poi.name.toUpperCase(), T ? T.label : '', poi.accent || (T && T.trim));
+      }
+    }
+  }
+
   _pow(x, y, z, text, color, size) {
     if (this.post && FEEL.hit.comicWords) this.fx.comicWord(x, y, z, text, color, size);
   }
@@ -1053,6 +1085,7 @@ export class Game {
       if (r.avatar && r.avatar.root.visible && dist < 150) {
         if (s.fl & 2048) this.fx.jetTrail(s.x, s.y + 0.9, s.z, s.yaw);
         if (s.fl & 256 && speedOf(s) > 4) this.fx.stimTrail(s.x, s.y + 1, s.z);
+        if (s.fl & 4096) this.fx.zipSparks(s.x, s.y + 1.75, s.z, s.vx, 0, s.vz);
       }
       // remote footsteps
       if (!inShip && !(s.fl & 4) && !(s.fl & 2) && dist < 55) {
@@ -1258,6 +1291,7 @@ export class Game {
     audio.loop('ship', 'ship', me.inShip ? 0.6 : 0);
     audio.loop('jet', 'jet', ms.events & MEV.JET ? 0.4 : 0);
     audio.loop('zip', 'zipline', ms.mode === 'zip' ? 0.45 : 0, 0.9 + sp / 30);
+    if (ms.mode === 'zip') this.fx.zipSparks(ms.x, ms.y + 1.9, ms.z, ms.vx, ms.vy, ms.vz);
     audio.loop('burn', 'ring_burn', me.out && me.alive ? 0.55 : 0);
     audio.loop('healloop', 'heal_loop', me.heal ? 0.35 : 0);
     audio.loop('wind', 'wind', ms.mode === 'skydive' ? 0.05 : M.ambience);

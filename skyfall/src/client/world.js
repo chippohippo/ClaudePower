@@ -271,6 +271,23 @@ export class WorldView {
     cableGeo.translate(0, 0.5, 0);
     cableGeo.rotateX(Math.PI / 2);
     const up = new THREE.Vector3();
+    // flowing light dashes along each cable so ziplines read as routes from far away
+    this.zipTime = { value: 0 };
+    const flowMat = (len) => new THREE.ShaderMaterial({
+      uniforms: { time: this.zipTime, len: { value: len } },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `varying float vT;
+        void main() { vT = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `varying float vT; uniform float time; uniform float len;
+        void main() {
+          float d = fract(vT * len * 0.5 - time * 1.2);
+          float dash = smoothstep(0.0, 0.08, d) * (1.0 - smoothstep(0.18, 0.3, d));
+          gl_FragColor = vec4(vec3(1.0, 0.62, 0.2) * (0.55 + dash * 2.0), 0.45 + dash * 0.55);
+        }`,
+    });
+    const flowGeo = new THREE.CylinderGeometry(0.075, 0.075, 1, 6, 1, true);
+    flowGeo.translate(0, 0.5, 0);
+    flowGeo.rotateX(Math.PI / 2);
     for (const z of this.map.zips) {
       const a = new THREE.Vector3(z.ax, z.ay, z.az), b = new THREE.Vector3(z.bx, z.by, z.bz);
       const L = a.distanceTo(b);
@@ -279,6 +296,11 @@ export class WorldView {
       cable.lookAt(b);
       cable.scale.set(1, 1, L);
       this.scene.add(cable);
+      const flow = new THREE.Mesh(flowGeo, flowMat(L));
+      flow.position.copy(a);
+      flow.lookAt(b);
+      flow.scale.set(1, 1, L);
+      this.scene.add(flow);
       // anchor heads with amber lights so lines read from a distance
       for (const e of [a, b]) {
         const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), poleMat);
@@ -591,6 +613,7 @@ export class WorldView {
       f.ring.material.opacity = 0.6 + 0.3 * Math.sin(time * 6);
     }
     for (const m of this.waterMats || []) m.uniforms.time.value = time;
+    if (this.zipTime) this.zipTime.value = time;
     for (const sp of this.spinners || []) sp.o.rotation.y += dt * sp.s;
     this.ringMat.uniforms.time.value = time;
     this.ringMesh.visible = !!ring && ring.r < 3000;

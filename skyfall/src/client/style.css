@@ -123,9 +123,15 @@ input, select { font-family: inherit; background: rgba(0,0,0,0.4); color: var(--
 .mate.down { border-left-color: #ff3b3b; }
 .mate.down .n::after { content: 'DOWNED'; color: #ff3b3b; font-size: 12px; }
 .mate.elim { opacity: 0.55; }
-#squad.compact { gap: 3px; }
-#squad.compact .mate { padding: 2px 8px; }
-#squad.compact .mate .n { font-size: 13px; }
+/* Sixes: two-column compact cards so five mates fit above the vitals without covering the ring panel */
+#squad.compact { display: grid; grid-template-columns: repeat(2, 168px); gap: 4px; bottom: 182px; }
+#squad.compact .mate { padding: 3px 7px; width: auto; }
+#squad.compact .mate .n { font-size: 12.5px; }
+#squad.compact .mate .n > small { font-size: 10px; }
+#squad.compact .mate .n span small { display: none; }
+#squad.compact .bars2 { margin-top: 2px; }
+#squad.compact .mate { grid-template-columns: 18px 1fr; column-gap: 5px; }
+#squad.compact .mate .glyph { width: 15px; height: 15px; }
 #player { position: absolute; left: 16px; bottom: 16px; width: 360px; }
 #legendname { font-weight: 700; letter-spacing: 3px; font-size: 20px; }
 .bars { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 8px; }
@@ -307,3 +313,18 @@ body.comic .abil { box-shadow: 3px 3px 0 rgba(0,0,0,0.6); border-color: #111; }
   filter: drop-shadow(3px 3px 0 #000); }
 .pow span { position: relative; display: block; font-weight: 700; font-style: italic; font-size: calc(30px * var(--ps)); letter-spacing: 1px; color: #fff;
   -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #111; white-space: nowrap; }
+
+/* ---- premium call-outs ---- */
+#announce .at { font-size: 30px; }
+#announce .as { font-size: 15px; letter-spacing: 2px; margin-top: 4px; color: #e8e8e8; }
+#announce.slam .at { animation: aslam 0.45s cubic-bezier(.2,1.6,.4,1); }
+#announce.slam .as { animation: asub 0.6s ease-out; }
+@keyframes aslam { 0% { transform: scale(2.2); opacity: 0; letter-spacing: 14px; } 60% { opacity: 1; } 100% { transform: scale(1); letter-spacing: 3px; } }
+@keyframes asub { 0%, 35% { opacity: 0; transform: translateY(-6px); } 100% { opacity: 1; transform: none; } }
+#zonecall { position: absolute; top: 146px; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0; pointer-events: none; }
+#zonecall small { display: block; font-size: 12px; letter-spacing: 5px; color: var(--zc); font-weight: 700; }
+#zonecall b { display: block; font-size: 26px; letter-spacing: 6px; border-top: 2px solid var(--zc); border-bottom: 2px solid var(--zc); padding: 2px 18px; text-shadow: 0 2px 6px #000; }
+#zonecall.in { animation: zonein 3.6s ease-out forwards; }
+@keyframes zonein { 0% { opacity: 0; letter-spacing: 0; clip-path: inset(0 50% 0 50%); } 12% { opacity: 1; clip-path: inset(0 0 0 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+body.comic #announce .as { -webkit-text-stroke: 0; text-shadow: 2px 2px 0 #000; }
+body.comic #zonecall b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #000; background: rgba(0,0,0,0.35); transform: rotate(-1.5deg); }

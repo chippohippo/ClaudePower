@@ -1427,5 +1427,6 @@ function entRow(e, now, h) {
   if (e.k === 'carepkg') { r.landed = e.landed ? 1 : 0; r.lt = +Math.max(0, e.landT).toFixed(2); r.n = e.items.length; }
   if (e.k === 'thunder' || e.k === 'mortar') { r.dx = e.dx; r.dz = e.dz; }
   if (e.k === 'gastrap') r.armed = e.triggered ? 0 : 1;
+  if (e.k === 'wall') { r.nx = e.nx; r.nz = e.nz; r.hw = e.hw; r.h = e.h; }
   return r;
 }

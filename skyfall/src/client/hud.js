@@ -116,10 +116,41 @@ export class HUD {
     setTimeout(() => d.remove(), 7000);
   }
 
-  announce(text, dur = 3) {
-    this.el.announce.textContent = text;
-    this.el.announce.style.opacity = 1;
+  // big centre call-out; slams in (re-triggered animation) with an optional coloured subtitle
+  announce(text, dur = 3, sub = '', color = '') {
+    const a = this.el.announce;
+    a.innerHTML = '';
+    const t = document.createElement('div');
+    t.className = 'at';
+    t.textContent = text;
+    if (color) t.style.color = color;
+    a.appendChild(t);
+    if (sub) {
+      const s = document.createElement('div');
+      s.className = 'as';
+      s.innerHTML = sub;
+      a.appendChild(s);
+    }
+    a.classList.remove('slam');
+    void a.offsetWidth;
+    a.classList.add('slam');
+    a.style.opacity = 1;
     this.announceT = dur;
+  }
+
+  // zone call-out under the compass when entering a named POI
+  zone(name, label, accent) {
+    let z = document.getElementById('zonecall');
+    if (!z) {
+      z = document.createElement('div');
+      z.id = 'zonecall';
+      this.el.announce.parentNode.appendChild(z);
+    }
+    z.style.setProperty('--zc', accent || '#ffd23f');
+    z.innerHTML = `<small>${label}</small><b>${name}</b>`;
+    z.classList.remove('in');
+    void z.offsetWidth;
+    z.classList.add('in');
   }
 
   toast(text) {
