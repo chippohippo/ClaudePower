@@ -40,7 +40,7 @@ export const FEEL = {
   mix: {
     gunLocal: 0.95,
     gunTailLocal: 0.55,
-    gunRemote: 1.0,
+    gunRemote: 0.85,
     hit: 0.9,
     hitHead: 1.0,
     shieldCrack: 0.65,

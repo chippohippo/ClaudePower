@@ -508,6 +508,7 @@ export class AudioEngine {
       const p = ctx.createPanner();
       p.panningModel = 'HRTF'; p.distanceModel = 'inverse';
       p.refDistance = opts.ref || 4; p.rolloffFactor = opts.rolloff ?? 1.1; p.maxDistance = 3000;
+      if (opts.manualFalloff) p.rolloffFactor = 0; // caller already applied its own distance curve to vol
       if (p.positionX) { p.positionX.value = pos.x; p.positionY.value = pos.y; p.positionZ.value = pos.z; }
       else p.setPosition(pos.x, pos.y, pos.z);
       g.connect(p);
@@ -531,12 +532,20 @@ export class AudioEngine {
       if (opts.tail) this.play('guntail_' + weaponId, null, { vol: FEEL.mix.gunTailLocal, var: 0.03, reverb: 0.3 });
       return;
     }
+    // Distance model (manual, so near and far layers share one curve): roughly -6 dB per doubling
+    // past 10 m with a little extra air loss, so a fight 300 m away is a faint, dull pop rather than a
+    // shot in your ear. The far layer is a muffled, reverberant thump that takes over past ~60 m.
     const d = Math.hypot(pos.x - this.listener.x, pos.y - this.listener.y, pos.z - this.listener.z);
-    const delay = Math.min(1.8, d / 343);
+    if (d > 650) return;
+    const delay = Math.min(1.9, d / 343);
     const occ = opts.occluded;
-    if (d < 90) this.play('gun_' + weaponId, pos, { vol: FEEL.mix.gunRemote * (d < 60 ? 1 : (90 - d) / 30), var: 0.04, reverb: 0.25, ref: 7, rolloff: 0.9, delay, occluded: occ });
-    if (d < 70 && opts.tail) this.play('guntail_' + weaponId, pos, { vol: 0.5, ref: 10, rolloff: 0.7, delay, occluded: occ });
-    if (d > 40) this.play('gund_' + weaponId, pos, { vol: Math.min(1, (d - 40) / 50) * 0.95, var: 0.05, ref: 45, rolloff: 0.55, delay, lp: Math.max(500, 3000 - d * 4) });
+    const fall = Math.min(1, 10 / Math.max(d, 10)) * Math.exp(-d / 900);
+    const nearMix = d < 45 ? 1 : d < 110 ? (110 - d) / 65 : 0;
+    const farMix = d < 35 ? 0 : d < 90 ? (d - 35) / 55 : 1;
+    const common = { delay, occluded: occ, manualFalloff: true };
+    if (nearMix > 0) this.play('gun_' + weaponId, pos, { ...common, vol: FEEL.mix.gunRemote * fall * nearMix, var: 0.04, reverb: 0.2 + Math.min(0.3, d / 300) });
+    if (nearMix > 0.5 && opts.tail) this.play('guntail_' + weaponId, pos, { ...common, vol: 0.45 * fall * nearMix, var: 0.03 });
+    if (farMix > 0) this.play('gund_' + weaponId, pos, { ...common, vol: 0.75 * fall * farMix, var: 0.06, reverb: 0.45, lp: Math.max(380, 2600 - d * 5.5) });
   }
 
   loop(id, name, vol, rate = 1, pos = null) {
