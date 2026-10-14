@@ -61,8 +61,8 @@ export function addStack(p, key, n, tier = 0) {
 }
 
 function attachmentFits(weapon, attId) {
-  const a = ATTACHMENTS[attId];
-  return weaponSlots(WEAPONS[weapon.id], CLASS_SLOTS).includes(a.slot);
+  const a = ATTACHMENTS[attId], def = WEAPONS[weapon.id];
+  return weaponSlots(def, CLASS_SLOTS).includes(a.slot) && (!a.ammo || a.ammo === def.ammo);
 }
 
 // Try to attach attachment (attId, level) to weapons. Returns the replaced attachment or true if attached, false if not.
@@ -97,7 +97,8 @@ export function pickup(p, wi) {
     if (old) {
       // move attachments from old weapon to new where compatible
       for (const k of ['mag', 'barrel', 'stock']) {
-        if (old.att[k] && weaponSlots(WEAPONS[nw.id], CLASS_SLOTS).includes(k) && old.att[k] > (nw.att[k] || 0)) {
+        const sameAmmo = k !== 'mag' || WEAPONS[old.id].ammo === WEAPONS[nw.id].ammo;
+        if (old.att[k] && sameAmmo && weaponSlots(WEAPONS[nw.id], CLASS_SLOTS).includes(k) && old.att[k] > (nw.att[k] || 0)) {
           nw.att[k] = old.att[k];
           old.att[k] = 0;
         }

@@ -1,7 +1,7 @@
 // Loot/armor/respawn rules: empty-handed white-armor drop, no floor body armor, guns spawn with
 // ammo, evo points from damage and healing, and respawns that keep guns + armor level with low ammo.
 import { Match } from '../src/sim/match.js';
-import { makeWeapon } from '../src/sim/inventory.js';
+import { makeWeapon, pickup } from '../src/sim/inventory.js';
 import { SHIELD_TIERS, EVO_THRESHOLDS } from '../src/shared/constants.js';
 import { WEAPONS } from '../src/shared/weapons.js';
 import { buildMap } from '../src/shared/map.js';
@@ -53,5 +53,12 @@ const ammo = v.inv.filter((s) => s.item.startsWith('a:')).reduce((s, x) => s + x
 check('respawn keeps weapons', v.weapons[0]?.id === 'viper' && v.weapons[1]?.id === 'talon' && v.weapons[0].tier === 2);
 check('respawn keeps armor level', v.armor === 3 && v.shield === SHIELD_TIERS[3]);
 check('respawn has little ammo', ammo > 0 && ammo <= 40, `${ammo} rounds in reserve`);
+// ammo-specific mags
+const t = m.list[2];
+t.weapons = [makeWeapon('viper', 0), null]; t.inv = []; t.active = 0;
+pickup(t, { item: 'x:mag_light', n: 1, tier: 2 });
+check('light mag does not fit the Raptor (sniper ammo)', t.weapons[0].att.mag === 0);
+pickup(t, { item: 'x:mag_sniper', n: 1, tier: 2 });
+check('sniper mag fits the Raptor (8 rounds)', t.weapons[0].att.mag === 2);
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

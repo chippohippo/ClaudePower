@@ -19,7 +19,11 @@ export const GRENADES = {
 };
 
 export const ATTACHMENTS = {
-  mag: { name: 'Extended Mag', slot: 'mag', levels: 3 },
+  // magazines are ammo-specific, like Apex: a light mag only fits light-ammo guns
+  mag_light: { name: 'Extended Light Mag', slot: 'mag', levels: 3, ammo: 'light' },
+  mag_heavy: { name: 'Extended Heavy Mag', slot: 'mag', levels: 3, ammo: 'heavy' },
+  mag_energy: { name: 'Extended Energy Mag', slot: 'mag', levels: 3, ammo: 'energy' },
+  mag_sniper: { name: 'Extended Sniper Mag', slot: 'mag', levels: 3, ammo: 'sniper' },
   barrel: { name: 'Recoil Compensator', slot: 'barrel', levels: 3, recoilMul: [1, 0.88, 0.8, 0.72] },
   stock: { name: 'Tactical Stock', slot: 'stock', levels: 3, handling: [1, 0.85, 0.75, 0.65] },
   optic1: { name: '1x Holo Sight', slot: 'optic', zoom: 1.25 },
@@ -111,7 +115,7 @@ export function rollLoot(rng, zoneTier) {
   if (r < 0.79) return { item: 'g:' + rng.pick(['frag', 'frag', 'arc']), n: 1, tier: 0 };
   if (r < 0.85) return { item: 'helmet', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
   if (r < 0.9) return { item: 'pack', n: 1, tier: Math.min(3, 1 + Math.floor(tierRoll() * 0.7)) };
-  const att = rng.pick(['mag', 'mag', 'barrel', 'stock', 'optic1', 'optic2', 'optic3']);
+  const att = rng.pick(['mag_light', 'mag_light', 'mag_heavy', 'mag_heavy', 'mag_energy', 'mag_sniper', 'barrel', 'stock', 'optic1', 'optic2', 'optic3']);
   const lv = ATTACHMENTS[att].levels ? Math.min(3, 1 + Math.floor(tierRoll() * 0.8)) : 0;
   return { item: 'x:' + att, n: 1, tier: lv };
 }

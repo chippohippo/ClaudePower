@@ -226,7 +226,11 @@ export class Match {
     let cx = 0, cz = 0;
     for (let i = 0; i < 400; i++) {
       const x = this.rng.range(-500, 500), z = this.rng.range(-500, 500);
-      if (!this.world.query(x - 30, z - 45, x + 30, z + 15, this.tmp).length) { cx = x; cz = z; break; }
+      if (this.world.query(x - 30, z - 45, x + 30, z + 15, this.tmp).length) continue;
+      // also needs gentle ground so dummies and the rack sit at the player's eye level
+      const T = this.world.terrain, h0 = T ? T.height(x, z) : 0;
+      if (T && [[-30, -45], [30, -45], [-30, 15], [30, 15], [0, -25]].some(([ox, oz]) => Math.abs(T.height(x + ox, z + oz) - h0) > 3)) continue;
+      cx = x; cz = z; break;
     }
     this.rangeSpot = { x: cx, z: cz };
     let i = 0;
@@ -235,7 +239,7 @@ export class Match {
       p.ms.mode = 'ground';
       p.ms.onGround = false;
       if (!p.isBot) {
-        p.ms.x = cx; p.ms.y = 2; p.ms.z = cz;
+        p.ms.x = cx; p.ms.y = this.world.groundAt(cx, cz, 999, this.tmp) + 0.05; p.ms.z = cz;
         p.armor = 3; p.shield = 100; p.helmet = 2; p.pack = 3;
         p.ultCd = 0;
         p.inv = [
@@ -249,7 +253,7 @@ export class Match {
         // dummies in a fan in front of the player
         const a = (i - 5) * 0.16, d = 14 + (i % 4) * 9;
         p.home = { x: cx + Math.sin(a) * d, z: cz - Math.cos(a) * d };
-        p.ms.x = p.home.x; p.ms.z = p.home.z; p.ms.y = 2;
+        p.ms.x = p.home.x; p.ms.z = p.home.z; p.ms.y = this.world.groundAt(p.home.x, p.home.z, 999, this.tmp) + 0.05;
         p.armor = 1 + (i % 3); p.shield = SHIELD_TIERS[p.armor];
         p.dummy = true;
         i++;
@@ -258,10 +262,10 @@ export class Match {
     // weapon rack: every gun at purple tier
     let k = 0;
     for (const id of Object.keys(WEAPONS)) {
-      this._addLoot({ item: 'w:' + id, n: 1, tier: 2 }, cx - 9 + k * 2, 0.05, cz + 4);
+      this._addLoot({ item: 'w:' + id, n: 1, tier: 2 }, cx - 9 + k * 2, this.world.groundAt(cx - 9 + k * 2, cz + 4, 999, this.tmp) + 0.05, cz + 4);
       k++;
     }
-    for (const it of ['x:optic2', 'x:optic3', 'x:barrel', 'x:stock', 'x:mag']) this._addLoot({ item: it, n: 1, tier: 3 }, cx - 9 + k++ * 2, 0.05, cz + 4);
+    for (const it of ['x:optic2', 'x:optic3', 'x:barrel', 'x:stock', 'x:mag_light', 'x:mag_heavy', 'x:mag_sniper']) { const lx = cx - 9 + k++ * 2; this._addLoot({ item: it, n: 1, tier: 3 }, lx, this.world.groundAt(lx, cz + 4, 999, this.tmp) + 0.05, cz + 4); }
     this.ring.r = 5000; this.ring.nr = 5000; this.ring.state = 'final';
   }
 
@@ -1248,9 +1252,9 @@ export class Match {
     p.armor = p.dummy ? 1 + (p.id % 3) : 3; p.shield = SHIELD_TIERS[p.armor];
     p.status = {};
     p.ms.downed = 0;
-    if (p.home) { p.ms.x = p.home.x; p.ms.z = p.home.z; p.ms.y = 1; }
+    if (p.home) { p.ms.x = p.home.x; p.ms.z = p.home.z; p.ms.y = this.world.groundAt(p.home.x, p.home.z, 999, this.tmp) + 0.05; }
     else {
-      p.ms.x = this.rangeSpot.x; p.ms.z = this.rangeSpot.z; p.ms.y = 2;
+      p.ms.x = this.rangeSpot.x; p.ms.z = this.rangeSpot.z; p.ms.y = this.world.groundAt(p.ms.x, p.ms.z, 999, this.tmp) + 0.05;
       p.weapons = [makeWeapon('talon', 1), makeWeapon('breacher', 1)];
       p.inv = [{ item: 'a:light', n: 60, tier: 0 }, { item: 'a:shotgun', n: 16, tier: 0 }, { item: 'a:heavy', n: 60, tier: 0 }];
       p.helmet = 2; p.pack = 3;
