@@ -1,0 +1,38 @@
+<!doctype html><html><body style="margin:0;background:#9aa"><script type="module">
+// Real ModelAvatar (state machine + procedural pose layer) driven through movement scenarios.
+// ?l=<legend>&s=idle,run,sprint,crouch,crouchIdle,slide,jump,land,mantle,downed,hit,reload&w=talon
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+import { createAvatar } from '/src/client/modelavatar.js';
+await assets.load();
+const q = new URLSearchParams(location.search), legend = q.get('l') || 'halo', weapon = q.get('w') || 'talon';
+const states = (q.get('s') || 'idle,walk,run,sprint,crouchIdle,crouch,slide,jump,land,mantle,downed,hit').split(',');
+const SC = {
+  idle: {}, walk: { v: 1.6 }, run: { v: 4.6 }, sprint: { v: 7.4 }, ads: { v: 2.7, pitch: 0.2 },
+  crouchIdle: { crouch: 1 }, crouch: { crouch: 1, v: 2.4 }, slide: { fl: 2, v: 9, crouch: 1 },
+  jump: { fl: 4, v: 5, pre: 0.6 }, land: { fl: 4, v: 0, pre: 0.6, then: { fl: 0 }, after: 0.2 }, mantle: { fl: 4 | 512, v: 2, t: 0.18 },
+  downed: { fl: 1, t: 1.2 }, hit: { v: 4.6, hit: 0.1 }, reload: { fl: 128, t: 0.6 }, aimUp: { pitch: 0.8 }, aimDown: { pitch: -0.7 },
+  skydive: { fl: 32 | 4, v: 25, pitch: -0.5 }, heal: { fl: 64, t: 0.7 }, revive: { fl: 1024 },
+};
+const W = 1600, H = 900, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
+r.setScissorTest(true); r.shadowMap.enabled = true;
+const cols = Math.min(6, states.length), rows = Math.ceil(states.length / cols), cw = W / cols, ch = H / rows;
+for (const [i, st] of states.entries()) {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color('#9aa6b0');
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 2.2)); const d = new THREE.DirectionalLight(0xffffff, 2.2); d.position.set(2, 4, 3); sc.add(d);
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshStandardMaterial({ color: '#6c7a70' })); g.rotation.x = -Math.PI / 2; sc.add(g);
+  const av = createAvatar(sc, { legend, name: legend }, false);
+  const S = SC[st] || {};
+  const mk = (o) => ({ x: 0, y: 0, z: 0, yaw: 0, pitch: o.pitch || 0, fl: o.fl || 0, crouch: o.crouch || 0, weapon, vx: 0, vz: -(o.v || 0), revealed: false });
+  let t = 0; const dt = 1 / 60;
+  if (S.pre) { for (let k = 0; k < 6; k++) { av.update(dt, mk({ v: S.v }), t += dt); } }
+  const total = S.t ?? (S.pre || 1.0);
+  for (; t < total; t += dt) { if (S.hit && Math.abs(t - (total - S.hit)) < dt / 2) av.knockT = 0; av.update(dt, mk(S), t); }
+  if (S.then) for (let k = 0; k < S.after / dt; k++) av.update(dt, mk(S.then), t += dt);
+  av.root.position.set(0, 0, 0); av.root.updateMatrixWorld(true);
+  const cam = new THREE.PerspectiveCamera(32, cw / ch, 0.1, 50); cam.position.set(3.0, 1.4, -2.2); cam.lookAt(0, 0.85, 0);
+  const x = (i % cols) * cw, y = H - (Math.floor(i / cols) + 1) * ch; r.setViewport(x, y, cw, ch); r.setScissor(x, y, cw, ch); r.render(sc, cam);
+  const lbl = document.createElement('div'); lbl.textContent = st + ' → ' + (av.state || '?') + (av.gun.visible ? ' [gun]' : '') + (av.layer ? '' : ' (no IK)'); Object.assign(lbl.style, { position: 'absolute', left: x + 6 + 'px', top: (H - y - ch) + 4 + 'px', font: '14px sans-serif' }); document.body.appendChild(lbl);
+}
+window.done = true;
+</script></body></html>

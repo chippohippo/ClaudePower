@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { BODY, bodyPose } from '../shared/hitbox.js';
 
-const clean = (n) => String(n || '').replace(/^mixamorig[:_]?/i, '').toLowerCase();
+const clean = (n) => String(n || '').replace(/^mixamorig[:_]?/i, '').replace(/_\d+$/, '').toLowerCase(); // Sketchfab adds _NN
 const RX = {
   handL: /^(left.?hand|hand[._]?l)$/, handR: /^(right.?hand|hand[._]?r)$/,
   footL: /^(left.?foot|foot[._]?l)$/, footR: /^(right.?foot|foot[._]?r)$/,
@@ -132,7 +132,7 @@ export class PoseLayer {
     // 2. crouch / slide / downed: pelvis drop + upper-body lean (shared with the hitbox)
     const P = bodyPose(o.downed ? 'downed' : o.slide ? 'slide' : 'stand', o.crouch);
     this.drop += (P.drop - this.drop) * k;
-    this.lean += (P.lean - this.lean) * k;
+    this.lean += (P.lean * (o.clipLean ?? 1) - this.lean) * k;
     // feet planted where the clip put them (before the drop), or posed explicitly
     const feet = [R.legL, R.legR].map((L) => L.end.getWorldPosition(new THREE.Vector3()));
     const posed = o.downed || o.slide;
@@ -160,7 +160,7 @@ export class PoseLayer {
 
     // 3. aim pitch through the spine (the rest goes into the gun)
     const pitch = THREE.MathUtils.clamp(o.pitch, -1.1, 1.1);
-    const spinePitch = o.downed || o.skydive ? 0 : pitch * 0.5 + o.kick * 0.1;
+    const spinePitch = o.downed || o.skydive || o.freeArms ? 0 : pitch * 0.5 + o.kick * 0.1;
     if (Math.abs(spinePitch) > 1e-3) {
       const top = R.spine.slice(1);
       for (const b of top.length ? top : R.spine) { _q.setFromAxisAngle(rightW, spinePitch / (top.length || R.spine.length)); rotateWorld(b, _q); }
@@ -169,7 +169,8 @@ export class PoseLayer {
     // 4. arms
     const w = o.size;
     const g = this.gun;
-    g.visible = o.armed && !o.downed && !o.skydive && !o.zip;
+    g.visible = o.armed && !o.downed && !o.skydive && !o.zip && !o.freeArms;
+    if (o.freeArms) return; // the clip's own arms: climbing hands, skydive spread, using a heal item
     if (o.skydive) {
       const spread = 0.5 + 0.5 * (o.dive || 0);
       this._arm(R.armL, this.W(-0.72, 1.42 - spread * 0.1, 0.12), this.W(-0.4, 1.2, 0.5));

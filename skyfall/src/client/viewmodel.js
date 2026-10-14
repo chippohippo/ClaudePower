@@ -14,7 +14,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { WEAPONS } from '../shared/weapons.js';
 import { RARITY } from '../shared/items.js';
 import { STYLE, toonify, addHulls } from './comic.js';
-import { assets } from './assets.js';
+import { assets, GUN_CLASS_LEN } from './assets.js';
 import { buildProceduralGun, setGunAmmo } from './gunmodels.js';
 export { setGunAmmo };
 
@@ -67,8 +67,7 @@ export function buildGun(id, tier = 0, att = null) {
   let muzzleZ, barrelY = 0.02, topY = 0.07, len;
   // imported model (public/assets): sized per class, rear of the gun at the grip, barrel along -Z.
   // Muzzle / sight heights come from the manifest or the model's bounds; optics still mount on top.
-  const CLASS_LEN = { Pistol: 0.3, SMG: 0.55, AR: 0.78, LMG: 0.95, Shotgun: 0.85, Marksman: 1.0, Sniper: 1.2 };
-  const imp = assets.gun(id, CLASS_LEN[cls]);
+  const imp = assets.gun(id, GUN_CLASS_LEN[cls]);
   let imported = false;
   if (imp) {
     const model = imp.root, def = imp.def;

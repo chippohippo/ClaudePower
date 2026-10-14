@@ -23,6 +23,16 @@ export const CLIP_PATTERNS = {
   hit: [/hit_?a$/i, /hit.?react/i, /^hit/i, /damage/i],
   heal: [/use_item/i, /interact/i, /^use/i, /pickup/i],
   zip: [/hang/i, /climb/i, /jump_?idle/i],
+  // optional extras (UAL): faster locomotion, transitions and reactions. Missing ones fall back.
+  sprint: [/^sprint/i, /fast.?run/i],
+  crouchIdle: [/crouch.?idle/i],
+  mantle: [/climb.?up/i, /vault/i, /mantle/i],
+  jumpStart: [/jump_?start/i, /jump.?up$/i],
+  land: [/jump_?land/i, /^land/i],
+  slideIn: [/slide_?start/i],
+  knock: [/hit_?knock/i, /knock.?back/i],
+  roll: [/^roll/i],
+  revive: [/interact/i, /pickup/i],
 };
 
 // Bare clip name: strips armature prefixes like "CharacterArmature|Run" or "mixamo.com|Run".

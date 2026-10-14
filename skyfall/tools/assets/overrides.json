@@ -101,7 +101,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "jolt": {
@@ -121,7 +130,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "phantom": {
@@ -141,7 +159,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "halo": {
@@ -161,7 +188,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         },
         "tintAmount": 0.2
       },
@@ -182,7 +218,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         },
         "tintAmount": 0.2
       },
@@ -203,7 +248,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "miasma": {
@@ -223,7 +277,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "volt": {
@@ -243,7 +306,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       },
       "spectre": {
@@ -263,7 +335,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         },
         "tintAmount": 0.2
       },
@@ -284,7 +365,16 @@
           "death": "Death01",
           "hit": "Hit_Chest",
           "heal": "Consume",
-          "zip": "Jump_Loop"
+          "zip": "Jump_Loop",
+          "sprint": "Sprint_Loop",
+          "crouchIdle": "Crouch_Idle_Loop",
+          "mantle": "ClimbUp_1m",
+          "jumpStart": "Jump_Start",
+          "land": "Jump_Land",
+          "slideIn": "Slide_Start",
+          "knock": "Hit_Knockback",
+          "roll": "Roll",
+          "revive": "Interact"
         }
       }
     }

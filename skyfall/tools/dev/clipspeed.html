@@ -1,0 +1,21 @@
+<!doctype html><html><body><script type="module">
+// Natural ground speed of each locomotion clip: how fast the planted foot slides back (m/s).
+import * as THREE from 'three';
+import { assets } from '/src/client/assets.js';
+await assets.load();
+const out = {};
+const c = assets.character(new URLSearchParams(location.search).get('l') || 'halo');
+const all = assets.chars.get(new URLSearchParams(location.search).get('l') || 'halo');
+const bones=[]; c.model.traverse((o)=>{if(o.isBone)bones.push(o.name)}); window.bones=bones; let foot = null; c.model.traverse((o) => { if (o.isBone && /^(mixamorig)?:?(leftfoot|foot_?l)(_\d+)?$/i.test(o.name) && !foot) foot = o; });
+for (const clip of all.clips) {
+  const m = new THREE.AnimationMixer(c.model); const a = m.clipAction(clip); a.play();
+  const n = 60; let best = 0; out._foot = foot && foot.name; const zs = [];
+  for (let i = 0; i <= n; i++) { m.setTime(clip.duration * i / n); c.root.updateMatrixWorld(true); const p = foot.getWorldPosition(new THREE.Vector3()); zs.push([p.y, p.z]); }
+  // ground-contact samples: lowest 40% of heights; speed = z travel / time over contact
+  const ys = zs.map((v) => v[0]).sort((x, y) => x - y), thr = ys[Math.floor(ys.length * 0.4)];
+  let tr = 0, tt = 0; for (let i = 1; i < zs.length; i++) if (zs[i][0] <= thr && zs[i - 1][0] <= thr) { tr += Math.abs(zs[i][1] - zs[i - 1][1]); tt += clip.duration / n; } best = tt ? tr / tt : 0;
+  out[clip.name] = { dur: +clip.duration.toFixed(2), speed: +best.toFixed(2) };
+  a.stop(); m.uncacheRoot(c.model);
+}
+window.out = out; window.done = true;
+</script></body></html>

@@ -23,6 +23,8 @@ import { gunFacing } from '../shared/gunfacing.js';
 const BASE = (import.meta.env && import.meta.env.BASE_URL ? import.meta.env.BASE_URL : '/') + 'assets/';
 
 export { CLIP_PATTERNS } from '../shared/clips.js';
+// Real-world gun lengths per class (m), shared by the first-person viewmodel and third-person avatars.
+export const GUN_CLASS_LEN = { Pistol: 0.26, SMG: 0.55, AR: 0.82, LMG: 0.98, Shotgun: 0.88, Marksman: 1.0, Sniper: 1.2 };
 
 // Convert any imported material to MeshStandardMaterial so the PBR / toon pipeline can use it.
 function toStandard(m) {
