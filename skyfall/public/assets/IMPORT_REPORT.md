@@ -1,6 +1,6 @@
 # SKYFALL asset import
 
-source: assets-src — 1823 files, 0 zips extracted, 285 models
+source: assets-src — 1829 files, 0 zips extracted, 286 models
 
 rig kaykit-adventurers/Barbarian.glb: head 43% of height, build 0.451  — stylised, skipped (realistic rigs available; --stylized keeps them)
 rig kaykit-adventurers/Knight.glb: head 46% of height, build 0.439  — stylised, skipped (realistic rigs available; --stylized keeps them)
@@ -11,24 +11,27 @@ rig kaykit-skeletons/Skeleton_Mage.glb: head 43% of height, build 0.421  — sty
 rig kaykit-skeletons/Skeleton_Minion.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
 rig kaykit-skeletons/Skeleton_Rogue.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
 rig kaykit-skeletons/Skeleton_Warrior.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig sketchfab-vanguard/Vanguard.gltf: head 16% of height, build 0.242
 rig threejs-mixamo/Michelle.glb: head 21% of height, build 0.233
 rig threejs-mixamo/Soldier.glb: head 16% of height, build 0.242
 rig threejs-mixamo/Xbot.glb: head 17% of height, build 0.177
 characters.default   ← threejs-mixamo/Soldier.glb (4 clips)
 characters.jolt     ← threejs-mixamo/Xbot.glb  [DPS]
 characters.phantom  ← threejs-mixamo/Michelle.glb  [DPS]
-characters.halo     ← threejs-mixamo/Michelle.glb  [SUPPORT]
-characters.bastion  ← threejs-mixamo/Soldier.glb  [TANK]
+characters.halo     ← sketchfab-vanguard/Vanguard.gltf  [SUPPORT, model reads as tank]
+characters.bastion  ← sketchfab-vanguard/Vanguard.gltf  [TANK]
 characters.echo     ← threejs-mixamo/Soldier.glb  [SUPPORT, model reads as tank]
-characters.miasma   ← threejs-mixamo/Michelle.glb  [TANK]
-characters.volt     ← threejs-mixamo/Xbot.glb  [SUPPORT]
-characters.spectre  ← threejs-mixamo/Soldier.glb  [DPS, model reads as tank]
-characters.kodiak   ← threejs-mixamo/Xbot.glb  [TANK]
-  shared animation library animations/rig0_threejs_mixamo_anims.glb: 3 clips for 4 characters
-  shared animation library animations/rig1_threejs_mixamo_anims.glb: 4 clips for 3 characters
+characters.miasma   ← threejs-mixamo/Soldier.glb  [TANK]
+characters.volt     ← threejs-mixamo/Michelle.glb  [SUPPORT]
+characters.spectre  ← sketchfab-vanguard/Vanguard.gltf  [DPS, model reads as tank]
+characters.kodiak   ← threejs-mixamo/Michelle.glb  [TANK]
+  shared animation library animations/rig0_threejs_mixamo_anims.glb: 3 clips for 3 characters
   phantom: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
-  halo: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
-  miasma: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
+  ! halo: no locomotion clips and no compatible rig to borrow from
+  ! bastion: no locomotion clips and no compatible rig to borrow from
+  volt: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
+  ! spectre: no locomotion clips and no compatible rig to borrow from
+  kodiak: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
   role coverage: 3 dps / 3 support / 3 tank (Sixes needs 2/2/2 distinct)
 weapons.volt     ← kenney-starter-kit-fps/models/blaster-repeater.glb  [SMG for SMG; muzzle +z, confidence 0.89]
 weapons.hornet   ← kenney-starter-kit-fps/models/blaster-repeater.glb  [SMG for SMG; muzzle +z, confidence 0.89]
@@ -54,4 +57,5 @@ sounds.draw          ← kenney-starter-kit-fps/sounds/weapon_change.ogg
 
 overrides: applied tools/assets/overrides.json
 
-optimised models: 122.1 MB → 2.2 MB (meshopt + quantize, unused clips and held props removed)
+optimised models: 126.8 MB → 2.7 MB (meshopt + quantize, unused clips and held props removed)
+removed 2 stale files from earlier imports

@@ -37,6 +37,21 @@ function reticleTexture(kind) {
 }
 const RETICLES = {};
 
+// Barrel height of an imported gun: the mean height of the vertices in its front-most 4 cm.
+function muzzleHeight(model, box) {
+  const v = new THREE.Vector3();
+  let sum = 0, n = 0;
+  model.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    const p = o.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+      if (v.z < box.min.z + 0.04) { sum += v.y; n++; }
+    }
+  });
+  return n ? sum / n : null;
+}
+
 export function buildGun(id, tier = 0, att = null) {
   const w = WEAPONS[id];
   att = att || { mag: 0, barrel: 0, stock: 0, optic: null };
@@ -60,11 +75,15 @@ export function buildGun(id, tier = 0, att = null) {
     model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
-    model.position.z += 0.14 - box.max.z;
+    // with a known grip position the pistol grip sits at the origin (in the hand), else the rear does
+    const shift = def.grip != null ? -(box.min.z + def.grip * size.z) : 0.14 - box.max.z; // grip / fore: fraction of the length from the muzzle
+    model.position.z += shift;
     g.add(model);
     len = size.z;
-    muzzleZ = def.muzzle ? def.muzzle[2] : 0.14 - size.z;
-    barrelY = def.muzzle ? def.muzzle[1] : (box.min.y + box.max.y) / 2 + size.y * 0.15;
+    muzzleZ = def.muzzle ? def.muzzle[2] : box.min.z + shift;
+    if (def.fore != null) g.userData.fore = Math.max(0.05, -(box.min.z + def.fore * size.z + shift));
+    if (def.scopeY != null) g.userData.scopeY = box.min.y + def.scopeY * size.y;
+    barrelY = def.muzzle ? def.muzzle[1] : muzzleHeight(model, box) ?? (box.min.y + box.max.y) / 2 + size.y * 0.15;
     topY = def.sightY ?? box.max.y;
     imported = true;
   } else {
@@ -86,7 +105,7 @@ export function buildGun(id, tier = 0, att = null) {
 
   // sights: optic if attached (or sniper default scope), otherwise iron sights
   let sightY;
-  const optic = att.optic || (cls === 'Sniper' ? 'optic3' : null);
+  const optic = att.optic || (cls === 'Sniper' && g.userData.scopeY == null ? 'optic3' : null);
   if (optic === 'optic3') {
     cyl(0.038, 0.3, dark, 0, topY + 0.065, -0.12, 14);
     cyl(0.047, 0.05, body, 0, topY + 0.065, -0.29, 14);
@@ -108,7 +127,7 @@ export function buildGun(id, tier = 0, att = null) {
     g.add(glass);
     sightY = topY + fh / 2;
   } else if (imported) {
-    sightY = topY; // the model's own iron sights / top rail
+    sightY = g.userData.scopeY ?? topY; // the model's own scope, iron sights or top rail
   } else {
     // iron sights: rear notch (two ears) + front post
     add(B(0.05, 0.012, 0.03), dark, 0, topY + 0.006, 0.02);

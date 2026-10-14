@@ -457,11 +457,11 @@ if (!DRY) {
   if (removed) log(`removed ${removed} stale files from earlier imports`);
   const SRCS = [
     [/quaternius/i, 'Quaternius (quaternius.com) — CC0'], [/kenney/i, 'Kenney (kenney.nl) — CC0'], [/polyhaven|poly.?haven/i, 'Poly Haven (polyhaven.com) — CC0'],
-    [/ambientcg/i, 'ambientCG (ambientcg.com) — CC0'], [/3dmodelscc0/i, '3dmodelscc0 (itch.io) — CC0'], [/wrad|wriks/i, 'WRAD ARMS by wriks (itch.io) — see its itch.io page for the license'],
+    [/ambientcg/i, 'ambientCG (ambientcg.com) — CC0'], [/sketchfab-vanguard|Vanguard/i, '"Futuristic Soldier" by Unlimited Studio (sketchfab.com/3d-models/futuristic-soldier-fa8424c793274645ad577ddca6fa0de7) — CC-BY-4.0'], [/fk-/i, 'Guns assembled from "Firearms_Kit _1.0 (CC0)" by britdawgmasterfunk (sketchfab.com/3d-models/firearms-kit--10-cc0-386f0582c28d4dff96da967f42ba20f7) — CC-BY-4.0 on Sketchfab'], [/3dmodelscc0/i, '3dmodelscc0 (itch.io) — CC0'], [/wrad|wriks/i, 'WRAD ARMS by wriks (itch.io) — see its itch.io page for the license'],
     [/kaykit|lousberg/i, 'KayKit by Kay Lousberg (kaylousberg.com) — CC0'], [/mixamo/i, 'Mixamo (Adobe) — Mixamo terms, not CC0'],
   ];
   const used = new Set();
-  for (const src of chosen.keys()) for (const [re, label] of SRCS) if (re.test(src)) used.add(label);
+  for (const src of [...chosen.keys(), ...(JSON.stringify(final).match(/fk-[a-z0-9]+/g) || [])]) for (const [re, label] of SRCS) if (re.test(src)) used.add(label);
   fs.writeFileSync(path.join(OUT, 'CREDITS.md'), `# Third-party assets\n\n${[...used].map((u) => `- ${u}`).join('\n') || '- (none yet)'}\n\nFiles and roles: see IMPORT_REPORT.md.\n`);
   fs.writeFileSync(path.join(OUT, 'IMPORT_REPORT.md'), report.join('\n') + '\n');
 }

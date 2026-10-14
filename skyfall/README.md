@@ -34,6 +34,11 @@ router, and shows the LAN and internet addresses friends join with. **FIRING RAN
 weapon and some strafing target dummies (**B** shows hitboxes). **CREATE PARTY** / **JOIN** puts friends in the same squad,
 and bots fill the rest of the lobby.
 
+**0.5.0 additions (real models):**
+- All 10 guns are now real 3D models assembled from the Firearms Kit parts: an M4-style carbine, a SCAR-style battle rifle, an MP5-style SMG, a bullpup, a belt-fed LMG, a pump shotgun, a DMR, a scoped bolt-action sniper and two pistols. Each one sits with its pistol grip in the hand and the support hand on its handguard. The sniper uses its own scope.
+- New character model: the Vanguard "Futuristic Soldier" (Mixamo rig) for Halo, Bastion and Spectre.
+- Credits are in `public/assets/CREDITS.md` (both packs are CC-BY-4.0). The assembler is in `tools/assets/gunkit/`.
+
 **0.4.0 additions (graphics pass):**
 - New default "Realistic" art style (comic ink/halftone is now optional in Settings): natural sky with clouds and sun disk, retuned sun/hemisphere lighting, 4096 shadows, screen-space ambient occlusion and a subtle vignette.
 - Detailed procedural gun models per class (receivers, vented handguards, curved mags/drums, rails, pumps, bolts, stocks, energy coils), muted gunmetal paint with weapon-colour inlays and rarity stripes, and a live ammo counter on the receiver.

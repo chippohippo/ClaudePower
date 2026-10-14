@@ -1,0 +1,35 @@
+<html><body style="margin:0;background:#888"><script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three'; import {GLTFLoader} from './jsm/loaders/GLTFLoader.js'; import {RoundedBoxGeometry} from './jsm/geometries/RoundedBoxGeometry.js'; import {GLTFExporter} from './jsm/exporters/GLTFExporter.js';
+const {RECIPES,MATS}=await import('./recipes.js?'+Date.now());
+const g=await new GLTFLoader().loadAsync('scene.gltf');const root=g.scene.getObjectByName('GLTF_SceneRootNode');
+const byName={};for(const c of root.children)byName[c.name]=c;
+const mats={};for(const [k,v] of Object.entries(MATS))mats[k]=new THREE.MeshStandardMaterial({...v,name:'gun_'+k});
+const box=o=>{o.updateMatrixWorld(true);return new THREE.Box3().setFromObject(o);};
+let meta;function build(id){meta={};const gun=new THREE.Group();gun.name=id;const keys={};
+ for(const [pn,mk,o] of RECIPES[id]){const src=pn==='#box'?new THREE.Mesh(new RoundedBoxGeometry(...o.size,2,Math.min(...o.size)*0.15)):byName[pn.replace(/\./g,'')];if(!src)throw new Error('no part '+pn);
+  const p=src.clone(true);p.position.set(0,0,0);p.rotation.set(0,0,0);p.scale.set(1,1,1);if(o.rot)p.rotation.set(...o.rot);if(o.s)p.scale.setScalar(o.s);
+  p.traverse(m=>{if(m.isMesh){m.material=mats[mk];}});const wrap=new THREE.Group();wrap.add(p);wrap.name=o.name||pn.replace(/[._]\w*$/,'');gun.add(wrap);
+  if(o.key!=='base'||Object.keys(keys).length){const r=keys[o.ref||'base'];const b=box(wrap);let dx=0,dy=0;
+   const X={front:r.max.x-b.min.x,behind:r.min.x-b.max.x,start:r.min.x-b.min.x,end:r.max.x-b.max.x,mid:(r.min.x+r.max.x-b.min.x-b.max.x)/2}[o.x||'mid'];
+   const Y={above:r.max.y-b.min.y,below:r.min.y-b.max.y,top:r.max.y-b.max.y,bottom:r.min.y-b.min.y,mid:(r.min.y+r.max.y-b.min.y-b.max.y)/2}[o.y||'mid'];
+   const Z=(r.min.z+r.max.z-b.min.z-b.max.z)/2;
+   const dir={front:-1,behind:1,above:-1,below:1};
+   wrap.position.set(X+(o.dx||0),Y+(o.dy||0),Z+(o.dz||0));}
+  if(o.hidden)wrap.visible=false;
+  const b=box(wrap);keys[o.key||pn]=b;if(o.grip)meta.grip=b;if(o.fore)meta.fore=b;if(o.name==='scope')meta.scope=b;if(o.key==='base')keys.base=b;}
+ return gun;}
+const ids=(new URLSearchParams(location.search).get('ids')||Object.keys(RECIPES).join(',')).split(',');
+const W=1800,H=1200,r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});r.setSize(W,H);document.body.appendChild(r.domElement);r.setScissorTest(true);r.setClearColor(0xa8aeb6);
+const cols=ids.length>4?4:ids.length,rows=Math.ceil(ids.length/cols),cw=W/cols,ch=H/rows;const labels=[];window.out={};
+const view=new URLSearchParams(location.search).get('view')||'side';
+for(let i=0;i<ids.length;i++){const gun=build(ids[i]);const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xdfe8ff,0x40362c,2.2));const d=new THREE.DirectionalLight(0xffffff,3);d.position.set(2,4,5);sc.add(d);sc.add(gun);if(view==='side'){const gb=box(gun);const gh=new THREE.GridHelper(40,80,0x335533,0x7a8a7a);gh.rotation.x=Math.PI/2;gh.position.z=-3;sc.add(gh);}
+ const b=box(gun);{const L=b.max.x-b.min.x,H=b.max.y-b.min.y;const fx=k=>meta[k]?+((b.max.x-(meta[k].min.x+meta[k].max.x)/2)/L).toFixed(3):undefined;window.meta=window.meta||{};window.meta[ids[i]]={grip:fx('grip'),fore:fx('fore'),scopeY:meta.scope?+(((meta.scope.min.y+meta.scope.max.y)/2-b.min.y)/H).toFixed(3):undefined};}const s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());const a=cw/ch;const m=Math.max(s.x/2/a*1.1,s.y*0.6)*1.05;
+ const cam=view==='side'?new THREE.OrthographicCamera(-m*a,m*a,m,-m,-100,100):new THREE.PerspectiveCamera(40,a,0.1,100);
+ if(view==='side'){cam.position.copy(c).add(new THREE.Vector3(0,0,10));}else{cam.position.copy(c).add(new THREE.Vector3(-s.x*0.7,s.x*0.25,s.x*0.75));}
+ cam.lookAt(c);cam.updateProjectionMatrix();const x=(i%cols)*cw,y=H-(Math.floor(i/cols)+1)*ch;r.setViewport(x,y,cw,ch);r.setScissor(x,y,cw,ch);r.render(sc,cam);labels.push([ids[i]+'  '+s.x.toFixed(2)+'x'+s.y.toFixed(2),x,H-y-ch]);
+ if(window.EXPORT||new URLSearchParams(location.search).get('export')){gun.position.sub(new THREE.Vector3(b.max.x,c.y,c.z));const w=new THREE.Group();w.add(gun);gun.rotation.y=Math.PI/2;w.name=ids[i];
+  const buf=await new GLTFExporter().parseAsync(w,{binary:true,onlyVisible:true});{const u=new Uint8Array(buf);let t='';for(let k=0;k<u.length;k+=32768)t+=String.fromCharCode.apply(null,u.subarray(k,k+32768));window.out[ids[i]]=btoa(t);}}}
+const cv=document.createElement('canvas');cv.width=W;cv.height=H;const c2=cv.getContext('2d');c2.drawImage(r.domElement,0,0);c2.font='18px sans-serif';c2.fillStyle='#000';for(const [n,x,y] of labels)c2.fillText(n,x+5,y+20);
+document.body.innerHTML='';document.body.appendChild(cv);window.done=true;
+</script></body></html>

@@ -11,5 +11,77 @@
     "  }",
     "Paths are relative to public/assets. Run `node tools/assets/import.mjs` again after editing."
   ],
-  "manifest": {}
+  "manifest": {
+    "weapons": {
+      "talon": {
+        "file": "weapons/fk-talon.glb",
+        "rotY": 0,
+        "archetype": "AR",
+        "grip": 0.614,
+        "fore": 0.35
+      },
+      "mauler": {
+        "file": "weapons/fk-mauler.glb",
+        "rotY": 0,
+        "archetype": "AR",
+        "grip": 0.6,
+        "fore": 0.3
+      },
+      "hornet": {
+        "file": "weapons/fk-hornet.glb",
+        "rotY": 0,
+        "archetype": "SMG",
+        "grip": 0.58,
+        "fore": 0.2
+      },
+      "volt": {
+        "file": "weapons/fk-volt.glb",
+        "rotY": 0,
+        "archetype": "SMG",
+        "grip": 0.85,
+        "fore": 0.3
+      },
+      "bulwark": {
+        "file": "weapons/fk-bulwark.glb",
+        "rotY": 0,
+        "archetype": "LMG",
+        "grip": 0.566,
+        "fore": 0.25
+      },
+      "breacher": {
+        "file": "weapons/fk-breacher.glb",
+        "rotY": 0,
+        "archetype": "Shotgun",
+        "grip": 0.637,
+        "fore": 0.21
+      },
+      "scout": {
+        "file": "weapons/fk-scout.glb",
+        "rotY": 0,
+        "archetype": "Marksman",
+        "grip": 0.77,
+        "fore": 0.39
+      },
+      "sentinel": {
+        "file": "weapons/fk-sentinel.glb",
+        "rotY": 0,
+        "archetype": "Sniper",
+        "grip": 0.735,
+        "fore": 0.4,
+        "scopeY": 0.842
+      },
+      "viper": {
+        "file": "weapons/fk-viper.glb",
+        "rotY": 0,
+        "archetype": "Revolver",
+        "grip": 0.87
+      },
+      "p20": {
+        "file": "weapons/fk-p20.glb",
+        "rotY": 0,
+        "archetype": "Pistol",
+        "grip": 0.88
+      }
+    }
+  }
 }

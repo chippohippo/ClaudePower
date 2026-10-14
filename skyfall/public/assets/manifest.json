@@ -37,29 +37,22 @@
       ]
     },
     "halo": {
-      "file": "characters/Michelle.glb",
+      "file": "characters/Vanguard.glb",
       "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "Ch03_Body"
-      ],
-      "role": "support",
-      "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
-      ]
-    },
-    "bastion": {
-      "file": "characters/Soldier.glb",
-      "height": 1.8,
-      "tintAmount": 0.3,
+      "tintAmount": 0.6,
       "tint": [
         "VanguardBodyMat"
       ],
-      "rotY": 0,
-      "role": "tank",
-      "animations": [
-        "animations/rig0_threejs_mixamo_anims.glb"
-      ]
+      "role": "support"
+    },
+    "bastion": {
+      "file": "characters/Vanguard.glb",
+      "height": 1.8,
+      "tintAmount": 0.6,
+      "tint": [
+        "VanguardBodyMat"
+      ],
+      "role": "tank"
     },
     "echo": {
       "file": "characters/Soldier.glb",
@@ -75,6 +68,40 @@
       ]
     },
     "miasma": {
+      "file": "characters/Soldier.glb",
+      "height": 1.8,
+      "tintAmount": 0.3,
+      "tint": [
+        "VanguardBodyMat"
+      ],
+      "rotY": 0,
+      "role": "tank",
+      "animations": [
+        "animations/rig0_threejs_mixamo_anims.glb"
+      ]
+    },
+    "volt": {
+      "file": "characters/Michelle.glb",
+      "height": 1.8,
+      "tintAmount": 0.3,
+      "tint": [
+        "Ch03_Body"
+      ],
+      "role": "support",
+      "animations": [
+        "animations/Xbot_anims.glb"
+      ]
+    },
+    "spectre": {
+      "file": "characters/Vanguard.glb",
+      "height": 1.8,
+      "tintAmount": 0.6,
+      "tint": [
+        "VanguardBodyMat"
+      ],
+      "role": "dps"
+    },
+    "kodiak": {
       "file": "characters/Michelle.glb",
       "height": 1.8,
       "tintAmount": 0.3,
@@ -83,67 +110,79 @@
       ],
       "role": "tank",
       "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
-      ]
-    },
-    "volt": {
-      "file": "characters/Xbot.glb",
-      "height": 1.8,
-      "tintAmount": 0.6,
-      "tint": [
-        "asdf1:Beta_HighLimbsGeoSG2"
-      ],
-      "role": "support",
-      "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
-      ]
-    },
-    "spectre": {
-      "file": "characters/Soldier.glb",
-      "height": 1.8,
-      "tintAmount": 0.3,
-      "tint": [
-        "VanguardBodyMat"
-      ],
-      "rotY": 0,
-      "role": "dps",
-      "animations": [
-        "animations/rig0_threejs_mixamo_anims.glb"
-      ]
-    },
-    "kodiak": {
-      "file": "characters/Xbot.glb",
-      "height": 1.8,
-      "tintAmount": 0.6,
-      "tint": [
-        "asdf1:Beta_HighLimbsGeoSG2"
-      ],
-      "role": "tank",
-      "animations": [
-        "animations/rig1_threejs_mixamo_anims.glb"
+        "animations/Xbot_anims.glb"
       ]
     }
   },
   "weapons": {
     "volt": {
-      "file": "weapons/blaster-repeater.glb",
-      "rotY": 3.1416,
-      "archetype": "SMG"
+      "file": "weapons/fk-volt.glb",
+      "rotY": 0,
+      "archetype": "SMG",
+      "grip": 0.85,
+      "fore": 0.3
     },
     "hornet": {
-      "file": "weapons/blaster-repeater.glb",
-      "rotY": 3.1416,
-      "archetype": "SMG"
+      "file": "weapons/fk-hornet.glb",
+      "rotY": 0,
+      "archetype": "SMG",
+      "grip": 0.58,
+      "fore": 0.2
     },
     "viper": {
-      "file": "weapons/blaster.glb",
-      "rotY": 3.1416,
-      "archetype": "Pistol"
+      "file": "weapons/fk-viper.glb",
+      "rotY": 0,
+      "archetype": "Revolver",
+      "grip": 0.87
     },
     "p20": {
-      "file": "weapons/blaster.glb",
-      "rotY": 3.1416,
-      "archetype": "Pistol"
+      "file": "weapons/fk-p20.glb",
+      "rotY": 0,
+      "archetype": "Pistol",
+      "grip": 0.88
+    },
+    "talon": {
+      "file": "weapons/fk-talon.glb",
+      "rotY": 0,
+      "archetype": "AR",
+      "grip": 0.614,
+      "fore": 0.35
+    },
+    "mauler": {
+      "file": "weapons/fk-mauler.glb",
+      "rotY": 0,
+      "archetype": "AR",
+      "grip": 0.6,
+      "fore": 0.3
+    },
+    "bulwark": {
+      "file": "weapons/fk-bulwark.glb",
+      "rotY": 0,
+      "archetype": "LMG",
+      "grip": 0.566,
+      "fore": 0.25
+    },
+    "breacher": {
+      "file": "weapons/fk-breacher.glb",
+      "rotY": 0,
+      "archetype": "Shotgun",
+      "grip": 0.637,
+      "fore": 0.21
+    },
+    "scout": {
+      "file": "weapons/fk-scout.glb",
+      "rotY": 0,
+      "archetype": "Marksman",
+      "grip": 0.77,
+      "fore": 0.39
+    },
+    "sentinel": {
+      "file": "weapons/fk-sentinel.glb",
+      "rotY": 0,
+      "archetype": "Sniper",
+      "grip": 0.735,
+      "fore": 0.4,
+      "scopeY": 0.842
     }
   },
   "props": {
