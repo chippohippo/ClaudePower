@@ -1,7 +1,7 @@
 {
   "name": "skyfall",
   "version": "0.1.0",
-  "description": "SKYFALL — browser battle royale with Apex-style movement, gunplay and legends",
+  "description": "SKYFALL \u2014 battle royale with Apex-style movement, gunplay and legends",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,20 +12,30 @@
     "sim-test": "node tools/simtest.js",
     "assets:fetch": "node tools/assets/fetch.mjs",
     "assets:import": "node tools/assets/import.mjs",
-    "assets:test": "node tools/assets/fixturetest.mjs"
+    "assets:test": "node tools/assets/fixturetest.mjs",
+    "desktop": "vite build && electron .",
+    "desktop:host": "vite build && electron . --server",
+    "dist:win": "vite build && electron-builder --win dir --x64 && node tools/desktop/build-installer.mjs",
+    "dist:linux": "vite build && electron-builder --linux AppImage --x64",
+    "icon": "node tools/make-icon.mjs"
   },
   "dependencies": {
     "express": "4.21.2",
-    "socket.io": "4.8.1",
-    "socket.io-client": "4.8.1",
-    "three": "0.169.0"
+    "socket.io": "4.8.1"
   },
   "devDependencies": {
     "@gltf-transform/core": "^4.5.1",
     "@gltf-transform/extensions": "^4.5.1",
     "@gltf-transform/functions": "^4.5.1",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
     "meshoptimizer": "^0.22.0",
+    "resedit": "^3.0.2",
     "sharp": "^0.33.5",
+    "socket.io-client": "4.8.1",
+    "three": "0.169.0",
     "vite": "5.4.11"
-  }
+  },
+  "main": "desktop/main.cjs",
+  "author": "SKYFALL"
 }

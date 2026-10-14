@@ -13,6 +13,7 @@ import { HUD } from './hud.js';
 import { audio } from './audio.js';
 import { Game } from './game.js';
 import { WorkerTransport, SocketTransport } from './net.js';
+import { NET_VERSION } from '../shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
@@ -257,14 +258,47 @@ $('#bigmap canvas').addEventListener('click', (e) => {
   g.pingAt(p.x, p.z);
 });
 
-// ------------------------------------------------------------------ online parties
+// ------------------------------------------------------------------ online: direct IP connect + hosting
+// Any SKYFALL server (npm run server, the desktop app's HOST SERVER, or its dedicated-server mode)
+// is reached by address. PLAY queues on the connected server (bots fill the lobby); without one it
+// runs offline in a Web Worker.
+const desktop = window.skyfallDesktop || null; // preload bridge in the desktop app (desktop/preload.cjs)
+const DEFAULT_PORT = 3000;
 const params = new URLSearchParams(location.search);
-const serverUrl = params.get('server') || (location.port === '5173' ? `${location.protocol}//${location.hostname}:3000` : location.origin);
-try {
-  const socket = io(serverUrl, { transports: ['websocket'], reconnectionAttempts: 3, timeout: 3000 });
-  socket.on('connect', () => { app.socket = socket; $('#server-status').textContent = 'server online'; });
-  socket.on('connect_error', () => { $('#server-status').textContent = 'offline — solo vs bots only'; });
-  socket.on('disconnect', () => { $('#server-status').textContent = 'disconnected'; });
+let lastAddr = '';
+try { lastAddr = localStorage.getItem('skyfall.server') || ''; } catch { /* storage blocked */ }
+
+// "1.2.3.4" → http://1.2.3.4:3000 · "host:8080" → http://host:8080 · full URLs pass through
+function serverUrl(addr) {
+  const a = String(addr || '').trim();
+  if (!a) return null;
+  if (/^https?:\/\//i.test(a)) return a.replace(/\/+$/, '');
+  const host = a.replace(/\/+$/, '');
+  return /:\d+$/.test(host) || /^\[.*\]:\d+$/.test(host) ? `http://${host}` : `http://${host}:${DEFAULT_PORT}`;
+}
+const setStatus = (t, cls = '') => { const el = $('#server-status'); el.textContent = t; el.className = cls; };
+
+let current = null; // latest socket, connected or still trying (older attempts are torn down)
+function connect(addr, { quiet = false, remember = true } = {}) {
+  const url = serverUrl(addr);
+  if (!url) return;
+  if (current) { current.removeAllListeners(); current.disconnect(); }
+  app.socket = null;
+  state.party = null;
+  renderParty();
+  setStatus(`connecting to ${addr}…`);
+  const socket = (current = io(url, { transports: ['websocket'], reconnectionAttempts: quiet ? 1 : 5, timeout: 4000, auth: { v: NET_VERSION } }));
+  socket.on('connect', () => {
+    app.socket = socket;
+    setStatus(`connected to ${addr} — PLAY queues here`, 'ok');
+    if (remember) { try { localStorage.setItem('skyfall.server', addr); } catch { /* ignore */ } }
+  });
+  socket.on('connect_error', (e) => {
+    const why = /version/i.test(e.message) ? e.message : 'unreachable';
+    setStatus(`${addr}: ${why} — PLAY runs offline`, 'bad');
+    if (/version/i.test(e.message)) socket.disconnect();
+  });
+  socket.on('disconnect', () => { if (app.socket === socket) { app.socket = null; setStatus(`disconnected from ${addr}`, 'bad'); } });
   socket.on('party', (p) => { state.party = p; renderParty(); });
   socket.on('party:error', (msg) => hud.toast(msg));
   socket.on('match:starting', () => {
@@ -274,8 +308,54 @@ try {
     $('#loading .txt').textContent = 'DEPLOYING TO SKYFALL…';
     const wait = setInterval(() => { if (app.game) { clearInterval(wait); $('#loading').classList.add('hidden'); } }, 50);
   });
-} catch (e) {
-  $('#server-status').textContent = 'offline — solo vs bots only';
+}
+
+$('#server-addr').value = params.get('server') || lastAddr;
+$('#btn-connect').addEventListener('click', () => { click(); connect($('#server-addr').value); });
+$('#server-addr').addEventListener('keydown', (e) => { if (e.key === 'Enter') connect($('#server-addr').value); });
+
+// start-up: ?server= wins; a page served by a SKYFALL server joins it; the dev server tries :3000;
+// the desktop app quietly retries the last server it joined
+if (params.get('server')) connect(params.get('server'));
+else if (location.port === '5173') connect(`${location.hostname}:${DEFAULT_PORT}`, { quiet: true, remember: false });
+else if (!desktop && /^https?:$/.test(location.protocol)) connect(location.host, { quiet: true, remember: false });
+else if (desktop && lastAddr) connect(lastAddr, { quiet: true });
+
+// hosting (desktop app): the main process runs the same server in a utility process, tries UPnP to
+// open the port on the router, and reports LAN / internet addresses to share
+if (desktop) {
+  document.querySelectorAll('.desktop-only').forEach((e) => e.classList.remove('hidden'));
+  const info = $('#host-info');
+  const copyBtn = (text) => `<button data-copy="${text}">COPY</button>`;
+  const renderHost = (h) => {
+    const on = !!(h && h.running);
+    $('#btn-host').textContent = on ? 'STOP HOSTING' : 'HOST SERVER';
+    $('#btn-host').classList.toggle('on', on);
+    info.classList.toggle('hidden', !h || (!on && !h.error));
+    if (!h) return;
+    if (h.error) { info.innerHTML = `<span class="warn">Could not host: ${h.error}</span>`; return; }
+    if (!on) return;
+    const lan = (h.lan || []).map((ip) => `<b>${ip}:${h.port}</b>${copyBtn(`${ip}:${h.port}`)}`).join(' ');
+    const pub = h.publicIp ? `<b>${h.publicIp}:${h.port}</b>${copyBtn(`${h.publicIp}:${h.port}`)}` : h.publicIp === false ? '<i>could not detect — search "what is my IP" and add :' + h.port + '</i>' : '<i>looking up…</i>';
+    const upnp = h.upnp === 'pending' ? 'opening the port on your router (UPnP)…'
+      : h.upnp && h.upnp.ok ? `<span class="ok">router port ${h.port} opened automatically (UPnP)</span>`
+      : `<span class="warn">forward TCP port ${h.port} on your router to this PC for internet play${h.upnp && h.upnp.error ? ` (UPnP: ${h.upnp.error})` : ''}</span>`;
+    const cgnat = h.cgnat ? '<br><span class="warn">your router\'s WAN address differs from your public IP (carrier-grade NAT?) — internet players may not reach you; LAN and VPN (Tailscale, ZeroTier) still work</span>' : '';
+    info.innerHTML = `Hosting on port ${h.port} · ${h.players || 0} connected · ${h.matches || 0} matches<br>LAN: ${lan || '—'}<br>Internet: ${pub}<br>${upnp}${cgnat}`;
+  };
+  info.addEventListener('click', (e) => { const t = e.target.dataset && e.target.dataset.copy; if (t) { desktop.copy(t); hud.toast(`Copied ${t}`); } });
+  desktop.onHostEvent((h) => renderHost(h));
+  desktop.hostStatus().then(renderHost);
+  $('#btn-host').addEventListener('click', async () => {
+    click();
+    const st = await desktop.hostStatus();
+    if (st && st.running) { await desktop.stopHost(); renderHost(null); if (current) { current.removeAllListeners(); current.disconnect(); current = null; } app.socket = null; setStatus('not connected — PLAY runs offline vs bots'); return; }
+    const port = Math.max(1, Math.min(65535, +$('#host-port').value || DEFAULT_PORT));
+    $('#btn-host').textContent = 'STARTING…';
+    const h = await desktop.host({ port });
+    renderHost(h);
+    if (h && h.running) connect(`127.0.0.1:${h.port}`, { remember: false });
+  });
 }
 
 function pushParty() {
@@ -284,13 +364,13 @@ function pushParty() {
 
 $('#btn-create').addEventListener('click', () => {
   click();
-  if (!app.socket) return hud.toast('Server offline — run `npm run server`');
+  if (!app.socket) return hud.toast(desktop ? 'Connect to a server or HOST SERVER first' : 'Connect to a server first (enter its IP:PORT)');
   ensureAudio();
   app.socket.emit('party:create', { name: state.name, legend: state.legend, mode: state.mode });
 });
 $('#btn-join').addEventListener('click', () => {
   click();
-  if (!app.socket) return;
+  if (!app.socket) return hud.toast('Connect to a server first');
   ensureAudio();
   app.socket.emit('party:join', { code: $('#party-code').value.toUpperCase(), name: state.name, legend: state.legend });
 });

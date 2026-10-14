@@ -41,6 +41,15 @@ input, select { font-family: inherit; background: rgba(0,0,0,0.4); color: var(--
 .row { display: flex; gap: 8px; align-items: center; }
 .row input { width: 90px; text-transform: uppercase; text-align: center; letter-spacing: 3px; }
 .row.small button { flex: 1; font-size: 13px; }
+.row input.addr { flex: 1; width: auto; min-width: 0; text-transform: none; text-align: left; letter-spacing: 0.5px; }
+#online .row label.port { display: flex; flex-direction: row; margin: 0; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; font-size: 13px; }
+#online .row label.port input { width: 70px; flex: none; text-align: center; }
+#btn-host.on { background: rgba(255,122,26,0.35); border-color: var(--accent); }
+#host-info { font-size: 13px; line-height: 1.5; color: var(--muted); border-left: 3px solid var(--accent); padding: 4px 8px; background: rgba(0,0,0,0.25); }
+#host-info b { color: #fff; user-select: text; }
+#host-info .ok { color: #7dff9b; }
+#host-info .warn { color: #ffcf5a; }
+#host-info button { font-size: 11px; padding: 2px 8px; margin-left: 6px; }
 #party-members div { padding: 3px 0; font-weight: 600; }
 .legend-title { font-weight: 700; letter-spacing: 3px; color: var(--muted); margin-bottom: 8px; }
 #legend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -366,3 +375,5 @@ body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; 
 #crosshair[data-rt="Sniper"] .dot { width: 4px; height: 4px; left: -2px; top: -2px; }
 #crosshair[data-rt="Pistol"] .t { display: none; }
 .kf .kl { color: #ffd23f; margin-right: 3px; }
+#server-status.ok { color: #7dff9b; }
+#server-status.bad { color: #ffcf5a; }

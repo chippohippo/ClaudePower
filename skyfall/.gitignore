@@ -5,3 +5,4 @@ assets-src/*
 !assets-src/README.md
 .fixture-packs/
 public/assets/_fixtures/
+release/

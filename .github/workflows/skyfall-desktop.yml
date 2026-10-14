@@ -1,0 +1,68 @@
+# Builds the SKYFALL Windows installer on a real Windows machine, smoke-tests the packaged game
+# (it hosts a server and quits on its own), checks a silent install + uninstall, and uploads the
+# installer as a build artifact. Tags named skyfall-v* also publish it as a GitHub release.
+name: SKYFALL desktop
+on:
+  push:
+    paths: ['skyfall/**', '.github/workflows/skyfall-desktop.yml']
+    tags: ['skyfall-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: skyfall
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: skyfall/package-lock.json
+      - run: npm ci
+      - name: Tests (simulation, gunplay, loot)
+        run: |
+          node tools/guntest.js
+          node tools/loottest.js
+          node tools/desktop/upnptest.cjs
+      - name: Build installer
+        run: npm run dist:win
+      - name: Smoke test packaged game (host a server, quit)
+        shell: pwsh
+        run: |
+          $log = Join-Path $PWD 'selftest.log'
+          $env:SKYFALL_SELFTEST = $log
+          $p = Start-Process -FilePath 'release\win-unpacked\SKYFALL.exe' -PassThru
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw 'SKYFALL.exe did not quit' }
+          Get-Content $log
+          if (-not (Select-String -Path $log -Pattern 'host running=true')) { throw 'hosting failed' }
+          if (-not (Select-String -Path $log -Pattern '\] quit')) { throw 'no clean quit' }
+      - name: Silent install + uninstall
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem 'release\SKYFALL-Setup-*.exe' | Select-Object -First 1).FullName
+          Start-Process $setup -ArgumentList '/S' -Wait
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\SKYFALL'
+          $menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\SKYFALL'
+          foreach ($f in @("$dir\SKYFALL.exe", "$dir\resources\app.asar", "$menu\SKYFALL.lnk", "$menu\SKYFALL Dedicated Server.lnk")) { if (-not (Test-Path $f)) { throw "missing after install: $f" } }
+          Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SKYFALL' | Select-Object DisplayName, DisplayVersion, InstallLocation
+          Start-Process "$dir\Uninstall SKYFALL.exe" -ArgumentList '/S' -Wait
+          # the NSIS uninstaller re-launches itself from %TEMP%, so wait for the folder to go
+          for ($i = 0; $i -lt 30 -and (Test-Path "$dir\SKYFALL.exe"); $i++) { Start-Sleep 1 }
+          if (Test-Path "$dir\SKYFALL.exe") { throw 'uninstall left files behind' }
+          'install + uninstall OK'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SKYFALL-Setup-windows
+          path: skyfall/release/SKYFALL-Setup-*.exe
+          if-no-files-found: error
+      - name: Publish release (tags)
+        if: startsWith(github.ref, 'refs/tags/skyfall-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: skyfall/release/SKYFALL-Setup-*.exe

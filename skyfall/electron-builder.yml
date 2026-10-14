@@ -1,0 +1,34 @@
+# Desktop packaging (docs/DESKTOP.md):
+#   npm run dist:win   → electron-builder --win dir packages release/win-unpacked, then
+#                        tools/desktop/build-installer.mjs compiles build/installer.nsi with NSIS
+#                        → release/SKYFALL-Setup-<version>.exe (no Wine needed on Linux/macOS)
+#   npm run dist:linux → release/SKYFALL-<version>.AppImage
+appId: com.skyfall.game
+productName: SKYFALL
+copyright: SKYFALL
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - desktop/**
+  - server/**
+  - src/shared/**
+  - src/sim/**
+  - package.json
+  - "!**/*.map"
+asar: true
+# icon + version info are written by build/afterPack.cjs (resedit, pure JS), so building the Windows
+# installer needs no Wine and no code-signing tools; set a certificate here to sign releases
+afterPack: build/afterPack.cjs
+win:
+  target:
+    - target: dir
+      arch: [x64]
+  icon: build/icon.ico
+  signAndEditExecutable: false
+linux:
+  target: AppImage
+  icon: build/icon.png
+  category: Game
+  artifactName: SKYFALL-${version}.${ext}

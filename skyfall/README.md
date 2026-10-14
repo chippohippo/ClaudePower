@@ -9,6 +9,9 @@ npm install
 npm run dev            # client on http://localhost:5173 (solo vs bots + firing range work offline)
 npm run server         # authoritative multiplayer server on :3000 (parties, matchmaking)
 npm start              # production: build the client, then serve it and the game server on :3000
+npm run desktop        # desktop app (Electron) from source; npm run desktop:host = dedicated server
+npm run dist:win       # Windows installer → release/SKYFALL-Setup-<version>.exe (docs/DESKTOP.md)
+node tools/desktop/upnptest.cjs # UPnP port mapping against a mock router
 npm run sim-test       # headless 100-bot match: performance and outcome report
 node tools/movetest.js # checks that every movement tech works in the shared movement code
 node tools/nettest.js  # two socket clients form a party, queue up and stream a match
@@ -24,10 +27,17 @@ node tools/audio/capture.mjs <dir> && python3 tools/audio/analyze.py <dir>
                        # transient / band metrics and write a spectrogram contact sheet
 ```
 
-Open the menu, pick a legend and press **PLAY**. If the server is reachable, PLAY uses online
-matchmaking; otherwise it starts an offline match against 99 bots. **FIRING RANGE** gives you every
-weapon and some strafing target dummies. **CREATE PARTY** / **JOIN** puts friends in the same squad,
+Open the menu, pick a legend and press **PLAY**. When connected to a server, PLAY uses online
+matchmaking; otherwise it starts an offline match against 99 bots. **ONLINE** joins any SKYFALL server
+by `IP:PORT`. The desktop app adds **HOST SERVER**: it runs a server on your PC, tries UPnP on the
+router, and shows the LAN and internet addresses friends join with. **FIRING RANGE** gives you every
+weapon and some strafing target dummies (**B** shows hitboxes). **CREATE PARTY** / **JOIN** puts friends in the same squad,
 and bots fill the rest of the lobby.
+
+**Windows:** run `SKYFALL-Setup-<version>.exe`. It's a per-user installer with Start-menu and desktop
+shortcuts, a "SKYFALL Dedicated Server" shortcut and an uninstaller. CI builds it on every push
+(`.github/workflows/skyfall-desktop.yml`, artifact **SKYFALL-Setup-windows**). Hosting, port
+forwarding, dedicated servers and building are covered in `docs/DESKTOP.md`.
 
 ---
 
@@ -79,7 +89,10 @@ src/
     hud.js                crosshair, hit and kill markers, damage arcs, armor bar, squad cards, ability cooldowns, minimap and big map, kill feed, inventory and death-box panels
     input.js              pointer-lock raw mouse, bindings, settings
     net.js / worker.js    transports (Socket.io / Web Worker)
-server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick per match, bot takeover on disconnect
+server/server.js          startServer(): parties, Trios/Sixes queues, bot fill, a 30 Hz tick per match, bot takeover on disconnect, protocol version check
+server/index.js           command-line dedicated server
+desktop/                  Electron app: main.cjs (window, hosting, dedicated mode), host.mjs (server process), upnp.cjs, preload.cjs, server.html
+build/                    icon, afterPack.cjs (exe icon + version info), installer.nsi (NSIS installer)
 ```
 
 ### Netcode model

@@ -122,8 +122,12 @@
           <button class="mode" data-mode="sixes">SIXES<small>squads of 6</small></button>
         </div>
         <button id="btn-play" class="big">PLAY <small>solo queue · bots fill</small></button>
-        <div class="party">
-          <div class="party-title">PLAY WITH FRIENDS <small id="server-status">checking server…</small></div>
+        <div class="party" id="online">
+          <div class="party-title">ONLINE <small id="server-status">not connected — PLAY runs offline vs bots</small></div>
+          <div class="row"><input id="server-addr" class="addr" placeholder="SERVER IP:PORT" spellcheck="false" /><button id="btn-connect">CONNECT</button></div>
+          <div class="row desktop-only hidden"><button id="btn-host">HOST SERVER</button><label class="port">PORT <input id="host-port" class="addr" value="3000" maxlength="5" /></label></div>
+          <div id="host-info" class="hidden"></div>
+          <div class="party-title">PLAY WITH FRIENDS</div>
           <div class="row"><button id="btn-create">CREATE PARTY</button><input id="party-code" placeholder="CODE" maxlength="5" /><button id="btn-join">JOIN</button></div>
           <div id="party-panel" class="hidden">
             <div>Party <b id="party-id"></b> <small>share this code</small></div>
