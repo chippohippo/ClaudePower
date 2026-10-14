@@ -13,6 +13,7 @@ import { LEGENDS, ROLES, ROLE_IDS } from '../shared/legends.js';
 import { THEMES } from '../shared/themes.js';
 import { speedMul } from '../shared/mods.js';
 import { rayPlayer } from '../shared/physics.js';
+import { rayHitbox, poseOf, hitboxCapsules } from '../shared/hitbox.js';
 import { DEG, clamp, dirFromAngles, wrapAngle, lerp } from '../shared/util.js';
 import { WorldView } from './world.js';
 import { createAvatar } from './modelavatar.js';
@@ -41,6 +42,7 @@ export class Game {
     this.renderer = app.renderer;
     this.myId = welcome.you;
     this.mode = welcome.mode;
+    this.practice = !!welcome.practice;
     this.map = buildMap(welcome.seed);
     this.world = this.map.world;
     this.meta = new Map(welcome.players.map((p) => [p.id, p]));
@@ -887,6 +889,8 @@ export class Game {
     if (inp.hit('crouch')) this.latch |= BTN.CROUCH;
     if (inp.hit('map')) this.toggleMap();
     if (inp.hit('inventory')) this.toggleInventory();
+    // Firing Range: B shows the Apex-style hitboxes (head / body / limbs) on every character
+    if (this.practice && inp.pressed.has('KeyB')) { this.showHitboxes = !this.showHitboxes; this.hud.toast && this.hud.toast(this.showHitboxes ? 'Hitboxes on' : 'Hitboxes off'); }
     if (!me.alive) {
       if (inp.hit('spectate') || inp.mousePressed.left) send('spect');
       return;
@@ -1113,11 +1117,10 @@ export class Game {
       const wh = this.world.raycast(sx, sy, sz, ux, uy, uz, len, this.tmpBoxes);
       let best = wh ? wh.t : len, target = null, part = null;
       for (const r of this.remotes.values()) {
-        if (!r.avatar || r.meta.squad === this.mySquad || r.fl & 8 || r.fl & 16) continue;
+        if (!r.avatar || r.meta.squad === this.mySquad || r.fl & 8 || r.fl & 16 || r.fl & 32) continue;
         const p = r.avatar.root.position;
         if (Math.abs(p.x - sx) > len + 3 || Math.abs(p.z - sz) > len + 3) continue;
-        const h = r.fl & 1 ? 0.8 : MOVE.standHeight - (MOVE.standHeight - MOVE.crouchHeight) * r.crouch;
-        const hit = rayPlayer(sx, sy, sz, ux, uy, uz, p.x, p.y, p.z, h, 0.45, best);
+        const hit = rayHitbox(sx, sy, sz, ux, uy, uz, poseOf(p.x, p.y, p.z, r.avatar.root.rotation.y, r.crouch, r.fl & 1, r.fl & 2, r.meta.legend, r.fl & 4 && !(r.fl & 512), r.fl & 4096), best);
         if (hit && hit.t < best) {
           // a raised Fallback Shield facing the shooter eats the round (the server agrees)
           if (r.fl & 8192) {
@@ -1163,6 +1166,39 @@ export class Game {
   }
 
   // =================================================================== remotes
+  // Wire capsules of a player's hitbox (shared/hitbox.js) — the same shapes the hit test uses.
+  _hitboxView(r, s, on) {
+    if (!on) { if (r.hbView) r.hbView.visible = false; return; }
+    if (!r.hbView) {
+      const G = (Game.hbGeo ||= { cyl: new THREE.CylinderGeometry(1, 1, 1, 10, 1, true), sph: new THREE.SphereGeometry(1, 10, 6) });
+      const M = (Game.hbMat ||= Object.fromEntries(Object.entries({ head: '#ff4d4d', body: '#ffd23f', legs: '#4dd2ff' }).map(([k, c]) => [k, new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: 0.7, depthTest: false })])));
+      r.hbView = new THREE.Group();
+      r.hbView.renderOrder = 30;
+      r.hbView.userData = { G, M };
+      this.scene.add(r.hbView);
+    }
+    const v = r.hbView, { G, M } = v.userData;
+    v.visible = true;
+    const caps = hitboxCapsules(poseOf(s.x, s.y, s.z, s.yaw, s.crouch, s.fl & 1, s.fl & 2, r.meta.legend, s.fl & 4 && !(s.fl & 512), s.fl & 4096));
+    while (v.children.length < caps.length * 3) { const m = new THREE.Mesh(G.cyl, M.body); m.renderOrder = 30; v.add(m); }
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    caps.forEach((c, i) => {
+      const [cyl, s1, s2] = v.children.slice(i * 3, i * 3 + 3);
+      a.fromArray(c.a); b.fromArray(c.b);
+      for (const m of [cyl, s1, s2]) { m.material = M[c.part]; m.visible = true; }
+      s1.geometry = s2.geometry = G.sph;
+      s1.position.copy(a); s2.position.copy(b); s1.scale.setScalar(c.r); s2.scale.setScalar(c.r);
+      const len = a.distanceTo(b);
+      cyl.visible = len > 1e-3;
+      if (cyl.visible) {
+        cyl.position.addVectors(a, b).multiplyScalar(0.5);
+        cyl.quaternion.setFromUnitVectors(up, b.clone().sub(a).normalize());
+        cyl.scale.set(c.r, len, c.r);
+      }
+    });
+    for (let i = caps.length * 3; i < v.children.length; i++) v.children[i].visible = false;
+  }
+
   _updateRemotes(dt) {
     const rt = this._serverNow() - INTERP_DELAY;
     const cam = this.camera.position;
@@ -1188,6 +1224,7 @@ export class Game {
         r.avatar.root.visible = !inShip && dist < 500 && !r.avatar.dead;
         if (r.avatar.root.visible) r.avatar.update(dt, s, this.time, dist);
         else r.avatar.reveal.visible = false;
+        this._hitboxView(r, s, this.showHitboxes && r.avatar.root.visible && !(s.fl & 32));
       }
       // ability trails: jetpack flame, stim afterburn
       if (r.avatar && r.avatar.root.visible && dist < 150) {

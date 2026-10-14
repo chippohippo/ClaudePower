@@ -352,7 +352,8 @@ export class Bot {
   }
 
   _newErr(big) {
-    const mag = (1 - this.skill) * (big ? 3.4 : 1.8) + 0.18;
+    // metres of aim error; scaled to the slim Apex-style hitboxes (shared/hitbox.js)
+    const mag = ((1 - this.skill) * (big ? 3.4 : 1.8) + 0.18) * 0.6;
     const r = this.m.rng;
     this.err.tx = (r() - 0.5) * 2 * mag;
     this.err.ty = (r() - 0.5) * 1.6 * mag;
@@ -787,7 +788,7 @@ export class Bot {
     const tighten = 1 - Math.min(1, this.trackT / 2.2) * 0.55;
     tx += this.err.x * tighten; ty += this.err.y * tighten; tz += this.err.z * tighten;
     // occasional headshot attempt for skilled bots
-    if (this.skill > 0.6 && (p.id + Math.floor(m.time)) % 3 === 0) ty += 0.35;
+    if (this.skill > 0.6 && (p.id + Math.floor(m.time)) % 3 === 0) ty += t.downed ? 0.25 : t.ms.crouch > 0.5 ? 0.22 : 0.42;
     const a = anglesFromDir(tx - ex, ty - ey, tz - ez);
     const dyaw = wrapAngle(a.yaw - this.yaw), dpitch = a.pitch - this.pitch;
     const maxTurn = (4 + this.skill * 9) * dt;

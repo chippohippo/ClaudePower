@@ -15,6 +15,7 @@ import { STYLE, toonify } from './comic.js';
 import { PAL, teamRim } from './palette.js';
 
 const SQUAD_ACCENT = '#38e8ff';
+const TORSO_Y = 1.17; // torso centre: waist 0.92 … shoulders 1.42
 
 function taper(wTop, wBot, h, d) {
   const g = new THREE.CylinderGeometry(1, 1, h, 4, 1);
@@ -29,25 +30,28 @@ function taper(wTop, wBot, h, d) {
   return g;
 }
 
+// Realistic adult proportions (a 1.8 m body with a 25 cm head, 0.46 m shoulders), the same body the
+// Apex-style hitboxes describe (shared/hitbox.js BODY), so what you see is what you hit.
 const GEO = {
-  torso: taper(0.62, 0.46, 0.6, 0.36),
-  pelvis: new THREE.BoxGeometry(0.44, 0.22, 0.28),
-  helmet: new THREE.IcosahedronGeometry(0.19, 1),
-  visor: new THREE.BoxGeometry(0.3, 0.09, 0.07),
-  upperArm: new THREE.CapsuleGeometry(0.075, 0.26, 3, 6),
-  foreArm: new THREE.CapsuleGeometry(0.07, 0.24, 3, 6),
-  thigh: new THREE.CapsuleGeometry(0.1, 0.34, 3, 6),
-  shin: new THREE.CapsuleGeometry(0.085, 0.36, 3, 6),
-  boot: new THREE.BoxGeometry(0.15, 0.1, 0.26),
-  belt: new THREE.BoxGeometry(0.47, 0.05, 0.3),
-  pack: new THREE.BoxGeometry(0.36, 0.4, 0.16),
-  gunBody: new THREE.BoxGeometry(0.07, 0.13, 0.5),
-  gunBarrel: new THREE.CylinderGeometry(0.022, 0.022, 0.32, 6),
+  torso: taper(0.44, 0.34, 0.5, 0.26),
+  pelvis: new THREE.BoxGeometry(0.34, 0.2, 0.24),
+  neck: new THREE.CylinderGeometry(0.05, 0.06, 0.14, 8),
+  helmet: new THREE.IcosahedronGeometry(0.118, 2),
+  visor: new THREE.BoxGeometry(0.17, 0.05, 0.05),
+  upperArm: new THREE.CapsuleGeometry(0.05, 0.22, 3, 8),
+  foreArm: new THREE.CapsuleGeometry(0.044, 0.2, 3, 8),
+  thigh: new THREE.CapsuleGeometry(0.075, 0.3, 3, 8),
+  shin: new THREE.CapsuleGeometry(0.055, 0.32, 3, 8),
+  boot: new THREE.BoxGeometry(0.11, 0.08, 0.25),
+  belt: new THREE.BoxGeometry(0.36, 0.05, 0.26),
+  pack: new THREE.BoxGeometry(0.3, 0.36, 0.13),
+  gunBody: new THREE.BoxGeometry(0.06, 0.11, 0.45),
+  gunBarrel: new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6),
 };
-GEO.upperArm.translate(0, -0.17, 0);
-GEO.foreArm.translate(0, -0.16, 0);
+GEO.upperArm.translate(0, -0.14, 0);
+GEO.foreArm.translate(0, -0.13, 0);
 GEO.thigh.translate(0, -0.21, 0);
-GEO.shin.translate(0, -0.22, 0);
+GEO.shin.translate(0, -0.2, 0);
 GEO.gunBarrel.rotateX(Math.PI / 2);
 
 const mats = {};
@@ -166,24 +170,25 @@ export class Avatar {
     const accent = glowMat(isMate ? SQUAD_ACCENT : LEGENDS[meta.legend].color);
 
     this.pelvis = mk(GEO.pelvis, dark());
-    this.pelvis.position.y = 0.92;
+    this.pelvis.position.y = 0.94;
     mk(GEO.belt, accent, this.pelvis).position.y = 0.07;
     this.torso = mk(GEO.torso, lm);
-    this.torso.position.y = 1.32;
-    mk(new THREE.BoxGeometry(0.3, 0.2, 0.05), armor(), this.torso).position.set(0, 0.12, -0.19); // chest plate
+    this.torso.position.y = TORSO_Y;
+    mk(new THREE.BoxGeometry(0.24, 0.16, 0.04), armor(), this.torso).position.set(0, 0.1, -0.14); // chest plate
+    mk(GEO.neck, dark(), this.torso).position.y = 0.33;
     this.head = mk(GEO.helmet, armor(), this.torso);
-    this.head.position.y = 0.46;
-    this.head.scale.set(1, 1.05, 1.08);
-    mk(GEO.visor, glowMat(LEGENDS[meta.legend].color), this.head).position.set(0, 0.02, -0.165);
-    if (!['halo', 'spectre', 'miasma'].includes(meta.legend)) mk(GEO.pack, dark(), this.torso).position.set(0, 0.0, 0.24);
+    this.head.position.y = 0.5;
+    this.head.scale.set(1, 1.1, 1.08);
+    mk(GEO.visor, glowMat(LEGENDS[meta.legend].color), this.head).position.set(0, 0.015, -0.1);
+    if (!['halo', 'spectre', 'miasma'].includes(meta.legend)) mk(GEO.pack, dark(), this.torso).position.set(0, 0.0, 0.19);
     // arms: shoulder -> elbow
     const arm = (sx) => {
       const sh = new THREE.Group();
-      sh.position.set(sx * 0.36, 0.22, 0);
+      sh.position.set(sx * 0.215, 0.22, 0);
       this.torso.add(sh);
       mk(GEO.upperArm, lm, sh);
       const el = new THREE.Group();
-      el.position.y = -0.34;
+      el.position.y = -0.29;
       sh.add(el);
       mk(GEO.foreArm, dark(), el);
       return { sh, el };
@@ -192,14 +197,14 @@ export class Avatar {
     this.armR = arm(1);
     const leg = (sx) => {
       const hip = new THREE.Group();
-      hip.position.set(sx * 0.13, 0.86, 0);
+      hip.position.set(sx * 0.095, 0.92, 0);
       body.add(hip);
       mk(GEO.thigh, dark(), hip);
       const knee = new THREE.Group();
       knee.position.y = -0.42;
       hip.add(knee);
       mk(GEO.shin, armor(), knee);
-      mk(GEO.boot, dark(), knee).position.set(0, -0.44, -0.04);
+      mk(GEO.boot, dark(), knee).position.set(0, -0.41, -0.04);
       return { hip, knee };
     };
     this.legL = leg(-1);
@@ -211,9 +216,13 @@ export class Avatar {
     this.gunBarrel.position.z = -0.38;
     this.gunTint = mk(new THREE.BoxGeometry(0.075, 0.04, 0.3), mat('tint', () => new THREE.MeshStandardMaterial({ color: '#f2a03d' })).clone(), this.gun);
     this.gunTint.position.set(0, 0.08, -0.05);
-    this.gun.position.set(0.18, 0.08, -0.42);
+    this.gun.position.set(0.13, 0.06, -0.34);
     this.torso.add(this.gun);
-    legendKit(meta.legend, this.torso, this.head, mk);
+    // legend kits were drawn for a chunkier body: scaled to the slimmer torso and smaller head
+    const kt = new THREE.Group(), kh = new THREE.Group();
+    kt.scale.setScalar(0.72); kh.scale.setScalar(0.64);
+    this.torso.add(kt); this.head.add(kh);
+    legendKit(meta.legend, kt, kh, mk);
     if (STYLE.comic) toonify(body);
     teamRim(body, isMate ? 'ally' : 'enemy');
 
@@ -277,8 +286,10 @@ export class Avatar {
     body.position.set(0, 0, 0);
     const T = this.torso, AL = this.armL, AR = this.armR, LL = this.legL, LR = this.legR;
     T.rotation.set(s.pitch * 0.3, 0, 0);
-    T.position.set(0, 1.32 - crouch * 0.48 + Math.abs(Math.cos(this.walk)) * 0.04 * run, crouch * 0.1);
-    this.pelvis.position.y = 0.92 - crouch * 0.45;
+    // crouch matches the hitbox: pelvis drops 0.55 m, the upper body leans 0.5 rad
+    T.rotation.x -= crouch * 0.5;
+    T.position.set(0, TORSO_Y - crouch * 0.55 + Math.abs(Math.cos(this.walk)) * 0.04 * run, -crouch * 0.1);
+    this.pelvis.position.y = 0.94 - crouch * 0.55;
     // breathing when idle
     if (speed < 0.5) T.position.y += Math.sin(time * 2.2) * 0.008;
     // strafe lean
@@ -287,16 +298,16 @@ export class Avatar {
     // legs: hip swing + knee bend on the back-swing
     for (const [L, ph] of [[LL, 0], [LR, Math.PI]]) {
       const a = Math.sin(this.walk + ph) * Math.min(1, speed / 4);
-      L.hip.position.y = 0.86 - crouch * 0.45;
-      L.hip.rotation.set(a * 0.85 - crouch * 0.9, 0, 0);
-      L.knee.rotation.set(Math.max(0, -Math.cos(this.walk + ph)) * 1.1 * run + crouch * 1.6, 0, 0);
+      L.hip.position.y = 0.92 - crouch * 0.55;
+      L.hip.rotation.set(a * 0.85 - crouch * 1.25, 0, 0);
+      L.knee.rotation.set(Math.max(0, -Math.cos(this.walk + ph)) * 1.1 * run + crouch * 2.1, 0, 0);
     }
     // arms hold the weapon; slight counter swing
     const aim = -1.25 - s.pitch * 0.85;
     AR.sh.rotation.set(aim, 0, -0.15); AR.el.rotation.set(-0.35, 0, 0);
     AL.sh.rotation.set(aim + 0.15 + sw * 0.05, 0.5, 0.35); AL.el.rotation.set(-0.7, 0, 0);
     this.gun.rotation.set(s.pitch * 0.85, 0, 0);
-    this.gun.position.set(0.18, 0.08 + s.pitch * 0.18, -0.42);
+    this.gun.position.set(0.13, 0.06 + s.pitch * 0.15, -0.34);
 
     if (slide) {
       body.rotation.x = 0.45; body.position.y = -0.38;

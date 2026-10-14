@@ -65,9 +65,9 @@ To let the cloud sandbox reach the official sites directly, add these under the 
 
 | Slot | Model | Pack |
 |---|---|---|
-| Tank: Kodiak / Bastion / Miasma | Knight / Barbarian / Skeleton Warrior | KayKit Adventurers, Skeletons |
-| DPS: Jolt / Phantom / Spectre | Rogue / Rogue (hooded) / Skeleton Rogue | KayKit |
-| Support: Halo / Echo / Volt | Mage / Skeleton Mage / Skeleton Minion | KayKit |
+| Tank: Bastion / Miasma / Kodiak | Soldier / Michelle / X Bot | Mixamo characters from the three.js examples |
+| DPS: Jolt / Phantom / Spectre | X Bot / Michelle / Soldier | Mixamo (three.js examples) |
+| Support: Halo / Echo / Volt | Michelle / Soldier / X Bot | Mixamo (three.js examples) |
 | Volt SMG, Hornet | blaster-repeater | Kenney Starter Kit FPS |
 | Viper, P2020 | blaster | Kenney Starter Kit FPS |
 | other 6 guns | procedural | until a gun pack is dropped in |
@@ -77,8 +77,14 @@ To let the cloud sandbox reach the official sites directly, add these under the 
 | textures | Grass004, Concrete015, PavingStones012, MetalPlates006, Planks012, Rock023, RoofingTiles006 | ambientCG |
 | sound | `draw` ← weapon change | Kenney Starter Kit FPS |
 
-Every role has 3 distinct characters, so Sixes always gets 2 Tank / 2 DPS / 2 Support with no
-repeated model.
+All three bodies have realistic adult proportions (head ≈ 16–21% of the height). Every role cycles
+through all three, so a Sixes squad (2 Tank / 2 DPS / 2 Support) never repeats a body within a role.
+The legend tint and the size class (below) tell legends that share a body apart.
+
+The chibi KayKit characters (head ≈ 43% of the height) are still downloaded but skipped while
+realistic rigs exist. `--stylized` brings them back.
+
+The Mixamo characters are royalty-free under Adobe's terms, not CC0. `CREDITS.md` says so.
 
 ## Role rules (tools/assets/import.mjs)
 
@@ -86,6 +92,15 @@ repeated model.
 
 - A rigged model is any skinned glTF/GLB, any Mixamo character, or an FBX whose path says
   character/human/soldier/male/female.
+- **Realism first.** Each rig is measured in its rest pose (`restInfo` in `gltfread.mjs`). It is
+  realistic when all of these hold:
+  - it has humanoid bones (both thighs, both forearms, a neck or head);
+  - the head and neck take 8–28% of its height;
+  - its depth is under 45% of its height.
+
+  When any realistic rig exists, stylised ones are skipped unless `--stylized` is set. The log shows
+  every rig's head share and build.
+- **Facing** comes from the skeleton: a rig whose left side sits at −X faces −Z and gets `rotY: 0`.
 - Each model is classified by its name (`ROLE_WORDS`):
 
   | Role | Name words |
@@ -98,6 +113,9 @@ repeated model.
   their theme (`LEGEND_THEME`, for example knight→Kodiak, barbarian→Bastion, hood→Phantom,
   medic/mage→Halo). Then they take the rest of that role's models, then unclassified models, then
   leftovers from other roles. Each entry gets `"role"`.
+- **Fewer bodies than legends** (a handful of realistic rigs). Every role cycles through all of them,
+  ordered by build (depth ÷ height): bulkiest first for tanks, slimmest first for DPS, middle first for
+  support.
 - **Coverage check.** The log prints the coverage, for example `3 tank / 3 dps / 3 support (Sixes
   needs 2/2/2 distinct)`, and flags a model that reads as a different role from its legend.
 - **Base model.** `characters.default` is a model named base/UBC/universal/superhero/mannequin, or
@@ -109,8 +127,16 @@ repeated model.
     (`animations/rig0_*.glb`), and their own copies of the clips are stripped.
 - **Held props are hidden.** Equipment meshes (sword, shield, axe, staff, crossbow, mug…) are
   removed from character files and listed in `hide`.
-- **Tint.** `tintAmount` is 0.22 for multi-part models with one colour atlas (KayKit, Kenney), so they
-  keep their own colours. Otherwise it is 0.6.
+- **Clip donors.** A rig whose own file has no locomotion borrows the clips of the compatible rig with
+  the most usable clips (≥60% shared bone names). Michelle only ships a dance, so she borrows X Bot's.
+  The game retargets them at load (below).
+- **Tint.**
+  - `tint` names the material that covers the most vertices.
+  - `tintAmount` is 0.22 for multi-part models with one colour atlas (KayKit, Kenney).
+  - It is 0.3 for textured bodies, where skin and clothes share one texture.
+  - It is 0.6 for untextured outfits.
+- **Simplification.** Characters above `CHAR_TRIS` (15,000) triangles are simplified down to it,
+  because 60 players can be on screen.
 
 **Weapons**
 
@@ -193,6 +219,20 @@ ordered list of patterns that cover KayKit, Quaternius, Kenney and Mixamo names:
 
 The importer keeps only clips that some state can use. A manifest `clips` map overrides any state.
 
+**Retargeting** (`retargetClip` in `client/assets.js`). Clips from another file are replayed on each
+character's own skeleton, even when bone axes, rest rotations or facing differ. For example, X Bot
+was exported from Maya with its limbs along X, while Soldier and Michelle came from Blender with
+limbs along Y, and Soldier faces −Z.
+
+1. Each bone's world-space rotation away from the source rest pose is applied to the target's rest
+   pose, after turning it into the target's facing.
+2. The hips translation is scaled by hip height.
+3. The result is baked at 30 fps.
+
+Both skeletons must rest in the same pose (Mixamo uses a T-pose). When the rests already match, the
+clip is used as it is. `pruneClip` then drops tracks that only restate the rest pose; Mixamo keys
+every bone, so X Bot goes from 201 tracks to 52.
+
 ### Mixamo
 
 Put Mixamo files here:
@@ -204,11 +244,11 @@ Every Mixamo clip is called `mixamo.com`, so the loader renames each one after i
 files after the action ("Rifle Run.fbx", "Rifle Aiming Idle.fbx", "Reloading.fbx", "Falling
 Idle.fbx", "Dying.fbx") and the patterns above pick them up.
 
-**Retargeting.** Clips bind to bones by name, so Mixamo clips only drive `mixamorig` skeletons. To
-animate a non-Mixamo character with them, upload it to Mixamo, auto-rig it, and download it With Skin.
-It then shares the `mixamorig` names. Use "In Place" downloads: the game moves the character, so
-root motion would double it. Mixamo is under Adobe's terms, not CC0, so keep it out of anything
-redistributed as CC0.
+**Other rigs.** Clips bind to bones by name, so Mixamo clips drive `mixamorig` skeletons (retargeted
+as above). To animate a non-Mixamo character with them, upload it to Mixamo, auto-rig it, and
+download it With Skin. It then shares the `mixamorig` names. Use "In Place" downloads: the game moves
+the character, so root motion would double it. Mixamo is under Adobe's terms, not CC0, so keep it out
+of anything redistributed as CC0.
 
 ## Optimisation (tools/assets/optimize.mjs)
 
@@ -216,18 +256,20 @@ glTF-Transform is a devDependency. Each model is processed as follows:
 
 1. Held props and unused clips are removed, along with their keyframe data.
 2. Normal, occlusion and metal/roughness maps are dropped. The cel look uses only base colour.
-3. The model is pruned, deduped and welded. Characters are not welded.
+3. The model is pruned, deduped and welded. Characters are only welded when they are simplified.
 4. Animation is resampled.
 5. Vertices are quantized.
 6. Colour textures are re-encoded to WebP at ≤512 px.
 7. Meshopt compression is applied. The browser decodes it with three's bundled `MeshoptDecoder`, with
    no CDN or WASM download.
 
-Rocks are simplified to 80% and bushes to 60%. Together this took the imported set from 154 MB to
-about 3 MB of models.
+Rocks are simplified to 80%, bushes to 60%, and characters to 15,000 triangles. Together this takes
+the imported set from 122 MB to about 2.2 MB of models.
 
 At runtime, each character's skinned parts that share a material are merged into one SkinnedMesh on a
 union skeleton (`mergeSkinnedParts`). This takes a KayKit character from about 8 draw calls to 3.
+Parts quantised separately are left alone: the quantisation is folded into each part's inverse bind
+matrices, so merging them would distort the smaller part (Soldier's visor).
 
 ## How assets are adapted to the comic / cel look
 
@@ -239,6 +281,7 @@ union skeleton (`mergeSkinnedParts`). This takes a KayKit character from about 8
   - Clean keeps PBR, lit by the HDRI.
 - **Characters**
   - Normalised to 1.8 m, feet on the ground, facing −Z.
+  - Widened or narrowed by the legend's size class, the same factor the hitbox uses.
   - Outfit materials are tinted toward the legend colour (by `tintAmount`).
   - Friend/foe rim, colour-vision presets, reveal highlight, phase ghost and squad markers all work on
     imported rigs.
@@ -253,6 +296,18 @@ union skeleton (`mergeSkinnedParts`). This takes a KayKit character from about 8
   - The spine bends with aim pitch and kicks when firing.
   - Skydivers pitch forward 60–86°, depending on how steeply they dive.
   - On death, the ragdoll copy plays the rig's death clip instead of the tumbling procedural collapse.
+- **Humanoid pose layer** (`client/humanoid.js`, realistic rigs). It runs after the mixer, in world
+  space, so it works whatever the bones' local axes are. A pack clip for a state wins over the
+  procedural pose.
+  - **Strafing:** legs turn toward the movement direction while the chest keeps facing the aim.
+  - **Crouch, slide, downed:** the pelvis drops and the upper body leans, using the numbers in
+    `shared/hitbox.js`. Two-bone leg IK keeps the feet planted, or puts them where the pose needs
+    (slide leg forward, kneeling crawl).
+  - **Gun hold:** two-bone arm IK puts the right hand on the grip and the left on the handguard (both
+    on the grip for pistols). The gun follows the remaining aim pitch from the right shoulder. Sprint
+    lowers it to low-ready, reload drops the support hand to the magazine, healing lowers the gun.
+  - **Air:** jumping tucks the knees, skydiving spreads the arms, ziplines raise both hands to the
+    cable.
 - **Guns**
   - Sized per class (pistol 0.3 m … sniper 1.2 m) and seated with the rear at the grip, barrel along
     −Z.
@@ -272,6 +327,34 @@ union skeleton (`mergeSkinnedParts`). This takes a KayKit character from about 8
   background (`"background": true`).
 - **Samples** replace the synthesized sound of the same name. Everything else stays procedural.
 
+## Hitboxes (src/shared/hitbox.js)
+
+Apex-style multi-part hitboxes replace the old 0.9 m-wide cylinder. They are built on a 1.8 m adult
+body:
+
+| Part | Shape | Damage |
+|---|---|---|
+| Head | 12.5 cm sphere | head multiplier (helmets reduce it) |
+| Neck, chest | twin capsules | body |
+| Shoulders | 0.56 m bar | body |
+| Pelvis | capsule | body |
+| Arms | upper arms and forearms in the rifle hold | body |
+| Thighs, shins | per-leg capsules | leg multiplier |
+
+- **Poses.** The hitbox is posed for stand, crouch, slide, downed, air and zipline, using the same
+  pelvis drop, lean, ankles and hands as the pose layer. It turns with yaw.
+- **Size class.** Width is scaled by the legend's class (Apex: Wraith-small … Gibraltar-large).
+  - Tanks are large: ×1.12.
+  - Support is medium: ×1.
+  - DPS is small: ×0.92.
+  - `size` on a legend overrides its role's class.
+- **Shared.** The server's bullets (bots), the client's hit claims and the Firing Range overlay all use
+  `rayHitbox()`, so a hit means the same thing everywhere. Skydivers can't be hit.
+- **Overlay.** In the Firing Range, press **B** to draw every character's hitbox (red head, yellow
+  body, blue limbs).
+- **Bots.** Bot aim error was scaled to 0.6× for the slimmer target. Their headshot attempts aim at
+  the new head centre. Match pacing in `tools/simtest.js` stays as before.
+
 ## Tuning knobs
 
 | Knob | Where | Default | Effect |
@@ -285,7 +368,11 @@ union skeleton (`mergeSkinnedParts`). This takes a KayKit character from about 8
 | `textures.<role>.scale / strength` | manifest | 4 / 0.6 | detail texture repeat and contrast |
 | tree LOD radius | `world.js` `_updateTreeLod` | 160 m trees, 140 m bushes | imported models inside, procedural cones / nothing outside; re-evaluated every 0.4 s |
 | drape padding / tint | `world.js` `_boxes` | rocks `[1.12,1.06]` / 0.45, props `[1.04,1.02]` / 0.7 | model overhang past the box; how far each instance shifts to the box colour |
-| animation LOD | `modelavatar.js` | every frame <35 m, 30 Hz <80 m, 15 Hz <160 m, 7 Hz <300 m, 4 Hz beyond | CPU per remote character |
+| animation LOD | `modelavatar.js` | every frame <20 m, 30 Hz <80 m, 15 Hz <160 m, 7 Hz <300 m, 4 Hz beyond | CPU per remote character (the pose layer runs on the same ticks) |
+| `BODY`, `bodyPose()` | `shared/hitbox.js` | 1.8 m adult; crouch drop 0.55 m / lean 0.5 rad | hitbox shapes and the poses the model is bent into |
+| `SIZE_CLASS` | `shared/hitbox.js` | small 0.92, medium 1, large 1.12 | hitbox and model width per legend size |
+| `REAL_HEAD`, `CHAR_TRIS` | `import.mjs` | 0.28, 15000 | realism cut-off (head share of height); character triangle budget |
+| bot aim error | `sim/bot.js` `_newErr` | ×0.6 | bot accuracy against the slim hitboxes |
 | clip speeds | `modelavatar.js` `nominal` | see above | foot sliding vs. playback rate |
 | rim power | `palette.js` | 3.2 | friend/foe rim width (higher is thinner; stops red washing over characters) |
 | `SIMPLIFY` | `import.mjs` | rock 0.8, bush 0.6 | triangle ratio kept by the importer |
@@ -331,3 +418,14 @@ packs in `assets-src/README.md` are all CC0, and dropping in any of them fills e
 - Kenney Blaster Kit
 
 First-person arms also stay procedural until WRAD ARMS or a Mixamo rig is added.
+
+Only three realistic bodies are freely reachable from this sandbox: Soldier, X Bot and Michelle.
+They are the Mixamo characters in the three.js examples. To give each legend its own body, use either
+of these:
+
+- **Quaternius Universal Base Characters + Universal Animation Library** (CC0, realistic
+  proportions, quaternius.com).
+- **Mixamo characters**: download "With Skin" into `assets-src/mixamo/characters/`, plus "Rifle …"
+  clips into `assets-src/mixamo/animations/`.
+
+Then run `npm run assets:import -- --fresh`.

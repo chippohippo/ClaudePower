@@ -1,12 +1,15 @@
 // Turns downloaded packs in assets-src/ into game-ready public/assets/ + manifest.json.
 //
-//   node tools/assets/import.mjs [--dry] [--fresh] [--no-reuse]
+//   node tools/assets/import.mjs [--dry] [--fresh] [--no-reuse] [--stylized]
 //
 // 1. unzips every .zip under assets-src/ (next to the zip, nested zips too)
 // 2. inspects every .glb/.gltf straight from the glTF JSON + binary (rig, bone names, clips, mesh
 //    node names, world-space vertices), and every .fbx / .hdr / texture / audio file
 // 3. assigns roles (rules below, then tools/assets/overrides.json on top):
 //      characters.default    base rig (+ animation libraries that share ≥60% of its bone names)
+//      realism               rigs are measured in their rest pose (share of the height above the
+//                            neck): realistic adult proportions (< 0.28) win over chibi / stylised
+//                            ones, which are only used when no realistic rig exists (or --stylized)
 //      characters.<legend>   every rigged character is classified Tank / DPS / Support from its
 //                            name (knight/warrior/brute → tank, rogue/ranger/ninja → dps,
 //                            mage/medic/druid → support …) and matched to that role's legends,
@@ -33,11 +36,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { readGltf, worldPositions } from './gltfread.mjs';
+import { readGltf, worldPositions, restInfo } from './gltfread.mjs';
 import { gunFacing } from '../../src/shared/gunfacing.js';
 import { LEGENDS, LEGEND_IDS, ROLES } from '../../src/shared/legends.js';
 import { WEAPONS } from '../../src/shared/weapons.js';
-import { usefulClips } from '../../src/shared/clips.js';
+import { usefulClips, matchClip } from '../../src/shared/clips.js';
 import { optimizerAvailable, optimizeModel, repairUris } from './optimize.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -46,6 +49,7 @@ const OUT = process.env.ASSETS_OUT || path.join(ROOT, 'public', 'assets');
 const DRY = process.argv.includes('--dry');
 const FRESH = process.argv.includes('--fresh');
 const REUSE = !process.argv.includes('--no-reuse');
+const STYLIZED = process.argv.includes('--stylized');
 // glTF-Transform optimisation (meshopt + quantize + prune) unless --no-optimize or not installed
 const OPT = !process.argv.includes('--no-optimize') && !DRY && await optimizerAvailable();
 const OVR_PATH = path.join(ROOT, 'tools/assets/overrides.json');
@@ -90,10 +94,23 @@ function inspect(file) {
     info.animations = (j.animations || []).map((a) => a.name || '');
     info.skinned = !!(j.skins && j.skins.length);
     info.prims = (j.meshes || []).reduce((n, m) => n + m.primitives.length, 0);
+    info.tris = Math.round((j.meshes || []).flatMap((m) => m.primitives).reduce((n, p) => n + (j.accessors[p.indices !== undefined ? p.indices : p.attributes.POSITION]?.count || 0) / 3, 0));
     const jointIdx = new Set((j.skins || []).flatMap((s) => s.joints));
     info.bones = [...jointIdx].map((i) => (j.nodes[i] && j.nodes[i].name) || '');
     info.meshNodes = (j.nodes || []).filter((n) => n.mesh !== undefined).map((n) => n.name || '');
     info.equipment = info.skinned ? info.meshNodes.filter((n) => EQUIP.test(n)) : [];
+    if (info.skinned) {
+      info.rest = restInfo(g);
+      // the material covering the most vertices is the outfit that takes the legend tint
+      const verts = new Map();
+      for (const me of j.meshes || []) for (const pr of me.primitives) {
+        const mn = pr.material !== undefined && j.materials[pr.material] ? j.materials[pr.material].name || '' : '';
+        const a = j.accessors[pr.attributes.POSITION];
+        verts.set(mn, (verts.get(mn) || 0) + (a ? a.count : 0));
+      }
+      info.mainMat = [...verts.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] || null;
+      info.textured = (j.materials || []).some((m) => m.pbrMetallicRoughness && m.pbrMetallicRoughness.baseColorTexture);
+    }
     info.uris = [...(j.buffers || []), ...(j.images || [])].map((b) => b.uri).filter((u) => u && !u.startsWith('data:'));
     // textures that live elsewhere in the pack (Quaternius shared texture folders) are put back
     if (!DRY) info.repaired = repairUris(file, path.join(SRC, path.relative(SRC, file).split(path.sep)[0]), info.uris);
@@ -136,7 +153,16 @@ const isMixamoAnim = (m) => /[\\/]mixamo[\\/]animations[\\/]/i.test(m.file);
 const isMixamoChar = (m) => /[\\/]mixamo[\\/]characters[\\/]/i.test(m.file);
 const isArms = (m) => /(wrad|fps.?arms|[\\/]arms[\\/]|\barms\b|first.?person)/i.test(words(m.file));
 const isLib = (m) => !isMixamoChar(m) && (isMixamoAnim(m) || (m.kind === 'gltf' && m.skinned && (m.animations || []).length >= 8 && (/(^|[^a-z])(ual|anim|animation|library|locomotion)/i.test(m.name) || m.prims === 0)));
-const rigged = uniq.filter((m) => !isArms(m) && !isLib(m) && (m.skinned || isMixamoChar(m) || (m.kind === 'fbx' && /charact|human|soldier|male|female/i.test(words(m.file)))));
+const rigged0 = uniq.filter((m) => !isArms(m) && !isLib(m) && (m.skinned || isMixamoChar(m) || (m.kind === 'fbx' && /charact|human|soldier|male|female/i.test(words(m.file)))));
+// Apex-like realism: prefer rigs with adult proportions over chibi / big-head stylised ones
+const REAL_HEAD = 0.28;
+const CHAR_TRIS = 15000;
+const HUMANOID = [/(left.?(up.?leg|thigh)|(upperleg|thigh|upleg)[._]?l$)/i, /(right.?(up.?leg|thigh)|(upperleg|thigh|upleg)[._]?r$)/i, /(left.?(fore|lower).?arm|(forearm|lowerarm)[._]?l$)/i, /(right.?(fore|lower).?arm|(forearm|lowerarm)[._]?r$)/i, /neck|head/i];
+const humanoid = (m) => HUMANOID.every((re) => (m.bones || []).some((b) => re.test(b)));
+// adult proportions: head + neck a small share of the height, a body slimmer than it is tall
+const realistic = (m) => isMixamoChar(m) || (humanoid(m) && m.rest && m.rest.headFrac > 0.08 && m.rest.headFrac < REAL_HEAD && m.rest.build < 0.45);
+const rigged = !STYLIZED && rigged0.some(realistic) ? rigged0.filter(realistic) : rigged0;
+for (const m of rigged0) if (m.rest && humanoid(m)) log(`rig ${rel(m.file)}: head ${(m.rest.headFrac * 100).toFixed(0)}% of height, build ${m.rest.build}${rigged.includes(m) ? '' : '  — stylised, skipped (realistic rigs available; --stylized keeps them)'}`);
 
 // --- characters: role classification → legends of that role
 const ROLE_WORDS = {
@@ -161,10 +187,16 @@ const overlap = (a, b) => {
 };
 const charEntry = (m) => {
   // ship only the clips the game can map to a state, and drop held props from the file itself
-  const e = { file: use('characters', m, { character: true, hide: m.equipment || [], keepClips: usefulClips(m.animations || []) }), height: 1.8 };
+  // 60 players on screen: dense characters are simplified to ~CHAR_TRIS triangles
+  const simplify = m.tris > CHAR_TRIS * 1.1 ? +(CHAR_TRIS / m.tris).toFixed(3) : 0;
+  const e = { file: use('characters', m, { character: true, hide: m.equipment || [], keepClips: usefulClips(m.animations || []), simplify }), height: 1.8 };
   if (m.equipment && m.equipment.length) e.hide = m.equipment;
-  // single-atlas characters (KayKit, Kenney) keep their own colours; legend tint stays subtle
-  e.tintAmount = (m.meshNodes || []).length > 3 ? 0.22 : 0.6;
+  // single-atlas characters (KayKit, Kenney) and textured bodies (skin + clothes in one texture)
+  // keep their own colours; untextured outfits take the legend colour strongly
+  e.tintAmount = (m.meshNodes || []).length > 3 ? 0.22 : m.textured ? 0.3 : 0.6;
+  if (m.mainMat) e.tint = [m.mainMat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')];
+  // facing from the skeleton: packs facing -Z need no turn
+  if (m.rest && m.rest.faces < 0) e.rotY = 0;
   if (isMixamoChar(m)) e.animations = uniq.filter(isMixamoAnim).map((a) => use('animations', a));
   return e;
 };
@@ -176,11 +208,13 @@ if (base) {
   if (lib.length && !manifest.characters.default.animations) manifest.characters.default.animations = lib.map((l) => use('animations', l));
   log(`characters.default   ← ${rel(base.file)} (${(base.animations || []).length} clips${lib.length ? ` + ${lib.length} animation files` : ''})`);
 }
-const pool = rigged.filter((m) => m !== base || rigged.length >= LEGEND_IDS.length);
+const pool = rigged.filter((m) => m !== base || rigged.length >= LEGEND_IDS.length || REUSE);
 const byRole = { tank: [], dps: [], support: [], none: [] };
 for (const m of pool) byRole[roleOf(m) || 'none'].push(m);
 const assigned = new Map();
-for (const role of ['tank', 'dps', 'support']) {
+// fewer bodies than legends (a handful of realistic rigs): every role cycles through all of them below
+const FEW = REUSE && pool.length < LEGEND_IDS.length;
+for (const role of FEW ? [] : ['tank', 'dps', 'support']) {
   const legends = LEGEND_IDS.filter((id) => LEGENDS[id].cls === role);
   const cands = byRole[role];
   // theme matches first, then the rest of that role, then unclassified models
@@ -190,6 +224,20 @@ for (const role of ['tank', 'dps', 'support']) {
   byRole.leftover = (byRole.leftover || []).concat(cands);
 }
 for (const lg of LEGEND_IDS) if (!assigned.has(lg) && byRole.leftover && byRole.leftover.length) assigned.set(lg, byRole.leftover.shift());
+// fewer bodies than legends (a handful of realistic rigs): reuse them, varied within each role and
+// ordered by build — bulky for tanks, slim for DPS (legend tint + kit tell them apart in game)
+if (REUSE && pool.length) {
+  const builds = pool.map((m) => (m.rest && m.rest.build) || 0.2).sort((a, b) => a - b);
+  const mid = builds[Math.floor(builds.length / 2)];
+  const pref = { tank: (m) => -(m.rest?.build || 0), dps: (m) => m.rest?.build || 0, support: (m) => Math.abs((m.rest?.build || 0) - mid) };
+  for (const role of ['tank', 'dps', 'support']) {
+    const legends = LEGEND_IDS.filter((id) => LEGENDS[id].cls === role);
+    const used = legends.map((lg) => assigned.get(lg)).filter(Boolean);
+    const order = pool.slice().sort((a, b) => used.includes(a) - used.includes(b) || pref[role](a) - pref[role](b));
+    let i = 0;
+    for (const lg of legends) if (!assigned.has(lg)) assigned.set(lg, order[i++ % order.length]);
+  }
+}
 for (const lg of LEGEND_IDS) {
   const m = assigned.get(lg);
   if (!m) continue;
@@ -210,7 +258,7 @@ if (OPT) {
   }
   let gi = 0;
   for (const g of groups.values()) {
-    if (g.keys.length < 2) continue;
+    if (g.keys.length < 2 || !usefulClips(g.src.animations).size) continue;
     const lib = { ...g.src, name: `rig${gi++}_${pack(g.src).replace(/[^\w]+/g, '_')}_anims`, file: g.src.file };
     const libDest = `animations/${lib.name}.glb`;
     libs.push({ src: g.src.file, dest: libDest, keepClips: usefulClips(g.src.animations) });
@@ -221,6 +269,29 @@ if (OPT) {
     }
     log(`  shared animation library ${libDest}: ${usefulClips(g.src.animations).size} clips for ${g.keys.length} characters`);
   }
+}
+
+// characters whose own file has no locomotion (Michelle only dances) borrow the clips of the rig with
+// the most usable clips that shares their bone names; the game retargets them at load
+// (client/assets.js retargetClip) so different rest poses, bone axes and facing still line up
+const LOCO = ['idle', 'walk', 'run'];
+const hasLoco = (m) => LOCO.filter((st) => [...usefulClips(m.animations || [])].some((n) => matchClip(m.animations, st) === n)).length >= 2;
+const donorLib = new Map();
+for (const [key, e] of Object.entries(manifest.characters)) {
+  if (e.animations && e.animations.length) continue;
+  const m = [...chosen.values()].find((c) => c.d === e.file)?.m;
+  if (!m || !m.bones || hasLoco(m)) continue;
+  const donor = rigged.filter((d) => d !== m && hasLoco(d) && overlap(m.bones, d.bones) > 0.6).sort((a, b) => usefulClips(b.animations).size - usefulClips(a.animations).size)[0];
+  if (!donor) { log(`  ! ${key}: no locomotion clips and no compatible rig to borrow from`); continue; }
+  const shared = libs.find((l) => l.src === donor.file);
+  if (shared) donorLib.set(donor.file, shared.dest);
+  if (!donorLib.has(donor.file)) {
+    const dest = `animations/${donor.name.replace(/[^\w]+/g, '_')}_anims.glb`;
+    if (OPT) libs.push({ src: donor.file, dest, keepClips: usefulClips(donor.animations) });
+    donorLib.set(donor.file, OPT ? dest : use('animations', donor));
+  }
+  e.animations = [donorLib.get(donor.file)];
+  log(`  ${key}: borrows ${usefulClips(donor.animations).size} clips from ${rel(donor.file)} (retargeted in game)`);
 }
 
 const roleCount = {};

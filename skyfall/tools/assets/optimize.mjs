@@ -53,7 +53,7 @@ function findFile(root, pred) {
 //   animOnly   write an animation library: skeleton + clips, no meshes, materials or textures
 //   character  skinned model (no welding)
 //   maxTex     longest side for colour textures (they're re-encoded as WebP)
-//   simplify   0..1 triangle ratio (meshoptimizer simplifier) — nature props and their far LODs
+//   simplify   0..1 triangle ratio (meshoptimizer simplifier) — rocks, bushes, and dense characters
 export async function optimizeModel(src, dest, { hide = [], keepClips = null, character = false, animOnly = false, maxTex = 512, simplify = 0 } = {}) {
   const { fn, io, MeshoptEncoder, MeshoptSimplifier, sharp } = gt;
   const doc = await io.read(src);
@@ -77,8 +77,8 @@ export async function optimizeModel(src, dest, { hide = [], keepClips = null, ch
   await doc.transform(
     fn.prune(),
     fn.dedup(),
-    ...(character ? [] : [fn.weld()]),
-    ...(simplify > 0 && !character ? [fn.simplify({ simplifier: MeshoptSimplifier, ratio: simplify, error: simplify < 0.2 ? 0.05 : 0.01 })] : []),
+    ...(character && !simplify ? [] : [fn.weld()]),
+    ...(simplify > 0 ? [fn.simplify({ simplifier: MeshoptSimplifier, ratio: simplify, error: character ? 0.004 : simplify < 0.2 ? 0.05 : 0.01 })] : []),
     fn.resample(),
     fn.quantize({ quantizeTexcoord: 12 }),
     ...(sharp && !animOnly ? [fn.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [maxTex, maxTex], quality: 85 })] : []),

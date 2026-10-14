@@ -11,7 +11,7 @@ import { WEAPONS, falloff, fireInterval, magSize, currentSpread } from '../share
 import { CONSUMABLES, GRENADES, HELMET_HEAD_REDUCTION, KD_HP, rollLoot } from '../shared/items.js';
 import { LEGENDS, LEGEND_IDS, ROLES, roleTargets } from '../shared/legends.js';
 import { makeRng, dirFromAngles, clamp } from '../shared/util.js';
-import { rayPlayer } from '../shared/physics.js';
+import { rayHitbox, poseOf } from '../shared/hitbox.js';
 import { speedMul } from '../shared/mods.js';
 import { makeWeapon, pickup, countItem, takeItem, addStack, reloadAmount } from './inventory.js';
 import { useTactical, useUltimate, updateEntity, passiveTick } from './abilities.js';
@@ -272,7 +272,7 @@ export class Match {
 
   _welcome(p) {
     return {
-      t: 'welcome', you: p.id, seed: this.seed, mode: this.mode,
+      t: 'welcome', you: p.id, seed: this.seed, mode: this.mode, practice: this.practice,
       players: this.list.map((q) => ({ id: q.id, name: q.name, legend: q.legend, squad: q.squad, bot: q.isBot })),
       loot: [...this.loot.values()],
       bins: [...this.binsOpened],
@@ -893,8 +893,7 @@ export class Match {
     const cands = this.queryPlayers((sx + nx) / 2, (sz + nz) / 2, len / 2 + 2);
     for (const q of cands) {
       if (q === b.owner || !q.alive || q.inShip || q.squad === b.owner.squad || q.status.phase > 0) continue;
-      const h = q.downed ? 0.8 : playerHeight(q.ms);
-      const r = rayPlayer(sx, sy, sz, ux, uy, uz, q.ms.x, q.ms.y, q.ms.z, h, 0.45, best);
+      const r = rayHitbox(sx, sy, sz, ux, uy, uz, poseOf(q.ms.x, q.ms.y, q.ms.z, q.ms.yaw, q.ms.crouch, q.downed, q.ms.mode === 'slide', q.legend, !q.ms.onGround && q.ms.mode === 'air', q.ms.mode === 'zip'), best);
       if (r && r.t < best) { best = r.t; target = q; part = r.part; }
     }
     b.dist += best;

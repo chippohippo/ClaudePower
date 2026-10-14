@@ -16,6 +16,7 @@ From a machine that can only reach GitHub (like the SKYFALL cloud sandbox) this 
 | `kaykit-adventurers/` | github.com/KayKit-Game-Assets — Knight, Barbarian, Mage, Rogue, Rogue (hooded); 76 clips incl. 2-handed aim/shoot/reload, strafes, dodges | CC0 |
 | `kaykit-skeletons/` | github.com/KayKit-Game-Assets — Skeleton Warrior, Mage, Rogue, Minion (same rig) | CC0 |
 | `kaykit-space-base/` | github.com/KayKit-Game-Assets — cargo crates + stacked cargo (crate / container props) | CC0 |
+| `threejs-mixamo/` | Soldier, X Bot, Michelle: realistic-proportion Mixamo characters from the three.js examples (the game's current legends) | Mixamo (Adobe) terms, **not CC0** |
 | `kenney-starter-kit-fps/` | github.com/KenneyNL/Starter-Kit-FPS — blaster + blaster-repeater, sounds | CC0 assets |
 | `polyhaven/hdri/` | Poly Haven `quarry_01`, `spruit_sunrise` (1k, mirrored in the three.js repo) | CC0 |
 | `quaternius/*.zip` | Quaternius Stylized Nature MegaKit + Modular Sci-Fi MegaKit (GitHub release mirror; each zip is checked for Quaternius' license file) | CC0 |
@@ -33,13 +34,16 @@ should keep the pack name, because the importer reads names to assign roles.
 | **Quaternius — Ultimate Guns Pack** (glTF) | quaternius.com → Packs | `assets-src/quaternius-ultimate-guns.zip` | **the missing gun archetypes**: AR, SMG, LMG, shotgun, DMR, sniper, revolver, pistol |
 | **3dmodelscc0 — Free CC0 Guns & Explosives Pack** | 3dmodelscc0.itch.io/free-cc0-guns-explosives-pack | `assets-src/3dmodelscc0-guns.zip` | more guns (fills archetypes Quaternius lacks) |
 | **Kenney — Blaster Kit** | kenney.nl/assets/blaster-kit | `assets-src/kenney-blaster-kit.zip` | sci-fi guns (energy SMG, etc.) |
-| Quaternius — Universal Base Characters + Universal Animation Library | quaternius.com → Packs | `assets-src/quaternius-ubc.zip`, `assets-src/quaternius-ual.zip` | a realistic-proportion base rig + big shared clip library |
+| **Quaternius — Universal Base Characters + Universal Animation Library** | quaternius.com → Packs | `assets-src/quaternius-ubc.zip`, `assets-src/quaternius-ual.zip` | CC0 realistic-proportion bodies + a big shared clip library (rifle idle / run / crouch / death …) |
 | Quaternius — Ultimate Animated Character Pack | quaternius.com → Packs | `assets-src/quaternius-ultimate-characters.zip` | more per-legend characters |
 | WRAD ARMS (wriks) | wriks.itch.io/wrad-arms (check its license) | `assets-src/wrad-arms/` | first-person arms |
 | Kenney — Nature Kit | kenney.nl/assets/nature-kit | `assets-src/kenney-nature-kit.zip` | more trees / rocks |
 | Kenney — UI Audio / Interface / Impact Sounds | kenney.nl/assets | `assets-src/kenney-ui-audio.zip` … | recorded UI sounds |
 
 Prefer the **glTF / GLB** download when a pack offers several formats (FBX also works).
+
+The importer prefers characters with realistic adult proportions and skips chibi / big-head ones
+(KayKit) while any realistic rig exists. `--stylized` keeps them.
 
 ### Mixamo (optional, not CC0)
 

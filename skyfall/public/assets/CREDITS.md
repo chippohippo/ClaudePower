@@ -1,8 +1,9 @@
 # Third-party assets
 
-- KayKit by Kay Lousberg (kaylousberg.com) — CC0
+- Mixamo (Adobe) — Mixamo terms, not CC0
 - Kenney (kenney.nl) — CC0
 - Quaternius (quaternius.com) — CC0
+- KayKit by Kay Lousberg (kaylousberg.com) — CC0
 - Poly Haven (polyhaven.com) — CC0
 - ambientCG (ambientcg.com) — CC0
 

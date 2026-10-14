@@ -5,7 +5,10 @@
 //   ragdollClone(), dispose()
 // Animation: one AnimationMixer per avatar; game movement flags pick a state (idle / walk / run /
 // crouch / slide / jump / skydive / zip / downed / heal) that crossfades to the matching clip, with
-// walk/run playback speed locked to ground speed. Aim pitch bends the spine, firing kicks it.
+// walk/run playback speed locked to ground speed. Realistic humanoid rigs (client/humanoid.js) get a
+// procedural layer on top: two-handed gun hold by arm IK, strafing hip twist, crouch / slide / downed
+// poses matching the Apex-style hitboxes (shared/hitbox.js), skydive and zipline arms. Other rigs
+// keep the simpler layer: aim pitch bends the spine, firing kicks it, the gun follows the hand.
 
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -14,11 +17,14 @@ import { WEAPONS } from '../shared/weapons.js';
 import { assets } from './assets.js';
 import { PAL, teamRim } from './palette.js';
 import { Avatar, phaseMat, kdMat, kdGeo, revealMat, nameTag, gunMat } from './avatars.js';
+import { HumanoidRig, PoseLayer } from './humanoid.js';
+import { legendSize, BODY } from '../shared/hitbox.js';
 
 const TINT_NAMES = /main|body|cloth|shirt|suit|armou?r|outfit|jacket|torso|top|uniform|primary/i;
 const HAND_R = /(right.?hand|hand[._]?r$|hand_r|^handr|mixamorig:?righthand)/i;
 const SPINE = /(spine.?2|chest|upperchest|spine1|spine)/i;
 const tintCache = new Map();
+const _gp = new THREE.Vector3(), _gq = new THREE.Quaternion();
 
 // Bone lookup that survives loader renaming (GLTFLoader strips ".", ":" etc. from node names, so
 // Quaternius "Hand.R" arrives as "HandR"): exact name, then sanitised name, then the pattern.
@@ -67,6 +73,9 @@ export class ModelAvatar {
     this.root.add(this.body);
     this.body.add(modelRoot);
     this.model = model;
+    // Apex-style size class: tanks broader, DPS slimmer (matches the hitbox width)
+    this.size = legendSize(meta.legend);
+    modelRoot.scale.set(this.size, 1, this.size);
     tintModel(model, meta.legend, def);
     teamRim(this.body, isMate ? 'ally' : 'enemy');
 
@@ -80,6 +89,12 @@ export class ModelAvatar {
     }
     this.state = null;
     this.lodAcc = 0;
+    // realistic humanoid → procedural pose layer; crouch is always procedural there so the model
+    // matches the crouch hitbox
+    this.rig = new HumanoidRig(model);
+    this.layer = this.rig.ok ? new PoseLayer(this.rig, this.body) : null;
+    if (this.layer) delete this.actions.crouch;
+    this.reloadT = 0;
 
     // bones for procedural layers
     this.hand = findBone(model, def.handBone, HAND_R);
@@ -175,8 +190,10 @@ export class ModelAvatar {
     this.fireKick = Math.max(0, (this.fireKick || 0) - dt * 9);
     if (this.fireKick > 0.3) this.firedT = 0.35; else this.firedT = Math.max(0, (this.firedT || 0) - dt);
 
+    const L = this.layer, A = this.actions;
     let st = 'idle';
-    if (downed) st = 'downed';
+    if (L && (s.crouch || 0) > 0.5 && !downed && !slide && !skydive && !zip && !(air && !mantle)) st = speed > 0.6 ? 'walk' : 'idle';
+    else if (downed) st = 'downed';
     else if (skydive) st = 'skydive';
     else if (zip) st = 'zip';
     else if (slide) st = 'slide';
@@ -198,10 +215,12 @@ export class ModelAvatar {
     }
     // animation LOD: the further away, the lower the update rate (pose holds in between)
     this.lodAcc += dt;
-    const step = dist > 300 ? 0.25 : dist > 160 ? 1 / 7 : dist > 80 ? 1 / 15 : dist > 35 ? 1 / 30 : 0;
-    let ticked = false;
+    const step = dist > 300 ? 0.25 : dist > 160 ? 1 / 7 : dist > 80 ? 1 / 15 : dist > 20 ? 1 / 30 : 0;
+    let ticked = false, tickDt = 0;
     if (this.lodAcc >= step) {
+      if (L) this.rig.restore();
       this.mixer.update(this.lodAcc);
+      tickDt = this.lodAcc;
       this.lodAcc = 0;
       ticked = true;
       if (this.spine) this.spinePose.copy(this.spine.quaternion); // clip pose before our layers
@@ -214,8 +233,30 @@ export class ModelAvatar {
     this.body.rotation.x += (-lean - this.body.rotation.x) * Math.min(1, dt * 6);
     this.body.position.y += ((skydive ? 1.0 : 0) - this.body.position.y) * Math.min(1, dt * 6);
 
+    if (s.weapon !== this.weaponId) this._setWeapon(s.weapon && WEAPONS[s.weapon] ? s.weapon : null);
+    if (L) {
+      this.reloadT = fl & 128 ? this.reloadT + dt : 0;
+      if (ticked) {
+        const w = s.weapon && WEAPONS[s.weapon];
+        L.apply(tickDt || dt, {
+          moving: speed > 0.6, fwd, side, pitch: s.pitch || 0, crouch: s.crouch || 0, size: this.size, time,
+          downed: !!downed && !(A.downed && /crawl/i.test(A.downed.getClip().name)),
+          slide: !!slide && !A.slide, skydive: !!skydive && !A.skydive, dive, zip: !!zip,
+          tuck: air && !mantle && !skydive && !zip && !A.jump ? BODY.tuck : 0,
+          armed: !!w, cls: w ? w.cls : null, fore: w ? ({ SMG: 0.22, Shotgun: 0.32, Sniper: 0.38, Marksman: 0.36, LMG: 0.36 }[w.cls] || 0.28) : 0.28,
+          kick: this.fireKick, sprint: speed > 6.2 && !this.firedT && !(s.crouch > 0.5) && !air,
+          reload: fl & 128 && !A.reload ? (this.reloadT % 1.6) / 1.6 : 0, healing: !!healing && !A.heal,
+        });
+      }
+      this.gun.visible = L.gun.visible;
+      if (this.gun.visible) {
+        root.updateWorldMatrix(true, false);
+        this.gun.position.copy(root.worldToLocal(_gp.copy(L.gun.pos)));
+        this.gun.quaternion.copy(root.getWorldQuaternion(_gq).invert().multiply(L.gun.quat));
+      }
+    }
     // procedural layers on top of the clip: aim pitch through the spine, fire kick
-    if (this.spine && !downed && !skydive) {
+    if (!L && this.spine && !downed && !skydive) {
       const pitch = THREE.MathUtils.clamp(s.pitch || 0, -1.1, 1.1) * 0.6 + this.fireKick * 0.12;
       this.spine.quaternion.copy(this.spinePose);
       this.spine.rotateX(-pitch);
@@ -223,9 +264,8 @@ export class ModelAvatar {
 
     // gun: at the right hand, pointing where the player aims. The hand position (relative to the
     // character) only changes when the animation ticks, and only the hand's parent chain is updated
-    if (s.weapon !== this.weaponId) this._setWeapon(s.weapon && WEAPONS[s.weapon] ? s.weapon : null);
-    this.gun.visible = !!s.weapon && !downed && !skydive && !zip;
-    if (this.gun.visible) {
+    if (!L) this.gun.visible = !!s.weapon && !downed && !skydive && !zip;
+    if (!L && this.gun.visible) {
       if (this.hand && (ticked || !this.handLocal)) {
         root.updateWorldMatrix(false, false);
         this.handLocal = root.worldToLocal(this.hand.getWorldPosition(this.handLocal || new THREE.Vector3()));

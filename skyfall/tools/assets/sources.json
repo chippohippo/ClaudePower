@@ -40,37 +40,37 @@
   },
   "manual": [
     {
-      "name": "Quaternius \u2014 Universal Base Characters",
+      "name": "Quaternius — Universal Base Characters",
       "url": "https://quaternius.com",
       "license": "CC0",
       "role": "characters (default rig)"
     },
     {
-      "name": "Quaternius \u2014 Universal Animation Library",
+      "name": "Quaternius — Universal Animation Library",
       "url": "https://quaternius.com",
       "license": "CC0",
       "role": "animations for the base characters (same rig)"
     },
     {
-      "name": "Quaternius \u2014 Ultimate Animated Character Pack",
+      "name": "Quaternius — Ultimate Animated Character Pack",
       "url": "https://quaternius.com",
       "license": "CC0",
       "role": "per-legend characters with their own clips"
     },
     {
-      "name": "Quaternius \u2014 Ultimate Guns Pack",
+      "name": "Quaternius — Ultimate Guns Pack",
       "url": "https://quaternius.com",
       "license": "CC0",
       "role": "weapons"
     },
     {
-      "name": "3dmodelscc0 \u2014 Free CC0 Guns & Explosives Pack",
+      "name": "3dmodelscc0 — Free CC0 Guns & Explosives Pack",
       "url": "https://3dmodelscc0.itch.io/free-cc0-guns-explosives-pack",
       "license": "CC0",
       "role": "weapons"
     },
     {
-      "name": "Quaternius \u2014 Stylized Nature MegaKit",
+      "name": "Quaternius — Stylized Nature MegaKit",
       "url": "https://quaternius.com",
       "license": "CC0",
       "role": "trees, rocks, bushes"
@@ -147,6 +147,21 @@
         "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/textures/equirectangular/spruit_sunrise_1k.hdr",
         "dest": "polyhaven/hdri/spruit_sunrise_1k.hdr",
         "license": "CC0 (Poly Haven, mirrored in the three.js repo)"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/models/gltf/Soldier.glb",
+        "dest": "threejs-mixamo/Soldier.glb",
+        "license": "Mixamo (Adobe) — royalty-free in games, not CC0; redistributed in the three.js examples"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/models/gltf/Xbot.glb",
+        "dest": "threejs-mixamo/Xbot.glb",
+        "license": "Mixamo (Adobe) — royalty-free in games, not CC0; redistributed in the three.js examples"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r169/examples/models/gltf/Michelle.glb",
+        "dest": "threejs-mixamo/Michelle.glb",
+        "license": "Mixamo (Adobe) — royalty-free in games, not CC0; redistributed in the three.js examples"
       }
     ]
   },

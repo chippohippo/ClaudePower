@@ -30,7 +30,7 @@ function accessorFloats(g, idx) {
   if (!a || a.bufferView === undefined || a.componentType !== 5126) return null;
   const bv = g.json.bufferViews[a.bufferView], buf = g.buffers[bv.buffer];
   if (!buf) return null;
-  const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[a.type];
+  const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 }[a.type];
   const stride = bv.byteStride || comps * 4, base = (bv.byteOffset || 0) + (a.byteOffset || 0);
   const out = new Float32Array(a.count * comps);
   for (let i = 0; i < a.count; i++) for (let c = 0; c < comps; c++) out[i * comps + c] = buf.readFloatLE(base + i * stride + c * 4);
@@ -77,4 +77,45 @@ export function worldPositions(g, { skipNode } = {}) {
   const scene = j.scenes ? j.scenes[j.scene || 0] : { nodes: j.nodes.map((_, i) => i) };
   for (const ni of scene.nodes || []) visit(ni, I);
   return new Float32Array(out);
+}
+
+// Rest-pose body measurements of a skinned character (no skinning maths beyond the bind matrix):
+//   headFrac  share of the height above the neck (realistic adult ≈ 0.13–0.16, chibi / stylised ≥ 0.25)
+//   faces     +1 when the model faces +Z (its left side at +X), -1 when it faces -Z
+//   build     depth / height of the mesh (armoured, bulky bodies score higher)
+export function restInfo(g) {
+  const j = g.json;
+  if (!j.skins || !j.skins.length) return null;
+  const world = new Array(j.nodes.length);
+  const visit = (ni, parent) => { world[ni] = mul(parent, trs(j.nodes[ni])); for (const c of j.nodes[ni].children || []) visit(c, world[ni]); };
+  const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const isChild = new Set(j.nodes.flatMap((n) => n.children || []));
+  j.nodes.forEach((_, i) => { if (!isChild.has(i)) visit(i, I); });
+  const named = (re) => { const i = j.skins[0].joints.find((k) => re.test(j.nodes[k].name || '')); return i === undefined ? null : world[i]; };
+  let minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  j.nodes.forEach((n) => {
+    if (n.mesh === undefined || n.skin === undefined) return;
+    const skin = j.skins[n.skin];
+    const ibm = skin.inverseBindMatrices !== undefined ? accessorFloats(g, skin.inverseBindMatrices) : null;
+    const M = ibm ? mul(world[skin.joints[0]], Array.from(ibm.slice(0, 16))) : I;
+    for (const p of j.meshes[n.mesh].primitives) {
+      const pos = accessorFloats(g, p.attributes.POSITION);
+      if (!pos) continue;
+      for (let i = 0; i < pos.length; i += 3) {
+        const x = pos[i], y = pos[i + 1], z = pos[i + 2];
+        const wy = M[1] * x + M[5] * y + M[9] * z + M[13], wz = M[2] * x + M[6] * y + M[10] * z + M[14];
+        minY = Math.min(minY, wy); maxY = Math.max(maxY, wy); minZ = Math.min(minZ, wz); maxZ = Math.max(maxZ, wz);
+      }
+    }
+  });
+  const neck = named(/neck/i) || named(/head(?!.*(top|end))/i);
+  const left = named(/(left.?(arm|shoulder|upleg|hand)|(upperarm|arm|shoulder|hand)[._]?l$)/i), right = named(/(right.?(arm|shoulder|upleg|hand)|(upperarm|arm|shoulder|hand)[._]?r$)/i);
+  const h = maxY - minY;
+  if (!(h > 0)) return null;
+  return {
+    height: +h.toFixed(3),
+    headFrac: neck ? +((maxY - neck[13]) / h).toFixed(3) : null,
+    faces: left && right ? (left[12] > right[12] ? 1 : -1) : 1,
+    build: +((maxZ - minZ) / h).toFixed(3),
+  };
 }

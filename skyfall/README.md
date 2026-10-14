@@ -118,6 +118,13 @@ server/index.js           parties, Trios/Sixes queues, bot fill, a 30 Hz tick pe
     scales with zoom and has an ADS multiplier setting.
   - Shotguns use a fixed pellet pattern and damage falls off with range. Headshot multipliers are
     reduced by helmets.
+- **Hitboxes (Apex style, `src/shared/hitbox.js`)**
+  - A realistic 1.8 m body: 25 cm head sphere; body capsules for neck, chest, shoulders, pelvis and
+    arms; leg capsules.
+  - Posed for standing, crouch, slide, downed, air and zipline, and turned with the player.
+  - Width follows the legend's size class: tanks ×1.12, support ×1, DPS ×0.92.
+  - The server, the client and the bots all use the same shapes.
+  - In the Firing Range, **B** shows them.
 - **Hit feedback (Apex style)**
   - Damage numbers: gold on headshots, the target's armor colour while shields hold, red on health.
     Hits within 0.7 s stack into one number that follows the target.
@@ -302,15 +309,19 @@ All feel numbers are data, not code. Change them and reload.
 - Buildings have interior partition rooms, interior windows you can mantle through, balconies and low cover walls.
 - The minimap is hill-shaded with contours and shows ziplines.
 
-**Imported art (CC0 packs, optional)**
+**Imported art (CC0 packs + Mixamo characters, optional)**
 - Shipped in `public/assets/` (about 5 MB, meshopt + WebP):
-  - KayKit characters for all 9 legends, with 3 Tank / 3 DPS / 3 Support and a shared clip library
+  - realistic-proportion Mixamo characters (Soldier, X Bot, Michelle from the three.js examples) for
+    all 9 legends, cycled per role and tinted per legend
+  - a procedural pose layer on those characters: two-handed gun hold by arm IK, strafing hip twist,
+    crouch / slide / downed matching the hitboxes, skydive and zipline arms
+  - retargeting, so one rig's clips drive another
   - Kenney blasters for 4 gun slots
   - Quaternius trees, rocks and bushes
   - KayKit and Quaternius cargo crates, containers and barrels, draped over the map colliders
   - a Poly Haven HDRI, ambientCG detail textures and a Kenney sound
 - They are adapted to the cel/ink look in Comic and kept PBR in Clean. Without the manifest,
-  everything falls back to the procedural art.
+  everything falls back to the procedural art, whose characters use the same realistic proportions.
 - `npm run assets:fetch` / `assets:import` / `assets:test` handle the pipeline:
   - `assets-src/README.md` lists the packs to download by hand (the gun packs that fill the other 6
     weapons).

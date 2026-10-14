@@ -1,135 +1,126 @@
 {
   "characters": {
     "default": {
-      "file": "characters/Barbarian.glb",
+      "file": "characters/Soldier.glb",
       "height": 1.8,
-      "hide": [
-        "1H_Axe_Offhand",
-        "Barbarian_Round_Shield",
-        "1H_Axe",
-        "2H_Axe",
-        "Mug"
+      "tintAmount": 0.3,
+      "tint": [
+        "VanguardBodyMat"
       ],
-      "tintAmount": 0.22,
+      "rotY": 0,
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig0_threejs_mixamo_anims.glb"
       ]
     },
     "jolt": {
-      "file": "characters/Rogue.glb",
+      "file": "characters/Xbot.glb",
       "height": 1.8,
-      "hide": [
-        "Knife_Offhand",
-        "1H_Crossbow",
-        "2H_Crossbow",
-        "Knife",
-        "Throwable"
+      "tintAmount": 0.6,
+      "tint": [
+        "asdf1:Beta_HighLimbsGeoSG2"
       ],
-      "tintAmount": 0.22,
       "role": "dps",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     },
     "phantom": {
-      "file": "characters/Rogue_Hooded.glb",
+      "file": "characters/Michelle.glb",
       "height": 1.8,
-      "hide": [
-        "Knife_Offhand",
-        "1H_Crossbow",
-        "2H_Crossbow",
-        "Knife",
-        "Throwable"
+      "tintAmount": 0.3,
+      "tint": [
+        "Ch03_Body"
       ],
-      "tintAmount": 0.22,
       "role": "dps",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     },
     "halo": {
-      "file": "characters/Mage.glb",
+      "file": "characters/Michelle.glb",
       "height": 1.8,
-      "hide": [
-        "Spellbook",
-        "Spellbook_open",
-        "1H_Wand",
-        "2H_Staff"
+      "tintAmount": 0.3,
+      "tint": [
+        "Ch03_Body"
       ],
-      "tintAmount": 0.22,
       "role": "support",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     },
     "bastion": {
-      "file": "characters/Barbarian.glb",
+      "file": "characters/Soldier.glb",
       "height": 1.8,
-      "hide": [
-        "1H_Axe_Offhand",
-        "Barbarian_Round_Shield",
-        "1H_Axe",
-        "2H_Axe",
-        "Mug"
+      "tintAmount": 0.3,
+      "tint": [
+        "VanguardBodyMat"
       ],
-      "tintAmount": 0.22,
+      "rotY": 0,
       "role": "tank",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig0_threejs_mixamo_anims.glb"
       ]
     },
     "echo": {
-      "file": "characters/Skeleton_Mage.glb",
+      "file": "characters/Soldier.glb",
       "height": 1.8,
-      "tintAmount": 0.22,
+      "tintAmount": 0.3,
+      "tint": [
+        "VanguardBodyMat"
+      ],
+      "rotY": 0,
       "role": "support",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig0_threejs_mixamo_anims.glb"
       ]
     },
     "miasma": {
-      "file": "characters/Skeleton_Warrior.glb",
+      "file": "characters/Michelle.glb",
       "height": 1.8,
-      "tintAmount": 0.22,
+      "tintAmount": 0.3,
+      "tint": [
+        "Ch03_Body"
+      ],
       "role": "tank",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     },
     "volt": {
-      "file": "characters/Skeleton_Minion.glb",
+      "file": "characters/Xbot.glb",
       "height": 1.8,
-      "tintAmount": 0.22,
+      "tintAmount": 0.6,
+      "tint": [
+        "asdf1:Beta_HighLimbsGeoSG2"
+      ],
       "role": "support",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     },
     "spectre": {
-      "file": "characters/Skeleton_Rogue.glb",
+      "file": "characters/Soldier.glb",
       "height": 1.8,
-      "tintAmount": 0.22,
+      "tintAmount": 0.3,
+      "tint": [
+        "VanguardBodyMat"
+      ],
+      "rotY": 0,
       "role": "dps",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig0_threejs_mixamo_anims.glb"
       ]
     },
     "kodiak": {
-      "file": "characters/Knight.glb",
+      "file": "characters/Xbot.glb",
       "height": 1.8,
-      "hide": [
-        "1H_Sword_Offhand",
-        "Badge_Shield",
-        "Rectangle_Shield",
-        "Round_Shield",
-        "Spike_Shield",
-        "1H_Sword",
-        "2H_Sword"
+      "tintAmount": 0.6,
+      "tint": [
+        "asdf1:Beta_HighLimbsGeoSG2"
       ],
-      "tintAmount": 0.22,
       "role": "tank",
       "animations": [
-        "animations/rig0_kaykit_adventurers_anims.glb"
+        "animations/rig1_threejs_mixamo_anims.glb"
       ]
     }
   },

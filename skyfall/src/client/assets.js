@@ -60,6 +60,7 @@ export function adaptModel(root, { shadows = true, skinned = false } = {}) {
 // Many character packs split a body into parts that share one texture atlas (KayKit: body, head,
 // arms, legs, helmet, cape …), each with its own skin. Merge parts that share a material into a
 // single SkinnedMesh on a union skeleton → one draw call per character instead of 7–10.
+const sameMatrix = (a, b) => a.elements.every((v, i) => Math.abs(v - b.elements[i]) < 1e-4 * (1 + Math.abs(v)));
 export function mergeSkinnedParts(root) {
   const groups = new Map();
   root.updateMatrixWorld(true);
@@ -82,11 +83,15 @@ export function mergeSkinnedParts(root) {
       for (const n of Object.keys(g.attributes)) if (!['position', 'normal', 'uv', 'skinIndex', 'skinWeight'].includes(n)) g.deleteAttribute(n);
       if (!g.attributes.skinIndex || !g.attributes.position) { ok = false; break; }
       const si = g.attributes.skinIndex;
+      // parts quantized separately carry their dequantization in the inverse bind matrices: a bone
+      // shared with a different inverse can't be merged (Soldier's visor would balloon)
       const remap = m.skeleton.bones.map((b, i) => {
         let j = bones.indexOf(b);
         if (j < 0) { j = bones.length; bones.push(b); inverses.push(m.skeleton.boneInverses[i].clone()); }
+        else if (!sameMatrix(inverses[j], m.skeleton.boneInverses[i])) ok = false;
         return j;
       });
+      if (!ok) break;
       const arr = new Uint16Array(si.count * 4);
       for (let i = 0; i < si.count; i++) for (let c = 0; c < 4; c++) arr[i * 4 + c] = remap[si.getComponent(i, c)] ?? 0;
       g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(arr, 4));
@@ -147,6 +152,102 @@ function normalise(root, { height, length, rot, rotY, offset, ground = true, sca
   return g;
 }
 
+// Replays a clip made for one skeleton on another whose bones share names but not necessarily rest
+// orientation, bone axes or facing (Mixamo characters exported from Blender vs Maya, a Soldier facing
+// -Z vs a mannequin facing +Z). Both skeletons must rest in the same pose (Mixamo: T-pose). Every
+// bone's world-space rotation away from its rest is applied to the target bone's rest, the hips
+// translation is scaled by hip height, and the result is baked at 30 fps. Returns the clip untouched
+// when the rests already match, or null when no bones are shared.
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+export function retargetClip(clip, src, dst) {
+  if (src === dst) return clip;
+  const nodes = (root, bonesOnly) => { const m = new Map(); root.traverse((o) => { if (!bonesOnly || o.isBone) m.set(o.name, o); }); return m; };
+  const S0 = nodes(src, false), D = nodes(dst, true);
+  const names = [...new Set(clip.tracks.map((t) => THREE.PropertyBinding.parseTrackName(t.name).nodeName))].filter((n) => S0.has(n) && D.has(n));
+  if (!names.length) return null;
+  src.updateMatrixWorld(true); dst.updateMatrixWorld(true);
+  // facing: the left→right shoulder line of each skeleton, flattened
+  const side = (M) => {
+    for (const n of names) {
+      const r = n.replace(/Left/, 'Right').replace(/left/, 'right');
+      if (r === n || !M.has(r)) continue;
+      const v = M.get(n).getWorldPosition(new THREE.Vector3()).sub(M.get(r).getWorldPosition(_v1)); v.y = 0;
+      if (v.lengthSq() > 1e-8) return v.normalize();
+    }
+    return null;
+  };
+  const sS = side(S0), sD = side(D);
+  const F = sS && sD ? new THREE.Quaternion().setFromUnitVectors(sS, sD) : new THREE.Quaternion();
+  const same = F.angleTo(_q1.identity()) < 0.01 && names.every((n) => S0.get(n).quaternion.angleTo(D.get(n).quaternion) < 0.01);
+  if (same) return clip;
+  const Fi = F.clone().invert();
+  const depth = (o) => { let d = 0; for (let p = o.parent; p; p = p.parent) d++; return d; };
+  const order = names.slice().sort((a, b) => depth(D.get(a)) - depth(D.get(b)));
+  const set = new Set(order);
+  const restS = new Map(order.map((n) => [n, S0.get(n).getWorldQuaternion(new THREE.Quaternion()).invert()]));
+  const restD = new Map(order.map((n) => [n, D.get(n).getWorldQuaternion(new THREE.Quaternion())]));
+  const parentD = new Map(order.map((n) => [n, D.get(n).parent ? D.get(n).parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion()]));
+  // the root-most bone with a position track carries the hips motion
+  const hips = order.find((n) => clip.tracks.some((t) => t.name === n + '.position'));
+  let hip = null;
+  if (hips) {
+    const sp = S0.get(hips).getWorldPosition(new THREE.Vector3()), dp = D.get(hips).getWorldPosition(new THREE.Vector3());
+    hip = { sp, dp, k: sp.y > 0.05 && dp.y > 0.05 ? dp.y / sp.y : 1, inv: D.get(hips).parent ? D.get(hips).parent.matrixWorld.clone().invert() : new THREE.Matrix4() };
+  }
+  // sample the source on a private copy
+  const sc = SkeletonUtils.clone(src), S = nodes(sc, false);
+  const mixer = new THREE.AnimationMixer(sc);
+  mixer.clipAction(clip).play();
+  const n = Math.max(2, Math.ceil(clip.duration * 30) + 1);
+  const times = new Float32Array(n), quats = new Map(order.map((k) => [k, new Float32Array(n * 4)])), pos = hip ? new Float32Array(n * 3) : null;
+  const world = new Map();
+  for (let i = 0; i < n; i++) {
+    const t = (clip.duration * i) / (n - 1);
+    times[i] = t;
+    mixer.setTime(t);
+    sc.updateMatrixWorld(true);
+    for (const k of order) {
+      // delta from the source rest, expressed in the target's facing, applied to the target rest
+      const dq = S.get(k).getWorldQuaternion(_q1).multiply(restS.get(k));
+      dq.premultiply(F).multiply(Fi);
+      const w = dq.multiply(restD.get(k));
+      world.set(k, (world.get(k) || new THREE.Quaternion()).copy(w));
+      const p = D.get(k).parent;
+      const pw = p && set.has(p.name) ? world.get(p.name) : parentD.get(k);
+      _q2.copy(pw).invert().multiply(w).toArray(quats.get(k), i * 4);
+    }
+    if (hip) {
+      S.get(hips).getWorldPosition(_v1).sub(hip.sp).applyQuaternion(F).multiplyScalar(hip.k);
+      _v2.copy(hip.dp).add(_v1).applyMatrix4(hip.inv).toArray(pos, i * 3);
+    }
+  }
+  mixer.stopAllAction();
+  const tracks = order.map((k) => new THREE.QuaternionKeyframeTrack(k + '.quaternion', times, quats.get(k)));
+  if (hip) tracks.push(new THREE.VectorKeyframeTrack(hips + '.position', times, pos));
+  return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+}
+
+// Drops tracks that only restate a bone's rest transform (Mixamo exports key position, rotation and
+// scale on every bone: 201 tracks for X Bot, most of them constant) so the mixer does less per frame.
+export function pruneClip(clip, scene) {
+  const nodes = new Map();
+  scene.traverse((o) => nodes.set(o.name, o));
+  const keep = clip.tracks.filter((t) => {
+    const { nodeName, propertyName } = THREE.PropertyBinding.parseTrackName(t.name);
+    const o = nodes.get(nodeName);
+    if (!o) return false;
+    const rest = { position: o.position, quaternion: o.quaternion, scale: o.scale }[propertyName];
+    if (!rest) return true;
+    const n = rest.isQuaternion ? 4 : 3, v = t.values, r = rest.toArray();
+    for (let i = 0; i < v.length; i += n) {
+      if (rest.isQuaternion) { const dot = Math.abs(v[i] * r[0] + v[i + 1] * r[1] + v[i + 2] * r[2] + v[i + 3] * r[3]); if (dot < 0.99999) return true; }
+      else for (let c = 0; c < 3; c++) if (Math.abs(v[i + c] - r[c]) > 1e-3 * (1 + Math.abs(r[c]))) return true;
+    }
+    return false;
+  });
+  return keep.length === clip.tracks.length ? clip : new THREE.AnimationClip(clip.name, clip.duration, keep);
+}
+
 class AssetLibrary {
   constructor() {
     this.manifest = null;
@@ -180,6 +281,7 @@ class AssetLibrary {
     const M = (this.manifest = await res.json());
     const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), fbx = new FBXLoader();
     const cache = new Map(); // shared animation libraries are loaded once
+    const retargeted = new Map(); // library clips adapted to one character file's skeleton
     const loadModel = (file) => {
       if (!cache.has(file)) cache.set(file, (async () => {
         const url = BASE + file;
@@ -203,8 +305,12 @@ class AssetLibrary {
     for (const [key, def] of Object.entries(M.characters || {})) {
       jobs.push(tryLoad(`character ${key}`, async () => {
         const m = await loadModel(def.file);
-        let clips = m.animations.slice();
-        for (const f of def.animations || []) { const a = await loadModel(f); clips = clips.concat(a.animations); }
+        let clips = m.animations.map((c) => pruneClip(c, m.scene));
+        for (const f of def.animations || []) {
+          const a = await loadModel(f), key = f + '>' + def.file;
+          if (!retargeted.has(key)) retargeted.set(key, a.animations.map((c) => pruneClip(retargetClip(c, a.scene, m.scene) || c, m.scene)));
+          clips = clips.concat(retargeted.get(key));
+        }
         // held props baked into the character file (swords, shields …): hidden, SKYFALL hands it a gun
         if (def.hide && def.hide.length) {
           const hide = new Set(def.hide.map((n) => THREE.PropertyBinding.sanitizeNodeName(n)));

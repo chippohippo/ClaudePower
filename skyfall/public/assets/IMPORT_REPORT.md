@@ -1,18 +1,34 @@
 # SKYFALL asset import
 
-source: assets-src — 1820 files, 0 zips extracted, 282 models
+source: assets-src — 1823 files, 0 zips extracted, 285 models
 
-characters.default   ← kaykit-adventurers/Barbarian.glb (76 clips)
-characters.jolt     ← kaykit-adventurers/Rogue.glb  [DPS]  hides 5 held props
-characters.phantom  ← kaykit-adventurers/Rogue_Hooded.glb  [DPS]  hides 5 held props
-characters.halo     ← kaykit-adventurers/Mage.glb  [SUPPORT]  hides 4 held props
-characters.bastion  ← kaykit-adventurers/Barbarian.glb  [TANK]  hides 5 held props
-characters.echo     ← kaykit-skeletons/Skeleton_Mage.glb  [SUPPORT]
-characters.miasma   ← kaykit-skeletons/Skeleton_Warrior.glb  [TANK]
-characters.volt     ← kaykit-skeletons/Skeleton_Minion.glb  [SUPPORT]
-characters.spectre  ← kaykit-skeletons/Skeleton_Rogue.glb  [DPS]
-characters.kodiak   ← kaykit-adventurers/Knight.glb  [TANK]  hides 7 held props
-  shared animation library animations/rig0_kaykit_adventurers_anims.glb: 14 clips for 10 characters
+rig kaykit-adventurers/Barbarian.glb: head 43% of height, build 0.451  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-adventurers/Knight.glb: head 46% of height, build 0.439  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-adventurers/Mage.glb: head 44% of height, build 0.575  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-adventurers/Rogue.glb: head 43% of height, build 0.464  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-adventurers/Rogue_Hooded.glb: head 45% of height, build 0.514  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-skeletons/Skeleton_Mage.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-skeletons/Skeleton_Minion.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-skeletons/Skeleton_Rogue.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig kaykit-skeletons/Skeleton_Warrior.glb: head 43% of height, build 0.421  — stylised, skipped (realistic rigs available; --stylized keeps them)
+rig threejs-mixamo/Michelle.glb: head 21% of height, build 0.233
+rig threejs-mixamo/Soldier.glb: head 16% of height, build 0.242
+rig threejs-mixamo/Xbot.glb: head 17% of height, build 0.177
+characters.default   ← threejs-mixamo/Soldier.glb (4 clips)
+characters.jolt     ← threejs-mixamo/Xbot.glb  [DPS]
+characters.phantom  ← threejs-mixamo/Michelle.glb  [DPS]
+characters.halo     ← threejs-mixamo/Michelle.glb  [SUPPORT]
+characters.bastion  ← threejs-mixamo/Soldier.glb  [TANK]
+characters.echo     ← threejs-mixamo/Soldier.glb  [SUPPORT, model reads as tank]
+characters.miasma   ← threejs-mixamo/Michelle.glb  [TANK]
+characters.volt     ← threejs-mixamo/Xbot.glb  [SUPPORT]
+characters.spectre  ← threejs-mixamo/Soldier.glb  [DPS, model reads as tank]
+characters.kodiak   ← threejs-mixamo/Xbot.glb  [TANK]
+  shared animation library animations/rig0_threejs_mixamo_anims.glb: 3 clips for 4 characters
+  shared animation library animations/rig1_threejs_mixamo_anims.glb: 4 clips for 3 characters
+  phantom: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
+  halo: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
+  miasma: borrows 4 clips from threejs-mixamo/Xbot.glb (retargeted in game)
   role coverage: 3 dps / 3 support / 3 tank (Sixes needs 2/2/2 distinct)
 weapons.volt     ← kenney-starter-kit-fps/models/blaster-repeater.glb  [SMG for SMG; muzzle +z, confidence 0.89]
 weapons.hornet   ← kenney-starter-kit-fps/models/blaster-repeater.glb  [SMG for SMG; muzzle +z, confidence 0.89]
@@ -38,5 +54,4 @@ sounds.draw          ← kenney-starter-kit-fps/sounds/weapon_change.ogg
 
 overrides: applied tools/assets/overrides.json
 
-optimised models: 151.1 MB → 2.8 MB (meshopt + quantize, unused clips and held props removed)
-removed 4 stale files from earlier imports
+optimised models: 122.1 MB → 2.2 MB (meshopt + quantize, unused clips and held props removed)
