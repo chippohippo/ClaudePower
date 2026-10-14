@@ -336,3 +336,17 @@ body.comic #zonecall b { -webkit-text-stroke: 1px #111; paint-order: stroke fill
 #skyhud b { font-size: 30px; font-weight: 700; }
 #skyhud i { font-style: normal; font-size: 13px; color: var(--muted); margin-left: 3px; }
 body.comic #skyhud b { -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 3px 3px 0 #000; }
+
+/* ---- Apex-style hit feedback ---- */
+#hmshield { position: absolute; left: 50%; top: 50%; width: 12px; height: 14px; margin: 20px 0 0 -6px; opacity: 0; pointer-events: none;
+  background: var(--sc, #fff); clip-path: polygon(50% 0, 100% 18%, 92% 62%, 50% 100%, 8% 62%, 0 18%); filter: drop-shadow(0 0 1px #000); }
+#hmshield.show { animation: hmsh 0.45s ease-out; }
+@keyframes hmsh { 0% { opacity: 1; transform: scale(1.5); } 30% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+.tbar { position: absolute; left: 0; top: 0; width: 64px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
+.tbar .ts { display: flex; gap: 2px; }
+.tbar .ts i { flex: 1; height: 5px; background: rgba(0,0,0,0.55); position: relative; outline: 1px solid rgba(0,0,0,0.6); }
+.tbar .ts b, .tbar .th b { position: absolute; left: 0; top: 0; bottom: 0; }
+.tbar .th { height: 3px; background: rgba(0,0,0,0.55); position: relative; outline: 1px solid rgba(0,0,0,0.6); }
+.tbar .th b { background: var(--health, #ff4d3a); }
+.tbar.down .th b { background: #ff9a2a; }
+.dmgnum.head { color: var(--head, #ffd23f) !important; }

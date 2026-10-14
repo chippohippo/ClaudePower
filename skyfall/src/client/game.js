@@ -22,6 +22,7 @@ import { LootView } from './lootview.js';
 import { audio } from './audio.js';
 import { settings } from './input.js';
 import { FEEL } from './tuning.js';
+import { PAL } from './palette.js';
 import { STYLE, ComicPost } from './comic.js';
 
 // shield hits ring lower as the armor tier rises (white → red)
@@ -312,11 +313,13 @@ export class Game {
           const tier = ev.tier;
           const onShield = ev.sd > 0;
           const head = ev.part === 'head';
-          const color = onShield ? SHIELD_COLORS[tier] : head ? '#ffd23f' : '#ffffff';
+          // Apex colours: gold for headshots, the armor's colour while shields hold, red on health
+          const color = head ? PAL.head : onShield ? SHIELD_COLORS[tier] : PAL.health;
+          this._tagTarget(ev.v);
           this.fx.damageNumber(ev.x, ev.y, ev.z, ev.dmg, color, head, ev.v, onShield && !ev.brk);
           this.lastCombatT = this.time;
           if (ev.src) { // explosive/ability damage: no client-side marker was shown yet
-            this.hud.hitmarker('body');
+            this.hud.hitmarker('body', onShield ? SHIELD_COLORS[tier] : null);
             audio.play(onShield ? 'hit_shield' : 'hit_flesh', null, { vol: M.hit * 0.85, rate: SHIELD_PITCH[tier] || 1 });
           }
           // armor crack: a 25-point shield segment just shattered (but not the whole shield)
@@ -621,6 +624,7 @@ export class Game {
     this._zoneCheck(dt, me);
 
     this._selfAvatar(dt);
+    this._updateTargetBars(dt);
 
     // ---- world + fx
     const cp = this.camera.position;
@@ -755,6 +759,48 @@ export class Game {
   }
 
   // Pop-art impact word (comic style only).
+  // Apex-style enemy status bar: after you damage someone, their shield segments and health float
+  // above their head for a few seconds so you can read how close they are to breaking
+  _tagTarget(id) {
+    this.targetBars = this.targetBars || new Map();
+    const tb = this.targetBars.get(id);
+    if (tb) tb.t = FEEL.hit.targetBarTime;
+    else this.targetBars.set(id, { t: FEEL.hit.targetBarTime, el: null, key: '' });
+  }
+
+  _updateTargetBars(dt) {
+    if (!this.targetBars) return;
+    const v = this.tmpV3 || (this.tmpV3 = new THREE.Vector3());
+    const W = innerWidth, H = innerHeight;
+    for (const [id, tb] of this.targetBars) {
+      tb.t -= dt;
+      const r = this.remotes.get(id);
+      if (tb.t <= 0 || !r || !r.avatar || !r.avatar.root.visible || r.avatar.dead) {
+        if (tb.el) tb.el.remove();
+        this.targetBars.delete(id);
+        continue;
+      }
+      if (!tb.el) { tb.el = document.createElement('div'); tb.el.className = 'tbar'; document.getElementById('dmgnums').appendChild(tb.el); }
+      const p = r.avatar.root.position;
+      v.set(p.x, p.y + (r.fl & 1 ? 1.1 : 2.25), p.z).project(this.camera);
+      if (v.z > 1) { tb.el.style.display = 'none'; continue; }
+      tb.el.style.display = '';
+      tb.el.style.transform = `translate(${((v.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-v.y * 0.5 + 0.5) * H).toFixed(1)}px) translate(-50%, -100%)`;
+      tb.el.style.opacity = Math.min(1, tb.t / 0.4);
+      const max = SHIELD_TIERS[r.armor] || 0, segs = Math.round(max / 25);
+      const key = `${r.armor}|${Math.round(r.sh || 0)}|${Math.round(r.hp ?? 100)}|${r.fl & 1}`;
+      if (key === tb.key) continue;
+      tb.key = key;
+      let sh = '';
+      for (let i = 0; i < segs; i++) {
+        const fill = Math.max(0, Math.min(1, ((r.sh || 0) - i * 25) / 25));
+        sh += `<i><b style="width:${(fill * 100).toFixed(0)}%;background:${SHIELD_COLORS[r.armor]}"></b></i>`;
+      }
+      tb.el.classList.toggle('down', !!(r.fl & 1));
+      tb.el.innerHTML = (segs ? `<div class="ts">${sh}</div>` : '') + `<div class="th"><b style="width:${Math.max(0, Math.min(100, r.hp ?? 100))}%"></b></div>`;
+    }
+  }
+
   // your own legend, shown only while the freefall camera is in third person
   _selfAvatar(dt) {
     const show = (this.tpAmt || 0) > 0.05 && this.selfPos;
@@ -1054,7 +1100,8 @@ export class Game {
         const hx = sx + ux * best, hy = sy + uy * best, hz = sz + uz * best;
         this.net.send({ t: 'hit', id: b.id, k: b.k, v: target.id, part, x: +hx.toFixed(2), y: +hy.toFixed(2), z: +hz.toFixed(2) });
         const onShield = target.sh > 0 && !(target.fl & 1);
-        this.hud.hitmarker(part === 'head' ? 'head' : 'body');
+        this.hud.hitmarker(part === 'head' ? 'head' : 'body', onShield ? SHIELD_COLORS[target.armor] : null);
+        this._tagTarget(target.id);
         if (part === 'head' && this.time - (this.lastHeadPow || 0) > 0.6) { this.lastHeadPow = this.time; this._pow(hx, hy + 0.2, hz, 'HEADSHOT', '#ffd23f', 0.7); }
         // one hit sound per shot per target (shotguns would otherwise stack 11 sounds)
         const hk = b.id + ':' + target.id;
@@ -1093,7 +1140,7 @@ export class Game {
         yaw: a.yaw + wrapAngle(b.yaw - a.yaw) * k, pitch: lerp(a.pitch, b.pitch, k),
         fl: b.fl, crouch: lerp(a.crouch, b.crouch, k), weapon: b.weapon, vx: b.vx, vz: b.vz, revealed: b.rev,
       };
-      r.fl = b.fl; r.crouch = s.crouch; r.sh = b.sh; r.armor = b.armor;
+      r.fl = b.fl; r.crouch = s.crouch; r.sh = b.sh; r.armor = b.armor; r.hp = b.hp;
       const inShip = s.fl & 16;
       const dist = Math.hypot(s.x - cam.x, s.z - cam.z);
       if (!r.avatar && !inShip) r.avatar = new Avatar(this.scene, r.meta, r.meta.squad === this.mySquad);

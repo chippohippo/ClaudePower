@@ -34,7 +34,8 @@ export const FEEL = {
     edgeFlashTaken: 0.45,
     shieldBreakFlash: 0.6,
     killFlash: 0.7,
-    numberMergeWindow: 0.12,
+    numberMergeWindow: 0.7,    // Apex "stacking" damage numbers: hits within this window add up
+    targetBarTime: 3.0,        // enemy shield/health bar lingers this long after your last hit
   },
   mix: {
     gunLocal: 0.95,

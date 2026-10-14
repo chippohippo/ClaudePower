@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { SHIELD_COLORS } from '../shared/constants.js';
 import { RARITY } from '../shared/items.js';
 import { STYLE, toonify } from './comic.js';
+import { FEEL } from './tuning.js';
 
 function softTex(inner = 'rgba(255,255,255,1)', outer = 'rgba(255,255,255,0)') {
   const c = document.createElement('canvas');
@@ -459,12 +460,13 @@ export class FX {
   damageNumber(x, y, z, dmg, color, head, key, shieldStyle) {
     // merge rapid hits on the same target (shotgun pellets, fast SMG bursts) into one number
     if (key !== undefined) {
-      const ex = this.dmgNums.find((d) => d.key === key && d.t < 0.12);
+      const ex = this.dmgNums.find((d) => d.key === key && !d.pow && d.t < FEEL.hit.numberMergeWindow);
       if (ex) {
         ex.val += dmg;
         ex.el.textContent = ex.val;
         ex.el.style.color = color;
-        if (head) ex.el.classList.add('head');
+        ex.el.classList.toggle('head', !!head);
+        ex.x = x; ex.y = y + 0.2; ex.z = z;
         ex.t = 0;
         return;
       }

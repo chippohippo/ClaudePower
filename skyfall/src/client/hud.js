@@ -50,12 +50,22 @@ export class HUD {
   }
 
   // ---- events ------------------------------------------------------------
-  hitmarker(kind) {
+  // Apex crosshair feedback: an X on every hit plus a shield icon in the armor's colour while the
+  // target still has shields (gold X on headshots, red on knocks/kills)
+  hitmarker(kind, shieldColor = null) {
     const hm = this.el.hm;
     // restart the CSS pop animation every hit
     hm.className = '';
     void hm.offsetWidth;
     hm.className = 'pop ' + (kind === 'kill' ? 'kill' : kind === 'head' ? 'head' : kind === 'break' ? 'break' : '');
+    let ic = this.hmShield;
+    if (!ic) { ic = this.hmShield = document.createElement('div'); ic.id = 'hmshield'; hm.parentNode.appendChild(ic); }
+    if (shieldColor && kind !== 'kill') {
+      ic.style.setProperty('--sc', shieldColor);
+      ic.className = '';
+      void ic.offsetWidth;
+      ic.className = 'show';
+    }
     this.hmT = kind === 'kill' ? FEEL.hit.killMarkerTime : FEEL.hit.markerTime;
   }
 
