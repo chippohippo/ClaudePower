@@ -1,0 +1,15 @@
+{
+  "_comment": "Every attachment has trade-offs. ops apply in slot order: {stat (dot path), op: mul|add|set, value}.",
+  "attachments": [
+    { "id": "optic_holo", "slot": "optic", "mesh": "att/optic_holo.glb", "socket": "socket_optic", "ops": [ { "stat": "ads.time", "op": "mul", "value": 1.05 }, { "stat": "ads.fov", "op": "set", "value": 50 } ] },
+    { "id": "optic_4x", "slot": "optic", "mesh": "att/optic_4x.glb", "socket": "socket_optic", "ops": [ { "stat": "ads.fov", "op": "set", "value": 22 }, { "stat": "ads.time", "op": "mul", "value": 1.3 }, { "stat": "ads.moveMul", "op": "mul", "value": 0.85 } ] },
+    { "id": "barrel_long", "slot": "barrel", "ops": [ { "stat": "damage.falloffStart", "op": "mul", "value": 1.3 }, { "stat": "damage.falloffEnd", "op": "mul", "value": 1.3 }, { "stat": "ads.time", "op": "mul", "value": 1.12 } ] },
+    { "id": "barrel_suppressor", "slot": "barrel", "ops": [ { "stat": "audio.radius", "op": "mul", "value": 0.35 }, { "stat": "minimapOnFire", "op": "set", "value": false }, { "stat": "velocity", "op": "mul", "value": 0.85 }, { "stat": "damage.falloffEnd", "op": "mul", "value": 0.85 } ] },
+    { "id": "mag_extended", "slot": "magazine", "ops": [ { "stat": "mag", "op": "mul", "value": 1.5 }, { "stat": "reload.tactical", "op": "mul", "value": 1.2 }, { "stat": "handling.swap", "op": "mul", "value": 1.15 } ] },
+    { "id": "mag_ap", "slot": "magazine", "ops": [ { "stat": "ammoType", "op": "set", "value": "armorPiercing" }, { "stat": "mag", "op": "mul", "value": 0.8 } ] },
+    { "id": "ub_grip", "slot": "underbarrel", "ops": [ { "stat": "recoilScale.vertical", "op": "mul", "value": 0.8 }, { "stat": "ads.time", "op": "mul", "value": 1.06 } ] },
+    { "id": "ub_grenade", "slot": "underbarrel", "ops": [ { "stat": "altFire", "op": "set", "value": "grenade_40mm" }, { "stat": "ads.time", "op": "mul", "value": 1.15 } ] },
+    { "id": "core_overclock", "slot": "core", "ops": [ { "stat": "rpm", "op": "mul", "value": 1.2 }, { "stat": "ammo.perShot", "op": "mul", "value": 1.35 } ] },
+    { "id": "core_cryo", "slot": "core", "ops": [ { "stat": "ammoType", "op": "set", "value": "cryo" }, { "stat": "damage.base", "op": "mul", "value": 0.85 } ] }
+  ]
+}

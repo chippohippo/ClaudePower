@@ -1,0 +1,33 @@
+{
+  "_comment": "Times in seconds. windup = readable tell; active = hitbox sweeps; recovery = punish window. cancelAt = fraction of recovery after which dodge/guard can cancel.",
+  "weapons": [
+    {
+      "id": "solari_dawnblade",
+      "name": "Dawnblade",
+      "faction": "solari",
+      "class": "flameSword",
+      "ammoType": "flame",
+      "visual": { "model": "weapons/dawnblade.glb", "socketBase": "socket_flame_base", "socketTip": "socket_flame_tip", "flameColor": "#ffb347" },
+      "guard": { "parryWindow": 0.15, "perfectBlockWindow": 0.11, "blockReduction": 0.8, "guardMax": 100, "parryWhiff": 0.35, "deflectEnergy": true, "deflectHeat": 6 },
+      "heat": { "max": 100, "ventPerSec": 14, "ventDelay": 0.9, "hotThreshold": 70, "hotBurnBonus": 0.25, "overheatDuration": 2.0, "parryVent": 20 },
+      "attacks": {
+        "light1": { "anim": "Sword_Slash_L1", "windup": 0.18, "active": 0.12, "recovery": 0.28, "damage": 28, "poise": 18, "guardDmg": 14, "heat": 6,  "stamina": 6,  "arc": 110, "range": 2.1, "next": { "light": "light2", "heavy": "heavy1" }, "chainWindow": 0.3 },
+        "light2": { "anim": "Sword_Slash_R1", "windup": 0.16, "active": 0.12, "recovery": 0.30, "damage": 30, "poise": 18, "guardDmg": 14, "heat": 6,  "stamina": 6,  "arc": 110, "range": 2.1, "next": { "light": "light3", "heavy": "thrust" }, "chainWindow": 0.3 },
+        "light3": { "anim": "Sword_Slash_Finisher", "windup": 0.24, "active": 0.14, "recovery": 0.45, "damage": 42, "poise": 35, "guardDmg": 26, "heat": 9, "stamina": 10, "arc": 160, "range": 2.3, "next": {} },
+        "heavy1": { "anim": "Sword_Heavy_Overhead", "windup": 0.48, "active": 0.14, "recovery": 0.55, "damage": 70, "poise": 60, "guardDmg": 45, "heat": 14, "stamina": 18, "arc": 60, "range": 2.4, "hyperArmor": [0.2, 0.62], "next": { "light": "light2" }, "chainWindow": 0.25 },
+        "thrust": { "anim": "Sword_Thrust", "windup": 0.30, "active": 0.10, "recovery": 0.40, "damage": 48, "poise": 30, "guardDmg": 60, "heat": 8, "stamina": 12, "arc": 25, "range": 3.0, "lunge": 4.5, "next": {} },
+        "slideSlash": { "anim": "Sword_Slide_Slash", "windup": 0.08, "active": 0.16, "recovery": 0.35, "damage": 36, "poise": 40, "guardDmg": 20, "heat": 8, "stamina": 8, "arc": 140, "range": 2.2, "next": {} },
+        "counter": { "anim": "Sword_Riposte", "windup": 0.06, "active": 0.12, "recovery": 0.30, "damage": 95, "poise": 100, "guardDmg": 0, "heat": -10, "stamina": 0, "arc": 90, "range": 2.4, "unblockable": true, "next": { "light": "light2" }, "chainWindow": 0.35 },
+        "flameWave": { "anim": "Sword_Flame_Wave", "windup": 0.6, "active": 0.1, "recovery": 0.5, "damage": 55, "poise": 45, "guardDmg": 30, "heat": 35, "stamina": 20, "projectile": { "speed": 22, "width": 3.2, "range": 18, "reflectOnParry": true }, "next": {} },
+        "sweepArc": { "anim": "Sword_Sweep_270", "windup": 0.35, "active": 0.2, "recovery": 0.6, "damage": 45, "poise": 50, "guardDmg": 35, "heat": 30, "stamina": 20, "arc": 270, "range": 2.6, "next": {} },
+        "guardBreak": { "anim": "Sword_Kick", "windup": 0.4, "active": 0.1, "recovery": 0.5, "damage": 10, "poise": 80, "guardDmg": 999, "heat": 0, "stamina": 15, "arc": 70, "range": 1.6, "unblockable": true, "parryable": false, "next": {} }
+      },
+      "chargeTime": 0.6
+    }
+  ],
+  "_roster": [
+    "solari_dawnblade (balanced flame sword)", "solari_sunlance (energy spear, long thrusts)", "solari_aegis_saber (wide parry window, low damage)",
+    "void_ashsworn_blade (black flame, burn DoT, narrow parry)", "void_rift_cleaver (two-hand, hyper armor heavies)", "void_twin_embers (dual flame daggers, fast chains)",
+    "cinder_edge (degrades with use, huge burn)", "vibroblade (no heat, fast, low guard)", "power_fist (guard breaks, no parry; grapple)", "ion_halberd (shield damage x2)"
+  ]
+}

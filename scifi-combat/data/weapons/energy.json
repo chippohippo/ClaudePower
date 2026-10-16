@@ -1,0 +1,14 @@
+{
+  "archetypes": {
+    "pulseRifle": { "fireMode": "auto", "rpm": 600, "projectile": "bolt", "velocity": 140, "ammoType": "plasma", "ammo": { "kind": "heat", "perShot": 4.5, "max": 100, "ventPerSec": 45, "ventDelay": 0.35, "overheatLock": 1.8, "manualVent": 1.2 }, "damage": { "base": 26, "head": 1.5, "shieldMul": 1.0 }, "spread": { "hip": 2.6, "ads": 0.4, "heatMul": 1.8 }, "recoil": "pulse_soft", "deflectable": true, "slots": ["optic", "barrel", "core", "underbarrel"] },
+    "beam": { "fireMode": "beam", "projectile": "beam", "range": 35, "ammoType": "ion", "ammo": { "kind": "battery", "max": 100, "drainPerSec": 22, "rechargePerSec": 10 }, "damage": { "dps": 140, "rampUp": 0.6, "rampMul": 1.6 }, "recoil": "beam_wander", "deflectable": false, "slots": ["optic", "core", "stock"] }
+  },
+  "weapons": [
+    { "id": "sol_pr_aurora", "name": "Aurora Pulse Rifle", "archetype": "pulseRifle", "faction": "solari", "notes": "Perfectly timed manual vent (active-reload) gives +15% dmg for 4s." },
+    { "id": "void_pr_umbra", "name": "Umbra Carbine", "archetype": "pulseRifle", "faction": "void", "rpm": 780, "ammo": { "perShot": 3.2 }, "damage": { "base": 19 }, "ammoType": "void" },
+    { "id": "sol_beam_halo", "name": "Halo Lance", "archetype": "beam", "faction": "solari", "notes": "Shreds shields; useless vs. plate armor." },
+    { "id": "void_beam_tether", "name": "Tether Beam", "archetype": "beam", "faction": "void", "special": { "chainTargets": 2, "chainRange": 6 } },
+    { "id": "sol_plasma_sunburst", "name": "Sunburst Plasma Caster", "archetype": "pulseRifle", "fireMode": "charge", "chargeTime": 0.8, "rpm": 80, "damage": { "base": 90, "splash": 2.5 }, "ammo": { "perShot": 30 }, "velocity": 70 }
+  ],
+  "_rosterPlan": "18: pulse rifles x4, laser carbines x3, beams x3, plasma casters x3, energy pistols x3, energy shotgun x1, ion marksman x1."
+}
