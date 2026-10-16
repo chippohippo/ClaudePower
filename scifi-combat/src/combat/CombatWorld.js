@@ -22,8 +22,13 @@ export class CombatWorld {
    * @param {object} opts { damageMatrix, cover: [{ min: Vector3, max: Vector3, destructible?, surface? }] }
    *        `cover` is shared by reference with the movement bodies, so destroyed cover stops colliding too.
    */
-  constructor({ damageMatrix = {}, cover = [] } = {}) {
+  /**
+   * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
+   * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
+   */
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {} } = {}) {
     this.damageMatrix = damageMatrix;
+    this.supers = supers; this.meleeWeapons = meleeWeapons; this.recoilDefs = recoilDefs;
     this.cover = cover;
     this.entities = [];
     this.projectiles = new ProjectileSystem(this);
@@ -76,6 +81,8 @@ export class CombatWorld {
         if (t >= 0 && t <= max && _oc.lengthSq() - t * t < r * r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone });
       }
     }
+    // Piercing shots (Judgment) only test characters: cover, walls, domes and ground are ignored.
+    if (opts.ignoreCover) return best;
     const dep = this.deployables.raycast(o, d, max);
     if (dep && dep.entity.id !== ignoreId) consider(dep);
     consider(this.raycastStatic(o, d, max, { includeWalls: false }));

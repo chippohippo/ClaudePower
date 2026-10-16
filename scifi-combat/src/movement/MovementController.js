@@ -158,11 +158,11 @@ export class MovementController {
     }
 
     // Sprint: only forward-ish, standing, not locked by combat.
-    s.sprinting = !!b.sprint?.down && cmd.moveY > 0.5 && s.locks.sprint <= 0 && s.speedScale >= 1;
+    s.sprinting = !!b.sprint?.down && cmd.moveY > 0.5 && s.locks.sprint <= 0 && s.speedScale >= 1 && this.mods.canSprint !== false;
     if (s.sprinting && s.stance !== Stance.STAND) this.#setStance(Stance.STAND);
 
     // Dodge
-    if (b.dodge?.pressed && s.stance !== Stance.PRONE && this.spendStamina(t.dodge.staminaCost)) {
+    if (b.dodge?.pressed && s.stance !== Stance.PRONE && this.mods.canDodge !== false && this.spendStamina(t.dodge.staminaCost)) {
       return this.#enterDodge(wishMag > 0 ? _wish : _tmp.copy(_fwd).negate()); // no input = backstep
     }
 
@@ -301,7 +301,7 @@ export class MovementController {
   #jump() {
     const s = this.state;
     if (s.stance !== Stance.STAND) this.#setStance(Stance.STAND);
-    s.velocity.y = this.t.jumpVelocity;
+    s.velocity.y = this.t.jumpVelocity * (this.mods.jumpMul ?? 1);
     s.timeSinceJumpPressed = 99;
     s.timeSinceGrounded = 99; // consume coyote
     s.grounded = false;

@@ -17,6 +17,7 @@
 | `src/combat/AbilitySystem.js` | Class kits (ability1/ability2/grenade/super): cast tells, charges, cooldown trading, interrupts with refund, super energy, Flux upgrades, data-driven effect primitives |
 | `src/combat/StatusSystem.js`, `Health.js` | Scorch→Ignite, Weaken, Suppress, Volatile, Slow→Stun and more; shield, leech armor and overshield layers |
 | `src/combat/CombatWorld.js`, `ZoneSystem.js`, `DeployableSystem.js` | One world query surface (raycast over fighters, deployables, cover and domes); arming/ticking/pulling/tether zones; turrets, walls, mines, tripwires, charges with recast and defuse, beacons, launch pads, engines, decoys, vehicle drops; destructible cover |
+| `src/combat/TransformSystem.js`, `data/supers.json` | 8 transform supers: temporary super weapons (piercing, beams, singularity slugs, siege cannon), greatsword/dagger movesets with real melee projectiles, mech frame; exact revert; early end on depletion |
 | `src/vfx/ZoneDeployableViews.js` | Readable graybox visuals: team-relative colors, arming fill countdowns, dome shells, rotating spokes, tether beams, turret laser sights, blinking mines |
 | `tests/` | Headless `node --test` suite (`npm install && npm test`) |
 | `src/audio/AudioDirector.js` | Clarity-first audio: friend/foe cue variants, faction sound families, threat priority and ducking, super warnings, WebAudio synth fallback |

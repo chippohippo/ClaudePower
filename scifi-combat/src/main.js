@@ -11,6 +11,7 @@ import { MovementController, FlatGroundBody } from './movement/MovementControlle
 import { MeleeComponent, MeleeSystem } from './combat/melee/MeleeSystem.js';
 import { WeaponComponent, WeaponInstance } from './combat/weapons/WeaponSystem.js';
 import { CombatWorld } from './combat/CombatWorld.js';
+import { revertTransform } from './combat/TransformSystem.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
 import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from './combat/AbilitySystem.js';
@@ -21,10 +22,10 @@ import { MeleeDuelistBrain } from './ai/MeleeDuelistBrain.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits] = await Promise.all([
+const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'),
-  load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'),
+  load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'),
 ]);
 const sword = meleeData.weapons[0];
 const abilityIndex = new Map();
@@ -77,7 +78,7 @@ for (const b of boxes) {
 // ---------------------------------------------------------------- world (sim queries)
 // CombatWorld owns projectiles, zones, deployables and cover. `boxes` is shared by reference with
 // the movement bodies, so destroyed cover stops colliding at the same moment it disappears.
-const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes });
+const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, supers, meleeWeapons: meleeData.weapons, recoilDefs: recoil.patterns });
 const entities = world.entities;
 bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); const i = collidables.indexOf(m); if (i >= 0) collidables.splice(i, 1); });
 
@@ -89,7 +90,7 @@ function makeFighter(id, team, color, pos, kit, guns) {
   const ent = { id, team, movement, mode: 'sword' };
   ent.health = new Health(ent, { health: 140, shield: 60, armor: 'plate' });
   ent.status = new StatusComponent(ent, statuses.statuses, world);
-  ent.melee = new MeleeComponent(sword, ent);
+  ent.melee = new MeleeComponent(sword, ent, world);
   ent.weapons = new WeaponComponent(ent, guns.map((g) => new WeaponInstance(g, recoil.patterns)), world);
   ent.abilities = new AbilityComponent(ent, kit, world);
 
@@ -116,6 +117,7 @@ const player = makeFighter(1, 0, '#d9a441', new THREE.Vector3(0, 0, 0), solariKi
 const bot = makeFighter(2, 1, '#6b3fa0', new THREE.Vector3(0, 0, -5), voidKits.kits.ashsworn, [buildWeapon(ballistic, 'void_sg_maw', attachments.attachments, [])]);
 const melee = new MeleeSystem();
 melee.add(player.melee); melee.add(bot.melee);
+bot.abilities.superEnergy = 60; // the bot's Abyssal Blade comes online within the first minute or two
 
 // Demo: K cycles the player through all 20 class kits so every ability can be tried.
 const kitOrder = [...Object.entries(solariKits.kits).map(([k, v]) => ['Solari', k, v]), ...Object.entries(voidKits.kits).map(([k, v]) => ['Void', k, v])];
@@ -123,6 +125,7 @@ let kitIndex = kitOrder.findIndex(([, k]) => k === 'dawnblade');
 function nextKit() {
   kitIndex = (kitIndex + 1) % kitOrder.length;
   const [faction, id, kit] = kitOrder[kitIndex];
+  revertTransform(player, 'kitSwap'); // never leave a super's weapon/moveset behind
   player.abilities = new AbilityComponent(player, kit, world);
   player.abilities.superEnergy = player.abilities.superCost; // demo: super ready so it can be tried immediately
   const names = Object.values(kit).map((a, i) => `${['Q', 'E', 'G', 'Z'][i]} ${a.name}`).join(' · ');
@@ -285,12 +288,19 @@ const loop = new FixedLoop({
       e.view.capsule.scale.y = THREE.MathUtils.damp(e.view.capsule.scale.y, h, 18, dt);
       const m = e.melee;
       e.view.blade.visible = e.mode !== 'gun';
+      // Transform supers: a bigger silhouette and a faction glow, readable from across the map.
+      const tf = e.transform;
+      const scale = tf ? (tf.def.movement?.scale ?? 1.15) : 1;
+      e.view.mesh.scale.setScalar(THREE.MathUtils.damp(e.view.mesh.scale.x, scale, 8, dt));
+      const bladeScale = e.melee.w.visual?.scale ?? 1;
+      e.view.blade.scale.set(bladeScale, bladeScale, bladeScale);
+      e.view.blade.material.emissive.set(e.melee.w.visual?.flameColor ?? (e.team === 0 ? '#ff5a00' : '#7a2cff'));
       e.view.gun.visible = e.mode === 'gun';
       e.view.blade.material.emissiveIntensity = 1 + (m.heat / 100) * 4 + (m.phase === 'active' ? 3 : 0);
       e.view.blade.rotation.x = m.phase === 'guard' ? -1.2 : m.phase === 'windup' ? 0.8 : m.phase === 'active' ? -0.6 : 0;
       // Status readability on the body: blue = i-frames, red = vulnerable, orange = Scorch, violet = Volatile/Weaken.
       const st = e.status;
-      e.view.capsule.material.emissive?.set(s.invulnerable ? '#3355ff' : m.vulnerable ? '#ff2222' : st.has('scorch') ? '#7a2a00' : st.has('volatile') || st.has('weaken') ? '#3a1466' : st.silenced ? '#444' : '#000000');
+      e.view.capsule.material.emissive?.set(s.invulnerable ? '#3355ff' : m.vulnerable ? '#ff2222' : tf ? (tf.def.aura === 'void' ? '#5b21b6' : tf.def.aura === 'mech' ? '#555555' : '#b7791f') : st.has('scorch') ? '#7a2a00' : st.has('volatile') || st.has('weaken') ? '#3a1466' : st.silenced ? '#444' : '#000000');
     }
     if (bot.melee.phase !== 'windup') document.getElementById('tell').style.background = 'transparent';
     for (const [p, m] of bolts) { if (!p.alive) { scene.remove(m); bolts.delete(p); } else m.position.copy(p.pos); }
@@ -302,7 +312,10 @@ const loop = new FixedLoop({
 
     const ps = player.movement.state;
     const w = player.weapons;
-    const eye = ps.mode === 'slide' ? 0.8 : ps.stance === 'crouch' ? 1.05 : ps.stance === 'prone' ? 0.4 : 1.65;
+    // Bigger silhouettes (Siege Frame, greatswords) pull the third-person camera back to match.
+    rig.tpOffset.z = 2.6 * player.view.mesh.scale.x;
+    rig.tpOffset.y = 0.25 * player.view.mesh.scale.x;
+    const eye = (ps.mode === 'slide' ? 0.8 : ps.stance === 'crouch' ? 1.05 : ps.stance === 'prone' ? 0.4 : 1.65) * player.view.mesh.scale.x;
     // In gun mode the camera renders the recoil-offset aim, so what you see is where shots go.
     const pitch = player.mode === 'gun' ? w.aimPitch : lastPlayerCmd?.pitch ?? 0;
     const view = { ...ps, position: player.view.mesh.position, yaw: player.mode === 'gun' ? w.aimYaw : ps.yaw };
@@ -317,7 +330,8 @@ const loop = new FixedLoop({
       <b>${ps.mode}</b> / ${ps.stance} · ${Math.hypot(ps.velocity.x, ps.velocity.z).toFixed(1)} m/s<br>
       HP ${player.health.hp.toFixed(0)} · SH ${player.health.shield.toFixed(0)} · STA ${ps.stamina.toFixed(0)} · statuses: ${[...player.status.active.keys()].join(', ') || '-'}<br>
       ${player.mode === 'gun' ? `<b>${cw.s.name}</b> ${ammo}` : `SWORD heat ${player.melee.heat.toFixed(0)}${player.melee.overheated > 0 ? ' OVERHEAT' : ''} · guard ${player.melee.guardMeter.toFixed(0)} · ${player.melee.phase} ${player.melee.counterWindow > 0 ? '<span style="color:#ffb347">COUNTER!</span>' : ''}`}<br>
-      Bot HP ${bot.health.hp.toFixed(0)} SH ${bot.health.shield.toFixed(0)} · ${bot.melee.phase} · ${[...bot.status.active.keys()].join(', ')}`;
+      ${player.transform ? `<span style="color:#ffcf6b"><b>SUPER: ${abilityIndex.get(player.transform.ability)?.name}</b> ${Math.max(0, (player.abilities.slots.super.stats.duration ?? 0) - player.abilities.slots.super.phaseTime).toFixed(1)}s${player.weapons.current.s.id.startsWith('super_') ? ` · ammo ${player.weapons.current.usesBattery ? player.weapons.current.battery.toFixed(0) + '%' : player.weapons.current.mag}` : ''}${player.transform.def.frameHp ? ` · frame ${player.health.overshield.toFixed(0)}` : ''}</span><br>` : ''}
+      Bot HP ${bot.health.hp.toFixed(0)}${bot.transform ? ' <b style="color:#ff5c7a">SUPER ACTIVE</b>' : ''} SH ${bot.health.shield.toFixed(0)} · ${bot.melee.phase} · ${[...bot.status.active.keys()].join(', ')}`;
     renderAbilityBar(abilityBar, player, true);
     renderAbilityBar(enemyBar, bot, false); // Deadlock-style: enemy cooldowns are visible
     document.getElementById('crosshair').style.display = player.mode === 'gun' ? 'block' : 'none';

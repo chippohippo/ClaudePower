@@ -119,6 +119,9 @@ export class MeleeDuelistBrain {
     // Like a Deadlock bot, it only commits a long cooldown when the target is not guarding.
     const ab = this.self.abilities?.slots?.ability1;
     if (ab?.ready && dist > 4 && dist < 8 && !tm.guarding && Math.random() < 0.03 * (0.5 + this.p.aggression)) want.ability1 = true;
+    // Super: commit when the target is close and not already transformed (don't trade supers blindly).
+    const ab2 = this.self.abilities;
+    if (ab2?.slots?.super && ab2.superEnergy >= ab2.superCost && !this.self.transform && dist < 7 && !t.transform && !this.self.status?.silenced) want.super = true;
     return this.#finish(cmd, want);
   }
 
@@ -130,6 +133,7 @@ export class MeleeDuelistBrain {
       guard: want.guard === 'hold' || (want.guard === 'tap' && !this.prevButtons.guard),
       dodge: !!want.dodge,
       ability1: !!want.ability1,
+      super: !!want.super,
     };
     for (const [k, d] of Object.entries(down)) {
       const was = !!this.prevButtons[k];

@@ -9,18 +9,21 @@ import { StatusComponent } from '../src/combat/StatusSystem.js';
 import { Health } from '../src/combat/Health.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { emptyCommand } from '../src/input/InputManager.js';
+import { MeleeComponent, MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
 export const data = {
   movement: J('movement.json'), ballistic: J('weapons/ballistic.json'), recoil: J('weapons/recoil.json').patterns,
   statuses: J('abilities/statuses.json').statuses, matrix: J('damage-matrix.json').matrix,
   kits: { ...J('abilities/solari.json').kits, ...J('abilities/void.json').kits },
+  supers: J('supers.json'), melee: J('weapons/melee.json').weapons,
 };
 export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
 export function makeWorld(cover = []) {
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover });
+  const melee = new MeleeSystem();
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil });
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200 } = {}) {
@@ -31,6 +34,9 @@ export function makeWorld(cover = []) {
     e.status = new StatusComponent(e, data.statuses, world);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);
     e.abilities = new AbilityComponent(e, data.kits[kitId], world);
+    e.melee = new MeleeComponent(data.melee[0], e, world);
+    e.mode = 'sword';
+    melee.add(e.melee);
     fighters.set(e, { yaw: 0, pitch: 0, press: new Set(), hold: new Set(), prev: new Set() });
     return world.add(e);
   }
@@ -51,9 +57,10 @@ export function makeWorld(cover = []) {
         e.status.update(DT); e.health.update(DT);
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;
-        e.abilities.update(c, DT); e.weapons.update(c, DT);
+        e.abilities.update(c, DT); e.melee.update(c, DT); e.weapons.update(c, DT);
       }
       world.update(DT);
+      melee.resolve();
     }
   }
   const seconds = (s) => step(Math.round(s / DT));

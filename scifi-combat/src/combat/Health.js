@@ -36,7 +36,7 @@ export class Health {
     this.sinceDamage = 0;
     this.owner.status?.onDamaged(info);
     const killed = this.hp <= 0;
-    if (killed) { this.hp = 0; this.dead = true; bus.emit('entity:death', { id: this.owner.id, by: by?.id, info }); if (by?.abilities) { by.abilities.gainSuper(15); by.abilities.flux += 1; } }
+    if (killed) { this.hp = 0; this.dead = true; bus.emit('entity:death', { id: this.owner.id, by: by?.id, info }); if (by?.abilities) { by.abilities.gainSuper(15); by.abilities.flux += 1; } by?.melee?.onKill?.(); }
     else if (this.hp < this.max * 0.3) bus.emit('health:low', { id: this.owner.id });
     by?.abilities?.gainSuper?.(start * 0.02);
     return { dealt: start, shieldBroke, killed };

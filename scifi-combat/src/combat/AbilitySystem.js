@@ -19,6 +19,7 @@
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
+import { applyTransform, revertTransform, transformDepleted } from './TransformSystem.js';
 
 export const AbilityPhase = Object.freeze({ READY: 'ready', CASTING: 'casting', ACTIVE: 'active', COOLDOWN: 'cooldown' });
 export const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
@@ -157,6 +158,9 @@ export class AbilityComponent {
           runEffect(fx, this, slot);
         }
       }
+      // Transforms end early when depleted (out of ammo, frame broken) or when the owner dies.
+      const early = this.owner.health?.dead ? 'died' : slot.transformActive && transformDepleted(this.owner);
+      if (early) return this.#finish(key, slot, early);
       // Channels and supers can be ended early by pressing the slot again.
       const cancel = s.cancelable && cmd.buttons[key]?.pressed && slot.phaseTime > 0.2;
       if (slot.phaseTime >= dur || cancel) this.#finish(key, slot, cancel ? 'cancel' : 'done');
@@ -165,6 +169,7 @@ export class AbilityComponent {
 
   #finish(key, slot, reason) {
     const s = slot.stats;
+    if (slot.transformActive) { slot.transformActive = false; revertTransform(this.owner, reason); }
     slot.phase = slot.charges > 0 ? AbilityPhase.READY : AbilityPhase.COOLDOWN;
     slot.phaseTime = 0;
     if (s.recast) slot.recast = { until: s.recast.window };
@@ -331,9 +336,9 @@ export const EFFECTS = {
     bus.emit('ability:reveal', { id: c.owner.id, team: c.owner.team, count: all.length, radius: fx.radius });
   },
   /** Transform: temporary weapon or moveset swap (Destiny roaming supers). */
+  /** Roaming supers: swap weapon, moveset and/or body until the slot's active phase ends. */
   transform(fx, c, slot) {
-    bus.emit('ability:transform', { id: c.owner.id, ability: slot.def.id, form: fx.form, duration: slot.stats.duration });
-    if (fx.meleeOverride && c.owner.melee) c.owner.melee.override = fx.meleeOverride;
+    if (applyTransform(c.owner, fx.form, c.world, { ability: slot.def.id, duration: slot.stats.duration })) slot.transformActive = true;
     if (fx.status) EFFECTS.self(fx, c);
   },
 };

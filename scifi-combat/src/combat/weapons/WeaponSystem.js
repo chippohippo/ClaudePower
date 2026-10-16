@@ -256,7 +256,7 @@ export class WeaponComponent {
     for (let i = 0; i < pellets; i++) {
       this.#aimDir(_dir, spread, rand);
       if (s.projectile === 'hitscan' || s.projectile === 'pellets') {
-        const hit = this.world.raycast(_origin, _dir, s.range ?? 300, this.owner.id);
+        const hit = this.world.raycast(_origin, _dir, s.range ?? 300, this.owner.id, { ignoreCover: !!s.pierceCover });
         if (hit) hits.push(hit);
         bus.emit('weapon:tracer', { id: this.owner.id, from: _origin.toArray(), dir: _dir.toArray(), dist: hit?.distance ?? 120, style: s.vfx?.tracer, pelletIdx: i });
         if (hit) this.#applyHit(w, hit, chargeMul);
@@ -264,7 +264,7 @@ export class WeaponComponent {
         this.world.spawnProjectile({
           ownerId: this.owner.id, team: this.owner.team, weapon: s,
           origin: _origin.clone(), dir: _dir.clone(), speed: s.velocity ?? 120, drop: s.drop ?? 0,
-          damageMul: chargeMul * this.buffs.damageMul, deflectable: !!s.deflectable, splash: s.damage?.splash ?? 0,
+          damageMul: chargeMul * this.buffs.damageMul, deflectable: !!s.deflectable, splash: s.damage?.splash ?? 0, onHit: s.onHit,
         });
       }
     }
@@ -298,6 +298,7 @@ export class WeaponComponent {
     e.weapons?.interrupt?.('flinch');
     // Buffs like Devour or Well of Night make rounds apply a status.
     if (this.buffs.onHitStatus) e.status?.apply(this.buffs.onHitStatus, { source: this.owner });
+    if (w.s.onHit?.status) e.status?.apply(w.s.onHit.status.id, { stacks: w.s.onHit.status.stacks ?? 1, source: this.owner });
     bus.emit('weapon:hit', {
       attacker: this.owner.id, victim: e.id, damage: dmg, zone: hit.zone, armor,
       shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point,
@@ -321,6 +322,7 @@ export class WeaponComponent {
       const armor = target.health.armorFor?.(hit.zone) ?? 'flesh';
       const mul = this.world.damageMatrix?.[s.ammoType]?.[armor] ?? 1;
       target.health.damage(s.damage.dps * ramp * mul * dt * this.buffs.damageMul, { kind: 'beam', weapon: s.id, ammoType: s.ammoType }, this.owner);
+      if (s.onHit?.status) target.status?.apply(s.onHit.status.id, { source: this.owner });
     }
     this.recoilPitch += (w.recoil.pattern[0][0] * DEG) * dt * 10;
     bus.emit('weapon:beam', { id: this.owner.id, end: hit?.point ?? null, ramp: this.beamTime, onTarget: !!target });

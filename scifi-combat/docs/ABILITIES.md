@@ -328,9 +328,34 @@ abilities damage them through the normal code paths. A per-owner limit replaces 
 Tests: `npm test` (from `scifi-combat/`, after `npm install`) runs `tests/*.test.mjs` headless,
 covering every deployable kind and the key zone behaviors.
 
-## 8. Next steps
-- `transform` supers need their temporary weapon and moveset definitions (`super_lance`, `daybreak_greatsword`, ...).
+## 8. Transform supers (`TransformSystem.js`, `data/supers.json`)
+
+Eight supers turn you into something else for their duration. A transform is owned by the
+super's ability slot: when the slot's active phase ends (timer, cancel, depletion or death),
+`revertTransform` restores the exact loadout, gun index, sword moveset, movement mods and mode.
+
+| Super | Form | What changes | Ends early when | Counterplay |
+|---|---|---|---|---|
+| Lance of Dawn (Lancer) | `lance` | 12-round radiant hitscan; each hit adds 50 Scorch (2 hits Ignite) | — | Break line of sight; cleanse Scorch |
+| Judgment (Seraph) | `judgment` | 3 × 300-damage shots that **pierce cover** | All 3 shots fired | Sightline is visible to the target; keep moving |
+| Event Horizon (Reaver) | `horizon` | Singularity slugs: Volatile plus a short pull zone on impact | Mag empty | Spread out; stay past 15 m |
+| Unmaking Gaze (Hollow-Eye) | `gaze` | Ramping 180 dps beam that Weakens | Battery empty | Break LOS to reset the ramp |
+| Daybreak (Dawnblade) | `daybreak` | Greatsword moveset; heavy = 90-damage flame wave; +15% speed, +30% jump | — | Waves are parryable; a flame-sword guard reflects them |
+| Abyssal Blade (Ashsworn) | `abyssal` | Greatsword; hits Weaken; heavy = pulling rift arc; wider parry window | — | Dodge away from the pull; arcs are parryable |
+| Spectral Blades (Veil) | `spectral` | Light attack throws a 110-damage dagger: 3 charges, refilled on a kill | — | Each throw breaks cloak; track the source |
+| Siege Frame (Artificer) | `siege_frame` | 1500 frame HP (overshield), splash cannon, 0.7× speed, no sprint/dodge, 1.8× silhouette | Frame HP broken | Focus fire; it can't dodge |
+
+- **Data:** super weapons use the normal weapon stat format (plus `pierceCover`, `onHit`).
+  Movesets are overrides deep-merged onto a base sword, or `replaceAttacks: true` for a complete
+  replacement (daggers). Melee attacks can now launch real projectiles (`attack.projectile`),
+  apply `onHitStatus` and have limited `ammo`. The base sword's Flame Wave uses the same path.
+- **Readability:** transformed fighters scale up and glow in their faction color, and the HUD
+  shows the super timer, ammo and frame HP. The bot only commits its super when the target
+  is close and not already transformed.
+- **Tests:** `tests/transforms.test.mjs`.
+
+## 9. Next steps
 - Vehicles: `deployable:vehicleArrived` is the hook for the vehicle system.
-- Bot ability usage beyond the gap-closer and zone avoidance: a utility score per ability.
-- Server: validate casts (cooldown, silence, range) and run zones and deployables authoritatively. Clients predict only self-movement abilities (dash, blink).
+- Bot ability usage beyond gap-closers, zone avoidance and supers: a utility score per ability.
+- Server: validate casts (cooldown, silence, range) and run zones, deployables and transforms authoritatively. Clients predict only self-movement abilities (dash, blink).
 - Swap the graybox views for VFX assets. Keep the shape and timing contracts in `ZoneDeployableViews.js`.

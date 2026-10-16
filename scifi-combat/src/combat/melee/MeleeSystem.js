@@ -29,9 +29,11 @@ export class MeleeComponent {
    * @param {object} weapon   entry from melee.json
    * @param {object} owner    { id, movement: MovementController, health: HealthComponent, team }
    */
-  constructor(weapon, owner) {
+  constructor(weapon, owner, world = null) {
     this.w = weapon;
     this.owner = owner;
+    this.world = world;            // needed for projectile attacks (flame waves, thrown daggers)
+    this.projectileAmmo = new Map(); // attackId -> remaining throws (Spectral Daggers)
     this.phase = MeleePhase.IDLE;
     this.phaseTime = 0;
     this.attackId = null;          // current attack key
@@ -52,6 +54,21 @@ export class MeleeComponent {
     this.staggerTime = 0;
     this.poise = 100;
     this.chargeTime = 0;
+  }
+
+  /** Swap the whole moveset (transform supers). Cancels whatever was in progress. */
+  setMoveset(def) {
+    this.w = def;
+    this.attack = null; this.attackId = null; this.queued = null; this.chainTimer = 0;
+    this.heat = 0; this.overheated = 0;
+    this.projectileAmmo.clear();
+    for (const [id, a] of Object.entries(def.attacks)) if (a.projectile?.ammo) this.projectileAmmo.set(id, a.projectile.ammo);
+    if (this.busy || this.phase === MeleePhase.CHARGING) this.#setPhase(MeleePhase.IDLE);
+  }
+
+  /** Called by Health when this fighter gets a kill. */
+  onKill() {
+    for (const [id, a] of Object.entries(this.w.attacks)) if (a.projectile?.refillOnKill) this.projectileAmmo.set(id, a.projectile.ammo);
   }
 
   get busy() { return this.phase === MeleePhase.WINDUP || this.phase === MeleePhase.ACTIVE || this.phase === MeleePhase.RECOVERY; }
@@ -94,7 +111,7 @@ export class MeleeComponent {
           this.hitThisSwing.clear();
           this.#setPhase(MeleePhase.ACTIVE);
           if (this.attack.lunge) mv.state.velocity.addScaledVector(this.#forward(), this.attack.lunge);
-          if (this.attack.projectile) bus.emit('melee:projectile', { id: this.owner.id, attack: this.attack, dir: this.#forward().clone() });
+          if (this.attack.projectile) this.#launchProjectile(this.attack);
         }
         return;
       }
@@ -210,6 +227,7 @@ export class MeleeComponent {
     const vulnerableBonus = this.vulnerable ? 1.5 : 1;
     const dmg = attack.damage * (hot ? 1 + attacker.w.heat.hotBurnBonus : 1) * vulnerableBonus;
     this.owner.health.damage(dmg, attack, attacker.owner);
+    if (attack.onHitStatus) this.owner.status?.apply(attack.onHitStatus, { source: attacker.owner });
 
     // Poise: hyper-armor ignores flinch; otherwise poise damage → interrupt.
     const inHyper = this.attack?.hyperArmor && this.phase !== MeleePhase.IDLE &&
@@ -236,7 +254,8 @@ export class MeleeComponent {
   // ----------------------------------------------------------------- internals
   #startAttack(id) {
     const a = this.w.attacks[id];
-    if (!a) return;
+    if (!a) { this.queued = null; if (this.phase === MeleePhase.CHARGING) this.#setPhase(MeleePhase.IDLE); return; }
+    if (this.projectileAmmo.has(id) && this.projectileAmmo.get(id) <= 0) { bus.emit('melee:noAmmo', { id: this.owner.id, attack: id }); this.queued = null; return; }
     const mv = this.owner.movement;
     if (a.stamina > 0 && !mv.spendStamina(a.stamina)) { bus.emit('melee:noStamina', { id: this.owner.id }); this.queued = null; return; }
     if (this.overheated > 0 && (id === 'flameWave' || id === 'sweepArc')) id = 'heavy1';
@@ -250,6 +269,24 @@ export class MeleeComponent {
     bus.emit('melee:windup', {
       id: this.owner.id, attack: id, windup: this.attack.windup,
       unblockable: !!this.attack.unblockable, parryable: this.attack.parryable !== false,
+    });
+  }
+
+  /**
+   * Flame waves, rift arcs and thrown daggers. They are real projectiles: they can be dodged, and a
+   * flame-sword guard can parry them back (deflectable), which is the stated counterplay.
+   */
+  #launchProjectile(a) {
+    const pj = a.projectile;
+    if (this.projectileAmmo.has(this.attackId)) this.projectileAmmo.set(this.attackId, this.projectileAmmo.get(this.attackId) - 1);
+    bus.emit('melee:projectile', { id: this.owner.id, attack: this.attackId, dir: this.#forward().clone(), width: pj.width, element: pj.element });
+    if (!this.world) return;
+    const o = this.owner.movement.state.position.clone(); o.y += 1.2;
+    this.world.spawnProjectile({
+      ownerId: this.owner.id, team: this.owner.team, origin: o, dir: this.#forward().clone(),
+      speed: pj.speed, drop: 0, damageMul: 1, splash: pj.splashRadius ?? 0, deflectable: pj.reflectOnParry !== false, width: pj.width,
+      weapon: { id: `${this.w.id ?? 'sword'}:${this.attackId}`, ammoType: pj.element === 'void' ? 'void' : 'flame', range: pj.range, damage: { base: a.damage }, vfx: { tracer: `wave_${pj.element ?? 'flame'}` } },
+      onHit: { status: pj.status, zone: pj.pull ? { radius: 3, lifetime: 0.4, tick: 0.1, pull: pj.pull } : undefined },
     });
   }
 
