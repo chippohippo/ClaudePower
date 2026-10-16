@@ -81,6 +81,26 @@ export class MovementController {
     }
   }
 
+  /** Called by VehicleSystem: the body is now carried by a vehicle seat. */
+  enterVehicle() {
+    const s = this.state;
+    if (s.mode === MoveState.SLIDE) this.body.setHeight(this.t.heights[s.stance]);
+    s.mode = MoveState.VEHICLE; s.modeTime = 0;
+    s.velocity.set(0, 0, 0);
+    s.invulnerable = false; s.sprinting = false; s.forced = null;
+  }
+
+  /** Hop out at `pos`, carrying some of the vehicle's velocity. Lands in AIR so ejects arc naturally. */
+  exitVehicle(pos, vel) {
+    const s = this.state;
+    s.position.copy(pos);
+    this.body.teleport?.(pos);
+    s.velocity.copy(vel);
+    s.grounded = false; s.timeSinceGrounded = 99;
+    s.mode = MoveState.AIR; s.modeTime = 0;
+    if (s.stance !== Stance.STAND) { s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); }
+  }
+
   canAct() { return this.state.mode !== MoveState.MANTLE && this.state.mode !== MoveState.VEHICLE; }
   isSliding() { return this.state.mode === MoveState.SLIDE; }
   spendStamina(amount) {

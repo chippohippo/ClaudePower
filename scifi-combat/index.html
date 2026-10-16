@@ -21,6 +21,7 @@
     #enemyAbilities .ab.ready { border-color: #ff3b5c; box-shadow: 0 0 8px #ff3b5c88; }
     .ab.locked { border-color: #777; filter: grayscale(1); }
     #kit { position: fixed; left: 16px; bottom: 210px; background: #0009; padding: 6px 10px; border-radius: 6px; font-size: 12px; max-width: 520px; pointer-events: none; }
+    #prompt { position: fixed; top: 58%; width: 100%; text-align: center; font-weight: 700; font-size: 16px; color: #9fd3ff; text-shadow: 0 0 8px #000; display: none; pointer-events: none; }
     .ab span { position: relative; font-weight: 800; font-size: 18px; }
     .ab small { position: absolute; bottom: 1px; font-size: 8px; opacity: .8; white-space: nowrap; }
   </style>
@@ -36,6 +37,7 @@
   <div id="abilities" class="bar"></div>
   <div id="enemyAbilities" class="bar"></div>
   <div id="kit"></div>
+  <div id="prompt"></div>
   <div id="help">
     <b>Click to lock the mouse and enable audio</b><br>
     WASD move · Shift sprint · Space jump/vault · C crouch (hold = prone, while sprinting = slide)<br>
@@ -44,6 +46,7 @@
     <b>Gun:</b> LMB fire · RMB aim · R reload (pulse rifle: press R in the vent window for a perfect vent)<br>
     <b>Abilities:</b> Q · E · G (grenade) · Z (super) · <b>K</b> cycles all 20 classes (super starts charged)<br>
     Try: Bastion (wall, dome) · Artificer (turret) · Breacher (charge + recast, orbital on crates) · Monolith (anchor, singularity) · Mender (tether)<br>
+    <b>Vehicles:</b> X enter/exit (bike right of spawn, tank behind-left, dropship behind-right) · WASD drive · mouse aims · LMB fire · Shift boost (bike) · Space/C climb/descend (dropship) · tank: A/D turn the hull, turret follows the mouse<br>
     T 1P/3P · B swap shoulder · Gamepad supported<br>
     Amber dot = parryable · Red = unblockable · Red shapes = enemy ability or zone · A growing fill inside a ring = time until it hits
   </div>

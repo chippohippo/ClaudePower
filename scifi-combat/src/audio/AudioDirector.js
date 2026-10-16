@@ -165,6 +165,19 @@ export class AudioDirector {
     on('world:coverDestroyed', (e) => this.play('world.cover_break', { tier: Tier.COMBAT, pos: at(e.center), gainDb: 2 }));
     on('ability:fizzle', (e) => e.id === this.listenerId && this.play('ui.denied_fizzle', { tier: Tier.COMBAT, gainDb: -4 }));
 
+    // Vehicles: an engine loop per vehicle is the main tell (you hear a tank before you see it).
+    // Enemy vehicle spawns and boosts are THREAT; rams and crashes are loud COMBAT hits.
+    on('vehicle:spawn', (e) => {
+      this.play(`vehicle.${e.model}.engine`, { tier: Tier.AMBIENT, pos: at(e.at), loopKey: `veh:${e.id}`, radius: e.model === 'flyer' ? 150 : e.model === 'tracked' ? 90 : 60, gainDb: -8 });
+    });
+    on('vehicle:removed', (e) => this.stopLoop(`veh:${e.id}`));
+    on('vehicle:enter', (e) => e.entity === this.listenerId && this.play('vehicle.enter_snap', { tier: Tier.COMBAT, gainDb: -2 }));
+    on('vehicle:exit', (e) => e.entity === this.listenerId && this.play(e.eject ? 'vehicle.eject' : 'vehicle.exit', { tier: Tier.COMBAT, gainDb: -2 }));
+    on('vehicle:boost', (e) => this.play(`vehicle.boost${e.phase ? '_phase' : ''}${rel(e.team) === 'enemy' ? '_threat' : ''}`, { tier: rel(e.team) === 'enemy' ? Tier.THREAT : Tier.COMBAT, pos: this.posOf(e.id) }));
+    on('vehicle:ram', (e) => this.play('vehicle.ram_impact', { tier: e.victim === this.listenerId ? Tier.THREAT : Tier.COMBAT, pos: this.posOf(e.victim), gainDb: 3 }));
+    on('vehicle:crash', (e) => this.play('vehicle.crash', { tier: Tier.COMBAT, pos: at(e.at), gainDb: 2 }));
+    on('vehicle:destroyed', (e) => this.play('vehicle.explode', { tier: Tier.THREAT, pos: at(e.at), radius: 150, gainDb: 4 }));
+
     // Melee: parries are the loudest and most satisfying sound in the game. Don't let anything mask them.
     on('melee:parry', (e) => this.play('melee.parry_burst', { tier: Tier.THREAT, pos: this.posOf(e.defender), gainDb: 2 }));
     on('melee:windup', (e) => this.relation(e.id) === 'enemy' && this.play(e.unblockable ? 'melee.windup_unblockable' : 'melee.windup', { tier: Tier.THREAT, pos: this.posOf(e.id) }));

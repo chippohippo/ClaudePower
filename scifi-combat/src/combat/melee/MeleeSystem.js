@@ -350,6 +350,7 @@ export class MeleeSystem {
 
       for (const def of this.components) {
         if (def === atk || def.owner.team === atk.owner.team || atk.hitThisSwing.has(def.owner.id)) continue;
+        if ((def.owner.vehicle && !def.owner.vehicle.exposed) || atk.owner.vehicle) continue; // swords can't reach inside hulls
         _toTarget.subVectors(def.owner.movement.state.position, origin);
         _toTarget.y = 0;
         const dist = _toTarget.length();

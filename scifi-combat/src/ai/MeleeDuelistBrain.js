@@ -47,6 +47,13 @@ export class MeleeDuelistBrain {
     cmd.tick = tick;
     const t = this.target;
     if (!t) return this.#finish(cmd, {});
+    // A target inside an armored vehicle can't be meleed: back off out of its ram path and wait.
+    if (t.vehicle && !t.vehicle.exposed) {
+      const me0 = this.self.movement.state.position, tp = t.movement.state.position;
+      cmd.yaw = Math.atan2(-(tp.x - me0.x), -(tp.z - me0.z));
+      cmd.moveY = Math.hypot(tp.x - me0.x, tp.z - me0.z) < 12 ? -1 : 0;
+      return this.#finish(cmd, {});
+    }
     const me = this.self.movement.state;
     const dx = t.movement.state.position.x - me.position.x;
     const dz = t.movement.state.position.z - me.position.z;

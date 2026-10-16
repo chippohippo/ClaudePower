@@ -30,7 +30,7 @@ export class StatusComponent {
 
   apply(id, { stacks = 1, duration, source } = {}) {
     const def = this.defs[id];
-    if (!def) return;
+    if (!def || this.immune?.has(id)) return; // vehicles are immune to body statuses such as Scorch and Volatile
     if (this.has('cleanseImmune') && def.negative) return;
     const cur = this.active.get(id);
     const dur = duration ?? def.duration;

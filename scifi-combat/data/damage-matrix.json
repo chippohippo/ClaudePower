@@ -1,19 +1,94 @@
 {
-  "armorTypes": ["flesh", "plate", "shield", "barrier"],
-  "matrix": {
-    "kinetic":       { "flesh": 1.0, "plate": 0.7, "shield": 0.6, "barrier": 1.2 },
-    "armorPiercing": { "flesh": 0.9, "plate": 1.15, "shield": 0.6, "barrier": 1.0 },
-    "plasma":        { "flesh": 1.1, "plate": 1.3, "shield": 0.8, "barrier": 0.7 },
-    "ion":           { "flesh": 0.6, "plate": 0.8, "shield": 2.0, "barrier": 1.8 },
-    "flame":         { "flesh": 1.3, "plate": 0.8, "shield": 0.9, "barrier": 0.5, "status": "burn" },
-    "cryo":          { "flesh": 0.8, "plate": 1.0, "shield": 0.9, "barrier": 0.9, "status": "chill" },
-    "void":          { "flesh": 1.0, "plate": 1.0, "shield": 1.25, "barrier": 0.6, "status": "leech" },
-    "shard":         { "flesh": 1.2, "plate": 0.6, "shield": 0.7, "barrier": 1.0 },
-    "explosive":     { "flesh": 1.0, "plate": 1.2, "shield": 0.9, "barrier": 0.8 }
+ "armorTypes": [
+  "flesh",
+  "plate",
+  "shield",
+  "barrier",
+  "vehicle"
+ ],
+ "matrix": {
+  "kinetic": {
+   "flesh": 1.0,
+   "plate": 0.7,
+   "shield": 0.6,
+   "barrier": 1.2,
+   "vehicle": 0.35
   },
-  "status": {
-    "burn":  { "dps": 6, "duration": 3, "stacks": 3 },
-    "chill": { "slow": 0.25, "duration": 2, "brittleAt": 3, "brittleMul": 1.5 },
-    "leech": { "healFraction": 0.15 }
+  "armorPiercing": {
+   "flesh": 0.9,
+   "plate": 1.15,
+   "shield": 0.6,
+   "barrier": 1.0,
+   "vehicle": 0.9
+  },
+  "plasma": {
+   "flesh": 1.1,
+   "plate": 1.3,
+   "shield": 0.8,
+   "barrier": 0.7,
+   "vehicle": 0.8
+  },
+  "ion": {
+   "flesh": 0.6,
+   "plate": 0.8,
+   "shield": 2.0,
+   "barrier": 1.8,
+   "vehicle": 2.0
+  },
+  "flame": {
+   "flesh": 1.3,
+   "plate": 0.8,
+   "shield": 0.9,
+   "barrier": 0.5,
+   "status": "burn",
+   "vehicle": 0.4
+  },
+  "cryo": {
+   "flesh": 0.8,
+   "plate": 1.0,
+   "shield": 0.9,
+   "barrier": 0.9,
+   "status": "chill",
+   "vehicle": 0.7
+  },
+  "void": {
+   "flesh": 1.0,
+   "plate": 1.0,
+   "shield": 1.25,
+   "barrier": 0.6,
+   "status": "leech",
+   "vehicle": 0.9
+  },
+  "shard": {
+   "flesh": 1.2,
+   "plate": 0.6,
+   "shield": 0.7,
+   "barrier": 1.0,
+   "vehicle": 0.4
+  },
+  "explosive": {
+   "flesh": 1.0,
+   "plate": 1.2,
+   "shield": 0.9,
+   "barrier": 0.8,
+   "vehicle": 1.4
   }
+ },
+ "status": {
+  "burn": {
+   "dps": 6,
+   "duration": 3,
+   "stacks": 3
+  },
+  "chill": {
+   "slow": 0.25,
+   "duration": 2,
+   "brittleAt": 3,
+   "brittleMul": 1.5
+  },
+  "leech": {
+   "healFraction": 0.15
+  }
+ },
+ "_vehicleNote": "Vehicles: ion and explosives are the answer (Battlefront rule); small arms barely scratch them. Statuses on vehicles: Suppress/Silence = weapons and boost offline (EMP), Slow = reduced top speed, Root/Stun = engine stall. Scorch and Volatile don't apply."
 }

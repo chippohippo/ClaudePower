@@ -16,14 +16,14 @@ export const data = {
   movement: J('movement.json'), ballistic: J('weapons/ballistic.json'), recoil: J('weapons/recoil.json').patterns,
   statuses: J('abilities/statuses.json').statuses, matrix: J('damage-matrix.json').matrix,
   kits: { ...J('abilities/solari.json').kits, ...J('abilities/void.json').kits },
-  supers: J('supers.json'), melee: J('weapons/melee.json').weapons,
+  supers: J('supers.json'), melee: J('weapons/melee.json').weapons, vehicles: J('vehicles.json'),
 };
 export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
 export function makeWorld(cover = []) {
   const melee = new MeleeSystem();
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil });
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses });
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200 } = {}) {
@@ -37,7 +37,7 @@ export function makeWorld(cover = []) {
     e.melee = new MeleeComponent(data.melee[0], e, world);
     e.mode = 'sword';
     melee.add(e.melee);
-    fighters.set(e, { yaw: 0, pitch: 0, press: new Set(), hold: new Set(), prev: new Set() });
+    fighters.set(e, { yaw: 0, pitch: 0, moveX: 0, moveY: 0, press: new Set(), hold: new Set(), prev: new Set() });
     return world.add(e);
   }
 
@@ -50,11 +50,12 @@ export function makeWorld(cover = []) {
     for (let i = 0; i < n; i++) {
       for (const [e, s] of fighters) {
         const c = emptyCommand();
-        c.yaw = s.yaw; c.pitch = s.pitch;
+        c.yaw = s.yaw; c.pitch = s.pitch; c.moveX = s.moveX; c.moveY = s.moveY;
         const down = new Set([...s.press, ...s.hold]);
         for (const k of new Set([...down, ...s.prev])) c.buttons[k] = { down: down.has(k), pressed: down.has(k) && !s.prev.has(k), released: !down.has(k) && s.prev.has(k) };
         s.prev = down; s.press.clear();
         e.status.update(DT); e.health.update(DT);
+        if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;
         e.abilities.update(c, DT); e.melee.update(c, DT); e.weapons.update(c, DT);
@@ -66,5 +67,6 @@ export function makeWorld(cover = []) {
   const seconds = (s) => step(Math.round(s / DT));
   const hold = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.add(k));
   const release = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.delete(k));
-  return { world, fighter, press, hold, release, aim, aimAt, step, seconds };
+  const move = (e, x, y) => Object.assign(fighters.get(e), { moveX: x, moveY: y });
+  return { world, fighter, press, hold, release, aim, aimAt, move, step, seconds };
 }

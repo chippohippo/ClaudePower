@@ -130,7 +130,7 @@ export class DeployableSystem {
 
   tick_launchpad(d) {
     for (const e of this.world.fighters()) {
-      if (e.team !== d.team || d.cooldowns.has(e.id)) continue;
+      if (e.isVehicle || e.vehicle || e.team !== d.team || d.cooldowns.has(e.id)) continue;
       _v.subVectors(e.movement.state.position, d.movement.state.position);
       if (Math.hypot(_v.x, _v.z) < 1.2 && Math.abs(_v.y) < 0.6) {
         e.movement.impulse(0, d.launch, 0);
@@ -153,6 +153,9 @@ export class DeployableSystem {
     const blocker = this.#enemies(d).find((e) => e.movement.state.position.distanceTo(d.movement.state.position) < 2);
     if (blocker) { bus.emit('deployable:vehicleDenied', { id: d.id, by: blocker.id, owner: d.ownerId }); this.destroy(d, 'denied'); return; }
     bus.emit('deployable:vehicleArrived', { id: d.id, vehicle: d.vehicle, at: d.movement.state.position.toArray(), owner: d.ownerId, team: d.team });
+    const v = this.world.vehicles?.spawn(d.vehicle, d.team, d.movement.state.position, d.yaw ?? 0, { ownerId: d.ownerId });
+    // Called vehicles drop at the caster's feet: hop straight in if the caster is still close and on foot.
+    if (v && d.owner && !d.owner.vehicle && d.owner.movement.state.position.distanceTo(v.movement.state.position) < 4) this.world.vehicles.enter(d.owner, v);
     this.destroy(d, 'delivered');
   }
 

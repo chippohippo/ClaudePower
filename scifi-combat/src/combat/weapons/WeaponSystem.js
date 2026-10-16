@@ -250,7 +250,7 @@ export class WeaponComponent {
     this.bloom = Math.min(sp.hip, this.bloom + (sp.bloomPerShot ?? 0.12));
 
     // Muzzle: eye position and aim direction. Third-person converges to the camera's aim point.
-    _origin.copy(mv.position); _origin.y += mv.stance === 'crouch' ? 1.05 : mv.stance === 'prone' ? 0.4 : 1.6;
+    _origin.copy(mv.position); _origin.y += this.owner.muzzleHeight ?? (mv.stance === 'crouch' ? 1.05 : mv.stance === 'prone' ? 0.4 : 1.6); // vehicles set muzzleHeight
     const pellets = s.pellets ?? 1;
     const hits = [];
     for (let i = 0; i < pellets; i++) {
@@ -311,7 +311,7 @@ export class WeaponComponent {
     if (w.battery <= 0) { this.#endBeam(); return bus.emit('weapon:dryFire', { id: this.owner.id }); }
     w.battery = Math.max(0, w.battery - s.ammo.drainPerSec * dt);
     this.#aimDir(_dir, 0, Math.random);
-    _origin.copy(this.owner.movement.state.position); _origin.y += 1.6;
+    _origin.copy(this.owner.movement.state.position); _origin.y += this.owner.muzzleHeight ?? 1.6;
     const hit = this.world.raycast(_origin, _dir, s.range ?? 35, this.owner.id);
     const target = hit?.entity ?? null;
     this.beamTime = target && target === this.beamTarget ? this.beamTime + dt : 0;

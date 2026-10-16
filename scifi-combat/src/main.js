@@ -13,6 +13,7 @@ import { WeaponComponent, WeaponInstance } from './combat/weapons/WeaponSystem.j
 import { CombatWorld } from './combat/CombatWorld.js';
 import { revertTransform } from './combat/TransformSystem.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
+import { VehicleViews } from './vfx/VehicleViews.js';
 import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from './combat/AbilitySystem.js';
 import { StatusComponent } from './combat/StatusSystem.js';
@@ -22,10 +23,10 @@ import { MeleeDuelistBrain } from './ai/MeleeDuelistBrain.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers] = await Promise.all([
+const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'),
-  load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'),
+  load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
 ]);
 const sword = meleeData.weapons[0];
 const abilityIndex = new Map();
@@ -78,7 +79,7 @@ for (const b of boxes) {
 // ---------------------------------------------------------------- world (sim queries)
 // CombatWorld owns projectiles, zones, deployables and cover. `boxes` is shared by reference with
 // the movement bodies, so destroyed cover stops colliding at the same moment it disappears.
-const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, supers, meleeWeapons: meleeData.weapons, recoilDefs: recoil.patterns });
+const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, supers, meleeWeapons: meleeData.weapons, recoilDefs: recoil.patterns, vehicleDefs, statusDefs: statuses.statuses });
 const entities = world.entities;
 bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); const i = collidables.indexOf(m); if (i >= 0) collidables.splice(i, 1); });
 
@@ -134,13 +135,21 @@ function nextKit() {
 }
 const views = new ZoneDeployableViews(scene, world, { localTeam: 0, coverMeshes });
 
+// Vehicle pads (Battlefront pickups). Yours are near spawn; the enemy's are downrange as targets.
+const vehicleViews = new VehicleViews(scene, world, { localTeam: 0 });
+world.vehicles.addPad({ vehicle: 'solari_hoverbike', team: 0, at: new THREE.Vector3(5, 0, 4), respawn: 10 });
+world.vehicles.addPad({ vehicle: 'solari_lancer_tank', team: 0, at: new THREE.Vector3(-8, 0, 9), respawn: 20 });
+world.vehicles.addPad({ vehicle: 'solari_dawnship', team: 0, at: new THREE.Vector3(16, 0, 14), respawn: 30 });
+world.vehicles.addPad({ vehicle: 'void_crawler_tank', team: 1, at: new THREE.Vector3(4, 0, -50), yaw: Math.PI, respawn: 20 });
+world.vehicles.addPad({ vehicle: 'void_skiff', team: 1, at: new THREE.Vector3(-10, 0, -45), yaw: Math.PI, respawn: 10 });
+
 const brain = new MeleeDuelistBrain(bot, { aggression: 0.65, parrySkill: 0.45, reactionTime: 0.28, feintRate: 0.3 });
 brain.target = player;
 brain.world = world; // lets the bot read zone threats and step out of them
 bus.on('melee:windup', (e) => brain.observeWindup(e));
 bus.on('melee:parry', (e) => brain.observeParried(e));
 // Respawn for the demo.
-bus.on('entity:death', (e) => setTimeout(() => { const x = world.entity(e.id); x?.health.revive(1); x?.status.cleanse(); }, 1500));
+bus.on('entity:death', (e) => setTimeout(() => { const x = world.entity(e.id); if (!x || x.isVehicle || x.isDeployable) return; x.health.revive(1); x.status.cleanse(); }, 1500));
 
 // ---------------------------------------------------------------- systems
 const input = new InputManager(renderer.domElement);
@@ -271,8 +280,11 @@ const loop = new FixedLoop({
       e.movement.state.speedScale = e.status.speedMul;
       e.abilities.update(abCmd, dt); e.melee.update(mCmd, dt); if (gCmd) e.weapons.update(gCmd, dt);
     };
-    tickEntity(player, pc, pc, meleeCmd, gunCmd);
-    tickEntity(bot, botCmd, botCmd, botCmd, null);
+    // Vehicles first: if the fighter is driving or riding, the vehicle consumes the whole command.
+    if (world.vehicles.handleInput(player, pc)) player.movement.update(pc, dt);
+    else tickEntity(player, pc, pc, meleeCmd, gunCmd);
+    if (world.vehicles.handleInput(bot, botCmd)) bot.movement.update(botCmd, dt);
+    else tickEntity(bot, botCmd, botCmd, botCmd, null);
     world.update(dt);
     melee.resolve();
   },
@@ -280,7 +292,8 @@ const loop = new FixedLoop({
     const dt = 1 / 60;
     for (const e of entities) {
       const s = e.movement.state;
-      e.view.mesh.visible = !e.health.dead;
+      // Occupants of enclosed seats are hidden inside the hull; bike riders stay visible on top.
+      e.view.mesh.visible = !e.health.dead && (!e.vehicle || e.vehicle.exposed);
       e.view.mesh.position.lerpVectors(e.view.prev, s.position, alpha);
       e.view.mesh.rotation.y = s.yaw;
       // Stance squash as a stand-in for animation.
@@ -313,20 +326,38 @@ const loop = new FixedLoop({
     const ps = player.movement.state;
     const w = player.weapons;
     // Bigger silhouettes (Siege Frame, greatswords) pull the third-person camera back to match.
-    rig.tpOffset.z = 2.6 * player.view.mesh.scale.x;
-    rig.tpOffset.y = 0.25 * player.view.mesh.scale.x;
+    // Vehicles: forced third person with the vehicle's own camera distance; otherwise scale with silhouette.
+    const pv = player.vehicle?.veh;
+    rig.tpOffset.z = pv ? pv.def.camera.distance : 2.6 * player.view.mesh.scale.x;
+    rig.tpOffset.y = pv ? pv.def.camera.height * 0.3 : 0.25 * player.view.mesh.scale.x;
+    rig.tpOffset.x = pv ? 0 : 0.45;
+    if (pv && rig.povTarget === 1) { rig.povTarget = 0; rig._restoreFp = true; }
+    if (!pv && rig._restoreFp) { rig.povTarget = 1; rig._restoreFp = false; }
     const eye = (ps.mode === 'slide' ? 0.8 : ps.stance === 'crouch' ? 1.05 : ps.stance === 'prone' ? 0.4 : 1.65) * player.view.mesh.scale.x;
     // In gun mode the camera renders the recoil-offset aim, so what you see is where shots go.
     const pitch = player.mode === 'gun' ? w.aimPitch : lastPlayerCmd?.pitch ?? 0;
     const view = { ...ps, position: player.view.mesh.position, yaw: player.mode === 'gun' ? w.aimYaw : ps.yaw };
     rig.update(dt, view, pitch, eye, player.mode === 'gun' ? w.ads > 0.5 : player.melee.guarding);
     views.update(dt);
+    vehicleViews.update(dt, rig.camera);
     renderer.render(scene, rig.camera);
     audio?.update(dt, rig.camera.position, ps.yaw);
 
     const cw = w.current;
     const ammo = cw.usesHeat ? `HEAT ${cw.heat.toFixed(0)}%${w.phase === 'overheated' ? ' OVERHEATED' : w.phase === 'venting' ? ' VENTING (R in window = perfect)' : ''}` : `${cw.mag}/${cw.reserve}${w.phase === 'reloading' ? ' RELOADING' : ''}`;
-    hud.innerHTML = `
+    const near = !player.vehicle && world.vehicles.nearestEnterable(player);
+    const prompt = document.getElementById('prompt');
+    prompt.style.display = near ? 'block' : 'none';
+    if (near) prompt.textContent = `X  Enter ${near.def.name} (${near.seats.find((s) => !s.occupant).def.role})`;
+    const vehLine = pv ? (() => {
+      const seat = pv.seats[player.vehicle.seat];
+      const wpn = seat.weapons?.current;
+      const heat = wpn?.usesHeat ? ` · ${wpn.s.name} heat ${wpn.heat.toFixed(0)}%${seat.weapons.phase === 'overheated' ? ' OVERHEATED' : ''}` : wpn?.usesBattery ? ` · ${wpn.s.name} ${wpn.battery.toFixed(0)}%` : '';
+      const boost = pv.def.boost ? ` · boost ${pv.boostTime > 0 ? 'ACTIVE' : pv.boostCd > 0 ? pv.boostCd.toFixed(1) + 's' : 'READY (Shift)'}` : '';
+      const alt = pv.def.model === 'flyer' ? ` · alt ${pv.altitude.toFixed(0)} m (Space/C)` : '';
+      return `<span style="color:#9fd3ff"><b>${pv.def.name}</b> [${seat.def.role}] HP ${pv.health.hp.toFixed(0)}/${pv.health.max}${heat}${boost}${alt}${pv.status.silenced ? ' <b>EMP</b>' : ''} · ${Math.hypot(pv.movement.state.velocity.x, pv.movement.state.velocity.z).toFixed(0)} m/s · X exit</span><br>`;
+    })() : '';
+    hud.innerHTML = `${vehLine}
       <b>${ps.mode}</b> / ${ps.stance} · ${Math.hypot(ps.velocity.x, ps.velocity.z).toFixed(1)} m/s<br>
       HP ${player.health.hp.toFixed(0)} · SH ${player.health.shield.toFixed(0)} · STA ${ps.stamina.toFixed(0)} · statuses: ${[...player.status.active.keys()].join(', ') || '-'}<br>
       ${player.mode === 'gun' ? `<b>${cw.s.name}</b> ${ammo}` : `SWORD heat ${player.melee.heat.toFixed(0)}${player.melee.overheated > 0 ? ' OVERHEAT' : ''} · guard ${player.melee.guardMeter.toFixed(0)} · ${player.melee.phase} ${player.melee.counterWindow > 0 ? '<span style="color:#ffb347">COUNTER!</span>' : ''}`}<br>
@@ -338,4 +369,5 @@ const loop = new FixedLoop({
   },
 });
 kitIndex = (kitIndex - 1 + kitOrder.length) % kitOrder.length; nextKit(); // show the starting kit
+window.__emberfall = { world, player, bot, rig }; // dev console handle (and for automated smoke tests)
 loop.start();

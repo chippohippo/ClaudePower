@@ -10,6 +10,7 @@ import { bus } from '../core/EventBus.js';
 import { ProjectileSystem } from './weapons/WeaponSystem.js';
 import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
+import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 
 const HITBOXES = [[1.65, 0.22, 'head'], [1.1, 0.42, 'body'], [0.5, 0.35, 'limb']];
 const _oc = new Vector3();
@@ -26,21 +27,33 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {} } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null } = {}) {
     this.damageMatrix = damageMatrix;
+    this.statusDefs = statusDefs;
     this.supers = supers; this.meleeWeapons = meleeWeapons; this.recoilDefs = recoilDefs;
     this.cover = cover;
     this.entities = [];
     this.projectiles = new ProjectileSystem(this);
     this.zones = new ZoneSystem(this);
     this.deployables = new DeployableSystem(this);
+    this.vehicles = new VehicleSystem(this, vehicleDefs ?? { vehicles: {}, weapons: {} });
   }
 
   add(e) { this.entities.push(e); return e; }
-  entity(id) { return this.entities.find((e) => e.id === id) ?? this.deployables.list.find((d) => d.id === id); }
-  fighters() { return this.entities; }
+  entity(id) { return this.entities.find((e) => e.id === id) ?? this.deployables.list.find((d) => d.id === id) ?? this.vehicles.list.find((v) => v.id === id); }
+
+  /**
+   * Everything that can be targeted by area effects, turrets and zones: on-foot fighters, riders
+   * in exposed seats (bikes) and vehicles. Occupants of enclosed seats are protected by the hull.
+   */
+  fighters() {
+    const out = this.entities.filter((e) => !e.vehicle || e.vehicle.exposed);
+    for (const v of this.vehicles.list) if (!v.removed) out.push(v);
+    return out;
+  }
 
   update(dt) {
+    this.vehicles.update(dt);
     this.projectiles.update(dt);
     this.zones.update(dt);
     this.deployables.update(dt);
@@ -52,11 +65,11 @@ export class CombatWorld {
   spawnDeployable(spec) { return this.deployables.spawn(spec); }
 
   // ---------------------------------------------------------------- spatial queries
-  entitiesInRadius(p, r) { return this.entities.filter((e) => !e.health.dead && e.movement.state.position.distanceTo(p) <= r); }
+  entitiesInRadius(p, r) { return this.fighters().filter((e) => !e.health.dead && e.movement.state.position.distanceTo(p) <= r); }
 
   entitiesInShape(s, o, d) {
     const f = d.clone().setY(0).normalize();
-    return this.entities.filter((e) => {
+    return this.fighters().filter((e) => {
       if (e.health.dead) return false;
       const v = e.movement.state.position.clone().sub(o).setY(0);
       const t = v.dot(f);
@@ -74,14 +87,17 @@ export class CombatWorld {
     const consider = (h) => { if (h && h.distance <= max && (!best || h.distance < best.distance)) best = h; };
 
     for (const e of this.entities) {
-      if (e.id === ignoreId || e.health.dead) continue;
+      // Skip the shooter, the dead, protected occupants, and riders of the shooting vehicle itself.
+      if (e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) continue;
       for (const [y, r, zone] of HITBOXES) {
         _oc.copy(e.movement.state.position); _oc.y += y; _oc.sub(o);
         const t = _oc.dot(d);
         if (t >= 0 && t <= max && _oc.lengthSq() - t * t < r * r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone });
       }
     }
-    // Piercing shots (Judgment) only test characters: cover, walls, domes and ground are ignored.
+    const veh = this.vehicles.raycast(o, d, max, ignoreId);
+    if (veh) consider(veh);
+    // Piercing shots (Judgment) only test characters and vehicles: cover, walls, domes and ground are ignored.
     if (opts.ignoreCover) return best;
     const dep = this.deployables.raycast(o, d, max);
     if (dep && dep.entity.id !== ignoreId) consider(dep);
@@ -127,6 +143,7 @@ export class CombatWorld {
     const owner = this.entity(projectile?.ownerId);
     for (const e of this.entitiesInRadius(point, radius)) {
       const isOwner = e.id === projectile?.ownerId;
+      if (isOwner && e.isVehicle) continue; // a tank is never hurt by its own shell's splash
       if (!isOwner && e.team === projectile?.team) continue;
       const dist = e.movement.state.position.distanceTo(point);
       const fall = 1 - 0.7 * Math.min(1, dist / radius);
