@@ -11,11 +11,17 @@ const DEFAULT_BINDINGS = {
   light:    { mouse: [0],                      pad: [7] },  // RT  (fire when gun out)
   heavy:    { keys: ['KeyF'],                  pad: [5] },  // RB
   guard:    { mouse: [2],                      pad: [6] },  // LT  (ADS when gun out)
-  interact: { keys: ['KeyE'],                  pad: [3] },  // Y / Triangle
-  reload:   { keys: ['KeyR'],                  pad: [3] },
-  swapShoulder: { keys: ['KeyQ'],              pad: [11] }, // R3
+  interact: { keys: ['KeyX'],                  pad: [3] },  // Y / Triangle (hold)
+  reload:   { keys: ['KeyR'],                  pad: [3] },  // Y / Triangle (tap)
+  swapShoulder: { keys: ['KeyB'],              pad: [11] }, // R3
   togglePOV:{ keys: ['KeyT'],                  pad: [8] },  // View/Share
-  swapWeapon:{ keys: ['Digit1', 'Digit2'],     pad: [4] },  // LB
+  toggleMelee:{ keys: ['Digit1'],              pad: [15] }, // D-pad right: sword <-> guns
+  swapWeapon:{ keys: ['Digit2'],               pad: [] },   // next gun (pad: hold D-pad right, TBD)
+  // Ability kit (Destiny: grenade/class/super; Deadlock: 1-2-3-4)
+  ability1: { keys: ['KeyQ'],                  pad: [4] },  // LB
+  ability2: { keys: ['KeyE'],                  pad: [12] }, // D-pad up
+  grenade:  { keys: ['KeyG'],                  pad: [14] }, // D-pad left
+  super:    { keys: ['KeyZ'],                  pad: [13] }, // D-pad down (or LB+RB chord)
 };
 
 export function emptyCommand() {

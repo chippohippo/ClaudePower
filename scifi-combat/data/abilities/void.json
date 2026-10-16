@@ -1,0 +1,1589 @@
+{
+ "faction": "void",
+ "element": "gravitic",
+ "soundFamily": "dark: sub-bass drones, reversed swells, minor/tritone, breathy textures",
+ "_notes": "Gravitic verbs: Weaken, Suppress, Volatile, Slow\u2192Stun, Pull. Same cue id convention as solari.json",
+ "kits": {
+  "reaver": {
+   "ability1": {
+    "id": "rift_lunge",
+    "name": "Rift Lunge",
+    "slot": "ability1",
+    "desc": "Lunge 7m through a micro-rift and apply Weaken to the first enemy hit.",
+    "counterplay": "The rift opens 0.15s before the lunge with a reversed swell; sidestep.",
+    "cooldown": 12,
+    "charges": 2,
+    "cast": {
+     "time": 0.15
+    },
+    "telegraph": {
+     "shape": "line",
+     "length": 7,
+     "width": 1.4
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 7,
+      "duration": 0.22
+     },
+     {
+      "type": "shape",
+      "shape": "line",
+      "length": 7,
+      "width": 1.4,
+      "damage": 30,
+      "status": {
+       "id": "weaken"
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F2",
+      "timbre": "reverse_swell"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "-2s",
+      "ops": [
+       {
+        "stat": "cooldown",
+        "op": "add",
+        "value": -2
+       }
+      ]
+     },
+     {
+      "desc": "Weaken also Slows",
+      "ops": [
+       {
+        "stat": "effects",
+        "op": "push",
+        "value": {
+         "type": "shape",
+         "shape": "line",
+         "length": 7,
+         "width": 1.4,
+         "status": {
+          "id": "slow"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: kills refund a charge",
+      "ops": [
+       {
+        "stat": "refundOnKill",
+        "op": "set",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "devour",
+    "name": "Devour",
+    "slot": "ability2",
+    "desc": "8s: kills and final blows heal 80 and make your rounds apply Volatile.",
+    "counterplay": "A violet maw aura and gnashing loop are audible; disengage and deny kills.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.2
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "status": {
+       "id": "devour",
+       "duration": 8
+      },
+      "weaponBuff": {
+       "onHitStatus": "volatile"
+      },
+      "duration": 8
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C2",
+      "timbre": "gnash_drone"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "vortex_grenade",
+    "name": "Vortex Grenade",
+    "slot": "grenade",
+    "desc": "Gravity vortex for 4s that pulls enemies in and deals 20 dps.",
+    "counterplay": "The pull is weak, about walking speed; sprint or dodge out.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 18,
+      "drop": 1,
+      "fuse": 0.6,
+      "radius": 4,
+      "damage": 20,
+      "element": "void",
+      "onHit": {
+       "zone": {
+        "radius": 4,
+        "lifetime": 4,
+        "tick": 0.25,
+        "damage": 5,
+        "pull": 2
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D#2",
+      "timbre": "vortex_suck"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "event_horizon",
+    "name": "Event Horizon",
+    "slot": "super",
+    "desc": "10s: your shotgun fires singularity slugs that pull targets together and detonate as Volatile.",
+    "counterplay": "Spread out, since clumping feeds it, and keep beyond 15m.",
+    "cast": {
+     "time": 0.5
+    },
+    "duration": 10,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "horizon",
+      "weapon": "super_rift_shotgun"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C1",
+      "timbre": "sub_tritone"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_super_void"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "monolith": {
+   "ability1": {
+    "id": "gravity_anchor",
+    "name": "Gravity Anchor",
+    "slot": "ability1",
+    "desc": "6m anchor zone for 5s: enemies inside gain a Slow stack every second; 3 stacks Stun.",
+    "counterplay": "The ring is drawn on the ground and gets heavier each stack; leave before 3 seconds.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 6,
+     "at": "aim"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 18,
+      "radius": 6,
+      "lifetime": 5,
+      "tick": 1,
+      "enemyStatus": {
+       "id": "slow",
+       "stacks": 1
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A0",
+      "timbre": "grav_thrum"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "+1m",
+      "ops": [
+       {
+        "stat": "effects.0.radius",
+        "op": "add",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "desc": "Also Weakens",
+      "ops": [
+       {
+        "stat": "effects.0.enemyStatus2",
+        "op": "set",
+        "value": {
+         "id": "weaken"
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: pulls toward center",
+      "ops": [
+       {
+        "stat": "effects.0.pull",
+        "op": "set",
+        "value": 2
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "crushing_advance",
+    "name": "Crushing Advance",
+    "slot": "ability2",
+    "desc": "Advance 8m with hyper-armor, shoving enemies aside (40 damage, knockback).",
+    "counterplay": "Hyper-armor ignores flinch, but Suppress and Stun still stop it.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "line",
+     "length": 8,
+     "width": 2
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 8,
+      "duration": 0.6
+     },
+     {
+      "type": "shape",
+      "shape": "line",
+      "length": 8,
+      "width": 2,
+      "damage": 40,
+      "knockback": 7
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E1",
+      "timbre": "stone_grind"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "grav_plate",
+    "name": "Grav Plate",
+    "slot": "grenade",
+    "desc": "Thrown plate that Suppresses (no abilities) enemies within 3.5m for 2.5s.",
+    "counterplay": "It hovers for 0.4s with a rising buzz; one shot destroys it.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 16,
+      "drop": 1,
+      "fuse": 0.4,
+      "radius": 3.5,
+      "damage": 15,
+      "element": "void",
+      "onHit": {
+       "status": {
+        "id": "suppress",
+        "duration": 2.5
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G1",
+      "timbre": "buzz_low"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "singularity",
+    "name": "Singularity",
+    "slot": "super",
+    "desc": "Plant a singularity for 6s: 10m pull, Suppress in the core (3m), and 600 HP of personal overshield.",
+    "counterplay": "The pull is visible as bending light; Psion and Prism silence-cleanse counters it, or kill the Monolith to end it.",
+    "cast": {
+     "time": 0.9,
+     "root": true
+    },
+    "duration": 6,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 10,
+     "fill": "warp"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 10,
+      "lifetime": 6,
+      "tick": 0.25,
+      "pull": 3,
+      "core": {
+       "radius": 3,
+       "status": {
+        "id": "suppress",
+        "duration": 0.5
+       }
+      }
+     },
+     {
+      "type": "self",
+      "overshield": 600,
+      "duration": 6
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C0",
+      "timbre": "black_hole"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_singularity"
+    },
+    "upgrades": []
+   }
+  },
+  "wraith": {
+   "ability1": {
+    "id": "shadowmeld",
+    "name": "Shadowmeld",
+    "slot": "ability1",
+    "desc": "7s invisibility; your first melee from it is a 2x backstab.",
+    "counterplay": "Within 6m the outline distorts and a breathy whisper loop plays.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "status": {
+       "id": "cloak",
+       "duration": 7
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D5",
+      "timbre": "whisper_rev"
+     },
+     "radius": 10
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "hollow_step",
+    "name": "Hollow Step",
+    "slot": "ability2",
+    "desc": "Blink 8m; if aimed at an enemy within 8m, appear behind them.",
+    "counterplay": "A void puff with a 0.1s inhale sound at the destination; turn around.",
+    "cooldown": 15,
+    "cast": {
+     "time": 0.1
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "blink",
+      "distance": 8,
+      "behindTarget": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A4",
+      "timbre": "inhale_pop"
+     },
+     "radius": 20
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "null_mine",
+    "name": "Null Mine",
+    "slot": "grenade",
+    "desc": "Proximity mine that Suppresses and Reveals for 3s.",
+    "counterplay": "It hums faintly within 5m; scan corners.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "mine",
+      "trigger": 3.5,
+      "lifetime": 45,
+      "onTrigger": {
+       "radius": 3.5,
+       "status": {
+        "id": "suppress",
+        "duration": 3
+       },
+       "reveal": 3
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F1",
+      "timbre": "hum_low"
+     },
+     "radius": 8
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "nightfall",
+    "name": "Nightfall",
+    "slot": "super",
+    "desc": "10s: the area within 25m darkens for enemies. You are invisible beyond 10m and kills extend the duration by 2s.",
+    "counterplay": "Nightfall has a hard visual edge. Fight from outside it or pop a Flare (Solari radiant light ends it locally).",
+    "cast": {
+     "time": 0.6
+    },
+    "duration": 10,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 25,
+      "lifetime": 10,
+      "enemyStatus": {
+       "id": "blind",
+       "duration": 0.3
+      },
+      "tick": 0.25
+     },
+     {
+      "type": "self",
+      "status": {
+       "id": "cloak",
+       "duration": 10
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B0",
+      "timbre": "dark_swell"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_nightfall"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "rigger": {
+   "ability1": {
+    "id": "leech_turret",
+    "name": "Leech Turret",
+    "slot": "ability1",
+    "desc": "Turret (300 HP, 12 dps) that steals 50% of the damage it deals as healing to you.",
+    "counterplay": "A violet tether to the Rigger is visible; break line of sight to stop the heal.",
+    "cooldown": 35,
+    "cast": {
+     "time": 0.7,
+     "root": true
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "turret",
+      "hp": 300,
+      "dps": 12,
+      "range": 28,
+      "lifetime": 60,
+      "lifesteal": 0.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C#3",
+      "timbre": "servo_dark"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "grav_lift",
+    "name": "Grav Lift",
+    "slot": "ability2",
+    "desc": "Lift pad that launches allies 10m up for 15s.",
+    "counterplay": "The pad is loud and visible; camp the landing zones.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.5
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "launchpad",
+      "lifetime": 15,
+      "launch": 14
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G2",
+      "timbre": "lift_pump"
+     },
+     "radius": 35
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "tether_grenade",
+    "name": "Tether Grenade",
+    "slot": "grenade",
+    "desc": "Tethers up to 3 enemies within 5m together: damage to one is shared and they are Slowed.",
+    "counterplay": "Tethers have a 6m stretch limit; break it by moving apart.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 18,
+      "drop": 1,
+      "fuse": 0.5,
+      "radius": 5,
+      "damage": 10,
+      "element": "void",
+      "onHit": {
+       "tether": 3,
+       "status": {
+        "id": "slow"
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D3",
+      "timbre": "chain_snap"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "collapse_engine",
+    "name": "Collapse Engine",
+    "slot": "super",
+    "desc": "Deploy an engine (1200 HP) that pulses every 2s for 12s: 120 damage plus Weaken in 12m.",
+    "counterplay": "Each pulse charges audibly for 1s; kill the engine or break line of sight.",
+    "cast": {
+     "time": 1.0,
+     "root": true
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 12,
+     "fill": "pulse"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "engine",
+      "hp": 1200,
+      "lifetime": 12,
+      "pulse": {
+       "interval": 2,
+       "radius": 12,
+       "damage": 120,
+       "status": "weaken"
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A1",
+      "timbre": "engine_dark"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_engine"
+    },
+    "upgrades": []
+   }
+  },
+  "mender": {
+   "ability1": {
+    "id": "siphon_tether",
+    "name": "Siphon Tether",
+    "slot": "ability1",
+    "desc": "Tether an enemy for 4s: drain 15 dps and heal the closest ally for twice that.",
+    "counterplay": "The tether is a visible beam that breaks beyond 15m or behind cover.",
+    "cooldown": 12,
+    "cast": {
+     "time": 0.2
+    },
+    "duration": 4,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 15,
+      "lifetime": 4,
+      "tick": 0.25,
+      "targets": "aimedEnemy",
+      "damage": 3.75,
+      "allyHeal": 7.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E3",
+      "timbre": "siphon_slurp"
+     },
+     "radius": 45
+    },
+    "upgrades": [],
+    "cancelable": true
+   },
+   "ability2": {
+    "id": "shroud",
+    "name": "Shroud",
+    "slot": "ability2",
+    "desc": "7m smoke dome for 6s: allies inside are Fortified and enemies outside can't see in.",
+    "counterplay": "Push inside it; Reveal effects pierce it.",
+    "cooldown": 26,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 15,
+      "radius": 7,
+      "lifetime": 6,
+      "tick": 0.5,
+      "allyStatus": {
+       "id": "fortify",
+       "duration": 1
+      },
+      "blocksVision": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A2",
+      "timbre": "smoke_rev"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "rift_bloom",
+    "name": "Rift Bloom",
+    "slot": "grenade",
+    "desc": "Heals allies for 60 and makes them Volatile-immune and cleansed.",
+    "counterplay": "The heal fires on impact, so destroy it in the air.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "area",
+      "center": "aim",
+      "range": 20,
+      "radius": 4.5,
+      "target": "allies",
+      "heal": 60,
+      "cleanse": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F#4",
+      "timbre": "bloom_open"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "well_of_night",
+    "name": "Well of Night",
+    "slot": "super",
+    "desc": "8m well for 10s: allies heal 35 HP/s and their weapons apply Weaken.",
+    "counterplay": "Night Wells silence radiant light. Use explosives and Solari Flares to dispel it.",
+    "cast": {
+     "time": 0.8,
+     "root": true
+    },
+    "duration": 0.1,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 8,
+     "fill": "glow"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "radius": 8,
+      "lifetime": 10,
+      "tick": 0.25,
+      "allyHeal": 8.75,
+      "allyWeaponStatus": "weaken"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C3",
+      "timbre": "choir_minor"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_well"
+    },
+    "upgrades": []
+   }
+  },
+  "hollow_eye": {
+   "ability1": {
+    "id": "wallseer",
+    "name": "Wallseer",
+    "slot": "ability1",
+    "desc": "Pulse that Reveals all enemies within 30m for 3s.",
+    "counterplay": "Revealed players hear a ping and see an eye icon; it also Reveals the Hollow-Eye to anyone revealed.",
+    "cooldown": 28,
+    "cast": {
+     "time": 0.5
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "reveal",
+      "radius": 30,
+      "duration": 3
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B3",
+      "timbre": "sonar_dark"
+     },
+     "radius": 40
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "grav_jump",
+    "name": "Grav Jump",
+    "slot": "ability2",
+    "desc": "Grav-boosted jump (12m/s up), then hover for 2s at ADS.",
+    "counterplay": "Hovering snipers are exposed; counter-snipe them.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.05
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 1,
+      "duration": 0.15,
+      "lift": 12
+     },
+     {
+      "type": "self",
+      "status": {
+       "id": "hover",
+       "duration": 2
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D4",
+      "timbre": "grav_pop"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "snare_spike",
+    "name": "Snare Spike",
+    "slot": "grenade",
+    "desc": "Spike that Roots the first enemy within 3m and Reveals them.",
+    "counterplay": "Spikes glint and tick; shoot them.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "mine",
+      "trigger": 3,
+      "lifetime": 40,
+      "onTrigger": {
+       "status": {
+        "id": "root"
+       },
+       "reveal": 3
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G#3",
+      "timbre": "tick_dark"
+     },
+     "radius": 8
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "unmaking_gaze",
+    "name": "Unmaking Gaze",
+    "slot": "super",
+    "desc": "Channel 6s: a piercing void beam (180 dps) that applies Weaken; ramps up while on target.",
+    "counterplay": "A violet sightline is visible to the target with a rising whine; break line of sight to reset the ramp.",
+    "cast": {
+     "time": 0.6
+    },
+    "duration": 6,
+    "telegraph": {
+     "shape": "sightline",
+     "visibleTo": "targeted"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "gaze",
+      "weapon": "super_gaze_beam"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C2",
+      "timbre": "void_laser"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_sniper_super"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "ashsworn": {
+   "ability1": {
+    "id": "blackflame_lunge",
+    "name": "Black-Flame Lunge",
+    "slot": "ability1",
+    "desc": "8m lunge with a black-flame slash: 55 damage, Weaken, parryable.",
+    "counterplay": "The windup is a black ember swirl with a low growl; parry the slash.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.25
+    },
+    "duration": 0.35,
+    "telegraph": {
+     "shape": "line",
+     "length": 8,
+     "width": 1.2
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 8,
+      "duration": 0.3
+     },
+     {
+      "type": "shape",
+      "shape": "cone",
+      "length": 2.5,
+      "angle": 110,
+      "damage": 55,
+      "status": {
+       "id": "weaken"
+      },
+      "at": 0.3,
+      "parryable": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E2",
+      "timbre": "dark_roar"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "ash_ward",
+    "name": "Ash Ward",
+    "slot": "ability2",
+    "desc": "4s: blocking costs no stamina; parries apply Volatile and Suppress the attacker for 1s.",
+    "counterplay": "Don't melee into an Ashsworn with Ash Ward up; shoot them or wait 4s.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.1
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "meleeBuff": {
+       "blockStaminaMul": 0,
+       "parryApplies": [
+        "volatile",
+        "suppress"
+       ]
+      },
+      "duration": 4
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A3",
+      "timbre": "ash_ring"
+     },
+     "radius": 25
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "cinder_brand",
+    "name": "Cinder Brand",
+    "slot": "grenade",
+    "desc": "Sticky black ember: applies Volatile, and the next hit detonates it.",
+    "counterplay": "Stuck targets hear a heartbeat thrum; cleanse it or avoid taking hits for 6s.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.25
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 24,
+      "drop": 0.6,
+      "sticky": true,
+      "fuse": 0.2,
+      "radius": 1,
+      "damage": 20,
+      "element": "void",
+      "onHit": {
+       "status": {
+        "id": "volatile"
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F3",
+      "timbre": "heartbeat"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "abyssal_blade",
+    "name": "Abyssal Blade",
+    "slot": "super",
+    "desc": "12s: an abyssal greatsword. Every hit Weakens and heavy attacks open 6m rift arcs that pull.",
+    "counterplay": "Rift arcs pull toward the Ashsworn; dodge away from the pull, not along it. Arcs are parryable.",
+    "cast": {
+     "time": 0.7
+    },
+    "duration": 12,
+    "telegraph": {
+     "shape": "self_aura",
+     "color": "faction"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "abyssal",
+      "meleeOverride": "abyssal_greatsword"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C1",
+      "timbre": "abyss_choir"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_blade_super"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "driftcaller": {
+   "ability1": {
+    "id": "phase_thruster",
+    "name": "Phase Thruster",
+    "slot": "ability1",
+    "desc": "Phase dash (5m) with 0.2s i-frames.",
+    "counterplay": "The i-frames end before the dash does; shoot at the exit point.",
+    "cooldown": 10,
+    "charges": 2,
+    "cast": {
+     "time": 0.05
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 5,
+      "duration": 0.25,
+      "iframes": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D4",
+      "timbre": "phase_zip"
+     },
+     "radius": 30
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "call_skiff",
+    "name": "Call Wraith-Skiff",
+    "slot": "ability2",
+    "desc": "Summon a void skiff at the aim point after 2s.",
+    "counterplay": "The drop marker is visible; stand on it to deny the drop.",
+    "cooldown": 60,
+    "cast": {
+     "time": 0.5
+    },
+    "telegraph": {
+     "shape": "drop_marker",
+     "radius": 2
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "vehicle",
+      "vehicle": "void_skiff",
+      "delay": 2,
+      "range": 15
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A2",
+      "timbre": "engine_dark"
+     },
+     "radius": 60
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "gravity_flak",
+    "name": "Gravity Flak",
+    "slot": "grenade",
+    "desc": "Airburst that Suppresses vehicles and pulls jetpackers and gliders to the ground.",
+    "counterplay": "It does little to grounded infantry.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.2
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 30,
+      "drop": 0.3,
+      "fuse": 0.9,
+      "radius": 6,
+      "damage": 60,
+      "element": "void",
+      "onHit": {
+       "status": {
+        "id": "suppress",
+        "duration": 2
+       },
+       "airborneOnly": true
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E3",
+      "timbre": "flak_thump"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "void_rain",
+    "name": "Void Rain",
+    "slot": "super",
+    "desc": "Paint a 12m area: after 2s, gravity bombs rain for 4s (90 damage per second plus Slow).",
+    "counterplay": "The area is painted with falling streaks before impact; leave it.",
+    "cast": {
+     "time": 0.6
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 12,
+     "at": "aim",
+     "lead": 2
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 60,
+      "radius": 12,
+      "delay": 2,
+      "lifetime": 4,
+      "tick": 0.5,
+      "damage": 45,
+      "enemyStatus": {
+       "id": "slow"
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G1",
+      "timbre": "bomb_whistle_dark"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_airstrike"
+    },
+    "upgrades": []
+   }
+  },
+  "psion": {
+   "ability1": {
+    "id": "mind_lance",
+    "name": "Mind Lance",
+    "slot": "ability1",
+    "desc": "Psionic bolt that Silences for 2s and cancels channels.",
+    "counterplay": "The bolt is slow (40m/s), glowing and parryable by flame swords.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.2
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 40,
+      "radius": 0,
+      "damage": 35,
+      "element": "void",
+      "deflectable": true,
+      "onHit": {
+       "status": {
+        "id": "silence",
+        "duration": 2
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F#4",
+      "timbre": "psi_shriek"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "psychic_barrier",
+    "name": "Psychic Barrier",
+    "slot": "ability2",
+    "desc": "4s frontal barrier that absorbs 400 damage and reflects 25% of it as Weaken pulses.",
+    "counterplay": "The barrier covers only the front 120 degrees; flank it.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.15
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "status": {
+       "id": "barrier",
+       "duration": 4
+      },
+      "overshield": 400,
+      "duration": 4
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B3",
+      "timbre": "psi_hum"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "neural_spike",
+    "name": "Neural Spike",
+    "slot": "grenade",
+    "desc": "Burst that Suppresses within 4m and inverts the minimap for 3s.",
+    "counterplay": "It has a long fuse (1s) with a whispering crescendo; dodge out.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 16,
+      "drop": 1,
+      "fuse": 1,
+      "radius": 4,
+      "damage": 20,
+      "element": "void",
+      "onHit": {
+       "status": {
+        "id": "suppress",
+        "duration": 2
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C5",
+      "timbre": "whisper_cresc"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "thoughtstorm",
+    "name": "Thoughtstorm",
+    "slot": "super",
+    "desc": "Channel 5s, levitating: a 14m storm Suppresses everything inside each second and deals 60 dps.",
+    "counterplay": "The Psion is airborne and visible above the storm; a single stun or Mind-Lance-style silence interrupts it.",
+    "cast": {
+     "time": 0.8
+    },
+    "duration": 5,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 14,
+     "fill": "storm"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 14,
+      "lifetime": 5,
+      "tick": 1,
+      "damage": 60,
+      "enemyStatus": {
+       "id": "suppress",
+       "duration": 1
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D1",
+      "timbre": "psi_storm"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_psion_super"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "riftbreaker": {
+   "ability1": {
+    "id": "rift_charge",
+    "name": "Rift Charge",
+    "slot": "ability1",
+    "desc": "Sticky rift charge; recast to implode it (pull 6m, 120 damage, destroys cover).",
+    "counterplay": "It pulses violet every 0.5s; shoot it.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "charge",
+      "range": 5,
+      "lifetime": 20
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F2",
+      "timbre": "beep_dark"
+     },
+     "radius": 45
+    },
+    "upgrades": [],
+    "recast": {
+     "window": 20,
+     "effects": [
+      {
+       "type": "area",
+       "center": "charge",
+       "radius": 6,
+       "damage": 120,
+       "pull": 8,
+       "element": "void",
+       "destroysCover": true
+      }
+     ]
+    }
+   },
+   "ability2": {
+    "id": "seismic_slam",
+    "name": "Seismic Slam",
+    "slot": "ability2",
+    "desc": "Leap and slam: 6m Suppress for 1.5s and knock-up.",
+    "counterplay": "The leap arc is visible and there is a 0.4s hang time; dodge sideways when they peak.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.2
+    },
+    "duration": 0.5,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 6,
+     "at": "landing"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 5,
+      "duration": 0.4,
+      "lift": 7
+     },
+     {
+      "type": "area",
+      "at": 0.45,
+      "radius": 6,
+      "damage": 50,
+      "knockup": 5,
+      "status": {
+       "id": "suppress",
+       "duration": 1.5
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A0",
+      "timbre": "quake"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "volatile_cluster",
+    "name": "Volatile Cluster",
+    "slot": "grenade",
+    "desc": "Cluster of 4 bomblets that apply Volatile.",
+    "counterplay": "Bomblets are slow to arm (0.5s); clear the area.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 18,
+      "drop": 1,
+      "radius": 3,
+      "damage": 30,
+      "element": "void",
+      "cluster": 4,
+      "onHit": {
+       "status": {
+        "id": "volatile"
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D#3",
+      "timbre": "tick_dark"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "collapse",
+    "name": "Collapse",
+    "slot": "super",
+    "desc": "Throw a collapse bomb: after a 1.5s 15m pull it implodes for 500 damage in 6m.",
+    "counterplay": "The pull is the warning. Sprint directly away and dodge at the end; the inner 6m is lethal.",
+    "cast": {
+     "time": 0.6
+    },
+    "duration": 1.6,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 15,
+     "at": "aim",
+     "inner": 6
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 40,
+      "radius": 15,
+      "lifetime": 1.5,
+      "tick": 0.1,
+      "pull": 4
+     },
+     {
+      "type": "area",
+      "center": "aim",
+      "range": 40,
+      "radius": 6,
+      "damage": 500,
+      "element": "void",
+      "at": 1.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C0",
+      "timbre": "implosion"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_collapse"
+    },
+    "upgrades": []
+   }
+  }
+ }
+}

@@ -3,13 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Emberfall — Graybox Duel</title>
+  <title>Emberfall Graybox Duel</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.5 system-ui, sans-serif; color: #eee; }
-    #hud { position: fixed; left: 16px; bottom: 16px; background: #0009; padding: 8px 12px; border-radius: 6px; pointer-events: none; }
-    #help { position: fixed; right: 16px; top: 16px; background: #0009; padding: 8px 12px; border-radius: 6px; max-width: 280px; pointer-events: none; }
-    #flash { position: fixed; top: 38%; width: 100%; text-align: center; font-size: 34px; font-weight: 800; letter-spacing: 2px; opacity: 0; transition: opacity .25s; pointer-events: none; text-shadow: 0 0 12px #000; }
+    #hud { position: fixed; left: 16px; bottom: 96px; background: #0009; padding: 8px 12px; border-radius: 6px; pointer-events: none; }
+    #help { position: fixed; right: 16px; top: 16px; background: #0009; padding: 8px 12px; border-radius: 6px; max-width: 300px; pointer-events: none; }
+    #flash { position: fixed; top: 36%; width: 100%; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 2px; opacity: 0; transition: opacity .25s; pointer-events: none; text-shadow: 0 0 12px #000; }
     #tell { position: fixed; top: 46%; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; pointer-events: none; }
+    #crosshair { position: fixed; top: 50%; left: 50%; width: 4px; height: 4px; margin: -2px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 1px #000; display: none; pointer-events: none; }
+    .bar { position: fixed; display: flex; gap: 8px; pointer-events: none; }
+    #abilities { left: 16px; bottom: 16px; }
+    #enemyAbilities { left: 50%; top: 16px; transform: translateX(-50%) scale(.75); transform-origin: top center; }
+    #enemyAbilities::before { content: 'ENEMY'; position: absolute; top: -14px; font-size: 10px; color: #ff6b81; letter-spacing: 1px; }
+    .ab { position: relative; width: 56px; height: 56px; background: #000a; border: 2px solid #555; border-radius: 8px; overflow: hidden; display: grid; place-items: center; }
+    .ab .fill { position: absolute; bottom: 0; left: 0; right: 0; background: #ffffff22; }
+    .ab.ready { border-color: #ffcf6b; box-shadow: 0 0 8px #ffcf6b88; }
+    #enemyAbilities .ab.ready { border-color: #ff3b5c; box-shadow: 0 0 8px #ff3b5c88; }
+    .ab.locked { border-color: #777; filter: grayscale(1); }
+    .ab span { position: relative; font-weight: 800; font-size: 18px; }
+    .ab small { position: absolute; bottom: 1px; font-size: 8px; opacity: .8; white-space: nowrap; }
   </style>
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -19,12 +31,18 @@
   <div id="hud"></div>
   <div id="flash"></div>
   <div id="tell"></div>
+  <div id="crosshair"></div>
+  <div id="abilities" class="bar"></div>
+  <div id="enemyAbilities" class="bar"></div>
   <div id="help">
-    <b>Click to lock mouse</b><br>
+    <b>Click to lock the mouse and enable audio</b><br>
     WASD move · Shift sprint · Space jump/vault · C crouch (hold = prone, while sprinting = slide)<br>
-    Alt/V dodge · LMB light · F heavy (hold = flame special) · RMB guard (tap on hit = parry)<br>
-    RMB+F then LMB = guard break · T toggle 1P/3P · Q swap shoulder · Gamepad supported<br>
-    Amber dot = parryable windup · Red = unblockable (dodge!)
+    Alt/V dodge · <b>1</b> toggle sword / guns · <b>2</b> next gun (Halcyon AR ↔ Aurora pulse rifle)<br>
+    <b>Sword:</b> LMB light · F heavy (hold = flame special) · RMB guard (tap on hit = parry)<br>
+    <b>Gun:</b> LMB fire · RMB aim · R reload (pulse rifle: press R in the vent window for a perfect vent)<br>
+    <b>Dawnblade kit:</b> Q Solar Charge · E Radiant Guard · G Ember Brand · Z Daybreak (super)<br>
+    T 1P/3P · B swap shoulder · Gamepad supported<br>
+    Amber dot = parryable · Red = unblockable · Red ground shapes = enemy ability incoming
   </div>
   <script type="module" src="./src/main.js"></script>
 </body>

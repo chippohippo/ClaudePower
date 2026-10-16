@@ -1,0 +1,247 @@
+{
+ "_comment": "Each status has a shape icon (readable without color), a body VFX and an audio loop the victim hears in 2D and others hear in 3D. 'negative' statuses are cleansable unless stated.",
+ "statuses": {
+  "scorch": {
+   "negative": true,
+   "element": "radiant",
+   "dps": 0.25,
+   "maxStacks": 100,
+   "duration": 3,
+   "decayStacksPerSec": 30,
+   "decayDelay": 1,
+   "thresholdTo": "ignite",
+   "icon": "flame-triangle",
+   "vfx": "embers_on_body",
+   "audio": {
+    "apply": "scorch_tick",
+    "loop": "scorch_crackle"
+   }
+  },
+  "ignite": {
+   "negative": true,
+   "element": "radiant",
+   "dps": 0,
+   "duration": 0.6,
+   "detonate": {
+    "radius": 4,
+    "damage": 90
+   },
+   "icon": "burst",
+   "vfx": "ignite_flash",
+   "audio": {
+    "apply": "ignite_whoomp_threat"
+   }
+  },
+  "blind": {
+   "negative": true,
+   "element": "radiant",
+   "duration": 2.5,
+   "interrupts": false,
+   "hud": "whiteout_vignette",
+   "icon": "eye-slash",
+   "audio": {
+    "apply": "blind_ring",
+    "loop": "tinnitus_soft"
+   },
+   "reducedMotionAlt": "dim_vignette"
+  },
+  "radiant": {
+   "negative": false,
+   "element": "radiant",
+   "duration": 8,
+   "weaponDamage": 0.2,
+   "icon": "sun",
+   "vfx": "golden_aura",
+   "audio": {
+    "apply": "radiant_chime"
+   }
+  },
+  "weaken": {
+   "negative": true,
+   "element": "gravitic",
+   "duration": 6,
+   "damageTaken": 0.15,
+   "icon": "cracked-shield",
+   "vfx": "violet_fractures",
+   "audio": {
+    "apply": "weaken_crack"
+   }
+  },
+  "suppress": {
+   "negative": true,
+   "element": "gravitic",
+   "duration": 3,
+   "interrupts": true,
+   "icon": "lock",
+   "vfx": "void_chains",
+   "hud": "ability_bar_locked",
+   "audio": {
+    "apply": "suppress_slam_threat",
+    "loop": "suppress_hum"
+   }
+  },
+  "volatile": {
+   "negative": true,
+   "element": "gravitic",
+   "duration": 6,
+   "onDamaged": {
+    "chance": 1,
+    "radius": 3,
+    "damage": 45,
+    "consume": true
+   },
+   "icon": "pulse-orb",
+   "vfx": "unstable_orb",
+   "audio": {
+    "apply": "volatile_whine",
+    "loop": "volatile_pulse"
+   }
+  },
+  "slow": {
+   "negative": true,
+   "duration": 3,
+   "amount": 0.4,
+   "maxStacks": 3,
+   "thresholdTo": "stun",
+   "icon": "chevrons-down",
+   "vfx": "frost_or_grav_drag",
+   "audio": {
+    "apply": "slow_drag"
+   }
+  },
+  "stun": {
+   "negative": true,
+   "duration": 1.2,
+   "interrupts": true,
+   "cleansable": false,
+   "icon": "spiral",
+   "vfx": "stun_halo",
+   "audio": {
+    "apply": "stun_crack_threat"
+   }
+  },
+  "silence": {
+   "negative": true,
+   "duration": 2.5,
+   "interrupts": true,
+   "icon": "muted-rune",
+   "hud": "ability_bar_locked",
+   "audio": {
+    "apply": "silence_snuff_threat"
+   }
+  },
+  "disarm": {
+   "negative": true,
+   "duration": 2.5,
+   "icon": "broken-gun",
+   "hud": "weapon_crossed",
+   "audio": {
+    "apply": "disarm_clank"
+   }
+  },
+  "root": {
+   "negative": true,
+   "duration": 1.5,
+   "interrupts": false,
+   "icon": "anchor",
+   "audio": {
+    "apply": "root_lock"
+   }
+  },
+  "haste": {
+   "negative": false,
+   "duration": 4,
+   "amount": 0.25,
+   "icon": "chevrons-up",
+   "audio": {
+    "apply": "haste_whoosh"
+   }
+  },
+  "fortify": {
+   "negative": false,
+   "duration": 5,
+   "damageReduction": 0.25,
+   "icon": "shield-plus",
+   "audio": {
+    "apply": "fortify_clang"
+   }
+  },
+  "revealed": {
+   "negative": true,
+   "duration": 4,
+   "cleansable": false,
+   "vfx": "outline_through_walls",
+   "icon": "eye",
+   "audio": {
+    "apply": "reveal_ping_victim"
+   },
+   "_note": "Victim hears a ping and sees an eye icon, so being tracked is always signaled."
+  },
+  "phased": {
+   "negative": false,
+   "duration": 0.5,
+   "icon": "ghost",
+   "audio": {
+    "apply": "phase_shift"
+   }
+  },
+  "cleanseImmune": {
+   "negative": false,
+   "duration": 1.5,
+   "icon": "aura"
+  },
+  "cloak": {
+   "negative": false,
+   "duration": 6,
+   "breakOn": [
+    "fire",
+    "damaged",
+    "ability"
+   ],
+   "shimmerRange": 8,
+   "footstepMul": 0.5,
+   "icon": "ghost-eye",
+   "vfx": "refraction_shimmer",
+   "audio": {
+    "apply": "cloak_on",
+    "end": "cloak_off_threat"
+   },
+   "_note": "Uncloaking always plays a 3D cue that enemies can hear; ambushes can be heard a moment before they land."
+  },
+  "devour": {
+   "negative": false,
+   "duration": 8,
+   "healOnKill": 80,
+   "icon": "maw",
+   "vfx": "violet_maw_aura",
+   "audio": {
+    "apply": "devour_on",
+    "loop": "gnash_loop"
+   }
+  },
+  "hover": {
+   "negative": false,
+   "duration": 2,
+   "gravityMul": 0.05,
+   "icon": "feather",
+   "audio": {
+    "loop": "grav_hover"
+   }
+  },
+  "barrier": {
+   "negative": false,
+   "duration": 4,
+   "frontalArc": 120,
+   "reflect": {
+    "fraction": 0.25,
+    "status": "weaken"
+   },
+   "icon": "psi-wall",
+   "vfx": "psi_barrier",
+   "audio": {
+    "apply": "psi_barrier_up",
+    "impact": "psi_barrier_absorb"
+   }
+  }
+ }
+}

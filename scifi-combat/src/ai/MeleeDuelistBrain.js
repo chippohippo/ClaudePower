@@ -103,6 +103,10 @@ export class MeleeDuelistBrain {
         else if (c === 'backoff') { cmd.moveY = -1; cmd.moveX = this.circleDir; if (this.intent.time > 0.6) this.intent = null; }
       }
     }
+    // Abilities: the bot uses its gap-closer from mid range, the same way a player would.
+    // Like a Deadlock bot, it only commits a long cooldown when the target is not guarding.
+    const ab = this.self.abilities?.slots?.ability1;
+    if (ab?.ready && dist > 4 && dist < 8 && !tm.guarding && Math.random() < 0.03 * (0.5 + this.p.aggression)) want.ability1 = true;
     return this.#finish(cmd, want);
   }
 
@@ -113,6 +117,7 @@ export class MeleeDuelistBrain {
       heavy: !!want.heavyHold,
       guard: want.guard === 'hold' || (want.guard === 'tap' && !this.prevButtons.guard),
       dodge: !!want.dodge,
+      ability1: !!want.ability1,
     };
     for (const [k, d] of Object.entries(down)) {
       const was = !!this.prevButtons[k];

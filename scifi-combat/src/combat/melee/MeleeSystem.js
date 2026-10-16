@@ -131,9 +131,8 @@ export class MeleeComponent {
         return;
 
       case MeleePhase.GUARD:
-        mv.state.speedScale = 0.55;
+        mv.state.speedScale = Math.min(mv.state.speedScale, 0.55);
         if (!b.guard?.down) {
-          mv.state.speedScale = 1;
           // Tap-released with nothing to parry = whiffed parry → short lockout (anti-spam).
           const whiffed = this._pendingParryCheck && this.phaseTime < 0.3;
           this._pendingParryCheck = false;
@@ -145,7 +144,6 @@ export class MeleeComponent {
 
       case MeleePhase.IDLE:
       default:
-        mv.state.speedScale = 1;
         if (b.guard?.pressed) return this.#enterGuard();
         if (this.queued === 'light') {
           // Priority: counter > slide slash > chain > opener.

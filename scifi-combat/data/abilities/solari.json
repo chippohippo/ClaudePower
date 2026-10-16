@@ -1,0 +1,1843 @@
+{
+ "faction": "solari",
+ "element": "radiant",
+ "soundFamily": "bright: brass, choir, bells, major intervals, high transient snap",
+ "_notes": "Radiant verbs: Scorch\u2192Ignite, Blind, Radiant (+weapon dmg), Fortify. Cue ids derive from ability id: <id>.cast | .cast_threat | .loop | .impact | .end | .ready",
+ "kits": {
+  "lancer": {
+   "ability1": {
+    "id": "sunstrike_dash",
+    "name": "Sunstrike Dash",
+    "slot": "ability1",
+    "desc": "Short dash; your next 3 shots deal +25% damage.",
+    "counterplay": "Tracking the dash direction; the buff is visible as a golden muzzle glow.",
+    "cooldown": 12,
+    "charges": 2,
+    "cast": {
+     "time": 0.05
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 6,
+      "duration": 0.22
+     },
+     {
+      "type": "self",
+      "weaponBuff": {
+       "damageMul": 1.25
+      },
+      "duration": 2.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E4",
+      "timbre": "brass_stab"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "-2s cooldown",
+      "ops": [
+       {
+        "stat": "cooldown",
+        "op": "add",
+        "value": -2
+       }
+      ]
+     },
+     {
+      "desc": "+1 charge",
+      "ops": [
+       {
+        "stat": "charges",
+        "op": "add",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "desc": "T3: dash reloads your magazine",
+      "ops": [
+       {
+        "stat": "effects",
+        "op": "push",
+        "value": {
+         "type": "self",
+         "reload": true
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "flare_burst",
+    "name": "Flare Burst",
+    "slot": "ability2",
+    "desc": "Thrown flare that detonates after 0.6s, blinding enemies facing it.",
+    "counterplay": "Turn away or break line of sight during the 0.6s fuse; the hiss is the warning.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.2
+    },
+    "duration": 0.6,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 5,
+     "at": "aim",
+     "fill": "pulse"
+    },
+    "effects": [
+     {
+      "type": "area",
+      "center": "aim",
+      "range": 22,
+      "radius": 5,
+      "at": 0.6,
+      "status": {
+       "id": "blind",
+       "duration": 2
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A5",
+      "timbre": "flare_hiss"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "+1m radius",
+      "ops": [
+       {
+        "stat": "effects.0.radius",
+        "op": "add",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "desc": "Also applies 30 Scorch",
+      "ops": [
+       {
+        "stat": "effects.0.status",
+        "op": "set",
+        "value": {
+         "id": "scorch",
+         "stacks": 30
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: blinded enemies are Revealed",
+      "ops": [
+       {
+        "stat": "effects",
+        "op": "push",
+        "value": {
+         "type": "reveal",
+         "radius": 6,
+         "duration": 3,
+         "at": 0.6
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "grenade": {
+    "id": "solar_frag",
+    "name": "Solar Frag",
+    "slot": "grenade",
+    "desc": "Bouncing frag: 110 damage, 40 Scorch.",
+    "counterplay": "A ticking chime speeds up before detonation; dodge out of the ring.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "arc_preview",
+     "owner": "self"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 18,
+      "drop": 1,
+      "bounce": 0.4,
+      "fuse": 1.4,
+      "radius": 4.5,
+      "damage": 110,
+      "element": "radiant",
+      "onHit": {
+       "status": {
+        "id": "scorch",
+        "stacks": 40
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C5",
+      "timbre": "tick_chime"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "-3s cooldown",
+      "ops": [
+       {
+        "stat": "cooldown",
+        "op": "add",
+        "value": -3
+       }
+      ]
+     },
+     {
+      "desc": "+20 Scorch",
+      "ops": [
+       {
+        "stat": "effects.0.onHit.status.stacks",
+        "op": "add",
+        "value": 20
+       }
+      ]
+     },
+     {
+      "desc": "T3: splits into 3 bomblets",
+      "ops": [
+       {
+        "stat": "effects.0.cluster",
+        "op": "set",
+        "value": 3
+       }
+      ]
+     }
+    ]
+   },
+   "super": {
+    "id": "lance_of_dawn",
+    "name": "Lance of Dawn",
+    "slot": "super",
+    "desc": "10s: your rifle becomes a radiant lance. Each hit adds 50 Scorch; two hits Ignite.",
+    "counterplay": "A golden beam-line from the muzzle is visible; break line of sight and wait it out.",
+    "cast": {
+     "time": 0.6
+    },
+    "duration": 10,
+    "telegraph": {
+     "shape": "self_aura",
+     "color": "faction"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "lance",
+      "weapon": "super_lance",
+      "status": {
+       "id": "radiant",
+       "duration": 10
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E3",
+      "timbre": "choir_swell"
+     },
+     "radius": 120,
+     "voEnemy": "super_incoming"
+    },
+    "upgrades": [
+     {
+      "desc": "+2s duration",
+      "ops": [
+       {
+        "stat": "duration",
+        "op": "add",
+        "value": 2
+       }
+      ]
+     }
+    ],
+    "cancelable": true
+   }
+  },
+  "bastion": {
+   "ability1": {
+    "id": "aegis_wall",
+    "name": "Aegis Wall",
+    "slot": "ability1",
+    "desc": "Deploy a 4m hard-light wall (800 HP) that blocks projectiles both ways for 12s.",
+    "counterplay": "Shoot the emitter at its base (2x damage) or flank around the edges.",
+    "cooldown": 30,
+    "cast": {
+     "time": 0.5,
+     "root": true
+    },
+    "telegraph": {
+     "shape": "rect",
+     "width": 4,
+     "depth": 0.4
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "wall",
+      "width": 4,
+      "height": 2.4,
+      "hp": 800,
+      "lifetime": 12,
+      "range": 3
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C3",
+      "timbre": "shield_hum"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "+300 HP",
+      "ops": [
+       {
+        "stat": "effects.0.hp",
+        "op": "add",
+        "value": 300
+       }
+      ]
+     },
+     {
+      "desc": "Allies firing through it deal +10%",
+      "ops": [
+       {
+        "stat": "effects.0.allyBuff",
+        "op": "set",
+        "value": 0.1
+       }
+      ]
+     },
+     {
+      "desc": "T3: wall curves into a 120 degree arc",
+      "ops": [
+       {
+        "stat": "effects.0.curved",
+        "op": "set",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "bulwark_charge",
+    "name": "Bulwark Charge",
+    "slot": "ability2",
+    "desc": "Shield-first charge for 9m. The first enemy hit is Stunned for 1s and knocked back.",
+    "counterplay": "The charge is a straight line telegraphed for 0.4s; sidestep it. Stun is cleansable, slow is not.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "line",
+     "length": 9,
+     "width": 1.6
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 9,
+      "duration": 0.5
+     },
+     {
+      "type": "shape",
+      "shape": "line",
+      "length": 9,
+      "width": 1.6,
+      "damage": 45,
+      "knockback": 6,
+      "status": {
+       "id": "stun",
+       "duration": 1
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G2",
+      "timbre": "metal_rumble"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "+3m distance",
+      "ops": [
+       {
+        "stat": "effects.0.distance",
+        "op": "add",
+        "value": 3
+       },
+       {
+        "stat": "effects.1.length",
+        "op": "add",
+        "value": 3
+       }
+      ]
+     },
+     {
+      "desc": "Grants Fortify on hit",
+      "ops": [
+       {
+        "stat": "effects",
+        "op": "push",
+        "value": {
+         "type": "self",
+         "status": {
+          "id": "fortify"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: hits all enemies in the line",
+      "ops": [
+       {
+        "stat": "effects.1.multi",
+        "op": "set",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "grenade": {
+    "id": "fortress_pulse",
+    "name": "Fortress Pulse",
+    "slot": "grenade",
+    "desc": "Field that grants allies Fortify (-25% damage taken) for 5s.",
+    "counterplay": "Area denial with explosives; Fortify does not block statuses.",
+    "cooldown": 25,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 5,
+     "fill": "ally_only"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "radius": 5,
+      "lifetime": 5,
+      "tick": 0.5,
+      "allyStatus": {
+       "id": "fortify",
+       "duration": 1
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C3",
+      "timbre": "bell_low"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "citadel",
+    "name": "Citadel",
+    "slot": "super",
+    "desc": "Raise a 9m radiant dome for 10s. Enemy projectiles are blocked and allies inside are Fortified.",
+    "counterplay": "Walk inside the dome and melee, since it blocks only projectiles; or retreat and wait.",
+    "cast": {
+     "time": 1.0,
+     "root": true
+    },
+    "duration": 0.1,
+    "telegraph": {
+     "shape": "dome",
+     "radius": 9
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "radius": 9,
+      "lifetime": 10,
+      "blocksProjectiles": "enemy",
+      "allyStatus": {
+       "id": "fortify",
+       "duration": 1
+      },
+      "tick": 0.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C2",
+      "timbre": "organ_cathedral"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_citadel"
+    },
+    "upgrades": []
+   }
+  },
+  "veil": {
+   "ability1": {
+    "id": "refraction",
+    "name": "Refraction",
+    "slot": "ability1",
+    "desc": "6s of optical camo. Firing, taking damage or using abilities breaks it.",
+    "counterplay": "A shimmer is visible within 8m and footsteps still play at half volume; listen for them.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "status": {
+       "id": "cloak",
+       "duration": 6
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B5",
+      "timbre": "glass_whisper"
+     },
+     "radius": 12
+    },
+    "upgrades": [
+     {
+      "desc": "+2s",
+      "ops": [
+       {
+        "stat": "effects.0.status.duration",
+        "op": "add",
+        "value": 2
+       }
+      ]
+     },
+     {
+      "desc": "Breaking camo grants Haste",
+      "ops": [
+       {
+        "stat": "onBreak",
+        "op": "set",
+        "value": {
+         "status": "haste"
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: first shot from camo deals +50%",
+      "ops": [
+       {
+        "stat": "ambushMul",
+        "op": "set",
+        "value": 1.5
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "mirror_step",
+    "name": "Mirror Step",
+    "slot": "ability2",
+    "desc": "Blink 9m and leave a decoy at your start point that runs forward for 3s.",
+    "counterplay": "Decoys have no footstep audio and no nameplate on ping; ping to check.",
+    "cooldown": 16,
+    "cast": {
+     "time": 0.1
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "decoy",
+      "lifetime": 3,
+      "range": 0
+     },
+     {
+      "type": "blink",
+      "distance": 9
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F#5",
+      "timbre": "glass_snap"
+     },
+     "radius": 25
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "glare_mine",
+    "name": "Glare Mine",
+    "slot": "grenade",
+    "desc": "Wall- or floor-stuck mine that blinds and Reveals the first enemy within 4m.",
+    "counterplay": "Mines glint with a faint amber light and emit a soft tick within 6m; shoot them.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "mine",
+      "trigger": 4,
+      "lifetime": 45,
+      "onTrigger": {
+       "radius": 4,
+       "status": {
+        "id": "blind",
+        "duration": 2
+       },
+       "reveal": 3
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A5",
+      "timbre": "tick_soft"
+     },
+     "radius": 10
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "spectral_blades",
+    "name": "Spectral Blades",
+    "slot": "super",
+    "desc": "8s: your melee becomes thrown radiant daggers (3 charges, refill on kill) while cloaked between throws.",
+    "counterplay": "Each throw breaks cloak for 0.5s and the daggers whistle; aim at the source.",
+    "cast": {
+     "time": 0.4
+    },
+    "duration": 8,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "spectral",
+      "meleeOverride": "spectral_dagger",
+      "status": {
+       "id": "cloak",
+       "duration": 8
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E5",
+      "timbre": "glass_choir"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_spectral"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "artificer": {
+   "ability1": {
+    "id": "sentry",
+    "name": "Sentry Turret",
+    "slot": "ability1",
+    "desc": "Deploy a turret (350 HP, 14 dps, 30m range) that tracks the nearest enemy.",
+    "counterplay": "Turrets turn slowly (90 degrees per second) and the laser sight shows their aim; strafe and shoot the core.",
+    "cooldown": 35,
+    "cast": {
+     "time": 0.7,
+     "root": true
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 30,
+     "fill": "outline_faint"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "turret",
+      "hp": 350,
+      "dps": 14,
+      "range": 30,
+      "lifetime": 60,
+      "turnRate": 90
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D4",
+      "timbre": "servo_whirr"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "+150 HP",
+      "ops": [
+       {
+        "stat": "effects.0.hp",
+        "op": "add",
+        "value": 150
+       }
+      ]
+     },
+     {
+      "desc": "Applies 10 Scorch per hit",
+      "ops": [
+       {
+        "stat": "effects.0.status",
+        "op": "set",
+        "value": {
+         "id": "scorch",
+         "stacks": 10
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: second turret",
+      "ops": [
+       {
+        "stat": "charges",
+        "op": "add",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "repair_tether",
+    "name": "Repair Tether",
+    "slot": "ability2",
+    "desc": "Channel a beam that heals an ally or deployable at 40 HP/s for 4s.",
+    "counterplay": "Both ends of the beam are visible; kill the Artificer first.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.1
+    },
+    "duration": 4,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 12,
+      "lifetime": 4,
+      "tick": 0.25,
+      "allyHeal": 10,
+      "targets": "aimedAlly"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G4",
+      "timbre": "tool_buzz"
+     },
+     "radius": 25
+    },
+    "upgrades": [],
+    "cancelable": true
+   },
+   "grenade": {
+    "id": "arc_snare",
+    "name": "Arc Snare",
+    "slot": "grenade",
+    "desc": "Sticky charge that Roots enemies within 3m for 1.5s after 0.5s.",
+    "counterplay": "Blue sparks flash 0.5s before it fires; dodge-roll out.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.25
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 20,
+      "drop": 1,
+      "sticky": true,
+      "fuse": 0.5,
+      "radius": 3,
+      "damage": 20,
+      "element": "ion",
+      "onHit": {
+       "status": {
+        "id": "root"
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B4",
+      "timbre": "zap"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "siege_frame",
+    "name": "Siege Frame",
+    "slot": "super",
+    "desc": "Pilot a deployed exo-frame for 15s: 1500 HP, cannon and stomp.",
+    "counterplay": "Its ion core on the back takes 3x damage; it can't turn quickly.",
+    "cast": {
+     "time": 1.2
+    },
+    "duration": 15,
+    "telegraph": {
+     "shape": "drop_marker",
+     "radius": 3
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "siege_frame",
+      "hp": 1500
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D2",
+      "timbre": "heavy_mech"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_mech"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "lumen": {
+   "ability1": {
+    "id": "mending_light",
+    "name": "Mending Light",
+    "slot": "ability1",
+    "desc": "Lob a light orb that heals allies in 4m for 80.",
+    "counterplay": "Orbs travel slowly; burst the target before it lands.",
+    "cooldown": 10,
+    "charges": 2,
+    "cast": {
+     "time": 0.2
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "area",
+      "center": "aim",
+      "range": 25,
+      "radius": 4,
+      "target": "allies",
+      "heal": 80
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E5",
+      "timbre": "harp_rise"
+     },
+     "radius": 20
+    },
+    "upgrades": [
+     {
+      "desc": "+30 heal",
+      "ops": [
+       {
+        "stat": "effects.0.heal",
+        "op": "add",
+        "value": 30
+       }
+      ]
+     },
+     {
+      "desc": "Cleanses allies",
+      "ops": [
+       {
+        "stat": "effects.0.cleanse",
+        "op": "set",
+        "value": true
+       }
+      ]
+     },
+     {
+      "desc": "T3: also applies Radiant",
+      "ops": [
+       {
+        "stat": "effects.0.status",
+        "op": "set",
+        "value": {
+         "id": "radiant",
+         "duration": 4
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "rally_beacon",
+    "name": "Rally Beacon",
+    "slot": "ability2",
+    "desc": "Plant a beacon: allies within 7m get Haste and +25% reload speed for 8s.",
+    "counterplay": "The beacon is 150 HP; shoot it.",
+    "cooldown": 28,
+    "cast": {
+     "time": 0.4
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "beacon",
+      "hp": 150,
+      "lifetime": 8,
+      "aura": {
+       "radius": 7,
+       "status": "haste",
+       "reloadMul": 1.25
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A4",
+      "timbre": "bell_peal"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "halo_grenade",
+    "name": "Halo Grenade",
+    "slot": "grenade",
+    "desc": "Burst heals allies 60 and creates a 3s healing field.",
+    "counterplay": "Interrupt with explosives; the field is weak to suppression.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 16,
+      "drop": 1,
+      "fuse": 0.8,
+      "radius": 4,
+      "damage": 0,
+      "element": "radiant",
+      "onHit": {
+       "zone": {
+        "radius": 4,
+        "lifetime": 3,
+        "tick": 0.5,
+        "allyHeal": 12
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C6",
+      "timbre": "harp_gliss"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "sunwell",
+    "name": "Sunwell",
+    "slot": "super",
+    "desc": "Create a 6m well for 10s: 40 HP/s heal, auto-revive downed allies and Radiant buff.",
+    "counterplay": "Push the well with Gravitic suppression (Psion, Monolith) or drop explosives inside it.",
+    "cast": {
+     "time": 0.8,
+     "root": true
+    },
+    "duration": 0.1,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 6,
+     "fill": "glow"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "radius": 6,
+      "lifetime": 10,
+      "tick": 0.25,
+      "allyHeal": 10,
+      "allyStatus": {
+       "id": "radiant",
+       "duration": 1
+      },
+      "revive": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E3",
+      "timbre": "choir_major"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_well"
+    },
+    "upgrades": []
+   }
+  },
+  "seraph": {
+   "ability1": {
+    "id": "glide",
+    "name": "Wing Glide",
+    "slot": "ability1",
+    "desc": "Launch upward 4m and glide for 4s with Haste.",
+    "counterplay": "Gliders are slow vertically; hitscan punishes the predictable arc.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.1
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 2,
+      "duration": 0.2,
+      "lift": 9
+     },
+     {
+      "type": "self",
+      "status": {
+       "id": "haste",
+       "duration": 4
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G5",
+      "timbre": "wing_flap"
+     },
+     "radius": 35
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "spotter_drone",
+    "name": "Spotter Drone",
+    "slot": "ability2",
+    "desc": "Drone pulses 3 times over 6s, Revealing enemies within 18m to your team.",
+    "counterplay": "You hear a ping when revealed; the drone (60 HP) hovers 6m up.",
+    "cooldown": 26,
+    "cast": {
+     "time": 0.3
+    },
+    "duration": 6,
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "reveal",
+      "radius": 18,
+      "duration": 2,
+      "at": 0
+     },
+     {
+      "type": "reveal",
+      "radius": 18,
+      "duration": 2,
+      "at": 2
+     },
+     {
+      "type": "reveal",
+      "radius": 18,
+      "duration": 2,
+      "at": 4
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D6",
+      "timbre": "sonar_ping"
+     },
+     "radius": 30
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "tripwire_lance",
+    "name": "Tripwire Lance",
+    "slot": "grenade",
+    "desc": "Laser tripwire (10m) that Slows (2 stacks) and Reveals whoever crosses it.",
+    "counterplay": "The beam is visible faintly at all times; crouch-slide under it.",
+    "cooldown": 24,
+    "cast": {
+     "time": 0.6
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "tripwire",
+      "length": 10,
+      "lifetime": 40,
+      "onTrigger": {
+       "status": {
+        "id": "slow",
+        "stacks": 2
+       },
+       "reveal": 4
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A6",
+      "timbre": "laser_tone"
+     },
+     "radius": 12
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "judgment",
+    "name": "Judgment",
+    "slot": "super",
+    "desc": "Channel a sun-lance sniper for 8s: 3 shots of 300 damage that pierce walls.",
+    "counterplay": "A red sight-line is visible to targets and a rising tone plays when they are aimed at for over 0.5s; break the line.",
+    "cast": {
+     "time": 0.8
+    },
+    "duration": 8,
+    "telegraph": {
+     "shape": "sightline",
+     "visibleTo": "targeted"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "judgment",
+      "weapon": "super_judgment",
+      "shots": 3
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B2",
+      "timbre": "sub_choir"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_sniper_super"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "dawnblade": {
+   "ability1": {
+    "id": "solar_charge",
+    "name": "Solar Charge",
+    "slot": "ability1",
+    "desc": "8m gap-closer that ends in a slam: 60 damage, 40 Scorch, parryable.",
+    "counterplay": "The windup flare and roar give 0.25s; perfect-parry the slam to stagger the Dawnblade.",
+    "cooldown": 14,
+    "cast": {
+     "time": 0.25
+    },
+    "duration": 0.35,
+    "telegraph": {
+     "shape": "line",
+     "length": 8,
+     "width": 1.2
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 8,
+      "duration": 0.3
+     },
+     {
+      "type": "area",
+      "radius": 2.5,
+      "damage": 60,
+      "element": "radiant",
+      "status": {
+       "id": "scorch",
+       "stacks": 40
+      },
+      "at": 0.3,
+      "parryable": true
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E3",
+      "timbre": "flame_roar"
+     },
+     "radius": 45
+    },
+    "upgrades": [
+     {
+      "desc": "-3s cooldown",
+      "ops": [
+       {
+        "stat": "cooldown",
+        "op": "add",
+        "value": -3
+       }
+      ]
+     },
+     {
+      "desc": "Slam Blinds for 1s",
+      "ops": [
+       {
+        "stat": "effects.1.status",
+        "op": "set",
+        "value": {
+         "id": "blind",
+         "duration": 1
+        }
+       }
+      ]
+     },
+     {
+      "desc": "T3: recast within 2s to charge again",
+      "ops": [
+       {
+        "stat": "recast",
+        "op": "set",
+        "value": {
+         "window": 2,
+         "effects": [
+          {
+           "type": "dash",
+           "distance": 6,
+           "duration": 0.25
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "ability2": {
+    "id": "radiant_guard",
+    "name": "Radiant Guard",
+    "slot": "ability2",
+    "desc": "4s: parry window +60ms, deflected bolts Scorch the shooter, and sword heat is vented.",
+    "counterplay": "The gold ring around the sword is visible; use guard break, grabs or explosives.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.1
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "status": {
+       "id": "fortify",
+       "duration": 4
+      },
+      "meleeHeat": 0
+     },
+     {
+      "type": "self",
+      "meleeBuff": {
+       "parryWindowAdd": 0.06,
+       "deflectScorch": 30
+      },
+      "duration": 4
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "B4",
+      "timbre": "forge_ring"
+     },
+     "radius": 25
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "ember_brand",
+    "name": "Ember Brand",
+    "slot": "grenade",
+    "desc": "Sticky ember that Ignites after 1.2s; if you hit the target with the sword first, it Ignites instantly.",
+    "counterplay": "Stuck players hear a rising sizzle; Mender and Lumen can cleanse it, or dodge into an ally's field.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.25
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 24,
+      "drop": 0.6,
+      "sticky": true,
+      "fuse": 1.2,
+      "radius": 3,
+      "damage": 40,
+      "element": "radiant",
+      "onHit": {
+       "status": {
+        "id": "scorch",
+        "stacks": 100
+       }
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G4",
+      "timbre": "sizzle"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "daybreak",
+    "name": "Daybreak",
+    "slot": "super",
+    "desc": "12s: flame wings and a radiant greatsword. Heavy attacks launch flame waves (90 damage); glide on jump.",
+    "counterplay": "Waves are slow and parryable; parry one to reflect it. The flight path is loud; track it with explosives.",
+    "cast": {
+     "time": 0.7
+    },
+    "duration": 12,
+    "telegraph": {
+     "shape": "self_aura",
+     "color": "faction"
+    },
+    "effects": [
+     {
+      "type": "transform",
+      "form": "daybreak",
+      "meleeOverride": "daybreak_greatsword",
+      "status": {
+       "id": "radiant",
+       "duration": 12
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E2",
+      "timbre": "choir_fire"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_daybreak"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "skyrider": {
+   "ability1": {
+    "id": "jet_burst",
+    "name": "Jet Burst",
+    "slot": "ability1",
+    "desc": "Vertical jet boost (9m/s up) plus a short forward dash.",
+    "counterplay": "Airborne riders can't dodge; hitscan punishes it.",
+    "cooldown": 10,
+    "charges": 2,
+    "cast": {
+     "time": 0.05
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "dash",
+      "distance": 4,
+      "duration": 0.2,
+      "lift": 9
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A3",
+      "timbre": "jet_whoosh"
+     },
+     "radius": 40
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "call_hoverbike",
+    "name": "Call Hoverbike",
+    "slot": "ability2",
+    "desc": "Drop a hoverbike at the aim point after 2s.",
+    "counterplay": "The drop marker is visible to everyone; stand on it to deny the drop.",
+    "cooldown": 60,
+    "cast": {
+     "time": 0.5
+    },
+    "telegraph": {
+     "shape": "drop_marker",
+     "radius": 2
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "vehicle",
+      "vehicle": "solari_hoverbike",
+      "delay": 2,
+      "range": 15
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C4",
+      "timbre": "engine_rise"
+     },
+     "radius": 60
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "chaff_pod",
+    "name": "Chaff Pod",
+    "slot": "grenade",
+    "desc": "8m cloud: blocks Reveal, scrambles enemy minimaps and Silences vehicles inside.",
+    "counterplay": "Fight inside it with shotguns or melee; it lasts 6s.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 25,
+      "radius": 8,
+      "lifetime": 6,
+      "enemyStatus": {
+       "id": "silence",
+       "duration": 0.6
+      },
+      "blocksReveal": true,
+      "tick": 0.5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F4",
+      "timbre": "static_hiss"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "strafing_run",
+    "name": "Strafing Run",
+    "slot": "super",
+    "desc": "Call a gunship to strafe a 30m line after 2.5s (400 damage along the line).",
+    "counterplay": "The line is painted on the ground for 2.5s with a jet scream; move perpendicular.",
+    "cast": {
+     "time": 0.6
+    },
+    "telegraph": {
+     "shape": "line",
+     "length": 30,
+     "width": 4,
+     "at": "aim",
+     "lead": 2.5
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 60,
+      "shape": "line",
+      "length": 30,
+      "width": 4,
+      "delay": 2.5,
+      "lifetime": 1,
+      "damage": 400
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D3",
+      "timbre": "jet_scream"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_airstrike"
+    },
+    "upgrades": []
+   }
+  },
+  "prism_adept": {
+   "ability1": {
+    "id": "prism_split",
+    "name": "Prism Split",
+    "slot": "ability1",
+    "desc": "6s: energy weapons split into 3 beams, and heat vents 30% faster.",
+    "counterplay": "Split beams deal less per beam; close distance or use cover so only one beam connects.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.2
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "self",
+      "weaponBuff": {
+       "split": 3,
+       "damageMul": 0.5,
+       "ventMul": 1.3
+      },
+      "duration": 6
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C#5",
+      "timbre": "crystal_chord"
+     },
+     "radius": 30
+    },
+    "upgrades": []
+   },
+   "ability2": {
+    "id": "dazzle_prism",
+    "name": "Dazzle Prism",
+    "slot": "ability2",
+    "desc": "Thrown prism that Silences enemies within 4m for 2s after 0.5s.",
+    "counterplay": "The prism rings for 0.5s before it bursts; it has 1 HP, so shoot it out of the air.",
+    "cooldown": 26,
+    "cast": {
+     "time": 0.25
+    },
+    "duration": 0.5,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 4,
+     "at": "aim"
+    },
+    "effects": [
+     {
+      "type": "area",
+      "center": "aim",
+      "range": 20,
+      "radius": 4,
+      "at": 0.5,
+      "status": {
+       "id": "silence",
+       "duration": 2
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "G#5",
+      "timbre": "crystal_ring"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "refractor_orb",
+    "name": "Refractor Orb",
+    "slot": "grenade",
+    "desc": "Slow field (1 stack/s) that refracts enemy bolts that pass through.",
+    "counterplay": "Stacks decay quickly; leave the field within 2s to avoid the stun at 3 stacks.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 20,
+      "radius": 4.5,
+      "lifetime": 5,
+      "tick": 1,
+      "enemyStatus": {
+       "id": "slow",
+       "stacks": 1
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E5",
+      "timbre": "glass_drone"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "spectrum_cascade",
+    "name": "Spectrum Cascade",
+    "slot": "super",
+    "desc": "Channel 6s: 6 prism beams sweep a 12m circle and apply 60 Scorch per hit.",
+    "counterplay": "The beams rotate visibly and clockwise; stand in the gaps or interrupt the channel with a stun.",
+    "cast": {
+     "time": 0.6,
+     "root": true
+    },
+    "duration": 6,
+    "telegraph": {
+     "shape": "circle",
+     "radius": 12,
+     "fill": "rotating_spokes"
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "attach": "self",
+      "radius": 12,
+      "lifetime": 6,
+      "tick": 0.3,
+      "damage": 18,
+      "enemyStatus": {
+       "id": "scorch",
+       "stacks": 20
+      },
+      "pattern": "rotating_beams"
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "C3",
+      "timbre": "crystal_choir"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_prism"
+    },
+    "upgrades": [],
+    "cancelable": true
+   }
+  },
+  "breacher": {
+   "ability1": {
+    "id": "breach_charge",
+    "name": "Breach Charge",
+    "slot": "ability1",
+    "desc": "Sticky charge; recast to detonate (150 damage, destroys cover).",
+    "counterplay": "The charge blinks red every 0.5s; shoot it to detonate it early.",
+    "cooldown": 18,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "deployable",
+      "kind": "charge",
+      "range": 5,
+      "lifetime": 20
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "F3",
+      "timbre": "beep_arm"
+     },
+     "radius": 45
+    },
+    "upgrades": [],
+    "recast": {
+     "window": 20,
+     "effects": [
+      {
+       "type": "area",
+       "center": "charge",
+       "radius": 4,
+       "damage": 150,
+       "element": "explosive",
+       "destroysCover": true
+      }
+     ]
+    }
+   },
+   "ability2": {
+    "id": "concussion_slam",
+    "name": "Concussion Slam",
+    "slot": "ability2",
+    "desc": "Ground slam: 5m knock-up, 2 stacks of Slow.",
+    "counterplay": "A 0.35s crouch windup with a rumble; jump to avoid the knock-up.",
+    "cooldown": 20,
+    "cast": {
+     "time": 0.35,
+     "groundedOnly": true
+    },
+    "telegraph": {
+     "shape": "circle",
+     "radius": 5
+    },
+    "effects": [
+     {
+      "type": "area",
+      "radius": 5,
+      "damage": 40,
+      "knockback": 5,
+      "knockup": 6,
+      "status": {
+       "id": "slow",
+       "stacks": 2
+      }
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "A1",
+      "timbre": "sub_boom"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "grenade": {
+    "id": "cluster_charge",
+    "name": "Cluster Charge",
+    "slot": "grenade",
+    "desc": "Splits into 5 bomblets on impact (40 damage each).",
+    "counterplay": "Bomblets scatter predictably forward; backpedal.",
+    "cooldown": 22,
+    "cast": {
+     "time": 0.3
+    },
+    "telegraph": {
+     "shape": "none"
+    },
+    "effects": [
+     {
+      "type": "projectile",
+      "speed": 20,
+      "drop": 1,
+      "radius": 2.5,
+      "damage": 40,
+      "element": "explosive",
+      "cluster": 5
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "D4",
+      "timbre": "tick_fast"
+     },
+     "radius": 45
+    },
+    "upgrades": []
+   },
+   "super": {
+    "id": "orbital_lance",
+    "name": "Orbital Lance",
+    "slot": "super",
+    "desc": "Mark a point; after 3s an orbital beam deals 600 damage in 6m and lingers for 3s.",
+    "counterplay": "A pillar of light marks the spot for 3s with a building whine; get out.",
+    "cast": {
+     "time": 0.8
+    },
+    "telegraph": {
+     "shape": "pillar",
+     "radius": 6,
+     "at": "aim",
+     "lead": 3
+    },
+    "effects": [
+     {
+      "type": "zone",
+      "center": "aim",
+      "range": 80,
+      "radius": 6,
+      "delay": 3,
+      "lifetime": 3,
+      "tick": 0.5,
+      "damage": 100,
+      "burst": 600
+     }
+    ],
+    "audio": {
+     "sig": {
+      "root": "E1",
+      "timbre": "orbital_whine"
+     },
+     "radius": 120,
+     "voEnemy": "enemy_orbital"
+    },
+    "upgrades": []
+   }
+  }
+ }
+}

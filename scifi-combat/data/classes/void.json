@@ -1,0 +1,294 @@
+{
+ "faction": {
+  "id": "void",
+  "name": "Void Collective",
+  "palette": [
+   "#2a1a3e",
+   "#8b5cf6",
+   "#0b0b10"
+  ],
+  "shape": "diamond",
+  "trait": "Leech armor: refills on dealing damage instead of regenerating"
+ },
+ "classes": [
+  {
+   "id": "reaver",
+   "role": "assault",
+   "health": 100,
+   "leechArmor": 40,
+   "armor": "flesh",
+   "movement": {
+    "speedMul": 1.03
+   },
+   "loadout": {
+    "primary": [
+     "void_ar_gnaw",
+     "void_pr_umbra"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": "void_combat_hook"
+   },
+   "passive": {
+    "id": "hunger",
+    "desc": "Hits on Weakened enemies refill 5 leech armor"
+   },
+   "kit": "abilities/void.json#reaver",
+   "silhouette": "spined back, hunched rifle",
+   "voice": "feral, laughing",
+   "ai": "aggressive"
+  },
+  {
+   "id": "monolith",
+   "role": "juggernaut",
+   "health": 220,
+   "leechArmor": 80,
+   "armor": "plate",
+   "movement": {
+    "speedMul": 0.8,
+    "accelMul": 0.78,
+    "staminaMul": 1.4,
+    "canWallRun": false,
+    "dodgeStyle": "shoulderBash"
+   },
+   "loadout": {
+    "primary": [
+     "void_lmg_obelisk",
+     "void_sg_maw"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": "void_rift_cleaver"
+   },
+   "passive": {
+    "id": "mass",
+    "desc": "Cannot be knocked back; Slow stacks decay 2x faster"
+   },
+   "kit": "abilities/void.json#monolith",
+   "silhouette": "towering slab-armor, single violet eye",
+   "voice": "slow, resonant",
+   "ai": "anchor"
+  },
+  {
+   "id": "wraith",
+   "role": "infiltrator",
+   "health": 85,
+   "leechArmor": 20,
+   "armor": "flesh",
+   "movement": {
+    "speedMul": 1.14,
+    "accelMul": 1.2,
+    "staminaMul": 0.85,
+    "wallRunsPerAir": 2
+   },
+   "loadout": {
+    "primary": [
+     "void_smg_leech"
+    ],
+    "secondary": [
+     "void_pistol_silent"
+    ],
+    "melee": "void_twin_embers"
+   },
+   "passive": {
+    "id": "from_nowhere",
+    "desc": "Silent sprint; backstabs Suppress for 1s"
+   },
+   "kit": "abilities/void.json#wraith",
+   "silhouette": "tattered cloak, no head silhouette",
+   "voice": "whispering",
+   "ai": "flanker"
+  },
+  {
+   "id": "rigger",
+   "role": "engineer",
+   "health": 110,
+   "leechArmor": 40,
+   "armor": "plate",
+   "movement": {},
+   "loadout": {
+    "primary": [
+     "void_sg_maw",
+     "void_pr_umbra"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": "void_combat_hook"
+   },
+   "passive": {
+    "id": "scavenger",
+    "desc": "Destroyed enemy deployables refund 30% cooldown"
+   },
+   "kit": "abilities/void.json#rigger",
+   "silhouette": "multi-armed backpack rig",
+   "voice": "manic, technical",
+   "ai": "support"
+  },
+  {
+   "id": "mender",
+   "role": "medic",
+   "health": 100,
+   "leechArmor": 40,
+   "armor": "flesh",
+   "movement": {},
+   "loadout": {
+    "primary": [
+     "void_pr_umbra"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": "void_combat_hook"
+   },
+   "passive": {
+    "id": "leech_link",
+    "desc": "20% of your damage heals the lowest-HP ally within 20m"
+   },
+   "kit": "abilities/void.json#mender",
+   "silhouette": "floating siphon tendrils",
+   "voice": "soothing, unsettling",
+   "ai": "support"
+  },
+  {
+   "id": "hollow_eye",
+   "role": "marksman",
+   "health": 90,
+   "leechArmor": 40,
+   "armor": "flesh",
+   "movement": {
+    "speedMul": 0.95
+   },
+   "loadout": {
+    "primary": [
+     "void_sr_needle"
+    ],
+    "secondary": [
+     "void_smg_leech"
+    ],
+    "melee": "void_combat_hook"
+   },
+   "passive": {
+    "id": "patient_eye",
+    "desc": "Every 1s ADS without firing adds +10% damage (max 30%)"
+   },
+   "kit": "abilities/void.json#hollow_eye",
+   "silhouette": "elongated helm with a single lens",
+   "voice": "cold, clinical",
+   "ai": "cautious"
+  },
+  {
+   "id": "ashsworn",
+   "role": "flameKnight",
+   "health": 140,
+   "leechArmor": 60,
+   "armor": "plate",
+   "movement": {
+    "speedMul": 1.05,
+    "accelMul": 1.1,
+    "staminaMul": 0.9,
+    "dodgeStyle": "ashStep"
+   },
+   "loadout": {
+    "primary": [
+     "void_ashsworn_blade",
+     "void_rift_cleaver",
+     "void_twin_embers"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": null
+   },
+   "passive": {
+    "id": "black_flame",
+    "desc": "Sword hits apply 10 Volatile-build; perfect blocks restore 10 leech armor"
+   },
+   "kit": "abilities/void.json#ashsworn",
+   "silhouette": "horned helm, black-flame blade with violet core",
+   "voice": "grim oaths",
+   "ai": "aggressiveDuelist"
+  },
+  {
+   "id": "driftcaller",
+   "role": "pilot",
+   "health": 100,
+   "leechArmor": 40,
+   "armor": "flesh",
+   "movement": {},
+   "loadout": {
+    "primary": [
+     "void_smg_leech"
+    ],
+    "secondary": [
+     "void_rl_maw"
+    ],
+    "melee": "void_combat_hook"
+   },
+   "passive": {
+    "id": "drift",
+    "desc": "Vehicles enter 50% faster; ejecting grants Phase"
+   },
+   "kit": "abilities/void.json#driftcaller",
+   "silhouette": "thruster fins on back",
+   "voice": "cocky",
+   "ai": "vehicle"
+  },
+  {
+   "id": "psion",
+   "role": "tech",
+   "health": 90,
+   "leechArmor": 60,
+   "armor": "flesh",
+   "movement": {
+    "speedMul": 0.98
+   },
+   "loadout": {
+    "primary": [
+     "void_beam_tether"
+    ],
+    "secondary": [
+     "void_pistol_hex"
+    ],
+    "melee": "ion_halberd"
+   },
+   "passive": {
+    "id": "mindread",
+    "desc": "See enemy ability cooldowns when aiming at them for 0.5s"
+   },
+   "kit": "abilities/void.json#psion",
+   "silhouette": "levitating, crown of shards",
+   "voice": "multi-voiced",
+   "ai": "balanced"
+  },
+  {
+   "id": "riftbreaker",
+   "role": "demolitionist",
+   "health": 120,
+   "leechArmor": 40,
+   "armor": "plate",
+   "movement": {
+    "speedMul": 0.92
+   },
+   "loadout": {
+    "primary": [
+     "void_gl_rift"
+    ],
+    "secondary": [
+     "void_sg_maw"
+    ],
+    "melee": "power_fist"
+   },
+   "passive": {
+    "id": "rift_proof",
+    "desc": "-50% self explosive damage; pulls don't affect you"
+   },
+   "kit": "abilities/void.json#riftbreaker",
+   "silhouette": "rift-charge canisters on chest",
+   "voice": "gleeful",
+   "ai": "aggressive"
+  }
+ ]
+}

@@ -1,7 +1,8 @@
 # Emberfall: sci-fi flame-sword combat starter (Three.js)
 
+- **Abilities, firing and sound clarity:** [`docs/ABILITIES.md`](docs/ABILITIES.md) has all 80 abilities for both factions, with counterplay.
 - **Design and plan:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) covers the architecture diagram, folder layout, module contracts, movement and melee deep dives, weapon and class data model, AI, netcode, performance and roadmap.
-- **Graybox demo:** serve this folder statically (`npx serve .`) and open `index.html`. It sets up a duel against a Flame Knight bot with vault and climb boxes and a wall-run wall.
+- **Graybox demo:** serve this folder statically (`npx serve .`) and open `index.html`. It sets up a duel as the Solari Dawnblade (sword, two guns and a full ability kit) against a Void Ashsworn bot with vault and climb boxes and a wall-run wall.
 
 | Path | What |
 |---|---|
@@ -12,4 +13,8 @@
 | `src/input/InputManager.js` | Keyboard/mouse plus gamepad mapped into one per-tick command, with response curves and rumble |
 | `src/net/Prediction.js` | Client prediction and reconciliation with visual error smoothing, and snapshot interpolation |
 | `src/combat/weapons/WeaponDefs.js` | Archetype → weapon → attachment stat composition, and damage-matrix math |
+| `src/combat/weapons/WeaponSystem.js` | Firing: auto/semi/burst/pump/bolt/charge/spool/beam, magazine/heat/battery ammo, active vent, learnable recoil patterns, deterministic spread, pooled swept projectiles, sticky/fuse grenades, sword deflects |
+| `src/combat/AbilitySystem.js` | Class kits (ability1/ability2/grenade/super): cast tells, charges, cooldown trading, interrupts with refund, super energy, Flux upgrades, data-driven effect primitives |
+| `src/combat/StatusSystem.js`, `Health.js` | Scorch→Ignite, Weaken, Suppress, Volatile, Slow→Stun and more; shield, leech armor and overshield layers |
+| `src/audio/AudioDirector.js` | Clarity-first audio: friend/foe cue variants, faction sound families, threat priority and ducking, super warnings, WebAudio synth fallback |
 | `data/` | All tuning: movement, melee, ballistic and energy weapons, attachments, damage matrix, classes |

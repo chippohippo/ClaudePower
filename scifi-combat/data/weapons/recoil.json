@@ -1,0 +1,14 @@
+{
+  "_comment": "Per-shot kick in degrees. pattern[i] = [pitchUp, yawRight] for shot i (loops the last 'loopFrom' entries). jitter = random ± added per shot (seeded, so server and client agree). recovery = deg/s the aim returns to rest when not firing. visualKick drives the camera/viewmodel only and does not affect aim.",
+  "patterns": {
+    "ar_standard":   { "pattern": [[0.55,0],[0.6,0.05],[0.6,0.1],[0.55,0.15],[0.5,0.1],[0.45,-0.1],[0.45,-0.2],[0.4,-0.15],[0.4,0.1],[0.4,0.2]], "loopFrom": 6, "jitter": [0.08, 0.12], "recovery": 9,  "firstShotMul": 0.6, "visualKick": 0.6 },
+    "br_burst_climb":{ "pattern": [[0.4,0],[0.7,0.05],[0.9,-0.05]], "loopFrom": 0, "jitter": [0.05, 0.08], "recovery": 12, "firstShotMul": 1, "visualKick": 0.8 },
+    "smg_jitter":    { "pattern": [[0.3,0],[0.3,0.2],[0.3,-0.25],[0.25,0.3],[0.25,-0.3]], "loopFrom": 1, "jitter": [0.06, 0.25], "recovery": 14, "firstShotMul": 0.8, "visualKick": 0.4 },
+    "shotgun_kick":  { "pattern": [[3.2,0.3]], "loopFrom": 0, "jitter": [0.4, 0.6], "recovery": 10, "firstShotMul": 1, "visualKick": 2.5 },
+    "sniper_heavy":  { "pattern": [[4.5,0.2]], "loopFrom": 0, "jitter": [0.3, 0.5], "recovery": 7,  "firstShotMul": 1, "visualKick": 3.0 },
+    "pulse_soft":    { "pattern": [[0.35,0],[0.35,0.05],[0.3,-0.05]], "loopFrom": 0, "jitter": [0.05, 0.1], "recovery": 11, "firstShotMul": 1, "heatMul": 1.6, "visualKick": 0.35 },
+    "beam_wander":   { "pattern": [[0.02,0.01]], "loopFrom": 0, "jitter": [0.03, 0.05], "recovery": 6, "firstShotMul": 1, "visualKick": 0.05 },
+    "pistol_snap":   { "pattern": [[1.1,0.05]], "loopFrom": 0, "jitter": [0.15, 0.2], "recovery": 15, "firstShotMul": 1, "visualKick": 1.0 },
+    "lmg_heavy":     { "pattern": [[0.7,0.1],[0.65,0.2],[0.55,0.25],[0.45,0.15],[0.35,-0.1],[0.3,-0.2]], "loopFrom": 4, "jitter": [0.1, 0.18], "recovery": 6, "firstShotMul": 1.2, "spoolDamp": 0.5, "visualKick": 0.9 }
+  }
+}

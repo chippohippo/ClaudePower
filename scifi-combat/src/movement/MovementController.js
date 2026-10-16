@@ -62,6 +62,7 @@ export class MovementController {
       // Locks set by other systems (e.g. melee recovery stops sprint; heavy attack roots you).
       locks: { sprint: 0, move: 0, jump: 0 },
       speedScale: 1,             // e.g. guarding = 0.55, ADS = 0.6
+      forced: null,              // { x, z, time } set by abilities (dash, charge)
     };
   }
 
@@ -99,7 +100,13 @@ export class MovementController {
 
     this.#updateStamina(dt);
 
-    switch (s.mode) {
+    // Forced motion (ability dashes, knock-backs that must not be fought by input accel).
+    if (s.forced && s.forced.time > 0) {
+      s.forced.time -= dt;
+      s.velocity.x = s.forced.x; s.velocity.z = s.forced.z;
+      if (!s.grounded) s.velocity.y -= this.t.gravity * dt;
+      if (s.forced.time <= 0) { s.forced = null; s.velocity.multiplyScalar(0.35); } // keep a little carry
+    } else switch (s.mode) {
       case MoveState.GROUND:  this.#ground(cmd, dt, wishMag); break;
       case MoveState.AIR:     this.#air(cmd, dt, wishMag); break;
       case MoveState.SLIDE:   this.#slide(cmd, dt); break;
