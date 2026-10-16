@@ -296,6 +296,8 @@ export class WeaponComponent {
     const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul;
     const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone }, this.owner);
     e.weapons?.interrupt?.('flinch');
+    // Buffs like Devour or Well of Night make rounds apply a status.
+    if (this.buffs.onHitStatus) e.status?.apply(this.buffs.onHitStatus, { source: this.owner });
     bus.emit('weapon:hit', {
       attacker: this.owner.id, victim: e.id, damage: dmg, zone: hit.zone, armor,
       shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point,
@@ -467,7 +469,7 @@ export class ProjectileSystem {
   spawn(spec) {
     const p = this.pool.find((x) => !x.alive);
     if (!p) return null;
-    Object.assign(p, { alive: true, spec, age: 0, traveled: 0, ownerId: spec.ownerId, team: spec.team });
+    Object.assign(p, { alive: true, spec, age: 0, traveled: 0, ownerId: spec.ownerId, team: spec.team, stuckTo: null, isChild: false });
     p.pos.copy(spec.origin);
     p.vel.copy(spec.dir).multiplyScalar(spec.speed);
     bus.emit('projectile:spawn', { ref: p, style: spec.weapon.vfx?.tracer });
@@ -492,13 +494,28 @@ export class ProjectileSystem {
       this._seg.subVectors(p.pos, p.prev);
       const len = this._seg.length();
       p.traveled += len;
-      const hit = this.world.raycast(p.prev, this._seg.divideScalar(len || 1), len, p.ownerId);
+      const hit = this.world.raycast(p.prev, this._seg.divideScalar(len || 1), len, p.ownerId, { team: p.team, projectile: true });
       if (hit) this.#impact(p, hit);
       else if (p.age > 6 || p.traveled > (p.spec.weapon.range ?? 400)) {
         if (p.spec.fuse != null) this.#impact(p, { point: p.pos.clone(), entity: p.stuckTo !== 'world' ? p.stuckTo : null, distance: p.traveled });
         else p.alive = false;
       }
     }
+  }
+
+  /** Cluster munitions: split into N bomblets that scatter forward and detonate on short fuses. */
+  #cluster(p, at) {
+    const r = rng(p.ownerId, Math.floor(p.age * 1000) + p.spec.cluster);
+    const wasAlive = p.alive;
+    p.alive = true; // reserve the parent's pool slot so a bomblet can't overwrite it mid-impact
+    for (let i = 0; i < p.spec.cluster; i++) {
+      const a = r() * Math.PI * 2;
+      const dir = new Vector3(Math.cos(a) * 0.6, 0.8, Math.sin(a) * 0.6).normalize();
+      const child = this.spawn({ ...p.spec, origin: at.clone().setY(at.y + 0.3), dir, speed: 4 + r() * 3, drop: 1, fuse: 0.5 + r() * 0.3, cluster: 0, sticky: false });
+      if (child) child.isChild = true;
+    }
+    p.alive = wasAlive;
+    bus.emit('projectile:cluster', { point: at.toArray(), count: p.spec.cluster });
   }
 
   #impact(p, hit) {
@@ -516,6 +533,8 @@ export class ProjectileSystem {
     const s = p.spec.weapon;
     // Ability projectiles: on-hit statuses go to the direct hit, or to everyone in the splash.
     const onHit = p.spec.onHit;
+    if (onHit?.zone) this.world.spawnZone?.({ ...onHit.zone, center: hit.point.clone(), ownerId: p.ownerId, team: p.team, ability: s.id });
+    if (p.spec.cluster && !p.isChild) this.#cluster(p, hit.point);
     if (onHit?.status) {
       const victims = p.spec.splash > 0 ? this.world.entitiesInRadius(hit.point, p.spec.splash) : e ? [e] : [];
       for (const v of victims) if (v.team !== p.team) v.status?.apply(onHit.status.id, { stacks: onHit.status.stacks ?? 1, duration: onHit.status.duration, source: this.world.entity?.(p.ownerId) });

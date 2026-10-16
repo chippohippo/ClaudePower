@@ -9,7 +9,9 @@ import { FixedLoop } from './core/FixedLoop.js';
 import { InputManager } from './input/InputManager.js';
 import { MovementController, FlatGroundBody } from './movement/MovementController.js';
 import { MeleeComponent, MeleeSystem } from './combat/melee/MeleeSystem.js';
-import { WeaponComponent, WeaponInstance, ProjectileSystem } from './combat/weapons/WeaponSystem.js';
+import { WeaponComponent, WeaponInstance } from './combat/weapons/WeaponSystem.js';
+import { CombatWorld } from './combat/CombatWorld.js';
+import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
 import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from './combat/AbilitySystem.js';
 import { StatusComponent } from './combat/StatusSystem.js';
@@ -52,63 +54,32 @@ ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
 scene.add(ground);
 scene.add(new THREE.GridHelper(200, 100, '#555', '#444'));
 
-// Obstacles: low (vault), mid (climb), tall wall (wall-run).
+// Obstacles: low (vault), mid (climb), tall wall (wall-run), plus destructible crates for Breach/Rift charges.
 const boxes = [
   { min: new THREE.Vector3(-2, 0, -8), max: new THREE.Vector3(2, 0.9, -7.4) },
   { min: new THREE.Vector3(5, 0, -12), max: new THREE.Vector3(9, 1.9, -9) },
   { min: new THREE.Vector3(-12, 0, -30), max: new THREE.Vector3(-11.4, 5, 0) },
+  { min: new THREE.Vector3(-6, 0, -16), max: new THREE.Vector3(-4, 1.4, -15), destructible: true, surface: 'wood' },
+  { min: new THREE.Vector3(3, 0, -20), max: new THREE.Vector3(5, 1.4, -19), destructible: true, surface: 'wood' },
 ];
 const boxMat = new THREE.MeshStandardMaterial({ color: '#6d7487' });
+const crateMat = new THREE.MeshStandardMaterial({ color: '#8a6a3f' });
 const collidables = [];
+const coverMeshes = new Map();
 for (const b of boxes) {
   const size = new THREE.Vector3().subVectors(b.max, b.min);
-  const m = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), boxMat);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), b.destructible ? crateMat : boxMat);
   m.position.copy(b.min).addScaledVector(size, 0.5);
   m.castShadow = m.receiveShadow = true;
-  scene.add(m); collidables.push(m);
+  scene.add(m); collidables.push(m); coverMeshes.set(b, m);
 }
 
 // ---------------------------------------------------------------- world (sim queries)
-const entities = [];
-const _oc = new THREE.Vector3();
-const world = {
-  damageMatrix: damage.matrix,
-  entity: (id) => entities.find((e) => e.id === id),
-  /** Ray vs. entity capsules (approximated as head + body spheres) and static boxes. */
-  raycast(o, d, max, ignoreId) {
-    let best = null;
-    for (const e of entities) {
-      if (e.id === ignoreId || e.health.dead) continue;
-      for (const [y, r, zone] of [[1.65, 0.22, 'head'], [1.1, 0.42, 'body'], [0.5, 0.35, 'limb']]) {
-        _oc.copy(e.movement.state.position); _oc.y += y; _oc.sub(o);
-        const t = _oc.dot(d);
-        if (t < 0 || t > max) continue;
-        if (_oc.lengthSq() - t * t < r * r && (!best || t < best.distance)) best = { entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone };
-      }
-    }
-    const ray = new THREE.Ray(o, d), box = new THREE.Box3(), pt = new THREE.Vector3();
-    for (const b of boxes) {
-      box.set(b.min, b.max);
-      if (ray.intersectBox(box, pt)) { const t = pt.distanceTo(o); if (t <= max && (!best || t < best.distance)) best = { entity: null, distance: t, point: pt.clone(), normal: new THREE.Vector3(0, 1, 0), surface: 'metal' }; }
-    }
-    if (d.y < 0) { const t = -o.y / d.y; if (t <= max && (!best || t < best.distance)) best = { entity: null, distance: t, point: o.clone().addScaledVector(d, t), normal: new THREE.Vector3(0, 1, 0), surface: 'concrete' }; }
-    return best;
-  },
-  entitiesInRadius: (p, r) => entities.filter((e) => !e.health.dead && e.movement.state.position.distanceTo(p) <= r),
-  entitiesInShape(s, o, d) {
-    const f = d.clone().setY(0).normalize();
-    return entities.filter((e) => {
-      const v = e.movement.state.position.clone().sub(o).setY(0);
-      const t = v.dot(f);
-      if (s.kind === 'cone') return t > 0 && v.length() < s.length && v.normalize().dot(f) > Math.cos((s.angle * Math.PI) / 360);
-      return t > 0 && t < s.length && v.addScaledVector(f, -t).length() < (s.width ?? 2) / 2 + 0.4;
-    });
-  },
-  spawnProjectile: (spec) => projectiles.spawn(spec),
-  spawnZone: (z) => bus.emit('demo:zone', z),
-  spawnDeployable: (d) => bus.emit('demo:deployable', d),
-};
-const projectiles = new ProjectileSystem(world);
+// CombatWorld owns projectiles, zones, deployables and cover. `boxes` is shared by reference with
+// the movement bodies, so destroyed cover stops colliding at the same moment it disappears.
+const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes });
+const entities = world.entities;
+bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); const i = collidables.indexOf(m); if (i >= 0) collidables.splice(i, 1); });
 
 // ---------------------------------------------------------------- entities
 function makeFighter(id, team, color, pos, kit, guns) {
@@ -133,7 +104,7 @@ function makeFighter(id, team, color, pos, kit, guns) {
   mesh.add(capsule, blade, gun);
   scene.add(mesh);
   ent.view = { mesh, capsule, blade, gun, prev: pos.clone() };
-  entities.push(ent);
+  world.add(ent);
   return ent;
 }
 
@@ -146,8 +117,23 @@ const bot = makeFighter(2, 1, '#6b3fa0', new THREE.Vector3(0, 0, -5), voidKits.k
 const melee = new MeleeSystem();
 melee.add(player.melee); melee.add(bot.melee);
 
+// Demo: K cycles the player through all 20 class kits so every ability can be tried.
+const kitOrder = [...Object.entries(solariKits.kits).map(([k, v]) => ['Solari', k, v]), ...Object.entries(voidKits.kits).map(([k, v]) => ['Void', k, v])];
+let kitIndex = kitOrder.findIndex(([, k]) => k === 'dawnblade');
+function nextKit() {
+  kitIndex = (kitIndex + 1) % kitOrder.length;
+  const [faction, id, kit] = kitOrder[kitIndex];
+  player.abilities = new AbilityComponent(player, kit, world);
+  player.abilities.superEnergy = player.abilities.superCost; // demo: super ready so it can be tried immediately
+  const names = Object.values(kit).map((a, i) => `${['Q', 'E', 'G', 'Z'][i]} ${a.name}`).join(' · ');
+  document.getElementById('kit').innerHTML = `<b>${faction} ${id.replace('_', ' ')}</b> (K: next class)<br>${names}`;
+  log(`${faction.toUpperCase()} ${id.replace('_', ' ').toUpperCase()}`, faction === 'Solari' ? '#ffcf6b' : '#c9a0ff');
+}
+const views = new ZoneDeployableViews(scene, world, { localTeam: 0, coverMeshes });
+
 const brain = new MeleeDuelistBrain(bot, { aggression: 0.65, parrySkill: 0.45, reactionTime: 0.28, feintRate: 0.3 });
 brain.target = player;
+brain.world = world; // lets the bot read zone threats and step out of them
 bus.on('melee:windup', (e) => brain.observeWindup(e));
 bus.on('melee:parry', (e) => brain.observeParried(e));
 // Respawn for the demo.
@@ -260,6 +246,7 @@ const loop = new FixedLoop({
     const cmd = input.sample(tick, dt);
     if (cmd.buttons.togglePOV?.pressed) rig.togglePOV();
     if (cmd.buttons.swapShoulder?.pressed) rig.swapShoulder();
+    if (cmd.buttons.debugNextKit?.pressed) nextKit();
     if (cmd.buttons.toggleMelee?.pressed) {
       player.mode = player.mode === 'sword' ? 'gun' : 'sword';
       log(player.mode === 'gun' ? player.weapons.current.s.name : sword.name, '#ddd');
@@ -283,7 +270,7 @@ const loop = new FixedLoop({
     };
     tickEntity(player, pc, pc, meleeCmd, gunCmd);
     tickEntity(bot, botCmd, botCmd, botCmd, null);
-    projectiles.update(dt);
+    world.update(dt);
     melee.resolve();
   },
   render(alpha, now) {
@@ -320,6 +307,7 @@ const loop = new FixedLoop({
     const pitch = player.mode === 'gun' ? w.aimPitch : lastPlayerCmd?.pitch ?? 0;
     const view = { ...ps, position: player.view.mesh.position, yaw: player.mode === 'gun' ? w.aimYaw : ps.yaw };
     rig.update(dt, view, pitch, eye, player.mode === 'gun' ? w.ads > 0.5 : player.melee.guarding);
+    views.update(dt);
     renderer.render(scene, rig.camera);
     audio?.update(dt, rig.camera.position, ps.yaw);
 
@@ -335,4 +323,5 @@ const loop = new FixedLoop({
     document.getElementById('crosshair').style.display = player.mode === 'gun' ? 'block' : 'none';
   },
 });
+kitIndex = (kitIndex - 1 + kitOrder.length) % kitOrder.length; nextKit(); // show the starting kit
 loop.start();

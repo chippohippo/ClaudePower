@@ -20,6 +20,7 @@
     .ab.ready { border-color: #ffcf6b; box-shadow: 0 0 8px #ffcf6b88; }
     #enemyAbilities .ab.ready { border-color: #ff3b5c; box-shadow: 0 0 8px #ff3b5c88; }
     .ab.locked { border-color: #777; filter: grayscale(1); }
+    #kit { position: fixed; left: 16px; bottom: 210px; background: #0009; padding: 6px 10px; border-radius: 6px; font-size: 12px; max-width: 520px; pointer-events: none; }
     .ab span { position: relative; font-weight: 800; font-size: 18px; }
     .ab small { position: absolute; bottom: 1px; font-size: 8px; opacity: .8; white-space: nowrap; }
   </style>
@@ -34,15 +35,17 @@
   <div id="crosshair"></div>
   <div id="abilities" class="bar"></div>
   <div id="enemyAbilities" class="bar"></div>
+  <div id="kit"></div>
   <div id="help">
     <b>Click to lock the mouse and enable audio</b><br>
     WASD move · Shift sprint · Space jump/vault · C crouch (hold = prone, while sprinting = slide)<br>
     Alt/V dodge · <b>1</b> toggle sword / guns · <b>2</b> next gun (Halcyon AR ↔ Aurora pulse rifle)<br>
     <b>Sword:</b> LMB light · F heavy (hold = flame special) · RMB guard (tap on hit = parry)<br>
     <b>Gun:</b> LMB fire · RMB aim · R reload (pulse rifle: press R in the vent window for a perfect vent)<br>
-    <b>Dawnblade kit:</b> Q Solar Charge · E Radiant Guard · G Ember Brand · Z Daybreak (super)<br>
+    <b>Abilities:</b> Q · E · G (grenade) · Z (super) · <b>K</b> cycles all 20 classes (super starts charged)<br>
+    Try: Bastion (wall, dome) · Artificer (turret) · Breacher (charge + recast, orbital on crates) · Monolith (anchor, singularity) · Mender (tether)<br>
     T 1P/3P · B swap shoulder · Gamepad supported<br>
-    Amber dot = parryable · Red = unblockable · Red ground shapes = enemy ability incoming
+    Amber dot = parryable · Red = unblockable · Red shapes = enemy ability or zone · A growing fill inside a ring = time until it hits
   </div>
   <script type="module" src="./src/main.js"></script>
 </body>

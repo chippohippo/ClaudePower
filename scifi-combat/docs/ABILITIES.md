@@ -285,8 +285,52 @@ by dealing damage. Mirrored roles, asymmetric verbs.
 | Healing zones (Sunwell, Well of Night) | Suppress the healer; Collapse or Orbital Lance | Explosives into the zone |
 | Gravity pulls (Singularity, Vortex, Collapse) | Dash or phase i-frames, Monolith's Mass passive | Sprint perpendicular |
 
-## 7. Next steps
-- Zone and deployable simulation (`ZoneSystem`, `DeployableSystem`); the effects are already defined in data.
+## 7. Zones and deployables (`ZoneSystem.js`, `DeployableSystem.js`, `CombatWorld.js`)
+
+**CombatWorld** is the one query and spawn surface. Weapons, abilities, statuses, zones and
+deployables all talk to it and never to each other. It merges fighters, deployables, cover
+(some destructible), ground and projectile-blocking domes into one `raycast`, and offers
+`raycastStatic` (line of sight), `explode`, `damageDeployables`, `destroyCover` and `groundHeight`.
+
+**Zones**: ARMING (optional `delay`) → ACTIVE (ticks every `tick` s) → ENDED.
+
+| Feature | Used by |
+|---|---|
+| Delayed arming, with a fill that grows to the edge exactly when it goes live | Orbital Lance, Strafing Run, Void Rain |
+| Per-tick damage / statuses / heals; one-shot `burst`; no `tick` means it applies once | Sunwell, Gravity Anchor, Thoughtstorm, Strafing Run |
+| `pull`: continuous displacement you can out-run if your run speed is higher | Singularity, Vortex Grenade, Collapse |
+| `core`: an inner radius with an extra status | Singularity (Suppress in 3 m) |
+| `blocksProjectiles` (enemy or all): a sphere shell blocking rays and projectiles crossing it | Citadel |
+| `blocksReveal` / `blocksVision` | Chaff Pod / Shroud |
+| `allyWeaponStatus`: allies' rounds apply a status | Well of Night |
+| `pattern: rotating_beams`: only the spokes hit, so you stand in the gaps | Spectrum Cascade |
+| Tethers (`targets`): lock onto the aimed target; break on range, cover or death | Siphon Tether, Repair Tether |
+| `attach: self`: follows the caster and ends if the caster dies | Thoughtstorm, Nightfall, Singularity |
+| Projectile `onHit.zone` | Vortex Grenade, Halo Grenade |
+| `threatAt(pos, team)`: an escape vector for AI | Bots step out of telegraphed hostile zones |
+
+**Deployables** are lightweight hittable entities with a real `Health`, so guns, explosions and
+abilities damage them through the normal code paths. A per-owner limit replaces your oldest one.
+
+| Kind | Behavior | Leaked information (clarity) |
+|---|---|---|
+| wall | Oriented box that blocks hitscan and projectiles both ways. The base emitter counts as a headshot | Translucent team color; the brighter emitter strip is the weak point |
+| turret | Acquires the nearest visible, uncloaked enemy and turns at `turnRate`. Fires only within 5° of its target. Lifesteal and status options | Laser sight along its real aim; slow turning means strafing beats it |
+| mine | Arms after 0.8 s; trigger radius applies statuses and reveal | Blinking light plus an audible proximity tick for enemies within 6 m |
+| tripwire | Segment along the placement yaw. Crossing it applies Slow and reveal. Prone players pass under | Faint visible beam |
+| charge | Sticks to surfaces or drops to the floor. The **recast** detonates it via `consumeCharge`; shooting it **defuses** it, so the recast fizzles | Blinks red/violet, ticks for enemies within 8 m |
+| beacon | Aura: Haste and a reload buff for allies | Pillar plus radius ring |
+| launchpad | Launches allies (`MovementController.impulse`) | Glowing pad |
+| engine | Pulses on an interval (damage and Weaken) | `deployable:charging` cue and visual 1 s before each pulse |
+| decoy | Runs forward for its lifetime | No footstep audio (its tell) |
+| vehicle | Drop marker; arrives after `delay`. Enemies standing on it deny the drop | Ring plus light beam visible to all |
+
+Tests: `npm test` (from `scifi-combat/`, after `npm install`) runs `tests/*.test.mjs` headless,
+covering every deployable kind and the key zone behaviors.
+
+## 8. Next steps
 - `transform` supers need their temporary weapon and moveset definitions (`super_lance`, `daybreak_greatsword`, ...).
-- Bot ability usage beyond the gap-closer: a utility score per ability from its `counterplay` tags.
-- Server: validate casts (cooldown, silence, range) and replay effects authoritatively. Clients predict only self-movement abilities (dash, blink).
+- Vehicles: `deployable:vehicleArrived` is the hook for the vehicle system.
+- Bot ability usage beyond the gap-closer and zone avoidance: a utility score per ability.
+- Server: validate casts (cooldown, silence, range) and run zones and deployables authoritatively. Clients predict only self-movement abilities (dash, blink).
+- Swap the graybox views for VFX assets. Keep the shape and timing contracts in `ZoneDeployableViews.js`.

@@ -139,6 +139,32 @@ export class AudioDirector {
     on('weapon:beamEnd', (e) => this.stopLoop(`beam:${e.id}`));
     on('projectile:deflect', (e) => this.play('melee.deflect', { tier: Tier.COMBAT, pos: e.point }));
 
+    // Zones and deployables. Arming hostile zones are THREAT: the sound starts with the telegraph.
+    const rel = (team) => (team === this.getEntity(this.listenerId)?.team ? 'ally' : 'enemy');
+    const at = (arr) => arr && { x: arr[0], y: arr[1], z: arr[2] };
+    on('zone:arming', (e) => this.play(`${e.ability}.arming${rel(e.team) === 'enemy' ? '_threat' : ''}`, { tier: rel(e.team) === 'enemy' ? Tier.THREAT : Tier.COMBAT, pos: at(e.center), radius: 80, sig: this.abilityIndex.get(e.ability)?.audio?.sig, gainDb: 2 }));
+    on('zone:start', (e) => {
+      const def = this.abilityIndex.get(e.ability);
+      this.play(`${e.ability}.zone_start`, { tier: e.hostile && rel(e.team) === 'enemy' ? Tier.THREAT : Tier.COMBAT, pos: at(e.center), sig: def?.audio?.sig });
+      if (e.lifetime > 1.5) this.play(`${e.ability}.zone_loop`, { tier: Tier.AMBIENT, pos: at(e.center), sig: def?.audio?.sig, loopKey: `zone:${e.id}`, gainDb: -10 });
+    });
+    on('zone:end', (e) => this.stopLoop(`zone:${e.id}`));
+    on('zone:tetherBreak', (e) => (e.owner === this.listenerId || e.target === this.listenerId) && this.play('ui.tether_break', { tier: Tier.COMBAT }));
+    on('zone:blocked', (e) => this.play('dome.deflect', { tier: Tier.WEAPON, pos: at(e.point), gainDb: -4 }));
+    on('deployable:spawn', (e) => this.play(`deploy.${e.kind}.place${rel(e.team) === 'enemy' ? '_threat' : ''}`, { tier: rel(e.team) === 'enemy' ? Tier.THREAT : Tier.COMBAT, pos: at(e.at), gainDb: -2 }));
+    // Proximity ticks are played only for the enemies who are near. That is the leaked information.
+    on('deployable:proximity', (e) => e.listeners.includes(this.listenerId) && this.play(`deploy.${e.kind}.tick`, { tier: Tier.THREAT, pos: at(e.at), radius: 10, gainDb: -3 }));
+    on('deployable:triggered', (e) => this.play(`deploy.${e.kind}.trigger`, { tier: Tier.THREAT, pos: at(e.point) }));
+    on('deployable:charging', () => this.play('deploy.engine.charge', { tier: Tier.THREAT, gainDb: 0 }));
+    on('deployable:pulse', (e) => this.play('deploy.engine.pulse', { tier: Tier.COMBAT, pos: at(e.center) }));
+    on('deployable:fire', (e) => this.play('deploy.turret.fire', { tier: Tier.WEAPON, pos: at(e.from), gainDb: -6 }));
+    on('deployable:removed', (e) => e.reason === 'destroyed' && this.play('deploy.destroyed', { tier: Tier.COMBAT, gainDb: -2 }));
+    on('deployable:launch', (e) => this.play('deploy.launchpad.launch', { tier: Tier.COMBAT, pos: this.posOf(e.entity) }));
+    on('deployable:vehicleArrived', (e) => this.play('deploy.vehicle.arrive', { tier: Tier.COMBAT, pos: at(e.at) }));
+    on('deployable:vehicleDenied', (e) => e.owner === this.listenerId && this.play('ui.vehicle_denied', { tier: Tier.COMBAT }));
+    on('world:coverDestroyed', (e) => this.play('world.cover_break', { tier: Tier.COMBAT, pos: at(e.center), gainDb: 2 }));
+    on('ability:fizzle', (e) => e.id === this.listenerId && this.play('ui.denied_fizzle', { tier: Tier.COMBAT, gainDb: -4 }));
+
     // Melee: parries are the loudest and most satisfying sound in the game. Don't let anything mask them.
     on('melee:parry', (e) => this.play('melee.parry_burst', { tier: Tier.THREAT, pos: this.posOf(e.defender), gainDb: 2 }));
     on('melee:windup', (e) => this.relation(e.id) === 'enemy' && this.play(e.unblockable ? 'melee.windup_unblockable' : 'melee.windup', { tier: Tier.THREAT, pos: this.posOf(e.id) }));

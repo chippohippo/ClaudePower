@@ -241,7 +241,9 @@ function hitEntities(c, fx, targets, slot) {
     if (fx.status) e.status?.apply(fx.status.id, { stacks: fx.status.stacks ?? 1, duration: fx.status.duration, source: c.owner });
     if (fx.knockback) {
       _p.subVectors(e.movement.state.position, c.owner.movement.state.position).setY(0).normalize();
-      e.movement.state.velocity.addScaledVector(_p, fx.knockback).y += fx.knockup ?? 2;
+      e.movement.impulse?.(_p.x * fx.knockback, fx.knockup ?? 2, _p.z * fx.knockback);
+    } else if (fx.knockup) {
+      e.movement.impulse?.(0, fx.knockup, 0);
     }
     if (fx.pull) {
       _p.subVectors(c.owner.movement.state.position, e.movement.state.position).setY(0).normalize();
@@ -275,7 +277,15 @@ export const EFFECTS = {
   },
   /** Instant area: sphere around the caster, or at the end of the aim ray when `at: 'aim'`. */
   area(fx, c, slot) {
-    const center = fx.center === 'aim' ? aimPoint(c, fx.range ?? 20) : c.owner.movement.state.position;
+    // Recast detonations (Breach Charge, Rift Charge) centre on the owner's planted charge.
+    // If the charge was destroyed (defused), the recast does nothing.
+    let center;
+    if (fx.center === 'charge') {
+      center = c.world.deployables?.consumeCharge(c.owner.id, slot.def.id);
+      if (!center) return bus.emit('ability:fizzle', { id: c.owner.id, ability: slot.def.id, reason: 'defused' });
+    } else center = fx.center === 'aim' ? aimPoint(c, fx.range ?? 20) : c.owner.movement.state.position;
+    if (fx.damage) c.world.damageDeployables?.(center, fx.radius, fx.damage, c.owner, fx.element);
+    if (fx.destroysCover) c.world.destroyCover?.(center, fx.radius, c.owner);
     const all = c.world.entitiesInRadius(center, fx.radius);
     hitEntities(c, fx, fx.target === 'allies' ? alliesOf(c, all) : enemiesOf(c, all), slot);
     if (fx.heal) for (const a of alliesOf(c, all)) a.health.heal?.(fx.heal);
@@ -292,16 +302,16 @@ export const EFFECTS = {
       ownerId: c.owner.id, team: c.owner.team, origin: _p.clone(), dir: forwardOf(c).clone(),
       speed: fx.speed, drop: fx.drop ?? 0, damageMul: 1, splash: fx.radius ?? 0, deflectable: !!fx.deflectable,
       weapon: { id: slot.def.id, ammoType: fx.element ?? 'explosive', damage: { base: fx.damage ?? 0, splash: fx.radius ?? 0 }, vfx: { tracer: fx.vfx } },
-      onHit: fx.onHit, fuse: fx.fuse, bounce: fx.bounce, sticky: fx.sticky,
+      onHit: fx.onHit, fuse: fx.fuse, bounce: fx.bounce, sticky: fx.sticky, cluster: fx.cluster,
     });
   },
   /** Persistent zone that ticks (healing wells, gravity wells, fire fields). */
   zone(fx, c, slot) {
     const center = fx.center === 'aim' ? aimPoint(c, fx.range ?? 20) : c.owner.movement.state.position.clone();
-    c.world.spawnZone({ ownerId: c.owner.id, team: c.owner.team, ability: slot.def.id, center, ...fx });
+    c.world.spawnZone({ ...fx, ownerId: c.owner.id, team: c.owner.team, ability: slot.def.id, center, yaw: c.casting.aimYaw }); // computed fields win over data
   },
   deployable(fx, c, slot) {
-    c.world.spawnDeployable({ ownerId: c.owner.id, team: c.owner.team, ability: slot.def.id, at: aimPoint(c, fx.range ?? 4), yaw: c.casting.aimYaw, ...fx });
+    c.world.spawnDeployable({ ...fx, ownerId: c.owner.id, team: c.owner.team, ability: slot.def.id, at: aimPoint(c, fx.range ?? 4), yaw: c.casting.aimYaw });
   },
   /** Statuses and buffs on yourself: overshield, haste, cleanse, weapon buffs. */
   self(fx, c) {
@@ -314,7 +324,9 @@ export const EFFECTS = {
   },
   /** Reveal enemies in radius through walls for the caster's team (Deadlock: info is power). */
   reveal(fx, c) {
-    const all = enemiesOf(c, c.world.entitiesInRadius(c.owner.movement.state.position, fx.radius));
+    // Chaff/smoke zones that block reveal protect anyone standing inside them.
+    const all = enemiesOf(c, c.world.entitiesInRadius(c.owner.movement.state.position, fx.radius))
+      .filter((e) => !c.world.zones?.blocksRevealAt(e.movement.state.position));
     for (const e of all) e.status?.apply('revealed', { duration: fx.duration, source: c.owner });
     bus.emit('ability:reveal', { id: c.owner.id, team: c.owner.team, count: all.length, radius: fx.radius });
   },
@@ -336,7 +348,10 @@ function aimPoint(c, range) {
   _p.copy(c.owner.movement.state.position); _p.y += 1.6;
   const f = forwardOf(c);
   const hit = c.world.raycast(_p, f, range, c.owner.id);
-  return hit ? hit.point.clone() : _p.clone().addScaledVector(f, range);
+  if (!hit) return _p.clone().addScaledVector(f, range);
+  const pt = hit.point.clone();
+  pt.onSurface = true; // lets sticky deployables (charges) stay on walls instead of dropping to the floor
+  return pt;
 }
 
 function applyOp(obj, { stat, op, value }) {

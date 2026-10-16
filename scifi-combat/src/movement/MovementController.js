@@ -67,6 +67,20 @@ export class MovementController {
   }
 
   // ---------------------------------------------------------------- public API
+  /**
+   * External impulse (launch pads, knock-ups, explosions). Upward impulses lift you off the ground
+   * so ground snapping can't absorb them.
+   */
+  impulse(x, y, z) {
+    const s = this.state;
+    s.velocity.x += x; s.velocity.y += y; s.velocity.z += z;
+    if (y > 0.5) {
+      s.velocity.y = Math.max(s.velocity.y, y);
+      s.grounded = false; s.timeSinceGrounded = 99;
+      if (s.mode === MoveState.GROUND || s.mode === MoveState.SLIDE) this.#setMode(MoveState.AIR);
+    }
+  }
+
   canAct() { return this.state.mode !== MoveState.MANTLE && this.state.mode !== MoveState.VEHICLE; }
   isSliding() { return this.state.mode === MoveState.SLIDE; }
   spendStamina(amount) {

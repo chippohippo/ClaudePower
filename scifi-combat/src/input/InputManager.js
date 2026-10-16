@@ -22,6 +22,7 @@ const DEFAULT_BINDINGS = {
   ability2: { keys: ['KeyE'],                  pad: [12] }, // D-pad up
   grenade:  { keys: ['KeyG'],                  pad: [14] }, // D-pad left
   super:    { keys: ['KeyZ'],                  pad: [13] }, // D-pad down (or LB+RB chord)
+  debugNextKit: { keys: ['KeyK'],              pad: [] },   // demo only: cycle class kits
 };
 
 export function emptyCommand() {

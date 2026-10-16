@@ -103,6 +103,18 @@ export class MeleeDuelistBrain {
         else if (c === 'backoff') { cmd.moveY = -1; cmd.moveX = this.circleDir; if (this.intent.time > 0.6) this.intent = null; }
       }
     }
+    // Zone awareness: telegraphed hostile zones (airstrikes, anchors, storms) are readable for bots
+    // too. Step out along the threat vector, which overrides everything except an ongoing parry.
+    const threat = this.world?.zones?.threatAt(me.position, this.self.team);
+    if (threat && threat.lengthSq() > 0 && want.guard !== 'hold') {
+      const fx = -Math.sin(cmd.yaw), fz = -Math.cos(cmd.yaw); // forward
+      const rx = -fz, rz = fx;                                 // right
+      const len = Math.hypot(threat.x, threat.z);
+      cmd.moveY = (threat.x * fx + threat.z * fz) / len;
+      cmd.moveX = (threat.x * rx + threat.z * rz) / len;
+      want.light = false; want.heavyHold = false;
+      if (this.self.movement.state.stamina > 40 && Math.random() < 0.05) want.dodge = true;
+    }
     // Abilities: the bot uses its gap-closer from mid range, the same way a player would.
     // Like a Deadlock bot, it only commits a long cooldown when the target is not guarding.
     const ab = this.self.abilities?.slots?.ability1;
