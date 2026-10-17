@@ -175,5 +175,6 @@ sky and light, to model against and to screenshot:
 
 ## Screenshots
 
-`screenshots/art/` holds the lab captures from building this pass (palette, sky, troopers,
-vehicles); `screenshots/game/` the same look in a match; `screenshots/stratagems/` the call-ins.
+`screenshots/` (index in its README): `art/` holds the lab captures from building this pass
+(palette, sky, troopers, vehicles); `game/` the same look in a match, next to `before-art/` from
+before it; `stratagems/` the call-ins; `feedback/` hit feedback and reloads.
