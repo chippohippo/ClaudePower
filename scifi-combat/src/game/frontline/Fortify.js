@@ -10,8 +10,9 @@
 // Everything built goes through the same paths as the map's own: the terrain is carved (the
 // renderer rebuilds just those chunks, the ground turns to mud), sandbag walls are real cover
 // boxes (bullets, movement, nav, the tactical map, the renderer), and blasts can knock them down.
-// Each team may build `cap` positions per match (sized to the map).
-// Events: fort:dig { id, stage, progress }, fort:built { team, kind, x, z }.
+// Each team may build `cap` positions per match (sized to the map). Sandbags cost supplies from the
+// forward depot when the match has logistics (`pay`); digging is free.
+// Events: fort:dig { id, stage, progress }, fort:built { team, kind, x, z }, fort:short { id, team }.
 
 import { Vector3 } from 'three';
 import { bus } from '../../core/EventBus.js';
@@ -27,6 +28,7 @@ export class FortifySystem {
    */
   constructor(world, map, { cap = 24, tmap = null } = {}) {
     this.world = world; this.map = map; this.terrain = map.terrain; this.cap = cap; this.tmap = tmap;
+    this.pay = null;            // (team) -> boolean: logistics pays for the sandbags (null = free)
     this.sites = [];
     this.built = [0, 0];
     this.jobs = new Map();      // fighter id -> { site, t }
@@ -60,6 +62,8 @@ export class FortifySystem {
     const need = STAGE_TIME[Math.min(stage, 2)];
     bus.emit('fort:dig', { id: f.id, stage, progress: Math.min(1, j.t / need) });
     if (j.t >= need) {
+      // Sandbags come from the forward depot: no supplies, no wall (the hole and trench are free).
+      if (stage === 1 && this.pay && !this.pay(f.team)) { j.t = need; bus.emit('fort:short', { id: f.id, team: f.team }); return false; }
       j.t = 0;
       if (stage === 0) this.#foxhole(site);
       else if (stage === 1) this.#sandbags(site);

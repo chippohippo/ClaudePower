@@ -12,6 +12,11 @@
 //  * Villages (Ruins.js): ruined buildings with rooms and doorways around chosen sectors' points.
 //  * Blockhouses, scatter (rocks, crates), HQ walls, and a motor pool per line sector and team
 //    where that team's vehicle pads stand while the sector is its front.
+//  * Forward bases (sizes with `support`): per line sector and team, a supply depot and an
+//    artillery park in the rear of the sector (the team uses the ones in its front sector), and a
+//    supply dump at each HQ where the trucks load. Field guns start in the park of the team's
+//    starting front sector (howitzers and rockets in the front row, AT guns behind), trucks at
+//    the HQ dump.
 // All terrain changes come first, then every box is placed on the finished ground.
 
 import { Vector3 } from 'three';
@@ -24,7 +29,23 @@ import { buildRuin } from './Ruins.js';
 
 const v = (x, y, z) => new Vector3(x, y, z);
 const alignOdd = (x, origin) => { const r = Math.round(x); return (r - origin) % 2 === 0 ? r + 1 : r; };
-const VEHICLES = { tank: ['solari_lancer_tank', 'void_crawler_tank'], hoverbike: ['solari_hoverbike', 'void_skiff'] };
+const VEHICLES = {
+  tank: ['solari_lancer_tank', 'void_crawler_tank'], hoverbike: ['solari_hoverbike', 'void_skiff'],
+  howitzer: ['solari_field_gun', 'void_field_gun'], rockets: ['solari_rocket_battery', 'void_rocket_battery'],
+  at: ['solari_at_gun', 'void_at_gun'], truck: ['solari_supply_truck', 'void_supply_truck'],
+};
+const RESPAWN = { tank: 45, hoverbike: 20, howitzer: 60, rockets: 60, at: 40, truck: 25 };
+const GUN_GAP = 13;          // metres between guns in a park row
+const PARK_ROWS = 12;        // metres between a park's front row (field guns) and back row (AT guns)
+
+/**
+ * Where gun `i` of `n` in a park's row goes: row 0 (field guns, facing the enemy) or row 1 (AT
+ * guns, PARK_ROWS behind). `slot` packs (row, i) into one number for the pad.
+ */
+export function parkSlot(pk, team, row, i, n) {
+  const back = row ? (team === 0 ? -PARK_ROWS : PARK_ROWS) : 0;
+  return { slot: row * 100 + i, at: v(pk.x + back, 0, pk.z + (i - (n - 1) / 2) * GUN_GAP) };
+}
 
 /** Every doorway of every ruin once (interior doors are listed by both rooms). */
 function doorways(ruins) {
@@ -37,7 +58,7 @@ function doorways(ruins) {
 
 /**
  * @param {object} o { seed, size: '4v4' | '12v12' | '32v32' | '64v64', layout (a MapSizes-style profile) }
- * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors (with .pool[team]), points, hq, pads, padGap, trenches, ruins, wire, craters, structures, bounds }}
+ * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors (with .pool[team], .depot[team], .park[team]), points, hq, hqDepot, pads, padGap, trenches, ruins, wire, craters, structures, support, bounds }}
  */
 export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null } = {}) {
   const P = layout ?? mapSizeFor(size);
@@ -102,6 +123,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   // Motor pools: each line sector has, per team, a cleared and levelled patch toward that team's
   // side where its vehicle pads stand while the sector is its front (the pool moves up with the
   // line, so tanks and bikes respawn where the fighting is, not at a far-off HQ).
+  const S = P.support ?? null;
   const nPads = P.pads.reduce((a, [, c]) => a + c, 0), padGap = 9;
   for (const s of sectors) {
     s.pool = [null, null];
@@ -112,6 +134,8 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
 
   // ---- terrain: readable ground at points, spawns, HQs and motor pools
   const allSpawns = (s, team) => [...s.spawns[team], ...s.rearSpawns[team]];
+  const parkGuns = S ? S.guns.filter(([k]) => k !== 'at').reduce((a, [, c]) => a + c, 0) : 0;
+  const parkAT = S ? S.guns.filter(([k]) => k === 'at').reduce((a, [, c]) => a + c, 0) : 0;
   for (const p of points) terrain.flatten(p.pos.x, p.pos.z, P.pointRadius * 2.4);
   for (const s of sectors) for (const team of [0, 1]) for (const sp of allSpawns(s, team)) terrain.flatten(sp.x, sp.z, 8);
   for (const h of hq) terrain.flatten(h.x, h.z, hqR, null, 0.75);
@@ -140,6 +164,53 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
       && !hq.some((h) => near(h.x, h.z, hqR + 4)) && !ruinsAt.some((q) => !(x1 < q.x0 - 5 || x0 > q.x1 + 5 || z1 < q.z0 - 5 || z0 > q.z1 + 5))
       && z0 > P.minZ + berm && z1 < maxZ - berm;
   };
+
+  // ---- forward bases: a supply depot and an artillery park per line sector and team, in the
+  // rear of the sector (team 0's rear is west), clear of points, spawns, pools and each other;
+  // and a supply dump beside each HQ.
+  const hqDepot = [null, null];
+  if (S) {
+    const rearX = (sec, team, f) => (team === 0 ? sec.x0 + (sec.x1 - sec.x0) * f : sec.x1 - (sec.x1 - sec.x0) * f);
+    const fits = (x, z, len, r) => { for (let k = -len / 2; k <= len / 2 + 1e-6; k += Math.max(1, Math.min(6, len / 2 || 1))) if (!clearOf(x, z + k, r)) return false; return true; };
+    // Tight sectors (12v12) get a second, wider pass with a slightly smaller footprint.
+    const find = (sec, team, len, r, sides) => {
+      for (const [rr, fs, cs] of [[r, [0.22, 0.3, 0.16, 0.38], [0.2, 0.27, 0.13, 0.33, 0.07]], [r * 0.8, [0.22, 0.3, 0.38, 0.46, 0.14], [0.2, 0.27, 0.34, 0.13, 0.4, 0.07, 0]]]) {
+        for (const f of fs) for (const c of cs) for (const side of sides) {
+          const x = rearX(sec, team, f), z = side * c * P.depth;
+          if (Math.abs(z) + len / 2 + rr > P.depth / 2 - berm - 4) continue;
+          if (fits(x, z, len, rr)) return v(x, 0, z);
+        }
+      }
+      return null;
+    };
+    const parkLen = Math.max(0, Math.max(parkGuns, parkAT) - 1) * GUN_GAP;
+    for (const sec of sectors) {
+      sec.depot = [null, null]; sec.park = [null, null];
+      if (sec.kind !== 'line') continue;
+      for (const team of [0, 1]) {
+        const d = find(sec, team, 0, 13, team === 0 ? [1, -1] : [-1, 1]);
+        if (d) { sec.depot[team] = d; ruinsAt.push({ x0: d.x - 14, z0: d.z - 14, x1: d.x + 14, z1: d.z + 14 }); }
+        if (!parkGuns && !parkAT) continue;
+        // Searched as one strip around the middle of the two rows; the front row faces the enemy.
+        const mid = find(sec, team, parkLen, 9 + PARK_ROWS / 2, d ? [-Math.sign(d.z) || -1, Math.sign(d.z) || 1] : [-1, 1]);
+        if (mid) {
+          const fwd = team === 0 ? 1 : -1;
+          sec.park[team] = v(mid.x + fwd * PARK_ROWS / 2, 0, mid.z);
+          ruinsAt.push({ x0: mid.x - 16, z0: mid.z - parkLen / 2 - 10, x1: mid.x + 16, z1: mid.z + parkLen / 2 + 10 });
+        }
+      }
+    }
+    for (const team of [0, 1]) {
+      const h = hq[team], dz = Math.min(28, hqR * 0.7);
+      hqDepot[team] = v(h.x, 0, h.z + dz);
+    }
+    for (const sec of sectors) for (const team of [0, 1]) {
+      const d = sec.depot?.[team], pk = sec.park?.[team];
+      if (d) terrain.flatten(d.x, d.z, 15, terrain.height(d.x, d.z), 0.7);
+      const back = team === 0 ? -PARK_ROWS : PARK_ROWS;
+      if (pk) for (let k = -parkLen / 2; k <= parkLen / 2 + 1e-6; k += 6) for (const dx of [0, back / 2, back]) terrain.flatten(pk.x + dx, pk.z + k, 10, terrain.height(pk.x, pk.z), 0.7);
+    }
+  }
 
   // Villages are laid out first (their footprints keep craters and scatter away).
   const villagePlans = [];
@@ -251,6 +322,19 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
     boxC(x, z, rock ? R(1.5, 3.5) : 1.4, rock ? R(1.5, 3.5) : 1.4, rock ? R(0.8, 2.4) : 1.3, { kind: rock ? 'rock' : 'crate', surface: rock ? 'rock' : 'wood', destructible: !rock && rand() < 0.6 });
   }
 
+  // ---- supply dumps: crate stacks along the sides of every depot site, open front and back for
+  // the trucks (destructible: shells scatter them)
+  if (S) {
+    const dump = (c, n) => {
+      for (const side of [-1, 1]) for (let k = 0; k < n; k++) {
+        const x = c.x + (k - (n - 1) / 2) * 3.2 + R(-0.4, 0.4), z = c.z + side * R(9, 10.5);
+        boxC(x, z, R(1.5, 2.2), R(1.4, 1.9), R(1.1, 1.8), { kind: 'supply', surface: 'wood', destructible: true });
+      }
+    };
+    for (const sec of sectors) for (const d of sec.depot ?? []) if (d) dump(d, 4);
+    for (const d of hqDepot) if (d) dump(d, 5);
+  }
+
   // ---- HQ walls (protect the spawn from direct fire down the map)
   for (const [i, h] of hq.entries()) {
     const face = i === 0 ? 1 : -1;
@@ -272,7 +356,19 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
     const c = sectors[startFront[team]]?.pool?.[team] ?? hq[team];
     let slot = 0;
     for (const [kind, n] of P.pads) for (let k = 0; k < n; k++, slot++) {
-      pads.push({ vehicle: VEHICLES[kind][team], team, slot, at: v(c.x, 0, c.z + (slot - (nPads - 1) / 2) * padGap), yaw, respawn: kind === 'tank' ? 45 : 20 });
+      pads.push({ vehicle: VEHICLES[kind][team], kind, group: 'pool', team, slot, at: v(c.x, 0, c.z + (slot - (nPads - 1) / 2) * padGap), yaw, respawn: RESPAWN[kind] });
+    }
+    if (!S) continue;
+    const pk = sectors[startFront[team]]?.park?.[team] ?? hqDepot[team];
+    let gs = 0, as = 0;
+    for (const [kind, n] of S.guns) for (let k = 0; k < n; k++) {
+      const at = kind === 'at';
+      const row = at ? parkSlot(pk, team, 1, as++, parkAT) : parkSlot(pk, team, 0, gs++, parkGuns);
+      pads.push({ vehicle: VEHICLES[kind][team], kind, group: 'park', team, slot: row.slot, at: row.at, yaw, respawn: RESPAWN[kind] });
+    }
+    for (let k = 0; k < S.trucks; k++) {
+      const d = hqDepot[team];
+      pads.push({ vehicle: VEHICLES.truck[team], kind: 'truck', group: 'hq', team, slot: k, at: v(d.x + (team === 0 ? -1 : 1) * 16, 0, d.z + (k - (S.trucks - 1) / 2) * 8), yaw, respawn: RESPAWN.truck });
     }
   }
 
@@ -282,11 +378,14 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   for (const h of hq) h.y = terrain.height(h.x, h.z);
   for (const pad of pads) pad.at.y = terrain.height(pad.at.x, pad.at.z);
   for (const s of sectors) for (const c of s.pool ?? []) if (c) c.y = terrain.height(c.x, c.z);
+  for (const s of sectors) for (const c of [...(s.depot ?? []), ...(s.park ?? [])]) if (c) c.y = terrain.height(c.x, c.z);
+  for (const d of hqDepot) if (d) d.y = terrain.height(d.x, d.z);
   terrain.takeDirty(); // the renderer builds the finished ground; only later changes are news
 
   return {
-    seed, size: P.id ?? size, name: P.name, terrain, cover, nav, sectors, points, hq, pads, padGap,
-    trenches, ruins, wire, craters, structures,
+    seed, size: P.id ?? size, name: P.name, terrain, cover, nav, sectors, points, hq, hqDepot, pads, padGap, gunGap: GUN_GAP,
+    parkCounts: [parkGuns, parkAT],
+    trenches, ruins, wire, craters, structures, support: S,
     bounds: { minX: P.minX, minZ: P.minZ, maxX, maxZ },
   };
 }

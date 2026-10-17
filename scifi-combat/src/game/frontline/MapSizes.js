@@ -11,6 +11,10 @@
 //  * craters: shell holes per hectare of no-man's-land (the neutral middle gets the most).
 //  * match: tickets per player, reinforcement waves, capture and time limits, squad size, and how
 //    many positions each team may dig in (Fortify).
+//  * support: each team's field guns ([kind, count]: howitzer, rockets, at) in its artillery park,
+//    supply trucks at its HQ dump, and the supply economy (Logistics): what the HQ produces per
+//    minute, starting stock at the HQ and the forward depot, and their capacities. null = no
+//    artillery or logistics (the 4v4 skirmish).
 
 const sector = (x0, x1, lanes = null) => ({ x0, x1, lanes, kind: lanes ? 'line' : 'hq' });
 
@@ -23,6 +27,7 @@ export const MAP_SIZES = {
     villages: [1, 2, 3], ruinsPerVillage: [4, 6], craters: 6,
     scatterPerHa: 9, structures: 0, pads: [],
     match: { ticketsPerPlayer: 10, waveInterval: 5, captureTime: 8, secureTime: 3, timeLimit: 600, squadSize: 4, fortCap: 8 },
+    support: null,
   },
   '12v12': {
     name: 'Ridgeline', players: 24, minX: -260, minZ: -110, width: 520, depth: 220, terrainAmp: 4.5,
@@ -32,6 +37,7 @@ export const MAP_SIZES = {
     villages: [2], ruinsPerVillage: [6, 9], craters: 9,
     scatterPerHa: 11, structures: 1, pads: [['hoverbike', 1]],
     match: { ticketsPerPlayer: 7, waveInterval: 6, captureTime: 10, secureTime: 3, timeLimit: 900, squadSize: 4, fortCap: 16 },
+    support: { guns: [['howitzer', 1], ['at', 1]], trucks: 1, production: 70, hqStart: 300, frontStart: 180, hqCap: 1200, frontCap: 400 },
   },
   '32v32': {
     name: 'Valley', players: 64, minX: -450, minZ: -180, width: 900, depth: 360, terrainAmp: 6.5,
@@ -44,6 +50,7 @@ export const MAP_SIZES = {
     villages: [2, 4], ruinsPerVillage: [5, 8], craters: 8,
     scatterPerHa: 12, structures: 2, pads: [['tank', 1], ['hoverbike', 2]],
     match: { ticketsPerPlayer: 6, waveInterval: 6, captureTime: 10, secureTime: 3, timeLimit: 1500, squadSize: 4, fortCap: 30 },
+    support: { guns: [['howitzer', 2], ['rockets', 1], ['at', 2]], trucks: 2, production: 130, hqStart: 450, frontStart: 260, hqCap: 2000, frontCap: 600 },
   },
   '64v64': {
     name: 'Frontline', players: 128, minX: -700, minZ: -260, width: 1400, depth: 520, terrainAmp: 9,
@@ -57,6 +64,7 @@ export const MAP_SIZES = {
     villages: [3, 5], ruinsPerVillage: [6, 9], craters: 8,
     scatterPerHa: 11, structures: 3, pads: [['tank', 2], ['hoverbike', 3]],
     match: { ticketsPerPlayer: 5, waveInterval: 7, captureTime: 10, secureTime: 3, timeLimit: 2100, squadSize: 4, fortCap: 50 },
+    support: { guns: [['howitzer', 4], ['rockets', 2], ['at', 3]], trucks: 3, production: 200, hqStart: 600, frontStart: 320, hqCap: 3000, frontCap: 800 },
   },
 };
 

@@ -54,6 +54,7 @@ export class VehicleSystem {
     this.list = [];
     this.pads = [];
     this.guns = new FieldGuns(this);
+    this.payFor = null;        // (pad) -> boolean: logistics pays for a pad's respawn (null = free)
   }
 
   // ---------------------------------------------------------------- spawning
@@ -87,8 +88,8 @@ export class VehicleSystem {
     return v;
   }
 
-  addPad({ vehicle, team, at, yaw = 0, respawn = 20, slot = 0 }) {
-    const pad = { vehicle, team, at: at.clone(), yaw, respawn, slot, timer: 0, current: null };
+  addPad({ vehicle, team, at, yaw = 0, respawn = 20, slot = 0, kind = null, group = 'pool' }) {
+    const pad = { vehicle, team, at: at.clone(), yaw, respawn, slot, kind, group, timer: 0, current: null };
     pad.current = this.spawn(vehicle, team, at, yaw, { pad });
     this.pads.push(pad);
     return pad;
@@ -96,12 +97,14 @@ export class VehicleSystem {
 
   /**
    * The motor pool moves up with the front: the pad moves, and its vehicle, if nobody's in it,
-   * is taken away and turns up at the new spot a few seconds later.
+   * is taken away and turns up at the new spot a few seconds later. With relocate: false (field
+   * guns) the vehicle stays where it is: its crew moves it, and only replacements come to the
+   * new spot.
    */
-  movePad(pad, at, yaw = pad.yaw) {
+  movePad(pad, at, yaw = pad.yaw, { relocate = true } = {}) {
     pad.at.copy(at); pad.yaw = yaw;
     const v = pad.current;
-    if (v && !v.removed && !v.seats.some((s) => s.occupant) && v.movement.state.position.distanceTo(at) > 15) {
+    if (relocate && v && !v.removed && !v.seats.some((s) => s.occupant) && v.movement.state.position.distanceTo(at) > 15) {
       this.#remove(v, 'relocated');
       pad.current = null;
       pad.timer = Math.max(0, pad.respawn - 5);
@@ -236,7 +239,9 @@ export class VehicleSystem {
     for (const pad of this.pads) {
       if (pad.current && !pad.current.removed) continue;
       pad.timer += dt;
-      if (pad.timer >= pad.respawn) { pad.timer = 0; pad.current = this.spawn(pad.vehicle, pad.team, pad.at, pad.yaw, { pad }); }
+      if (pad.timer < pad.respawn) continue;
+      if (this.payFor && !this.payFor(pad)) { pad.timer = pad.respawn; continue; }   // waits for supplies
+      pad.timer = 0; pad.current = this.spawn(pad.vehicle, pad.team, pad.at, pad.yaw, { pad });
     }
   }
 

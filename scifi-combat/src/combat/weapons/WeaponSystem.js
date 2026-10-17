@@ -473,6 +473,45 @@ export class WeaponComponent {
 
   /** Abilities can grant timed weapon buffs (e.g. "Overclock": +20% rpm for 6 s). */
   applyBuff(mods, duration) { this.buffs = { ...this.buffs, ...mods, until: this.time + duration }; }
+
+  /** A fresh loadout (redeploying): full magazines and reserves, cool barrels, charged batteries. */
+  restock() {
+    this.#endBeam();
+    for (const w of this.loadout) { w.mag = w.s.mag ?? 0; w.reserve = w.s.reserve ?? 0; w.heat = 0; w.battery = w.s.ammo?.max ?? 0; w.chambered = true; }
+    this.charge = 0; this.burstLeft = 0; this.consecutive = 0; this.cooldown = 0;
+    this.#setPhase(WeaponPhase.READY);
+  }
+
+  /** How much is missing, in magazines (a quarter battery counts as one); heat weapons never run dry. */
+  missing() {
+    let n = 0;
+    for (const w of this.loadout) {
+      if (w.usesHeat) continue;
+      if (w.usesBattery) { const max = w.s.ammo?.max ?? 0; if (max) n += (max - w.battery) / (max * 0.25); continue; }
+      n += Math.max(0, (w.s.reserve ?? 0) - w.reserve) / Math.max(1, w.s.mag ?? 10);
+    }
+    return n;
+  }
+
+  /**
+   * Logistics: put up to `mags` magazines' worth back into the reserves (batteries charge by a
+   * quarter per magazine). Returns how many magazines' worth went in.
+   */
+  resupply(mags) {
+    let used = 0;
+    for (const w of this.loadout) {
+      if (used >= mags) break;
+      if (w.usesHeat) continue;
+      if (w.usesBattery) {
+        const max = w.s.ammo?.max ?? 0, add = Math.min(max - w.battery, max * 0.25 * (mags - used));
+        if (add > 0) { w.battery += add; used += add / (max * 0.25); }
+        continue;
+      }
+      const per = Math.max(1, w.s.mag ?? 10), add = Math.min((w.s.reserve ?? 0) - w.reserve, Math.floor(per * (mags - used)));
+      if (add > 0) { w.reserve += add; used += add / per; }
+    }
+    return used;
+  }
 }
 
 // --------------------------------------------------------------------- projectiles

@@ -30,6 +30,8 @@ import { TacticalMap } from '../ai/tactics/TacticalMap.js';
 import { Suppression } from '../ai/tactics/Suppression.js';
 import { SquadTactics } from '../ai/tactics/SquadTactics.js';
 import { FortifySystem } from './frontline/Fortify.js';
+import { Logistics, COST } from './frontline/Logistics.js';
+import { parkSlot } from './frontline/FrontlineMap.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -82,6 +84,12 @@ export class FrontlineSession {
       sq.tactics = new SquadTactics(sq, { world: this.world, map: this.map, tmap: this.tactical, mode: this.mode, commander: this.commanders[team], seed });
     }
     for (const pad of this.map.pads) this.world.vehicles.addPad(pad);
+    // The supply war (sizes with support): depots, trucks, ammo, and what respawns and sandbags cost.
+    this.logistics = this.world.logistics = this.map.support ? new Logistics(this.world, this.map, this.mode) : null;
+    if (this.logistics) {
+      this.world.vehicles.payFor = (pad) => this.logistics.spend(pad.team, COST[pad.kind] ?? 0, pad.kind ?? 'vehicle');
+      this.fortify.pay = (team) => this.logistics.spend(team, COST.sandbags, 'sandbags');
+    }
     // Flow fields for every point up front (~25 ms each), so orders never hitch mid-battle.
     for (const p of this.map.points) this.map.nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
     this.off = [bus.on('entity:death', (e) => this.#onDeath(e)), bus.on('mode:front', () => this.#motorPools())];
@@ -98,7 +106,7 @@ export class FrontlineSession {
     this.off.forEach((f) => f());
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
-    this.tactical.dispose(); this.suppression.dispose();
+    this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
   }
 
   #roster(players, humans) {
@@ -162,6 +170,7 @@ export class FrontlineSession {
     }
     w.update(dt);
     this.melee.resolve();
+    this.logistics?.update(dt, this.fighters);
     this.mode.update(dt, this.fighters, w);
     for (const c of this.commanders) c.update(dt);
     this.suppression.update(dt, this.fighters);
@@ -225,14 +234,29 @@ export class FrontlineSession {
   }
 
   /** Each team's vehicle pads follow its front: they stand in that sector's motor pool. */
+  /**
+   * The front moved: the motor pool moves up (empty vehicles turn up there), and so does the
+   * artillery park, but only for replacements: guns already in the field are moved by their crews.
+   * Supply trucks stay with the HQ dump.
+   */
   #motorPools() {
     for (const team of [0, 1]) {
       const sec = this.map.sectors[this.mode.front[team]], c = sec?.pool?.[team] ?? this.map.hq[team];
-      for (const pad of this.world.vehicles.pads) {
-        if (pad.team !== team) continue;
-        const at = new Vector3(c.x, 0, c.z + (pad.slot - (this.world.vehicles.pads.filter((q) => q.team === team).length - 1) / 2) * (this.map.padGap ?? 9));
+      const pool = this.world.vehicles.pads.filter((q) => q.team === team && q.group === 'pool');
+      for (const pad of pool) {
+        const at = new Vector3(c.x, 0, c.z + (pad.slot - (pool.length - 1) / 2) * (this.map.padGap ?? 9));
         at.y = this.map.terrain.height(at.x, at.z);
         if (at.distanceTo(pad.at) > 1) this.world.vehicles.movePad(pad, at);
+      }
+      const pk = sec?.park?.[team];
+      if (!pk) continue;
+      const [nGuns, nAT] = this.map.parkCounts ?? [0, 0];
+      for (const pad of this.world.vehicles.pads) {
+        if (pad.team !== team || pad.group !== 'park') continue;
+        const row = Math.floor(pad.slot / 100), i = pad.slot % 100;
+        const at = parkSlot(pk, team, row, i, row ? nAT : nGuns).at;
+        at.y = this.map.terrain.height(at.x, at.z);
+        if (at.distanceTo(pad.at) > 1) this.world.vehicles.movePad(pad, at, pad.yaw, { relocate: false });
       }
     }
   }
@@ -262,6 +286,7 @@ export class FrontlineSession {
     if (f.health.dead) f.health.revive(1);
     f.health.shield = f.health.maxShield;
     f.status.cleanse();
+    f.weapons.restock();          // reinforcements come up with a full loadout
     if (ride) w.vehicles.enter(f, ride, ride.seats.findIndex((q) => q.def.role === 'driver'));
     bus.emit('fighter:deploy', { id: f.id, team, pos: pos.toArray(), vehicle: ride?.id ?? null });
   }
@@ -274,7 +299,7 @@ export class FrontlineSession {
     if (this.mode.rand() > odds) return null;
     for (const pad of this.world.vehicles.pads) {
       const v = pad.current;
-      if (pad.team !== f.team || !v || v.removed || v.health.hp < v.health.max * 0.5) continue;
+      if (pad.team !== f.team || pad.group !== 'pool' || !v || v.removed || v.health.hp < v.health.max * 0.5) continue;
       const seat = v.seats.findIndex((q) => q.def.role === 'driver' && !q.occupant);
       if (seat >= 0 && !v.seats.some((q) => q.occupant) && v.movement.state.position.distanceTo(pad.at) < 12) return v;
     }

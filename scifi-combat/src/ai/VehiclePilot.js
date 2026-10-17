@@ -36,6 +36,7 @@ export class VehiclePilot {
     let best = null, bd = maxWalk;
     for (const v of world.vehicles.list) {
       if (v.removed || v.team !== self.team || v.health.hp < v.health.max * 0.35) continue;
+      if (v.def.gun || v.def.cargo) continue;   // guns and supply trucks have their own crews (SupportCommand)
       const free = v.seats.findIndex((s) => !s.occupant);
       if (free < 0) continue;
       const allyDriven = v.seats.some((s) => s.def.role === 'driver' && s.occupant);
