@@ -151,6 +151,7 @@ sky and light, to model against and to screenshot:
 | `sky` | `sun` (halo, god rays through posts), `away`, `moon`, `wide` (craters and fog to 900 m), `trench`, `ground`, `up` |
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
+| `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
 
 `node scripts/art-shots.mjs <outdir> station:view[:query] ...` captures them headless (serve the folder on :8765 first).
 
