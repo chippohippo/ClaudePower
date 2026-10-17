@@ -65,7 +65,8 @@ CONFIG = {
     "log_footage": True,
     "auto_frame": True,          # track faces/people and keep them centred
     "track_smooth": 1.2,         # seconds of smoothing on the tracked framing
-    "track_lock": 0.35,          # 0 = follow subject freely, 1 = fixed per shot
+    "track_lock": 0.65,          # 0 = follow subject freely, 1 = fixed per shot
+    "frame_margin": 0.18,        # space kept around the couple's heads
     "headroom": 0.08,            # how far below the faces the crop centre sits
     "match_luma": 0.40,          # every shot is exposure-matched to this median
     "match_wb": 0.6,             # 0..1 strength of white-balance matching         # True for S-Log/flat footage (Sony FX3 etc.)
@@ -263,11 +264,29 @@ def reframe(img: np.ndarray, shot: Shot, p: float, centre=None) -> np.ndarray:
     # biggest 9:16 window that fits, then shrink it by the zoom factor
     base_w = min(iw, ih * W / H)
     cw, ch = base_w / scale, base_w / scale * H / W
+    bounds = None
+    if centre is not None and len(centre) > 2:
+        centre, bounds = centre[:2], centre[2:]
+    if bounds is not None:
+        # never zoom so far that the subjects' heads (plus margin) leave frame
+        l, r, top = bounds
+        need = (r - l) * iw * (1 + 2 * CONFIG["frame_margin"])
+        if need > 1:
+            scale = max(1.0, min(scale, base_w / need))
+        cw, ch = base_w / scale, base_w / scale * H / W
     fx, fy = centre if centre is not None else (shot.x, shot.y)
     cx = (fx + shot.pan * (ease(p) - 0.5)) * iw
     cy = fy * ih
-    x0 = min(max(cx - cw / 2, 0), iw - cw)
-    y0 = min(max(cy - ch / 2, 0), ih - ch)
+    x0 = cx - cw / 2
+    y0 = cy - ch / 2
+    if bounds is not None:
+        m = CONFIG["frame_margin"] * (r - l) * iw + 0.04 * cw
+        lo, hi = r * iw + m - cw, l * iw - m   # x0 range keeping both heads in
+        if lo <= hi:
+            x0 = min(max(x0, lo), hi)
+        y0 = min(y0, top * ih - 0.07 * ch)     # headroom above the top head
+    x0 = min(max(x0, 0), iw - cw)
+    y0 = min(max(y0, 0), ih - ch)
     pil = Image.fromarray((img * 255).astype(np.uint8))
     out = pil.resize((W, H), Image.BICUBIC, box=(x0, y0, x0 + cw, y0 + ch))
     if shot.fit > 0:
@@ -315,6 +334,7 @@ def _cv2():
         d = cv2.data.haarcascades
         _detectors["front"] = cv2.CascadeClassifier(d + "haarcascade_frontalface_default.xml")
         _detectors["profile"] = cv2.CascadeClassifier(d + "haarcascade_profileface.xml")
+        _detectors["upper"] = cv2.CascadeClassifier(d + "haarcascade_upperbody.xml")
         hog = cv2.HOGDescriptor()
         hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
         _detectors["people"] = hog
@@ -322,9 +342,10 @@ def _cv2():
 
 
 def find_subject(img: np.ndarray):
-    """Return (x, y, weight) of the subject in normalised coords, or None.
-    Faces win (area-weighted centre of all faces, so a couple stays centred
-    between them); full-body detection is the fallback for wide shots."""
+    """Locate the couple. Returns (cx, cy, left, right, top) in normalised
+    coords, or None. Uses the (up to) two largest faces — the centre is the
+    midpoint *between* them, not weighted toward the bigger face — and falls
+    back to upper-body detection for heads turned away from camera."""
     cv2 = _cv2()
     if cv2 is None:
         return None
@@ -332,67 +353,78 @@ def find_subject(img: np.ndarray):
     h, w = small.shape[:2]
     gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_RGB2GRAY))
     ms = max(28, h // 18)
-    boxes = list(_detectors["front"].detectMultiScale(gray, 1.1, 6, minSize=(ms, ms)))
-    boxes += list(_detectors["profile"].detectMultiScale(gray, 1.1, 6, minSize=(ms, ms)))
-    flip = gray[:, ::-1].copy()
-    boxes += [(w - x - bw, y, bw, bh) for x, y, bw, bh in
-              _detectors["profile"].detectMultiScale(flip, 1.1, 6, minSize=(ms, ms))]
-    if boxes:
-        b = np.array(boxes, dtype=float)
-        a = b[:, 2] * b[:, 3]
-        keep = a > a.max() * 0.25            # ignore tiny background faces
-        b, a = b[keep], a[keep]
-        cx = ((b[:, 0] + b[:, 2] / 2) * a).sum() / a.sum() / w
-        cy = ((b[:, 1] + b[:, 3] / 2) * a).sum() / a.sum() / h
-        return cx, cy, 1.0
-    q = cv2.resize(small, (w // 2, h // 2))
-    rects, wts = _detectors["people"].detectMultiScale(q, winStride=(8, 8), scale=1.06)
-    if len(rects):
-        r = np.array(rects, dtype=float)
-        wt = np.asarray(wts, dtype=float).ravel()
-        i = int(np.argmax(wt))
-        if wt[i] > 0.4:
-            # centre on all confident people (couples / groups), head-ish height
-            good = r[wt > wt[i] * 0.5]
-            cx = (good[:, 0] + good[:, 2] / 2).mean() / q.shape[1]
-            cy = (good[:, 1] + good[:, 3] * 0.3).mean() / q.shape[0]
-            return cx, cy, 0.5
-    return None
+    det = lambda name, g, mn=5: list(_detectors[name].detectMultiScale(g, 1.08, mn, minSize=(ms, ms)))
+    boxes = det("front", gray) + det("profile", gray)
+    boxes += [(w - x - bw, y, bw, bh) for x, y, bw, bh in det("profile", gray[:, ::-1].copy())]
+    boxes = _merge(boxes)
+    if len(boxes) < 2:
+        # heads turned / kissing: upper bodies give the head positions
+        for x, y, bw, bh in det("upper", gray, 4):
+            if bw > w * 0.12:
+                boxes.append((x + bw * 0.3, y, bw * 0.4, bh * 0.45))
+        boxes = _merge(boxes)
+    if not boxes:
+        return None
+    b = np.array(boxes, dtype=float)
+    a = b[:, 2] * b[:, 3]
+    order = np.argsort(-a)
+    b = b[order][: 2 if len(b) > 1 and a[order][1] > a[order][0] * 0.3 else 1]
+    left = b[:, 0].min() / w
+    right = (b[:, 0] + b[:, 2]).max() / w
+    top = b[:, 1].min() / h
+    bottom = (b[:, 1] + b[:, 3]).max() / h
+    return (left + right) / 2, (top + bottom) / 2, left, right, top
 
 
-def track_shot(src, s: "Shot", span: float, step: float = 0.25):
-    """Sample the shot, detect the subject, and return a smoothed x(t), y(t)."""
+def _merge(boxes):
+    """Drop boxes that mostly overlap a bigger one (same head found twice)."""
+    out = []
+    for bx in sorted(boxes, key=lambda z: -z[2] * z[3]):
+        x, y, bw, bh = bx
+        dup = False
+        for ox, oy, ow, oh in out:
+            ix = max(0, min(x + bw, ox + ow) - max(x, ox))
+            iy = max(0, min(y + bh, oy + oh) - max(y, oy))
+            if ix * iy > 0.3 * bw * bh:
+                dup = True
+                break
+        if not dup:
+            out.append(tuple(bx))
+    return out
+
+
+def track_shot(src, s: "Shot", span: float, step: float = 0.2):
+    """Sample the shot, find the couple, and return a smoothed, mostly
+    locked-off camera path: (ts, cx, cy, left, right, top)."""
+    from scipy.ndimage import maximum_filter1d, minimum_filter1d
     ts = np.arange(0, span + 1e-6, step)
-    xs, ys, ws = [], [], []
+    rows = []
     for t in ts:
         r = find_subject(src.frame(s.start + t * s.speed))
-        xs.append(r[0] if r else np.nan)
-        ys.append(r[1] if r else np.nan)
-        ws.append(r[2] if r else 0)
-    xs, ys = np.array(xs), np.array(ys)
-    ok = ~np.isnan(xs)
-    if ok.sum() < max(2, len(ts) * 0.25):
+        rows.append(r if r else (np.nan,) * 5)
+    d = np.array(rows, dtype=float)
+    ok = ~np.isnan(d[:, 0])
+    if ok.sum() < max(3, len(ts) * 0.3):
         return None
-    # reject outliers vs. the median, then fill gaps and smooth heavily
-    med = np.nanmedian(xs)
-    ok &= np.abs(np.nan_to_num(xs, nan=med) - med) < 0.22
-    if ok.sum() < 2:
+    med = np.nanmedian(d[:, 0])
+    ok &= np.abs(np.nan_to_num(d[:, 0], nan=med) - med) < 0.2
+    if ok.sum() < 3:
         return None
-    xs = np.interp(ts, ts[ok], xs[ok])
-    ys = np.interp(ts, ts[ok], ys[ok])
+    d = np.stack([np.interp(ts, ts[ok], d[ok, i]) for i in range(5)], 1)
     k = max(1, int(CONFIG["track_smooth"] / step))
-    pad = lambda v: np.pad(v, k, mode="edge")
+    # bounds: take the envelope (widest extent nearby) so heads never clip
+    d[:, 2] = minimum_filter1d(d[:, 2], 2 * k + 1, mode="nearest")
+    d[:, 3] = maximum_filter1d(d[:, 3], 2 * k + 1, mode="nearest")
+    d[:, 4] = minimum_filter1d(d[:, 4], 2 * k + 1, mode="nearest")
     ker = np.hanning(2 * k + 1)
     ker /= ker.sum()
-    xs = np.convolve(pad(xs), ker, "valid")
-    ys = np.convolve(pad(ys), ker, "valid")
-    # blend toward the median: a near-locked-off frame reads more cinematic
+    sm = lambda v: np.convolve(np.pad(v, k, mode="edge"), ker, "valid")
+    d = np.stack([sm(d[:, i]) for i in range(5)], 1)
     lock = CONFIG["track_lock"]
-    xs = xs * (1 - lock) + np.median(xs) * lock
-    ys = ys * (1 - lock) + np.median(ys) * lock
-    # faces sit slightly above centre (rule of thirds-ish headroom)
-    ys = np.clip(ys + CONFIG["headroom"], 0.2, 0.8)
-    return ts, xs, ys
+    for i in (0, 1):  # mostly locked-off camera: blend toward the shot median
+        d[:, i] = d[:, i] * (1 - lock) + np.median(d[:, i]) * lock
+    d[:, 1] = np.clip(d[:, 1] + CONFIG["headroom"], 0.2, 0.8)
+    return (ts, *[d[:, i] for i in range(5)])
 
 
 LUMA = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
@@ -653,8 +685,8 @@ class Reel:
         centre = None
         tr = self.tracks.get(id(s))
         if tr is not None:
-            ts, xs, ys = tr
-            centre = (float(np.interp(t - s.t0, ts, xs)), float(np.interp(t - s.t0, ts, ys)))
+            ts, *cols = tr
+            centre = tuple(float(np.interp(t - s.t0, ts, c)) for c in cols)
         return reframe(src.frame(local), s, p, centre)
 
     def match_for(self, s: Shot):
