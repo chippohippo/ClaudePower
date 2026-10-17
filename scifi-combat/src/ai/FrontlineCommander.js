@@ -12,6 +12,8 @@
 //  * Over the top: squads attacking across their own trench line man it and report ready; the
 //    commander blows one whistle for the whole line (waiting a few seconds for other squads to
 //    get in, at most one wave every 18 s), and every squad ready in that trench goes at once.
+//    With artillery (SupportCommand) the whistle waits for a preparation barrage on the points
+//    ahead, which lifts just before the wave goes.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
@@ -46,6 +48,7 @@ export class FrontlineCommander {
     this.time = 0;
     this.squads = [];
     this.waves = new Map();   // trench id -> { at, ready: Set<SquadTactics>, blown, x, z }
+    this.support = null;      // SupportCommand: shells the objective before the whistle
     this.off = bus.on('mode:sector', () => { this.timer = 0; });
   }
 
@@ -56,7 +59,11 @@ export class FrontlineCommander {
     // Just missed a whistle? Go with it.
     if (this.time - w.blown < 3) { tactics.overTheTop(); return w.blown; }
     w.ready.add(tactics);
-    if (w.at === null) w.at = Math.max(this.time + 6, w.blown + 18);
+    if (w.at === null) {
+      w.at = Math.max(this.time + 6, w.blown + 18);
+      // A preparation barrage first, if the batteries can fire one: the whistle waits for it.
+      w.at += this.support?.prepare(T, tactics.center?.z ?? 0, w.at) ?? 0;
+    }
     return w.at;
   }
 

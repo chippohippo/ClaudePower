@@ -120,8 +120,8 @@ test('batteries reload from a depot within reach, and pay for every round', () =
   runL(s, 5.05);
   assert.equal(gun.gun.ammo, 5, 'a round a second');
   assert.ok(Math.abs(stock0 - L.front(0).stock - 5 * COST.howitzerRound) < 1.01, 'paid');
-  // Far from every depot: no reload.
-  park(gun, new Vector3(0, 0, 0));
+  // Far from every depot of its team (over at the enemy HQ): no reload.
+  park(gun, s.map.hq[1]);
   gun.gun.ammo = 0;
   runL(s, 3);
   assert.equal(gun.gun.ammo, 0);

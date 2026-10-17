@@ -192,7 +192,8 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
         if (d) { sec.depot[team] = d; ruinsAt.push({ x0: d.x - 14, z0: d.z - 14, x1: d.x + 14, z1: d.z + 14 }); }
         if (!parkGuns && !parkAT) continue;
         // Searched as one strip around the middle of the two rows; the front row faces the enemy.
-        const mid = find(sec, team, parkLen, 9 + PARK_ROWS / 2, d ? [-Math.sign(d.z) || -1, Math.sign(d.z) || 1] : [-1, 1]);
+        // Same side as the depot first: ammo has less far to go.
+        const mid = find(sec, team, parkLen, 9 + PARK_ROWS / 2, d ? [Math.sign(d.z) || 1, -Math.sign(d.z) || -1] : [-1, 1]);
         if (mid) {
           const fwd = team === 0 ? 1 : -1;
           sec.park[team] = v(mid.x + fwd * PARK_ROWS / 2, 0, mid.z);

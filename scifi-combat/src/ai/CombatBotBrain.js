@@ -33,6 +33,7 @@ import { angleDelta } from '../core/geom.js';
 import { MeleeDuelistBrain } from './MeleeDuelistBrain.js';
 import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch } from './AbilityPlanner.js';
 import { VehiclePilot } from './VehiclePilot.js';
+import { CrewPilot } from './CrewPilot.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
 const POSITIONAL = new Set(['man', 'hold', 'overwatch', 'stack', 'enter', 'grenade']);
@@ -68,6 +69,9 @@ export class CombatBotBrain {
     this.rand = rng(self.id, seed);
     this.btn = new Buttons();
     this.pilot = new VehiclePilot(this);
+    this.crew = new CrewPilot(this);
+    this.duty = null;                   // { unit, seat }: a gun crew or truck driver (SupportCommand)
+    this.dirtUntil = -1e9;              // a shell is about to land close by: prone until then
     this.duelist = new MeleeDuelistBrain(self, { aggression: persona.aggression, parrySkill: difficulty.parrySkill, reactionTime: difficulty.reactionTime }, this.rand);
     this.duelist.world = world;
     this.time = 0;
@@ -166,9 +170,14 @@ export class CombatBotBrain {
     const ctx = this.#context();
     if (this.decideIn <= 0) this.decideIn = this.diff.decisionInterval * (0.8 + this.rand() * 0.4);
 
+    // ---- incoming! A round about to land close by: hit the dirt until it has.
+    if (!self.vehicle) this.#incoming();
     // ---- after a dive (or a knockdown into prone) bots get straight back up: jump = stand up from prone
     const ms = self.movement.state;
     if (ms.mode === 'ground' && ms.stance === 'prone' && !ms.stanceT && !self.vehicle && this.time - this.proneAt > 0.5) this.btn.press('jump');
+
+    // ---- a crew duty: man our gun or drive our supply truck
+    if (this.duty && this.#duty(dt, ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
 
     // ---- in a vehicle: the pilot owns the command
     if (self.vehicle) {
@@ -180,7 +189,7 @@ export class CombatBotBrain {
     }
 
     // ---- walk to a vehicle we want
-    if (this.vehicleCooldown <= 0 && (this.vehicleGoal || this.decideIn > this.diff.decisionInterval * 0.7)) {
+    if (!this.duty && this.vehicleCooldown <= 0 && (this.vehicleGoal || this.decideIn > this.diff.decisionInterval * 0.7)) {
       const want = this.vehicleGoal && !this.vehicleGoal.removed && this.vehicleGoal.seats.some((s) => !s.occupant) ? this.vehicleGoal : this.pilot.wantVehicle(ctx);
       if (want !== this.vehicleGoal) { this.vehicleGoal = want; this.vehicleGoalTime = 0; }
     }
@@ -234,6 +243,49 @@ export class CombatBotBrain {
     this.arriving = false;
     this.btn.finalize(cmd);
     return cmd;
+  }
+
+  // ---------------------------------------------------------------- crews and shellfire
+  /**
+   * A crew duty (SupportCommand): get to our gun or truck and take our seat; inside, CrewPilot
+   * drives. Returns true when it produced the command, false to fight as infantry instead (an
+   * enemy in our face, or our vehicle not back yet).
+   */
+  #duty(dt, ctx, cmd) {
+    const { unit, seat } = this.duty, self = this.self, cur = unit.pad.current;
+    const v = cur && !cur.removed && !cur.health.dead ? cur : null;
+    if (self.vehicle) {
+      if (v && self.vehicle.veh === v) { this.crew.drive(dt, cmd, v, unit, self.vehicle.seat); return true; }
+      if (self.vehicle.lock <= 0) this.btn.press('interact');     // in someone else's vehicle: out
+      return true;
+    }
+    if (!v || v.gun?.towedBy) return false;
+    if (ctx.target && ctx.los && ctx.dist < 25) return false;
+    // Our seat (a loader takes the commander's if it's empty); somebody in it: any free one.
+    let want = seat === 0 || !v.seats[0].occupant ? 0 : seat;
+    if (v.seats[want]?.occupant) want = v.seats.findIndex((q) => !q.occupant);
+    if (want < 0) return false;
+    const me = self.movement.state.position, bp = this.pilot.boardPoint(v, _b);
+    if (Math.hypot(bp.x - me.x, bp.z - me.z) < 2.6 && this.world.vehicles.nearestEnterable(self) === v) {
+      cmd.seat = want; cmd.yaw = self.movement.state.yaw;
+      this.btn.press('interact');
+      return true;
+    }
+    this.hasMoveDir = false;
+    this.#goTo(cmd, bp, dt, { sprint: true, radius: 1.2 });
+    cmd.yaw = this.aimYaw = Math.atan2(-this.moveDir.x, -this.moveDir.z); cmd.pitch = 0;
+    if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true);   // shoot on the way
+    if (this.hasMoveDir) { this.#worldMove(cmd, this.moveDir); this.#avoidObstacles(cmd); }
+    return true;
+  }
+
+  /** Whistle overhead: a round about to land within a few metres -> prone until just after it does. */
+  #incoming() {
+    const G = this.world.vehicles.guns;
+    if (!G.incoming.length) return;
+    const p = this.self.movement.state.position, s = G.incomingNear(p.x, p.z, 6, 2.4);
+    if (s) this.dirtUntil = Math.max(this.dirtUntil, this.time + s.left + 0.8);
+    if (this.time < this.dirtUntil) this.#stance('prone');
   }
 
   // ---------------------------------------------------------------- downs and revives
@@ -774,6 +826,7 @@ export class CombatBotBrain {
   /** Get to a stance with the same inputs a player has (crouch tap/hold, prone key, jump). */
   #stance(want) {
     const ms = this.self.movement.state;
+    if (this.time < this.dirtUntil) want = 'prone';             // a shell is about to land: stay down
     if (want === 'prone') this.proneAt = this.time;
     if (ms.mode !== 'ground' || ms.stanceT || ms.crouchPress) return;
     const cur = ms.stance;

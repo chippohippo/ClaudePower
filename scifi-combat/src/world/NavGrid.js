@@ -13,6 +13,8 @@
 
 import { Vector3 } from 'three';
 
+const IDLE = 600;            // maintain() calls (~10 s) after which an unused stale field stops being refreshed
+const SOFT = 0.3;            // share of maintain()'s budget for fields whose routes only got better
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DZ = [0, 0, 1, -1, 1, -1, 1, -1];
 const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
@@ -38,6 +40,8 @@ export class NavGrid {
     this.fields = new Map();
     this.stale = new Set();
     this.job = null;                                  // the rebuild maintain() is part-way through
+    this.clock = 0;                                   // maintain() calls: fields remember when they were last asked for
+    this.soft = 0;                                    // bumped when cells only got cheaper (see updateRegion)
     this.syncHeap = new MinHeap(this.nx * this.nz);   // shared search heaps: no 1.6 MB of garbage per solve
     this.jobHeap = new MinHeap(this.nx * this.nz);
     this.#rebuild(0, 0, this.nx - 1, this.nz - 1);
@@ -54,13 +58,34 @@ export class NavGrid {
   }
   blocked(x, z) { const i = this.index(x, z); return i < 0 || this.cost[i] === Infinity; }
 
-  /** Recompute walkability in a world rectangle (cover destroyed or added) and invalidate fields. */
+  /**
+   * Recompute walkability in a world rectangle (cover destroyed or added, ground dug) and
+   * invalidate the flow fields, but only when it matters:
+   *  * a cell got worse (blocked, or costlier): fields refresh first, on the full budget (an old
+   *    route may lead into it);
+   *  * cells only got better (a shell blew a gap in a parapet, wire was cut): the old fields are
+   *    still good, just not the shortest, so they refresh on a small share of the budget (SOFT).
+   *    A barrage then costs a trickle instead of rebuilding every field all the time;
+   *  * nothing changed (a crater on open ground): nothing to do.
+   */
   updateRegion(minX, minZ, maxX, maxZ) {
-    const c = this.cell;
+    const c = this.cell, nx = this.nx;
     const x0 = Math.max(0, Math.floor((minX - this.minX) / c) - 1), z0 = Math.max(0, Math.floor((minZ - this.minZ) / c) - 1);
     const x1 = Math.min(this.nx - 1, Math.floor((maxX - this.minX) / c) + 1), z1 = Math.min(this.nz - 1, Math.floor((maxZ - this.minZ) / c) + 1);
+    const w = x1 - x0 + 1, before = new Float32Array(w * (z1 - z0 + 1));
+    for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) before[(iz - z0) * w + ix - x0] = this.cost[iz * nx + ix];
     this.#rebuild(x0, z0, x1, z1);
-    this.version++;
+    let better = false;
+    for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) {
+      const was = before[(iz - z0) * w + ix - x0], now = this.cost[iz * nx + ix];
+      if (now > was) {
+        this.version++;
+        if (this.job && !this.job.hard) { this.stale.add(this.job.key); this.job = null; }   // drop a slow refresh in progress
+        return;
+      }
+      if (now < was) better = true;
+    }
+    if (better) this.soft++;
   }
 
   #rebuild(x0, z0, x1, z1) {
@@ -128,6 +153,8 @@ export class NavGrid {
   field(key, gx, gz, radius = 4) {
     let f = this.fields.get(key);
     if (f && f.gx === gx && f.gz === gz) {
+      f.used = this.clock;
+      if (f.soft !== this.soft) this.stale.add(key);
       // A stale field stays usable: destroyed cover only opens new routes, so the old ones are
       // still walkable. maintain() refreshes stale fields on a time budget (no hitch per blast).
       if (f.version !== this.version) this.stale.add(key);
@@ -136,6 +163,7 @@ export class NavGrid {
     const job = this.#begin(gx, gz, radius, this.syncHeap);
     this.#advance(job, Infinity);
     f = this.#finish(job, key);
+    f.used = this.clock;
     this.fields.set(key, f);
     return f;
   }
@@ -148,19 +176,31 @@ export class NavGrid {
    * finishes in a few dozen ticks instead of costing one ~20 ms hitch.
    */
   maintain(cells = 4000) {
-    let budget = cells;
+    let budget = cells, soft = Math.min(cells, Math.ceil(cells * SOFT));
+    this.clock++;
     for (;;) {
       if (!this.job) {
-        const key = this.stale.values().next().value;
+        // Fields whose routes got worse go first, then the one asked for most recently. One nobody
+        // has used for a while (a gun's route after it arrived, a truck's while it's parked) is
+        // dropped from the queue and comes back as soon as someone asks for it again.
+        let key, best = -Infinity;
+        for (const k of this.stale) {
+          const f = this.fields.get(k);
+          if (!f || (f.version === this.version && f.soft === this.soft) || this.clock - (f.used ?? -1) > IDLE) { this.stale.delete(k); continue; }
+          const pri = (f.version !== this.version ? 1e12 : 0) + (f.used ?? 0);
+          if (pri > best) { best = pri; key = k; }
+        }
         if (key === undefined) return;
         this.stale.delete(key);
         const old = this.fields.get(key);
-        if (!old || old.version === this.version) continue;
         this.job = this.#begin(old.gx, old.gz, old.radius, this.jobHeap);
         this.job.key = key;
+        this.job.hard = old.version !== this.version;
       }
-      budget = this.#advance(this.job, budget);
-      if (budget < 0) return; // out of budget: resume next call
+      const allow = this.job.hard ? budget : Math.min(budget, soft);
+      const left = this.#advance(this.job, allow);
+      if (left < 0) return; // out of budget: resume next call
+      budget -= allow - left; soft -= allow - left;
       const job = this.job, cur = this.fields.get(job.key);
       this.job = null;
       // Install unless field() re-solved this key for a moved goal in the meantime. Walkability
@@ -185,7 +225,7 @@ export class NavGrid {
       if (Math.hypot(this.minX + (ix + 0.5) * c - gx, this.minZ + (iz + 0.5) * c - gz) > r) continue;
       dist[i] = 0; heap.push(i, 0);
     }
-    return { gx, gz, radius, dist, dir, heap, version: this.version, key: null };
+    return { gx, gz, radius, dist, dir, heap, version: this.version, soft: this.soft, key: null };
   }
 
   /** Expands up to `budget` cells: returns the unused budget when the search completes, -1 if it ran out first. */
@@ -212,7 +252,7 @@ export class NavGrid {
 
   // dir[j] stores the neighbour index pointing back toward i (the step toward the goal).
   #finish(job, key) {
-    return { dist: job.dist, dir: job.dir, version: job.version, key, gx: job.gx, gz: job.gz, radius: job.radius };
+    return { dist: job.dist, dir: job.dir, version: job.version, soft: job.soft, key, gx: job.gx, gz: job.gz, radius: job.radius };
   }
 
   /**

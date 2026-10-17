@@ -142,7 +142,7 @@ test('headless battle: 64 bots fight over the line, capture points, die and rein
   // many reached their current objective at some point.
   const nav = s.map.nav, last = new Map(), reached = new Set();
   let total = 0, gained = 0, enRoute = 0;
-  const steps = 60 * 50;
+  const steps = 60 * 65;   // the opening barrage holds the first wave back ~12 s
   for (let i = 0; i < steps; i++) {
     s.step(1 / 60); if (i > 0) total += s.stats.simMs;
     if (i % 30 !== 0) continue;
@@ -150,6 +150,8 @@ test('headless battle: 64 bots fight over the line, capture points, die and rein
       const o = f.brain.objective, p = f.movement.state.position;
       if (!o || f.health.dead) { last.delete(f.id); continue; }
       if (p.distanceTo(o.pos) < o.radius + 8) reached.add(f.id);
+      // Waiting in the jump-off trench for the whistle (and its barrage) is an order, not a route.
+      if (f.squad?.tactics?.phase === 'jumpoff') { last.delete(f.id); continue; }
       const route = nav.distance(nav.fields.get(o.field), p.x, p.z), prev = last.get(f.id);
       if (prev && prev.id === o.id && prev.route > o.radius * 1.8 && Number.isFinite(route + prev.route)) { gained += prev.route - route; enRoute += 0.5; }
       last.set(f.id, { id: o.id, route });

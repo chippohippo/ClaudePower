@@ -1,5 +1,5 @@
 {
- "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). Every vehicle lists its counterplay.",
+ "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). climb: the tallest obstacle (m) it drives over (tracked and guns 0.5; trucks ride over trench parapets). Every vehicle lists its counterplay.",
  "vehicles": {
   "solari_hoverbike": {
    "name": "Sunrunner Hoverbike",
@@ -1003,7 +1003,8 @@
     "distance": 10,
     "height": 3.6
    },
-   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short."
+   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short.",
+   "climb": 1.0
   },
   "void_supply_truck": {
    "name": "Crawler Supply Hauler",
@@ -1074,7 +1075,8 @@
     "distance": 10,
     "height": 3.6
    },
-   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short."
+   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short.",
+   "climb": 1.0
   }
  },
  "weapons": {
@@ -1386,11 +1388,11 @@
    "audio": "howitzer",
    "artillery": {
     "crater": [
-     2.3,
-     0.95,
-     0.3
+     2.6,
+     0.75,
+     0.12
     ],
-    "cover": 3.2
+    "cover": 3.7
    }
   },
   "bombard_shell": {
@@ -1409,11 +1411,11 @@
    "audio": "bombard",
    "artillery": {
     "crater": [
-     2.6,
-     0.9,
-     0.3
+     2.8,
+     0.8,
+     0.12
     ],
-    "cover": 3.4
+    "cover": 3.9
    }
   },
   "starfall_rocket": {
@@ -1432,11 +1434,11 @@
    "audio": "rocket",
    "artillery": {
     "crater": [
-     1.5,
-     0.55,
-     0.15
+     1.7,
+     0.45,
+     0.08
     ],
-    "cover": 2.0
+    "cover": 2.3
    }
   },
   "swarm_rocket": {
@@ -1455,11 +1457,11 @@
    "audio": "rocket",
    "artillery": {
     "crater": [
-     1.5,
-     0.55,
-     0.15
+     1.7,
+     0.45,
+     0.08
     ],
-    "cover": 2.0
+    "cover": 2.3
    }
   },
   "lance_slug": {

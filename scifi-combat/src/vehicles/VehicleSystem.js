@@ -131,7 +131,10 @@ export class VehicleSystem {
     }
     if (cmd.buttons.interact?.pressed) {
       const v = this.nearestEnterable(e);
-      if (v) return this.enter(e, v);
+      if (!v) return false;
+      const want = cmd.seat;           // a crew member asks for its own seat (commander, loader)
+      if (want != null && v.seats[want] && !v.seats[want].occupant) return this.enter(e, v, want);
+      return this.enter(e, v);
     }
     return false;
   }
@@ -276,8 +279,8 @@ export class VehicleSystem {
   #support(v, k) {
     const s = v.movement.state, d = v.def, hl = (d.size?.z ?? 2) * 0.5 * k, hw = (d.size?.x ?? 1) * 0.5 * k;
     // Box tops the hull can get onto count as ground: what a hover skims (1.5 m), what tracks
-    // climb (0.5 m; anything taller stops them, or is crushed).
-    const base = s.position.y - (d.hoverHeight ?? 0), probeY = d.model === 'tracked' ? base - 1 : base;
+    // climb (0.5 m; anything taller stops them, or is crushed), what a truck rides over (`climb`).
+    const base = s.position.y - (d.hoverHeight ?? 0), probeY = d.model === 'hover' || d.model === 'flyer' ? base : base + (d.climb ?? 0.5) - 1.5;
     let best = -Infinity;
     for (const [lx, lz] of [[0, 0], [0, -hl], [0, hl], [-hw, 0], [hw, 0]]) {
       localToWorld(_p, s.position, v.yaw, [lx, 0, lz]);
@@ -395,7 +398,7 @@ export class VehicleSystem {
           continue;
         }
       }
-      if (b.max.y <= base + (d.model === 'tracked' || d.model === 'gun' ? 0.5 : 1.2)) continue;
+      if (b.max.y <= base + (d.model === 'tracked' || d.model === 'gun' ? d.climb ?? 0.5 : 1.2)) continue;
       if (d.model === 'flyer' && base > b.max.y) continue;
       const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
       let nx = s.position.x - cx, nz = s.position.z - cz;

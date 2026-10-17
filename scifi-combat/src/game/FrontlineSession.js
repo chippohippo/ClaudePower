@@ -31,6 +31,7 @@ import { Suppression } from '../ai/tactics/Suppression.js';
 import { SquadTactics } from '../ai/tactics/SquadTactics.js';
 import { FortifySystem } from './frontline/Fortify.js';
 import { Logistics, COST } from './frontline/Logistics.js';
+import { SupportCommand } from '../ai/SupportCommand.js';
 import { parkSlot } from './frontline/FrontlineMap.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
@@ -90,6 +91,13 @@ export class FrontlineSession {
       this.world.vehicles.payFor = (pad) => this.logistics.spend(pad.team, COST[pad.kind] ?? 0, pad.kind ?? 'vehicle');
       this.fortify.pay = (team) => this.logistics.spend(team, COST.sandbags, 'sandbags');
     }
+    // Gun crews and truck drivers: the bots set aside in the roster take their units.
+    this.support = this.map.support ? [0, 1].map((t) => new SupportCommand(t, { world: this.world, map: this.map, mode: this.mode, logistics: this.logistics })) : null;
+    for (const sc of this.support ?? []) {
+      const crews = this.fighters.filter((f) => f.team === sc.team && f.crewPending);
+      sc.crewSlots(players).forEach((slot, i) => { if (crews[i]) sc.assign(crews[i], slot.unit, slot.seat); });
+      this.commanders[sc.team].support = sc;
+    }
     // Flow fields for every point up front (~25 ms each), so orders never hitch mid-battle.
     for (const p of this.map.points) this.map.nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
     this.off = [bus.on('entity:death', (e) => this.#onDeath(e)), bus.on('mode:front', () => this.#motorPools())];
@@ -98,6 +106,7 @@ export class FrontlineSession {
       const at = this.mode.spawnPosition(team, () => false, new Vector3());
       for (const f of sq.members) this.#deploy(f, true, at);
     }
+    for (const f of this.fighters) if (f.duty) this.#deploy(f, true);   // crews start beside their guns and trucks
     this.world.refreshSpatial();
     for (const c of this.commanders) c.update(0);
   }
@@ -107,6 +116,7 @@ export class FrontlineSession {
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
     this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
+    for (const sc of this.support ?? []) sc.dispose();
   }
 
   #roster(players, humans) {
@@ -132,14 +142,24 @@ export class FrontlineSession {
           this.bots.push(f);
         }
       }
+      // Gun crews and truck drivers come out of the infantry (the last bots of the roster).
+      const crew = this.#crewCount(team, players), bots = this.fighters.filter((f) => f.team === team && f.brain);
+      for (const f of bots.slice(Math.max(0, bots.length - crew))) f.crewPending = true;
       // Squads in roster order (humans lead their squad).
-      const members = this.fighters.filter((f) => f.team === team), n = this.squadSize;
+      const members = this.fighters.filter((f) => f.team === team && !f.crewPending), n = this.squadSize;
       for (let i = 0; i < members.length; i += n) {
         const sq = new Squad(team, this.squads[team].length, members.slice(i, i + n));
         for (const m of sq.members) m.squad = sq;
         this.squads[team].push(sq);
       }
     }
+  }
+
+  /** Crew needed for a team's guns and trucks (one each; howitzers get a loader at 200v200). */
+  #crewCount(team, players) {
+    let n = 0;
+    for (const p of this.map.pads) if (p.team === team && (p.group === 'park' || p.group === 'hq')) n += p.kind === 'howitzer' && players >= 256 ? 2 : 1;
+    return Math.min(n, Math.floor(players / 2 * 0.3));
   }
 
   /** A human's command for the next tick (from InputManager). */
@@ -173,6 +193,7 @@ export class FrontlineSession {
     this.logistics?.update(dt, this.fighters);
     this.mode.update(dt, this.fighters, w);
     for (const c of this.commanders) c.update(dt);
+    for (const sc of this.support ?? []) sc.update(dt);
     this.suppression.update(dt, this.fighters);
     for (const team of this.squads) for (const sq of team) sq.tactics.update(dt);
     this.#reinforce(dt);
@@ -272,14 +293,16 @@ export class FrontlineSession {
     const pos = new Vector3();
     const lead = f.squad?.leader;
     // On the squad leader when it's safe (alive, on foot, not under fire, no enemy close).
+    const duty = f.duty?.unit, dutyAt = duty && (duty.pad.current && !duty.pad.current.removed ? duty.pad.current.movement.state.position : duty.pad.at);
     if (near) pos.set(near.x + (this.mode.rand() - 0.5) * 7, 0, near.z + (this.mode.rand() - 0.5) * 7);
+    else if (dutyAt && !enemiesNear(dutyAt)) pos.set(dutyAt.x + 5 + this.mode.rand() * 3, 0, dutyAt.z + (this.mode.rand() - 0.5) * 6);   // crews come back beside their unit
     else if (!initial && lead && lead !== f && !lead.vehicle && !lead.health.dead && !lead.health.downed && lead.health.sinceDamage > 3 && !enemiesNear(lead.movement.state.position)) {
       const lp = lead.movement.state.position;
       pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);
     } else this.#squadSpawn(f, enemiesNear, pos);
     // Deploy in a vehicle (Battlefront): a reinforcement who likes vehicles may take the wheel of
     // an empty one waiting in the motor pool instead of walking up.
-    const ride = !initial && f.brain ? this.#vehicleFor(f) : null;
+    const ride = !initial && f.brain && !f.duty ? this.#vehicleFor(f) : null;
     if (ride) pos.copy(ride.movement.state.position).add(new Vector3(ride.def.radius + 0.6, 0, 0));
     pos.y = w.groundHeight(new Vector3(pos.x, pos.y + 50, pos.z));
     f.movement.reset(pos, team === 0 ? -Math.PI / 2 : Math.PI / 2);

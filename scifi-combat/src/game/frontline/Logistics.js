@@ -28,8 +28,8 @@ export const COST = {
 };
 const RATE = 25;                 // supplies a second a truck loads or unloads
 const DEPOT_R = 10, HQ_R = 13;   // metres: a truck parked inside a depot is loading or unloading
-const BATTERY_REACH = 150;       // metres from a depot that ammo carriers will run shells
-const SHELL_BURN = 14;           // stock a shell burns when it lands in a depot (scaled by its burst)
+const BATTERY_REACH = 320;       // metres from a depot that ammo carriers will run shells (AT guns sit up by the line)
+const SHELL_BURN = 8;            // stock a shell burns when it lands in a depot (scaled by its burst)
 const DIR = [1, -1];
 
 export class Logistics {
