@@ -63,6 +63,10 @@ CONFIG = {
 
     # Look
     "log_footage": True,
+    "auto_frame": True,          # track faces/people and keep them centred
+    "track_smooth": 1.2,         # seconds of smoothing on the tracked framing
+    "track_lock": 0.35,          # 0 = follow subject freely, 1 = fixed per shot
+    "headroom": 0.08,            # how far below the faces the crop centre sits
     "match_luma": 0.40,          # every shot is exposure-matched to this median
     "match_wb": 0.6,             # 0..1 strength of white-balance matching         # True for S-Log/flat footage (Sony FX3 etc.)
     "contrast": 1.0,             # style intensity multipliers (0 = off, 1 = default)
@@ -103,6 +107,7 @@ class Shot:
     pan: float = 0.0             # horizontal drift over the shot (-0.1..0.1)
     speed: float = 1.0           # <1 slow motion (frame-sampled), >1 speed ramp
     cut: str = "dissolve"        # "dissolve" | "cut" | "flash" (into this shot)
+    track: bool = True           # auto-frame on detected faces (x/y are fallback)
     # filled by the timeline
     t0: float = 0.0
     t1: float = 0.0
@@ -247,7 +252,7 @@ def ease_out(x: float) -> float:
     return 1 - (1 - x) ** 3
 
 
-def reframe(img: np.ndarray, shot: Shot, p: float) -> np.ndarray:
+def reframe(img: np.ndarray, shot: Shot, p: float, centre=None) -> np.ndarray:
     """Crop a 9:16 window from the source (with zoom/pan at progress p)."""
     W, H = CONFIG["width"], CONFIG["height"]
     ih, iw = img.shape[:2]
@@ -256,13 +261,109 @@ def reframe(img: np.ndarray, shot: Shot, p: float) -> np.ndarray:
     # biggest 9:16 window that fits, then shrink it by the zoom factor
     base_w = min(iw, ih * W / H)
     cw, ch = base_w / scale, base_w / scale * H / W
-    cx = (shot.x + shot.pan * (ease(p) - 0.5)) * iw
-    cy = shot.y * ih
+    fx, fy = centre if centre is not None else (shot.x, shot.y)
+    cx = (fx + shot.pan * (ease(p) - 0.5)) * iw
+    cy = fy * ih
     x0 = min(max(cx - cw / 2, 0), iw - cw)
     y0 = min(max(cy - ch / 2, 0), ih - ch)
     pil = Image.fromarray((img * 255).astype(np.uint8))
     out = pil.resize((W, H), Image.BICUBIC, box=(x0, y0, x0 + cw, y0 + ch))
     return np.asarray(out, dtype=np.float32) / 255.0
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Subject tracking (auto-framing)
+# ════════════════════════════════════════════════════════════════════════════
+_detectors = {}
+
+
+def _cv2():
+    try:
+        import cv2
+    except ImportError:
+        return None
+    if not _detectors:
+        d = cv2.data.haarcascades
+        _detectors["front"] = cv2.CascadeClassifier(d + "haarcascade_frontalface_default.xml")
+        _detectors["profile"] = cv2.CascadeClassifier(d + "haarcascade_profileface.xml")
+        hog = cv2.HOGDescriptor()
+        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+        _detectors["people"] = hog
+    return cv2
+
+
+def find_subject(img: np.ndarray):
+    """Return (x, y, weight) of the subject in normalised coords, or None.
+    Faces win (area-weighted centre of all faces, so a couple stays centred
+    between them); full-body detection is the fallback for wide shots."""
+    cv2 = _cv2()
+    if cv2 is None:
+        return None
+    small = (np.clip(develop(img[::2, ::2]), 0, 1) * 255).astype(np.uint8)
+    h, w = small.shape[:2]
+    gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_RGB2GRAY))
+    ms = max(28, h // 18)
+    boxes = list(_detectors["front"].detectMultiScale(gray, 1.1, 6, minSize=(ms, ms)))
+    boxes += list(_detectors["profile"].detectMultiScale(gray, 1.1, 6, minSize=(ms, ms)))
+    flip = gray[:, ::-1].copy()
+    boxes += [(w - x - bw, y, bw, bh) for x, y, bw, bh in
+              _detectors["profile"].detectMultiScale(flip, 1.1, 6, minSize=(ms, ms))]
+    if boxes:
+        b = np.array(boxes, dtype=float)
+        a = b[:, 2] * b[:, 3]
+        keep = a > a.max() * 0.25            # ignore tiny background faces
+        b, a = b[keep], a[keep]
+        cx = ((b[:, 0] + b[:, 2] / 2) * a).sum() / a.sum() / w
+        cy = ((b[:, 1] + b[:, 3] / 2) * a).sum() / a.sum() / h
+        return cx, cy, 1.0
+    q = cv2.resize(small, (w // 2, h // 2))
+    rects, wts = _detectors["people"].detectMultiScale(q, winStride=(8, 8), scale=1.06)
+    if len(rects):
+        r = np.array(rects, dtype=float)
+        wt = np.asarray(wts, dtype=float).ravel()
+        i = int(np.argmax(wt))
+        if wt[i] > 0.4:
+            # centre on all confident people (couples / groups), head-ish height
+            good = r[wt > wt[i] * 0.5]
+            cx = (good[:, 0] + good[:, 2] / 2).mean() / q.shape[1]
+            cy = (good[:, 1] + good[:, 3] * 0.3).mean() / q.shape[0]
+            return cx, cy, 0.5
+    return None
+
+
+def track_shot(src, s: "Shot", span: float, step: float = 0.25):
+    """Sample the shot, detect the subject, and return a smoothed x(t), y(t)."""
+    ts = np.arange(0, span + 1e-6, step)
+    xs, ys, ws = [], [], []
+    for t in ts:
+        r = find_subject(src.frame(s.start + t * s.speed))
+        xs.append(r[0] if r else np.nan)
+        ys.append(r[1] if r else np.nan)
+        ws.append(r[2] if r else 0)
+    xs, ys = np.array(xs), np.array(ys)
+    ok = ~np.isnan(xs)
+    if ok.sum() < max(2, len(ts) * 0.25):
+        return None
+    # reject outliers vs. the median, then fill gaps and smooth heavily
+    med = np.nanmedian(xs)
+    ok &= np.abs(np.nan_to_num(xs, nan=med) - med) < 0.22
+    if ok.sum() < 2:
+        return None
+    xs = np.interp(ts, ts[ok], xs[ok])
+    ys = np.interp(ts, ts[ok], ys[ok])
+    k = max(1, int(CONFIG["track_smooth"] / step))
+    pad = lambda v: np.pad(v, k, mode="edge")
+    ker = np.hanning(2 * k + 1)
+    ker /= ker.sum()
+    xs = np.convolve(pad(xs), ker, "valid")
+    ys = np.convolve(pad(ys), ker, "valid")
+    # blend toward the median: a near-locked-off frame reads more cinematic
+    lock = CONFIG["track_lock"]
+    xs = xs * (1 - lock) + np.median(xs) * lock
+    ys = ys * (1 - lock) + np.median(ys) * lock
+    # faces sit slightly above centre (rule of thirds-ish headroom)
+    ys = np.clip(ys + CONFIG["headroom"], 0.2, 0.8)
+    return ts, xs, ys
 
 
 LUMA = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
@@ -489,8 +590,19 @@ class Reel:
         print("• building timeline")
         self.beats = beat_grid(project.music, project.music_start, total)
         build_timeline(project.shots, self.beats, total)
+        self.tracks = {}
+        if CONFIG["auto_frame"] and _cv2() is not None:
+            print("• tracking subjects")
         for i, s in enumerate(project.shots):
-            print(f"   {i:2d}  {s.t0:6.2f}–{s.t1:6.2f}s  {os.path.basename(s.path)} @ {s.start:.1f}s")
+            info = ""
+            if CONFIG["auto_frame"] and s.track and _cv2() is not None:
+                tr = track_shot(self.source(s.path), s, s.t1 - s.t0 + CONFIG["crossfade"])
+                if tr is not None:
+                    self.tracks[id(s)] = tr
+                    info = f"  framed x≈{np.median(tr[1]):.2f}"
+                else:
+                    info = "  (no subject found, using x/y)"
+            print(f"   {i:2d}  {s.t0:6.2f}–{s.t1:6.2f}s  {os.path.basename(s.path)} @ {s.start:.1f}s{info}")
 
     def source(self, path: str, keep: int = 3) -> Source:
         src = self.sources[path]
@@ -509,7 +621,12 @@ class Reel:
         span = (s.t1 - s.t0) + xf
         p = (t - s.t0) / span
         local = s.start + (t - s.t0) * s.speed
-        return reframe(src.frame(local), s, p)
+        centre = None
+        tr = self.tracks.get(id(s))
+        if tr is not None:
+            ts, xs, ys = tr
+            centre = (float(np.interp(t - s.t0, ts, xs)), float(np.interp(t - s.t0, ts, ys)))
+        return reframe(src.frame(local), s, p, centre)
 
     def match_for(self, s: Shot):
         if not hasattr(s, "_match"):
