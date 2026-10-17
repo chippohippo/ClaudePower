@@ -1,0 +1,216 @@
+{
+  "_note": "The art direction's colors and look settings (docs/ART_DIRECTION.md). Planet presets set the sky, sun, fog, ground and post-processing; factions set the trooper paint; materials, vfx and ui are shared. Colors are sRGB hex.",
+  "planets": {
+    "scorched": {
+      "name": "Scorched Ash Front",
+      "sky": {
+        "zenith": "#2e221e",
+        "upper": "#6d3f2b",
+        "horizon": "#cf7438",
+        "below": "#5a3a28",
+        "haze": "#e8a066",
+        "streaks": "#8a5236"
+      },
+      "sun": {
+        "color": "#ffd8ad",
+        "intensity": 3.2,
+        "elevation": 13,
+        "azimuth": 152,
+        "disk": "#fff2d8",
+        "halo": "#ff9a52",
+        "size": 1.6
+      },
+      "moon": {
+        "elevation": 27,
+        "azimuth": 28,
+        "size": 9.5,
+        "color": "#cdb497",
+        "shade": "#5c4636",
+        "ring": "#d9c2a0",
+        "haze": 0.55
+      },
+      "fill": {
+        "sky": "#b8916c",
+        "ground": "#4d3c2d",
+        "intensity": 0.9,
+        "bounce": "#caa27c",
+        "bounceIntensity": 0.55,
+        "env": 0.75
+      },
+      "fog": {
+        "color": "#b8875a",
+        "sunColor": "#ffc283",
+        "density": 0.0021,
+        "heightFalloff": 0.028,
+        "base": -2,
+        "sunPower": 10
+      },
+      "ground": {
+        "dust": "#b39265",
+        "earth": "#8a6a48",
+        "rock": "#5d4e45",
+        "scorch": "#463a31",
+        "ash": "#7a726a",
+        "mud": "#46382c",
+        "grass": "#8f7745"
+      },
+      "ash": {
+        "count": 1600,
+        "color": "#d8d0c6",
+        "ember": "#ff8a3a",
+        "embers": 0.04,
+        "fall": 0.55,
+        "drift": [
+          0.9,
+          0.25
+        ]
+      },
+      "smokeColumns": [
+        {
+          "azimuth": 40,
+          "distance": 1300,
+          "height": 380,
+          "width": 70
+        },
+        {
+          "azimuth": 95,
+          "distance": 1700,
+          "height": 520,
+          "width": 110
+        },
+        {
+          "azimuth": 158,
+          "distance": 1500,
+          "height": 300,
+          "width": 60
+        },
+        {
+          "azimuth": 250,
+          "distance": 1800,
+          "height": 450,
+          "width": 90
+        },
+        {
+          "azimuth": 318,
+          "distance": 1400,
+          "height": 340,
+          "width": 75
+        }
+      ],
+      "post": {
+        "exposure": 0.95,
+        "bloom": {
+          "strength": 0.5,
+          "radius": 0.55,
+          "threshold": 0.95
+        },
+        "godRays": {
+          "strength": 0.9,
+          "decay": 0.955,
+          "density": 0.85,
+          "samples": 48,
+          "color": "#ffbf80"
+        },
+        "grade": {
+          "lift": [
+            0.03,
+            0.04,
+            0.055
+          ],
+          "gamma": [
+            1.0,
+            1.0,
+            1.03
+          ],
+          "gain": [
+            1.02,
+            1.0,
+            0.96
+          ],
+          "saturation": 0.88,
+          "contrast": 1.12
+        },
+        "vignette": 0.42,
+        "grain": 0.04,
+        "aberration": 0.0015
+      },
+      "_axes": "Azimuth in degrees clockwise from north (-Z) seen from above: 90 = east (+X, where Solari attack). Elevation in degrees above the horizon."
+    }
+  },
+  "factions": {
+    "solari": {
+      "name": "Solari Shock Troopers",
+      "armor": "#d6a01e",
+      "armorShade": "#9c720f",
+      "black": "#1b1b1e",
+      "suit": "#232326",
+      "gear": "#3a362e",
+      "webbing": "#2c2a25",
+      "stencil": "#efe7d2",
+      "stripe": "#141416",
+      "cape": "#7a1c14",
+      "capeTrim": "#d6a01e",
+      "visor": "#ffba3f",
+      "visorGlass": "#1d1712",
+      "lamp": "#ffe4a6",
+      "metal": "#3d3f44"
+    },
+    "void": {
+      "name": "Void Legion",
+      "armor": "#5a3591",
+      "armorShade": "#3b2263",
+      "black": "#19171d",
+      "suit": "#211f26",
+      "gear": "#36323d",
+      "webbing": "#28252d",
+      "stencil": "#d2bff3",
+      "stripe": "#131117",
+      "cape": "#1f1629",
+      "capeTrim": "#9a76de",
+      "visor": "#b98cff",
+      "visorGlass": "#140f1d",
+      "lamp": "#e3d4ff",
+      "metal": "#37353d"
+    }
+  },
+  "materials": {
+    "gunmetal": "#25262a",
+    "steel": "#6b6f77",
+    "brass": "#a88954",
+    "rubber": "#151515",
+    "canvas": "#6e6450",
+    "sandbag": "#a68e66",
+    "timber": "#6c4f32",
+    "concrete": "#8a8478",
+    "rust": "#7b3f22",
+    "hazardYellow": "#e2b22a",
+    "hazardBlack": "#18181a"
+  },
+  "vfx": {
+    "muzzle": "#ffe0a0",
+    "fireHot": "#fff2c8",
+    "fire": "#ff8a2a",
+    "fireDeep": "#d9440f",
+    "smokeDark": "#2a2420",
+    "smokeLight": "#80746a",
+    "dirt": "#6b5236",
+    "dust": "#b9976a",
+    "spark": "#ffc56b",
+    "tracer": [
+      "#ffd36b",
+      "#c59bff"
+    ],
+    "blood": "#5e1410"
+  },
+  "ui": {
+    "accent": "#ffe14d",
+    "accentDeep": "#f2b632",
+    "text": "#f4f1e8",
+    "dim": "#a9a49a",
+    "panel": "rgba(11,12,14,0.78)",
+    "line": "rgba(255,225,77,0.35)",
+    "alert": "#ff4d40",
+    "friendly": "#7fd1ff",
+    "enemy": "#ff5a4f"
+  }
+}

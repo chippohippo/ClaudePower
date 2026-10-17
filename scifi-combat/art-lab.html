@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emberfall Art Lab</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #120d0b; font: 13px/1.45 system-ui, sans-serif; color: #f4f1e8; }
+    #bar { position: fixed; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 70vw; z-index: 2; }
+    #bar button { background: rgba(11,12,14,0.78); color: #f4f1e8; border: 1px solid rgba(255,225,77,0.35); padding: 4px 10px; font: 600 12px system-ui; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
+    #bar button.on { background: #ffe14d; color: #111; }
+    #note { position: fixed; left: 10px; bottom: 10px; background: rgba(11,12,14,0.78); padding: 6px 10px; max-width: 60vw; border-left: 3px solid #ffe14d; z-index: 2; }
+    #sheet { position: fixed; inset: 0; overflow: auto; padding: 56px 28px 28px; display: none; background: radial-gradient(ellipse at 50% 0%, #3b2418 0%, #120d0b 70%); }
+    #sheet h1 { font: 800 30px system-ui; letter-spacing: 0.08em; text-transform: uppercase; color: #ffe14d; margin: 0 0 4px; }
+    #sheet h2 { font: 700 15px system-ui; letter-spacing: 0.12em; text-transform: uppercase; color: #f2b632; margin: 22px 0 8px; border-bottom: 1px solid rgba(255,225,77,0.25); padding-bottom: 4px; }
+    #sheet .row { display: flex; flex-wrap: wrap; gap: 10px; }
+    #sheet .sw { width: 124px; }
+    #sheet .sw i { display: block; height: 56px; border: 1px solid #0006; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+    #sheet .sw b { display: block; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    #sheet .sw small { color: #a9a49a; font-family: ui-monospace, monospace; }
+    #sheet .grad { height: 46px; border: 1px solid #0006; margin: 6px 0; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="bar"></div>
+  <div id="sheet"></div>
+  <div id="note"></div>
+  <script type="module" src="./src/artlab.js"></script>
+</body>
+</html>

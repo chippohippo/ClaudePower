@@ -4,22 +4,25 @@
 //    far (data: `lods`). Each chunk keeps only its current geometry; at most `budget` chunks
 //    rebuild per frame (a teleport never hitches), with hysteresis so borders don't flicker.
 //  * Skirts: every chunk edge drops a strip `skirt` metres down, hiding cracks between LODs.
-//  * Vertex colors: grass → dirt → rock by slope, darker with height, and mud wherever the ground
-//    was dug (trench floors, shell craters, foxholes: terrain.dug).
+//  * Vertex colors from a ground palette (palette.json): dust on the flats, earth on slopes, rock
+//    on the steep, mud wherever the ground was dug (trench floors, craters, foxholes:
+//    terrain.dug), and black scorch and grey ash where `scorch(x, z)` says shells burned it.
 //  * invalidate(region): runtime digging (fortification) rebuilds just the chunks it touches.
 
 import * as THREE from 'three';
 
-const GRASS = new THREE.Color('#4a5a3a'), DIRT = new THREE.Color('#6b5a44'), ROCK = new THREE.Color('#6d6f73'), MUD = new THREE.Color('#3f3326');
+const DEFAULT_GROUND = { dust: '#4a5a3a', earth: '#6b5a44', rock: '#6d6f73', mud: '#3f3326', scorch: '#2b231e', ash: '#6f6862' };
 
 export class TerrainChunks {
   /**
    * @param {THREE.Scene} scene
    * @param {Terrain} terrain
-   * @param {object} o { material, chunk (m), lods: [{ step, dist }], skirt, budget, colorScale }
+   * @param {object} o { material, chunk (m), lods: [{ step, dist }], skirt, budget, colorScale, ground: palette colors, scorch: (x, z) -> 0..1 }
    */
-  constructor(scene, terrain, { material, chunk = 128, lods = [{ step: 1, dist: 140 }, { step: 2, dist: 340 }, { step: 8, dist: Infinity }], skirt = 2, budget = 2, colorScale = 1 } = {}) {
+  constructor(scene, terrain, { material, chunk = 128, lods = [{ step: 1, dist: 140 }, { step: 2, dist: 340 }, { step: 8, dist: Infinity }], skirt = 2, budget = 2, colorScale = 1, ground = DEFAULT_GROUND, scorch = null } = {}) {
     this.t = terrain; this.material = material; this.lods = lods; this.skirt = skirt; this.budget = budget; this.colorScale = colorScale;
+    this.pal = Object.fromEntries(Object.entries({ ...DEFAULT_GROUND, ...ground }).map(([k, v]) => [k, new THREE.Color(v)]));
+    this.scorch = scorch;
     this.size = chunk;
     const per = Math.round(chunk / terrain.res);
     this.per = per;
@@ -82,10 +85,17 @@ export class TerrainChunks {
       pos[k * 3] = x; pos[k * 3 + 1] = h - drop; pos[k * 3 + 2] = z;
       t.normal(x, z, n);
       nor[k * 3] = n.x; nor[k * 3 + 1] = n.y; nor[k * 3 + 2] = n.z;
-      const slope = (Math.acos(Math.min(1, n.y)) * 180) / Math.PI;
-      cc.copy(GRASS).lerp(DIRT, Math.min(1, Math.max(0, (slope - 6) / 14))).lerp(ROCK, Math.min(1, Math.max(0, (slope - 24) / 12)));
+      const slope = (Math.acos(Math.min(1, n.y)) * 180) / Math.PI, G = this.pal;
+      cc.copy(G.dust).lerp(G.earth, Math.min(1, Math.max(0, (slope - 6) / 14))).lerp(G.rock, Math.min(1, Math.max(0, (slope - 24) / 12)));
+      // Broad patches: dust drifts in the hollows, earth shows on the rises.
+      const patch = Math.sin(x * 0.031 + Math.sin(z * 0.017) * 2.0) * Math.sin(z * 0.027 + Math.sin(x * 0.021) * 1.7);
+      cc.lerp(G.earth, Math.max(0, patch) * 0.35);
       const dug = t.dug[iz * t.nx + ix];
-      if (dug > 0.05) cc.lerp(MUD, Math.min(1, dug / 0.45));
+      if (dug > 0.05) cc.lerp(G.mud, Math.min(1, dug / 0.45));
+      if (this.scorch) {
+        const sc = this.scorch(x, z);
+        if (sc > 0.01) cc.lerp(G.ash, Math.min(1, sc * 1.6) * 0.5).lerp(G.scorch, Math.min(0.8, Math.max(0, sc - 0.35) * 1.3));
+      }
       cc.multiplyScalar((0.9 + Math.sin(x * 0.13) * Math.sin(z * 0.11) * 0.06 + h / 40) * this.colorScale);
       col[k * 3] = cc.r; col[k * 3 + 1] = cc.g; col[k * 3 + 2] = cc.b;
       uv[k * 2] = x / 6; uv[k * 2 + 1] = z / 6;
