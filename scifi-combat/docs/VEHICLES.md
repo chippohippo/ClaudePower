@@ -1,9 +1,11 @@
 # Vehicles
 
 Companion to [ARCHITECTURE.md](ARCHITECTURE.md) and [ABILITIES.md](ABILITIES.md).
-Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vfx/VehicleViews.js` (graybox views) ·
-bot drivers: `src/ai/VehiclePilot.js` · data: `data/vehicles.json` · tests: `tests/vehicles.test.mjs`
-(and `tests/squads.test.mjs` for armor in the trench war).
+Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vehicles/FieldGuns.js` (crew-served guns) ·
+`src/vfx/VehicleViews.js` (graybox views) · bot drivers: `src/ai/VehiclePilot.js`, gun crews and
+truck drivers: `src/ai/CrewPilot.js` · fire control: `src/ui/FireControl.js` · data:
+`data/vehicles.json` · tests: `tests/vehicles.test.mjs`, `tests/artillery.test.mjs` (and
+`tests/squads.test.mjs` for armor in the trench war).
 
 ## Roster
 
@@ -15,6 +17,49 @@ bot drivers: `src/ai/VehiclePilot.js` · data: `data/vehicles.json` · tests: `t
 | Monolith Crawler | Void | tracked | 2600 | driver, gunner | Rift Mortar (arcing, pulls) · Leech Beam | Mortar arcs slowly; rear vent weak spot |
 | Dawnship Dropship | Solari | flyer | 3000 | pilot, door gunner, 4 passengers | Wing Cannons · Door Gun | Ambush the landing zone; Gravity Flak or Root makes it sink |
 | Rift Carrier | Void | flyer | 2800 | pilot, door gunner, 4 passengers | Void Lances · Door Gun | Same as the Dawnship |
+| Sunhammer Field Gun / Rift Bombard | Solari / Void | towed howitzer | 1100 / 1000 | commander, loader | 320 / 300 shell, 9 / 10.5 m burst, 16 rounds | Counter-battery fire (it gives itself away firing); it can't move once set up; crews out in the open |
+| Starfall / Swarm Rocket Battery | Solari / Void | self-propelled | 1500 | commander, loader | 16-rocket salvo (170 / 160, 6.5 / 7 m), 48 rockets | 28 s reload between salvos; wide scatter; anchored while set up |
+| Lance AT Gun / Spike Cannon | Solari / Void | towed AT gun | 700 / 650 | commander, loader | 460 antitank slug (×2.2 on armor), 20 rounds | Low and slow to swing (14°/s past its 30° arc); shell it or flank it |
+| Hauler / Crawler Supply Truck | Solari / Void | truck | 1000 | driver, 2 passengers | 150 supplies | Its cargo burns with it: interdict the road |
+
+## Field guns (`FieldGuns`)
+
+Crew-served guns are vehicles with a `gun` block. Towed guns move at a walk (2.4 m/s for a
+howitzer, 3.2 for an AT gun) while the commander pushes them with tank controls, or they follow a
+truck: **H** in a truck hitches the gun behind it. Rocket batteries drive themselves (11 m/s).
+
+| | Howitzer | Rocket battery | AT gun |
+|---|---|---|---|
+| Set up / pack up (H) | 4.5–5 s / 3.5 s | 3 s / 2.5 s | 1.6 s / 1.4 s |
+| Traverse, then swinging the carriage | ±30°, then 6°/s | ±40° | ±30°, then 14°/s |
+| Fire | indirect, at a marked point; every round comes down at 52° | indirect, 45°, a 16-rocket ripple | direct, along the commander's aim (330 m/s, slight drop) |
+| Range | ~55 m – 1.6 km | ~170 m – 1.5 km | as far as you can see |
+| Scatter (1σ) | 4 m + 0.8% of the range | 9 m + 2% of the range | 0.07° |
+| Reload | 5.5–6 s (faster with a loader) | 28 s per salvo | 3.2 s |
+
+- **Indirect fire:** the fire-control computer solves the charge (muzzle speed) that puts the round
+  on the mark at the gun's fixed arc: `v² = gR² / (2 cos²θ (R tanθ − Δh))`. The gun fires once the
+  barrel is laid and a round is loaded, as long as fire is held.
+- **Shells** fly as real projectiles with gravity. On impact they crater the ground (no deeper than
+  a soldier can climb out of), destroy cover within the burst, cut wire, and update the nav grid.
+  A round that bursts on hard cover doesn't crater. Every round in the air is listed in
+  `incoming` with where and when it lands: the audio plays its whistle, and soldiers under it go
+  prone.
+- **Ammo:** rounds carried up to `ammoMax`; Logistics refills them from a depot within 320 m.
+- **Supply trucks** carry 150 supplies. Standing still in a depot they load or unload by themselves.
+  The cargo is shown as crates in the bed, and a destroyed truck loses it.
+
+**Fire control** (`FireControl`, presentation only: the sim gets the same `Command` a bot sends):
+
+- **Howitzer or rocket battery** (set up, commander's seat): the view goes overhead over the mark.
+  The mouse moves the mark (faster the further out it is). On screen are the predicted arc, the
+  2σ scatter ring, range, flight time, spread, rounds left and the loading bar. The gun's state
+  reads laying, ready, loading, out of range, too close, or swinging the trail. Hold fire to keep
+  shooting.
+- **AT gun:** the normal camera plus a second reticle where the barrel really points (it lays at its
+  own rate).
+- **Any gun:** setting-up and packing-up progress, and what H does next.
+- **Trucks:** cargo, what's being loaded or unloaded, and the gun on the hook.
 
 ## Feel
 
@@ -111,6 +156,7 @@ area effects, zones and turrets should affect. `VehicleSystem.serialize(v)` give
 state for netcode snapshots.
 
 ## Next
+- Aircraft on the Western Front (the dropships fly in the arena; spotter planes calling in fire would suit the artillery war).
 - Infantry riding along on a tank's hull, and crews coordinating with their squad's assault (smoke, holding at the wire).
 - Lock-on launchers (an anti-vehicle class tool) and vehicle-specific abilities (tank smoke, dropship flares).
 - Seat switching inside a vehicle (F1–F4), and passengers firing their own weapons from open bays.

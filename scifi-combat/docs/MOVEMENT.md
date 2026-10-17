@@ -65,7 +65,7 @@ measured fact. The procedure for locking them to the real game is in the next se
  │ stance: stand/     │────────────────▶│ SLIDE: feet  │──────────────────┘ (fast get-up)
  │ crouch/prone       │◀────────────────│ (committed)  │── jump = slide-hop (85% momentum)
  │ + timed stance     │  exit: crouch   └──────────────┘── dive = dive out of the slide
- │   transitions      │
+ │   transitions      │                          └──────── prone / 2nd crouch = drop flat: SLIDE: belly (90% speed)
  │                    │  Space (no ledge ahead)  ┌─────┐  lands: <9.5 m/s normal │ ≥9.5 LAND (stumble) │ ≥15 KNOCKDOWN
  │                    │─────────────────────────▶│ AIR │──────────────────────────────────────────────────────▶
  │                    │                          └─────┘
@@ -120,6 +120,10 @@ Ground steeper than 48° makes you lose footing.
   - Friction ramps from 4.5 to 9.5 m/s² over 0.9 s: it carries far, then stops decisively.
   - Steering turns the velocity at 80°/s, and slope gravity adds speed downhill.
   - Exits: jump = slide-hop keeping 85% momentum; the dive key = dive out of the slide. It ends crouched if you're holding crouch, standing otherwise.
+  - **Slide into prone:** the prone key, or a second crouch tap from 0.12 s into the slide
+    (`slide.dropAfter`), drops you flat mid-slide. You go into a belly slide carrying 90% of the speed
+    (`slide.dropCarry`) that ends prone, gun still up: from a sprint straight into a crater or behind
+    a parapet. Event `move:slideDrop`; the rig plays the prone drop and its thump.
 - **Belly slide (after a dive lands):** 75% of the landing speed, 9 m/s² friction, 35°/s steering.
   It ends prone. Sprint or jump while it slows = fast get-up (0.45 s).
 
@@ -168,6 +172,10 @@ pose (tested), so what you see is what you hit:
   vehicle guns are 100. Shots go where the gun points, not where the camera points.
 - **Sprint:** aiming or firing cancels the sprint; the gun comes up after `sprintToFire`.
 - **Dive:** ADS drops, hip fire stays available through the whole dive and from prone.
+- **Stance and motion change the cone** (`WeaponComponent`): spread × `moveMul` (default 1.5,
+  scaled up to it by speed up to 7 m/s) on the move, × `slideMul` (1.4) in a slide, × `airMul` (2)
+  in the air; × 0.8 crouched and × 0.6 prone. Recoil kicks 15% less crouched and 40% less prone.
+  So fire on the move to suppress, and go down to hit.
 
 ## Animation sync contract
 

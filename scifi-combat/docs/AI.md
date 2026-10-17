@@ -2,8 +2,9 @@
 
 Code: `src/ai/CombatBotBrain.js` · `src/ai/AbilityPlanner.js` · `src/ai/VehiclePilot.js` ·
 `src/ai/MeleeDuelistBrain.js` (sword sub-brain) · `src/ai/tactics/` (SquadTactics, TacticalMap,
-Suppression) · `src/ai/FrontlineCommander.js` · data: `data/ai/personalities.json` ·
-tests: `tests/ai.test.mjs`, `tests/squads.test.mjs`.
+Suppression) · `src/ai/FrontlineCommander.js` · `src/ai/SupportCommand.js`, `src/ai/CrewPilot.js`
+(gun crews and truck drivers) · data: `data/ai/personalities.json` · tests: `tests/ai.test.mjs`,
+`tests/squads.test.mjs`, `tests/support.test.mjs`.
 
 Bots produce the same `Command` a player's InputManager produces. Every system treats them
 exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and counterplay all apply.
@@ -12,7 +13,7 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 
 | Layer | What it does |
 |---|---|
-| Perception | Targets the nearest enemy (vehicles included; empty vehicles are deprioritized), with hysteresis. Line of sight uses cover, walls and smoke. Cloaked enemies are invisible beyond 8 m unless Revealed. Incoming damage rate (EMA) gives "under fire"; in a vehicle it's the hull's HP. |
+| Perception | Targets the nearest enemy (vehicles included; empty vehicles are deprioritized), with hysteresis. Line of sight uses cover, walls, smoke and the terrain (nobody sees through a ridge); only the four nearest candidates get a sight ray. Cloaked enemies are invisible beyond 8 m unless Revealed. Incoming damage rate (EMA) gives "under fire"; in a vehicle it's the hull's HP. Who's around (allies, enemies at arm's length, the most hurt teammate) is rescanned every 0.2 s. |
 | Vehicles | `VehiclePilot.wantVehicle()` walks to a friendly vehicle and presses interact. Driving per model: hover = point and boost, strafe-pass or ram; tracked = 18–35 m standoff, turret leads and fires only when on target; flyer = gun altitude, circle-strafe, drops passengers low. Gunners aim freely. Bots bail at under 18% hull HP while under fire. |
 | Abilities | `AbilityPlanner` (below). Reacts to enemy casts with interrupts and dodges. |
 | Guns | Holds the personality's range band, strafes, flanks, and sprints to close or retreat. Tracks at a limited turn rate with wandering error, compensates recoil, controls bursts by range, reloads, vents, aims down sights at range, and swaps to the shotgun up close. |
@@ -20,6 +21,8 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 | Safety | Sidesteps (and rolls) out of telegraphed line and circle casts aimed at it, walks out of hostile zones while they arm, and retreats at low HP. |
 | Squad orders (frontline) | Its squad's `SquadTactics` hands it an order (below): move, bound, overwatch, man a trench, hold, stack, enter, grenade, assault or charge. The brain walks there, takes the stance the position allows and fights from it. Without a squad (the arena) it falls back to the commander's objective and free fighting. |
 | Downs | Downed: crawls toward help, lies still while being revived, gives up when nobody's coming. Up: revives downed teammates nearby (medics go further), one reviver per patient, and finishes a revive once it's well under way. |
+| Shellfire | A round about to land within a few metres (the guns' `incoming` list, the same one the audio whistles from): drop prone until just after it lands. |
+| Duty (frontline, 12v12 and up) | Gun crews and truck drivers (below) get to their gun or truck and take their seat; `CrewPilot` drives it. They fight as infantry only when an enemy is in their face or their vehicle isn't back yet. |
 
 ## Squads (`SquadTactics`)
 
@@ -93,6 +96,32 @@ first squad is ready (so others can get in), at most one wave every 18 s. Every 
 line goes over together; one that arrives within 3 s of the whistle goes with it; a squad left waiting
 30 s goes anyway. Your team's whistles and the enemy's are heard and bannered.
 
+## Gun crews and supply drivers (`SupportCommand`, `CrewPilot`)
+
+At the start of a match each team sets aside one bot per gun and truck (plus a loader for each
+howitzer at 200v200, at most 30% of the team). They leave the infantry squads, start beside their
+unit, and redeploy beside it.
+
+- **`SupportCommand`** (one per team, re-plans every second) gives every unit a post and a mission.
+  - Posts: batteries in the front sector's artillery park; AT guns 30 m behind the front-line
+    trench across the attacked sector's lanes. When the front moves, the posts move up.
+  - Missions, highest priority first: SOS, then preparation, counter-battery, observed fire and
+    interdiction. See [FRONTLINE.md](FRONTLINE.md#artillery-and-the-supply-war-12v12-and-up).
+  - No mission lands within 32 m of a friendly soldier.
+  - The preparation barrage holds its whistle back (up to 12 s) and lifts 5 s before it blows.
+  - Counter-battery comes from "hearing" enemy guns fire: their muzzle flashes, three shots for a
+    fix.
+- **`CrewPilot`** sends the same `Command` a player would:
+  - **Gun commander:** packs up if the gun is set up somewhere else; pushes or drives it along a
+    flow field that covers just this trip (backing out of whatever it sticks on); sets up at the
+    post. Then it fires the mission, walking its rounds around the area on a spiral. At an AT gun
+    it leads the nearest enemy vehicle it can see (terrain included: no shells into a hill),
+    falling back to infantry in the open.
+  - **Loader:** sits tight (a loaded gun reloads faster), and takes the commander's seat if it
+    stays empty.
+  - **Truck driver:** HQ dump → forward depot → dump, stopping inside each until the job is done.
+    At 200v200 the trucks leave the dump 14 s apart.
+
 ## AbilityPlanner: kits without per-ability code
 
 `profileAbility(def)` reads the effect list and infers intent tags. Every one of the 80
@@ -144,6 +173,23 @@ A 4v4 skirmish: you plus Lancer, Skyrider and Lumen bots against Ashsworn, Monol
 Driftcaller and Hollow-Eye bots. Respawns take 3 s at team spawns, with a killfeed and team
 score. The HUD shows the HP, statuses and cooldowns of the enemy under your crosshair.
 Use `?difficulty=recruit|veteran|elite`.
+
+## Scale
+
+400 bots (the 200v200 Extreme Warfront) think on a level-of-detail schedule set by distance from
+the nearest human camera:
+
+| Distance | Think every | Pipeline (move, shoot, cast) |
+|---|---|---|
+| < 60 m | tick (60 Hz) | 60 Hz |
+| < 160 m | 2nd tick | 60 Hz |
+| < 400 m | 4th tick | 30 Hz |
+| beyond | 6th tick | 30 Hz |
+
+Between thinks a bot holds its last command. Ragdolled soldiers and vehicle crews always run at
+60 Hz. Headless (no camera), bots think every 2nd tick (every 3rd past 128 players). Flow fields
+are shared per objective and repaired in place when cover changes (see
+[FRONTLINE.md](FRONTLINE.md#scale)).
 
 ## Next
 - A finer nav (or a navmesh) for trench networks and buildings: the 2 m grid needs portals and

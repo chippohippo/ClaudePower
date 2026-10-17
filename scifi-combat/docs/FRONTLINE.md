@@ -1,11 +1,15 @@
-# Frontline: 4v4 to 64v64 trench battles
+# Frontline: 4v4 to 200v200 trench battles
 
-Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode) ·
-`src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/` (squads: see
-[AI.md](AI.md)) · `src/world/` (Terrain, CoverIndex, EntityGrid, NavGrid, WireField) · client:
-`index.html` → `src/frontline.js`, `src/render/BattlefieldRenderer.js`, `TerrainChunks.js`,
-`CoverTextures.js`, `src/ui/FrontlineHud.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
-`tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`.
+Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode,
+Logistics) · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
+(squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
+`src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
+EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
+`src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `src/ui/FrontlineHud.js`,
+`FireControl.js`, `src/vfx/BattleFx.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
+`tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
+`tests/warfront.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -14,14 +18,20 @@ every slot and fight in squads: they man the trench, go over the top together on
 bound from cover to cover, clear buildings room by room, hold the line, and dig in. They use the
 same `Command` struct, movement, kits, guns, swords and vehicles as a player.
 
+Behind the line, each army has artillery and a supply chain (12v12 and up). Howitzers and rocket
+batteries shell the points ahead of a wave before its whistle and the enemy's trench when they
+come over. They also hunt each other's guns. AT guns wait for armor behind the line. Every shell,
+magazine, sandbag and replacement tank is hauled from the HQ dump to the forward depot by truck.
+The biggest size, **Extreme Warfront**, puts 400 soldiers on a 2.6 km front.
+
 ## Play it
 
 Serve the folder statically and open `index.html`:
 
 | Param | Default | |
 |---|---|---|
-| `size` | 32v32 | `4v4`, `12v12`, `32v32` or `64v64`: the match size and the map built for it |
-| `players` | (from size) | 8–128 fighters in total; picks the size built for that count if `size` isn't given |
+| `size` | 32v32 | `4v4`, `12v12`, `32v32`, `64v64` or `200v200`: the match size and the map built for it |
+| `players` | (from size) | 8–400 fighters in total; picks the size built for that count if `size` isn't given |
 | `seed` | 7 | map and match seed (deterministic map) |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
@@ -30,21 +40,26 @@ Serve the folder statically and open `index.html`:
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
 R, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
 downed teammate to revive. When you're down: crawl, hold **Space** to give up; when dead, **Space** to
-deploy. Your squad's bots follow you and take cover around you when you stop. `arena.html` is the
-4v4 feel lab and `rig-lab.html` the animation lab.
+deploy. Your squad's bots follow you and take cover around you when you stop. At a gun, **X** takes a
+crew seat and **H** sets it up or packs it up; at a howitzer or rocket battery the view goes overhead
+and the mouse moves the fire mission's mark (hold LMB to fire). In a supply truck, stop inside the
+HQ dump to load and inside the forward depot to unload; **H** hitches the gun behind you. `arena.html`
+is the 4v4 feel lab and `rig-lab.html` the animation lab.
 
 ## A map per match size (`MapSizes`, `FrontlineMap`)
 
-| Size | Map | Players | Area | Sectors × lanes | Points | Trench lines | Vehicles per team |
-|---|---|---|---|---|---|---|---|
-| 4v4 | Outpost | 8 | 260 × 120 m | 3 × 1 | 3 | 2 | — |
-| 12v12 | Ridgeline | 24 | 520 × 220 m | 3 × 2 | 6 | 2 | 1 hoverbike |
-| 32v32 | Valley | 64 | 900 × 360 m | 5 × 2–3 | 13 | 4 | 1 tank, 2 hoverbikes |
-| 64v64 | Frontline | 128 | 1400 × 520 m | 7 × 2–3 | 19 | 6 | 2 tanks, 3 hoverbikes |
+| Size | Map | Players | Area | Sectors × lanes | Points | Trench lines | Vehicles per team | Guns and trucks per team |
+|---|---|---|---|---|---|---|---|---|
+| 4v4 | Outpost | 8 | 260 × 120 m | 3 × 1 | 3 | 2 | — | — |
+| 12v12 | Ridgeline | 24 | 520 × 220 m | 3 × 2 | 6 | 2 | 1 hoverbike | 1 howitzer, 1 AT gun · 1 truck |
+| 32v32 | Valley | 64 | 900 × 360 m | 5 × 2–3 | 13 | 4 | 1 tank, 2 hoverbikes | 2 howitzers, 1 rocket battery, 2 AT guns · 2 trucks |
+| 64v64 | Frontline | 128 | 1400 × 520 m | 7 × 2–3 | 19 | 6 | 2 tanks, 3 hoverbikes | 4 howitzers, 2 rocket batteries, 3 AT guns · 3 trucks |
+| 200v200 | Extreme Warfront | 400 | 2600 × 880 m | 11 × 3–4 | 42 | 10 | 4 tanks, 5 hoverbikes | 8 howitzers, 4 rocket batteries, 6 AT guns · 10 trucks |
 
 Each profile also sets terrain relief, point radius, village placement, crater density, scatter,
-blockhouses, tickets per player, wave timing, capture and time limits, and how many positions each
-team may dig. Everything is seeded: the server and every client build the same map.
+blockhouses, tickets per player, wave timing, capture and time limits, how many positions each
+team may dig, and its supply economy (below). Everything is seeded: the server and every client
+build the same map.
 
 ```
  32v32 Valley (x →)
@@ -81,6 +96,10 @@ team may dig. Everything is seeded: the server and every client build the same m
   room by room.
 - **Motor pools:** a cleared patch per line sector and team; a team's vehicle pads stand in its
   front sector's pool and move up when the front does.
+- **Artillery parks, depots and the HQ dump** (12v12 and up): each line sector has a park per team
+  (howitzers and rocket batteries in the front row, AT guns behind) and a forward depot site; each
+  HQ has a supply dump with the trucks lined up beside it. The team's park and depot are the ones
+  in its front sector, and they move up with it.
 - **Nav** (`NavGrid`, 2 m cells): slopes over 38° and cover taller than 1.1 m block; vaultable
   cover costs 4×; trench parapets 10× (climbable, but routes inside a trench network use the floor);
   wire 8×. Doorways are portals (routes thread through the door's centre). Flow fields per
@@ -88,13 +107,13 @@ team may dig. Everything is seeded: the server and every client build the same m
 
 ## Rules (`FrontlineMode`, simulation only)
 
-| Setting | 4v4 | 12v12 | 32v32 | 64v64 | |
-|---|---|---|---|---|---|
-| tickets | 80 | 168 | 384 | 640 | one per death (downs cost nothing; a revive saves one) |
-| `captureTime` | 8 s | 10 s | 10 s | 10 s | one soldier taking a neutral point; an enemy point is neutralized first (2×) |
-| `secureTime` | 3 s | 3 s | 3 s | 3 s | holding every point of the attacked sector captures it |
-| `timeLimit` | 10 min | 15 min | 25 min | 35 min | then the team holding more line sectors wins |
-| waves | 5 s | 6 s | 6 s | 7 s | reinforcement waves |
+| Setting | 4v4 | 12v12 | 32v32 | 64v64 | 200v200 | |
+|---|---|---|---|---|---|---|
+| tickets | 80 | 168 | 384 | 640 | 1600 | one per death (downs cost nothing; a revive saves one) |
+| `captureTime` | 8 s | 10 s | 10 s | 10 s | 12 s | one soldier taking a neutral point; an enemy point is neutralized first (2×) |
+| `secureTime` | 3 s | 3 s | 3 s | 3 s | 4 s | holding every point of the attacked sector captures it |
+| `timeLimit` | 10 min | 15 min | 25 min | 35 min | 60 min | then the team holding more line sectors wins |
+| waves | 5 s | 6 s | 6 s | 7 s | 8 s | reinforcement waves |
 
 - **Start.** Everything left of the middle is Solari's, right is Void's, the middle is neutral. Each
   team's *front* is its forward sector, and its jump-off trench is the line in front of it.
@@ -141,8 +160,9 @@ Hold **H** crouched and still to dig where you stand (bots holding a line with n
    position within 11 m. Positions dug along a line join into a trench line over a match.
 
 Everything built is real: carved terrain (mud), cover boxes for bullets, movement, nav, the tactical
-map and the renderer, and blasts and tanks knock the sandbags down. Each team may dig 8 / 16 / 30 / 50
-positions (4v4 → 64v64). Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
+map and the renderer, and blasts and tanks knock the sandbags down. Each team may dig 8 / 16 / 30 / 50 /
+120 positions (4v4 → 200v200), and with logistics every sandbag wall costs supplies from the forward
+depot. Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
 
 ## Squads and the commander
 
@@ -164,19 +184,88 @@ the highest ground under the hull, so they bridge trenches. Bot drivers with not
 to their squad's objective (tanks stop 30 m short to cover it) and back out of what they get stuck on.
 See [VEHICLES.md](VEHICLES.md).
 
+## Artillery and the supply war (12v12 and up)
+
+**The guns** (`FieldGuns`, stats in [VEHICLES.md](VEHICLES.md)) are vehicles a crew moves and sets up:
+
+- **Howitzers** are towed: pushed at a walk or hitched to a truck. Set up, they plunge shells into
+  trenches from about 55 m out to 1.6 km.
+- **Rocket batteries** are self-propelled, and ripple a 16-rocket salvo across an area.
+- **AT guns** are towed and fire flat. Each slug takes 40% of a tank's health (60% through the
+  rear vent), so three hits from the front kill one.
+
+A set-up gun can't move, and the trail takes seconds to dig in and to pack up. So does
+swinging the carriage to reach past its traverse. Indirect rounds scatter more the further they
+fly, and every one whistles in before it lands. Shells crater the ground, knock sandbags and walls
+down, cut wire, and open gaps that routes and cover spots pick up at once.
+
+**The support AI** (`SupportCommand`, one per team; crews are bots taken out of the infantry, and
+they redeploy beside their unit) re-plans every second. Highest priority first:
+
+| Priority | Mission | When |
+|---|---|---|
+| 6 | SOS | the enemy blew its whistles: shell the ground in front of the trench they're leaving |
+| 5 | Preparation | our commander is about to send a wave: shell the enemy-held points ahead of it. The whistle waits (up to 12 s) and the guns lift 5 s before it blows |
+| 4 | Counter-battery | an enemy gun has given itself away by firing (three shots make a fix): howitzers answer |
+| 2+ | Observed fire | groups of enemies our soldiers can see |
+| 1 | Interdiction | the enemy's forward depot (howitzers only, a few rounds every 50 s) |
+
+No mission is ever fired within 32 m of our own soldiers. A battery low on ammo answers only
+priority 4 and up. AT guns set up 30 m behind the front-line trench, spread across the attacked
+sector's lanes, and kill the nearest enemy armor they can see (enemy infantry in the open when no
+armor is about). When the front moves, crews pack up and move their guns to the new park.
+Soldiers hit the dirt when a round is about to land within a few metres of them.
+
+**The supply war** (`Logistics`):
+
+- Supplies are produced at the HQ dump and have to be hauled to the forward depot by truck. The
+  trucks run dump → depot → dump on their own, and a truck standing in a depot loads or unloads
+  25 a second. At 200v200 ten trucks a side leave the dump 14 s apart: a stream of deliveries over
+  the kilometre-long haul, not one convoy every few minutes.
+- The front lives off the forward depot:
+  - soldiers refill their guns at a depot (fast) and in their own trenches (slowly);
+  - batteries within 320 m of a depot reload from it;
+  - sandbags and every vehicle or gun that comes back from the motor pool or the park cost
+    supplies.
+
+  An empty depot means the guns go quiet, rifles run dry and tanks stop coming. A soldier who
+  redeploys always brings a full loadout (that comes from the HQ).
+- The depot moves with the front. It keeps 75% of its stock when the front moves up, and 30% when
+  it is overrun.
+- Interdiction: a destroyed truck loses its cargo, and every shell that lands in a depot burns
+  stock.
+
+| Costs | | Economy | 12v12 | 32v32 | 64v64 | 200v200 |
+|---|---|---|---|---|---|---|
+| tank | 120 | HQ production / min | 70 | 130 | 200 | 560 |
+| rocket battery | 90 | HQ start / cap | 300 / 1200 | 450 / 2000 | 600 / 3000 | 1500 / 6000 |
+| howitzer | 70 | forward depot start / cap | 180 / 400 | 260 / 600 | 320 / 800 | 1200 / 2400 |
+| AT gun | 40 | trucks per team | 1 | 2 | 3 | 10 |
+| hoverbike | 25 | | | | | |
+| sandbag wall | 6 | | | | | |
+| magazine · rocket | 1 | | | | | |
+| howitzer or AT round | 2 | | | | | |
+
+Events: `gun:state`, `gun:fire`, `gun:empty`, `gun:hitch`, `artillery:impact`, `support:mission`,
+`support:prep`, `logistics:load`, `logistics:unload`, `logistics:moved`, `logistics:lost`,
+`logistics:short`.
+
 ## Scale
 
 **Simulation** (the same code headless, in tests and in the browser):
 
 | Piece | What it buys |
 |---|---|
-| `CoverIndex` (8 m grid, DDA raycasts) | Bullet and sight raycasts against thousands of boxes; refuses corrupt (non-finite) queries |
-| `EntityGrid` (rebuilt per tick) | "Fighters near here" and ray-vs-fighters without scanning all 128 |
-| Flow fields per objective (`NavGrid`) | One Dijkstra per point shared by every bot; stale fields keep serving while a resumable rebuild runs on a work budget (deterministic) |
-| A* (`NavGrid.path`) | Squad moves between cover: ~0.07 ms for a 30 m route, bounded search, string-pulled, doorway portals |
+| `CoverIndex` (8 m grid, DDA raycasts) | Bullet and sight raycasts against thousands of boxes, with an allocation-free slab test; refuses corrupt (non-finite) queries |
+| `EntityGrid` (rebuilt per tick) | "Fighters near here" and ray-vs-fighters without scanning all 400. A flat array over the map's bounds (no hashing); ray queries walk the corridor cell by cell |
+| Combat rays, static first | Cover, ground and domes are tested first, so the search for soldiers along a bullet's path stops at the first sandbag; a bounding sphere comes before each soldier's stance-aware hit spheres |
+| Line of sight (`world.sight`) | Cover, walls and the terrain: nobody sees, or shoots at, an enemy behind a ridge |
+| Flow fields per objective (`NavGrid`) | One Dijkstra per point shared by every bot. When cover is built or blown, each field repairs itself in place: only the cells whose route ran through the change are solved again, sliced on a work budget (deterministic). On big maps fields are built in the background, reach 900 m of route around their goal, and a gun move or supply run asks for a field that covers just its trip |
+| A* (`NavGrid.path`) | Squad moves between cover: ~0.07 ms for a 30 m route, bounded search, string-pulled, doorway portals; also the fallback beyond a field's reach |
 | `TacticalMap` | ~10k cover spots, trench positions, craters and rooms in a 16 m grid, with reservations |
-| Squad plans at 2 Hz, staggered | 32 squads cost a few planning passes per tick |
-| Bot think LOD | Bots within 60 m of a human think every tick, within 160 m every 2nd tick, otherwise every 3rd |
+| Squad plans at 2 Hz, staggered | The ~80 squads of a 200v200 battle cost a few planning passes per tick |
+| Bot think LOD | Within 60 m of a human camera every tick; within 160 m every 2nd; within 400 m every 4th; beyond, every 6th. Headless: every 2nd (every 3rd past 128 players). Bots rescan their surroundings every 0.2 s |
+| Pipeline LOD | Soldiers 160 m or more from every camera move, shoot and cast at 30 Hz with a double step (limp bodies and vehicle crews stay at 60 Hz) |
 | Determinism | Per-bot and per-squad seeded streams; a seed replays the same battle. Commands are sanitized (a NaN can never reach the sim) |
 
 **Presentation:**
@@ -189,21 +278,24 @@ See [VEHICLES.md](VEHICLES.md).
 | `TracerPool` | Every tracer and live projectile in 2 instanced draw calls |
 
 **Measured** on this container (Node, single thread, seed 5, 90 s battles with squads, digging,
-vehicles, downs and ragdolls):
+vehicles, artillery, supply runs, downs and ragdolls, one player's camera as the LOD focus):
 
-| | 4v4 | 12v12 | 32v32 | 64v64 |
-|---|---|---|---|---|
-| Fighters | 8 | 24 | 64 | 128 |
-| Map and match build | 0.08 s | 0.18 s | 0.58 s | 0.94 s |
-| Sim, average per 60 Hz tick | 0.25 ms | 0.53 ms | 1.55 ms | 3.43 ms |
-| Worst tick | 3.5 ms | 6.1 ms | 7.8 ms | 10.7 ms |
+| | 4v4 | 12v12 | 32v32 | 64v64 | 200v200 |
+|---|---|---|---|---|---|
+| Fighters | 8 | 24 | 64 | 128 | 400 |
+| Map and match build | 0.10 s | 0.20 s | 0.49 s | 0.78 s | 1.97 s |
+| Sim, average per 60 Hz tick | 0.32 ms | 0.59 ms | 1.37 ms | 2.93 ms | 6.71 ms |
+| Worst tick (garbage collection, JIT) | 4.7 ms | 7.7 ms | 16.0 ms | 27.8 ms | 43.2 ms |
 
-The browser client (swiftshader) runs the 64-fighter Valley at about 77 draw calls and 240k
-triangles, and 128 fighters at about 122 draw calls and 367k triangles (mostly the near terrain).
+At 200v200 about one tick in 250 runs past 16.7 ms. The browser client (swiftshader) draws the
+64-fighter Valley in about 77 draw calls and 240k triangles. At 128 fighters it's about 100 draw calls
+and 360k triangles, and the 400-fighter Extreme Warfront takes 160–180 draw calls and 710k
+triangles. Most of that is the near terrain. Vehicles past 160 m are drawn as one block, and nothing
+is drawn past the fog.
 
-**Known gaps:** per-mesh deployable, zone and vehicle views make up most of the remaining draw calls;
-the nav grid is 2 m, so trench corners and doorways need the special handling above; netcode needs
-sector-based interest management.
+**Known gaps:** the nav grid is 2 m, so trench corners and doorways need the special handling above;
+netcode needs sector-based interest management; there are no aircraft on the Western Front yet (the
+dropships are arena-only).
 
 ## HUD (`FrontlineHud`)
 
@@ -215,6 +307,9 @@ sector-based interest management.
 | Banners | Captures, sectors, victory, `WHISTLES · OVER THE TOP!` and the enemy's whistles |
 | Downs | Your bleed-out, give-up hold and revive progress; a revive prompt beside a downed teammate; red crosses over downed teammates |
 | Digging | Progress through foxhole, sandbags and trench |
+| Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
+| Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
+| Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
 | Suppression | The screen edges darken while rounds crack past you |
 | Also | Point markers, minimap with spotted enemies, HD2 gun reticle, status, ammo, killfeed, reinforcement countdown |
 
@@ -234,4 +329,14 @@ sector-based interest management.
   64-bot headless battle (bots close on their objectives at over 2 m/s en route, points change hands,
   under 8 ms per tick).
 - `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`: the spatial indexes,
-  terrain and flow fields; downs, revives and give-ups; the ragdoll.
+  terrain and flow fields (repairs match a fresh solve through 40 rounds of random walls built and
+  blown, big-map fields build in the background and reach REACH metres); downs, revives and
+  give-ups; the ragdoll.
+- `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`: setting up and
+  packing up, laying, indirect fire landing on the mark with range-scaled scatter, rocket salvos, AT
+  guns against armor, towing, craters and blown sandbags; supplies, trucks, depots, resupply,
+  costs and interdiction; crews manning their guns, missions never danger close, the preparation
+  barrage before a whistle, SOS fire, counter-battery, AT crews, hitting the dirt, and the guns
+  moving up with the front.
+- `tests/warfront.test.mjs`: a 200v200 battle (400 soldiers, crewed batteries and convoys) within a
+  tick budget.

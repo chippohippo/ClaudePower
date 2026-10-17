@@ -49,7 +49,7 @@ the client for prediction, and lets bots drive the same controllers with synthet
 ```
 scifi-combat/
 ├─ docs/ARCHITECTURE.md          ← this file (+ MOVEMENT, ANIMATION, ABILITIES, AI, VEHICLES, FRONTLINE)
-├─ index.html                     Frontline battle, 4v4 to 64v64 (src/frontline.js)
+├─ index.html                     Frontline battle, 4v4 to 200v200 (src/frontline.js)
 ├─ arena.html  rig-lab.html       4v4 feel lab (src/arena.js) · animation lab
 ├─ data/                          ← ALL tuning lives here (hot-reloadable JSON)
 │  ├─ movement.json               base locomotion tuning (+ ragdoll)
@@ -75,12 +75,15 @@ scifi-combat/
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
 │  │      FrontlineCommander.js  squads of 4, attack/defend orders per team, whistle waves
+│  │      SupportCommand.js  CrewPilot.js   gun crews and drivers: posts, fire missions, convoys
 │  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
-│  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, bot LOD, waves)
-│  │        frontline/ MapSizes.js (4v4–64v64)  FrontlineMap.js (a seeded map per size)  Trenches.js
-│  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules) → docs/FRONTLINE.md
+│  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, think and pipeline LOD, waves)
+│  │        frontline/ MapSizes.js (4v4–200v200)  FrontlineMap.js (a seeded map per size)  Trenches.js
+│  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules)
+│  │                   Logistics.js (supply war) → docs/FRONTLINE.md
+│  ├─ vehicles/ VehicleSystem.js  FieldGuns.js (howitzers, rockets, AT guns, towing) → docs/VEHICLES.md
 │  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js  WireField.js
-│  │         spatial indexes, diggable heightfield, flow fields and A*, barbed wire
+│  │         spatial indexes, diggable heightfield, self-repairing flow fields and A*, barbed wire
 │  ├─ physics/ Ragdoll.js       deterministic particle ragdolls (blasts, criticals, downs, deaths)
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
@@ -89,8 +92,9 @@ scifi-combat/
 │  │          chunked terrain, triplanar cover, trenches, wire, objectives; pooled tracers
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
-│  ├─ vfx/  Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
-│  └─ ui/   FrontlineHud.js  HUD.js  store.js (zustand/vanilla)  menus/
+│  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
+│  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
+│  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js
 ```
@@ -311,14 +315,16 @@ Mirror roles but **asymmetric mechanics** (Solari shields regenerate, Void armor
 
 ## 9. Modes
 
-> Implemented: **Frontline** ([FRONTLINE.md](FRONTLINE.md)), the flagship mode, in four sizes
-> (4v4, 12v12, 32v32, 64v64). Each size has a seeded map built for it: from 3 sectors and 3 points
-> on a 260 m outpost, up to 7 sectors and 19 points on a 1400 × 520 m battlefield. The sectors are separated by
-> WW1 trench lines with wire, dugouts and communication trenches. Taking every point of the sector
-> in front of your line moves the front, and the match ends on a breakthrough, on tickets, or at
-> the time limit.
-> Bots fill the armies in squads under a commander per team. `FrontlineMode` is simulation-only
-> (`update`, `onDeath`, `spawnPosition`, `snapshot`) and is the template for the other modes.
+> Implemented: **Frontline** ([FRONTLINE.md](FRONTLINE.md)), the flagship mode, in five sizes
+> (4v4, 12v12, 32v32, 64v64, and the 200v200 Extreme Warfront). Each size has a seeded map built
+> for it: from 3 sectors and 3 points on a 260 m outpost, up to 11 line sectors and 42 points on
+> a 2600 × 880 m front. The sectors are separated by WW1 trench lines with wire, dugouts and
+> communication trenches. Taking every point of the sector in front of your line moves the front,
+> and the match ends on a breakthrough, on tickets, or at the time limit. Behind the lines,
+> artillery and a supply chain (12v12 and up) fight their own war.
+> Bots fill the armies in squads under a commander per team, with gun crews and truck drivers
+> under a support command. `FrontlineMode` is simulation-only (`update`, `onDeath`,
+> `spawnPosition`, `snapshot`) and is the template for the other modes.
 
 Planned: TDM, Domination, Payload/Escort, Extraction/Survival, Horde (waves from data), and Campaign
 (scripted `MissionScript` with triggers, AI spawn groups and dialogue cues). A mode is a class with
@@ -356,10 +362,16 @@ Planned: TDM, Domination, Payload/Escort, Extraction/Survival, Horde (waves from
   half rate < 220 m, single instanced capsule impostor beyond. The whole crowd is five instanced draw calls.
 - Animation LOD: the followed fighter always solves every frame; mid rigs every 2nd frame; far fighters
   don't solve at all.
-- Simulation at 128 (implemented, [FRONTLINE.md](FRONTLINE.md)): grid-indexed cover raycasts, a per-tick
-  entity hash, shared flow fields per objective with time-sliced rebuilds, and bot think LOD (every
-  tick, 2nd or 3rd by distance to a human). Measured: 2.3 ms per 60 Hz tick for 128 fighters, 1.1 ms
-  for 64.
+- Simulation at 400 (implemented, [FRONTLINE.md](FRONTLINE.md#scale)):
+  - grid-indexed cover raycasts, and a per-tick entity grid as a flat array over the map;
+  - combat rays that test cover and ground first;
+  - shared flow fields per objective that repair only what a change cut off;
+  - bot think LOD (every tick, then the 2nd, 4th or 6th by distance to a human camera), with the
+    whole per-soldier pipeline at 30 Hz past 160 m;
+  - about 1.3 MB of garbage a tick at 400 fighters.
+
+  Measured per 60 Hz tick: 6.7 ms for 400 fighters, 2.9 ms for 128, 1.4 ms for 64, with
+  artillery and supply runs.
 - Pools for everything (tracers, decals, particles, audio voices). Zero allocations in hot loops
   (reuse `Vector3` scratch objects — see code).
 - KTX2/Basis textures, atlases per faction, shared materials, `frustumCulled`, BVH (three-mesh-bvh)

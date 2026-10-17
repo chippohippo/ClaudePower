@@ -1,4 +1,4 @@
-// FrontlineHud: the battle HUD for 64-128 players. DOM + one canvas, updated at render rate.
+// FrontlineHud: the battle HUD for 8 to 400 players. DOM + one canvas, updated at render rate.
 //  * Top: reinforcement tickets per team and the sector strip (who holds what, where each
 //    front is, which sectors are being fought over, and how close a sector is to falling).
 //  * Your orders: attack/defend which point, with distance, from your squad's commander order.
