@@ -1,14 +1,18 @@
-# Frontline: 64–128 fighter battles
+# Frontline: 4v4 to 64v64 trench battles
 
-Code: `src/game/frontline/FrontlineMap.js` · `src/game/frontline/FrontlineMode.js` ·
-`src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/world/` (CoverIndex, EntityGrid,
-Terrain, NavGrid) · client: `index.html` → `src/frontline.js`, `src/render/BattlefieldRenderer.js`,
-`src/render/TracerPool.js`, `src/ui/FrontlineHud.js` · tests: `tests/frontline.test.mjs`, `tests/scale.test.mjs`.
+Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode) ·
+`src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/` (squads: see
+[AI.md](AI.md)) · `src/world/` (Terrain, CoverIndex, EntityGrid, NavGrid, WireField) · client:
+`index.html` → `src/frontline.js`, `src/render/BattlefieldRenderer.js`, `TerrainChunks.js`,
+`CoverTextures.js`, `src/ui/FrontlineHud.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`.
 
-Battlefront Supremacy crossed with Battlefield Frontlines. Two armies fight over a line of sectors.
-Taking every point of the sector in front of your line moves the front forward, and the fight
-follows it until one side breaks through to the enemy HQ. Bots fill every slot. They use the same
-`Command` struct, movement, kits, guns, swords and vehicles as a player.
+Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
+separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
+front forward, and the fight follows it until one side breaks through to the enemy HQ. Bots fill
+every slot and fight in squads: they man the trench, go over the top together on the whistle,
+bound from cover to cover, clear buildings room by room, hold the line, and dig in. They use the
+same `Command` struct, movement, kits, guns, swords and vehicles as a player.
 
 ## Play it
 
@@ -16,143 +20,190 @@ Serve the folder statically and open `index.html`:
 
 | Param | Default | |
 |---|---|---|
-| `players` | 64 | 8–128 fighters in total (you plus bots, split evenly) |
+| `size` | 32v32 | `4v4`, `12v12`, `32v32` or `64v64`: the match size and the map built for it |
+| `players` | (from size) | 8–128 fighters in total; picks the size built for that count if `size` isn't given |
 | `seed` | 7 | map and match seed (deterministic map) |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
 
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
-R, 1 sword/gun, Q E G Z abilities, X vehicles). When you're down, wait for the countdown, then press
-**Space** to deploy. `arena.html` is the 4v4 feel lab and `rig-lab.html` is the animation lab.
+R, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
+downed teammate to revive. When you're down: crawl, hold **Space** to give up; when dead, **Space** to
+deploy. Your squad's bots follow you and take cover around you when you stop. `arena.html` is the
+4v4 feel lab and `rig-lab.html` the animation lab.
 
-## The map (`FrontlineMap`)
+## A map per match size (`MapSizes`, `FrontlineMap`)
 
-A seeded 1000 × 400 m map. Server and clients build the same one from the seed.
+| Size | Map | Players | Area | Sectors × lanes | Points | Trench lines | Vehicles per team |
+|---|---|---|---|---|---|---|---|
+| 4v4 | Outpost | 8 | 260 × 120 m | 3 × 1 | 3 | 2 | — |
+| 12v12 | Ridgeline | 24 | 520 × 220 m | 3 × 2 | 6 | 2 | 1 hoverbike |
+| 32v32 | Valley | 64 | 900 × 360 m | 5 × 2–3 | 13 | 4 | 1 tank, 2 hoverbikes |
+| 64v64 | Frontline | 128 | 1400 × 520 m | 7 × 2–3 | 19 | 6 | 2 tanks, 3 hoverbikes |
+
+Each profile also sets terrain relief, point radius, village placement, crater density, scatter,
+blockhouses, tickets per player, wave timing, capture and time limits, and how many positions each
+team may dig. Everything is seeded: the server and every client build the same map.
 
 ```
- x: -500    -400      -240       -80        80        240       400    500
-    | HQ 0 |    A     |    B     |    C     |    D     |    E     | HQ 1 |
-    |      |  A1  A2  | B1 B2 B3 | C1 C2 C3 | D1 D2 D3 |  E1  E2  |      |
-       Solari owns A–B        neutral          Void owns D–E
+ 32v32 Valley (x →)
+    | HQ 0 |    A    ║    B     ║    C     ║    D     ║    E    | HQ 1 |
+    |      | A1  A2  ║ B1 B2 B3 ║ C1 C2 C3 ║ D1 D2 D3 ║ E1  E2  |      |
+                     ║ trench lines (wire in front of both sides)  ║
+       Solari owns A–B         no-man's-land          Void owns D–E
 ```
 
-- **13 points.** The sectors next to the HQs have 2 lanes; the middle three have 3 (z ≈ −110, 0, +110).
-  Points have a 9 m radius.
-- **Every point is a fortified position.** A strongpoint sits in the middle, inside a broken ring of
-  vaultable low walls and high walls, with crates. Fighting at a point means taking the position.
-- **Lines of battle.** Staggered trench walls cross the map at every sector boundary, so the front has a
-  physical line to push across, with deadly open ground between the lines. Some sectors also get large
-  structures that break sightlines and open flank routes.
-- **Terrain.** Rolling value-noise hills (2 m samples, 7 m amplitude), flattened under points and
-  spawns.
-- **Spawns.** Each sector has a *forward* group per team near its edge toward the enemy, for a
-  short run to the line, and a *rear* group.
-- **Nav.** A 2 m grid (500 × 200 cells). Slopes over 38° and cover taller than 1.1 m are blocked;
-  vaultable cover costs 4× (bots vault it with hold-to-climb).
+- **Terrain** (`Terrain`, 1 m samples): rolling hills at the size's amplitude, berms along the edges,
+  flattened under points, spawns, HQs and motor pools. Digging is first-class: `carveRect`,
+  `carveDisc` (craters, foxholes), `carveLevel` (a corridor level from wall to wall, following the
+  ground along its length) and `digTo`; every change lands in `dirty` so the renderer and nav redo
+  just that region, and dug ground renders as mud.
+- **Points** are fortified positions: a strongpoint in the middle inside a broken ring of walls,
+  low sandbag walls and crates.
+- **Trench lines** (`Trenches.js`) cross the map at every boundary between line sectors:
+  - a zigzag fire trench (bays 8–12 m, traverses between them), 2 m wide, dug 0.75 m with a level
+    floor and sandbag parapets standing 1.25 m over the floor: fire over them standing (muzzle
+    1.6 m), hidden crouched (1.15 m), climb out to go over the top. Parapet tops step with the
+    ground so that height holds on hillsides;
+  - communication trenches back to both sides' rear, roofed dugouts, and exits with dug ramps;
+  - corridors sit on the 1 m terrain grid and the 2 m nav grid, so the floor is flat to the wall and
+    is its own open lane of nav cells;
+  - firing positions every 2.5 m along both sides of every bay (only where the parapet really
+    is between 1.16 and 1.46 m), and duckboards along the floors.
+- **Barbed wire** (`WireField`): belts 11–14 m in front of both sides of every line, with gaps.
+  Pickets, aprons and a concertina coil. Wire slows soldiers to 45% (no sprint), costs the nav 8×
+  (routes go through the gaps), and is cut by blasts and by tank tracks.
+- **No-man's-land:** shell craters across the line sectors, twice as dense in the neutral middle
+  (prone cover, and places to dig in).
+- **Villages** (`Ruins.js`): ruined buildings around chosen sectors' points, 0.4 m walls with broken
+  stretches, 2–3 rooms each with doorways between them and at least two ways in. Squads clear them
+  room by room.
+- **Motor pools:** a cleared patch per line sector and team; a team's vehicle pads stand in its
+  front sector's pool and move up when the front does.
+- **Nav** (`NavGrid`, 2 m cells): slopes over 38° and cover taller than 1.1 m block; vaultable
+  cover costs 4×; trench parapets 10× (climbable, but routes inside a trench network use the floor);
+  wire 8×. Doorways are portals (routes thread through the door's centre). Flow fields per
+  objective, A* with string pulling for squad moves.
 
 ## Rules (`FrontlineMode`, simulation only)
 
-| Setting | Default | |
-|---|---|---|
-| tickets | 6 per fighter (384 at 64, 768 at 128) | one per death |
-| `captureTime` | 10 s | one soldier taking a neutral point; an enemy point is neutralized first (2×) |
-| `secureTime` | 3 s | holding every point of the attacked sector captures it |
-| `sectorBonus` | +30 tickets | for the team that takes a sector |
-| `timeLimit` | 25 min | then the team holding more line sectors wins |
-| `regen` | 0.04 / s | unattended owned points recover; neutral progress ebbs away |
+| Setting | 4v4 | 12v12 | 32v32 | 64v64 | |
+|---|---|---|---|---|---|
+| tickets | 80 | 168 | 384 | 640 | one per death (downs cost nothing; a revive saves one) |
+| `captureTime` | 8 s | 10 s | 10 s | 10 s | one soldier taking a neutral point; an enemy point is neutralized first (2×) |
+| `secureTime` | 3 s | 3 s | 3 s | 3 s | holding every point of the attacked sector captures it |
+| `timeLimit` | 10 min | 15 min | 25 min | 35 min | then the team holding more line sectors wins |
+| waves | 5 s | 6 s | 6 s | 7 s | reinforcement waves |
 
-- **Start.** A and B are Solari, D and E are Void, and C is neutral. Each team's *front* is its forward
-  sector (B and D).
+- **Start.** Everything left of the middle is Solari's, right is Void's, the middle is neutral. Each
+  team's *front* is its forward sector, and its jump-off trench is the line in front of it.
 - **Attack.** Each team attacks the sector in front of its front. Both race for the neutral middle.
   After that, each attacks the other's front sector while defending its own. Only points in attacked
   sectors can change hands; everything behind the lines is locked.
 - **Capture.** Progress moves by the headcount difference inside the radius (capped at 3), so
-  defenders cancel attackers one for one and an even fight freezes the point.
-- **Sector capture.** Owning every point of the attacked sector for `secureTime` (a separate timer per
-  team) captures the sector. The front moves up, the loser falls back, points behind the new line lock
-  to their owner, and the attacker gets reinforcements.
-- **Victory.** Breaking through the last line sector in front of an HQ, the enemy running out of
-  tickets, or leading at the time limit.
-- **Events:** `mode:point`, `mode:contested`, `mode:sector`, `mode:front`, `mode:tickets` and `mode:victory`.
-  The HUD banners and audio use them. `mode.snapshot()` is the compact state for HUDs and network
-  snapshots.
+  defenders cancel attackers one for one and an even fight freezes the point. Downed soldiers don't
+  count.
+- **Sector capture.** Owning every point of the attacked sector for `secureTime` captures it: the
+  front moves up, the loser falls back, points behind the new line lock, the attacker gets +30
+  tickets, and both teams' motor pools follow the new fronts.
+- **Victory.** Breaking through the last line sector before an HQ, the enemy running out of tickets,
+  or leading at the time limit.
+- **Events:** `mode:point`, `mode:contested`, `mode:sector`, `mode:front`, `mode:tickets`,
+  `mode:victory`. `mode.snapshot()` is the compact state for HUDs and network snapshots.
 
-## Spawning and reinforcements (`FrontlineSession`)
+## Downs, ragdolls and reinforcements
 
-- **Waves.** The dead come back in waves (every 6 s per team) after at least 4 s down. Each death
-  costs a ticket.
-- **On the squad leader.** Where possible a fighter deploys next to its squad leader: the leader must
-  be alive, on foot, not hit in the last 3 s, and have no enemy within 25 m.
-- **Otherwise at a spawn group.** The fighter deploys at the safe spawn group closest to the front: the
-  front sector's forward group, then its rear group, then sectors further back toward the HQ.
-  `spawnPosition` walks back sector by sector.
-- **You.** After the countdown the HUD shows *PRESS SPACE TO DEPLOY*, and you deploy with the same
-  rules.
+- **Down but not out** (`data/down.json`, `Health`, `ReviveSystem`): at 0 HP you're downed, not dead,
+  unless the hit was overkill (60% of max HP past zero, or a headshot dealing half your max HP).
+  Downed soldiers crawl, bleed out over 25 s (paused while being revived), and die after 60 more
+  damage. A teammate holding interact for 3 s (medics 1.5 s) gets you up with 30% HP (medics 60%).
+  Hold jump to give up. The soldier who downed you gets the kill if you bleed out.
+- **Ragdolls** (`src/physics/Ragdoll.js`, see [ANIMATION.md](ANIMATION.md)): a blast within 75% of
+  its radius, a critical hit (one hit taking 45% of your health pool, or a headshot taking 40%), a
+  heavy melee blow, a vehicle ram, and every down or death throw the body as a full physics ragdoll.
+  Where it lands is where you are, and a soldier who survived the blast at 0 HP lies there downed,
+  body intact (no dismemberment).
+- **Reinforcements** come in waves after at least 4 s down. A soldier deploys next to the squad
+  leader if the leader is alive, up, on foot, unhurt for 3 s and has no enemy within 25 m;
+  otherwise at the safe spawn nearest the rest of the squad; otherwise at the front's spawn group.
+  At the start each squad deploys together. Reinforcements who like vehicles may deploy straight
+  into an empty one waiting in the motor pool.
 
-## Squads and the commander (`FrontlineCommander`)
+## Digging in (`Fortify`)
 
-- **Squads.** Squads have 4 members. The leader heads for the objective and members hold slots around
-  it. Everyone respawns on the leader.
-- **Orders.** One commander per team re-plans every 4 s, and immediately when a sector falls. It splits
-  its squads between:
-  - *attacking* the points of the attacked sector, weighted up for neutral points and for points
-    already partly taken;
-  - *defending* its own points that are being taken, weighted by the enemies on the point and by
-    how far it has slipped.
-- **Allocation.** Squads are allocated in proportion to need, with at least one squad per attack point.
-  Squads keep their orders unless the plan changed, so they don't thrash.
-- **Execution.** Orders are plain data on each brain (`brain.objective = { id, pos, radius, field,
-  role, slot, of, squad }`). `CombatBotBrain` follows the objective's flow field (`pt:<id>`) and
-  shoots on the move. It only stops for a proper fight (range band, strafing, sword duels) in three
-  cases:
-  - an enemy is within 18 m;
-  - it's being shot from within 30 m;
-  - the enemy is holding the point it needs.
+Hold **H** crouched and still to dig where you stand (bots holding a line with no cover do it too):
 
-  On the point it keeps its slot and fights from there. (The old rule stopped for anything within
-  40 m or any damage, and on a crowded front that stalled the push.)
+1. **Foxhole** (3.5 s): a pit 0.65 m deep with a thrown-up lip: prone in it is covered from everything.
+2. **Sandbags** (4 s): a 2.4 m wall on the lip toward the enemy, standing 1.45 m over the pit floor:
+   fire over it standing, hidden crouched.
+3. **Trench** (6 s): keep digging at a finished position and a trench is cut to the nearest friendly
+   position within 11 m. Positions dug along a line join into a trench line over a match.
 
-## Scale: 128 fighters in a frame
+Everything built is real: carved terrain (mud), cover boxes for bullets, movement, nav, the tactical
+map and the renderer, and blasts and tanks knock the sandbags down. Each team may dig 8 / 16 / 30 / 50
+positions (4v4 → 64v64). Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
 
-**Simulation (the same code headless, in tests and in the browser):**
+## Squads and the commander
+
+- **Commander** (`FrontlineCommander`): one per team, re-plans every 4 s and when a sector falls. It
+  splits its squads between attacking the points of the attacked sector (weighted toward neutral and
+  half-taken points, at least one squad per point) and defending its own points under attack
+  (weighted by enemies on the point and how far it has slipped). Squads keep orders that still fit.
+- **The whistle:** squads attacking across their own trench man it and report ready. The commander
+  blows one whistle per trench line (waiting 6 s for other squads to get in, at most one wave every
+  18 s) and every ready squad goes over the top together. Event `squad:whistle`.
+- **Squad tactics** (`SquadTactics`, per squad, twice a second): advance in a wedge, bounding
+  overwatch under contact, sweep and clear, assault, hold the line with anchors on the point, dig in,
+  charge only when desperate, follow a human leader. See [AI.md](AI.md).
+
+## Vehicles on the Western Front
+
+Tanks crush the sandbags and crates they roll over and flatten wire; tanks and hover vehicles rest on
+the highest ground under the hull, so they bridge trenches. Bot drivers with nothing in sight roll up
+to their squad's objective (tanks stop 30 m short to cover it) and back out of what they get stuck on.
+See [VEHICLES.md](VEHICLES.md).
+
+## Scale
+
+**Simulation** (the same code headless, in tests and in the browser):
 
 | Piece | What it buys |
 |---|---|
-| `CoverIndex` (8 m XZ grid, DDA raycasts) | Bullet and line-of-sight raycasts against thousands of boxes |
+| `CoverIndex` (8 m grid, DDA raycasts) | Bullet and sight raycasts against thousands of boxes; refuses corrupt (non-finite) queries |
 | `EntityGrid` (rebuilt per tick) | "Fighters near here" and ray-vs-fighters without scanning all 128 |
-| Cached `world.fighters()` (keyed by `world.version`) | No per-query array building |
-| Flow fields per objective (`NavGrid`) | One Dijkstra per point shared by every bot. Prewarmed at load. When cover breaks, the stale field keeps serving while a resumable rebuild runs at 4000 cells per tick (~0.7 ms). A full field is 100k cells, ~20 ms done at once, which used to be a hitch. The budget counts work, not time, so the sim stays deterministic |
-| Bot think LOD | Bots within 60 m of a human think every tick, within 160 m every 2nd tick, otherwise every 3rd. The last command is held in between |
-| Determinism | Bots and duelists draw from per-bot seeded streams, and spawns from the mode's, so a seed replays the same battle in a fresh process. Tests rely on it; replays and debugging can too |
+| Flow fields per objective (`NavGrid`) | One Dijkstra per point shared by every bot; stale fields keep serving while a resumable rebuild runs on a work budget (deterministic) |
+| A* (`NavGrid.path`) | Squad moves between cover: ~0.07 ms for a 30 m route, bounded search, string-pulled, doorway portals |
+| `TacticalMap` | ~10k cover spots, trench positions, craters and rooms in a 16 m grid, with reservations |
+| Squad plans at 2 Hz, staggered | 32 squads cost a few planning passes per tick |
+| Bot think LOD | Bots within 60 m of a human think every tick, within 160 m every 2nd tick, otherwise every 3rd |
+| Determinism | Per-bot and per-squad seeded streams; a seed replays the same battle. Commands are sanitized (a NaN can never reach the sim) |
 
 **Presentation:**
 
 | Piece | What it buys |
 |---|---|
-| `AnimationSystem` LOD | Full rig with events under 70 m, half-rate rig under 220 m, impostor beyond |
-| `CrowdRenderer` | The whole crowd in 5 instanced draw calls, with CPU frustum culling |
-| `BattlefieldRenderer` | Terrain at 4 m (~50k triangles) with a tiling detail texture so speed reads off the ground; cover as one InstancedMesh per material (destroyed boxes are zero-scaled); point rings, progress arcs and team-colored beacons; a curtain on each team's front line |
-| `TracerPool` | Every tracer and live projectile in 2 instanced draw calls, with no allocation per shot |
-| Shadows | One 2048² sun shadow map over ±45 m that follows the player |
+| `TerrainChunks` | 128 m chunks with distance LOD (every sample near, every 2nd mid, every 8th far), skirts, at most 2 rebuilds per frame; runtime digging rebuilds just the touched chunks |
+| `BattlefieldRenderer` | Cover as one InstancedMesh per material with world-space textures (`CoverTextures`: stuffed sandbag courses, cast concrete, planks, rock, riveted steel), duckboards, wire as instanced pickets plus one line set, point rings and beacons, front-line curtains |
+| `CrowdRenderer`, `AnimationSystem` | The crowd in 5 instanced draw calls; full rig under 70 m, half-rate under 220 m, impostors beyond; corpses stay where they fell |
+| `TracerPool` | Every tracer and live projectile in 2 instanced draw calls |
 
-**Measured** on this container (Node, single thread, seed 5, 90 s battles):
+**Measured** on this container (Node, single thread, seed 5, 90 s battles with squads, digging,
+vehicles, downs and ragdolls):
 
-| | 64 fighters | 128 fighters |
-|---|---|---|
-| Sim, average per 60 Hz tick | 1.1 ms | 2.3 ms |
-| Bot thinks per tick | 28 | 56 |
-| Map and match build | 0.3 s | 0.4 s |
+| | 4v4 | 12v12 | 32v32 | 64v64 |
+|---|---|---|---|---|
+| Fighters | 8 | 24 | 64 | 128 |
+| Map and match build | 0.08 s | 0.18 s | 0.58 s | 0.94 s |
+| Sim, average per 60 Hz tick | 0.25 ms | 0.53 ms | 1.55 ms | 3.43 ms |
+| Worst tick | 3.5 ms | 6.1 ms | 7.8 ms | 10.7 ms |
 
-The browser client at 64 fighters, mid-battle at the middle point (swiftshader), used about 70 draw
-calls, about 77k triangles, and about 1 ms of sim per tick.
+The browser client (swiftshader) runs the 64-fighter Valley at about 77 draw calls and 240k
+triangles, and 128 fighters at about 122 draw calls and 367k triangles (mostly the near terrain).
 
-**Known gaps and next steps:**
-- **Per-mesh deployable, zone and vehicle views** make up most of the remaining draw calls. Instance
-  them like the crowd.
-- **Rare tick outliers (15–30 ms, about one per 90 s at 128).** Neither nav nor GC accounts for them
-  (mark-compact pauses are 2–3 ms). Profile them in the browser.
-- **Netcode.** Use sector-based interest management and send the animation LOD tiers at snapshot rates.
+**Known gaps:** per-mesh deployable, zone and vehicle views make up most of the remaining draw calls;
+the nav grid is 2 m, so trench corners and doorways need the special handling above; netcode needs
+sector-based interest management.
 
 ## HUD (`FrontlineHud`)
 
@@ -160,24 +211,27 @@ calls, about 77k triangles, and about 1 ms of sim per tick.
 |---|---|
 | Top bar | Tickets, plus a sector strip in owner colors with ◆ on each team's front and a fill bar while a sector is being secured |
 | Orders | Your squad's order and distance, e.g. `ATTACK C2 · 30 m` |
-| Point markers | Edge-clamped, with the owner color, a conic capture-progress ring, a pulse while contested, and distance |
-| Minimap | Sectors, points, allies, and enemies who fired in the last 2 s |
-| Gun reticle | HD2-style: where the gun actually points (projected at 60 m), apart from the camera dot. Weapon ergonomics drag shows here |
-| Also | Status bars, ammo, killfeed, capture and sector banners, victory or defeat, and the reinforcement countdown |
+| Squad panel | Your squad's phase (ON YOU, BOUNDING · IN CONTACT, IN THE TRENCH · WAITING FOR THE WHISTLE, CLEARING A BUILDING, HOLDING THE LINE...) and what each squadmate is doing, or that they're down |
+| Banners | Captures, sectors, victory, `WHISTLES · OVER THE TOP!` and the enemy's whistles |
+| Downs | Your bleed-out, give-up hold and revive progress; a revive prompt beside a downed teammate; red crosses over downed teammates |
+| Digging | Progress through foxhole, sandbags and trench |
+| Suppression | The screen edges darken while rounds crack past you |
+| Also | Point markers, minimap with spotted enemies, HD2 gun reticle, status, ammo, killfeed, reinforcement countdown |
 
 ## Tests
 
-- `tests/frontline.test.mjs` covers:
-  - only attacked sectors being capturable;
-  - capture timing (numbers help, defenders cancel);
-  - sector capture moving the front and locking the points behind it;
-  - both victory conditions;
-  - spawns following the front and avoiding hot spawns;
-  - commander allocation;
-  - a 64-bot headless battle. Bots en route must close on their objective at over 2 m/s (it's
-    3.7–4.3 across seeds) and at least 30% must reach it. Points must change hands, there must be
-    hits and redeploys, tickets must fall, and the average sim must stay under 8 ms per tick. The run
-    prints these numbers as a test diagnostic, and the sim is deterministic, so they repeat.
-- `tests/scale.test.mjs` checks that the spatial indexes give exactly the brute-force answers, that
-  terrain carries movement and bullets, and that flow fields route around walls, reopen when cover
-  breaks, and rebuild in slices that match an uninterrupted solve.
+- `tests/maps.test.mjs`: every size builds a valid map (bigger matches, bigger maps, a point per
+  lane, a trench line between line sectors), every point is reachable from both HQs, spawns are
+  walkable, the same seed builds the same map, trench floors are flat with parapets you fire over
+  standing and hide behind crouched, trenches sit on the nav grid with walkable exit ramps, ruin
+  doorways are open, wire slows and is cut by blasts, digging keeps the deepest cut, a soldier pushed
+  into a wall gets out, and a soldier on a trench floor can climb out. (`MAP_SEED=n` re-runs them on
+  another seed.)
+- `tests/squads.test.mjs`: cover spots, routes, suppression, over the top on the whistle, wedge
+  spacing, bounding overwatch, hold the line, sweep and clear, charges only when desperate, a human
+  leader, digging in, and armor crossing trenches and wire with the motor pool following the front.
+- `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander, and a
+  64-bot headless battle (bots close on their objectives at over 2 m/s en route, points change hands,
+  under 8 ms per tick).
+- `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`: the spatial indexes,
+  terrain and flow fields; downs, revives and give-ups; the ragdoll.

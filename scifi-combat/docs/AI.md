@@ -1,8 +1,9 @@
 # Bots: full kits, guns, swords and vehicles
 
 Code: `src/ai/CombatBotBrain.js` · `src/ai/AbilityPlanner.js` · `src/ai/VehiclePilot.js` ·
-`src/ai/MeleeDuelistBrain.js` (sword sub-brain) · data: `data/ai/personalities.json` ·
-tests: `tests/ai.test.mjs`.
+`src/ai/MeleeDuelistBrain.js` (sword sub-brain) · `src/ai/tactics/` (SquadTactics, TacticalMap,
+Suppression) · `src/ai/FrontlineCommander.js` · data: `data/ai/personalities.json` ·
+tests: `tests/ai.test.mjs`, `tests/squads.test.mjs`.
 
 Bots produce the same `Command` a player's InputManager produces. Every system treats them
 exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and counterplay all apply.
@@ -17,7 +18,80 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 | Guns | Holds the personality's range band, strafes, flanks, and sprints to close or retreat. Tracks at a limited turn rate with wandering error, compensates recoil, controls bursts by range, reloads, vents, aims down sights at range, and swaps to the shotgun up close. |
 | Sword | `MeleeDuelistBrain` for close fights: parry and block timing, feints, guard breaks. Duelists switch to the sword under 12 m; others only when an enemy is in their face. |
 | Safety | Sidesteps (and rolls) out of telegraphed line and circle casts aimed at it, walks out of hostile zones while they arm, and retreats at low HP. |
-| Orders (frontline) | With an objective from `FrontlineCommander`, the bot follows that point's flow field and shoots on the move. It only stops to fight in three cases: an enemy within 18 m, being shot from within 30 m, or an enemy holding its point. On the point it holds its slot ([FRONTLINE.md](FRONTLINE.md)). |
+| Squad orders (frontline) | Its squad's `SquadTactics` hands it an order (below): move, bound, overwatch, man a trench, hold, stack, enter, grenade, assault or charge. The brain walks there, takes the stance the position allows and fights from it. Without a squad (the arena) it falls back to the commander's objective and free fighting. |
+| Downs | Downed: crawls toward help, lies still while being revived, gives up when nobody's coming. Up: revives downed teammates nearby (medics go further), one reviver per patient, and finishes a revive once it's well under way. |
+
+## Squads (`SquadTactics`)
+
+A squad of four has a leader's head: a plan re-thought twice a second (staggered across squads)
+from the commander's order, the squad's shared contacts and the map's tactical knowledge. Each bot
+gets an order and carries it out with its own aim, cover use and gunplay. One phase at a time,
+with hysteresis:
+
+| Phase | When | What the squad does |
+|---|---|---|
+| advance | no contact, far from the objective | A wedge around the leader along the route: 5 m to each side and 4 m back per rank. The leader slows to a jog when the squad falls behind. No blob, no conga line. |
+| jumpoff | attacking across our own trench line | Man its firing positions facing the enemy, near our lane, 4 m apart. Report ready; at the whistle the whole squad goes over the top at once, each man to cover 15–25 m out, climbing straight out rather than walking to an exit. Bounding resumes once they reach cover (or 9 s). Enemies coming at the trench are what manning it is for; only enemies down in it (overrun) make the squad fight for it instead. |
+| contact | enemies seen within 75 m, or under fire | Bounding overwatch: two fire teams. One holds cover (or the nearest within 8 m) and suppresses what the squad has seen; the other bounds 12–18 m past the squad's front to cover that faces the threat and gets it closer, 6 m apart (stragglers catch up instead of bounding from where they lag), then they swap. Out of a trench, bounds land clear of it. A pinned moving team waits. While a squadmate is being revived nobody bounds. |
+| assault | the objective is within its radius + 22 m | Everyone onto the point, into cover inside its radius. |
+| clear | enemies seen in a building near us, or rooms touching the objective during a fight there | Sweep and clear, room by room: the two nearest stack on either side of the doorway (crouched, facing it) while the other two cover the entry from 5 m back; frag out if one has a grenade; the pair goes in through the doorway itself and splits to the near corners; sweep to the middle; the cover pair follows in; the room is marked cleared for the team after 2 s with nobody inside, and the squad moves on through the next doorway. |
+| hold | our point, or ordered to defend it | Anchors (two, or one in a small squad) inside the capture radius; the rest a line ~30 m out toward the enemy. That's a trench if one is there (manning the side that faces them), else cover along that line, else they dig in. The line's frame only turns when the threat has really moved round (> 50° for 3 s), so positions and the holes dug at them stay put. Enemies on the point: counter-attack it. |
+| charge | only when desperate | The point we hold is about to fall with none of us on it; the last man standing is hurt and has an enemy within 12 m; or the team is out of tickets, or out of time and losing. Sword fighters close in on enemies within 14 m by themselves, whatever the order: that's their weapon, not a charge. |
+| regroup | more than half the squad is 45 m from the leader, and no contact | Close up on the leader, who waits in cover. |
+| follow | a human leads the squad | A wedge on you while you move; cover around you (within ~9 m) facing the threat when you stop. |
+
+**Shared knowledge.** Every member's sightings and whoever shot at a member become squad contacts
+(last seen position, 15 s memory). The threat point is a weighted mix of the nearest recent ones, so a
+soldier who can't see the enemy still knows where to look, where to suppress and which way cover has
+to face. Rooms where enemies were seen are "hot" for the team.
+
+### Carrying out an order (`CombatBotBrain`)
+
+- **Getting there:** A* waypoints between cover (string-pulled; doorways threaded through their
+  centre; never cutting a corner past a costlier cell), the objective's flow field when far, straight
+  at it when a formation slot is in plain sight. Orders can spell out waypoints (`via`: through a
+  doorway). Arrival also checks height, so a soldier doesn't stop on the sandbags above a trench spot.
+- **Feelers** along the way it's actually going, whatever it's aiming at: climb what can be climbed
+  (low cover, parapets, crates, rocks, dug positions) with hold-to-climb, slide along anything taller
+  following the wall toward where it wanted to go.
+- **Unsticking:** no progress for 1 s, hold climb; 2 s, re-plan the route; 3 s, sidestep out of the
+  corner.
+- **Stance from the position** (with the player's inputs: crouch tap and hold, prone key, jump):
+  crouched behind half cover and in trenches, up to fire over it in bursts and back down to reload or
+  when the fire gets heavy; leaning out past a corner from full cover; prone in a crater or when
+  pinned in the open. A bot crouched behind cover doesn't fire until its muzzle clears it.
+- **Fire discipline:** overwatch and holds engage what they see; movers only what's within 45 m; an
+  enemy within 10 m is fought whatever the order (movers stop for him).
+- **Suppressive fire:** bursts swept across where the squad last saw the enemy, when the rounds would
+  land near them (not in the cover in front), keeping ammunition back for real targets.
+- **Grenades through doorways and over parapets:** the ballistic pitch is solved for the throw.
+- **Digging in:** holding where the line has no cover, it digs (foxhole, sandbags, a trench to the next
+  position) unless an enemy is within 55 m or the fire is heavy.
+- **Holding a position**, it doesn't use launch pads or dashes that would throw it out.
+
+### The tactical map (`TacticalMap`)
+
+Built once per match and kept current: cover spots 0.6 m out from every face of every piece of cover
+(each knows the direction it protects from and its height: half cover 0.9–1.45 m to fire over, full
+cover to hide behind, corner spots that lean out), trench firing positions (covered both ways),
+craters (prone cover from everything), dug positions, and ruin rooms with their clearing state. A
+16 m grid answers radius queries; spots are reserved per soldier so two never pick the same one.
+Destroyed cover takes its spots with it.
+
+### Suppression (`Suppression`)
+
+Rounds cracking past within 2.6 m (a bot's rounds are checked against the soldier it was aiming at
+and his neighbours; a human's along their path), hits, impacts and blasts raise a soldier's
+suppression (0–1); it bleeds off a moment after the fire stops. Suppressed bots stay low and their aim
+wanders up to 2.6× wider; pinned ones (over 0.8) hug the dirt. Squads use it on purpose: the overwatch
+team's job is to suppress so the other team can move. The player sees the screen edges darken.
+
+### The whistle (`FrontlineCommander`)
+
+Squads ready in a trench report to the commander, who blows one whistle per trench line: 6 s after the
+first squad is ready (so others can get in), at most one wave every 18 s. Every squad ready on that
+line goes over together; one that arrives within 3 s of the whistle goes with it; a squad left waiting
+30 s goes anyway. Your team's whistles and the enemy's are heard and bannered.
 
 ## AbilityPlanner: kits without per-ability code
 
@@ -72,6 +146,8 @@ score. The HUD shows the HP, statuses and cooldowns of the enemy under your cros
 Use `?difficulty=recruit|veteran|elite`.
 
 ## Next
-- Objectives (capture points, payload), with SquadDirector roles (anchor, flanker, pusher) and callouts.
-- A navmesh. Current steering uses feelers plus auto-vault, which is fine on open maps.
+- A finer nav (or a navmesh) for trench networks and buildings: the 2 m grid needs portals and
+  corner rules to get through doorways and traverses.
+- Flanking: send one fire team round a side while the other fixes the enemy.
 - Lock-on launchers so infantry bots have a dedicated anti-vehicle answer.
+- Voice callouts for contacts, grenades and the whistle.

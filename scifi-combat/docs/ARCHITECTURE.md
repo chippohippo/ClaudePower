@@ -49,10 +49,11 @@ the client for prediction, and lets bots drive the same controllers with synthet
 ```
 scifi-combat/
 ├─ docs/ARCHITECTURE.md          ← this file (+ MOVEMENT, ANIMATION, ABILITIES, AI, VEHICLES, FRONTLINE)
-├─ index.html                     Frontline battle, 64–128 fighters (src/frontline.js)
+├─ index.html                     Frontline battle, 4v4 to 64v64 (src/frontline.js)
 ├─ arena.html  rig-lab.html       4v4 feel lab (src/arena.js) · animation lab
 ├─ data/                          ← ALL tuning lives here (hot-reloadable JSON)
-│  ├─ movement.json               base locomotion tuning
+│  ├─ movement.json               base locomotion tuning (+ ragdoll)
+│  ├─ down.json                   down but not out: bleed-out, revive, finish-off
 │  ├─ weapons/                    one file per category, ~80 weapons total
 │  │  ├─ ballistic.json  energy.json  heavy.json  exotic.json
 │  │  ├─ melee.json               flame swords, vibroblades, fists, spears
@@ -70,16 +71,22 @@ scifi-combat/
 │  │  ├─ melee/ MeleeSystem.js  MeleeStates.js  HitboxSweep.js  FlameSwordFx.js
 │  │  ├─ weapons/ WeaponSystem.js  RecoilPattern.js  Ballistics.js  Attachments.js
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
+│  │  ├─ HitReactions.js  ReviveSystem.js   ragdoll triggers; downs and revives
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
-│  │      FrontlineCommander.js  squads of 4, attack/defend orders per team
+│  │      FrontlineCommander.js  squads of 4, attack/defend orders per team, whistle waves
+│  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
 │  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, bot LOD, waves)
-│  │        frontline/ FrontlineMap.js (seeded 1 km map)  FrontlineMode.js (rules) → docs/FRONTLINE.md
-│  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js   spatial indexes, heightfield, flow fields
+│  │        frontline/ MapSizes.js (4v4–64v64)  FrontlineMap.js (a seeded map per size)  Trenches.js
+│  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules) → docs/FRONTLINE.md
+│  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js  WireField.js
+│  │         spatial indexes, diggable heightfield, flow fields and A*, barbed wire
+│  ├─ physics/ Ragdoll.js       deterministic particle ragdolls (blasts, criticals, downs, deaths)
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
 │  ├─ render/ CrowdRenderer.js    instanced crowd (5 draw calls, team colors, status glow, impostors)
-│  │          BattlefieldRenderer.js  TracerPool.js   terrain, instanced cover, objectives; pooled tracers
+│  │          BattlefieldRenderer.js  TerrainChunks.js  CoverTextures.js  TracerPool.js
+│  │          chunked terrain, triplanar cover, trenches, wire, objectives; pooled tracers
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
@@ -273,6 +280,15 @@ Mirror roles but **asymmetric mechanics** (Solari shields regenerate, Void armor
   accuracy, reaction, feint rate, squad coordination within a designer-bounded range.
 - Personalities from data: aggression, patience, preferredRange, feintRate, coverBias.
 
+> Implemented ([AI.md](AI.md)): `CombatBotBrain` runs every bot with full kits. In Frontline,
+> `SquadTactics` gives each squad a phase twice a second: advance, man the jump-off trench, contact
+> (bounding overwatch), assault, clear a building room by room, hold the line (and dig in),
+> regroup, or charge. It issues orders to each member, and each member carries its order out
+> through the brain. The rest of the Frontline AI:
+> - `TacticalMap` indexes cover spots and rooms;
+> - `Suppression` turns near misses into suppression that pins soldiers down;
+> - the commander blows the whistle for whole waves to go over the top together.
+
 ---
 
 ## 8. Multiplayer
@@ -295,9 +311,12 @@ Mirror roles but **asymmetric mechanics** (Solari shields regenerate, Void armor
 
 ## 9. Modes
 
-> Implemented: **Frontline** ([FRONTLINE.md](FRONTLINE.md)), the flagship 64–128 fighter mode.
-> It has 5 line sectors and 13 points between two HQs. Taking every point of the sector in front of
-> your line moves the front, and the match ends on a breakthrough, on tickets, or at the time limit.
+> Implemented: **Frontline** ([FRONTLINE.md](FRONTLINE.md)), the flagship mode, in four sizes
+> (4v4, 12v12, 32v32, 64v64). Each size has a seeded map built for it: from 3 sectors and 3 points
+> on a 260 m outpost, up to 7 sectors and 19 points on a 1400 × 520 m battlefield. The sectors are separated by
+> WW1 trench lines with wire, dugouts and communication trenches. Taking every point of the sector
+> in front of your line moves the front, and the match ends on a breakthrough, on tickets, or at
+> the time limit.
 > Bots fill the armies in squads under a commander per team. `FrontlineMode` is simulation-only
 > (`update`, `onDeath`, `spawnPosition`, `snapshot`) and is the template for the other modes.
 

@@ -10,6 +10,7 @@ Code:
 - **Scale:** `src/anim/AnimationSystem.js` (interpolation, LOD, event routing) and `src/render/CrowdRenderer.js` (instanced drawing).
 - **Data:** `data/animation/humanoid.json`.
 - **Tests:** `tests/animation.test.mjs`.
+- **Ragdoll (simulation side):** `src/physics/Ragdoll.js`, tuning in `data/movement.json` `ragdoll`.
 - **Inspection tool:** `rig-lab.html`.
 
 **Reference mandate:** the animation has to read like Helldivers 2: slightly exaggerated, highly
@@ -22,7 +23,7 @@ reworked. The rules below are enforced by tests wherever they can be measured.
 1. **The sim owns time.** Every timing that matters is read from the simulation, never from a free-running
    animation clock:
    - stance transitions (`stanceT`), dive (`dive.t`), slide (`slide.t`) and mantle progress;
-   - knockdown phases (`knock.t`);
+   - get-up phases (`knock.t`), and a thrown body's pose, which is the ragdoll's own particles;
    - weapon phases (sprint-to-fire, reload, vent, swap) and melee phases (windup/active/recovery).
    
    Gameplay and picture can't drift apart. The gun is visibly up on the tick it can fire.
@@ -82,7 +83,7 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | crouch → prone | crouch → push-up → prone | `proneDrop` at 70% |
 | prone → stand | prone → push-up → kneel → stand (**chest rises before the hips**) | foot plant at 95% |
 | supine → stand | supine → sit-up → kneel → stand | foot plant at 95% |
-| knockdown get-up | lying (front/back) → push-up or sit-up → kneel → stand | rustle |
+| get-up (after a ragdoll comes to rest) | lying (front/back) → push-up or sit-up → kneel → stand | rustle |
 
 ## Committed moves
 
@@ -95,15 +96,17 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | **Hop / fall** | Push-off going up, tuck at the peak, legs reaching for the ground coming down. Landings plant both feet with a compression kick; heavy landings stumble (`land` impact). |
 | **Vault** | One hand plants on the obstacle (world-fixed, `hands` impact), the legs swing over to the side, and forward momentum never stops. |
 | **Climb** | Both hands plant on the lip (world-fixed), then a pull-up with the chest over the edge and a knee coming up. Feet plant on top with footsteps at 72% and 90%. |
-| **Knockdown** | Thrown: tumble and flail around the airborne body. The body settles toward the lying pose over the last quarter second before the slam (ballistic time to impact). Then a `body` impact, lying front or back (from the throw direction), and a front or back get-up. |
+| **Thrown** | Blasts, critical hits, downs and deaths throw the body as a physics ragdoll (see [Ragdolls and downs](#ragdolls-and-downs)). Where it lands is where you are: it gets up front or back from however it came to rest, starts the downed crawl, or stays as a corpse. |
 | **Evades** | Melee classes' flameStep/ashStep: a low leap along the dash with the chest on the aim. Shoulder bash: running steps with the shoulder leading. |
 | **Seated** | Bike riders: hands on the bars for drivers; gunners and passengers aim. |
-| **Death** | Collapses (ease-in) to the lying pose, falling back if shot from the front. |
+| **Death** | A ragdoll collapse, pushed gently the way the killing shot went. (A body without a ragdoll falls back on an authored collapse to the lying pose.) |
 
 **Crossfades:** each state fades in over `[seconds, curve]` from `blend.fade`:
-- `out` (ease-out) for commits that must read instantly: dive, mantle, knockdown, evades.
-- `smooth` for drops and recoveries, so nothing front-loads a pop.
-- `in` for collapses.
+- `out` (ease-out) for commits that must read instantly: dive, mantle, evades.
+- `smooth` for drops, get-ups, the downed crawl and recoveries, so nothing front-loads a pop.
+- `in` for the authored death collapse.
+
+Ragdolls blend separately (`blend.ragdollIn`, `blend.ragdollOut`, below).
 
 A state that is fading out replays its last pose, carried rigidly with the body. It can't snap when
 its sim data disappears (a finished dive, a cleared mantle).
@@ -132,12 +135,76 @@ its sim data disappears (a finished dive, a cleared mantle).
 - **Breathing:** slow at rest, heavy and fast when stamina is low or exhausted.
 - **Secondary motion:** a 3-link verlet cape streams behind sprints, dives and slides.
 
+## Ragdolls and downs
+
+HD2 rule: an explosion throws a soldier as a full ragdoll, and where the body lands is where you
+are. The ragdoll is **simulation** code (`src/physics/Ragdoll.js`), so the server and every client
+throw the same body the same way. The rig only draws it.
+
+**The body:**
+- **Particles:** 16 particles sit at the rig's own joints: pelvis, chest, neck, head, hips, knees,
+  ankles, shoulders, elbows and hands. Each has its own mass and collision radius.
+- **Integration:** each tick is verlet integration followed by 12 position-based constraint passes.
+  - **Bones** are rigid: spine, neck, hips, shoulders, thighs, shins, upper arms and forearms.
+  - **Braces** are soft: the trunk's sides and diagonals, and the head on the shoulders. The trunk can
+    twist a little but never folds flat.
+  - **Limits** are one-sided:
+    - knees and elbows hinge one way only;
+    - hips don't hyperextend or cross;
+    - limbs don't fold through each other or the trunk;
+    - the head stays above the neck.
+- **Collision:** the terrain heightfield and the cover boxes, with friction and no bounce. A body
+  thrown into a wall stays against it, and one thrown into a trench lands on the floor.
+- **Sleep:** it sleeps once every particle is slow and touching something for `sleepTime`, or after
+  `maxTime`. Impulses wake it, so a later blast throws a body that's already lying there.
+- **Cost and netcode:** an awake body costs a few µs per tick. A body serializes and restores
+  exactly, which is what netcode needs.
+- **Whole bodies:** no limb or body loss, by design. A soldier who survives the throw is downed or
+  gets up with every limb attached.
+- **Starting pose:** a body starts limp in exactly the shape it was animated in. The rig's joints
+  for each stance (stand, crouch, prone, supine) are stored body-local in
+  `data/movement.json` `ragdoll.poses`, and a test keeps them in sync with the rig.
+
+**What throws a body** (all tuning in `data/movement.json` `ragdoll`):
+
+| Trigger | Rule | Throw |
+|---|---|---|
+| Blast | Inside `blastRadiusFrac` (75%) of the radius; outside it you're only shoved. Prone soldiers resist. Mines too. | Away from the blast, with lift. |
+| Critical hit | One hit taking `criticalFraction` (45%) of the pool (shield included), a headshot taking `headFraction` (40%), a clean heavy melee blow, or a vehicle ram. | Along the shot at `criticalSpeed` (3.5–8 m/s), harder the more of the pool it took. |
+| Down or death | Any hit that downs or kills. | A collapse, pushed gently along the shot (`collapseSpeed` 0.8–2.2 m/s). Burns, falls and crashes collapse the body without a push. |
+
+**At rest** the movement controller (ragdoll mode: no control, the root rides the pelvis) reads
+how the body lies:
+- face down or face up, from the trunk's frame;
+- a living soldier gets up front or back (the HD2 get-up, `knockdown.getUpTime`);
+- a downed one starts crawling where it lies;
+- a dead one stays as a corpse.
+
+The hitboxes sit on the particles the whole time, so you shoot the body where it's drawn.
+
+**The rig side** (`ProceduralHumanoid`):
+- **Drawing:** a limp body is drawn straight from the particles, interpolated between ticks.
+- **Blending in:** from the animated pose over `blend.ragdollIn` (0.1 s), carried with the body.
+- **Blending out:** from where the body lay into whatever comes next (get-up, downed crawl) over
+  `blend.ragdollOut` (0.35 s). Nothing pops in either direction.
+- **Thuds:** a body hitting the ground hard emits `anim:impact` `ragdoll`, scaled by speed.
+
+**Downed** (`data/down.json`; rules in [FRONTLINE.md](FRONTLINE.md)):
+- The soldier lies where the body came to rest, one hand pressed to the wound and the rifle slung.
+- The other arm pulls the body along in a slow wounded crawl (0.45 m/s). On the back it's a scoot
+  on the heels.
+- Breathing is heavy. No aim, no gun.
+- A **reviver** kneels over the patient with both hands on their chest. The revive ends in the
+  normal get-up.
+
+**Corpses** stay where they fell after the soldier redeploys: up to 96 bodies, for 90 s each.
+
 ## Event contract
 
 | Event | Payload | Fired | Consumers |
 |---|---|---|---|
 | `anim:footstep` | `id, foot (0 L / 1 R), gait (walk/jog/sprint/crouch/crawl/shuffle/land), stance, intensity, surface, x, y, z, speed` | Heel strike (planted on that frame), crawl contacts, landings, transition plants | CameraRig bob (local player), AudioDirector foley, VFX dust |
-| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), VFX |
+| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands / ragdoll), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), VFX |
 | `anim:cloth` | `id, kind (dive / slide / stance / mantle / knockdown / getup / sprint / raise / swing), intensity, x, y, z` | Start of big motions | Audio rustle and gear |
 
 - **Intensity** comes from the gait table × stance (stand 1, crouch 0.45, prone 0.3) × armor (light 0.85, heavy 1.25) × size.
@@ -198,6 +265,12 @@ Drop-in replacement per fighter with the same inputs and events. Mapping lives i
 - **Playback:** 0.05–1× slow motion, pause and step.
 - **Overlays:** planted feet and hit spheres.
 - **Event log:** shows each footstep, impact and cloth event with its timestamp.
+- **Ragdoll and down stations:**
+  - `knock`: thrown by blasts from behind, then from the front.
+  - `critical`: a heavy round from the side throws you, and you get up.
+  - `downed`: collapse, wounded crawl, revived, get up.
+  - `revive`: kneel over a downed squadmate until they get up.
+  - `corpse`: killed by a blast, and the body stays where it fell.
 - **URL:** `rig-lab.html?station=slide&view=side&speed=0.25`. Add `&at=1.9` to freeze at that loop
   time (deterministic, used for screenshots).
 
@@ -229,9 +302,22 @@ Drop-in replacement per fighter with the same inputs and events. Mapping lives i
 - **Crowd renderer:** instance counts per LOD, all matrices finite and right-handed.
 - **Every rig-lab move:** finite joints, planted feet always reached, the body never jumps more than 13 cm relative to the root in one frame.
 
+The ragdoll has its own tests (`tests/ragdoll.test.mjs`):
+- **Whole bodies:** blasts from any side keep the body whole and it comes to rest.
+- **Throw direction:** thrown from behind it lands face down, from the front face up, and bigger
+  blasts throw further.
+- **Cover:** bodies collide with it.
+- **Determinism:** a serialized body continues exactly.
+- **Poses:** they match the rig's joints in each stance.
+- **Hitboxes:** they stay on the body.
+- **Trigger rules:** the blast radius rule, critical hits, collapses, corpses, and later blasts
+  throwing bodies already lying there.
+
+Downs and revives are covered in `tests/down.test.mjs`.
+
 ## Known gaps
 
-- Ragdoll-lite: knockdowns are authored tumbles, not physics ragdolls.
-- Feet align to height (the `groundY` hook) but not to slope angle yet. Terrain arrives with the large maps.
+- Feet align to the terrain's height (the `groundY` hook) but not to its slope angle yet.
+- Ragdolls collide with the terrain and cover boxes, but not with each other or with vehicle hulls.
 - Strafing is side-stepping with shorter strides, not a full 8-way blend.
 - Graybox geometry: the CrowdRenderer draws boxes and limbs. Real characters go through ClipAnimationController.

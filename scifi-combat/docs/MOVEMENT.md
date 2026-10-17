@@ -50,8 +50,8 @@ measured fact. The procedure for locking them to the real game is in the next se
 | Crawl speed | 0.95 m/s | ±0.1 | As jog, prone |
 | Prone turn | 110°/s | 0.7–1.0 s for 90° | Frames to rotate prone |
 | Climb 2 m | 0.62 s | ±0.05 s | Frames of a chest-high climb |
-| Heavy landing / knockdown | 9.5 m/s (~2 m) / 15 m/s (~5 m) | — | Drop heights that cause a stumble / ragdoll |
-| Ragdoll recovery | ~1.2–1.8 s total | 1–3.5 s | Impact to control |
+| Heavy landing / knockdown | 9.5 m/s (~2 m) / 15 m/s (~5 m) | — | Drop heights that cause a stumble / a knockdown with fall damage |
+| Ragdoll recovery | ~1.2–1.8 s total | 1–3.5 s | Impact to control (the throw, coming to rest, the get-up) |
 
 ## State machine
 
@@ -69,16 +69,21 @@ measured fact. The procedure for locking them to the real game is in the next se
  │                    │  Space (no ledge ahead)  ┌─────┐  lands: <9.5 m/s normal │ ≥9.5 LAND (stumble) │ ≥15 KNOCKDOWN
  │                    │─────────────────────────▶│ AIR │──────────────────────────────────────────────────────▶
  │                    │                          └─────┘
- │                    │  explosion / ram / big shove ≥ 6 m/s (prone ×1.8)  ┌───────────────────────────────┐
- │                    │───────────────────────────────────────────────────▶│ KNOCKDOWN: air→ground→get up  │
- └────────────────────┘                                                    └───────────────────────────────┘
+ │                    │  ≥15 m/s landing (above)                           ┌───────────────────────────────┐
+ │                    │───────────────────────────────────────────────────▶│ KNOCKDOWN: slam → get up      │
+ │                    │                                                    └───────────────────────────────┘
+ │                    │  blast · critical hit · ram · shove ≥ 6 m/s        ┌───────────────────────────────┐
+ │                    │  (prone ×1.8) · down · death                       │ RAGDOLL: limp, no control     │
+ │                    │───────────────────────────────────────────────────▶│ at rest: get up (front/back), │
+ └────────────────────┘                                                    │ downed crawl, or corpse       │
+                                                                           └───────────────────────────────┘
    MANTLE (vault keeps momentum / climb ends standing) · DODGE (class evades) · VEHICLE
 ```
 
 Other systems read per-tick flags the controller sets first in every tick:
 - **`diveStarted` / `knockStarted`:** these cancel melee swings and guards, ability casts (half the
   cooldown refunded) and ADS. "Dive interrupts most other actions."
-- **`weaponReady`:** false while mantling, knocked down, getting up or down from prone, or sprinting.
+- **`weaponReady`:** false while mantling, knocked down, limp, downed, getting up or down from prone, or sprinting.
   The gun is lowered and comes back up after `sprintToFire`.
 - **`busy`:** no ability casts mid-dive, mid-climb, while down or during prone transitions.
 - **`aimYaw`:** the look yaw, except prone and belly slides clamp the gun to ±40° around the body.
@@ -170,7 +175,7 @@ Movement emits state; the animation rig ([ANIMATION.md](ANIMATION.md)) reads it 
 back. It plants feet in world space and emits:
 - `anim:footstep {id, foot, gait, stance, intensity, surface, x, y, z}` on every heel strike;
 - `anim:impact {kind}` when the body or hands hit (dive landing, slide, prone drop, knockdown slam,
-  heavy landing, ledge hands);
+  ragdoll thud, heavy landing, ledge hands);
 - `anim:cloth {kind}` at the start of big motions.
 
 Camera bob and footstep, gear, cloth and impact audio are driven only by those events. They're
