@@ -13,6 +13,7 @@ const DEFAULT_BINDINGS = {
   heavy:    { keys: ['KeyF'],                  pad: [5] },  // RB
   guard:    { mouse: [2],                      pad: [6] },  // LT  (ADS when gun out)
   interact: { keys: ['KeyX'],                  pad: [3] },  // Y / Triangle (hold)
+  dig:      { keys: ['KeyH'],                  pad: [] },   // hold: dig in (foxhole, sandbags, then trench to the next position)
   reload:   { keys: ['KeyR'],                  pad: [3] },  // Y / Triangle (tap)
   swapShoulder: { keys: ['KeyB'],              pad: [11] }, // R3
   togglePOV:{ keys: ['KeyT'],                  pad: [8] },  // View/Share

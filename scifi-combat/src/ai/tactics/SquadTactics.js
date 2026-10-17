@@ -17,8 +17,9 @@
 //                doorway (two flanking it, two covering), frag out if anyone has a grenade, enter
 //                and split to the corners, sweep, mark the room cleared, move to the next.
 //  * hold      - our point (or ordered to defend it): two anchors inside the capture radius, the
-//                rest form a line 15-30 m out toward the enemy in the best cover, a trench if
-//                there is one there. If enemies get onto the point: counter-attack it.
+//                rest form a line ~30 m out toward the enemy: a trench if there is one there,
+//                else the cover along that line, else they dig in (foxhole, sandbags, then a
+//                trench to the next position: Fortify). If enemies get onto the point: counter-attack.
 //  * regroup   - scattered after respawns: close up on the leader.
 //  * charge    - only when desperate: the point we defend is about to fall with nobody on it,
 //                the last man standing is hurt and cornered, or the team is out of tickets or time.
@@ -447,6 +448,13 @@ export class SquadTactics {
     let tx = T.x - P.x, tz = T.z - P.z;
     const tl = Math.hypot(tx, tz);
     if (tl < 5) { tx = DIR[this.team]; tz = 0; } else { tx /= tl; tz /= tl; }
+    // The line keeps its frame: it only turns when the threat has really moved round (> 50° for
+    // a few seconds), so positions, and the holes dug at them, stay put.
+    const F = this.holdFrame;
+    if (!F || F.point !== obj.point.id) this.holdFrame = { point: obj.point.id, tx, tz, off: 0 };
+    else if (tx * F.tx + tz * F.tz < 0.64) { if ((F.off += PLAN) > 3) { F.tx = tx; F.tz = tz; F.off = 0; this.holdSpots.clear(); } }
+    else F.off = 0;
+    tx = this.holdFrame.tx; tz = this.holdFrame.tz;
     const px = -tz, pz = tx;
     const anchors = up.length >= 3 ? 2 : 1;
     // A trench line out toward the enemy is the line to hold.
@@ -455,30 +463,48 @@ export class SquadTactics {
     const lane = ((this.squad.id % 3) - 1) * 9;   // squads on the same point spread out
     up.forEach((m, k) => {
       const anchor = k < anchors;
-      let want;
+      let want;   // eslint-disable-line prefer-const (a dig place below replaces it)
       if (anchor) want = { x: P.x + px * (k - (anchors - 1) / 2) * 4 + tx * 2, z: P.z + pz * (k - (anchors - 1) / 2) * 4 + tz * 2 };
       else if (line) want = { x: line.cx, z: P.z + (k - anchors - (up.length - anchors - 1) / 2) * 7 + lane };
-      else want = { x: P.x + tx * 20 + px * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane), z: P.z + tz * 20 + pz * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane) };
+      else want = { x: P.x + tx * 30 + px * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane), z: P.z + tz * 30 + pz * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane) };
       let s = this.holdSpots.get(m);
-      const valid = s && s.alive && this.tmap.free(s, m.id, now) && d2(s, want) < (anchor ? obj.radius : 12) && this.tmap.covers(s, T.x, T.z) > 0
+      const reach = anchor ? obj.radius : line ? 12 : 6;   // the line keeps its shape: dig in rather than wander off for cover
+      // A place picked to dig in stays this soldier's place (until the line turns).
+      if (s?.virtual) { want = s; s = null; }
+      const valid = s && s.alive && this.tmap.free(s, m.id, now) && d2(s, want) < reach + 1 && this.tmap.covers(s, this.threat.x, this.threat.z) > 0
         && (!anchor || d2(s, P) < obj.radius * 0.95) && !taken.some((t) => d2(t, s) < 3.5);
       if (!valid) {
-        s = this.tmap ? this.tmap.best(want.x, want.z, anchor ? obj.radius : 12, (q) => {
+        s = this.tmap ? this.tmap.best(want.x, want.z, reach, (q) => {
           if (anchor && d2(q, P) > obj.radius * 0.95) return Infinity;
           if (line && !anchor && q.kind === 'trench' && -q.nx !== Math.sign(tx)) return Infinity;   // man the side facing them
           let v = d2(q, want);
           if (!this.tmap.covers(q, T.x, T.z)) v += 14;
           if (q.fire === 'hide') v += 4;
           if (q.kind === 'trench' || q.kind === 'fort') v -= 3;
+          if (q.kind === 'crater' && !anchor && !line) v += 8;   // a shell hole on the line is a place to dig in, not to stop
           for (const t of taken) if (d2(q, t) < 3.5) v += 25;
           return v;
         }, m.id, now) : null;
-        if (s) this.holdSpots.set(m, s); else this.holdSpots.delete(m);
+        // On the line with only a shell hole (or nothing) to hold: dig a proper position there.
+        if (!anchor && !line && (!s || s.kind === 'crater') && this.world.fortify?.canDig(this.team, want.x, want.z)) s = null;
+        if (s) this.holdSpots.set(m, s);
+        else if (!anchor && !line && this.world.fortify?.canDig(this.team, want.x, want.z)) this.holdSpots.set(m, { x: want.x, z: want.z, virtual: true });
+        else this.holdSpots.delete(m);
       }
       if (s) { this.tmap.reserve(s, m.id, now); taken.push(s); }
-      // No cover where the line has to be: dig in there (Fortify).
-      this.#order(m, { kind: 'hold', pos: s ?? want, spot: s, fire: 'cover', face: T, suppress: this.hasThreat ? T : null, sprint: d2(pos(m), s ?? want) > 10, arrive: 0.8, dig: !s && !anchor, anchor, why: anchor ? 'on the point' : line ? 'holding the trench' : 'holding the line' });
+      // No cover where the line has to be: dig in there (Fortify), and keep improving a dug
+      // position (sandbags, then a trench to the next one) while things are quiet.
+      const fort = s?.kind === 'fort' ? s.fort : null;
+      const dig = (!s && !anchor && !line && !!this.world.fortify?.canDig(this.team, want.x, want.z)) || (fort && (fort.stage < 2 || this.#linkable(fort)));
+      this.#order(m, { kind: 'hold', pos: s ?? want, spot: s, fire: 'cover', face: T, suppress: this.hasThreat ? T : null, sprint: d2(pos(m), s ?? want) > 10, arrive: 0.8, dig, anchor, why: anchor ? 'on the point' : line ? 'holding the trench' : dig ? 'digging in' : 'holding the line' });
     });
+  }
+
+  /** Another of our positions close enough to dig a trench to. */
+  #linkable(site) {
+    const F = this.world.fortify;
+    if (!F) return false;
+    return F.sites.some((o) => o !== site && o.team === site.team && o.stage >= 1 && !site.links.has(o) && Math.hypot(o.x - site.x, o.z - site.z) < 11);
   }
 
   #chargeOrders(up, obj) {

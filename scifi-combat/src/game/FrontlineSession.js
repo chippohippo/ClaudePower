@@ -29,6 +29,7 @@ import { FrontlineMode } from './frontline/FrontlineMode.js';
 import { TacticalMap } from '../ai/tactics/TacticalMap.js';
 import { Suppression } from '../ai/tactics/Suppression.js';
 import { SquadTactics } from '../ai/tactics/SquadTactics.js';
+import { FortifySystem } from './frontline/Fortify.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -76,6 +77,7 @@ export class FrontlineSession {
     // Squad tactics: where the cover is, who is pinned down, and a leader's plan per squad.
     this.tactical = new TacticalMap(this.map);
     this.suppression = new Suppression(this.world);
+    this.fortify = this.world.fortify = new FortifySystem(this.world, this.map, { cap: M.fortCap ?? 24, tmap: this.tactical });
     for (const team of [0, 1]) for (const sq of this.squads[team]) {
       sq.tactics = new SquadTactics(sq, { world: this.world, map: this.map, tmap: this.tactical, mode: this.mode, commander: this.commanders[team], seed });
     }
@@ -147,8 +149,9 @@ export class FrontlineSession {
       if (f.brain) cmd = this.#think(f, dt);
       else cmd = this.humans.get(f.id) ?? EMPTY;
       if (!Number.isFinite(cmd.yaw + cmd.pitch + cmd.moveX + cmd.moveY)) cmd = { ...cmd, yaw: Number.isFinite(cmd.yaw) ? cmd.yaw : f.movement.state.yaw, pitch: Number.isFinite(cmd.pitch) ? cmd.pitch : 0, moveX: Number.isFinite(cmd.moveX) ? cmd.moveX : 0, moveY: Number.isFinite(cmd.moveY) ? cmd.moveY : 0 }; // never let a bad number into the sim
-      // Reviving a teammate owns the tick: kneel, no moving, shooting or casting.
+      // Reviving a teammate or digging in owns the tick: kneel, no moving, shooting or casting.
       if (w.revives.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
+      else if (this.fortify.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, dt); continue; }
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);

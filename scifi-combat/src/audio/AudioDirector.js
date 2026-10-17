@@ -224,6 +224,23 @@ export class AudioDirector {
       this.play(`cloth.${e.kind}`, { tier: Tier.FOLEY, pos: self ? null : { x: e.x, y: e.y, z: e.z }, radius: 12, intensity: e.intensity, gainDb: db(e.intensity) - (self ? 10 : 8) });
     });
 
+    // The front: the officers' whistles before a wave goes over the top (yours carry across the
+    // line, the enemy's are a warning), shovels where men are digging in, sandbags thumping down.
+    on('squad:whistle', (e) => {
+      const mine = this.getEntity(this.listenerId)?.team === e.team;
+      const pos = { x: e.x, y: 0, z: e.z };
+      if (mine) this.play('squad.whistle', { tier: Tier.COMBAT, pos, radius: 220, gainDb: 0 });
+      else this.play('squad.whistle_threat', { tier: Tier.THREAT, pos, radius: 160, gainDb: -2 });
+    });
+    const digging = new Map();
+    on('fort:dig', (e) => {
+      const last = digging.get(e.id) ?? -1;
+      if (this.time - last < 0.55) return;   // a spadeful every ~0.6 s
+      digging.set(e.id, this.time);
+      this.play('dig.spade', { tier: Tier.FOLEY, pos: e.id === this.listenerId ? null : this.posOf(e.id), radius: 22, gainDb: e.id === this.listenerId ? -4 : -6 });
+    });
+    on('fort:built', (e) => e.kind === 'sandbags' && this.play('impact.body', { tier: Tier.FOLEY, pos: { x: e.x, y: 0, z: e.z }, radius: 26, intensity: 1, gainDb: -3 }));
+
     // Melee: parries are the loudest and most satisfying sound in the game. Don't let anything mask them.
     on('melee:parry', (e) => this.play('melee.parry_burst', { tier: Tier.THREAT, pos: this.posOf(e.defender), gainDb: 2 }));
     on('melee:windup', (e) => this.relation(e.id) === 'enemy' && this.play(e.unblockable ? 'melee.windup_unblockable' : 'melee.windup', { tier: Tier.THREAT, pos: this.posOf(e.id) }));
@@ -264,7 +281,8 @@ export class SynthBackend {
   }
   play(cue, { pos, gainDb = 0, sig, loop, radius = 45, tier, intensity = 1 }) {
     const kind = cue.slice(0, cue.indexOf('.'));
-    if (kind === 'foot' || kind === 'impact' || kind === 'cloth' || kind === 'gear') return this.#foley(kind, cue, { pos, gainDb, radius, intensity });
+    if (kind === 'foot' || kind === 'impact' || kind === 'cloth' || kind === 'gear' || kind === 'dig') return this.#foley(kind, cue, { pos, gainDb, radius, intensity });
+    if (cue.startsWith('squad.whistle')) return this.#whistle({ pos, gainDb, radius, threat: cue.endsWith('_threat') });
     const ctx = this.ctx, t = ctx.currentTime;
     const threat = cue.includes('_threat') || tier === 0;
     const freq = noteHz(sig?.root) * (threat ? 1 : 2);   // threats sit an octave lower, so they're heavier
@@ -296,6 +314,40 @@ export class SynthBackend {
   stop(h) { try { h.osc.stop(); } catch { /* already stopped */ } h.ended = true; }
 
   /**
+   * A pea whistle: a shrill tone around 2.8 kHz warbled ~28 times a second by the pea, two long
+   * blasts. The enemy's is pitched lower and rougher, so you know whose wave is coming.
+   */
+  #whistle({ pos, gainDb, radius, threat }) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = 10 ** ((gainDb - 14) / 20);
+    let node = out;
+    if (pos) {
+      const p = ctx.createPanner();
+      Object.assign(p, { panningModel: 'HRTF', distanceModel: 'linear', refDistance: 6, maxDistance: radius, rolloffFactor: 1 });
+      p.positionX.value = pos.x; p.positionY.value = pos.y; p.positionZ.value = pos.z;
+      out.connect(p); node = p;
+    }
+    node.connect(this.buses.sfx);
+    const osc = ctx.createOscillator(), trill = ctx.createOscillator(), depth = ctx.createGain(), env = ctx.createGain();
+    osc.type = threat ? 'sawtooth' : 'sine';
+    osc.frequency.value = threat ? 2300 : 2800;
+    trill.frequency.value = 28; depth.gain.value = threat ? 260 : 180;
+    trill.connect(depth); depth.connect(osc.frequency);
+    env.gain.setValueAtTime(0, t);
+    for (const [a, b] of [[0, 0.55], [0.75, 1.6]]) {      // two blasts: the second one long
+      env.gain.linearRampToValueAtTime(1, t + a + 0.02);
+      env.gain.setValueAtTime(1, t + b - 0.04);
+      env.gain.linearRampToValueAtTime(0, t + b);
+    }
+    osc.connect(env); env.connect(out);
+    osc.start(t); trill.start(t); osc.stop(t + 1.7); trill.stop(t + 1.7);
+    const h = { osc, ended: false };
+    osc.onended = () => { h.ended = true; out.disconnect(); };
+    return h;
+  }
+
+  /**
    * Noise-based foley: footsteps are a filtered noise transient plus a low pitch-dropping thump
    * (the weight), impacts are longer and darker, cloth is a band-passed rustle, gear is a short
    * bright clank. Surface sets the filter: dirt dull, wood mid, metal bright.
@@ -312,6 +364,7 @@ export class SynthBackend {
     const spec = kind === 'foot' ? { type: 'lowpass', f: bright, q: 0.8, attack: 0.002, decay: 0.07 + 0.06 * intensity, thump: 70 + 30 * intensity, thumpGain: 0.9 * intensity }
       : kind === 'impact' ? { type: 'lowpass', f: 700, q: 0.7, attack: 0.003, decay: 0.28, thump: 52, thumpGain: 1.1 }
       : kind === 'cloth' ? { type: 'bandpass', f: 1900, q: 0.9, attack: 0.025, decay: 0.12 + 0.2 * intensity, thump: 0, thumpGain: 0 }
+      : kind === 'dig' ? { type: 'bandpass', f: 1300, q: 1.1, attack: 0.012, decay: 0.24, thump: 95, thumpGain: 0.45 }   // spade bites, earth thrown
       : { type: 'highpass', f: 3500, q: 1.5, attack: 0.001, decay: 0.05, thump: 0, thumpGain: 0 };
     const out = ctx.createGain();
     out.gain.value = 10 ** ((gainDb - 8) / 20);

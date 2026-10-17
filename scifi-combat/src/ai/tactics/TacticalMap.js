@@ -8,7 +8,7 @@
 //  * trench firing positions: half cover toward the parapet they face, and the rear parapet
 //    covers their backs (a trench protects both ways).
 //  * shell craters: prone cover from every direction.
-//  * fortifications dug during the match (Fortify) add their own spots.
+//  * positions dug during the match (Fortify) add their own spots: the pit, then its sandbags.
 //
 // Queries go through a uniform grid; spots are reserved per soldier so two never pick the same
 // one. Destroyed cover takes its spots with it.
@@ -92,6 +92,11 @@ export class TacticalMap {
       }
     }
     this.byBox.set(b, list);
+  }
+
+  /** A dug position (Fortify): prone cover in its pit, crouch cover once it has sandbags. */
+  addFort(site) {
+    return this.#add({ x: site.x, y: site.y, z: site.z, kind: 'fort', nx: -site.face, nz: 0, h: 0.6, fire: 'prone', all: true, fort: site });
   }
 
   /** Is a standing soldier at (x, z) inside some cover box (or within 0.3 m of one)? */

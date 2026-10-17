@@ -43,6 +43,13 @@
     #fl-downs .dn { position: absolute; left: 0; top: 0; margin: -14px 0 0 -10px; color: #ff5a5a; font-size: 20px; font-weight: 900; text-shadow: 0 0 6px #000; text-align: center; width: 20px; }
     #fl-downs .dn span { display: block; font-size: 10px; color: #eef2f8; font-weight: 600; white-space: nowrap; margin-left: -20px; width: 60px; }
     #fl-downs .dn.helped { color: #7fffb0; }
+    #fl-squad { position: absolute; left: 12px; bottom: 112px; width: 260px; background: #0009; padding: 6px 8px; border-radius: 6px; font-size: 12px; line-height: 1.45; }
+    #fl-squad:empty { display: none; }
+    #fl-squad .hd { font-weight: 800; letter-spacing: .5px; font-size: 11px; opacity: .9; margin-bottom: 2px; }
+    #fl-squad .m { display: flex; justify-content: space-between; gap: 8px; }
+    #fl-squad .m em { font-style: normal; opacity: .75; text-align: right; }
+    #fl-squad .m.down { color: #ff8a8a; } #fl-squad .m.dead { opacity: .4; }
+    #fl-suppress { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, #0b0c0ecc 100%); opacity: 0; transition: opacity .15s; }
     #help { position: fixed; left: 12px; top: 12px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
     @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
   </style>
@@ -53,7 +60,7 @@
 <body>
   <div id="hud"></div>
   <div id="help">
-    <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you.<br>
+    <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.<br>
     Click to lock the mouse · WASD · Shift sprint · C crouch (hold: prone, sprinting: slide) · Alt dive · Space climb/hop ·
     LMB fire · RMB aim · R reload · 1 sword/gun · Q E G Z abilities · X vehicles / hold X by a downed teammate to revive · when downed: crawl, hold Space to give up · Space to deploy when dead.<br>
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=4v4">4v4</a> ·

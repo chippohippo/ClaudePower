@@ -250,3 +250,67 @@ test('a human leads the squad: the bots form on you, and take cover around you w
   assert.ok(bots.every((m) => P(m).distanceTo(P(me)) < 14), 'close by');
   s.dispose();
 });
+
+test('digging in: foxhole, then sandbags you can fire over, then a trench to the next position', async () => {
+  const { FortifySystem } = await import('../src/game/frontline/Fortify.js');
+  const { Terrain } = await import('../src/world/Terrain.js');
+  const terrain = new Terrain({ minX: -40, minZ: -40, width: 80, depth: 80, res: 1 });
+  const cover = new CoverIndex([], { cell: 8 });
+  const nav = new NavGrid({ minX: -40, minZ: -40, width: 80, depth: 80, cell: 2 }, { cover, terrain });
+  const map = { bounds: { minX: -40, minZ: -40, maxX: 40, maxZ: 40 }, cover, terrain, nav, trenches: [], craters: [], ruins: [] };
+  const tmap = new TacticalMap(map);
+  const world = { cover, nav, coverIn: (a, b, c, d, cb) => cover.queryAABB(a, b, c, d, cb) };
+  const F = new FortifySystem(world, map, { cap: 3, tmap });
+  const soldier = (id, x, z) => ({ id, team: 0, health: { up: true }, movement: { state: { position: new Vector3(x, 0, z), velocity: new Vector3(), grounded: true, mode: 'ground' } } });
+  const dig = { buttons: { dig: { down: true, pressed: false, released: false } } }, idle = { buttons: {} };
+  const added = [];
+  const off = bus.on('world:coverAdded', (e) => added.push(e.cover));
+  const a = soldier(1, 0, 0);
+  for (let i = 0; i < 60 * 2; i++) assert.ok(F.handleInput(a, dig, 1 / 60), 'digging');
+  F.handleInput(a, idle, 1 / 60);                       // let go before the hole is done: nothing built
+  assert.equal(terrain.height(0, 0), 0);
+  for (let i = 0; i < 60 * 3.6; i++) F.handleInput(a, dig, 1 / 60);
+  assert.ok(terrain.height(0, 0) < -0.5, `a foxhole (${terrain.height(0, 0).toFixed(2)})`);
+  const site = F.sites[0];
+  assert.equal(site.stage, 1);
+  const spots = []; tmap.query(0, 0, 0.5, (s) => spots.push(s));
+  assert.ok(spots.some((s) => s.kind === 'fort'), 'the hole is a place to fight from');
+  for (let i = 0; i < 60 * 4.1; i++) F.handleInput(a, dig, 1 / 60);
+  assert.equal(site.stage, 2);
+  assert.equal(added.length, 1, 'sandbags are new cover');
+  const wall = added[0];
+  assert.ok(wall.min.x > 0, 'on the enemy side of the hole');
+  const over = wall.max.y - site.y;
+  assert.ok(over > 1.3 && over < 1.5, `fire over it standing in the hole, hidden crouched (${over.toFixed(2)} m)`);
+  // Nothing more to do alone; a second position 7 m along the line gets a trench dug to it.
+  assert.equal(F.handleInput(a, dig, 1 / 60), false, 'done here');
+  const b = soldier(2, 0, 7);
+  for (let i = 0; i < 60 * 3.6; i++) F.handleInput(b, dig, 1 / 60);
+  const mid = terrain.height(0, 3.5);
+  for (let i = 0; i < 60 * 4.1; i++) F.handleInput(b, dig, 1 / 60);
+  for (let i = 0; i < 60 * 6.1; i++) F.handleInput(b, dig, 1 / 60);
+  assert.ok(terrain.height(0, 3.5) < mid - 0.4, 'a trench between the two positions');
+  assert.ok(F.sites[1].links.has(site), 'linked');
+  // Where you can't dig: next to cover, crowding another position, past the team's cap.
+  assert.equal(F.canDig(0, 1, 0.8), true, 'at your own position: keep working on it');
+  assert.equal(F.canDig(0, 2.8, -1), false, 'too close to another position');
+  const c = soldier(3, 20, 0);
+  for (let i = 0; i < 60 * 3.6; i++) F.handleInput(c, dig, 1 / 60);
+  assert.equal(F.sites.length, 3);
+  assert.equal(F.canDig(0, -20, -20), false, 'the team has used its positions');
+  off(); tmap.dispose();
+});
+
+test('a squad holding a line with no cover on it digs in', () => {
+  const s = new FrontlineSession(sessionData, { size: '12v12', seed: 6 });
+  for (const c of s.commanders) c.update = () => {};
+  const sq = s.squads[0][1];
+  const point = s.mode.points.find((p) => p.owner === 0 && s.map.sectors[p.sector].kind === 'line');
+  sq.objective = point.id; sq.role = 'defend';
+  const built = [];
+  const off = bus.on('fort:built', (e) => { if (e.team === 0) built.push(e.kind); });
+  run(s, 45);
+  off();
+  assert.ok(built.includes('foxhole'), `dug in (${built.join(', ') || 'nothing'})`);
+  s.dispose();
+});

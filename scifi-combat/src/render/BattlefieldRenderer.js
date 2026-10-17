@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
 import { TerrainChunks } from './TerrainChunks.js';
+import { sandbagTexture, concreteTexture, woodTexture, rockTexture, metalTexture, triplanar } from './CoverTextures.js';
 
 const TEAM = [new THREE.Color('#ffcf6b'), new THREE.Color('#b994ff')];
 const NEUTRAL = new THREE.Color('#d8dde6');
@@ -30,6 +31,7 @@ export class BattlefieldRenderer {
     this.scene = scene; this.map = map; this.localTeam = localTeam; this.anisotropy = anisotropy;
     this.#terrain();
     this.#cover(fortCapacity);
+    this.#duckboards();
     this.#wire();
     this.#objectives();
     this.#lines();
@@ -50,12 +52,15 @@ export class BattlefieldRenderer {
   }
 
   #cover(fortCapacity) {
+    // World-space surface detail: sandbags read as courses of bags, walls as cast concrete, crates
+    // as planks (CoverTextures), at their real size on every box.
+    const aniso = (t) => { t.anisotropy = this.anisotropy; return t; };
     this.kinds = {
-      concrete: new THREE.MeshStandardMaterial({ color: '#7d828c', roughness: 0.9 }),
-      sandbag: new THREE.MeshStandardMaterial({ color: '#8f8061', roughness: 1 }),
-      wood: new THREE.MeshStandardMaterial({ color: '#6e5233', roughness: 0.9 }),
-      rock: new THREE.MeshStandardMaterial({ color: '#5e5b57', roughness: 1 }),
-      metal: new THREE.MeshStandardMaterial({ color: '#5a6170', roughness: 0.6, metalness: 0.4 }),
+      concrete: triplanar(new THREE.MeshStandardMaterial({ color: '#7d828c', roughness: 0.92 }), aniso(concreteTexture()), 0.25),
+      sandbag: triplanar(new THREE.MeshStandardMaterial({ color: '#8f8061', roughness: 1 }), aniso(sandbagTexture()), 1),
+      wood: triplanar(new THREE.MeshStandardMaterial({ color: '#6e5233', roughness: 0.9 }), aniso(woodTexture()), 0.6),
+      rock: triplanar(new THREE.MeshStandardMaterial({ color: '#5e5b57', roughness: 1 }), aniso(rockTexture()), 0.3),
+      metal: triplanar(new THREE.MeshStandardMaterial({ color: '#5a6170', roughness: 0.6, metalness: 0.4 }), aniso(metalTexture()), 0.25),
     };
     const groups = new Map(Object.keys(this.kinds).map((k) => [k, []]));
     for (const b of this.map.cover) groups.get(this.#kindOf(b)).push(b);
@@ -91,26 +96,77 @@ export class BattlefieldRenderer {
   /** Cover added during the match (fortifications). */
   #add(box) { this.#place(this.coverMeshes.get(this.#kindOf(box)), box); }
 
+  /**
+   * Duckboards: the slatted timber walkways laid along every trench floor (render only: 4 cm of
+   * wood doesn't change how anyone moves). One plank-textured slab per 2 m, following the floor.
+   */
+  #duckboards() {
+    const t = this.map.terrain, slabs = [];
+    for (const T of this.map.trenches ?? []) {
+      for (const [x0, z0, x1, z1, kind] of T.corridors) {
+        if (kind === 'dugout') continue;
+        const alongZ = z1 - z0 >= x1 - x0, len = alongZ ? z1 - z0 : x1 - x0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+        for (let a = 0.6; a < len - 0.6; a += 2) {
+          const l = Math.min(2, len - 0.6 - a), m = a + l / 2;
+          const x = alongZ ? cx : x0 + m, z = alongZ ? z0 + m : cz;
+          slabs.push({ x, y: t.height(x, z) + 0.02, z, sx: alongZ ? 0.7 : l - 0.05, sz: alongZ ? l - 0.05 : 0.7 });
+        }
+      }
+    }
+    if (!slabs.length) return;
+    const mat = triplanar(new THREE.MeshStandardMaterial({ color: '#5a4630', roughness: 0.95 }), woodTexture(), 2.5);
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.04, 1), mat, slabs.length);
+    slabs.forEach((b, i) => mesh.setMatrixAt(i, _m.compose(_p.set(b.x, b.y, b.z), _q.identity(), _s.set(b.sx, 1, b.sz))));
+    mesh.receiveShadow = true; mesh.frustumCulled = false;
+    this.duckboards = mesh;
+    this.scene.add(mesh);
+  }
+
   // ---------------------------------------------------------------- wire
+  /**
+   * Barbed-wire belts as the Western Front strung them: two rows of pickets with aprons of wire
+   * pegged out to the ground on both sides, and a concertina coil rolled along between them.
+   */
   #wire() {
     const belts = this.map.wire ?? [];
     const t = this.map.terrain;
-    const postGeo = new THREE.BoxGeometry(0.07, 1.25, 0.07).translate(0, 0.5, 0);
+    const postGeo = new THREE.BoxGeometry(0.06, 1.1, 0.06).translate(0, 0.45, 0);
     const posts = [];
     const strand = [];
     this.wireRanges = [];       // per belt: [first post, post count, first strand vertex, strand vertex count]
+    const seg = (x0, y0, z0, x1, y1, z1) => strand.push(x0, y0, z0, x1, y1, z1);
+    const h = (x, z) => t.height(x, z);
     for (const w of belts) {
       const p0 = posts.length, s0 = strand.length / 3;
-      const pts = [];
-      for (let z = w.min.z; z <= w.max.z + 0.01; z += 2.5) for (const x of [w.min.x, w.max.x]) pts.push([x, t.height(x, z), z]);
-      for (const p of pts) posts.push(p);
-      // Strands at three heights along both rows, plus the criss-cross between them.
-      for (let k = 0; k + 2 < pts.length; k += 2) {
-        const a = pts[k], b = pts[k + 1], c = pts[k + 2], d = pts[k + 3] ?? c;
-        for (const hgt of [0.25, 0.6, 0.95]) {
-          strand.push(a[0], a[1] + hgt, a[2], c[0], c[1] + hgt, c[2], b[0], b[1] + hgt, b[2], d[0], d[1] + hgt, d[2]);
+      const cx = (w.min.x + w.max.x) / 2;
+      const rows = [w.min.x + 0.15, w.max.x - 0.15];
+      const zs = [];
+      for (let z = w.min.z; z <= w.max.z + 0.01; z += 2.5) zs.push(Math.min(z, w.max.z));
+      for (const z of zs) for (const x of rows) posts.push([x, h(x, z), z]);
+      for (const [r, x] of rows.entries()) {
+        const out = r === 0 ? -1 : 1;
+        for (let k = 0; k < zs.length; k++) {
+          const z = zs[k], y = h(x, z);
+          // Apron: from the picket's top down to a peg 1.3 m out, and a half-height stay.
+          seg(x, y + 1.0, z, x + out * 1.3, h(x + out * 1.3, z) + 0.05, z);
+          seg(x, y + 0.55, z, x + out * 0.7, h(x + out * 0.7, z) + 0.05, z);
+          if (k + 1 < zs.length) {
+            const z2 = zs[k + 1], y2 = h(x, z2);
+            for (const hh of [0.3, 0.7, 1.0]) seg(x, y + hh, z, x, y2 + hh, z2);
+            seg(x, y + 1.0, z, x, y2 + 0.3, z2);   // the criss-cross between pickets
+            // Apron strands running along, pegged out.
+            seg(x + out * 1.3, h(x + out * 1.3, z) + 0.05, z, x + out * 1.3, h(x + out * 1.3, z2) + 0.05, z2);
+          }
         }
-        strand.push(a[0], a[1] + 0.9, a[2], d[0], d[1] + 0.2, d[2], b[0], b[1] + 0.9, b[2], c[0], c[1] + 0.2, c[2]);
+      }
+      // Concertina: a coil 0.9 m across, 12 segments a turn, 0.38 m a turn.
+      const turns = (w.max.z - w.min.z) / 0.38, n = Math.max(12, Math.round(turns * 12));
+      let px = cx, py = h(cx, w.min.z) + 0.48, pz = w.min.z;
+      for (let i = 1; i <= n; i++) {
+        const u = i / n, a = (i / 12) * Math.PI * 2, z = w.min.z + (w.max.z - w.min.z) * u;
+        const x = cx + Math.cos(a) * 0.45, y = h(cx, z) + 0.48 + Math.sin(a) * 0.42;
+        seg(px, py, pz, x, y, z);
+        px = x; py = y; pz = z;
       }
       this.wireRanges.push([p0, posts.length - p0, s0, strand.length / 3 - s0]);
     }
@@ -120,7 +176,8 @@ export class BattlefieldRenderer {
     this.posts.castShadow = true; this.posts.frustumCulled = false;
     const sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(strand), 3));
-    this.strands = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: '#2f2f2f', transparent: true, opacity: 0.85 }));
+    this.strands = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.9 }));
+    this.strands.frustumCulled = false;
     this.scene.add(this.posts, this.strands);
   }
 

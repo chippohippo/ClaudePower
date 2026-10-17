@@ -651,6 +651,13 @@ export class CombatBotBrain {
     let arrived = true;
     if (dest) arrived = this.#goTo(cmd, dest, dt, { sprint: o.sprint && sup < 0.6, radius: o.arrive ?? 1, field: o.field, follow: o.follow });
     if (o.kind === 'grenade') { if (arrived) this.#throwGrenade(o, cmd); this.#stance('crouch'); return; }
+    // Holding where there's no cover (or improving a dug position): dig in, unless an enemy is
+    // close enough to matter or the fire is heavy (long-range fire is what the hole is for).
+    if (o.dig && arrived && !(t && ctx.los && ctx.dist < 55) && sup < 0.45) {
+      this.btn.hold('dig');
+      this.#look(cmd, o.face, dt);
+      return;
+    }
     // Fire discipline: overwatch and holds engage what they see, movers only what's near.
     const fire = o.fire ?? 'free';
     if (t && ctx.los && (fire === 'free' || fire === 'cover' || (fire === 'move' && ctx.dist < 45) || close)) this.#gunfight(dt, ctx, cmd, true);

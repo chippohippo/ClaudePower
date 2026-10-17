@@ -9,6 +9,9 @@
 //    (ergonomics drag and recoil make them separate), status bars, ammo, killfeed and banners.
 //  * Downs: your bleed-out, the give-up hold and revive progress while you're down; a revive
 //    prompt beside a downed teammate; red crosses over downed teammates nearby (and on the map).
+//  * Your squad: each squadmate's state and what they're doing (covering you, bounding, stacking
+//    on a door...), the whistle when a wave goes over the top, digging progress, and the screen
+//    edges darkening while you're under heavy fire (suppression).
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -34,7 +37,9 @@ export class FrontlineHud {
       <div id="fl-banner"></div>
       <div id="fl-respawn"></div>
       <div id="fl-prompt"></div>
-      <div id="fl-downs"></div>`;
+      <div id="fl-downs"></div>
+      <div id="fl-squad"></div>
+      <div id="fl-suppress"></div>`;
     this.el = Object.fromEntries([...root.querySelectorAll('[id^="fl-"]')].map((e) => [e.id.slice(3), e]));
     this.ctx = this.el.map.getContext('2d');
     // The minimap keeps the map's proportions (a 4v4 outpost is squarer than a 64v64 front).
@@ -89,6 +94,13 @@ export class FrontlineHud {
         const letter = String.fromCharCode(64 + e.sector);
         this.banner(e.team === this.team ? `SECTOR ${letter} TAKEN · THE LINE MOVES UP` : `SECTOR ${letter} LOST · FALL BACK`, e.team === this.team ? TEAM_COL[this.team] : '#ff6b81', 3);
       }),
+      bus.on('squad:whistle', (e) => {
+        const p = player.movement.state.position, near = Math.hypot(e.x - p.x, e.z - p.z) < 160;
+        if (e.team === this.team && (near || e.squads.includes(player.squad?.id))) this.banner('WHISTLES · OVER THE TOP!', TEAM_COL[this.team], 2.5);
+        else if (e.team !== this.team && near) this.banner('ENEMY WHISTLES · THEY ARE COMING OVER', '#ff6b81', 2.5);
+      }),
+      bus.on('fort:dig', (e) => { if (e.id === player.id) this.dig = { stage: e.stage, k: e.progress, t: this.time }; }),
+      bus.on('fort:built', (e) => { const p = player.movement.state.position; if (e.team === this.team && Math.hypot(e.x - p.x, e.z - p.z) < 3) this.dig = { stage: -1, kind: e.kind, t: this.time }; }),
       bus.on('mode:victory', (e) => this.banner(e.team === this.team ? `VICTORY · ${e.reason.toUpperCase()}` : `DEFEAT · ${e.reason.toUpperCase()}`, e.team === this.team ? TEAM_COL[this.team] : '#ff6b81', 999)),
     ];
   }
@@ -174,9 +186,31 @@ export class FrontlineHud {
         : `<span style="color:#ff6b6b">DOWNED</span> · bleeding out <b>${Math.max(0, hp.bleed).toFixed(0)}</b>s<br><small>${near < 60 ? `${medic ? 'medic' : 'teammate'} ${near.toFixed(0)} m · ` : 'nobody close · '}hold <b>SPACE</b> to give up</small>`;
     }
     const myJob = rv.jobOf(me.id), patient = !hp.downed && !me.health.dead && !myJob ? rv.patientFor?.(me) : null;
-    this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}` : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : '';
+    const D = this.dig && this.time - this.dig.t < 0.25 ? this.dig : this.dig?.stage === -1 && this.time - this.dig.t < 1.5 ? this.dig : null;
+    this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
+      : D ? (D.stage === -1 ? `${D.kind === 'foxhole' ? 'FOXHOLE DUG' : D.kind === 'sandbags' ? 'SANDBAGS UP' : 'TRENCH CUT'}` : `${['DIGGING A FOXHOLE', 'FILLING SANDBAGS', 'DIGGING A TRENCH'][D.stage]} ${bar(D.k, '#d9b77a')}`)
+      : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : '';
+    this.#squad(me);
+    this.el.suppress.style.opacity = Math.min(1, (me.suppression ?? 0) * 1.1).toFixed(2);
     this.#downMarkers(camera, w, h);
     if (this.time > this.bannerUntil) this.el.banner.style.opacity = 0;
+  }
+
+  /** Your squad: what the squad is doing and what each squadmate is up to. */
+  #squad(me) {
+    const sq = me.squad;
+    if (!sq || sq.members.length < 2) { this.el.squad.innerHTML = ''; return; }
+    const T = sq.tactics, now = this.time;
+    if (this.squadT && now - this.squadT < 0.2) return;   // 5 Hz is plenty for text
+    this.squadT = now;
+    const PHASE = { follow: 'ON YOU', advance: 'ADVANCING', contact: 'BOUNDING · IN CONTACT', jumpoff: 'IN THE TRENCH · WAITING FOR THE WHISTLE', assault: 'ASSAULTING THE POINT', clear: 'CLEARING A BUILDING', hold: 'HOLDING THE LINE', charge: 'CHARGE!', regroup: 'REGROUPING', down: 'SQUAD DOWN' };
+    const rows = sq.members.filter((m) => m !== me).map((m) => {
+      const h = m.health, o = m.brain?.order;
+      const state = h.dead ? 'dead' : h.downed ? 'down' : '';
+      const what = h.dead ? 'redeploying' : h.downed ? 'DOWN' : m.vehicle ? 'in a vehicle' : o?.why ?? '';
+      return `<div class="m ${state}"><span>${m.name}</span><em>${what}</em></div>`;
+    }).join('');
+    this.el.squad.innerHTML = `<div class="hd" style="color:${TEAM_COL[this.team]}">SQUAD ${sq.id + 1} · ${PHASE[T?.phase] ?? ''}</div>${rows}`;
   }
 
   /** Red crosses over downed teammates within 60 m (pooled DOM nodes). */
