@@ -44,7 +44,10 @@ def felt_piano(f, dur, vel=0.5):
     t = np.arange(int(dur * SR)) / SR
     e = np.exp(-t * (1.1 + f / 1400)) * (1 - np.exp(-t * 160))
     s = sum((0.45 ** k) * np.sin(2 * np.pi * f * (k + 1) * t) for k in range(5))
-    return filt(s * e, 2600) * vel
+    # felt hammer thump + slight string detune shimmer
+    hammer = filt(rng.standard_normal(len(t)), 1200) * np.exp(-t * 60) * 0.08
+    s = s + 0.25 * np.sin(2 * np.pi * f * 1.0015 * t)
+    return filt(s * e + hammer, 2800 + vel * 1500) * vel
 
 
 def harp(f, dur=3.0, vel=0.35):
@@ -64,7 +67,10 @@ def bowed(f, dur, vel, att=0.5, rel=0.6, bright=3500, n_players=6, vib=0.005):
         v = 1 + vib * np.sin(2 * np.pi * rng.uniform(4.6, 5.8) * t + rng.uniform(0, 6))
         ph = 2 * np.pi * f * det * np.cumsum(v) / SR + rng.uniform(0, 6)
         out += sum(np.sin(k * ph) / k for k in range(1, 9))
-    out = filt(out / n_players, bright)
+    # rosin/bow noise: band-limited, follows the note, strongest on the attack
+    bow = filt(filt(rng.standard_normal(n), 6000), 1500, "high")
+    out = out / n_players + bow * 0.02 * (0.4 + np.exp(-t * 6))
+    out = filt(out, bright)
     out = filt(out, 90, "high")
     return out * env_asr(n, att, rel, dur) * vel
 
@@ -208,25 +214,73 @@ def compose(seconds):
     place(parts["horn"], horn(midi(F + 12), 5.5, 0.12, att=1.0), tend)
     place(parts["piano"], felt_piano(midi(F - 12), 6, 0.45), tend)
 
-    gains = dict(piano=0.9, harp=0.7, vln=0.75, vla=0.55, vc=0.6, cb=0.5, horn=0.6,
-                 timp=0.55, cym=0.35)
-    mix = sum(parts[k] * g for k, g in gains.items())
-    mix = hall(mix)
     t = np.arange(total) / SR
     # master dynamics arc: intimate -> swell -> grand climax -> gentle resolve
     arc_t = [0, 7, 15, 29, 33, 45, 51, 56, seconds]
     arc_g = [0.30, 0.38, 0.50, 0.62, 1.0, 1.0, 0.62, 0.45, 0.40]
-    mix *= np.interp(t, arc_t, arc_g)
-    mix *= np.clip(t / 1.5, 0, 1) * np.clip((seconds - t) / 3.0, 0, 1)
-    mix = np.tanh(mix / (np.abs(mix).max() + 1e-9) * 1.25)
-    mix = mix / np.abs(mix).max() * 0.9
-    # orchestral stereo: violins/harp left-ish, cellos/horn right-ish
-    left = mix + 0.15 * hall(parts["vln"] * 0.4 + parts["harp"] * 0.3, mix=0.5)
-    right = mix + 0.15 * hall(parts["vc"] * 0.4 + parts["horn"] * 0.3, mix=0.5)
-    st = np.stack([left, right], 1)
-    st *= np.interp(t, arc_t, arc_g)[:, None] ** 0.15
+    arc = np.interp(t, arc_t, arc_g)
+
+    # ── stage the orchestra: (gain, pan -1..1, distance 0 near..1 far) ──
+    # classic seating: 1st violins + harp left, violas centre-left,
+    # cellos centre-right, basses + horns right and further back.
+    stage = dict(piano=(0.85, 0.0, 0.15), harp=(0.65, -0.55, 0.35),
+                 vln=(0.75, -0.45, 0.4), vla=(0.55, -0.15, 0.45),
+                 vc=(0.6, 0.35, 0.45), cb=(0.5, 0.6, 0.55),
+                 horn=(0.55, 0.45, 0.75), timp=(0.5, 0.25, 0.85),
+                 cym=(0.3, -0.2, 0.8))
+    dry = np.zeros((total, 2))
+    send = np.zeros((total, 2))
+    for k, (g, pan, dist) in stage.items():
+        x = parts[k] * g
+        # distance: further instruments are darker and quieter in the dry signal
+        if dist > 0.3:
+            x = filt(x, 9000 - 5000 * dist)
+        theta = (pan + 1) * np.pi / 4               # equal-power pan law
+        L, R = np.cos(theta), np.sin(theta)
+        # Haas micro-delay on the far side for a real sense of position
+        d = int(abs(pan) * 0.0006 * SR)
+        xl = x if pan <= 0 else np.concatenate([np.zeros(d), x])[:total]
+        xr = x if pan >= 0 else np.concatenate([np.zeros(d), x])[:total]
+        dry += np.stack([xl * L, xr * R], 1) * (1 - 0.45 * dist)
+        send += np.stack([xl * L, xr * R], 1) * (0.35 + 0.65 * dist)
+    # piano is recorded as a wide stereo pair (bass left, treble right feel)
+    pw = parts["piano"] * stage["piano"][0]
+    dry[:, 0] += filt(pw, 700) * 0.12
+    dry[:, 1] += filt(pw, 1500, "high") * 0.12
+
+    # ── studio room + hall: decorrelated stereo early reflections & tail ──
+    wet = space(send)
+    st = dry * 0.72 + wet * 0.55
+    # gentle warmth (low-shelf-ish) and air
+    st += filt(st, 180) * 0.18
+    st += filt(st, 9000, "high") * 0.08
+    st *= arc[:, None]
     st *= np.clip(t / 1.5, 0, 1)[:, None] * np.clip((seconds - t) / 3.0, 0, 1)[:, None]
-    return st / np.abs(st).max() * 0.9
+    # transparent bus "glue": slow RMS leveller, no hard clipping
+    rms = np.sqrt(fftconvolve((st ** 2).mean(1), np.ones(SR // 2) / (SR // 2), "same")) + 1e-6
+    target = np.percentile(rms, 90)
+    gain = np.clip((target / rms) ** 0.25, 0.8, 1.6)
+    st *= gain[:, None]
+    return st / np.abs(st).max() * 0.89
+
+
+def space(x):
+    """Stereo room: 20 ms pre-delay, discrete early reflections (studio walls),
+    then a long decorrelated hall tail per channel for a wide soundstage."""
+    n_er, n_tail = int(0.09 * SR), int(3.8 * SR)
+    out = np.zeros_like(x)
+    for ch in range(2):
+        r = np.random.default_rng(100 + ch)
+        er = np.zeros(n_er)
+        for _ in range(14):
+            er[r.integers(int(0.008 * SR), n_er)] += r.uniform(-0.6, 0.6)
+        tail = r.standard_normal(n_tail) * np.exp(-np.arange(n_tail) / SR * 1.9)
+        tail = filt(tail, 6500) * (1 - np.exp(-np.arange(n_tail) / SR * 25))
+        ir = np.concatenate([np.zeros(int(0.02 * SR)), er * 1.2, tail * 0.35])
+        # cross-feed a little so the stage is wide but not hollow
+        src = x[:, ch] * 0.8 + x[:, 1 - ch] * 0.2
+        out[:, ch] = fftconvolve(src, ir)[: len(x)]
+    return out * (np.abs(x).max() / (np.abs(out).max() + 1e-9))
 
 
 if __name__ == "__main__":

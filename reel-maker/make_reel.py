@@ -108,6 +108,8 @@ class Shot:
     speed: float = 1.0           # <1 slow motion (frame-sampled), >1 speed ramp
     cut: str = "dissolve"        # "dissolve" | "cut" | "flash" (into this shot)
     track: bool = True           # auto-frame on detected faces (x/y are fallback)
+    fit: float = 0.0             # >0: show this fraction of the source width (wide
+                                 # group shots) over a soft blurred fill
     # filled by the timeline
     t0: float = 0.0
     t1: float = 0.0
@@ -268,7 +270,33 @@ def reframe(img: np.ndarray, shot: Shot, p: float, centre=None) -> np.ndarray:
     y0 = min(max(cy - ch / 2, 0), ih - ch)
     pil = Image.fromarray((img * 255).astype(np.uint8))
     out = pil.resize((W, H), Image.BICUBIC, box=(x0, y0, x0 + cw, y0 + ch))
+    if shot.fit > 0:
+        out = fit_window(pil, out, shot, scale, fx, fy)
     return np.asarray(out, dtype=np.float32) / 255.0
+
+
+def fit_window(pil, fill, shot: Shot, scale: float, fx: float, fy: float):
+    """Wide shot that keeps everyone in frame: a large window of the source,
+    full width of the reel, over a blurred + dimmed copy of itself."""
+    W, H = CONFIG["width"], CONFIG["height"]
+    iw, ih = pil.size
+    vw = iw * shot.fit / scale
+    vh = min(ih / scale, vw * 1.25)           # at most 4:5 tall window
+    x0 = min(max(fx * iw - vw / 2, 0), iw - vw)
+    y0 = min(max(fy * ih - vh / 2, 0), ih - vh)
+    wh = int(W * vh / vw)
+    win = pil.resize((W, wh), Image.BICUBIC, box=(x0, y0, x0 + vw, y0 + vh))
+    bg = fill.resize((W // 8, H // 8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(6))
+    bg = Image.eval(bg.resize((W, H), Image.BICUBIC), lambda v: int(v * 0.78))
+    # feathered top/bottom edges so the window melts into the fill
+    mask = Image.new("L", (W, wh), 255)
+    f = max(1, wh // 9)
+    grad = np.ones(wh, np.float32)
+    grad[:f] = np.linspace(0, 1, f)
+    grad[-f:] = np.linspace(1, 0, f)
+    mask = Image.fromarray((np.tile(grad[:, None], (1, W)) * 255).astype(np.uint8))
+    bg.paste(win, (0, (H - wh) // 2), mask)
+    return bg
 
 
 # ════════════════════════════════════════════════════════════════════════════
