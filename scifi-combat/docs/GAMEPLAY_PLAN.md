@@ -246,6 +246,13 @@ values).
    overrides of a base moveset. Hits are the blade swept along the rig's arc against the hit
    spheres. A rifle-butt shove (V) for every gunner, finishers on the downed (hold X), windup
    chevrons round the crosshair; bots use all three.
+9. **Bots that talk, flank, search and break** (P1). Every soldier has a name; bots call out
+   contacts with a direction, men down, reloads, grenades, strikes, check fire, moves and
+   covers, flanks and fall-backs, spoken by the browser's speech synthesis and subtitled (yours at
+   any range, the enemy's within 40 m). A pinned squad sends a fire team round the flank; a bot
+   that loses sight searches the last seen spot instead of tracking through walls; a squad that
+   loses half its men in 20 s falls back.
 
-Next, by the priority order: bot callouts and flanking (P1), then the camera, the director and
-audio (P2).
+Next, by the priority order: the camera, the director and audio (P2). Outside the plan, from
+the same request: the vehicle overhaul (driving, crashes and ejection, `docs/VEHICLES.md`) and the
+night city warfront.

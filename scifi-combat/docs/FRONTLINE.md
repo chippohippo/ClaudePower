@@ -37,6 +37,7 @@ Serve the folder statically and open `index.html`:
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
+| `voices` | on | `off`: the soldiers' callouts as subtitles only |
 
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
 R, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
@@ -474,6 +475,7 @@ dropships are arena-only).
 | Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
 | Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms, your battle points and every price (BUY 400 on one that's cooling down, lit when you can pay); with a beacon in hand, which one, how to throw it and what it will cost; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
 | Battle points (`BattlePointsHud`) | The total on the status panel; a line under the crosshair per thing you did, repeats adding up on one line, and what you spend or lose on death |
+| Callouts (`BarkVoices`) | Your squad's lines, and anyone's within 40 m, spoken and subtitled at the bottom of the screen with the speaker's name in his army's colour; `?voices=off` keeps only the subtitles |
 | Melee (`MeleeTells`) | Chevrons round the crosshair for swings coming at you (amber blockable, red not, white: now); HOLD X TO FINISH over a downed enemy, FINISHING with its progress |
 | Support | Your passive and items on the status panel; **3 STIM** facing a hurt or downed teammate, **HOLD H TO REPAIR** beside a damaged vehicle of ours, REPAIRING with the hull's health; enemies a spotter revealed glow red and show on the minimap; Mindread's line over the enemy in your sights |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |

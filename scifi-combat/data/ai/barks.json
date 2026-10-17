@@ -1,0 +1,85 @@
+{
+  "_note": "Callouts (src/ai/Barks.js, docs/GAMEPLAY_PLAN.md §6): what soldiers shout, per kind and army, a few variants each; {name} is the soldier they mean, {dir} where (front, left, right, behind). gap: s a soldier waits between any two lines; same: s before he repeats a kind; squad: s before anyone in his squad repeats a kind; hear: m an enemy's lines carry (yours: your squad's at any range, others within it). The client speaks them (speechSynthesis) and subtitles them.",
+  "gap": 2.5,
+  "same": 9,
+  "squad": 4,
+  "hear": 40,
+  "names": {
+    "solari": ["Kael", "Oren", "Sava", "Teodor", "Ilka", "Marek", "Dara", "Juno", "Brannoc", "Liesl", "Corvin", "Hale", "Adaeze", "Tomas", "Rhea", "Pell", "Iver", "Sorrel", "Anouk", "Bastian", "Calla", "Desmond", "Effie", "Galen", "Hollis", "Ines", "Jory", "Kestrel", "Linnea", "Maddox", "Nell", "Osric"],
+    "void": ["Vex", "Nyra", "Korr", "Sable", "Draven", "Hask", "Zeth", "Morrow", "Ysolde", "Grail", "Thane", "Ash", "Corvid", "Malka", "Rook", "Selk", "Ulric", "Wren", "Xander", "Yarrow", "Zorya", "Brand", "Cinder", "Dusk", "Ebon", "Fenn", "Gloam", "Hex", "Isolde", "Jinx", "Karst", "Lysander"]
+  },
+  "lines": {
+    "contact": {
+      "solari": ["Contact {dir}!", "Enemy {dir}!", "Eyes {dir}, contact!", "Hostiles {dir}!"],
+      "void": ["Prey {dir}!", "There, {dir}!", "Movement {dir}!", "They come, {dir}!"]
+    },
+    "reloading": {
+      "solari": ["Reloading!", "Changing mags!", "Cover me, reloading!"],
+      "void": ["Feeding the gun!", "Reloading!", "Empty, cover me!"]
+    },
+    "grenade": {
+      "solari": ["Grenade!", "Grenade, get clear!", "Frag out, move!"],
+      "void": ["Bomb!", "Grenade, scatter!", "Get clear!"]
+    },
+    "incoming": {
+      "solari": ["Incoming!", "Strike inbound, take cover!", "Down, down, incoming!"],
+      "void": ["From the sky!", "Incoming, down!", "Strike, scatter!"]
+    },
+    "down": {
+      "solari": ["Man down! {name}'s down!", "{name}'s hit!", "We've got a man down!"],
+      "void": ["{name} has fallen!", "{name} is down!", "We lost {name}!"]
+    },
+    "medic": {
+      "solari": ["Medic!", "I'm hit, I'm hit!", "Need a medic here!"],
+      "void": ["Help me!", "I'm down!", "Someone, help!"]
+    },
+    "revive": {
+      "solari": ["Got you, {name}!", "Hang on, {name}!", "On your feet, {name}!"],
+      "void": ["Up, {name}!", "Not yet, {name}!", "Rise, {name}!"]
+    },
+    "moving": {
+      "solari": ["Moving up!", "Moving!", "Go, go!"],
+      "void": ["Advancing!", "Forward!", "Moving!"]
+    },
+    "covering": {
+      "solari": ["Covering!", "Got you covered!", "Suppressing!"],
+      "void": ["Covering!", "Pin them!", "I'll hold them!"]
+    },
+    "checkfire": {
+      "solari": ["Check fire!", "Watch your fire, {name}!", "Friendly! Friendly!"],
+      "void": ["You fool, {name}!", "Hold fire!", "Friend, friend!"]
+    },
+    "flank": {
+      "solari": ["Flanking {dir}!", "Going round the {dir}!", "Moving to flank, {dir} side!"],
+      "void": ["Around them, {dir}!", "Flanking {dir}!", "Taking the {dir}!"]
+    },
+    "suppress": {
+      "solari": ["Suppressing fire!", "Keep their heads down!", "Pin them!"],
+      "void": ["Bury them in fire!", "Keep them pinned!", "Fire, fire!"]
+    },
+    "searching": {
+      "solari": ["Lost him, moving to his last position.", "Where'd he go?", "Checking where I saw him."],
+      "void": ["Where are you hiding?", "I'll find you.", "Gone to ground."]
+    },
+    "lost": {
+      "solari": ["Lost contact.", "Nothing here.", "Area's clear."],
+      "void": ["Gone.", "Nothing.", "Slipped away."]
+    },
+    "fallback": {
+      "solari": ["Fall back! Fall back!", "Too many, pull back!", "Back to the trench!"],
+      "void": ["Withdraw!", "Back! Back to the line!", "Retreat!"]
+    },
+    "kill": {
+      "solari": ["Got him!", "Tango down.", "He's down!"],
+      "void": ["One less.", "Got one!", "It falls."]
+    },
+    "strike": {
+      "solari": ["Strike out, stay clear!", "Calling it in, get back!", "Danger close, move!"],
+      "void": ["The sky answers, stay back!", "Calling it down!", "Clear the area!"]
+    },
+    "supply": {
+      "solari": ["Supplies inbound, on me!", "Ammo drop coming!"],
+      "void": ["Supplies coming!", "Ammunition, on me!"]
+    }
+  }
+}

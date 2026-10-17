@@ -43,6 +43,24 @@ with hysteresis:
 | charge | only when desperate | The point we hold is about to fall with none of us on it; the last man standing is hurt and has an enemy within 12 m; or the team is out of tickets, or out of time and losing. Sword fighters close in on enemies within 14 m by themselves, whatever the order: that's their weapon, not a charge. |
 | regroup | more than half the squad is 45 m from the leader, and no contact | Close up on the leader, who waits in cover. |
 | follow | a human leads the squad | A wedge on you while you move; cover around you (within ~9 m) facing the threat when you stop. |
+| fallback | morale: half the squad (at least two) killed within 20 s, while attacking | Everyone sprints back to cover 40 m behind (the trench there if there is one) for 15 s, then regroups and goes again. At most once a minute; holding squads don't break. |
+
+**Flanking.** In contact, a squad pinned for 4 s (its moving team too suppressed to bound, or the
+squad as a whole under heavy fire) splits: the second fire team goes round one side, 60° off the
+line to the enemy, to cover about as far from him as the squad is (20-40 m), on the side with more
+cover there; the first suppresses him. Once there (or after 20 s) the flankers hit him from the
+side for 10 s, then the squad goes back to bounding. A three-minute 32v32 sees a few flanks.
+
+**Talk (`Barks`).** Every soldier has a name from his army's list (`data/ai/barks.json`), and
+the squad uses it. Bots call out contacts with a direction from their facing ("Contact left!",
+"Prey behind!"), a squadmate down by name and their own call for a medic, a revive, reloading
+under fire, a grenade they throw, a strike coming down, a call-in they throw, a teammate's
+rounds in them ("Watch your fire, Vex!"), a kill now and then, a search and a lost contact, and
+the squad's plan: moving and covering as the fire teams swap, flanking and suppressing, falling
+back. A soldier says at most one line every 2.5 s and the same kind every 9 s; a squad doesn't
+repeat a kind within 4 s. The client speaks them (speech synthesis, a voice per army, quieter
+with distance) and subtitles them: your squad at any range, anyone within 40 m (you hear the
+enemy's plan). A three-minute 32v32 has a few hundred lines.
 
 **Shared knowledge.** Every member's sightings and whoever shot at a member become squad contacts
 (last seen position, 15 s memory). The threat point is a weighted mix of the nearest recent ones, so a
@@ -50,6 +68,11 @@ soldier who can't see the enemy still knows where to look, where to suppress and
 to face. Rooms where enemies were seen are "hot" for the team.
 
 ### Carrying out an order (`CombatBotBrain`)
+
+**Search, not omniscience.** A bot remembers where it last saw its target. Out of sight for 0.8 s,
+it aims at that spot, not at where he really is; out of sight for 3 s, it searches: walks to the
+last seen position, then to up to two pieces of cover near it (where he'd have gone), sweeping its
+muzzle, and after 14 s, or with nowhere left to look, calls the contact lost and lets him go.
 
 - **Getting there:** A* waypoints between cover (string-pulled; doorways threaded through their
   centre; never cutting a corner past a costlier cell), the objective's flow field when far, straight
@@ -256,6 +279,5 @@ are shared per objective and repaired in place when cover changes (see
 ## Next
 - A finer nav (or a navmesh) for trench networks and buildings: the 2 m grid needs portals and
   corner rules to get through doorways and traverses.
-- Flanking: send one fire team round a side while the other fixes the enemy.
 - Lock-on launchers so infantry bots have a dedicated anti-vehicle answer.
-- Voice callouts for contacts, grenades and the whistle.
+- Recorded voices to replace the speech synthesis, and a whistle line for the jump-off.

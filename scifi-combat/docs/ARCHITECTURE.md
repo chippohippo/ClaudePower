@@ -80,6 +80,7 @@ scifi-combat/
 │  │      FrontlineCommander.js  squads of 4, attack/defend orders per team, whistle waves
 │  │      SupportCommand.js  CrewPilot.js   gun crews and drivers: posts, fire missions, convoys
 │  │      CallInPlanner.js  ItemPlanner.js  stratagems; stims, ammo packs and repairs
+│  │      Barks.js                 names and callouts (squad:bark events)
 │  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
 │  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, think and pipeline LOD, waves)
 │  │        BattlePoints.js (earned for team play, spent on the call-in panel)
@@ -107,6 +108,7 @@ scifi-combat/
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)
 │           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)  MeleeTells.js (windup chevrons)
+│           BarkVoices.js (callouts spoken and subtitled)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

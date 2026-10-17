@@ -37,6 +37,7 @@ import { Logistics, COST } from './frontline/Logistics.js';
 import { SupportCommand } from '../ai/SupportCommand.js';
 import { parkSlot } from './frontline/FrontlineMap.js';
 import { BattlePoints } from './BattlePoints.js';
+import { Barks } from '../ai/Barks.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -44,7 +45,8 @@ export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
    *                         damageMatrix, supers, vehicleDefs, personalities, difficulty, down, rules, stratagems,
-   *                         battlePoints, passives, support, humanoid (animation/humanoid.json: the swords' sweeps) }
+   *                         battlePoints, passives, support, humanoid (animation/humanoid.json: the swords' sweeps),
+   *                         barks (ai/barks.json: names and callouts) }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
@@ -70,6 +72,7 @@ export class FrontlineSession {
     });
     this.world.mode = this.mode;
     this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
+    this.barks = this.world.barks = new Barks(this.world, data.barks ?? null, { seed });   // soldiers' callouts
     this.world.wire = new WireField(this.map.wire);
     this.melee = new MeleeSystem({ blades: data.humanoid?.sword ?? null });   // swept hits along the rig's swings
     this.fighters = [];
@@ -84,7 +87,7 @@ export class FrontlineSession {
     this.#roster(players, humans);
     this.commanders = [0, 1].map((t) => { const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav }); c.squads = this.squads[t]; return c; });
     // Squad tactics: where the cover is, who is pinned down, and a leader's plan per squad.
-    this.tactical = new TacticalMap(this.map);
+    this.tactical = this.world.tactical = new TacticalMap(this.map);   // (bots search its cover)
     this.suppression = new Suppression(this.world);
     this.fortify = this.world.fortify = new FortifySystem(this.world, this.map, { cap: M.fortCap ?? 24, tmap: this.tactical });
     for (const team of [0, 1]) for (const sq of this.squads[team]) {
@@ -125,7 +128,7 @@ export class FrontlineSession {
 
   dispose() {
     this.off.forEach((f) => f());
-    this.bp.dispose();
+    this.bp.dispose(); this.barks.dispose();
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
     this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
@@ -144,7 +147,7 @@ export class FrontlineSession {
         const classId = human?.classId ?? classes[(i * 7 + team * 3) % classes.length];
         const f = buildFighter(this.world, d, { id: human?.id ?? 1000 + id, team, classId, pos: this.map.hq[team].clone() });
         id++;
-        f.name = classId.replace('_', '-');
+        f.name = this.world.barks.name(f) ?? classId.replace('_', '-');   // a name his squad calls him by
         f.respawnAt = 0;
         this.melee.add(f.melee);
         this.fighters.push(f);
@@ -216,6 +219,7 @@ export class FrontlineSession {
     this.logistics?.update(dt, this.fighters);
     this.mode.update(dt, this.fighters, w);
     this.bp.update(dt);
+    this.barks.update(dt);
     for (const c of this.commanders) c.update(dt);
     for (const sc of this.support ?? []) sc.update(dt);
     this.suppression.update(dt, this.fighters);

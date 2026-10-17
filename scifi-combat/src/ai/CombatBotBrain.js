@@ -185,6 +185,7 @@ export class CombatBotBrain {
 
     if (this.decideIn <= 0 || !this.#valid(this.target) || this.target.health?.downed) { this.#pickTarget(); } // a target that went down: look for one still standing
     const ctx = this.#context();
+    if (this.newContact) { this.world.barks?.contact(self, this.newContact); this.newContact = null; }   // "Contact left!" 
     if (this.decideIn <= 0) this.decideIn = this.diff.decisionInterval * (0.8 + this.rand() * 0.4);
 
     // ---- incoming! A round about to land close by: hit the dirt until it has.
@@ -332,7 +333,10 @@ export class CombatBotBrain {
       if (left > -0.1 && left < 4 && d < r.radius + 1.2) this.podDodge = { x: d > 0.05 ? dx / d : 1, z: d > 0.05 ? dz / d : 0, until: this.time + Math.max(0.3, left + 0.3) };
     }
     const s = G.incomingNear(p.x, p.z, 6, 2.4);
-    if (s && s.kind !== 'pod') this.dirtUntil = Math.max(this.dirtUntil, this.time + s.left + 0.8);
+    if (s && s.kind !== 'pod') {
+      if (this.time >= this.dirtUntil) this.world.barks?.say(this.self, 'incoming');
+      this.dirtUntil = Math.max(this.dirtUntil, this.time + s.left + 0.8);
+    }
     if (this.time < this.dirtUntil) this.#stance('prone');
   }
 
@@ -549,7 +553,13 @@ export class CombatBotBrain {
       ctx.targetVel = t.movement.state.velocity;
       ctx.dist = tp.distanceTo(me);
       ctx.los = this.#visible(t, ctx.dist);
-      if (ctx.los) this.sawAt = this.time;
+      if (ctx.los) {
+        if (this.time - this.sawAt > 8 && !t.isDeployable) this.newContact = t;     // nobody in sight for a while: call it out
+        this.sawAt = this.time;
+        (this.lastSeen ??= { x: 0, y: 0, z: 0, id: null }).id = t.id;
+        this.lastSeen.x = tp.x; this.lastSeen.y = tp.y; this.lastSeen.z = tp.z;
+        this.search = null;
+      }
       ctx.vehicleLos = ctx.los;
       ctx.targetSpeed = hyp(t.movement.state.velocity.x, t.movement.state.velocity.z);
       ctx.targetRooted = !!t.status?.rooted || t.status?.has('slow');
@@ -667,7 +677,10 @@ export class CombatBotBrain {
     // Aim point: chest (vehicle: centre mass, rear if behind), lead for projectiles, drop compensation.
     const speed = s.projectile === 'hitscan' || s.projectile === 'pellets' || s.projectile === 'beam' ? 0 : s.velocity ?? 120;
     const tt = speed ? ctx.dist / speed : 0;
-    _a.copy(t.pos).addScaledVector(ctx.targetVel, tt);
+    // Out of sight for a moment: aim where he was last seen, not where he is (no tracking through walls).
+    const blind = !ctx.los && this.lastSeen?.id === t.e.id && this.time - this.sawAt > 0.8;
+    if (blind) _a.set(this.lastSeen.x, this.lastSeen.y, this.lastSeen.z);
+    else _a.copy(t.pos).addScaledVector(ctx.targetVel, tt);
     _a.y += t.isVehicle ? t.e.def.size.y * 0.5 : t.isObject ? (t.e.muzzle ?? 1.6) - 0.6 : 1.1;
     if (speed && s.drop) _a.y += 0.5 * 9.8 * s.drop * tt * tt;
     const eyeY = me.y + 1.6;
@@ -690,6 +703,8 @@ export class CombatBotBrain {
       this.bashNext = this.time + 1 + this.rand() * 0.8;
     }
 
+    // Lost him a while ago: search where he was last seen and the cover there, then give up.
+    if (!moving && blind && this.time - this.sawAt > 3 && this.#search(dt, cmd)) return;
     // Positioning: hold the personality's range band, strafe, flank, sprint to close.
     if (!moving) {
       const reach = this.#reachHint();
@@ -737,6 +752,36 @@ export class CombatBotBrain {
       const want = pelletIdx >= 0 && ctx.dist < 9 ? pelletIdx : wc.loadout.findIndex((x) => !x.s.pellets);
       if (want >= 0 && want !== wc.index) { this.btn.press('swapWeapon'); this.swapTimer = 2; }
     }
+  }
+
+  /**
+   * Contact lost for 3 s: go to where he was last seen, then to up to two pieces of cover near it
+   * (where he'd have gone), rifle up toward each; after 14 s, or with nowhere left to look, call it
+   * lost and let him go. True while searching.
+   */
+  #search(dt, cmd) {
+    const self = this.self, L = this.lastSeen, me = self.movement.state.position;
+    let S = this.search;
+    if (!S || S.id !== L.id) {
+      S = this.search = { id: L.id, started: this.time, i: 0, spots: [{ x: L.x, y: L.y, z: L.z }] };
+      const tm = this.world.tactical;
+      for (let k = 0; k < 2 && tm; k++) {
+        const s = tm.best(L.x, L.z, 9, (c) => hyp(c.x - L.x, c.z - L.z) + (S.spots.some((q) => hyp(q.x - c.x, q.z - c.z) < 3) ? 99 : 0), self.id, this.time);
+        if (s && !S.spots.some((q) => hyp(q.x - s.x, q.z - s.z) < 3)) S.spots.push({ x: s.x, y: s.y, z: s.z });
+      }
+      this.world.barks?.say(self, 'searching');
+    }
+    const wp = S.spots[S.i];
+    if (!wp || this.time - S.started > 14) {
+      this.world.barks?.say(self, 'lost');
+      this.target = null; this.search = null; this.lastSeen = null; this.decideIn = 0;
+      return false;
+    }
+    if (this.#goTo(cmd, wp, dt, { sprint: false, radius: 1.6 })) S.i++;    // (the move becomes stick input at the end of think)
+    cmd.yaw = this.aimYaw = Math.atan2(-(wp.x - me.x), -(wp.z - me.z)) + Math.sin(this.time * 1.7) * 0.35;   // sweeping the muzzle as he goes
+    cmd.pitch = this.aimPitch = 0;
+    this.btn.hold('guard');
+    return true;
   }
 
   /** No target in sight: go to the objective if we have orders, else toward the nearest enemy we know about. */
@@ -1073,6 +1118,7 @@ export class CombatBotBrain {
     cmd.yaw = yaw; cmd.pitch = pitch; this.aimYaw = yaw; this.aimPitch = pitch;
     this.btn.press(key);
     this.#note('frag', key);
+    this.world.barks?.say(this.self, 'grenade');
   }
 
   #moveToward(cmd, p, sprint) {

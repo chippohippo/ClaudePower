@@ -16,6 +16,7 @@ import { CombatBotBrain } from '../src/ai/CombatBotBrain.js';
 import { routeCommand } from '../src/core/routing.js';
 import { StratagemComponent } from '../src/combat/Stratagems.js';
 import { BattlePoints } from '../src/game/BattlePoints.js';
+import { Barks } from '../src/ai/Barks.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
 export const data = {
@@ -26,10 +27,10 @@ export const data = {
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
   down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'), battlePoints: J('battle-points.json'),
-  passives: J('passives.json'), support: J('support.json'), humanoid: J('animation/humanoid.json'),
+  passives: J('passives.json'), support: J('support.json'), humanoid: J('animation/humanoid.json'), barks: J('ai/barks.json'),
 };
 export const DT = 1 / 60;
-let lastBp = null;
+let lastBp = null, lastBarks = null;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
 /**
@@ -41,6 +42,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
   const downCfg = down ? data.down : null;
   const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems, passives: data.passives, support: data.support });
   if (bp) { lastBp?.dispose(); lastBp = world.bp = new BattlePoints(world, data.battlePoints, { mode }); }   // one listening at a time (fighter ids repeat between tests)
+  lastBarks?.dispose(); lastBarks = world.barks = new Barks(world, data.barks);
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
@@ -79,6 +81,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
   };
   function bot(id, team, pos, classId, { difficulty = 'veteran', seed = 7, persona = null } = {}) {
     const e = buildFighter(world, factoryData, { id, team, classId, pos, cover });
+    e.name = world.barks.name(e);
     melee.add(e.melee);
     const diff = typeof difficulty === 'string' ? data.ai.difficulty[difficulty] : { ...data.ai.difficulty.veteran, ...difficulty };
     const brain = new CombatBotBrain(e, world, persona ?? data.ai.personalities[e.ai], diff, { seed });
@@ -116,6 +119,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
       world.update(DT);
       melee.resolve();
       world.bp?.update(DT);
+      world.barks.update(DT);
     }
   }
   const seconds = (s) => step(Math.round(s / DT));

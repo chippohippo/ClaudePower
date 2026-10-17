@@ -26,6 +26,14 @@
 //                (Sword fighters close in on their own: that's their weapon, not a charge.)
 //  * follow    - a human leads the squad: wedge on them while they move, cover around them when
 //                they stop.
+//  * fallback  - morale: half the squad killed within 20 s breaks it; everyone sprints back
+//                to cover 40 m behind (the trench behind, where there is one) for 15 s, then regroups.
+//
+// In contact, a squad pinned down for 4 s (its movers too suppressed to bound) flanks: the second
+// fire team goes round one side, 60° off the line to the enemy, to cover about as far from him as
+// the squad is, while the first suppresses; there, it hits him from the side, and the squad goes
+// back to bounding. The squad talks as it goes (Barks): "Moving!", "Covering!", "Flanking left!",
+// "Suppressing fire!", "Fall back!".
 //
 // Shared knowledge: every member's sightings and whoever shot at a member become squad
 // contacts (last seen position, 15 s memory), so a soldier who can't see the enemy still knows
@@ -67,6 +75,11 @@ export class SquadTactics {
     this.charge = null;                   // { why, until }
     this.holdSpots = new Map();           // member -> spot
     this.lastObjective = null;
+    this.flank = null;                    // { team, side, at, started, hit } the second fire team going round
+    this.pinnedT = 0;                     // s the squad has been pinned in contact
+    this.losses = [];                     // times members were killed (morale)
+    this.alive = new Set();               // members alive at the last plan
+    this.broken = null;                   // { until, at } falling back
   }
 
   /** Called every tick; plans every PLAN seconds (staggered across squads). */
@@ -93,12 +106,17 @@ export class SquadTactics {
     if (!up.length) { this.#setPhase('down'); return; }
     this.#centroid(up);
     this.#sense(up);
+    // Morale: count the members killed since the last plan (the downed can still be got up).
+    for (const m of this.alive) if (m.health.dead) this.losses.push(this.time);
+    this.alive = new Set(sq.members.filter((m) => !m.health.dead));
+    while (this.losses.length && this.time - this.losses[0] > 20) this.losses.shift();
     const obj = this.#objective();
     if (obj?.point.id !== this.lastObjective) { this.lastObjective = obj?.point.id ?? null; this.jump = null; this.clear = null; this.holdSpots.clear(); }
     const human = up.find((m) => !m.brain);
     if (human) { this.#setPhase('follow', 'a human leads'); this.#follow(up, human, obj); return; }
     if (!obj) { this.#setPhase('regroup', 'no orders'); this.#regroup(up); return; }
     this.#defaultThreat(obj);
+    if (this.#fallback(up)) return;
     const phase = this.#choose(up, obj);
     this.#setPhase(phase, this.why);
     if (this.rushDue) {
@@ -344,10 +362,15 @@ export class SquadTactics {
     const movers = teams[b.moving % teams.length];
     const arrived = movers.every((m) => { const t = b.targets.get(m); return !t || d2(pos(m), t) < 1.6; });
     const pinned = this.#suppressed(movers) > 0.7;
+    // Pinned for 4 s with the enemy where we know: the second fire team goes round his flank.
+    this.pinnedT = this.#suppressed(movers) > 0.55 || this.#suppressed(up) > 0.4 ? this.pinnedT + PLAN : Math.max(0, this.pinnedT - PLAN);
+    if (!this.flank && !reviving && this.pinnedT >= 4 && this.hasThreat && up.length >= 3 && teams.length > 1) this.#startFlank(teams);
+    if (this.flank && this.#flankOrders(teams)) return;
     if (!reviving && (arrived || now - b.started > 8) && now - b.started > 1.2 && !pinned) {
       b.moving = teams.length > 1 ? 1 - (b.moving % 2) : 0;
       b.started = now;
       b.targets = this.#boundTargets(teams[b.moving], obj, up);
+      if (teams.length > 1) { this.world.barks?.say(teams[b.moving][0], 'moving'); this.world.barks?.say(teams[1 - b.moving][0], 'covering'); }
     }
     for (const [i, team] of teams.entries()) {
       const moving = i === b.moving && teams.length > 1 ? !reviving : teams.length === 1 && !reviving && now - b.started < 6;
@@ -365,6 +388,83 @@ export class SquadTactics {
         }
       }
     }
+  }
+
+  /**
+   * Flanking: a point 60° round the enemy from the squad, about as far from him as we are
+   * (20-40 m), on the side with more cover there; the second fire team goes to cover near it.
+   */
+  #startFlank(teams) {
+    const T = this.threat, c = this.center;
+    let vx = c.x - T.x, vz = c.z - T.z;
+    const L = Math.hypot(vx, vz) || 1, dist = Math.max(20, Math.min(40, L));
+    vx /= L; vz /= L;
+    let best = null;
+    for (const side of [1, -1]) {
+      const a = (side * Math.PI) / 3, ca = Math.cos(a), sa = Math.sin(a);
+      const at = { x: T.x + (vx * ca - vz * sa) * dist, z: T.z + (vx * sa + vz * ca) * dist };
+      if (this.map.bounds && (at.x < this.map.bounds.minX + 5 || at.x > this.map.bounds.maxX - 5 || at.z < this.map.bounds.minZ + 5 || at.z > this.map.bounds.maxZ - 5)) continue;
+      let cover = 0;
+      this.tmap?.query(at.x, at.z, 10, () => { cover++; });
+      const score = cover + this.rand();
+      if (!best || score > best.score) best = { side, at, score };
+    }
+    if (!best) { this.pinnedT = 0; return; }
+    const team = teams[1];
+    this.flank = { team, side: best.side, at: best.at, started: this.time, hit: 0 };
+    // Which way that is for the squad, facing the enemy: left or right.
+    const fx = T.x - c.x, fz = T.z - c.z, rx = -fz, rz = fx;
+    const word = (best.at.x - c.x) * rx + (best.at.z - c.z) * rz > 0 ? 'right' : 'left';
+    this.world.barks?.say(team[0], 'flank', { dir: word });
+    this.world.barks?.say(teams[0][0], 'suppress');
+    bus.emit('squad:flank', { team: this.team, squad: this.squad.id, side: word, at: [best.at.x, 0, best.at.z], members: team.map((m) => m.id) });
+  }
+
+  /** The flank under way: true while it owns the squad's orders. */
+  #flankOrders(teams) {
+    const F = this.flank, now = this.time, T = this.threat;
+    const going = F.team.filter((m) => isUp(m) && !m.vehicle);
+    if (!going.length || !this.hasThreat || now - F.started > 35 || (F.hit && now - F.hit > 10)) { this.flank = null; this.pinnedT = 0; return false; }
+    const there = going.every((m) => d2(pos(m), F.at) < 6);
+    if (!F.hit && (there || now - F.started > 20)) F.hit = now;
+    for (const m of going) {
+      if (F.hit) this.#order(m, { kind: 'assault', pos: { x: T.x, z: T.z }, fire: 'free', sprint: false, face: T, arrive: 4, why: 'hitting the flank' });
+      else {
+        const s = this.#cover(m, F.at, 10);
+        if (s) this.tmap.reserve(s, m.id, now);
+        this.#order(m, { kind: 'move', pos: s ?? F.at, spot: s, sprint: true, fire: 'move', face: T, arrive: 1.5, why: 'flanking' });
+      }
+    }
+    for (const m of teams[0]) {
+      const here = pos(m), s = this.#cover(m, here, 8);
+      if (s) this.tmap.reserve(s, m.id, now);
+      this.#order(m, { kind: 'overwatch', pos: s ?? { x: here.x, z: here.z }, spot: s, fire: 'cover', face: T, suppress: T, arrive: 1, why: 'suppressing for the flank' });
+    }
+    return true;
+  }
+
+  /**
+   * Morale: half the squad (at least two) killed in 20 s breaks it: back to cover 40 m behind, the
+   * trench there if there is one, for 15 s, at most once a minute. True while falling back (it owns the orders).
+   */
+  #fallback(up) {
+    const n = this.squad.members.length, now = this.time;
+    if (!this.broken && n >= 3 && now - (this.lastBroken ?? -1e9) > 60 && this.losses.length >= Math.max(2, Math.ceil(n / 2)) && this.phase !== 'hold' && this.phase !== 'charge' && this.phase !== 'follow') {
+      const back = { x: this.center.x - DIR[this.team] * 40, z: this.center.z };
+      this.broken = { until: now + 15, at: back };
+      this.lastBroken = now;                                  // (a squad that rallied doesn't break again for a minute)
+      this.flank = null; this.bound = null; this.rush = null;
+      this.world.barks?.say(up.find((m) => m.brain), 'fallback');
+    }
+    if (!this.broken) return false;
+    if (now > this.broken.until) { this.broken = null; this.losses.length = 0; return false; }
+    this.#setPhase('fallback', 'falling back');
+    for (const m of up) {
+      const s = this.#cover(m, this.broken.at, 15);
+      if (s) this.tmap.reserve(s, m.id, now);
+      this.#order(m, { kind: 'move', pos: s ?? this.broken.at, spot: s, sprint: true, fire: 'move', face: this.threat, arrive: 1.5, why: 'falling back' });
+    }
+    return true;
   }
 
   /**

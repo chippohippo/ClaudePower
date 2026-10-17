@@ -24,6 +24,7 @@ import { StratagemPanel } from './ui/StratagemPanel.js';
 import { HitFeedback } from './ui/HitFeedback.js';
 import { BattlePointsHud } from './ui/BattlePointsHud.js';
 import { MeleeTells } from './ui/MeleeTells.js';
+import { BarkVoices } from './ui/BarkVoices.js';
 import { GunFx } from './vfx/GunFx.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
@@ -41,13 +42,13 @@ const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support] = await Promise.all([
+const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support, barks] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'), load('abilities/statuses.json'),
   load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
   load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
   load('art/palette.json'), load('art/troopers.json'), load('rules.json'), load('stratagems.json'), load('battle-points.json'),
-  load('passives.json'), load('support.json'),
+  load('passives.json'), load('support.json'), load('ai/barks.json'),
 ]);
 const planet = palette.planets[params.get('planet') ?? 'scorched'] ?? palette.planets.scorched;
 installFog(planet);   // before any material compiles
@@ -57,7 +58,7 @@ const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
   personalities: ai.personalities, difficulty: ai.difficulty[params.get('difficulty') ?? 'veteran'] ?? ai.difficulty.veteran,
-  down, rules, stratagems, battlePoints, passives, support, humanoid,
+  down, rules, stratagems, battlePoints, passives, support, humanoid, barks,
 };
 const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
@@ -129,6 +130,7 @@ const callIn = new StratagemPanel(document.getElementById('hud'), { world, playe
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
 const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
 const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
+const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' });   // the soldiers' callouts
 // Hit-stop: your melee, and your kills with a shotgun or a sniper rifle, freeze the battle for a
 // few ticks (offline only; nobody else's hits stop your game).
 let hitStop = 0;
@@ -213,8 +215,9 @@ const loop = new FixedLoop({
     hitFx.update(dt, cam);
     bpHud.update(dt);
     tells.update(dt, cam);
+    voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
 loop.start();
 bus.emit('frontline:ready', { players, seed });
