@@ -20,6 +20,7 @@ import * as THREE from 'three';
 import { wreckModels, WRECK_COLORS, BURNED, lampModels, jerseyModel, containerModel, CONTAINER_COLORS, hedgehogModel, propModels, treeModels, hedgeModel, fountainModel, signAtlas } from './CityKit.js';
 import { concreteTexture, triplanar } from './CoverTextures.js';
 import { snowCover } from './SnowCover.js';
+import { CityFuture, streetSigns } from './CityFuture.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler(), _c = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -38,6 +39,7 @@ export class CityRenderer {
   constructor(scene, map, { planet, palette = null, fx = null, anisotropy = 4, lights = null } = {}) {
     this.scene = scene; this.map = map; this.city = map.city; this.fx = fx;
     this.L = planet.city ?? {};
+    this.planet = planet;
     this.snow = planet.snow ?? null;   // lying on the roofs, sidewalks, barriers and wrecks (SnowCover)
     this.group = new THREE.Group();
     scene.add(this.group);
@@ -55,9 +57,22 @@ export class CityRenderer {
     this.#beacons();
     this.#searchlights();
     this.#lightPool(lights ?? this.L.lights ?? 8);
+    this.#outskirts();
+    // The future: ad screens, flying traffic, cables over the streets (a planet's `city.future`).
+    if (this.L.future) this.future = new CityFuture(this.group, map, { F: this.L.future, neon: this.L.neon, towers: this.megatowers, buildings: this.city.buildings, ground: this.ground });
   }
 
   dispose() { this.group.removeFromParent(); for (const l of [...this.lights, ...this.fireLights]) { l.removeFromParent(); l.target?.removeFromParent(); } }
+
+  /** Ground beyond the map's edge for the skyline to stand on (seen from above, or down a long avenue). */
+  #outskirts() {
+    const b = this.map.bounds, y = Math.min(this.ground(b.minX, b.minZ), this.ground(b.maxX, b.maxZ), this.ground(0, 0)) - 0.6;
+    const g = this.planet.ground ?? {};
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: g.asphalt ?? g.dust ?? '#37383f', roughness: 1 }));
+    mesh.position.set((b.minX + b.maxX) / 2, y, (b.minZ + b.maxZ) / 2);
+    mesh.receiveShadow = false; mesh.renderOrder = -3;
+    this.group.add(mesh);
+  }
 
   // ---------------------------------------------------------------- buildings
   #buildings() {
@@ -75,24 +90,55 @@ export class CityRenderer {
       const w = 14 + r() * 34, d = 14 + r() * 34, h = 25 + r() * r() * 240;
       sky.push({ x, z, w, d, h, seed: Math.floor(r() * 1e6) });
     }
-    const n0 = C.buildings.length, count = n0 + sky.length;
+    // The future (a planet's `city.future`): megatowers further out, stepping back as they rise,
+    // their own height in neon; and neon trim on some of every kind of building (aF below).
+    const FU = this.L.future, mega = [];
+    if (FU) {
+      for (let k = 0; k < (FU.towers ?? 30); k++) {
+        const side = Math.floor(r() * 4), t = r(), out = 70 + r() * 520;
+        const x = side < 2 ? b.minX - 140 + t * (W + 280) : side === 2 ? b.minX - out : b.maxX + out;
+        const z = side < 2 ? (side === 0 ? b.minZ - out : b.maxZ + out) : b.minZ - 140 + t * (D + 280);
+        const w = 26 + r() * 40, d = 26 + r() * 40, h = 130 + r() * r() * 320, seed = Math.floor(r() * 1e6);
+        const g0 = this.ground(Math.max(b.minX, Math.min(b.maxX, x)), Math.max(b.minZ, Math.min(b.maxZ, z))) - 1;
+        // One to three sections, each narrower and set back: a stepped crown.
+        const parts = 1 + Math.floor(r() * 3);
+        let y = g0, sw = w, sd = d;
+        for (let p = 0; p < parts; p++) {
+          const sh = p === parts - 1 ? h - (y - g0) : h * (0.45 + r() * 0.2) / parts * 1.6;
+          if (sh < 12) break;
+          mega.push({ x, z, w: sw, d: sd, y0: y, h: sh, seed: seed + p * 101, top: p === parts - 1, whole: { x, z, w, d, h, y0: g0 } });
+          y += sh; sw *= 0.62 + r() * 0.2; sd *= 0.62 + r() * 0.2;
+        }
+      }
+    }
+    const n0 = C.buildings.length, count = n0 + sky.length + mega.length;
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    const aB = new Float32Array(count * 4);
+    const aB = new Float32Array(count * 4), aF = new Float32Array(count * 4);
+    const neonCols = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).slice(0, 5);
+    while (neonCols.length < 5) neonCols.push(neonCols[neonCols.length - 1]);
+    // Neon trim for one building: a colour, corner strips, vertical lines (their spacing), bands every N storeys.
+    const trim = (big) => {
+      if (!FU || r() > (big ? FU.megaTrim ?? 0.85 : FU.trim ?? 0.3)) return [0, 0, 0, 0];
+      return [1 + Math.floor(r() * 5), r() < 0.7 ? 0.6 + r() * 0.6 : 0, r() < (big ? 0.45 : 0.2) ? 3 + Math.floor(r() * 4) * 1.5 : 0, r() < 0.5 ? 2 + Math.floor(r() * 5) : 0];
+    };
     // Rough and barely metallic: along a street you see the walls at a grazing angle, where a
     // glossier facade would mirror the aurora-lit sky into a wash.
     const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.93, metalness: 0.04, envMapIntensity: 0.55 });
     mat.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute vec4 aB;\nvarying vec3 vLocal;\nvarying vec3 vScale;\nvarying vec4 vB;\nvarying vec3 vObjN;')
+        .replace('#include <common>', '#include <common>\nattribute vec4 aB;\nattribute vec4 aF;\nvarying vec3 vLocal;\nvarying vec3 vScale;\nvarying vec4 vB;\nvarying vec4 vF;\nvarying vec3 vObjN;')
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-  vLocal = position; vB = aB; vObjN = normal;
+  vLocal = position; vB = aB; vF = aF; vObjN = normal;
   vScale = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));`);
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
 varying vec3 vLocal;
 varying vec3 vScale;
 varying vec4 vB;
+varying vec4 vF;
 varying vec3 vObjN;
+uniform vec3 uNeon[5];
+uniform float uFuture;
 float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   {
@@ -120,30 +166,60 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     float shopLit = shop * step(0.55, cityHash(vec2(bayS + face, vB.x * 0.003)));
     vec3 wc = mix(${glsl(warm)}, ${glsl(cool)}, step(0.62, cityHash(cell + 3.1 + face)));
     totalEmissiveRadiance += wc * lit * (0.55 + 0.6 * cityHash(cell + 7.7)) * vB.w;
-    totalEmissiveRadiance += mix(${glsl(warm)}, ${glsl(cool)}, cityHash(vec2(bayS, face))) * shopLit * 0.45 * vB.w;
+    // A shopfront's glass: mullions, the light strongest up under the fascia, some in the neon's colours.
+    float shopH = cityHash(vec2(bayS, face));
+    vec3 shopC = mix(${glsl(warm)}, ${glsl(cool)}, shopH);
+    if (uFuture > 0.5) shopC = mix(shopC, uNeon[int(fract(shopH * 7.13) * 4.99)], 0.55 * step(0.45, fract(shopH * 3.7)));
+    float mull = step(0.05, fract(u / 1.6)) * step(0.06, abs(v - 2.2));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.03, 0.04), shopLit * 0.8);
+    totalEmissiveRadiance += shopC * shopLit * mull * (0.2 + 0.55 * smoothstep(0.3, 2.9, v)) * vB.w;
+    // Neon trim (vF: colour, corner strips, vertical lines' spacing, bands every N storeys) and a lit crown.
+    if (vF.x > 0.5) {
+      vec3 nc = uNeon[int(vF.x - 0.5)];
+      float ew = min(u, wallW - u);
+      float strip = wall * step(ew, 0.4) * vF.y;
+      float lines = vF.z > 0.0 ? wall * step(fract(u / vF.z) * vF.z, 0.22) * step(7.0, v) * step(1.5, ew) : 0.0;
+      float bands = vF.w > 0.0 ? wall * step(mod(v, vF.w * storey), 0.4) * step(4.0, v) : 0.0;
+      float crown = wall * step(vScale.y - 2.2, v) * step(v, vScale.y - 1.2) * step(0.1, vF.y + vF.w);
+      float top = (1.0 - wall) * step(0.5, n.y) * step(min(min(vLocal.x + 0.5, 0.5 - vLocal.x) * vScale.x, min(vLocal.z + 0.5, 0.5 - vLocal.z) * vScale.z), 0.5) * vF.y;
+      diffuseColor.rgb *= 1.0 - 0.8 * max(strip, max(lines, bands));
+      totalEmissiveRadiance += nc * (strip * 3.2 + lines * 1.7 + bands * 2.4 + crown * 2.8 + top * 2.0) * (0.85 + 0.15 * vB.w);
+    }
   }`);
+      sh.uniforms.uNeon = { value: neonCols.map((c) => new THREE.Color(c)) };
+      sh.uniforms.uFuture = { value: FU ? 1 : 0 };
     };
     snowCover(mat, this.snow);
     const mesh = new THREE.InstancedMesh(geo, mat, count);
-    const put = (i, x0, y0, z0, x1, y1, z1, color, seed, lit, dmg, glow) => {
+    const put = (i, x0, y0, z0, x1, y1, z1, color, seed, lit, dmg, glow, f = [0, 0, 0, 0]) => {
       _m.compose(_p.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), _q.identity(), _s.set(x1 - x0, y1 - y0, z1 - z0));
       mesh.setMatrixAt(i, _m);
       mesh.setColorAt(i, _c.set(color));
       aB.set([seed % 1000, lit, dmg, glow], i * 4);   // a small seed: the shader hashes it, and an interpolated big one jitters per pixel
+      aF.set(f, i * 4);
     };
     C.buildings.forEach((bd, i) => {
       const B = bd.box;
-      put(i, B.min.x, B.min.y + 0.25, B.min.z, B.max.x, B.max.y, B.max.z, STYLE[bd.style], bd.seed, (bd.damaged ? bd.lit * 0.5 : bd.lit) * winShare, bd.damaged ? 1 : 0, 1);
+      put(i, B.min.x, B.min.y + 0.25, B.min.z, B.max.x, B.max.y, B.max.z, STYLE[bd.style], bd.seed, (bd.damaged ? bd.lit * 0.5 : bd.lit) * winShare, bd.damaged ? 1 : 0, 1, bd.damaged ? [0, 0, 0, 0] : trim(false));
     });
     sky.forEach((t, k) => {
       const g = this.ground(Math.max(b.minX, Math.min(b.maxX, t.x)), Math.max(b.minZ, Math.min(b.maxZ, t.z)));
-      put(n0 + k, t.x - t.w / 2, g - 1, t.z - t.d / 2, t.x + t.w / 2, g + t.h, t.z + t.d / 2, STYLE[t.seed % 4], t.seed, (0.16 + (t.seed % 7) * 0.035) * winShare, 0, 1.15);
+      put(n0 + k, t.x - t.w / 2, g - 1, t.z - t.d / 2, t.x + t.w / 2, g + t.h, t.z + t.d / 2, STYLE[t.seed % 4], t.seed, (0.16 + (t.seed % 7) * 0.035) * winShare, 0, 1.15, trim(t.h > 90));
+    });
+    // Megatowers: dark glass and steel, more of their windows lit than the old blocks', trimmed alike up the whole stack.
+    let mt = null;
+    mega.forEach((t, k) => {
+      if (k === 0 || mega[k - 1].whole !== t.whole) mt = trim(true);
+      put(n0 + sky.length + k, t.x - t.w / 2, t.y0, t.z - t.d / 2, t.x + t.w / 2, t.y0 + t.h, t.z + t.d / 2, ['#2b313b', '#3a3f4a', '#23262e', '#4a4d58'][t.seed % 4], t.seed, (0.3 + (t.seed % 5) * 0.06) * winShare, 0, 1.25, mt);
     });
     geo.setAttribute('aB', new THREE.InstancedBufferAttribute(aB, 4));
+    geo.setAttribute('aF', new THREE.InstancedBufferAttribute(aF, 4));
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
     this.group.add(mesh);
     this.buildingMesh = mesh;
     this.skylineTops = sky.map((t) => ({ x: t.x, y: this.ground(Math.max(b.minX, Math.min(b.maxX, t.x)), Math.max(b.minZ, Math.min(b.maxZ, t.z))) + t.h, z: t.z, tall: t.h > 90 }));
+    for (const t of mega) if (t.top) this.skylineTops.push({ x: t.x, y: t.y0 + t.h, z: t.z, tall: true });
+    this.megatowers = [...new Set(mega.map((t) => t.whole))];
   }
 
   /** The blocks' sidewalk slabs: paving, a kerb you can see. */
@@ -294,7 +370,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
 
   // ---------------------------------------------------------------- neon
   #signs() {
-    const S = this.city.signs, colors = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).map((c) => new THREE.Color(c));
+    const F = this.L.future, S = F ? [...this.city.signs, ...streetSigns(this.city.buildings, F.signs ?? 0.6, this.map.seed ?? 1)] : this.city.signs, colors = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).map((c) => new THREE.Color(c));
     const tex = signAtlas();
     if (!S.length || !tex) return;
     const geo = new THREE.PlaneGeometry(1, 1);
@@ -392,6 +468,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
   update(dt, camera, focus = camera.position) {
     this.time += dt;
     const t = this.time;
+    this.future?.update(dt);
     // Failing lamps and signs stutter.
     for (let i = 0; i < this.lampInfo.length; i++) {
       const L = this.lampInfo[i];

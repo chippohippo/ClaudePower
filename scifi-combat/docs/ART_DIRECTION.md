@@ -86,6 +86,20 @@ city, flat-lit low-poly forms with ink outlines, lavender light and shadow, warm
 | Ink | `post.outline`: dark indigo lines (`#2a2444`) 2 px wide where the depth breaks: silhouettes, contact edges, creases. Found as a kink in 1/depth, which is zero on any flat surface, so the ground draws none. On the near side of the edge, fading out by 90 m |
 | Frame | `post.letterbox` 0.065: cinematic bars top and bottom. Exposure 1.15, contrast 1.16, saturation 0.82, lifted lavender shadows, a light vignette and grain |
 
+**The future** (`city.future`, `src/render/CityFuture.js`): what makes it read as the Cyberpunk
+city it is, not a snowed-in 2020s one.
+
+| Element | Spec |
+|---|---|
+| Megatowers | 34 beyond the map, 130–450 m, one to three sections each stepping back as it rises; dark glass and steel, more windows lit than the old blocks |
+| Neon trim | In the facade shader, in the planet's five neon colours (cyan `#2ef2ff`, magenta `#ff3fb4`, violet `#a65cff`, amber `#ffb030`, red `#ff4a3a`): corner strips up the edges, thin vertical lines, bands every few storeys, a lit crown and roof edge. 85% of the megatowers, 30% of the city's own buildings (never the shelled ones) |
+| Ad screens | Giant animated screens on the megatowers' faces toward the city (65%) and on the tall buildings' street fronts (35%): sixteen made-up brands (KAIRO, VOLT, NIMBUS 9, RAMEN 24, PULSE, SOMA, ORBIT, HALO, TETRA, DRIFT, SYNTH, VANTA, NOVA, ECHO, LUXE, ZERO-G) drawn into one atlas, shown through LED rows and scanlines; some scroll, now and then one glitches or flickers. Emissive (they bloom), fogged (the far ones melt into the haze) |
+| Street neon | Blade signs and boards low on the street faces of 60% of the buildings, on top of the city's own signs |
+| Shopfronts | Lit glass with mullions, brightest up under the fascia, some in the neon's colours |
+| Flying traffic | 50 cars on sky lanes over the avenues and cross streets (48–118 m) and a ring road beyond the edge (120–190 m), each with a white headlight bar, red tail lights and a neon underglow |
+| Cables | Power and data lines slung across the streets between facades (never over open ground), sagging |
+| Outskirts | Snow ground beyond the map's edge for the skyline to stand on |
+
 Further presets (same data shape): a fog-and-mud creek, a frozen front.
 
 ## The two trooper armies

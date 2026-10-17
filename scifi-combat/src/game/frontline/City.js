@@ -342,7 +342,7 @@ export function buildCity(b, ctx) {
     const B = bd.box, n = rand() < 0.3 ? 2 : 1;
     for (let k = 0; k < n; k++) {
       const face = Math.floor(rand() * 4), vertical = rand() < 0.45;
-      const fw = face < 2 ? B.max.x - B.min.x : B.max.z - B.min.z;
+      const fw = face < 2 ? B.max.z - B.min.z : B.max.x - B.min.x;   // (a ±x face runs along z)
       const sw = vertical ? R(1.1, 1.6) : Math.min(fw * 0.8, R(3, 7)), sh = vertical ? R(4, 9) : R(1.2, 2.2);
       const u = R(-fw / 2 + sw / 2 + 0.5, fw / 2 - sw / 2 - 0.5), y = B.min.y + R(3.8, Math.min(B.max.y - B.min.y - 1, 16)) ;
       if (fw < sw + 1.2 || y + sh / 2 > B.max.y) continue;

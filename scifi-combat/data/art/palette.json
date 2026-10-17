@@ -458,15 +458,28 @@
         "pool": 0.8,
         "neon": [
           "#2ef2ff",
-          "#ff6a4a",
+          "#ff3fb4",
+          "#a65cff",
           "#ffb030",
-          "#5cff9a"
+          "#ff4a3a"
         ],
         "windowWarm": "#ffc880",
         "windowCool": "#a8c8ff",
         "searchlight": "#ffd8b0",
         "lights": 8,
-        "windows": 0.45
+        "windows": 0.45,
+        "future": {
+          "_note": "The future (CityRenderer, CityFuture): megatowers beyond the map stepping back as they rise (towers), neon trim on their faces and on some of the city's own buildings (megaTrim, trim: the share trimmed: corner strips, vertical lines, bands every few storeys, a lit crown), giant animated ad screens on the megatowers and the tall buildings' street fronts (screens, streetScreens: the share with one; screenGain: brightness), flying traffic on sky lanes (traffic: how many cars) cables slung across the streets (cables: density), and more neon signs low on the street faces (signs: the share of buildings with them).",
+          "towers": 34,
+          "megaTrim": 0.85,
+          "trim": 0.3,
+          "screens": 0.65,
+          "streetScreens": 0.35,
+          "screenGain": 2.2,
+          "traffic": 50,
+          "cables": 1,
+          "signs": 0.6
+        }
       },
       "post": {
         "exposure": 1.15,
