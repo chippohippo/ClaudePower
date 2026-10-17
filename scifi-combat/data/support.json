@@ -1,0 +1,10 @@
+{
+  "_note": "Support items (src/combat/SupportItems.js, docs/GAMEPLAY_PLAN.md §5). items: what each role carries (the item key, 3; supply pods, depots and redeploying refill them). stim: the teammate you face within reach (else yourself, if hurt) heals `heal` over `over` s; a downed one is up `reviveTime` s later with `reviveHp` of his health. ammo: a pack dropped at your feet; teammates short of at least a mag take `mags` each as they pass (`takers` of them, for `life` s). repair: engineers hold the dig key (H) beside a damaged friendly vehicle or turret: `rate` HP a second. cooldown: s between uses of an item.",
+  "items": {
+    "medic": { "kind": "stim", "count": 3 },
+    "engineer": { "kind": "ammo", "count": 2 }
+  },
+  "stim": { "heal": 60, "over": 2, "reach": 2.5, "cone": 60, "reviveTime": 1, "reviveHp": 0.6, "cooldown": 0.8 },
+  "ammo": { "mags": 2, "takers": 4, "life": 60, "reach": 1.8, "cooldown": 1.5 },
+  "repair": { "rate": 50, "reach": 3.2, "roles": ["engineer"] }
+}

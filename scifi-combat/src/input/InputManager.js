@@ -18,6 +18,7 @@ const DEFAULT_BINDINGS = {
   togglePOV:{ keys: ['KeyT'],                  pad: [8] },  // View/Share
   toggleMelee:{ keys: ['Digit1'],              pad: [15] }, // D-pad right: sword <-> guns
   swapWeapon:{ keys: ['Digit2'],               pad: [] },   // next gun (pad: hold D-pad right, TBD)
+  item:     { keys: ['Digit3'],                pad: [] },   // the role's item: a medic's stim, an engineer's ammo pack
   // Ability kit (Destiny: grenade/class/super; Deadlock: 1-2-3-4)
   ability1: { keys: ['KeyQ'],                  pad: [] },   // LB tap (on release; see sample)
   ability2: { keys: ['KeyE'],                  pad: [12] }, // D-pad up

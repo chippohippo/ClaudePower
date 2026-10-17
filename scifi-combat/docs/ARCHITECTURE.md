@@ -73,11 +73,13 @@ scifi-combat/
 │  │  ├─ weapons/ WeaponSystem.js  RecoilPattern.js  Ballistics.js  Attachments.js
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
 │  │  ├─ Stratagems.js          call-ins: codes on the wrist pad, beacons, strikes, jets, pods, smoke
+│  │  ├─ SupportItems.js  Passives.js   stims, ammo packs, repairs; the 20 class passives
 │  │  ├─ HitReactions.js  ReviveSystem.js   ragdoll triggers; downs and revives
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
 │  │      FrontlineCommander.js  squads of 4, attack/defend orders per team, whistle waves
 │  │      SupportCommand.js  CrewPilot.js   gun crews and drivers: posts, fire missions, convoys
+│  │      CallInPlanner.js  ItemPlanner.js  stratagems; stims, ammo packs and repairs
 │  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
 │  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, think and pipeline LOD, waves)
 │  │        BattlePoints.js (earned for team play, spent on the call-in panel)

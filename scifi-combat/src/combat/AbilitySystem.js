@@ -249,13 +249,14 @@ function hitEntities(c, fx, targets, slot) {
       bus.emit('ability:hit', { attacker: c.owner.id, victim: e.id, ability: slot.def.id, damage: fx.damage, killed: !!res?.killed, element: fx.element });
     }
     if (fx.status) e.status?.apply(fx.status.id, { stacks: fx.status.stacks ?? 1, duration: fx.status.duration, source: c.owner });
-    if (fx.knockback) {
+    const kb = e.perks?.knockback ?? 1;                  // Mass: not thrown at all
+    if (fx.knockback && kb > 0) {
       _p.subVectors(e.movement.state.position, c.owner.movement.state.position).setY(0).normalize();
-      e.movement.impulse?.(_p.x * fx.knockback, fx.knockup ?? 2, _p.z * fx.knockback);
-    } else if (fx.knockup) {
-      e.movement.impulse?.(0, fx.knockup, 0);
+      e.movement.impulse?.(_p.x * fx.knockback * kb, (fx.knockup ?? 2) * kb, _p.z * fx.knockback * kb);
+    } else if (fx.knockup && kb > 0) {
+      e.movement.impulse?.(0, fx.knockup * kb, 0);
     }
-    if (fx.pull) {
+    if (fx.pull && !e.perks?.pullImmune) {
       _p.subVectors(c.owner.movement.state.position, e.movement.state.position).setY(0).normalize();
       e.movement.state.velocity.addScaledVector(_p, fx.pull);
     }

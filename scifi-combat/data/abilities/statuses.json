@@ -148,6 +148,31 @@
     "apply": "root_lock"
    }
   },
+  "momentum": {
+   "negative": false,
+   "duration": 3,
+   "amount": 0.1,
+   "icon": "chevrons-up",
+   "_note": "The Momentum passive (data/passives.json): a takedown's burst of speed."
+  },
+  "stim": {
+   "negative": false,
+   "duration": 2,
+   "hps": 30,
+   "cleansable": false,
+   "icon": "cross",
+   "vfx": "stim_glow",
+   "audio": { "apply": "stim_inject" },
+   "_note": "A medic's stim (data/support.json): 60 HP over 2 s."
+  },
+  "volatile_build": {
+   "negative": true,
+   "duration": 6,
+   "maxStacks": 30,
+   "thresholdTo": "volatile",
+   "icon": "pulse-orb",
+   "_note": "Black Flame's sword hits build it (10 a hit); 30 makes the victim Volatile."
+  },
   "haste": {
    "negative": false,
    "duration": 4,

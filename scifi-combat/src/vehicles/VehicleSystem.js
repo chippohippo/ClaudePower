@@ -160,11 +160,12 @@ export class VehicleSystem {
     e.weapons?.interrupt?.('vehicle');
     v.seats[idx].occupant = e;
     v.seats[idx].cmd = emptyCommand();
-    e.vehicle = { veh: v, seat: idx, lock: ENTER_TIME, exposed: !!v.seats[idx].def.exposed };
+    const lock = ENTER_TIME * (e.perks?.enterTime ?? 1);           // Ace and Drift board faster
+    e.vehicle = { veh: v, seat: idx, lock, exposed: !!v.seats[idx].def.exposed };
     this.world.version++;
     e.movement.enterVehicle();
     v.emptyTime = 0;
-    bus.emit('vehicle:enter', { id: v.id, entity: e.id, seat: idx, role: v.seats[idx].def.role, duration: ENTER_TIME, team: v.team });
+    bus.emit('vehicle:enter', { id: v.id, entity: e.id, seat: idx, role: v.seats[idx].def.role, duration: lock, team: v.team });
     return true;
   }
 

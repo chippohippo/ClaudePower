@@ -25,6 +25,7 @@ export class StatusComponent {
     let m = 1;
     if (this.has('slow')) m *= 1 - this.defs.slow.amount * Math.min(1, this.stacks('slow') / (this.defs.slow.maxStacks ?? 1));
     if (this.has('haste')) m *= 1 + this.defs.haste.amount;
+    if (this.has('momentum')) m *= 1 + (this.defs.momentum?.amount ?? 0);
     return this.rooted ? 0 : m;
   }
 
@@ -33,7 +34,7 @@ export class StatusComponent {
     if (!def || this.immune?.has(id)) return; // vehicles are immune to body statuses such as Scorch and Volatile
     if (this.has('cleanseImmune') && def.negative) return;
     const cur = this.active.get(id);
-    const dur = duration ?? def.duration;
+    const dur = (duration ?? def.duration) / (id === 'slow' ? this.owner.perks?.slowDecay ?? 1 : 1);   // Mass: Slow wears off faster
     if (cur) {
       cur.stacks = Math.min(def.maxStacks ?? 1, cur.stacks + stacks);
       cur.duration = Math.max(cur.duration - cur.time, dur); cur.time = 0;

@@ -89,7 +89,7 @@ export class HitFeedback {
     const me = this.player.movement.state.position, yaw = this.player.movement.state.yaw;
     const toSrc = Math.atan2(-(from.x - me.x), -(from.z - me.z));
     let side = toSrc - yaw; side = Math.atan2(Math.sin(side), Math.cos(side));
-    this.rig?.flinch(Math.min(3, 0.6 * (dmg / 20)), Math.sign(side) * Math.min(1, Math.abs(side)));
+    if (!this.player.weapons?.unshaken?.()) this.rig?.flinch(Math.min(3, 0.6 * (dmg / 20)), Math.sign(side) * Math.min(1, Math.abs(side)));   // Unshakable: steady behind the shield
   }
 
   /** @param {THREE.Camera} camera */

@@ -90,6 +90,7 @@ export class WeaponComponent {
     this.rl = null;                 // a magazine reload under way: { stage, t, out, in } (s)
     this.reloadHold = 0;            // s a hit holds the reload for
     this.buffs = { damageMul: 1, rpmMul: 1, reloadMul: 1, spreadMul: 1, until: 0 };
+    this.passiveMul = 1;            // the class passive's say in damage (Patient Eye), set by Passives
     this.time = 0;
     this.prevFire = false;
     this.beamTarget = null;
@@ -288,7 +289,7 @@ export class WeaponComponent {
         this.world.spawnProjectile({
           ownerId: this.owner.id, team: this.owner.team, weapon: s,
           origin: _origin.clone(), dir: _dir.clone(), speed: s.velocity ?? 120, drop: s.drop ?? 0,
-          damageMul: chargeMul * this.buffs.damageMul, deflectable: !!s.deflectable, splash: s.damage?.splash ?? 0, onHit: s.onHit,
+          damageMul: chargeMul * this.buffs.damageMul * this.passiveMul, deflectable: !!s.deflectable, splash: s.damage?.splash ?? 0, onHit: s.onHit,
         });
       }
     }
@@ -320,7 +321,7 @@ export class WeaponComponent {
     const friendly = e.team === this.owner.team;
     if (e.movement?.state.invulnerable) { bus.emit('weapon:iframeWhiff', { victim: e.id }); return; }
     const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';
-    const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul * share;
+    const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul * this.passiveMul * share;
     const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone, friendly }, this.owner);
     e.weapons?.interrupt?.('flinch');
     e.weapons?.flinch?.(dmg, this.owner.movement.state.position);
@@ -350,7 +351,7 @@ export class WeaponComponent {
       const ramp = 1 + ((s.damage.rampMul ?? 1) - 1) * Math.min(1, this.beamTime / (s.damage.rampUp ?? 1));
       const armor = target.health.armorFor?.(hit.zone) ?? 'flesh';
       const mul = this.world.damageMatrix?.[s.ammoType]?.[armor] ?? 1;
-      target.health.damage(s.damage.dps * ramp * mul * dt * this.buffs.damageMul * beamShare, { kind: 'beam', weapon: s.id, ammoType: s.ammoType, friendly: target.team === this.owner.team }, this.owner);
+      target.health.damage(s.damage.dps * ramp * mul * dt * this.buffs.damageMul * this.passiveMul * beamShare, { kind: 'beam', weapon: s.id, ammoType: s.ammoType, friendly: target.team === this.owner.team }, this.owner);
       if (s.onHit?.status) target.status?.apply(s.onHit.status.id, { source: this.owner });
     }
     this.recoilPitch += (w.recoil.pattern[0][0] * DEG) * dt * 10;
@@ -428,7 +429,7 @@ export class WeaponComponent {
       if (w.heat <= 0) return;
       // Manual vent. The perfect-timing window sits at 45-60% of the animation.
       this.activeReloadWindow = { start: 0.45, end: 0.6 };
-      this.#setPhase(WeaponPhase.VENTING, (s.ammo.manualVent ?? 1.2) / this.buffs.reloadMul);
+      this.#setPhase(WeaponPhase.VENTING, (s.ammo.manualVent ?? 1.2) / this.buffs.reloadMul / (this.owner.perks?.ventRate ?? 1));
       return bus.emit('weapon:ventStart', { id: this.owner.id, duration: this.phaseDuration, window: this.activeReloadWindow });
     }
     if (w.usesBattery || w.reserve <= 0 || (w.mag >= s.mag && !w.magOut)) return;
@@ -491,12 +492,12 @@ export class WeaponComponent {
   #overheat(w) {
     w.heat = w.s.ammo.max;
     this.activeReloadWindow = null;
-    this.#setPhase(WeaponPhase.OVERHEATED, w.s.ammo.overheatLock ?? 1.8);
+    this.#setPhase(WeaponPhase.OVERHEATED, (w.s.ammo.overheatLock ?? 1.8) / (this.owner.perks?.ventRate ?? 1));
     bus.emit('weapon:overheat', { id: this.owner.id, duration: this.phaseDuration });
   }
 
   #passiveHeat(w, dt) {
-    if (w.usesHeat && this.phase === WeaponPhase.READY && this.sinceShot > (w.s.ammo.ventDelay ?? 0.4)) w.heat = Math.max(0, w.heat - w.s.ammo.ventPerSec * dt);
+    if (w.usesHeat && this.phase === WeaponPhase.READY && this.sinceShot > (w.s.ammo.ventDelay ?? 0.4)) w.heat = Math.max(0, w.heat - w.s.ammo.ventPerSec * (this.owner.perks?.ventRate ?? 1) * dt);
     if (w.usesBattery && !this._beamOn) w.battery = Math.min(w.s.ammo.max, w.battery + (w.s.ammo.rechargePerSec ?? 10) * dt);
   }
 
@@ -515,6 +516,7 @@ export class WeaponComponent {
    * stage 2's progress on the gun), charges and ADS. A round's flinch only holds a reload 0.2 s.
    */
   interrupt(reason) {
+    if (reason === 'flinch' && this.unshaken()) return;
     if (reason === 'flinch' && this.phase === WeaponPhase.RELOADING) { this.reloadHold = Math.max(this.reloadHold ?? 0, 0.2); return; }
     if (this.phase === WeaponPhase.RELOADING || this.phase === WeaponPhase.CHARGING || this.phase === WeaponPhase.VENTING) {
       bus.emit('weapon:interrupted', { id: this.owner.id, reason, phase: this.phase });
@@ -530,7 +532,7 @@ export class WeaponComponent {
    * camera takes (0.6° per 20 damage, at most 3°): the ergonomics chase brings it back.
    */
   flinch(damage, from = null) {
-    if (this.weaponYaw === null || !(damage > 0)) return;
+    if (this.weaponYaw === null || !(damage > 0) || this.unshaken()) return;
     const k = (Math.min(3, 0.6 * (damage / 20)) * 0.5 * Math.PI) / 180;
     this.weaponPitch = Math.min(1.5, this.weaponPitch + k);
     if (from) {
@@ -538,6 +540,12 @@ export class WeaponComponent {
       const side = angleDelta(this.weaponYaw, Math.atan2(-(from.x - p.x), -(from.z - p.z)));
       this.weaponYaw += Math.sign(side) * Math.min(1, Math.abs(side)) * k * 0.5;
     }
+  }
+
+  /** Unshakable: no flinch while the shield is above the passive's share. */
+  unshaken() {
+    const k = this.owner.perks?.flinchShield, h = this.owner.health;
+    return k != null && h.maxShield > 0 && h.shield > h.maxShield * k;
   }
 
   /** Abilities can grant timed weapon buffs (e.g. "Overclock": +20% rpm for 6 s). */

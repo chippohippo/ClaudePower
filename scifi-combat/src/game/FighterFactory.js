@@ -62,6 +62,9 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   e.abilities = new AbilityComponent(e, data.kits[classId], world);
   // Call-ins: the common pair and the role's (data/stratagems.json), if the world has any.
   if (world.stratagems?.data) e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(e.role));
+  // The class passive (data/passives.json) and the role's support items (data/support.json).
+  world.passives?.attach(e, cls.passive?.id);
+  if (world.support?.data) world.support.equip(e);
   e.ai = cls.ai;
   world.add(e);
   return e;

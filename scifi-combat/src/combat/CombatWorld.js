@@ -18,6 +18,8 @@ import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { ReviveSystem } from './ReviveSystem.js';
 import { StratagemSystem } from './Stratagems.js';
+import { PassiveSystem } from './Passives.js';
+import { SupportItems } from './SupportItems.js';
 import { hitSpheres, silhouetteScale, BOUND } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
@@ -38,7 +40,7 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null, stratagems = null } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null, stratagems = null, passives = null, support = null } = {}) {
     this.damageMatrix = damageMatrix;
     // Friendly fire (data/rules.json): on everywhere unless the rules say otherwise.
     this.ff = { ...FRIENDLY_FIRE, ...(rules?.friendlyFire ?? {}) };
@@ -58,6 +60,8 @@ export class CombatWorld {
     this.vehicles = new VehicleSystem(this, vehicleDefs ?? { vehicles: {}, weapons: {} });
     this.revives = new ReviveSystem(this, down?.enabled ? down : null);
     this.stratagems = new StratagemSystem(this, stratagems);   // call-ins (data/stratagems.json)
+    this.passives = new PassiveSystem(this, passives);         // class passives (data/passives.json)
+    this.support = new SupportItems(this, support);            // stims, ammo packs, repairs (data/support.json)
   }
 
   add(e) { this.entities.push(e); this.version++; return e; }
@@ -99,6 +103,8 @@ export class CombatWorld {
     this.zones.update(dt);
     this.deployables.update(dt);
     this.stratagems.update(dt);
+    this.support.update(dt);
+    this.passives.update(dt);
   }
 
   // ---------------------------------------------------------------- spawning
@@ -262,7 +268,7 @@ export class CombatWorld {
     for (const e of this.entitiesInRadius(point, radius)) {
       const isOwner = e.id === projectile?.ownerId;
       if (isOwner && e.isVehicle) continue; // a tank is never hurt by its own shell's splash
-      const share = isOwner ? this.ff.self : this.harm(projectile?.team, e, 'explosion');   // blasts hurt everyone (friendly fire)
+      const share = isOwner ? this.ff.self * (e.perks?.selfBlast ?? 1) : this.harm(projectile?.team, e, 'explosion');   // blasts hurt everyone (friendly fire); Blast-Proof halves your own
       if (!share) continue;
       const dist = e.movement.state.position.distanceTo(point);
       const fall = 1 - 0.7 * Math.min(1, dist / radius);
@@ -308,7 +314,10 @@ export class CombatWorld {
     const mv = e.movement, R = mv.t?.ragdoll;
     const away = _oc.subVectors(mv.state.position, point).setY(0);
     const len = away.length() || 1;
-    const k = (weapon.knockback ?? 10) * (1 - Math.min(1, dist / radius));
+    // Mass: a soldier who can't be knocked back stands his ground while he's up (not once he's down).
+    const kb = e.health.up ? e.perks?.knockback ?? 1 : 1;
+    if (kb <= 0) return;
+    const k = (weapon.knockback ?? 10) * (1 - Math.min(1, dist / radius)) * kb;
     const reach = R ? radius * R.blastRadiusFrac / (mv.state.stance === 'prone' ? mv.t.knockdown.proneResist : 1) : 0;
     const limp = dist < reach;
     mv.impulse?.((away.x / len) * k, k * 0.45 + (limp ? 1.5 : 0), (away.z / len) * k, { cause: 'explosion', at: point, ragdoll: limp });

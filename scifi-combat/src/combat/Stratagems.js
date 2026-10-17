@@ -35,7 +35,7 @@ import { stripButtons } from '../core/routing.js';
 export const ARROWS = { arrowUp: 'U', arrowDown: 'D', arrowLeft: 'L', arrowRight: 'R' };
 export const ARROW_KEYS = Object.fromEntries(Object.entries(ARROWS).map(([k, c]) => [c, k]));
 /** What the hands can't do while typing a code or holding a beacon. */
-const BUSY = ['light', 'heavy', 'guard', 'reload', 'swapWeapon', 'toggleMelee', 'ability1', 'ability2', 'grenade', 'super', 'interact', ...Object.keys(ARROWS)];
+const BUSY = ['light', 'heavy', 'guard', 'reload', 'swapWeapon', 'toggleMelee', 'ability1', 'ability2', 'grenade', 'super', 'interact', 'item', ...Object.keys(ARROWS)];
 const _v = new Vector3(), _d = new Vector3();
 let nextBeaconId = 1;
 
@@ -469,8 +469,9 @@ export class StratagemSystem {
   }
 
   #grabFrom(e, p) {
+    const refilled = this.world.support?.refill(e) ?? false;   // stims and ammo packs too
     const got = e.weapons?.resupply?.(p.def.payload.mags ?? 2) ?? 0;
-    if (!(got > 0)) return false;
+    if (!(got > 0) && !refilled) return false;
     p.grabs--;
     bus.emit('stratagem:grab', { id: e.id, pod: p.id, owner: p.owner?.id, mags: got, left: p.grabs });
     return true;

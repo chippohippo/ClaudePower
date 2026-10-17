@@ -20,6 +20,8 @@
 //    supply pod folds its four doors down on four crates: one crate per grab left. A sentry pod
 //    pops its cap and the turret rises out of it, turning where the sim aims it; destroyed, its
 //    head is blown off and the pod stands as a wreck for a while.
+//  * Ammo packs an engineer drops (SupportItems): a supply crate on the ground, its lamp blinking
+//    blue while it has mags to give.
 //  * A vehicle drop comes down in its cradle (StratagemKit.cradle), not spinning, facing the way it
 //    was thrown, its four retro thrusters burning all the way; on the ground the cradle lets go
 //    (the vehicle is the sim's now: VehicleViews draws it) and lifts away on its thrusters.
@@ -113,6 +115,7 @@ export class StratagemViews {
     this.beacons = new Map();
     this.held = [];          // beacons in hand (pooled)
     this.pods = new Map();
+    this.packs = new Map();  // ammo packs on the ground (SupportItems)
     this.jets = [];
     this.flashes = [];
     this.time = 0;
@@ -151,6 +154,7 @@ export class StratagemViews {
     this.#held();
     this.#beacons(S, dt, now, alpha);
     this.#pods(S, dt, alpha);
+    this.#packs();
     this.#jets(now);
     this.#streaks(alpha);
     for (let i = this.flashes.length - 1; i >= 0; i--) {
@@ -384,6 +388,30 @@ export class StratagemViews {
     this.scene.add(root);
     this.pods.set(p.id, v);
     return v;
+  }
+
+  /** Ammo packs: a crate each, lamp blinking while it has mags left. */
+  #packs() {
+    const list = this.world.support?.packs ?? [];
+    for (const k of list) {
+      let v = this.packs.get(k.id);
+      if (!v) {
+        const root = new THREE.Group(), paint = paintMaterial(this.palette, { team: k.team, number: (k.id * 17 + 3) % 100 });
+        const crate = new THREE.Mesh(models().pod.crate, paint);
+        crate.castShadow = crate.receiveShadow = true;
+        crate.position.y = 0.155; crate.scale.setScalar(0.85);          // the crate is centred on its middle
+        const lamp = new THREE.Sprite(this.kinds.supply.glow);
+        lamp.position.y = 0.42; lamp.scale.setScalar(0.35);
+        root.add(crate, lamp);
+        root.position.copy(k.pos); root.rotation.y = (k.id * 2.4) % (Math.PI * 2);
+        this.scene.add(root);
+        v = { root, paint, lamp };
+        this.packs.set(k.id, v);
+      }
+      v.seen = this.time;
+      v.lamp.visible = k.takers > 0 && Math.sin(this.time * 4 + k.id) > -0.3;
+    }
+    for (const [id, v] of this.packs) if (v.seen !== this.time) { this.scene.remove(v.root); v.paint.dispose(); this.packs.delete(id); }
   }
 
   /** A vehicle in its drop cradle, painted for its side, its thrusters' flames ready to light. */

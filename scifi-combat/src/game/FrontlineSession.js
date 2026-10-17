@@ -7,7 +7,8 @@
 //    vehicle pads at the HQs.
 //  * Step (fixed 60 Hz): bot think (LOD by distance from the humans: every tick up close, then
 //    every 2nd, 4th or 6th, with the last command held in between) → the same per-fighter
-//    pipeline players use (vehicles, movement, abilities, sword, guns; at 30 Hz for soldiers far
+//    pipeline players use (revives, repairs and digging, vehicles, call-ins, items, movement,
+//    abilities, sword, guns; at 30 Hz for soldiers far
 //    from every camera) → world (projectiles, zones, deployables, vehicles) → melee resolve →
 //    logistics → mode → battle points → commanders → artillery and supply command → suppression →
 //    squad plans → reinforcement waves → nav repairs.
@@ -43,7 +44,7 @@ export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
    *                         damageMatrix, supers, vehicleDefs, personalities, difficulty, down, rules, stratagems,
-   *                         battlePoints }
+   *                         battlePoints, passives, support }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
@@ -61,7 +62,7 @@ export class FrontlineSession {
     this.world = new CombatWorld({
       damageMatrix: data.damageMatrix, cover: this.map.cover, terrain: this.map.terrain, nav: this.map.nav,
       supers: data.supers, meleeWeapons: data.meleeWeapons, recoilDefs: data.recoil, vehicleDefs: data.vehicleDefs, statusDefs: data.statuses,
-      down: data.down, rules: data.rules ?? null, stratagems: data.stratagems ?? null,
+      down: data.down, rules: data.rules ?? null, stratagems: data.stratagems ?? null, passives: data.passives ?? null, support: data.support ?? null,
     });
     this.mode = new FrontlineMode(this.map, {
       tickets: tickets ?? Math.round(players * M.ticketsPerPlayer), timeLimit: timeLimit ?? M.timeLimit,
@@ -196,11 +197,13 @@ export class FrontlineSession {
       if (f.brain) cmd = this.#think(f, dt, near);
       else cmd = this.humans.get(f.id) ?? EMPTY;
       if (!Number.isFinite(cmd.yaw + cmd.pitch + cmd.moveX + cmd.moveY)) cmd = { ...cmd, yaw: Number.isFinite(cmd.yaw) ? cmd.yaw : f.movement.state.yaw, pitch: Number.isFinite(cmd.pitch) ? cmd.pitch : 0, moveX: Number.isFinite(cmd.moveX) ? cmd.moveX : 0, moveY: Number.isFinite(cmd.moveY) ? cmd.moveY : 0 }; // never let a bad number into the sim
-      // Reviving a teammate or digging in owns the tick: kneel, no moving, shooting or casting.
+      // Reviving a teammate, repairing (engineers) or digging in owns the tick: kneel, no moving, shooting or casting.
       if (w.revives.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
+      else if (w.support.repairInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       else if (this.fortify.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, fdt); continue; }
       if (f.stratagems) cmd = f.stratagems.handleInput(cmd, fdt);   // typing a call-in or holding a beacon: hands busy
+      w.support.itemInput(f, cmd);                                    // a stim, an ammo pack
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);
       f.movement.update(c, fdt);
@@ -343,6 +346,7 @@ export class FrontlineSession {
     f.health.shield = f.health.maxShield;
     f.status.cleanse();
     f.weapons.restock();          // reinforcements come up with a full loadout
+    w.support.refill(f);
     if (ride) w.vehicles.enter(f, ride, ride.seats.findIndex((q) => q.def.role === 'driver'));
     bus.emit('fighter:deploy', { id: f.id, team, pos: pos.toArray(), vehicle: ride?.id ?? null });
   }

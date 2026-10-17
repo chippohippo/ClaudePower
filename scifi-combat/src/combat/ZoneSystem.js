@@ -167,7 +167,7 @@ export class ZoneSystem {
 
   #pull(z, dt) {
     for (const e of this.#enemiesIn(z)) {
-      if (!e.movement.body) continue; // vehicles and riders are carried by their own physics
+      if (!e.movement.body || e.perks?.pullImmune) continue; // vehicles and riders are carried by their own physics; Rift-Proof isn't pulled
       _d.subVectors(z.center, e.movement.state.position).setY(0);
       const dist = _d.length();
       if (dist < 0.3) continue;

@@ -26,6 +26,7 @@ export const data = {
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
   down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'), battlePoints: J('battle-points.json'),
+  passives: J('passives.json'), support: J('support.json'),
 };
 export const DT = 1 / 60;
 let lastBp = null;
@@ -38,7 +39,7 @@ export const v = (x, y, z) => new Vector3(x, y, z);
 export function makeWorld(cover = [], { down = false, terrain = null, bp = false, mode = null } = {}) {
   const melee = new MeleeSystem();
   const downCfg = down ? data.down : null;
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems });
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems, passives: data.passives, support: data.support });
   if (bp) { lastBp?.dispose(); lastBp = world.bp = new BattlePoints(world, data.battlePoints, { mode }); }   // one listening at a time (fighter ids repeat between tests)
   const fighters = new Map(); // entity -> scripted command source
 
@@ -58,6 +59,9 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
     e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(role ?? 'assault'));
     e.melee = new MeleeComponent(data.melee[0], e, world);
     e.mode = 'sword';
+    // The kit's class passive (a kit id is a class id), and the role's items.
+    world.passives.attach(e, data.classes.flatMap((f) => f.classes).find((c) => c.id === kitId)?.passive?.id);
+    world.support.equip(e);
     melee.add(e.melee);
     fighters.set(e, { yaw: 0, pitch: 0, moveX: 0, moveY: 0, press: new Set(), hold: new Set(), prev: new Set() });
     return world.add(e);
@@ -100,8 +104,10 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
         }
         e.status.update(DT); e.health.update(DT);
         if (world.revives.handleInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } }; }
+        else if (world.support.repairInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { dig: c.buttons.dig } }; }
         if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
         if (e.stratagems) c = e.stratagems.handleInput(c, DT);
+        world.support.itemInput(e, c);
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;
         if (s.brain) { const r = routeCommand(e, c); e.abilities.update(c, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT); }

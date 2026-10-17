@@ -236,6 +236,11 @@ values).
    call-in panel: an extra use (400), a recon vehicle (800) or a tank (1200) dropped in a cradle,
    the hero (2000: your super, charged). Bots earn and spend them too. Sentries now leave downed
    soldiers alone (they were finishing most of their victims, which killed the revive game).
+7. **Support roles** (P1). Medics carry three stims (a heal, or a downed teammate up in a second
+   without kneeling), engineers two ammo packs and repairs (hold H at a damaged vehicle or turret).
+   All twenty class passives are live, each with its numbers in `data/passives.json`. Bots use
+   items with the same key and repair before boarding a damaged vehicle. The HUD shows your
+   passive, items and prompts; a spotter's marks glow red; Mindread reads cooldowns.
 
-Next, by the priority order: support roles (P1), melee readability on the front (P1), bot
-callouts and flanking (P1), then the camera, the director and audio (P2).
+Next, by the priority order: melee readability on the front (P1), bot callouts and flanking
+(P1), then the camera, the director and audio (P2).

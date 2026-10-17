@@ -178,6 +178,11 @@ export class Logistics {
 
   #resupply(f) {
     if (f.health.dead || f.vehicle || !f.weapons?.missing) return;
+    // Stims and ammo packs come from the dumps too (free: they're light).
+    if (f.items && f.items.left < f.items.max) {
+      const q = f.movement.state.position;
+      if (this.depots.some((d) => d.team === f.team && Math.hypot(d.pos.x - q.x, d.pos.z - q.z) < d.radius + 4)) this.world.support?.refill(f);
+    }
     const miss = f.weapons.missing();
     if (miss < 0.5) return;
     const p = f.movement.state.position;

@@ -16,6 +16,9 @@
 //    road, shortages and depot moves as banners, the preparation barrage before a whistle;
 //    on the minimap our depots, guns and trucks, enemy guns we've located, and where shells land.
 //    Prompts to crew a gun or drive a vehicle (FireControl draws the gun panel itself).
+//  * Support roles: your class passive and items on the status panel (stims, ammo packs), prompts
+//    to stim the teammate in front of you or repair the vehicle beside you, enemies a spotter
+//    has revealed on the minimap, and (Mindread) the abilities of the enemy in your sights.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -45,7 +48,8 @@ export class FrontlineHud {
       <div id="fl-downs"></div>
       <div id="fl-squad"></div>
       <div id="fl-supply"></div>
-      <div id="fl-suppress"></div>`;
+      <div id="fl-suppress"></div>
+      <div id="fl-mind"></div>`;
     this.el = Object.fromEntries([...root.querySelectorAll('[id^="fl-"]')].map((e) => [e.id.slice(3), e]));
     this.ctx = this.el.map.getContext('2d');
     // The minimap keeps the map's proportions (a 4v4 outpost is squarer than a 64v64 front).
@@ -201,6 +205,7 @@ export class FrontlineHud {
       ${hp.maxShield ? `<div class="bar sm"><i style="width:${(hp.shield / hp.maxShield * 100).toFixed(0)}%;background:#7fd6ff"></i></div>` : ''}
       <div class="bar sm"><i style="width:${st.stamina.toFixed(0)}%;background:${st.exhausted ? '#ff6b6b' : '#c8d47a'}"></i></div>
       <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${reloading}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>
+      ${this.#kit(me)}
       ${s.bp ? `<div class="wpn" style="color:#ffe14d">★ <b>${s.bp.points(me)}</b> BATTLE POINTS</div>` : ''}`;
     this.el.feed.innerHTML = this.feed.filter((k) => this.time - k.t < 8).map((k) => k.html).join('<br>');
     // ---- respawn, downed, revives and banners
@@ -219,14 +224,55 @@ export class FrontlineHud {
     }
     const myJob = rv.jobOf(me.id), patient = !hp.downed && !me.health.dead && !myJob ? rv.patientFor?.(me) : null;
     const D = this.dig && this.time - this.dig.t < 0.25 ? this.dig : this.dig?.stage === -1 && this.time - this.dig.t < 1.5 ? this.dig : null;
+    const sup = s.world.support, fixing = me.repairing?.target;
     this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
+      : fixing ? `REPAIRING ${bar(fixing.health.hp / fixing.health.max, '#9fd3ff')}`
       : D ? (D.stage === -1 ? `${D.kind === 'foxhole' ? 'FOXHOLE DUG' : D.kind === 'sandbags' ? 'SANDBAGS UP' : 'TRENCH CUT'}` : `${['DIGGING A FOXHOLE', 'FILLING SANDBAGS', 'DIGGING A TRENCH'][D.stage]} ${bar(D.k, '#d9b77a')}`)
-      : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : this.#boardPrompt(me);
+      : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}${this.#stimPrompt(me, sup) ? ` · <b>3</b> STIM` : ''}`
+      : this.#repairPrompt(me, sup) || this.#stimPrompt(me, sup) || this.#boardPrompt(me);
+    this.#mindread(me, camera, w, h);
     this.#squad(me);
     this.#supply();
     this.el.suppress.style.opacity = Math.min(1, (me.suppression ?? 0) * 1.1).toFixed(2);
     this.#downMarkers(camera, w, h);
     if (this.time > this.bannerUntil) this.el.banner.style.opacity = 0;
+  }
+
+  /** Your class passive and your items (stims, ammo packs) on the status panel. */
+  #kit(me) {
+    const P = me.passive ? this.s.world.passives.defs[me.passive]?.name : null, I = me.items;
+    if (!P && !I) return '';
+    const items = I ? `${I.kind === 'stim' ? 'STIMS' : 'AMMO PACKS'} <b>${'✚'.repeat(I.left)}${'·'.repeat(Math.max(0, I.max - I.left))}</b> <small>[3]</small>` : '';
+    return `<div class="wpn" style="color:#9fd3ff">${P ? P.toUpperCase() : ''}${P && I ? ' · ' : ''}${items}</div>`;
+  }
+
+  /** A medic with stims facing a hurt or downed teammate in reach. */
+  #stimPrompt(me, sup) {
+    if (me.items?.kind !== 'stim' || me.items.left <= 0 || !me.health.up || me.vehicle) return '';
+    const t = sup.stimTarget(me, me.movement.state.yaw);
+    return t ? `<b>3</b> STIM ${(t.name ?? '').toUpperCase()}${t.health.downed ? ' (UP IN 1 S)' : ''}` : '';
+  }
+
+  /** An engineer beside a damaged friendly vehicle or turret. */
+  #repairPrompt(me, sup) {
+    if (!sup.data?.repair?.roles.includes(me.role) || !me.health.up || me.vehicle) return '';
+    const t = sup.repairTarget(me);
+    return t ? `HOLD <b>H</b> TO REPAIR THE ${(t.def?.name ?? t.kind ?? 'turret').toUpperCase()} ${bar(t.health.hp / t.health.max, '#9fd3ff')}` : '';
+  }
+
+  /** Mindread: the abilities of the enemy you've held in your sights, beside him on screen. */
+  #mindread(me, camera, w, h) {
+    const M = me.mindread, el = this.el.mind;
+    const t = M && M.until > this.s.world.passives.time ? this.s.world.entity(M.id) : null;
+    if (!t || t.health?.dead || !t.abilities) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
+    _v.copy(t.movement.state.position); _v.y += 2.3; _v.project(camera);
+    if (_v.z > 1) { el.style.display = 'none'; return; }
+    const keys = { ability1: 'Q', ability2: 'E', grenade: 'G' };
+    const parts = Object.entries(keys).filter(([k]) => t.abilities.slots[k]).map(([k, key]) => { const s = t.abilities.slots[k]; return `${key} ${s.charges > 0 ? '<b style="color:#7fffb0">READY</b>' : `${Math.ceil(s.cooldown)}s`}`; });
+    const sup = Math.round((t.abilities.superEnergy / Math.max(1, t.abilities.superCost)) * 100);
+    parts.push(`SUPER ${sup >= 100 ? '<b style="color:#ff6b6b">READY</b>' : `${sup}%`}`);
+    el.style.cssText = `position:absolute;left:${((_v.x * 0.5 + 0.5) * w).toFixed(0)}px;top:${((-_v.y * 0.5 + 0.5) * h).toFixed(0)}px;transform:translate(-50%,-100%);font:700 11px system-ui;color:#c9b6ff;text-shadow:0 0 4px #000;white-space:nowrap;pointer-events:none;letter-spacing:.05em`;
+    el.innerHTML = `${(t.name ?? '').toUpperCase()} · ${parts.join(' · ')}`;
   }
 
   /** "X: crew the Sunhammer Field Gun" beside a vehicle you could take. */
@@ -309,8 +355,10 @@ export class FrontlineHud {
     for (const f of s.fighters) {
       if (f.health.dead || f === this.player) continue;
       const ally = f.team === this.team;
-      if (!ally && this.time - (this.spotted.get(f.id) ?? -99) > 2) continue;
+      const marked = !ally && f.status?.has('revealed');           // a spotter's mark: shown while it lasts
+      if (!ally && !marked && this.time - (this.spotted.get(f.id) ?? -99) > 2) continue;
       const p = f.movement.state.position;
+      if (marked) { c.strokeStyle = '#ff4d6d'; c.strokeRect(X(p.x) - 2.5, Z(p.z) - 2.5, 5, 5); }
       if (ally && f.health.downed) {
         // Downed teammates: a small red cross, so the medics know where to go.
         c.fillStyle = '#ff5a5a';

@@ -232,9 +232,12 @@ export class MeleeComponent {
     // ---------- CLEAN HIT
     const hot = attacker.heat >= attacker.w.heat.hotThreshold;
     const vulnerableBonus = this.vulnerable ? 1.5 : 1;
-    const dmg = attack.damage * (hot ? 1 + attacker.w.heat.hotBurnBonus : 1) * vulnerableBonus;
+    // A backstab (the class passive: Ghoststep doubles it, From Nowhere suppresses).
+    const stab = attacker.owner.perks?.backstab && this.#forward().dot(hitDir) > 0.5 ? attacker.owner.perks.backstab : null;
+    const dmg = attack.damage * (hot ? 1 + attacker.w.heat.hotBurnBonus : 1) * vulnerableBonus * (stab?.mul ?? 1);
     this.owner.health.damage(dmg, attack, attacker.owner);
     if (attack.onHitStatus) this.owner.status?.apply(attack.onHitStatus, { source: attacker.owner });
+    if (stab?.status) this.owner.status?.apply(stab.status, { duration: stab.duration, source: attacker.owner });
 
     // Poise: hyper-armor ignores flinch; otherwise poise damage → interrupt.
     const inHyper = this.attack?.hyperArmor && this.phase !== MeleePhase.IDLE &&
@@ -244,7 +247,7 @@ export class MeleeComponent {
     if (this.poise <= 0) this.poise = 60;
 
     bus.emit('melee:hit', {
-      attacker: attacker.owner.id, defender: this.owner.id, damage: dmg, crit: this.vulnerable || hot,
+      attacker: attacker.owner.id, defender: this.owner.id, damage: dmg, crit: this.vulnerable || hot || !!stab, backstab: !!stab,
       hitStop: (this.vulnerable ? 5 : 3) / 60, dir: hitDir,
     });
     // Gun interplay: melee interrupts reloads/ADS on the victim.

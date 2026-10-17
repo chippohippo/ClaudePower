@@ -40,12 +40,13 @@ const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints] = await Promise.all([
+const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'), load('abilities/statuses.json'),
   load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
   load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
   load('art/palette.json'), load('art/troopers.json'), load('rules.json'), load('stratagems.json'), load('battle-points.json'),
+  load('passives.json'), load('support.json'),
 ]);
 const planet = palette.planets[params.get('planet') ?? 'scorched'] ?? palette.planets.scorched;
 installFog(planet);   // before any material compiles
@@ -55,7 +56,7 @@ const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
   personalities: ai.personalities, difficulty: ai.difficulty[params.get('difficulty') ?? 'veteran'] ?? ai.difficulty.veteran,
-  down, rules, stratagems, battlePoints,
+  down, rules, stratagems, battlePoints, passives, support,
 };
 const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
@@ -118,7 +119,7 @@ renderer.domElement.addEventListener('mousedown', () => {
   if (audio) return;
   audio = new AudioDirector(new SynthBackend(), {
     listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns, strats: world.stratagems,
-    getEntity: (id) => { const e = world.entity(id); return e && { team: e.team, position: e.movement.state.position }; },
+    getEntity: (id) => { const e = world.entity(id); return e && { team: e.team, position: e.movement.state.position, perks: e.perks }; },
   });
 });
 
@@ -139,6 +140,7 @@ const fireControl = new FireControl(scene, { world, map, el: gunPanel, aspect: i
 const STATUS_GLOW = {
   iframes: new THREE.Color(0.15, 0.25, 1.1), vulnerable: new THREE.Color(1.0, 0.1, 0.1), radiant: new THREE.Color(0.7, 0.45, 0.1),
   void: new THREE.Color(0.35, 0.1, 0.7), mech: new THREE.Color(0.25, 0.25, 0.25), scorch: new THREE.Color(0.5, 0.16, 0), weaken: new THREE.Color(0.22, 0.07, 0.4),
+  stim: new THREE.Color(0.1, 0.55, 0.2), revealed: new THREE.Color(0.75, 0.08, 0.05),
 };
 const LYING = new Set(['dive', 'knockdown', 'ragdoll']);
 const _yaw = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
@@ -163,7 +165,8 @@ const loop = new FixedLoop({
     for (const f of session.fighters) {
       const s = f.movement.state, st = f.status, tf = f.transform;
       f.look.status = s.invulnerable ? STATUS_GLOW.iframes : f.melee.vulnerable ? STATUS_GLOW.vulnerable : tf ? STATUS_GLOW[tf.def.aura] ?? null
-        : st.has('scorch') ? STATUS_GLOW.scorch : st.has('volatile') || st.has('weaken') ? STATUS_GLOW.weaken : null;
+        : st.has('scorch') ? STATUS_GLOW.scorch : st.has('volatile') || st.has('weaken') ? STATUS_GLOW.weaken
+        : st.has('stim') ? STATUS_GLOW.stim : f.team !== myTeam && st.has('revealed') ? STATUS_GLOW.revealed : null;   // a spotter's mark: enemies he's revealed glow for us
       f.look.flame.set(f.melee.w.visual?.flameColor ?? (f.team === 0 ? '#ff7a1a' : '#8b5cf6'));
     }
     // At an indirect-fire gun the overhead fire-control view takes over the screen.

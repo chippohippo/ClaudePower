@@ -245,6 +245,9 @@ export class AudioDirector {
     // a gear clank. Others are positional, with an audible radius that grows with gait.
     const db = (x) => 20 * Math.log10(Math.max(0.05, x));
     on('anim:footstep', (e) => {
+      // Ghoststep is silent crouched, From Nowhere at a sprint (class passives).
+      const quiet = this.getEntity(e.id)?.perks?.silent;
+      if ((quiet === 'crouch' && (e.stance === 'crouch' || e.stance === 'prone')) || (quiet === 'sprint' && e.gait === 'sprint')) return;
       const self = e.id === this.listenerId;
       const pos = self ? null : { x: e.x, y: e.y, z: e.z };
       const radius = FOOT_RADIUS[e.gait] ?? 18;
@@ -310,6 +313,11 @@ export class AudioDirector {
     on('bp:earn', (e) => mine(e) && e.amount >= 25 && this.play('callin.bp', { tier: Tier.COMBAT, intensity: Math.min(2, e.amount / 100), gainDb: -10 }));
     on('bp:spend', (e) => mine(e) && this.play('callin.buy', { tier: Tier.COMBAT, gainDb: -4 }));
     on('stratagem:instant', (e) => mine(e) && this.play('callin.hero', { tier: Tier.COMBAT, gainDb: -2 }));
+    // Support items: the stim's hiss and click, a pack thumping down, the ratchet of a repair.
+    on('support:stim', (e) => this.play('callin.stim', { tier: Tier.COMBAT, pos: mine(e) ? null : this.posOf(e.id), radius: 20, gainDb: -4 }));
+    on('support:pack', (e) => this.play('callin.grab', { tier: Tier.FOLEY, pos: e.owner === this.listenerId ? null : at(e.at), radius: 20, gainDb: -6 }));
+    on('support:repair', (e) => this.play('callin.repair', { tier: Tier.FOLEY, pos: mine(e) ? null : this.posOf(e.id), radius: 25, gainDb: -8 }));
+    on('support:empty', (e) => mine(e) && this.play('callin.error', { tier: Tier.COMBAT, gainDb: -8 }));
   }
 
   #announceSuper(e) {
@@ -516,6 +524,15 @@ export class SynthBackend {
     } else if (kind === 'grab') {
       for (const at of [0, 0.13]) { env(hiss('highpass', 2200, 1800, at, 0.05), at, 0.001, 0.8, 0.05); tone('sine', 180, 110, at, 0.1, 0.6); }
       end = 0.3;
+    } else if (kind === 'stim') {
+      env(hiss('highpass', 3200, 5200, 0, 0.3, 1.1), 0, 0.01, 0.6, 0.3);
+      tone('square', 1400, 1400, 0, 0.02, 0.4);
+      tone('sine', 440, 660, 0.05, 0.25, 0.25);
+      end = 0.4;
+    } else if (kind === 'repair') {
+      for (const at of [0, 0.11, 0.22, 0.33]) env(hiss('bandpass', 2400, 2000, at, 0.04, 3), at, 0.002, 0.7, 0.04);
+      tone('triangle', 210, 180, 0, 0.4, 0.2);
+      end = 0.45;
     } else if (kind === 'bp') {
       // Up a fifth; a bigger award rings a little longer.
       tone('sine', 1318, 1318, 0, 0.08, 0.35); tone('sine', 1975, 1975, 0.055, 0.1 + 0.06 * intensity, 0.28);

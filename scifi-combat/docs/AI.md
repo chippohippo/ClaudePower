@@ -130,6 +130,19 @@ drops itself the tank if it can keep its reserve, else the recon vehicle, 8 m to
 teammate within reach of the cradle; its pilot (`VehiclePilot`) then boards it like any other.
 Since dying halves a bot's points, most never save up; the best ones spend a few times a match.
 
+### Items (`ItemPlanner`)
+
+Support items (see [FRONTLINE.md](FRONTLINE.md)) with the same key a player presses. A medic with
+stims gets a downed teammate up with a stim from 2.5 m instead of kneeling (the revive behaviour
+hands over), stims a teammate in reach below half health, and himself below 40% when no enemy is
+within 12 m. An engineer drops an ammo pack when he or a squadmate within 12 m is short of ammo
+and no enemy is near, one pack of his down at a time; anyone short walks to one of our packs
+within 25 m. An engineer with a vehicle or turret of ours below 60% within 25 m, and no fight
+close, goes to its hull and holds the dig key until it's whole: he mends a damaged vehicle rather
+than boarding it. Passives come with the class: a bot spotter marks what it aims at, a bot
+hollow-eye's held shots hit harder. In a three-minute 32v32 the bots stim about twenty times and
+repair a few hundred HP; at 200v200 it costs nothing measurable per tick.
+
 ### The whistle (`FrontlineCommander`)
 
 Squads ready in a trench report to the commander, who blows one whistle per trench line: 6 s after the

@@ -1,0 +1,25 @@
+{
+  "_note": "Class passives (src/combat/Passives.js, docs/GAMEPLAY_PLAN.md §5): the numbers for each passive in data/classes/*.json (passive.id). mods are read by the systems they change (enterTime by VehicleSystem, ventRate by the guns, selfBlast and knockback by blasts, reviveRate by ReviveSystem, slowDecay by statuses, pullImmune by pulls, flinchShield by the hit flinch, backstab by the sword, silent by footsteps); the rest are events Passives.js answers. Times in s, distances in m.",
+  "passives": {
+    "momentum": { "name": "Momentum", "takedown": { "stamina": 25, "status": "momentum" } },
+    "unshakable": { "name": "Unshakable", "mods": { "flinchShield": 0.5 } },
+    "ghoststep": { "name": "Ghoststep", "mods": { "silent": "crouch", "backstab": { "mul": 2 } } },
+    "salvage": { "name": "Salvage", "tech": { "radius": 12, "mags": 1 } },
+    "triage": { "name": "Triage", "mods": { "reviveRate": 1.5 }, "aura": { "radius": 10, "hps": 3, "squad": true } },
+    "spotter": { "name": "Spotter", "aim": { "hold": 0.4, "range": 120, "cone": 2.5, "reveal": 5, "every": 1 } },
+    "radiant_guard": { "name": "Radiant Guard", "parry": { "heal": 10 } },
+    "ace": { "name": "Ace", "mods": { "enterTime": 0.5, "handling": 1.2 } },
+    "overcharge": { "name": "Overcharge", "mods": { "ventRate": 1.3 } },
+    "blast_proof": { "name": "Blast-Proof", "mods": { "selfBlast": 0.5 } },
+    "hunger": { "name": "Hunger", "weakened": { "armor": 5, "every": 0.2 } },
+    "mass": { "name": "Mass", "mods": { "knockback": 0, "slowDecay": 2 } },
+    "from_nowhere": { "name": "From Nowhere", "mods": { "silent": "sprint", "backstab": { "mul": 1, "status": "suppress", "duration": 1 } } },
+    "scavenger": { "name": "Scavenger", "refund": { "share": 0.3 } },
+    "leech_link": { "name": "Leech Link", "link": { "share": 0.2, "radius": 20 } },
+    "patient_eye": { "name": "Patient Eye", "eye": { "every": 1, "per": 0.1, "max": 0.3 } },
+    "black_flame": { "name": "Black Flame", "sword": { "status": "volatile_build", "stacks": 10 }, "perfectBlock": { "armor": 10 } },
+    "drift": { "name": "Drift", "mods": { "enterTime": 0.5 }, "exit": { "status": "phased", "duration": 1 } },
+    "mindread": { "name": "Mindread", "read": { "hold": 0.5, "range": 60, "cone": 3 } },
+    "rift_proof": { "name": "Rift-Proof", "mods": { "selfBlast": 0.5, "pullImmune": true } }
+  }
+}

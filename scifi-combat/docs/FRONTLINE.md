@@ -1,7 +1,7 @@
 # Frontline: 4v4 to 200v200 trench battles
 
 Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode,
-Logistics) · `src/combat/Stratagems.js` · `src/game/BattlePoints.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
+Logistics) · `src/combat/Stratagems.js` · `src/game/BattlePoints.js` · `src/combat/SupportItems.js`, `Passives.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
 (squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
 `src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
 EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
@@ -9,7 +9,8 @@ EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
 `FireControl.js`, `StratagemPanel.js`, `BattlePointsHud.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
-`tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`.
+`tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`,
+`tests/support-roles.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -219,6 +220,43 @@ spent and what dying cost you; each comes with a small chime. In a six-minute 32
 reach 3,000 points earned and spend some on extra strikes, a vehicle and the hero; most spend
 nothing before they die.
 
+## Support roles and passives (`SupportItems`, `Passives`)
+
+Medics and engineers carry items (`data/support.json`), used with **3**; supply pods, depots and
+redeploying refill them. Bots use them with the same key (`ItemPlanner`, see [AI.md](AI.md)).
+
+| Item | Who | What |
+|---|---|---|
+| Stim ×3 | medics | The teammate you face within 2.5 m (else yourself, if hurt) heals 60 HP over 2 s. A downed one is up a second later with 60% of his health, his bleeding stopped meanwhile, and you don't kneel: you keep shooting |
+| Ammo pack ×2 | engineers | Dropped at your feet: teammates short of at least a mag take two each as they pass, four of them, for a minute (40 battle points a mag, to you) |
+| Repairs | engineers | Hold **H** beside a damaged vehicle or turret of ours: 50 HP a second, kneeling at it (2 battle points per HP) |
+
+Every class has a passive (`data/classes/*.json` `passive`, the numbers in `data/passives.json`),
+shown on your status panel. Bots carry theirs too.
+
+| Class | Passive | |
+|---|---|---|
+| Lancer | Momentum | a takedown gives back 25 stamina and +10% speed for 3 s |
+| Bastion | Unshakable | no hit flinch (camera or aim) while your shield is over half |
+| Veil | Ghoststep | silent footsteps crouched; sword backstabs do double damage |
+| Artificer | Salvage | a vehicle or deployable destroyed within 12 m is a mag for you |
+| Lumen | Triage | revives 50% faster; 3 HP a second to your squad within 10 m |
+| Seraph | Spotter | hold your sights on an enemy for 0.4 s: revealed for 5 s, glowing red to your side and on its minimap (a spot assist if someone else downs him) |
+| Dawnblade | Radiant Guard | a perfect parry heals you 10 |
+| Skyrider | Ace | boards vehicles in half the time; handles them better |
+| Prism Adept | Overcharge | energy guns vent and cool 30% faster |
+| Breacher | Blast-Proof | half the damage from your own blasts |
+| Reaver | Hunger | your hits on Weakened enemies give back 5 leech armor |
+| Monolith | Mass | no knockback from blasts or abilities while up; Slow wears off twice as fast |
+| Wraith | From Nowhere | silent at a sprint; sword backstabs Suppress for 1 s |
+| Rigger | Scavenger | an enemy deployable you destroy takes 30% off your ability cooldowns |
+| Mender | Leech Link | 20% of your damage heals the most hurt teammate within 20 m |
+| Hollow-Eye | Patient Eye | each second down your sights without firing: +10% gun damage (up to 30%), spent on the next shot |
+| Ashsworn | Black Flame | sword hits build Volatile (three set it); perfect blocks give back 10 leech armor |
+| Driftcaller | Drift | boards in half the time; Phased for a second when you get out |
+| Psion | Mindread | hold your sights on an enemy for 0.5 s and see his ability cooldowns and super over his head |
+| Riftbreaker | Rift-Proof | half the damage from your own blasts; pulls don't move you |
+
 ## Downs, ragdolls and reinforcements
 
 - **Down but not out** (`data/down.json`, `Health`, `ReviveSystem`): at 0 HP you're downed, not dead,
@@ -401,6 +439,7 @@ dropships are arena-only).
 | Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
 | Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms, your battle points and every price (BUY 400 on one that's cooling down, lit when you can pay); with a beacon in hand, which one, how to throw it and what it will cost; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
 | Battle points (`BattlePointsHud`) | The total on the status panel; a line under the crosshair per thing you did, repeats adding up on one line, and what you spend or lose on death |
+| Support | Your passive and items on the status panel; **3 STIM** facing a hurt or downed teammate, **HOLD H TO REPAIR** beside a damaged vehicle of ours, REPAIRING with the hull's health; enemies a spotter revealed glow red and show on the minimap; Mindread's line over the enemy in your sights |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
 | Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
 | Suppression | The screen edges darken while rounds crack past you |

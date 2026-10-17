@@ -61,7 +61,7 @@ export class ReviveSystem {
       const p = this.patientFor(f);
       if (!p) return false;
       const medic = this.isMedic(f);
-      job = { patient: p, t: 0, need: medic ? c.medicReviveTime : c.reviveTime, hp: medic ? c.medicReviveHp : c.reviveHp };
+      job = { patient: p, t: 0, need: (medic ? c.medicReviveTime : c.reviveTime) / (f.perks?.reviveRate ?? 1), hp: medic ? c.medicReviveHp : c.reviveHp };   // Triage: faster still
       this.jobs.set(f.id, job);
       f.reviveJob = job;                 // the rig kneels the reviver over the patient
       p.health.reviving++;

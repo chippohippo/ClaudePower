@@ -39,6 +39,7 @@ import { lineClearOfFriends } from './FireDiscipline.js';
 import { VehiclePilot } from './VehiclePilot.js';
 import { CrewPilot } from './CrewPilot.js';
 import { CallInPlanner } from './CallInPlanner.js';
+import { ItemPlanner } from './ItemPlanner.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
 const POSITIONAL = new Set(['man', 'hold', 'overwatch', 'stack', 'enter', 'grenade']);
@@ -82,6 +83,7 @@ export class CombatBotBrain {
     this.pilot = new VehiclePilot(this);
     this.crew = new CrewPilot(this);
     this.callIn = new CallInPlanner(this);
+    this.items = new ItemPlanner(this);          // stims, ammo packs, repairs
     this.duty = null;                   // { unit, seat }: a gun crew or truck driver (SupportCommand)
     this.dirtUntil = -1e9;              // a shell is about to land close by: prone until then
     this.duelist = new MeleeDuelistBrain(self, { aggression: persona.aggression, parrySkill: difficulty.parrySkill, reactionTime: difficulty.reactionTime }, this.rand);
@@ -203,8 +205,10 @@ export class CombatBotBrain {
       return cmd;
     }
 
-    // ---- walk to a vehicle we want
-    if (!this.duty && this.vehicleCooldown <= 0 && (this.vehicleGoal || this.decideIn > this.diff.decisionInterval * 0.7)) {
+    // ---- walk to a vehicle we want (an engineer mends a damaged one of ours before taking anything)
+    const fix = this.items.repairJob(ctx);
+    if (fix) this.vehicleGoal = null;
+    if (!fix && !this.duty && this.vehicleCooldown <= 0 && (this.vehicleGoal || this.decideIn > this.diff.decisionInterval * 0.7)) {
       const want = this.vehicleGoal && !this.vehicleGoal.removed && this.vehicleGoal.seats.some((s) => !s.occupant) ? this.vehicleGoal : this.pilot.wantVehicle(ctx);
       if (want !== this.vehicleGoal) { this.vehicleGoal = want; this.vehicleGoalTime = 0; }
     }
@@ -233,9 +237,17 @@ export class CombatBotBrain {
     this.#chooseMode(ctx);
 
     this.hasMoveDir = false; this.dodging = false;
-    // Short of ammo with one of our supply pods close: go and take some (the pod hands it over).
-    const pod = this.callIn.podToFetch(ctx);
-    if (pod) {
+    // An engineer with something of ours to fix and no fight close (above): to its hull, the dig key held.
+    // Short of ammo with one of our supply pods or ammo packs close: go and take some (it hands it over).
+    const pod = fix ? null : this.callIn.podToFetch(ctx) ?? this.items.packToFetch(ctx);
+    if (fix) {
+      const q = fix.movement.state.position, r = (fix.isVehicle ? fix.def.radius ?? 1.5 : 0.6) + 1.2;
+      if (this.#goTo(cmd, q, dt, { sprint: true, radius: r })) {
+        const me = self.movement.state.position;
+        cmd.yaw = this.aimYaw = Math.atan2(-(q.x - me.x), -(q.z - me.z)); cmd.pitch = -0.3;
+        this.btn.hold('dig');
+      } else this.#look(cmd, null, dt);
+    } else if (pod) {
       this.#goTo(cmd, pod.pos, dt, { sprint: true, radius: 1.2 });
       if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
     } else if (this.order) this.#execute(this.order, ctx, cmd, dt, tick);
@@ -252,6 +264,8 @@ export class CombatBotBrain {
     this.#safety(ctx, cmd);
     // ---- call-ins: typed with the same buttons, the throw aimed through the aim override below
     this.callIn.update(ctx);
+    // ---- items: a stim for the hurt, an ammo pack for the short
+    this.items.update(ctx);
 
     if (this.aimOverride && this.time < this.aimOverride.until) {
       // Keep tracking the target through the cast: aim is read again when the effect fires.
@@ -373,6 +387,7 @@ export class CombatBotBrain {
     }
     if (!p) return false;
     const pp = p.movement.state.position, d = pp.distanceTo(me);
+    if (!rv.jobOf(self.id) && this.items.stimRevive(p, d, cmd)) return true;   // a medic's stim: up in a second, no kneeling
     // Walk in to 75% of the range; once kneeling, stay put while within the system's full reach
     // (a few centimetres of drift must not restart the revive).
     if (d > rv.cfg.reviveRange * (rv.jobOf(self.id) ? 1.2 : 0.75)) {
