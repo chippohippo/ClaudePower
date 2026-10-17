@@ -91,7 +91,7 @@
   "buffer": 0
  },
  "slide": {
-  "_note": "Committed, feet-first combat slide from sprint + crouch. Friction ramps from low to high, so the slide carries far and then stops decisively. Steerable at 80 deg/s. Slopes add gravity along the surface. HD2's own slide is the belly slide after a dive (see dive.belly), and both use this model.",
+  "_note": "Committed, feet-first combat slide from sprint + crouch. Friction ramps from low to high, so the slide carries far and then stops decisively. Steerable at 80 deg/s. Slopes add gravity along the surface. HD2's own slide is the belly slide after a dive (see dive.belly), and both use this model. Slide into prone: the prone key (or a second crouch tap after dropAfter s) drops you flat mid-slide, keeping dropCarry of the speed (a belly slide that ends prone).",
   "minEntrySpeed": 5.6,
   "entryBoost": 1.12,
   "maxEntrySpeed": 8.6,
@@ -104,7 +104,9 @@
   "maxDuration": 1.35,
   "exitSpeed": 2.4,
   "jumpCarry": 0.85,
-  "jumpAfter": 0.15
+  "jumpAfter": 0.15,
+  "dropAfter": 0.12,
+  "dropCarry": 0.9
  },
  "dive": {
   "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Out of a sprint you dive the way you face; otherwise the body stays on your aim: inputs past sideAngle dive sideways (land on the side, roll to the belly), past backAngle dive backward (land on your back and keep shooting). Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part.",

@@ -153,6 +153,30 @@ test('slide: committed, carries 3.5-7 m on a friction curve, steerable, ends cro
   assert.equal(r.s.stance, 'crouch');
 });
 
+test('slide into crouch, stand or prone: held crouch stays low, letting go rises, prone drops you flat mid-slide', () => {
+  const slide = () => { const r = rig(); r.input.moveY = 1; r.hold('sprint'); r.seconds(1.5); r.release('sprint'); r.tap('crouch'); r.step(1); assert.equal(r.s.mode, 'slide'); return r; };
+  // Let go: up out of the slide, standing.
+  const a = slide();
+  a.until(() => a.s.mode !== 'slide');
+  a.until(() => !a.s.stanceT, 2);
+  assert.equal(a.s.stance, 'stand');
+  // Prone mid-slide: onto the belly, keeping most of the speed, and it ends prone.
+  const b = slide();
+  b.seconds(0.2);
+  const v0 = speed(b.s), z0 = b.s.position.z;
+  b.tap('prone'); b.step(1);
+  assert.equal(b.s.slide?.kind, 'belly', 'dropped flat');
+  assert.ok(speed(b.s) > v0 * 0.8, `kept the momentum (${speed(b.s).toFixed(1)} of ${v0.toFixed(1)} m/s)`);
+  b.until(() => b.s.mode !== 'slide');
+  assert.equal(b.s.stance, 'prone');
+  assert.ok(Math.abs(b.s.position.z - z0) > 1.5, 'slid on along the ground');
+  // A second crouch tap does the same (for gamepads: crouch is the slide button).
+  const c = slide();
+  c.seconds(0.2);
+  c.tap('crouch'); c.step(1);
+  assert.equal(c.s.slide?.kind, 'belly');
+});
+
 test('stance transitions take real time; crawling is slow; getting up is a commitment', () => {
   const r = rig();
   r.tap('prone'); r.step(1);

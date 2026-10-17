@@ -59,6 +59,9 @@ export class MotionEvents {
       if (mode === 'air') this.airVy = 0;
       this.mode = mode;
     }
+    // Slide into prone: dropping flat mid-slide lands the chest on the ground.
+    if (mode === 'slide' && s.slide?.kind === 'belly' && this.slideKind === 'feet') { h.impact('proneDrop', 0.9); h.cloth('stance', 0.6); }
+    this.slideKind = mode === 'slide' ? s.slide?.kind : null;
     // Feet-first slide: the hip hits the ground just after the drop.
     if (mode === 'slide' && s.slide?.kind === 'feet') {
       const at = cfg.blend.slideImpact;

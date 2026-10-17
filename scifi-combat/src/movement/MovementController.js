@@ -673,6 +673,15 @@ export class MovementController {
         return this.#hop();
       }
       if (b.dodge?.pressed && this.mods.dodgeStyle === 'dive') { s.slide = null; s.stance = Stance.STAND; return this.#startEvade(wishMag); }
+      // Slide into prone: the prone key (or a second crouch tap) drops you flat mid-slide, keeping
+      // most of the momentum: a belly slide that ends prone, gun still up.
+      if ((b.prone?.pressed || (b.crouch?.pressed && s.slide.t > t.slide.dropAfter)) && newSp > 1.5) {
+        s.slide.kind = 'belly'; s.slide.from = 'forward'; s.slide.t = 0; s.slide.dropped = true;
+        s.velocity.x *= t.slide.dropCarry; s.velocity.z *= t.slide.dropCarry;
+        this.body.setHeight(t.heights.prone);
+        bus.emit('move:slideDrop', { id: this.id, speed: newSp });
+        return;
+      }
       if (s.slide.t >= cfg.minDuration && (newSp < cfg.exitSpeed * this.mods.speedMul || s.slide.t >= cfg.maxDuration)) {
         // Exit: stay crouched if crouch is held, otherwise rise out of the slide.
         s.slide = null;
