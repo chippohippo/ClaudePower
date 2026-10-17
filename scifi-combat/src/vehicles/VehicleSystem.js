@@ -422,7 +422,11 @@ export class VehicleSystem {
     const s = v.movement.state, r = v.def.ram;
     for (const [k, t] of v.ramCd) if (t - dt <= 0) v.ramCd.delete(k); else v.ramCd.set(k, t - dt);
     const speed = Math.hypot(s.velocity.x, s.velocity.z);
-    for (const e of this.world.entities) {
+    if (speed < 0.5 && !v.ramCd.size) return;      // parked: nobody gets rammed
+    const near = this._ramNear ??= [];
+    near.length = 0;
+    this.world.fightersNear(s.position, v.def.radius + 1.5, (e) => { if (!e.isVehicle && !e.isDeployable) near.push(e); });
+    for (const e of near) {
       if (e.vehicle || e.health.dead || v.ramCd.has(e.id)) continue;
       _v.subVectors(e.movement.state.position, s.position); _v.y = 0;
       const dist = _v.length();
@@ -472,15 +476,28 @@ export class VehicleSystem {
   raycast(o, dir, max, ignoreId) {
     let best = null;
     for (const v of this.list) {
-      if (v.removed || v.id === ignoreId) continue;
-      const d = v.def;
-      const base = _p.copy(v.movement.state.position); base.y -= d.hoverHeight ?? 0;
-      const hit = rayYawBox(o, dir, base, v.yaw, { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);
-      if (!hit || (best && hit.t >= best.distance)) continue;
-      const weak = d.weakSpot === 'rear' && hit.local.z > d.size.z * 0.2;
-      best = { entity: v, distance: hit.t, point: o.clone().addScaledVector(dir, hit.t), zone: weak ? 'head' : 'body', weakSpot: weak, surface: 'vehicle' };
+      const h = this.rayOne(v, o, dir, best ? best.distance : max, ignoreId);
+      if (h) best = h;
     }
     return best;
+  }
+
+  /**
+   * Ray vs. one hull (CombatWorld tests the hulls its spatial grid finds along the ray, instead
+   * of every vehicle on the map). A bounding-sphere check first, then the oriented box.
+   */
+  rayOne(v, o, dir, max, ignoreId) {
+    if (v.removed || v.id === ignoreId) return null;
+    const d = v.def;
+    const vp = v.movement.state.position, cx = vp.x - o.x, cy = vp.y - (d.hoverHeight ?? 0) + d.size.y * 0.5 - o.y, cz = vp.z - o.z;
+    const along = Math.max(0, Math.min(max, cx * dir.x + cy * dir.y + cz * dir.z));
+    const ex = cx - dir.x * along, ey = cy - dir.y * along, ez = cz - dir.z * along, rb = (v.boundR ??= 0.5 * Math.hypot(d.size.x, d.size.y, d.size.z));
+    if (ex * ex + ey * ey + ez * ez > rb * rb) return null;
+    const base = _p.copy(vp); base.y -= d.hoverHeight ?? 0;
+    const hit = rayYawBox(o, dir, base, v.yaw, v.half ??= { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);
+    if (!hit) return null;
+    const weak = d.weakSpot === 'rear' && hit.local.z > d.size.z * 0.2;
+    return { entity: v, distance: hit.t, point: o.clone().addScaledVector(dir, hit.t), zone: weak ? 'head' : 'body', weakSpot: weak, surface: 'vehicle' };
   }
 
   #destroy(v) {

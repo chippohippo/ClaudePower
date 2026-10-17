@@ -140,7 +140,8 @@ export class VehiclePilot {
     const left = Math.hypot(objective.pos.x - vs.position.x, objective.pos.z - vs.position.z);
     const hold = v.def.model === 'tracked' ? 30 : 10;   // tanks stop short and cover the point
     if (left < hold) { cmd.moveY = 0; cmd.moveX = 0; cmd.yaw = v.yaw; return; }
-    if (!(nav && nav.sample(nav.field(objective.field, objective.pos.x, objective.pos.z, objective.radius * 0.6), vs.position.x, vs.position.z, _m))) _m.set(objective.pos.x - vs.position.x, 0, objective.pos.z - vs.position.z).normalize();
+    const f = nav?.want(objective.field, objective.pos.x, objective.pos.z, objective.radius * 0.6);
+    if (!(f && nav.sample(f, vs.position.x, vs.position.z, _m))) _m.set(objective.pos.x - vs.position.x, 0, objective.pos.z - vs.position.z).normalize();
     const want = Math.atan2(-_m.x, -_m.z);
     // Stuck (on a wall, a wreck, a building): reverse and turn away for a moment.
     this.stuckT = (this.stuckT ?? 0) + dt;

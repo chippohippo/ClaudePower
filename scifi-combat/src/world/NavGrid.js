@@ -15,6 +15,8 @@ import { Vector3 } from 'three';
 
 const IDLE = 600;            // maintain() calls (~10 s) after which an unused stale field stops being refreshed
 const SOFT = 0.3;            // share of maintain()'s budget for fields whose routes only got better
+const BIG = 150000;          // cells (a 64v64 map and up): past this, fields are built in the background (want()) and evicted when idle
+const MAX_FIELDS = 24;       // fields a big map keeps
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DZ = [0, 0, 1, -1, 1, -1, 1, -1];
 const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
@@ -41,6 +43,7 @@ export class NavGrid {
     this.stale = new Set();
     this.job = null;                                  // the rebuild maintain() is part-way through
     this.clock = 0;                                   // maintain() calls: fields remember when they were last asked for
+    this.pending = new Map();                         // big maps: fields asked for with want(), built in maintain()
     this.soft = 0;                                    // bumped when cells only got cheaper (see updateRegion)
     this.syncHeap = new MinHeap(this.nx * this.nz);   // shared search heaps: no 1.6 MB of garbage per solve
     this.jobHeap = new MinHeap(this.nx * this.nz);
@@ -145,6 +148,27 @@ export class NavGrid {
     return hit;
   }
 
+  /** A map big enough that solving a field on demand would hitch (and caching all of them would not fit). */
+  get big() { return this.nx * this.nz > BIG; }
+
+  /**
+   * The flow field for a goal, the way callers that can wait should ask for it. On small maps
+   * it is field() (solved at once). On big maps a missing field is queued and built in
+   * maintain(), on its budget, and want() returns null until it's ready: the caller falls back
+   * to an A* route or a straight line for those few seconds.
+   */
+  want(key, gx, gz, radius = 4) {
+    if (!this.big) return this.field(key, gx, gz, radius);
+    const f = this.fields.get(key);
+    if (f && f.gx === gx && f.gz === gz) {
+      f.used = this.clock;
+      if (f.version !== this.version || f.soft !== this.soft) this.stale.add(key);
+      return f;
+    }
+    if (!this.pending.has(key) && this.job?.key !== key) this.pending.set(key, { gx, gz, radius });
+    return null;
+  }
+
   /**
    * Flow field toward a goal disc, cached by key. A new key is solved at once; a cached field
    * whose walkability changed keeps serving and is queued for maintain().
@@ -190,12 +214,20 @@ export class NavGrid {
           const pri = (f.version !== this.version ? 1e12 : 0) + (f.used ?? 0);
           if (pri > best) { best = pri; key = k; }
         }
-        if (key === undefined) return;
-        this.stale.delete(key);
-        const old = this.fields.get(key);
-        this.job = this.#begin(old.gx, old.gz, old.radius, this.jobHeap);
-        this.job.key = key;
-        this.job.hard = old.version !== this.version;
+        if (best < 1e12 && this.pending.size) {
+          // A field someone asked for (want()) comes before routes that only got better.
+          const [k, g] = this.pending.entries().next().value;
+          this.pending.delete(k);
+          this.job = this.#begin(g.gx, g.gz, g.radius, this.jobHeap);
+          this.job.key = k; this.job.hard = true; this.job.fresh = true;
+        } else {
+          if (key === undefined) return;
+          this.stale.delete(key);
+          const old = this.fields.get(key);
+          this.job = this.#begin(old.gx, old.gz, old.radius, this.jobHeap);
+          this.job.key = key;
+          this.job.hard = old.version !== this.version;
+        }
       }
       const allow = this.job.hard ? budget : Math.min(budget, soft);
       const left = this.#advance(this.job, allow);
@@ -205,9 +237,22 @@ export class NavGrid {
       this.job = null;
       // Install unless field() re-solved this key for a moved goal in the meantime. Walkability
       // that changed mid-search leaves the result older than `version`: it is simply queued again.
-      if (cur && cur.gx === job.gx && cur.gz === job.gz) this.fields.set(job.key, this.#finish(job, job.key));
+      if (job.fresh || (cur && cur.gx === job.gx && cur.gz === job.gz)) {
+        const f = this.#finish(job, job.key);
+        f.used = cur?.used ?? this.clock;
+        this.fields.set(job.key, f);
+        if (job.fresh) this.#evict();
+      }
       if (budget <= 0) return;
     }
+  }
+
+  /** Big maps keep at most MAX_FIELDS fields: the one unused longest goes (it comes back on demand). */
+  #evict() {
+    if (!this.big || this.fields.size <= MAX_FIELDS) return;
+    let oldest = null, ou = Infinity;
+    for (const [k, f] of this.fields) if ((f.used ?? 0) < ou && this.clock - (f.used ?? 0) > IDLE) { ou = f.used ?? 0; oldest = k; }
+    if (oldest !== null) { this.fields.delete(oldest); this.stale.delete(oldest); }
   }
 
   /** Starts a Dijkstra from the goal disc: seeds the goal cells, nothing expanded yet. */

@@ -135,8 +135,10 @@ export class CombatWorld {
     const consider = (h) => { if (h && h.distance <= max && (!best || h.distance < best.distance)) best = h; };
 
     const testFighter = (e) => {
-      // Skip the shooter, the dead, protected occupants, riders of the shooting vehicle itself, and vehicles (tested below).
-      if (e.isVehicle || e.isDeployable || e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) return;
+      // Hulls the grid finds along the ray are tested here (the grid holds vehicles too).
+      if (e.isVehicle) { if (this.spatial) consider(this.vehicles.rayOne(e, o, d, best ? best.distance : max, ignoreId)); return; }
+      // Skip the shooter, the dead, protected occupants and riders of the shooting vehicle itself.
+      if (e.isDeployable || e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) return;
       // Stance-aware spheres: prone, sliding and diving soldiers really are harder to hit.
       for (const h of hitSpheres(e)) {
         _oc.set(h.x - o.x, h.y - o.y, h.z - o.z);
@@ -145,9 +147,11 @@ export class CombatWorld {
       }
     };
     if (this.spatial) this.grid.queryRay(o, d, max, 2.5, testFighter);
-    else for (const e of this.entities) testFighter(e);
-    const veh = this.vehicles.raycast(o, d, max, ignoreId);
-    if (veh) consider(veh);
+    else {
+      for (const e of this.entities) testFighter(e);
+      const veh = this.vehicles.raycast(o, d, max, ignoreId);
+      if (veh) consider(veh);
+    }
     // Piercing shots (Judgment) only test characters and vehicles: cover, walls, domes and ground are ignored.
     if (opts.ignoreCover) return best;
     const dep = this.deployables.raycast(o, d, max);

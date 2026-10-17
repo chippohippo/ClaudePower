@@ -147,7 +147,8 @@ export class CrewPilot {
     if (dist < arrive) { cmd.moveX = 0; cmd.moveY = 0; S.t = 0; return true; }
     if (now < S.until) { cmd.moveY = -1; cmd.moveX = S.turn; return false; }
     let dx = dest.x - p.x, dz = dest.z - p.z;
-    if (nav && field && dist > 12 && nav.sample(nav.field(field, dest.x, dest.z, Math.max(2, arrive * 0.5)), p.x, p.z, _m)) { dx = _m.x; dz = _m.z; }
+    const f = nav && field && dist > 12 ? nav.want(field, dest.x, dest.z, Math.max(2, arrive * 0.5)) : null;
+    if (f && nav.sample(f, p.x, p.z, _m)) { dx = _m.x; dz = _m.z; }
     const turn = angleDelta(v.yaw, Math.atan2(-dx, -dz)), a = Math.abs(turn);
     cmd.moveX = clamp(-turn * 2, -1, 1);
     cmd.moveY = a < 0.5 ? 1 : a < 1.2 ? 0.35 : 0;

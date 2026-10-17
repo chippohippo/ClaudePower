@@ -249,7 +249,7 @@ export class SquadTactics {
   // ---------------------------------------------------------------- routes
   /** A point `dist` metres along the route from `from` toward the objective (flow field). */
   #ahead(from, obj, dist, out) {
-    const nav = this.world.nav, f = nav?.fields.get(obj.field) ?? nav?.field(obj.field, obj.pos.x, obj.pos.z, obj.radius * 0.6);
+    const nav = this.world.nav, f = nav?.want(obj.field, obj.pos.x, obj.pos.z, obj.radius * 0.6);
     out.set(from.x, 0, from.z);
     if (!f) { _v.set(obj.pos.x - from.x, 0, obj.pos.z - from.z).normalize(); return out.addScaledVector(_v, dist); }
     for (let walked = 0; walked < dist; walked += 2) {

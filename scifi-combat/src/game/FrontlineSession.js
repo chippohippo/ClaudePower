@@ -43,7 +43,7 @@ export class FrontlineSession {
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
-  constructor(data, { size = null, players = null, seed = 1, humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160 } } = {}) {
+  constructor(data, { size = null, players = null, seed = 1, humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
     const profile = mapSizeFor(size, players), M = profile.match;
     players = players ?? profile.players;
     this.data = data;
@@ -98,8 +98,14 @@ export class FrontlineSession {
       sc.crewSlots(players).forEach((slot, i) => { if (crews[i]) sc.assign(crews[i], slot.unit, slot.seat); });
       this.commanders[sc.team].support = sc;
     }
-    // Flow fields for every point up front (~25 ms each), so orders never hitch mid-battle.
-    for (const p of this.map.points) this.map.nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
+    // Flow fields for the points up front (~25 ms each on a 1 km map), so orders never hitch
+    // mid-battle. A big map solves the contested sectors' now and builds the rest in the
+    // background as they're asked for (NavGrid.want).
+    const nav = this.map.nav, mid = Math.floor((this.map.sectors.length - 1) / 2);
+    for (const p of this.map.points) {
+      if (!nav.big || Math.abs(p.sector - mid) <= 1) nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
+      else if (Math.abs(p.sector - mid) <= 2) nav.want(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
+    }
     this.off = [bus.on('entity:death', (e) => this.#onDeath(e)), bus.on('mode:front', () => this.#motorPools())];
     // Everyone deploys at the start of the match, each squad together at one spawn.
     for (const team of [0, 1]) for (const sq of this.squads[team]) {
@@ -201,12 +207,18 @@ export class FrontlineSession {
     this.stats.simMs = performance.now() - t0;
   }
 
-  /** Think-rate LOD: bots far from every human camera think less often and hold their last command. */
+  /**
+   * Think-rate LOD: bots far from every human camera think less often and hold their last
+   * command: every tick up close, every 2nd within `mid`, every 4th within `far`, every 6th
+   * beyond (the far side of a 2.6 km front). Without a camera (headless) every 2nd tick, every
+   * 3rd for the biggest battles.
+   */
   #think(f, dt) {
     const p = f.movement.state.position;
     let near = Infinity;
     for (const q of this.focus) near = Math.min(near, Math.abs(q.x - p.x) + Math.abs(q.z - p.z));
-    const every = this.focus.length === 0 ? 2 : near < this.lodCfg.near ? 1 : near < this.lodCfg.mid ? 2 : 3;
+    const L = this.lodCfg;
+    const every = this.focus.length === 0 ? (this.players > 128 ? 3 : 2) : near < L.near ? 1 : near < L.mid ? 2 : near < (L.far ?? 400) ? 4 : 6;
     const last = this.lastCmd.get(f.id);
     if (last && (this.tick + f.id) % every !== 0) return hold(last);
     this.stats.thinks++;

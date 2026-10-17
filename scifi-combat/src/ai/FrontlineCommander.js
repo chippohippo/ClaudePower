@@ -131,7 +131,8 @@ export class FrontlineCommander {
       let best = null, bd = Infinity;
       for (const x of wants) {
         if (x.slots <= 0) continue;
-        const d = this.nav ? this.nav.distance(this.nav.field(`pt:${x.p.id}`, x.p.pos.x, x.p.pos.z, x.p.radius * 0.6), at.x, at.z) : at.distanceTo(x.p.pos);
+        const f = this.nav?.want(`pt:${x.p.id}`, x.p.pos.x, x.p.pos.z, x.p.radius * 0.6);
+        const d = f ? this.nav.distance(f, at.x, at.z) : at.distanceTo(x.p.pos);
         if (d < bd) { bd = d; best = x; }
       }
       if (!best) best = wants.reduce((a, b) => (b.w > a.w ? b : a));

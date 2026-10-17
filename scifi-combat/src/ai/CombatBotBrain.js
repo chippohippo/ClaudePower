@@ -412,6 +412,20 @@ export class CombatBotBrain {
     return !this.world.raycastStatic(from, dir.divideScalar(len), len - 0.3);
   }
 
+  /** Direction along the flow field toward `pos` (false while a big map is still building it). */
+  #sampleField(key, pos, radius, out) {
+    const nav = this.world.nav, f = nav.want(key, pos.x, pos.z, radius);
+    return !!f && nav.sample(f, this.self.movement.state.position.x, this.self.movement.state.position.z, out);
+  }
+
+  /** How many harmful statuses we carry (no array per think). */
+  #negatives() {
+    let n = 0;
+    const st = this.self.status;
+    for (const k of st.active.keys()) if (k !== 'revealed' && st.defs[k]?.negative) n++;
+    return n;
+  }
+
   #context() {
     const self = this.self, me = self.movement.state.position;
     const t = this.#valid(this.target) ? this.target : null;
@@ -419,15 +433,16 @@ export class CombatBotBrain {
       self, selfPos: me, yaw: self.movement.state.yaw,
       selfHp: (self.health.hp + self.health.shield) / (self.health.max + self.health.maxShield),
       underFire: this.dmgRate > 8, enemiesNear: 0, alliesNear: 0, hurtAlly: null, hurtAllyHp: 1, hurtAllyDist: Infinity,
-      negativeStatuses: [...self.status.active.keys()].filter((k) => self.status.defs[k]?.negative && k !== 'revealed').length,
+      negativeStatuses: this.#negatives(),
       inVehicle: !!self.vehicle,
-      vehicleNearby: this.world.vehicles.list.some((v) => v.team === self.team && !v.removed && v.movement.state.position.distanceTo(me) < 30),
+      vehicleNearby: false,             // filled from the same 30 m scan below (the grid holds vehicles)
       ownsDeployable: (kind) => this.world.deployables.list.some((d) => d.ownerId === self.id && d.kind === kind && !d.removed),
       target: null, dist: Infinity, los: false, holdInterrupts: this.diff.interruptChance >= 0.5,
     };
     this.world.fightersNear(me, 30, (e) => {
       if (e === self || e.health.dead || e.isDeployable) return;
       const d = e.movement.state.position.distanceTo(me);
+      if (e.isVehicle && e.team === self.team && d < 30) ctx.vehicleNearby = true;
       if (e.health.downed) return;
       if (e.team !== self.team) { if (d < 8) ctx.enemiesNear++; return; }
       if (d < 12) ctx.alliesNear++;
@@ -662,7 +677,7 @@ export class CombatBotBrain {
         return;
       }
       dir.divideScalar(l);
-    } else if (!(nav && nav.sample(nav.field(o.field, o.pos.x, o.pos.z, o.radius * 0.6), me.x, me.z, dir))) {
+    } else if (!(nav && this.#sampleField(o.field, o.pos, o.radius * 0.6, dir))) {
       dir.set(o.pos.x - me.x, 0, o.pos.z - me.z).normalize();
     }
     cmd.yaw = Math.atan2(-dir.x, -dir.z); cmd.pitch = 0; this.aimYaw = cmd.yaw;
@@ -760,9 +775,10 @@ export class CombatBotBrain {
     if (d <= radius) { this.moveDir.set(dx / Math.max(d, 0.05), 0, dz / Math.max(d, 0.05)); this.hasMoveDir = true; this.arriving = true; return false; }   // step down to it
     this.arriving = d < 2.6;
     let steered = false;
+    const ff = !direct && nav && field && d > 60 ? nav.want(field, p.x, p.z, 4) : null;   // big maps: null while it's being built
     if (direct) { /* straight at it: the feelers climb what's in the way */ }
-    else if (nav && field && d > 60) {
-      steered = nav.sample(nav.field(field, p.x, p.z, 4), me.x, me.z, dir);
+    else if (ff) {
+      steered = nav.sample(ff, me.x, me.z, dir);
     } else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
       let R = this.route;
       const moved = R ? Math.hypot(R.gx - p.x, R.gz - p.z) : Infinity;
