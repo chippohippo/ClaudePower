@@ -1,7 +1,7 @@
 // CoverTextures: procedural, tileable surface detail for the battlefield's cover, mapped in world
 // space (triplanar), so a 4 m wall and a 40 m parapet both show bags, blocks and planks at their
 // real size, and instanced boxes need no UVs at all.
-//  * sandbag: staggered rows of stuffed burlap bags (0.5 m long, 6 courses to the metre)
+//  * sandbag: wandering courses of stuffed burlap bags (0.6 m long, 5 courses to the metre)
 //  * concrete: cast panels with formwork lines, stains and pitting
 //  * wood: planks with grain and dark gaps
 //  * rock: craggy noise
@@ -51,31 +51,34 @@ function makeTexture(size, fn, tile = 0) {
 }
 
 /**
- * Courses of stuffed burlap bags, laid by hand: ~0.5 m long (each a little different), six
- * courses to the metre, each course offset at random, bulging between dark seams. (A perfectly
- * regular stagger reads as brickwork.) Tile = 1 m; the height (the bulge, up to 7 cm) makes the
- * normal map, so the light shapes each bag.
+ * Courses of stuffed burlap bags, laid by hand: five courses to the metre, bags ~0.6 m long
+ * (each a little different, each course offset at random, some slumped higher or lower so the
+ * courses wander), bulging between dark crevices, each bag its own shade of sand, olive or grey.
+ * Tile = 1 m; the height (the bulge, up to 9 cm) makes the normal map, so the light shapes each
+ * bag. (Regular courses of flat-topped blocks read as brickwork: the bulge and the wander don't.)
  */
 export function sandbagTexture(size = 512) {
-  const edge = (course, i) => i + (hash(course, i, 5) - 0.5) * 0.3;   // jittered seams between bags
+  const C = 5, edge = (course, i) => i + (hash(course, i, 5) - 0.5) * 0.35;   // jittered seams between bags
   return makeTexture(size, (u, v, px, py) => {
-    const course = Math.floor(v * 6), cy = v * 6 - course;
-    const along = u * 2 + hash(course, 0, 2) * 2;
+    // Which bag: courses wander up and down with the bag above and below.
+    let course = Math.floor(v * C), cy = v * C - course;
+    const along = u * 1.6 + hash(course, 0, 2) * 1.6;
     let i = Math.floor(along), lo = edge(course, i), hi = edge(course, i + 1);
     if (along < lo) { i--; hi = lo; lo = edge(course, i); } else if (along > hi) { i++; lo = hi; hi = edge(course, i + 1); }
     const cx = (along - lo) / (hi - lo);
-    // Round ends, a fat middle, squashed top and bottom where the courses press together.
-    const sag = 0.06 * Math.sin(cx * Math.PI) * (hash(course, i, 4) - 0.3);   // some bags slump
-    const ey = Math.max(0, 1 - Math.abs((cy - sag) * 2 - 1) ** 2.4), ex = Math.max(0, 1 - Math.abs(cx * 2 - 1) ** 5);
+    const slump = (hash(course, i, 4) - 0.5) * 0.24;                          // this bag sits a little high or low
+    const yy = cy - slump * Math.sin(cx * Math.PI);
+    // A stuffed bag: round ends pinched at the ties, a fat belly, flattened where the courses press.
+    const ex = Math.max(0, 1 - Math.abs(cx * 2 - 1) ** 3.2), ey = Math.max(0, 1 - Math.abs(yy * 2 - 1) ** 2.2);
     const pillow = Math.sqrt(ex * ey);
-    const fold = (fbm(u, v, 16, 41, 3) - 0.5) * 0.012 * pillow;           // creases in the cloth
-    const weave = 0.0008 * Math.sin(px * 1.6) * Math.sin(py * 1.6);
-    const tint = 0.92 + hash(course, i, 3) * 0.16;
-    const burlap = (fbm(u, v, 64, 9, 2) - 0.5) * 0.08;
-    const tie = cx < 0.05 || cx > 0.95 ? 0.9 : 1;
-    const dirt = (fbm(u, v, 4, 5) - 0.5) * 0.18 - Math.max(0, 0.25 - v) * 0.25;   // muddier toward the bottom of the tile
-    const seam = 0.55 + 0.45 * Math.min(1, pillow * 2.2);                 // dark only deep in the crevices
-    return [(0.95 * seam * tint * tie) + burlap + dirt, pillow ** 0.6 * 0.07 + fold + weave];
+    const fold = (fbm(u, v, 12, 41, 3) - 0.5) * 0.02 * pillow + (fbm(u, v, 24, 43, 2) - 0.5) * 0.008;   // creases in the cloth
+    const weave = 0.0012 * Math.sin(px * 1.9) * Math.sin(py * 1.9);
+    const shade = hash(course, i, 3), tint = shade < 0.12 ? 0.72 : shade > 0.88 ? 1.12 : 0.9 + shade * 0.18;   // wet, sun-bleached, the rest
+    const burlap = (fbm(u, v, 64, 9, 2) - 0.5) * 0.1;
+    const tie = cx < 0.06 || cx > 0.94 ? 0.82 : 1;
+    const dirt = (fbm(u, v, 4, 5) - 0.5) * 0.16 - Math.max(0, 0.22 - v) * 0.22;   // muddier toward the bottom of the tile
+    const crevice = 0.42 + 0.58 * Math.min(1, pillow * 2.6);               // dark only deep between the bags
+    return [(0.98 * crevice * tint * tie) + burlap + dirt, pillow ** 0.55 * 0.09 + fold + weave];
   }, 1);
 }
 

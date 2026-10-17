@@ -100,13 +100,15 @@ export function groundDetailTexture(size = 1024) {
     const stone = has ? stoneAt(st.d1, sr) : 0, sAO = has ? shadeAt(st.d1, sr) : 0;
     const big = voronoi(u, v, 9, 61), br = 0.12 * (0.5 + hash(big.id, 3, 67)), hasB = hash(big.id, 4, 71) > 0.85;
     const boulder = hasB ? stoneAt(big.d1, br) : 0, bAO = hasB ? shadeAt(big.d1, br) : 0;
-    // Dried-mud plates (only where the shader's patch mask lets them show).
-    const c1 = voronoi(u, v, 6, 3), c2 = voronoi(u, v, 15, 11);
-    const crack = Math.max(Math.max(0, 1 - (c1.d2 - c1.d1) / 0.035), Math.max(0, 1 - (c2.d2 - c2.d1) / 0.022) * 0.45);
+    // Dried-mud plates (only where the shader's patch mask lets them show): wobbly edges (the
+    // lookup is warped), plates of 20-60 cm, the small cracks fainter.
+    const wu = u + (fbm(u, v, 16, 83, 3) - 0.5) * 0.02, wv = v + (fbm(u, v, 16, 89, 3) - 0.5) * 0.02;
+    const c1 = voronoi(wu, wv, 16, 3), c2 = voronoi(wu, wv, 36, 11);
+    const crack = Math.max(Math.max(0, 1 - (c1.d2 - c1.d1) / 0.05), Math.max(0, 1 - (c2.d2 - c2.d1) / 0.04) * 0.4);
     const broad = (dust - 0.5) * 0.06 + boulder * 0.07;
     H[py * size + px] = broad + ripple * 0.0018 + stone * 0.02;
     HM[py * size + px] = broad;
-    HC[py * size + px] = -crack * 0.012 + (hash(c1.id, 0, 7) - 0.5) * 0.002;
+    HC[py * size + px] = -crack * 0.005 + (hash(c1.id, 0, 7) - 0.5) * 0.0015;
     const albedo = 0.86 + (dust - 0.5) * 0.3 + ripple * 0.012 + stone * (0.06 + (hash(st.id, 5, 73) - 0.5) * 0.2) - sAO * 0.12
       + boulder * (0.02 + (hash(big.id, 6, 79) - 0.5) * 0.12) - bAO * 0.14 + (hash(px, py, 9) - 0.5) * 0.02;
     return [albedo, dust, crack];
@@ -139,8 +141,8 @@ export function groundMaterial(detail, { relief = 1 } = {}) {
         vec2 gUv2 = gUv * 0.173 + 0.31;                              // and a ~46 m one, so tiling never lines up
         vec4 gA = texture2D(gDetail, gUv), gB = texture2D(gDetail, gUv2);
         // Cracked plates only in patches: a world-scale mask from the dust of a ~260 m tile.
-        float gCrackMask = smoothstep(0.5, 0.64, texture2D(gDetail, gUv * 0.031 + 0.7).g);
-        diffuseColor.rgb *= ((gA.r * 0.7 + gB.r * 0.3) / gMean) * (1.0 - gA.b * 0.28 * gCrackMask);`)
+        float gCrackMask = smoothstep(0.56, 0.7, texture2D(gDetail, gUv * 0.031 + 0.7).g);
+        diffuseColor.rgb *= ((gA.r * 0.7 + gB.r * 0.3) / gMean) * (1.0 - gA.b * 0.16 * gCrackMask);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         {
           // Heightfield tangent frame in world space (x and z along the ground), then back to view space.

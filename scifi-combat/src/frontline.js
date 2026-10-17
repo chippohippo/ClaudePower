@@ -1,8 +1,11 @@
 // Frontline: a Battlefront-style battle against bots, on a map built for the match size.
 // URL: ?size=4v4|12v12|32v32|64v64|200v200 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
+//      &planet=scorched (data/art/palette.json) &fx=low|off (post-processing quality)
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
-// (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers → HUD and audio.
+// (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers → post-processing (god rays,
+// bloom, grade) → HUD and audio. The look is the art direction's (docs/ART_DIRECTION.md): the
+// planet preset's sky, sun, fog and ground, troopers in their role's kit and faction's paint.
 
 import * as THREE from 'three';
 import { bus } from './core/EventBus.js';
@@ -21,6 +24,9 @@ import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
 import { BattleFx } from './vfx/BattleFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
+import { Atmosphere, installFog } from './render/Atmosphere.js';
+import { PostFX } from './render/PostFX.js';
+import { kitFor } from './render/TrooperKit.js';
 
 const params = new URLSearchParams(location.search);
 const sizeParam = params.get('size'), playersParam = params.get('players');
@@ -29,12 +35,15 @@ const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down] = await Promise.all([
+const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'), load('abilities/statuses.json'),
   load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
   load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
+  load('art/palette.json'), load('art/troopers.json'),
 ]);
+const planet = palette.planets[params.get('planet') ?? 'scorched'] ?? palette.planets.scorched;
+installFog(planet);   // before any material compiles
 const classes = [solari, voidC];
 const myClass = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
 const data = {
@@ -55,39 +64,34 @@ const player = session.fighters.find((f) => f.id === PLAYER_ID);
 player.name = 'You';
 
 // ---------------------------------------------------------------- scene
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+const fxMode = params.get('fx') ?? 'high';
+const renderer = new THREE.WebGLRenderer({ antialias: fxMode === 'off', powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, fxMode === 'high' ? 1.5 : 1.25));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;   // for the plain path (PostFX tone-maps itself)
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-const sky = new THREE.Color('#9fb3c8');
-scene.background = sky;
-scene.fog = new THREE.Fog(sky, 90, 520);
-// Physical light units (r155+): the hemisphere fill has to be ~2 for shaded faces to read as
-// shade rather than black. The sun comes from the side so neither team fights into it.
-scene.add(new THREE.HemisphereLight('#dfe9ff', '#3b3226', 2.2));
-const sun = new THREE.DirectionalLight('#fff0d6', 2.4);
-const SUN_OFFSET = new THREE.Vector3(30, 95, 55);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 10, far: 260 });
-sun.shadow.bias = -0.0005;
-scene.add(sun, sun.target);
-// Bounce fill from behind the camera (no shadows): stands in for the ground and sky bounce that
-// keeps HD2's shaded sides readable, so the back of your own character never goes black.
-const fill = new THREE.DirectionalLight('#cfd8e6', 0.9);
-scene.add(fill, fill.target);
+// The planet: sky dome, the low hard sun and its shadow box, height fog, the sky as fill light,
+// falling ash. Then the frame: god rays, bloom, the grade (PostFX).
+const atmo = new Atmosphere(scene, planet, { radius: 1100, shadowBox: 45, renderer });
+const post = new PostFX(renderer, planet.post, { quality: fxMode === 'low' ? 'low' : 'high' });
+post.enabled = fxMode !== 'off';
+const sunScreen = new THREE.Vector3();
 
-const battlefield = new BattlefieldRenderer(scene, map, { localTeam: myTeam, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) });
+const battlefield = new BattlefieldRenderer(scene, map, { localTeam: myTeam, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()), art: { planet, palette } });
 const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: (x, z) => map.terrain.height(x, z) });
-for (const f of session.fighters) { anim.add(f); f.look = { team: f.team, status: null, flame: new THREE.Color(), highlight: f === player }; }
+// Each fighter wears its role's kit in its army's paint, with its own stencilled number.
+for (const f of session.fighters) {
+  anim.add(f);
+  f.look = { team: f.team, status: null, flame: new THREE.Color(), highlight: f === player, kit: kitFor(trooperKits, f.role), number: (f.id * 37 + 11) % 100 };
+}
 anim.focusId = PLAYER_ID;
-const crowd = new CrowdRenderer(scene, { max: players + 8 });
+const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
-const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: scene.fog.far + 20 });
+const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach) });
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam });
 const fx = new BattleFx(scene, { fog: scene.fog });
 
@@ -98,8 +102,8 @@ const groundOrCover = (o, d, max) => {
   return !a ? b : !b ? a : a.distance < b.distance ? a : b;
 };
 const rig = new CameraRig({ raycast: groundOrCover });
-rig.camera.far = 1200; rig.camera.updateProjectionMatrix();
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); });
+rig.camera.far = 1500; rig.camera.updateProjectionMatrix();
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); post.setSize(innerWidth, innerHeight); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); });
 
 let audio = null;
 renderer.domElement.addEventListener('mousedown', () => {
@@ -170,18 +174,17 @@ const loop = new FixedLoop({
     }
     crowd.end();
     const root = anim.record(PLAYER_ID).root;
-    sun.position.copy(root).add(SUN_OFFSET); sun.target.position.copy(root);
-    fill.position.copy(rig.camera.position).addScaledVector(rig.camera.up, 4); fill.target.position.copy(root);
+    atmo.update(dt, cam, fireControl.active ? cam.position : root);
     battlefield.update(mode, session.time, cam.position);
     tracers.update(dt);
     fx.update(dt);
     zoneViews.update(dt);
     vehicleViews.update(dt, cam);
-    renderer.render(scene, cam);
+    post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio?.update(dt, rig.camera.position, player.movement.state.yaw);
     hud.update(dt, cam);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

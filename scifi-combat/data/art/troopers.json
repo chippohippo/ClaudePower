@@ -1,0 +1,16 @@
+{
+  "_note": "The trooper kit per class role (docs/ART_DIRECTION.md: 'Armor weight by role'; meshes in src/render/TrooperKit.js). body: light | medium | heavy. helmet: light | medium | heavy | crest | hood | pilot. gear (role kit on the back, chest or arm): standard | radio | antenna | tools | medic | bandolier | null. cape: false to go without.",
+  "roles": {
+    "assault":       { "body": "medium", "helmet": "medium", "gear": "standard" },
+    "engineer":      { "body": "medium", "helmet": "medium", "gear": "tools" },
+    "medic":         { "body": "medium", "helmet": "medium", "gear": "medic" },
+    "infiltrator":   { "body": "light",  "helmet": "hood",   "gear": null },
+    "marksman":      { "body": "light",  "helmet": "light",  "gear": "radio" },
+    "pilot":         { "body": "light",  "helmet": "pilot",  "gear": null },
+    "tech":          { "body": "light",  "helmet": "light",  "gear": "antenna" },
+    "juggernaut":    { "body": "heavy",  "helmet": "heavy",  "gear": "standard" },
+    "flameKnight":   { "body": "heavy",  "helmet": "crest",  "gear": "standard" },
+    "demolitionist": { "body": "heavy",  "helmet": "heavy",  "gear": "bandolier" }
+  },
+  "default": { "body": "medium", "helmet": "medium", "gear": "standard" }
+}

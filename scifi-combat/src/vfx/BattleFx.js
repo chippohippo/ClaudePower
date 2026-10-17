@@ -34,6 +34,7 @@ const FRAG = /* glsl */ `
   uniform vec3 fogColor;
   uniform float fogNear;
   uniform float fogFar;
+  uniform float fogDensity;
   uniform float soft;
   varying vec4 vColor;
   varying vec2 vUv;
@@ -43,7 +44,7 @@ const FRAG = /* glsl */ `
     if (r > 1.0) discard;
     float a = vColor.a * pow(1.0 - r, soft);
     vec3 c = vColor.rgb;
-    float f = smoothstep(fogNear, fogFar, vDepth);
+    float f = fogDensity > 0.0 ? 1.0 - exp(-fogDensity * vDepth) : smoothstep(fogNear, fogFar, vDepth);
     c = mix(c, fogColor, f * (1.0 - soft * 0.0));
     gl_FragColor = vec4(c, a * (1.0 - f * 0.6));
   }`;
@@ -67,7 +68,7 @@ class Pool {
     this.mat = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false,
       blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
-      uniforms: { fogColor: { value: new THREE.Color('#9fb3c8') }, fogNear: { value: 90 }, fogFar: { value: 520 }, soft: { value: additive ? 1.6 : 0.7 } },
+      uniforms: { fogColor: { value: new THREE.Color('#9fb3c8') }, fogNear: { value: 90 }, fogFar: { value: 520 }, fogDensity: { value: 0 }, soft: { value: additive ? 1.6 : 0.7 } },
     });
     this.mesh = new THREE.Mesh(geo, this.mat);
     this.mesh.frustumCulled = false;
@@ -134,12 +135,16 @@ const TEAM_EXHAUST = [[1.0, 0.72, 0.3, 1], [0.75, 0.5, 1.0, 1]];
 export class BattleFx {
   /**
    * @param {THREE.Scene} scene
-   * @param {object} o { fog: THREE.Fog }
+   * @param {object} o { fog: THREE.Fog or THREE.FogExp2 }
    */
   constructor(scene, { fog = null, maxGlow = 1600, maxMatter = 5000 } = {}) {
     this.glow = new Pool(scene, maxGlow, true);
     this.matter = new Pool(scene, maxMatter, false);
-    if (fog) for (const p of [this.glow, this.matter]) { p.mat.uniforms.fogColor.value.copy(fog.color); p.mat.uniforms.fogNear.value = fog.near; p.mat.uniforms.fogFar.value = fog.far; }
+    if (fog) for (const p of [this.glow, this.matter]) {
+      const u = p.mat.uniforms;
+      u.fogColor.value.copy(fog.color);
+      if (fog.isFogExp2) u.fogDensity.value = fog.density; else { u.fogNear.value = fog.near; u.fogFar.value = fog.far; }
+    }
     this.trails = new Map();    // projectile ref -> { kind, t, team }
     this.rand = (() => { let s = 0x9e3779b9; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; })();
     this.off = [

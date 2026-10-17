@@ -2171,8 +2171,8 @@
  "cape": {
   "enabled": true,
   "links": 3,
-  "linkLen": 0.2,
-  "width": 0.34,
+  "linkLen": 0.27,
+  "width": 0.42,
   "damping": 0.93,
   "gravity": 9.8
  },

@@ -185,7 +185,7 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   float ember = step(1.0 - uEmbers, fract(seed * 7.31));
   gl_PointSize = uSize * (ember > 0.5 ? 1.6 : 1.0) * (0.6 + fract(seed * 3.3)) * 240.0 / max(-mv.z, 0.5);
-  vFade = smoothstep(uBox * 0.5, uBox * 0.3, length(p - uCam)) * smoothstep(0.4, 1.5, -mv.z);
+  vFade = smoothstep(uBox * 0.5, uBox * 0.3, length(p - uCam)) * smoothstep(1.5, 4.0, -mv.z);   // none in your face
   gl_Position = projectionMatrix * mv;
 }`;
 const ASH_FRAG = `
@@ -199,7 +199,7 @@ void main() {
   float ember = step(1.0 - uEmbers, fract(vSeed * 7.31));
   float flicker = 0.6 + 0.4 * sin(uTime * 9.0 + vSeed * 50.0);
   vec3 col = ember > 0.5 ? uEmber * (3.0 + 3.0 * flicker) : uAsh;
-  float a = (1.0 - r * 4.0) * vFade * (ember > 0.5 ? 0.9 : 0.55);
+  float a = (1.0 - r * 4.0) * vFade * (ember > 0.5 ? 0.9 : 0.4);
   gl_FragColor = vec4(col, a);
 }`;
 
@@ -267,7 +267,7 @@ export class Atmosphere {
       this.ashMat = new THREE.ShaderMaterial({
         vertexShader: ASH_VERT, fragmentShader: ASH_FRAG, transparent: true, depthWrite: false, fog: false,
         uniforms: {
-          uCam: { value: new THREE.Vector3() }, uTime: { value: 0 }, uBox: { value: 60 }, uFall: { value: P.ash.fall }, uSize: { value: 0.07 },
+          uCam: { value: new THREE.Vector3() }, uTime: { value: 0 }, uBox: { value: 60 }, uFall: { value: P.ash.fall }, uSize: { value: 0.026 },
           uDrift: { value: new THREE.Vector2(...P.ash.drift) }, uEmbers: { value: P.ash.embers }, uAsh: { value: C(P.ash.color) }, uEmber: { value: C(P.ash.ember) },
         },
       });

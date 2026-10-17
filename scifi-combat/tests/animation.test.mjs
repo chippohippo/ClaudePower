@@ -371,7 +371,7 @@ test('128 fighters: LOD by distance, far fighters cost nothing, only near rigs e
   assert.ok(ms128 < 25, `128 fighters: ${ms128.toFixed(2)} ms per frame for sim + animation`);
 });
 
-test('crowd renderer: instanced parts per LOD, right-handed finite matrices (nothing inside-out)', () => {
+test('crowd renderer: the kit by LOD, one slot per fighter, finite right-handed bones, armor that sits on the rig', () => {
   const scene = new Scene();
   const crowd = new CrowdRenderer(scene, { max: 8 });
   const sys = new AnimationSystem(anim);
@@ -379,27 +379,49 @@ test('crowd renderer: instanced parts per LOD, right-handed finite matrices (not
   rs[1].e.melee = { phase: 'idle', phaseTime: 0, attackId: null, attack: null, heat: 30, guarding: false, w: { visual: { scale: 1 } } };
   rs[1].run(0.1);
   rs[0].cmd.moveY = 1; rs[0].held.add('sprint'); rs[0].run(1);
+  const heavy = { body: 'heavy', helmet: 'crest', gear: 'bandolier', cape: true };
   crowd.begin(null);
-  crowd.drawRig(rs[0].h, { team: 0 }, 0);
-  crowd.drawRig(rs[1].h, { team: 1 }, 1);
+  crowd.drawRig(rs[0].h, { team: 0, number: 7 }, 0);
+  crowd.drawRig(rs[1].h, { team: 1, kit: heavy }, 1);
   crowd.drawImpostor(new Vector3(300, 0, 0), { yaw: 0.4, height: 1.8 }, { team: 1 });
   crowd.drawImpostor(new Vector3(310, 0, 0), { yaw: 1.2, height: 0.5, lying: true }, { team: 0 });
+  const P = crowd.parts;
   // Read counts before end() resets them.
-  const counts = { box: crowd.box.count, limb: crowd.limb.count, head: crowd.head.count, glow: crowd.glow.count, impostor: crowd.impostor.count };
+  const counts = {
+    slots: crowd.slots, nearBody: P.body.medium[1].count, midBody: P.body.heavy[0].count, nearHelmet: P.helmet.medium[1].count,
+    midHelmet: P.helmet.crest[0].count, gear: P.gear.standard[1].count + P.gear.bandolier[0].count, guns: Object.values(P.weapon).reduce((n, l) => n + l[0].count + l[1].count, 0),
+    glow: crowd.glow.count, impostor: crowd.impostor.count,
+  };
   crowd.end();
-  assert.equal(counts.limb, 16, '8 limb segments per rig');
-  assert.equal(counts.head, 2);
-  assert.equal(counts.impostor, 2);
-  assert.ok(counts.box >= 14 + 7, `armor/gear boxes: ${counts.box}`);
-  assert.ok(counts.glow >= 3, 'visors and the flame blade glow');
-  const m = new Matrix4();
-  for (const b of [crowd.box, crowd.limb, crowd.head, crowd.glow, crowd.impostor]) {
-    for (let i = 0; i < b.mesh.count; i++) {
-      b.mesh.getMatrixAt(i, m);
-      assert.ok(m.elements.every(Number.isFinite), 'finite');
-      assert.ok(m.determinant() > 0, `${b.mesh.geometry.type} instance ${i} is right-handed`);
+  assert.deepEqual(counts, { slots: 4, nearBody: 1, midBody: 1, nearHelmet: 1, midHelmet: 1, gear: 2, guns: 1, glow: 2, impostor: 2 });
+  assert.equal(P.body.medium[1].mesh.geometry.instanceCount, 1, 'the near medium body draws once');
+  assert.equal(P.body.light[1].mesh.visible, false, 'unused kit meshes are skipped');
+  const D = crowd.bones.image.data, m = new Matrix4();
+  const boneOf = (slot, b) => m.fromArray(D, (slot * 18 + b) * 16);
+  for (let slot = 0; slot < 4; slot++) {
+    for (let b = 0; b < (slot < 2 ? 18 : 1); b++) {
+      if (slot === 1 && b === 14) continue;   // the sword arm holds no gun bone
+      boneOf(slot, b);
+      assert.ok(m.elements.every(Number.isFinite), `slot ${slot} bone ${b} finite`);
+      assert.ok(m.determinant() > 0, `slot ${slot} bone ${b} right-handed (nothing drawn inside-out)`);
     }
   }
+  // The near medium body, posed by slot 0's bones: every vertex within reach of the rig, the
+  // boots at the ankles, the helmet round the head.
+  const h = rs[0].h, geo = P.body.medium[1].mesh.geometry, pos = geo.attributes.position.array, mat = geo.attributes.aMat.array, p = new Vector3();
+  let far = 0, foot = 0;
+  for (let i = 0; i < pos.length / 3; i++) {
+    p.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(boneOf(0, mat[i * 4 + 3]));
+    if (p.distanceTo(h.j.pelvis) > 1.25) far++;
+    const bone = mat[i * 4 + 3];
+    if (bone === 12 || bone === 13) foot = Math.max(foot, p.distanceTo(h.j.ankle[bone - 12]));
+  }
+  assert.equal(far, 0, 'no armor flies off the body');
+  assert.ok(foot < 0.3, `boots stay on the feet (${foot.toFixed(2)} m from the ankle at most)`);
+  const hg = P.helmet.medium[1].mesh.geometry.attributes.position.array;
+  let head = 0;
+  for (let i = 0; i < hg.length / 3; i++) head = Math.max(head, p.set(hg[i * 3], hg[i * 3 + 1], hg[i * 3 + 2]).applyMatrix4(boneOf(0, 3)).distanceTo(h.j.head));
+  assert.ok(head < 0.3, `the helmet sits on the head (${head.toFixed(2)} m)`);
   sys.dispose();
 });
 

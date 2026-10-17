@@ -3,7 +3,8 @@
 //  * Terrain: TerrainChunks (128 m chunks, distance LOD, mud where the ground was dug), with a
 //    tiling detail texture so speed reads from the ground rushing past (motion perception needs
 //    ground texture; a flat color makes a sprint feel like floating). Runtime digging rebuilds
-//    just the chunks it touched.
+//    just the chunks it touched. With `art` (docs/ART_DIRECTION.md): scorched ground from the
+//    planet palette (ArtTextures), and a ScorchField that blackens every crater and blast.
 //  * Cover: one InstancedMesh per material (sandbags, concrete, timber, rock, blockhouses), with
 //    room for the fortifications squads build during the match; destroyed cover is hidden by
 //    zeroing its instance (no rebuilds, no garbage).
@@ -17,6 +18,9 @@ import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
 import { TerrainChunks } from './TerrainChunks.js';
 import { sandbagTexture, concreteTexture, woodTexture, rockTexture, metalTexture, triplanar } from './CoverTextures.js';
+import { groundDetailTexture, groundMaterial } from './ArtTextures.js';
+import { ScorchField } from './ScorchField.js';
+import { SandbagTops } from './SandbagTops.js';
 
 const TEAM = [new THREE.Color('#ffcf6b'), new THREE.Color('#b994ff')];
 const NEUTRAL = new THREE.Color('#d8dde6');
@@ -27,40 +31,68 @@ const _s = new THREE.Vector3();
 const _p = new THREE.Vector3();
 
 export class BattlefieldRenderer {
-  constructor(scene, map, { localTeam = 0, anisotropy = 4, fortCapacity = 900 } = {}) {
-    this.scene = scene; this.map = map; this.localTeam = localTeam; this.anisotropy = anisotropy;
+  /**
+   * @param {object} o { localTeam, anisotropy, fortCapacity, art: { planet, palette } (palette.json:
+   *   the art-directed look: scorched ground with burn marks, palette-colored cover with relief) }
+   */
+  constructor(scene, map, { localTeam = 0, anisotropy = 4, fortCapacity = 900, art = null } = {}) {
+    this.scene = scene; this.map = map; this.localTeam = localTeam; this.anisotropy = anisotropy; this.art = art;
+    this.off = [];
     this.#terrain();
     this.#cover(fortCapacity);
     this.#duckboards();
     this.#wire();
     this.#objectives();
     this.#lines();
-    this.off = [
+    this.off.push(
       bus.on('world:coverDestroyed', (e) => this.#hide(e.cover)),
       bus.on('world:coverAdded', (e) => this.#add(e.cover)),
       bus.on('world:wireCut', (e) => this.#cutWire(e.belts)),
-    ];
+    );
   }
 
   dispose() { this.off.forEach((f) => f()); this.chunks.dispose(); }
 
   #terrain() {
-    const detail = groundDetail();
-    detail.anisotropy = this.anisotropy;
-    this.groundMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.95 });
-    this.chunks = new TerrainChunks(this.scene, this.map.terrain, { material: this.groundMat, colorScale: 1 / DETAIL_MEAN });
+    if (!this.art) {
+      const detail = groundDetail();
+      detail.anisotropy = this.anisotropy;
+      this.groundMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.95 });
+      this.chunks = new TerrainChunks(this.scene, this.map.terrain, { material: this.groundMat, colorScale: 1 / DETAIL_MEAN });
+      return;
+    }
+    // Scorched ground: the planet's palette, the detail tile, and a burn field. The map's old
+    // shell holes start with ash rims (a few still black); every shell and grenade that bursts
+    // adds its own mark (the chunks it touches rebuild, as they do for the craters it digs).
+    const t = this.map.terrain;
+    this.scorch = new ScorchField({ minX: t.minX, minZ: t.minZ, width: t.width, depth: t.depth });
+    let s = 0x2545f491;
+    for (const c of this.map.craters ?? []) {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      const k = s / 4294967296;
+      this.scorch.stamp(c.x, c.z, c.r * 1.25, k < 0.15 ? 0.9 : 0.28 + k * 0.2);
+    }
+    this.groundMat = groundMaterial(groundDetailTexture());
+    this.chunks = new TerrainChunks(this.scene, t, { material: this.groundMat, ground: this.art.planet.ground, scorch: (x, z) => this.scorch.at(x, z) });
+    const burn = (p, r, k) => { if (r > 0.2) this.chunks.invalidate(this.scorch.stamp(p.x ?? p[0], p.z ?? p[2], r, k)); };
+    this.off.push(
+      bus.on('artillery:impact', (e) => burn(e.point, Math.max(1.6, e.crater || e.radius * 0.45) * 1.35, 1)),
+      bus.on('projectile:explode', (e) => { if (!e.artillery) burn(e.point, (e.radius ?? 0) * 0.6, 0.85); }),
+    );
   }
 
   #cover(fortCapacity) {
     // World-space surface detail: sandbags read as courses of bags, walls as cast concrete, crates
     // as planks (CoverTextures), at their real size on every box.
     const aniso = (t) => { t.anisotropy = this.anisotropy; return t; };
+    // The art-directed look takes its colors from the palette and lights the textures' relief.
+    const M = this.art?.palette.materials, G = this.art?.planet.ground, b = this.art ? 1 : 0;
     this.kinds = {
-      concrete: triplanar(new THREE.MeshStandardMaterial({ color: '#7d828c', roughness: 0.92 }), aniso(concreteTexture()), 0.25),
-      sandbag: triplanar(new THREE.MeshStandardMaterial({ color: '#8f8061', roughness: 1 }), aniso(sandbagTexture()), 1),
-      wood: triplanar(new THREE.MeshStandardMaterial({ color: '#6e5233', roughness: 0.9 }), aniso(woodTexture()), 0.6),
-      rock: triplanar(new THREE.MeshStandardMaterial({ color: '#5e5b57', roughness: 1 }), aniso(rockTexture()), 0.3),
-      metal: triplanar(new THREE.MeshStandardMaterial({ color: '#5a6170', roughness: 0.6, metalness: 0.4 }), aniso(metalTexture()), 0.25),
+      concrete: triplanar(new THREE.MeshStandardMaterial({ color: M?.concrete ?? '#7d828c', roughness: 0.92 }), aniso(concreteTexture()), 0.25, 0.7 * b),
+      sandbag: triplanar(new THREE.MeshStandardMaterial({ color: M?.sandbag ?? '#8f8061', roughness: 1 }), aniso(sandbagTexture()), 1, 1.2 * b),
+      wood: triplanar(new THREE.MeshStandardMaterial({ color: M?.timber ?? '#6e5233', roughness: 0.9 }), aniso(woodTexture()), 0.6, 0.8 * b),
+      rock: triplanar(new THREE.MeshStandardMaterial({ color: G?.rock ?? '#5e5b57', roughness: 1 }), aniso(rockTexture()), 0.3, 1 * b),
+      metal: triplanar(new THREE.MeshStandardMaterial({ color: M?.steel ?? '#5a6170', roughness: 0.6, metalness: 0.4 }), aniso(metalTexture()), 0.25, 0.5 * b),
     };
     const groups = new Map(Object.keys(this.kinds).map((k) => [k, []]));
     for (const b of this.map.cover) groups.get(this.#kindOf(b)).push(b);
@@ -78,6 +110,8 @@ export class BattlefieldRenderer {
       mesh.frustumCulled = false; // instances span the whole map
       this.scene.add(mesh);
     }
+    // Real bags along the top of every parapet (the art-directed look).
+    if (this.art) this.sandbags = new SandbagTops(this.scene, groups.get('sandbag'), { color: this.art.palette.materials.sandbag, capacity: fortCapacity * 6 });
   }
 
   #kindOf(b) { return b.kind === 'building' ? 'metal' : this.kinds[b.surface] ? b.surface : 'concrete'; }
@@ -94,7 +128,11 @@ export class BattlefieldRenderer {
   }
 
   /** Cover added during the match (fortifications). */
-  #add(box) { this.#place(this.coverMeshes.get(this.#kindOf(box)), box); }
+  #add(box) {
+    const kind = this.#kindOf(box);
+    this.#place(this.coverMeshes.get(kind), box);
+    if (kind === 'sandbag') this.sandbags?.add(box);
+  }
 
   /**
    * Duckboards: the slatted timber walkways laid along every trench floor (render only: 4 cm of
@@ -114,7 +152,7 @@ export class BattlefieldRenderer {
       }
     }
     if (!slabs.length) return;
-    const mat = triplanar(new THREE.MeshStandardMaterial({ color: '#5a4630', roughness: 0.95 }), woodTexture(), 2.5);
+    const mat = triplanar(new THREE.MeshStandardMaterial({ color: this.art?.palette.materials.timber ?? '#5a4630', roughness: 0.95 }), woodTexture(), 2.5, this.art ? 0.6 : 0);
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.04, 1), mat, slabs.length);
     slabs.forEach((b, i) => mesh.setMatrixAt(i, _m.compose(_p.set(b.x, b.y, b.z), _q.identity(), _s.set(b.sx, 1, b.sz))));
     mesh.receiveShadow = true; mesh.frustumCulled = false;
@@ -194,6 +232,7 @@ export class BattlefieldRenderer {
   }
 
   #hide(box) {
+    this.sandbags?.hide(box);
     const slot = this.coverSlot.get(box);
     if (!slot) return;
     slot.mesh.setMatrixAt(slot.i, _m.makeScale(0, 0, 0));
@@ -233,7 +272,7 @@ export class BattlefieldRenderer {
   update(mode, time, camPos = null) {
     // Ground: LOD around the camera, and chunks the sim dug since the last frame.
     for (const r of this.map.terrain.takeDirty()) this.chunks.invalidate(r);
-    if (camPos) this.chunks.update(camPos, { all: !this.chunksReady });
+    if (camPos) { this.chunks.update(camPos, { all: !this.chunksReady }); this.sandbags?.update(camPos); }
     this.chunksReady = true;
     for (const [i, v] of this.pointViews.entries()) {
       const p = mode.points[i];

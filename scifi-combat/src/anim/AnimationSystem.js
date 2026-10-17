@@ -94,7 +94,7 @@ export class AnimationSystem {
     for (let i = 0; i < 2; i++) { c.j.footYaw[i] = j.footYaw[i]; c.j.footPitch[i] = j.footPitch[i]; }
     for (const k of ['pelvis', 'chest', 'head']) { c.F[k].r.copy(h.F[k].r); c.F[k].d.copy(h.F[k].d); c.F[k].n.copy(h.F[k].n); }
     c.scale = h.scale; c.d = h.d; c.team = h.e.team; c.root.copy(j.pelvis); c.born = this.time;
-    c.look = { team: h.e.team, status: null, flame: null, highlight: false };
+    c.look = { team: h.e.team, status: null, flame: null, highlight: false, kit: h.e.look?.kit ?? null, number: h.e.look?.number ?? 0 };
     this.corpses.push(c);
   }
 
