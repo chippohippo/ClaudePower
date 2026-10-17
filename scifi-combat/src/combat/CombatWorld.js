@@ -4,18 +4,24 @@
 // systems. It implements the `world` interface that WeaponSystem, AbilitySystem, StatusSystem,
 // ZoneSystem and DeployableSystem expect, so they never reference each other directly.
 // Runs headless (server, tests) as well as in the browser.
+//
+// Scale (64-128 fighters, ~1 km maps): pass `cover` as a CoverIndex and a `terrain`, and the
+// world switches its queries to spatial structures: cover rays walk grid cells, fighters are
+// hashed into an EntityGrid once per tick, fighters() is cached, and the ground is the terrain.
+// With a plain cover array and no terrain, everything behaves exactly as on small test maps.
 
-import { Vector3, Ray, Box3 } from 'three';
+import { Vector3, Box3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { ProjectileSystem } from './weapons/WeaponSystem.js';
 import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { hitSpheres } from '../movement/Hitboxes.js';
+import { EntityGrid } from '../world/EntityGrid.js';
+import { rayBox } from '../world/CoverIndex.js';
 
 const _oc = new Vector3();
 const _pt = new Vector3();
-const _ray = new Ray();
 const _box = new Box3();
 
 export class CombatWorld {
@@ -27,8 +33,14 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB } = {}) {
     this.damageMatrix = damageMatrix;
+    this.terrain = terrain;
+    this.nav = nav;
+    this.spatial = spatial;
+    this.grid = new EntityGrid({ cell: 12 });
+    this.version = 0;             // bumped when fighter membership changes (adds, vehicles, seats)
+    this._fighters = null; this._fightersVersion = -1;
     this.statusDefs = statusDefs;
     this.supers = supers; this.meleeWeapons = meleeWeapons; this.recoilDefs = recoilDefs;
     this.cover = cover;
@@ -39,7 +51,8 @@ export class CombatWorld {
     this.vehicles = new VehicleSystem(this, vehicleDefs ?? { vehicles: {}, weapons: {} });
   }
 
-  add(e) { this.entities.push(e); return e; }
+  add(e) { this.entities.push(e); this.version++; return e; }
+  remove(e) { const i = this.entities.indexOf(e); if (i >= 0) { this.entities.splice(i, 1); this.version++; } }
   entity(id) { return this.entities.find((e) => e.id === id) ?? this.deployables.list.find((d) => d.id === id) ?? this.vehicles.list.find((v) => v.id === id); }
 
   /**
@@ -47,12 +60,31 @@ export class CombatWorld {
    * in exposed seats (bikes) and vehicles. Occupants of enclosed seats are protected by the hull.
    */
   fighters() {
+    // Cached until membership changes (spawns, deaths don't matter: callers check health).
+    if (this._fighters && this._fightersVersion === this.version) return this._fighters;
     const out = this.entities.filter((e) => !e.vehicle || e.vehicle.exposed);
     for (const v of this.vehicles.list) if (!v.removed) out.push(v);
+    this._fighters = out; this._fightersVersion = this.version;
     return out;
   }
 
+  /** Re-hash fighters into the entity grid (once per tick on big maps; queries pad by 1 m for staleness). */
+  refreshSpatial() { if (this.spatial) this.grid.rebuild(this.fighters()); }
+
+  /** cb(box) for cover overlapping an XZ rectangle (grid lookup on big maps). */
+  coverIn(minX, minZ, maxX, maxZ, cb) {
+    if (this.cover.queryAABB) return this.cover.queryAABB(minX, minZ, maxX, maxZ, cb);
+    for (const b of this.cover) if (b.max.x >= minX && b.min.x <= maxX && b.max.z >= minZ && b.min.z <= maxZ) cb(b);
+  }
+
+  /** Fighters within r of p (alive or not; callers filter). */
+  fightersNear(p, r, cb) {
+    if (!this.spatial) { for (const e of this.fighters()) cb(e); return; }
+    this.grid.queryCircle(p.x, p.z, r + 1, cb);
+  }
+
   update(dt) {
+    this.refreshSpatial();
     this.vehicles.update(dt);
     this.projectiles.update(dt);
     this.zones.update(dt);
@@ -67,17 +99,23 @@ export class CombatWorld {
   // ---------------------------------------------------------------- spatial queries
   /** Surface under a point, for footstep and impact sounds: cover tops report their material. */
   surfaceAt(x, y, z) {
-    for (const b of this.cover) {
-      if (Math.abs(y - b.max.y) < 0.12 && x >= b.min.x - 0.05 && x <= b.max.x + 0.05 && z >= b.min.z - 0.05 && z <= b.max.z + 0.05) return b.surface ?? 'metal';
-    }
-    return this.groundSurface ?? 'dirt';
+    let found = null;
+    this.coverIn(x - 0.05, z - 0.05, x + 0.05, z + 0.05, (b) => { if (!found && Math.abs(y - b.max.y) < 0.12) found = b.surface ?? 'metal'; });
+    return found ?? this.terrain?.surface ?? this.groundSurface ?? 'dirt';
   }
 
-  entitiesInRadius(p, r) { return this.fighters().filter((e) => !e.health.dead && e.movement.state.position.distanceTo(p) <= r); }
+  entitiesInRadius(p, r) {
+    const out = [];
+    this.fightersNear(p, r + (this.spatial ? 6 : 0), (e) => { if (!e.health.dead && e.movement.state.position.distanceTo(p) <= r) out.push(e); });
+    return out;
+  }
 
   entitiesInShape(s, o, d) {
     const f = d.clone().setY(0).normalize();
-    return this.fighters().filter((e) => {
+    const reach = (s.length ?? 10) + (s.width ?? 2);
+    const pool = [];
+    this.fightersNear(o, reach + (this.spatial ? 6 : 0), (e) => pool.push(e));
+    return pool.filter((e) => {
       if (e.health.dead) return false;
       const v = e.movement.state.position.clone().sub(o).setY(0);
       const t = v.dot(f);
@@ -94,16 +132,18 @@ export class CombatWorld {
     let best = null;
     const consider = (h) => { if (h && h.distance <= max && (!best || h.distance < best.distance)) best = h; };
 
-    for (const e of this.entities) {
-      // Skip the shooter, the dead, protected occupants, and riders of the shooting vehicle itself.
-      if (e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) continue;
+    const testFighter = (e) => {
+      // Skip the shooter, the dead, protected occupants, riders of the shooting vehicle itself, and vehicles (tested below).
+      if (e.isVehicle || e.isDeployable || e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) return;
       // Stance-aware spheres: prone, sliding and diving soldiers really are harder to hit.
       for (const h of hitSpheres(e)) {
         _oc.set(h.x - o.x, h.y - o.y, h.z - o.z);
         const t = _oc.dot(d);
         if (t >= 0 && t <= max && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone });
       }
-    }
+    };
+    if (this.spatial) this.grid.queryRay(o, d, max, 2.5, testFighter);
+    else for (const e of this.entities) testFighter(e);
     const veh = this.vehicles.raycast(o, d, max, ignoreId);
     if (veh) consider(veh);
     // Piercing shots (Judgment) only test characters and vehicles: cover, walls, domes and ground are ignored.
@@ -111,7 +151,7 @@ export class CombatWorld {
     const dep = this.deployables.raycast(o, d, max);
     if (dep && dep.entity.id !== ignoreId) consider(dep);
     consider(this.raycastStatic(o, d, max, { includeWalls: false }));
-    if (d.y < 0 && o.y > 0) { const t = -o.y / d.y; consider({ entity: null, distance: t, point: o.clone().addScaledVector(d, t), normal: new Vector3(0, 1, 0), surface: 'concrete' }); }
+    consider(this.raycastGround(o, d, best ? best.distance : max));
 
     const team = opts.team ?? this.entity(ignoreId)?.team;
     const domeT = this.zones.blockDistance(o, d, max, team);
@@ -123,13 +163,20 @@ export class CombatWorld {
   /** Line-of-sight test: cover plus deployable walls. Ignores characters. */
   raycastStatic(o, d, max, { includeWalls = true } = {}) {
     let best = null;
-    _ray.set(o, d);
-    for (const b of this.cover) {
-      _box.set(b.min, b.max);
-      if (_ray.intersectBox(_box, _pt)) {
-        const t = _pt.distanceTo(o);
-        if (t <= max && (!best || t < best.distance)) best = { entity: null, distance: t, point: _pt.clone(), normal: new Vector3(0, 1, 0), surface: b.surface ?? 'metal', cover: b };
+    if (this.cover.raycast) {
+      best = this.cover.raycast(o, d, max);
+      if (includeWalls) {
+        const w = this.deployables.raycast(o, d, max);
+        if (w?.entity.kind === 'wall' && (!best || w.distance < best.distance)) best = w;
       }
+      return best;
+    }
+    // Same slab test as CoverIndex: a ray that starts inside cover is blocked at once.
+    for (const b of this.cover) {
+      const h = rayBox(o, d, b, best ? best.distance : max);
+      if (!h) continue;
+      const normal = new Vector3(); normal.setComponent(h.axis, h.sign);
+      best = { entity: null, distance: h.t, point: o.clone().addScaledVector(d, h.t), normal, surface: b.surface ?? 'metal', cover: b };
     }
     if (includeWalls) {
       const w = this.deployables.raycast(o, d, max);
@@ -138,9 +185,17 @@ export class CombatWorld {
     return best;
   }
 
+  /** The ground itself: terrain heightfield on big maps, the y = 0 plane otherwise. */
+  raycastGround(o, d, max) {
+    if (this.terrain) return this.terrain.raycast(o, d, max);
+    if (d.y < 0 && o.y > 0) { const t = -o.y / d.y; if (t <= max) return { entity: null, distance: t, point: o.clone().addScaledVector(d, t), normal: new Vector3(0, 1, 0), surface: 'concrete' }; }
+    return null;
+  }
+
+  /** Highest walkable surface under p: terrain (or 0) and cover tops within reach. */
   groundHeight(p) {
-    let h = 0;
-    for (const b of this.cover) if (p.x >= b.min.x && p.x <= b.max.x && p.z >= b.min.z && p.z <= b.max.z && b.max.y <= p.y + 1.5) h = Math.max(h, b.max.y);
+    let h = this.terrain ? this.terrain.height(p.x, p.z) : 0;
+    this.coverIn(p.x, p.z, p.x, p.z, (b) => { if (p.x >= b.min.x && p.x <= b.max.x && p.z >= b.min.z && p.z <= b.max.z && b.max.y <= p.y + 1.5) h = Math.max(h, b.max.y); });
     return h;
   }
 
@@ -179,14 +234,17 @@ export class CombatWorld {
 
   /** Breach/Rift charges remove destructible cover overlapping the blast. */
   destroyCover(center, radius, by) {
-    for (let i = this.cover.length - 1; i >= 0; i--) {
-      const b = this.cover[i];
-      if (!b.destructible) continue;
+    const hit = [];
+    this.coverIn(center.x - radius, center.z - radius, center.x + radius, center.z + radius, (b) => {
+      if (!b.destructible) return;
       _box.set(b.min, b.max);
-      if (_box.distanceToPoint(center) <= radius) {
-        this.cover.splice(i, 1);
-        bus.emit('world:coverDestroyed', { cover: b, by: by?.id, center: center.toArray() });
-      }
+      if (_box.distanceToPoint(center) <= radius) hit.push(b);
+    });
+    for (const b of hit) {
+      if (this.cover.remove) this.cover.remove(b); else this.cover.splice(this.cover.indexOf(b), 1);
+      // Bots route through the gap from now on.
+      this.nav?.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z);
+      bus.emit('world:coverDestroyed', { cover: b, by: by?.id, center: center.toArray() });
     }
   }
 }

@@ -69,6 +69,7 @@ export class VehicleSystem {
     v.status.immune = new Set(VEHICLE_IMMUNE);
     v.seats = def.seats.map((sd) => ({ def: sd, occupant: null, cmd: null, weapons: sd.weapon ? this.#seatWeapons(v, sd) : null }));
     this.list.push(v);
+    this.world.version++;
     bus.emit('vehicle:spawn', this.describe(v));
     return v;
   }
@@ -125,6 +126,7 @@ export class VehicleSystem {
     v.seats[idx].occupant = e;
     v.seats[idx].cmd = emptyCommand();
     e.vehicle = { veh: v, seat: idx, lock: ENTER_TIME, exposed: !!v.seats[idx].def.exposed };
+    this.world.version++;
     e.movement.enterVehicle();
     v.emptyTime = 0;
     bus.emit('vehicle:enter', { id: v.id, entity: e.id, seat: idx, role: v.seats[idx].def.role, duration: ENTER_TIME, team: v.team });
@@ -138,6 +140,7 @@ export class VehicleSystem {
     v.seats[ref.seat].occupant = null;
     v.seats[ref.seat].cmd = null;
     e.vehicle = null;
+    this.world.version++;
     const pos = this.#exitPoint(v);
     const vel = v.movement.state.velocity.clone().multiplyScalar(eject ? 0.2 : 0.5);
     if (eject) vel.y = 6;
@@ -157,12 +160,13 @@ export class VehicleSystem {
   }
 
   #blocked(p, radius) {
-    for (const b of this.world.cover) {
-      if (p.y >= b.max.y - 0.1) continue;
+    let blocked = false;
+    this.world.coverIn(p.x - radius, p.z - radius, p.x + radius, p.z + radius, (b) => {
+      if (blocked || p.y >= b.max.y - 0.1) return;
       const cx = Math.max(b.min.x, Math.min(p.x, b.max.x)), cz = Math.max(b.min.z, Math.min(p.z, b.max.z));
-      if (Math.hypot(p.x - cx, p.z - cz) < radius) return true;
-    }
-    return false;
+      if (Math.hypot(p.x - cx, p.z - cz) < radius) blocked = true;
+    });
+    return blocked;
   }
 
   // ---------------------------------------------------------------- simulation
@@ -286,7 +290,10 @@ export class VehicleSystem {
   #collide(v) {
     const s = v.movement.state, d = v.def;
     const base = s.position.y - (d.hoverHeight ?? 0);
-    for (const b of this.world.cover) {
+    const near = this._near ??= [];
+    near.length = 0;
+    this.world.coverIn(s.position.x - d.radius, s.position.z - d.radius, s.position.x + d.radius, s.position.z + d.radius, (b) => near.push(b));
+    for (const b of near) {
       if (b.max.y <= base + (d.model === 'tracked' ? 0.5 : 1.2)) continue;
       if (d.model === 'flyer' && base > b.max.y) continue;
       const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
@@ -389,6 +396,7 @@ export class VehicleSystem {
     if (v.removed) return;
     for (const seat of v.seats) if (seat.occupant) this.exit(seat.occupant);
     v.removed = true;
+    this.world.version++;
     bus.emit('vehicle:removed', { id: v.id, reason });
   }
 

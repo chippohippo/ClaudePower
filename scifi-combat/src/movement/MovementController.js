@@ -243,7 +243,9 @@ export class MovementController {
     // Integrate through the physics adapter (collide-and-slide, steps, slopes).
     s.velocity.y = Math.max(s.velocity.y, -this.t.terminalVelocity);
     _delta.copy(s.velocity).multiplyScalar(dt);
-    const res = this.body.move(_delta);
+    // Stay glued to the ground while grounded (crests, steps down); a hop or dive this tick has
+    // already cleared `grounded`, so it leaves the ground normally.
+    const res = this.body.move(_delta, s.grounded && s.mode !== MoveState.AIR && s.mode !== MoveState.DIVE);
     s.position.add(res.delta);
     if (dt > 0) {
       // Velocity into surfaces we hit is removed: no sticky walls, no ceiling hang.
@@ -632,7 +634,8 @@ export class MovementController {
     const s = this.state;
     const wasGrounded = s.grounded;
     const impact = -s.velocity.y;
-    s.grounded = res.grounded && s.velocity.y <= 0.01;
+    // Moving away from the surface (a hop, a launch), not just up a slope, is what leaves the ground.
+    s.grounded = res.grounded && s.velocity.dot(res.groundNormal) <= 0.05;
     if (s.grounded) {
       s.groundNormal.copy(res.groundNormal);
       s.timeSinceGrounded = 0;
@@ -1003,7 +1006,8 @@ export class FlatGroundBody {
     return null;
   }
 
-  move(d) {
+  /** @param {boolean} snapGround keep contact within step height (walking over crests and down steps) */
+  move(d, snapGround = false) {
     const p = this.p, near = this.#gather(p.x, p.z, p.x + d.x, p.z + d.z);
     let x = p.x, z = p.z, y = p.y + d.y;
     // Horizontal, one axis at a time (slide along walls), stepping up low edges.
@@ -1024,8 +1028,10 @@ export class FlatGroundBody {
       if (x > b.min.x - this.r && x < b.max.x + this.r && z > b.min.z - this.r && z < b.max.z + this.r && p.y + this.h <= b.min.y && y + this.h > b.min.y) y = b.min.y - this.h;
     }
     let grounded = false;
-    // Snap down onto ground within step height when we were grounded-ish (keeps contact on slopes and stairs).
-    if (y <= floor || (d.y <= 0 && y - floor < 0.06)) { y = floor; grounded = true; }
+    // Snap to the ground within step height while walking (not jumping): keeps soldiers glued over
+    // hill crests and down steps instead of skipping into the air. Ledges higher than a step fall.
+    const snap = snapGround ? this.step : 0.06;
+    if (y <= floor || ((d.y <= 0 || snapGround) && y - floor < snap)) { y = floor; grounded = true; }
     const out = this._out;
     out.delta.set(x - p.x, y - p.y, z - p.z);
     out.grounded = grounded;

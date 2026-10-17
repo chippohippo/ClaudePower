@@ -40,7 +40,7 @@ export function resolveGuns(data, cls, faction) {
 
 export function buildFighter(world, data, { id, team, classId, pos, cover = world.cover }) {
   const { cls, faction } = findClass(data, classId);
-  const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover), cls.movement ?? {}, id);
+  const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover, { terrain: world.terrain }), cls.movement ?? {}, id);
   movement.state.position.copy(pos);
   const e = { id, team, classId, faction, mode: 'gun', movement };
   e.health = new Health(e, { health: cls.health ?? 100, shield: cls.shield ?? cls.leechArmor ?? 0, armor: cls.armor ?? 'flesh' });
