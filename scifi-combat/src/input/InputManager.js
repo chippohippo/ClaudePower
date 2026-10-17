@@ -6,7 +6,6 @@
 const DEFAULT_BINDINGS = {
   jump:     { keys: ['Space'],                 pad: [0] },  // A / Cross
   crouch:   { keys: ['KeyC'],                  pad: [1] },  // B / Circle: tap = crouch, hold = prone (HD2 pad layout); while sprinting = slide
-  prone:    { keys: ['ControlLeft'],           pad: [] },   // direct prone toggle (PC)
   sprint:   { keys: ['ShiftLeft'],             pad: [10] }, // L3
   dodge:    { keys: ['AltLeft', 'KeyV'],       pad: [2] },  // X / Square: HD2 dive (class evade for melee classes)
   light:    { mouse: [0],                      pad: [7] },  // RT  (fire when gun out)
@@ -20,12 +19,24 @@ const DEFAULT_BINDINGS = {
   toggleMelee:{ keys: ['Digit1'],              pad: [15] }, // D-pad right: sword <-> guns
   swapWeapon:{ keys: ['Digit2'],               pad: [] },   // next gun (pad: hold D-pad right, TBD)
   // Ability kit (Destiny: grenade/class/super; Deadlock: 1-2-3-4)
-  ability1: { keys: ['KeyQ'],                  pad: [4] },  // LB
+  ability1: { keys: ['KeyQ'],                  pad: [] },   // LB tap (on release; see sample)
   ability2: { keys: ['KeyE'],                  pad: [12] }, // D-pad up
   grenade:  { keys: ['KeyG'],                  pad: [14] }, // D-pad left
   super:    { keys: ['KeyZ'],                  pad: [13] }, // D-pad down (or LB+RB chord)
   debugNextKit: { keys: ['KeyK'],              pad: [] },   // demo only: cycle class kits
+  // Call-ins (stratagems): hold Tab and type the code with WASD or the arrow keys (Ctrl works
+  // with the arrow keys: Ctrl+W would close the browser tab). Pad: hold LB (a tap is still ability1).
+  stratagem:  { keys: ['Tab', 'ControlLeft', 'ControlRight'], pad: [] },
+  arrowUp:    { keys: ['ArrowUp'],             pad: [] },
+  arrowDown:  { keys: ['ArrowDown'],           pad: [] },
+  arrowLeft:  { keys: ['ArrowLeft'],           pad: [] },
+  arrowRight: { keys: ['ArrowRight'],          pad: [] },
 };
+
+/** While the call-in is held (Tab): WASD and the D-pad type arrows (and WASD stop walking). */
+const CODE_KEYS = { arrowUp: ['KeyW'], arrowDown: ['KeyS'], arrowLeft: ['KeyA'], arrowRight: ['KeyD'] };
+const CODE_PAD = { arrowUp: 12, arrowDown: 13, arrowLeft: 14, arrowRight: 15 };
+const PAD_LB = 4, HOLD_FOR_CALLIN = 0.25;   // s: LB held this long opens the call-in; a shorter tap is ability1
 
 export function emptyCommand() {
   return {
@@ -49,7 +60,7 @@ export class InputManager {
     this.prev = {};
     this.lastDevice = 'kbm';
 
-    addEventListener('keydown', (e) => { this.keys.add(e.code); this.lastDevice = 'kbm'; });
+    addEventListener('keydown', (e) => { this.keys.add(e.code); this.lastDevice = 'kbm'; if (e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault(); });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     dom.addEventListener('mousedown', (e) => { this.mouse.add(e.button); dom.requestPointerLock?.(); });
     addEventListener('mouseup', (e) => this.mouse.delete(e.button));
@@ -92,20 +103,35 @@ export class InputManager {
       this.clampPitch();
     }
 
+    // The call-in: Ctrl on the keyboard; on a pad, LB held past HOLD_FOR_CALLIN (a tap stays ability1).
+    const lb = !!pad?.buttons[PAD_LB]?.pressed;
+    this.lbHeld = lb ? (this.lbHeld ?? 0) + dt : 0;
+    const padCallIn = lb && this.lbHeld >= HOLD_FOR_CALLIN;
+    const tabCall = this.keys.has('Tab');
+    const callIn = this.bindings.stratagem.keys.some((k) => this.keys.has(k)) || padCallIn;
+    if (tabCall) { mx = 0; my = 0; }                            // WASD type the code instead of walking
+
     const len = Math.hypot(mx, my);
     if (len > 1) { mx /= len; my /= len; }
     cmd.moveX = mx; cmd.moveY = my;
     cmd.yaw = this.yaw; cmd.pitch = this.pitch;
 
     for (const [name, b] of Object.entries(this.bindings)) {
-      const down =
+      let down =
         (b.keys ?? []).some((k) => this.keys.has(k)) ||
         (b.mouse ?? []).some((m) => this.mouse.has(m)) ||
         (pad && (b.pad ?? []).some((i) => pad.buttons[i]?.pressed));
+      if (name === 'stratagem') down = callIn;
+      else if (CODE_KEYS[name]) down = down || (tabCall && CODE_KEYS[name].some((k) => this.keys.has(k))) || (padCallIn && !!pad.buttons[CODE_PAD[name]]?.pressed);
+      else if (callIn && pad && (b.pad ?? []).some((i) => Object.values(CODE_PAD).includes(i) || i === PAD_LB)) down = false;   // the D-pad and LB belong to the code now
       const was = !!this.prev[name];
       cmd.buttons[name] = { down: !!down, pressed: !!down && !was, released: !down && was };
       this.prev[name] = !!down;
     }
+    // A short LB tap is ability1 on release (LB held long opened the call-in instead).
+    if (pad && !lb && this.lbWas && this.lbTap) cmd.buttons.ability1 = { down: false, pressed: true, released: false };
+    this.lbTap = lb ? this.lbHeld < HOLD_FOR_CALLIN : this.lbTap && false;
+    this.lbWas = lb;
     return cmd;
   }
 

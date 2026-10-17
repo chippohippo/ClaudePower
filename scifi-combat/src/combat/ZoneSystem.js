@@ -97,7 +97,18 @@ export class ZoneSystem {
   }
   blocksRevealAt(p) { return this.zones.some((z) => z.phase === ZonePhase.ACTIVE && z.blocksReveal && this.#inside(z, p)); }
   blocksVisionBetween(a, b) {
-    return this.zones.some((z) => z.phase === ZonePhase.ACTIVE && z.blocksVision && this.#inside(z, a) !== this.#inside(z, b));
+    for (const z of this.zones) {
+      if (z.phase !== ZonePhase.ACTIVE || !z.blocksVision) continue;
+      const ia = this.#inside(z, a), ib = this.#inside(z, b);
+      if (ia !== ib) return true;               // one of us is in the cloud
+      if (ia || z.shape === 'line') continue;   // both in it (close enough to see), or a wall-shaped field
+      // Both outside: does the sight line pass through the cloud (below its top)?
+      const dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz || 1e-9;
+      const t = Math.max(0, Math.min(1, ((z.center.x - a.x) * dx + (z.center.z - a.z) * dz) / l2));
+      const cx = a.x + dx * t - z.center.x, cz = a.z + dz * t - z.center.z;
+      if (cx * cx + cz * cz < z.radius * z.radius && a.y + (b.y - a.y) * t < z.center.y + (z.smokeHeight ?? 6)) return true;
+    }
+    return false;
   }
   /** Threat vector for AI: points away from hostile zones the entity is standing in (zero if safe). */
   threatAt(p, team, out = new Vector3()) {

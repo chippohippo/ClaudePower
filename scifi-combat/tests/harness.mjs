@@ -14,6 +14,7 @@ import { MeleeComponent, MeleeSystem } from '../src/combat/melee/MeleeSystem.js'
 import { buildFighter } from '../src/game/FighterFactory.js';
 import { CombatBotBrain } from '../src/ai/CombatBotBrain.js';
 import { routeCommand } from '../src/core/routing.js';
+import { StratagemComponent } from '../src/combat/Stratagems.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
 export const data = {
@@ -23,7 +24,7 @@ export const data = {
   supers: J('supers.json'), melee: J('weapons/melee.json').weapons, vehicles: J('vehicles.json'),
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
-  down: J('down.json'),
+  down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'),
 };
 export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
@@ -32,7 +33,7 @@ export const v = (x, y, z) => new Vector3(x, y, z);
 export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
   const melee = new MeleeSystem();
   const downCfg = down ? data.down : null;
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg });
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems });
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
@@ -48,6 +49,7 @@ export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
     e.onHit = (res, info, by) => reactToHit(e, res, info, by);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);
     e.abilities = new AbilityComponent(e, data.kits[kitId], world);
+    e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(role ?? 'assault'));
     e.melee = new MeleeComponent(data.melee[0], e, world);
     e.mode = 'sword';
     melee.add(e.melee);
@@ -92,6 +94,7 @@ export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
         e.status.update(DT); e.health.update(DT);
         if (world.revives.handleInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } }; }
         if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
+        if (e.stratagems) c = e.stratagems.handleInput(c, DT);
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;
         if (s.brain) { const r = routeCommand(e, c); e.abilities.update(c, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT); }

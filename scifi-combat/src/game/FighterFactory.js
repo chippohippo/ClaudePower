@@ -10,6 +10,7 @@ import { MeleeComponent } from '../combat/melee/MeleeSystem.js';
 import { Health } from '../combat/Health.js';
 import { reactToHit } from '../combat/HitReactions.js';
 import { silhouetteScale } from '../movement/Hitboxes.js';
+import { StratagemComponent } from '../combat/Stratagems.js';
 
 const FALLBACK_GUN = { solari: 'sol_ar_halcyon', void: 'void_ar_gnaw' };
 
@@ -59,6 +60,8 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   e.melee = new MeleeComponent(data.meleeWeapons[0], e, world);
   e.weapons = new WeaponComponent(e, resolveGuns(data, cls, faction).map((s) => new WeaponInstance(s, data.recoil)), world);
   e.abilities = new AbilityComponent(e, data.kits[classId], world);
+  // Call-ins: the common pair and the role's (data/stratagems.json), if the world has any.
+  if (world.stratagems?.data) e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(e.role));
   e.ai = cls.ai;
   world.add(e);
   return e;

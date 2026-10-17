@@ -70,9 +70,10 @@ uses and rearm, a call-in loadout, supply drops, reinforcements, a HUD.
 
 **Design (`src/combat/Stratagems.js`, `data/stratagems.json`, HUD `src/ui/StratagemPanel.js`):**
 
-- **Input:** hold the call-in key (Left Ctrl; pad: LB) and type the code with WASD or the arrow
-  keys (pad: D-pad). While the key is held on keyboard you don't walk (WASD types); on a pad the
-  stick still moves you. Each arrow is a press; the panel narrows to the codes that still match.
+- **Input:** hold the call-in key (Tab; pad: hold LB, a tap stays ability 1) and type the code
+  with WASD or the arrow keys (pad: D-pad). Ctrl works with the arrow keys too (not WASD: Ctrl+W
+  closes a browser tab). While Tab is held you don't walk (WASD types); on a pad the stick still
+  moves you. Each arrow is a press; the panel narrows to the codes that still match.
   A wrong arrow buzzes and clears the code. Your left wrist's call-in pad (modeled on every
   trooper) lights up while you type.
 - **Beacon:** a full code puts a glowing beacon in your hand; fire throws it (14 m/s, a little

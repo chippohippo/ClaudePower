@@ -58,7 +58,7 @@ export class FrontlineSession {
     this.world = new CombatWorld({
       damageMatrix: data.damageMatrix, cover: this.map.cover, terrain: this.map.terrain, nav: this.map.nav,
       supers: data.supers, meleeWeapons: data.meleeWeapons, recoilDefs: data.recoil, vehicleDefs: data.vehicleDefs, statusDefs: data.statuses,
-      down: data.down,
+      down: data.down, rules: data.rules ?? null, stratagems: data.stratagems ?? null,
     });
     this.mode = new FrontlineMode(this.map, {
       tickets: tickets ?? Math.round(players * M.ticketsPerPlayer), timeLimit: timeLimit ?? M.timeLimit,
@@ -195,6 +195,7 @@ export class FrontlineSession {
       if (w.revives.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       else if (this.fortify.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, fdt); continue; }
+      if (f.stratagems) cmd = f.stratagems.handleInput(cmd, fdt);   // typing a call-in or holding a beacon: hands busy
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);
       f.movement.update(c, fdt);

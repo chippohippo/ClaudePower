@@ -17,6 +17,7 @@ import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { ReviveSystem } from './ReviveSystem.js';
+import { StratagemSystem } from './Stratagems.js';
 import { hitSpheres, silhouetteScale, BOUND } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
@@ -37,7 +38,7 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null, stratagems = null } = {}) {
     this.damageMatrix = damageMatrix;
     // Friendly fire (data/rules.json): on everywhere unless the rules say otherwise.
     this.ff = { ...FRIENDLY_FIRE, ...(rules?.friendlyFire ?? {}) };
@@ -56,6 +57,7 @@ export class CombatWorld {
     this.deployables = new DeployableSystem(this);
     this.vehicles = new VehicleSystem(this, vehicleDefs ?? { vehicles: {}, weapons: {} });
     this.revives = new ReviveSystem(this, down?.enabled ? down : null);
+    this.stratagems = new StratagemSystem(this, stratagems);   // call-ins (data/stratagems.json)
   }
 
   add(e) { this.entities.push(e); this.version++; return e; }
@@ -96,6 +98,7 @@ export class CombatWorld {
     this.projectiles.update(dt);
     this.zones.update(dt);
     this.deployables.update(dt);
+    this.stratagems.update(dt);
   }
 
   // ---------------------------------------------------------------- spawning
