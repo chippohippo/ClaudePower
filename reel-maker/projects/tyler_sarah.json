@@ -13,7 +13,7 @@
    "start": 0.2,
    "length": 3.0,
    "x": 0.4,
-   "zoom": 0.07,
+   "zoom": 0.0,
    "track": false
   },
   {
@@ -113,9 +113,10 @@
    "path": "0478.mp4",
    "start": 0.3,
    "length": 2.4,
-   "x": 0.45,
-   "zoom": 0.05,
-   "track": false
+   "x": 0.47,
+   "zoom": 0.0,
+   "track": false,
+   "y": 0.45
   },
   {
    "path": "0487.mp4",
