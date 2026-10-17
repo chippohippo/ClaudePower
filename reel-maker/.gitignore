@@ -2,3 +2,4 @@ music/*.wav
 .cache/
 *.mp4
 footage/
+projects/_*.json
