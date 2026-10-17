@@ -17,6 +17,11 @@
 //    enemy in sight 20-80 m ahead: a screen thrown up to 40% of the way, across the line of fire.
 //  * Sentry: holding (man, hold, overwatch) with an enemy in sight 15-45 m out: dropped beside
 //    it and a step back, on nobody.
+//  * Battle points (data `bots.buy`): a strike that's cooling down is bought again only by a bot
+//    that keeps `reserve` points after paying; a vehicle is dropped beside a bot that likes them,
+//    on foot with its objective more than `far` m off, no fight close and no ride of ours near
+//    (the tank if it can keep its reserve, else the recon vehicle; the pilot boards it); the hero
+//    is bought in a fight.
 // How often: each soldier has its own cooldowns and uses (data), and each side spends call-ins
 // from a budget that grows with its size (StratagemSystem.spendBot), so a 4v4 sees a few and a
 // 200v200 front lights up without every bot calling everything at once.
@@ -53,7 +58,7 @@ export class CallInPlanner {
     if (S.state !== 'idle' || b.time < this.nextLook) return;
     this.nextLook = b.time + 0.5 + b.rand() * 0.5;
     if (ctx.target && ctx.los && ctx.dist < 12) return;                  // rushed: nothing but the gun
-    const plan = this.#supply(ctx) ?? this.#strike(ctx) ?? this.#sentry(ctx) ?? this.#smoke(ctx);
+    const plan = this.#supply(ctx) ?? this.#strike(ctx) ?? this.#hero(ctx) ?? this.#sentry(ctx) ?? this.#smoke(ctx) ?? this.#vehicle(ctx);
     if (!plan || !sys.spendBot(self.team, plan.kind)) return;
     this.job = { ...plan, step: 'type', i: 0, next: b.time + 0.15 + b.rand() * 0.15, throwAt: 0 };
     b.log.push([b.time.toFixed(2), 'callin', plan.slot.id]);
@@ -66,6 +71,7 @@ export class CallInPlanner {
     if (J.step === 'type') {
       if (S.state === 'armed') { J.step = 'aim'; J.throwAt = b.time + 0.22 + b.rand() * 0.15; }
       else if (S.state === 'idle' && J.i > 0) { this.job = null; return; }   // a wrong arrow, or knocked over: start again later
+      else if (J.i >= J.slot.def.code.length && J.slot.def.payload.kind === 'instant') { this.job = null; return; }   // done as the code went in: let go
       else {
         b.btn.hold('stratagem');
         if (b.time >= J.next && J.i < J.slot.def.code.length) {
@@ -127,7 +133,7 @@ export class CallInPlanner {
     const me = self.movement.state.position, maxThrow = B.maxThrow ?? 40;
     let best = null;
     for (const slot of keep ? [keep.slot] : S.slots) {
-      if (slot.def.kind !== 'strike' || (!keep && !S.ready(slot))) continue;
+      if (slot.def.kind !== 'strike' || (!keep && !this.#can(slot))) continue;
       const need = Math.max(2, (B.cluster?.[slot.id] ?? 3) - (keep ? 1 : 0));
       // The cluster round the target we can see (or where we last saw it), and its centre.
       const c = this.#cluster(keep?.center ?? ctx.target.pos, slot.def.payload.kind === 'shells' ? Math.max(6, slot.def.payload.spread * 0.8) : 9);
@@ -150,6 +156,39 @@ export class CallInPlanner {
       if (!best || score > best.score) best = { slot, kind: 'strike', at, center: { x: c.x, y: c.y, z: c.z }, score };
     }
     return best;
+  }
+
+  /** In a fight with the hero to spare: the super, charged now (the ability planner takes it from there). */
+  #hero(ctx) {
+    const b = this.b, S = b.self.stratagems;
+    const slot = S.slots.find((x) => x.def.kind === 'hero');
+    if (!slot || !ctx.target || !ctx.los || ctx.dist > 40 || ctx.target.isObject || !this.#can(slot)) return null;
+    return { slot, kind: 'hero', at: null };
+  }
+
+  /** On foot, far from where it's going, nothing close: a vehicle dropped beside it. */
+  #vehicle(ctx) {
+    const b = this.b, self = b.self, S = self.stratagems, w = b.world, buy = w.stratagems.data.bots?.buy ?? {};
+    if (b.persona.usesVehicles === 'never' || self.transform || ctx.vehicleNearby || ctx.enemiesNear > 0 || (ctx.target && ctx.los && ctx.dist < 40)) return null;
+    const goal = b.objective?.pos ?? b.order?.pos, me = self.movement.state.position;
+    if (!goal || hyp(goal.x - me.x, goal.z - me.z) < (buy.far ?? 120)) return null;
+    if (w.vehicles.list.some((v) => v.calledBy === self.id && !v.removed)) return null;
+    if (w.stratagems.beacons.some((x) => x.ownerId === self.id && x.def.kind === 'vehicle')) return null;
+    const slots = S.slots.filter((x) => x.def.kind === 'vehicle' && this.#can(x)).sort((x, y) => y.def.bp - x.def.bp);
+    for (const slot of slots) {
+      const at = this.#spot(8, [Math.PI / 2, -Math.PI / 2, Math.PI], (slot.def.payload.crush ?? 2) + 1.5);
+      if (at) return { slot, kind: 'vehicle', at };
+    }
+    return null;
+  }
+
+  /** Ready, or worth paying battle points for: the bot keeps `reserve` after paying. */
+  #can(slot) {
+    const S = this.b.self.stratagems;
+    if (S.ready(slot)) return true;
+    if (!S.callable(slot)) return false;
+    const bp = this.b.world.bp?.points(this.b.self) ?? 0;
+    return bp - S.price(slot) >= (this.b.world.stratagems.data.bots?.buy?.reserve ?? 400);
   }
 
   /** Low on ammo, nothing of ours to resupply from near: a supply drop off to the side. */
@@ -241,15 +280,15 @@ export class CallInPlanner {
   }
 
   /**
-   * A spot `d` m away at one of `turns` (radians off our facing) that a teammate isn't standing on
-   * and that the beacon can be thrown to (no wall in the way), or null.
+   * A spot `d` m away at one of `turns` (radians off our facing) with no teammate within `clear` m
+   * of it and that the beacon can be thrown to (no wall in the way), or null.
    */
-  #spot(d, turns) {
+  #spot(d, turns, clear = 3.5) {
     const b = this.b, self = b.self, s = self.movement.state, me = s.position, w = b.world;
     for (const t of turns) {
       const yaw = s.yaw + t, x = me.x - Math.sin(yaw) * d, z = me.z - Math.cos(yaw) * d;
       let taken = false;                                                     // a pod crushes: nobody of ours on or near the spot
-      w.fightersNear(posOf(x, z), 4.5, (e) => { if (!taken && e !== self && e.team === self.team && !e.health.dead && hyp(e.movement.state.position.x - x, e.movement.state.position.z - z) < 3.5) taken = true; });
+      w.fightersNear(posOf(x, z), clear + 1, (e) => { if (!taken && e !== self && e.team === self.team && !e.health.dead && hyp(e.movement.state.position.x - x, e.movement.state.position.z - z) < clear) taken = true; });
       if (taken) continue;
       const y = w.groundHeight?.(posOf(x, z)) ?? me.y;
       _o.set(me.x, me.y + 1.5, me.z); _d.set(x - me.x, y + 0.5 - _o.y, z - me.z);

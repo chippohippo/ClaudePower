@@ -30,6 +30,8 @@ export class Health {
     this.downHp = 0;           // damage left before a downed soldier dies
     this.downedBy = null;      // id: credit for a bleed-out
     this.reviving = 0;         // revivers working on us (pauses the bleed)
+    this.clock = 0;            // seconds this body has existed (the assist window counts on it)
+    this.recent = null;        // attacker id -> clock of their last hit (battle point assists)
   }
 
   /** Armor type for the damage matrix. Shields count as 'shield' while they're up. */
@@ -43,7 +45,7 @@ export class Health {
     amount *= this.owner.status?.damageTakenMul ?? 1;
     const start = amount;
     this.sinceDamage = 0;
-    if (by?.id !== undefined && by.id !== this.owner.id) this.lastBy = by.id;   // who's shooting at us (squads call it out)
+    if (by?.id !== undefined && by.id !== this.owner.id) { this.lastBy = by.id; (this.recent ??= new Map()).set(by.id, this.clock); }   // who's shooting at us (squads call it out)
     if (this.downed) {
       // Finishing a downed soldier: damage eats the downed pool.
       this.downHp -= amount;
@@ -101,7 +103,7 @@ export class Health {
   addOvershield(amount, duration) { this.overshield = Math.max(this.overshield, amount); this.overshieldTime = duration; }
   /** Respawn (or a full revive from death): back up at a fraction of max HP. */
   revive(fraction = 0.5) {
-    this.dead = false; this.downed = false; this.reviving = 0; this.hp = this.max * fraction;
+    this.dead = false; this.downed = false; this.reviving = 0; this.hp = this.max * fraction; this.recent?.clear();
     bus.emit('entity:revived', { id: this.owner.id });
   }
   /** A teammate got you up: back on your feet with part of your HP. */
@@ -116,7 +118,7 @@ export class Health {
   giveUp() { if (this.downed && !this.dead) this.#die({ kind: 'giveUp' }, null, 'gaveUp'); }
 
   update(dt) {
-    this.sinceDamage += dt;
+    this.sinceDamage += dt; this.clock += dt;
     if (this.downed) {
       if (this.reviving <= 0 && (this.bleed -= dt) <= 0) this.#die({ kind: 'bleedOut' }, null, 'bledOut');
       return;

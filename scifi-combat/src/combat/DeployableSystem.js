@@ -95,7 +95,8 @@ export class DeployableSystem {
     const p = _muzzle.copy(d.movement.state.position).setY(d.movement.state.position.y + (d.muzzle ?? 1.1));
     // Re-acquire the nearest visible enemy, preferring to keep the current one. With nobody in
     // sight it looks around a few times a second, not every tick.
-    if (!d.target || d.target.health.dead || !this.#visible(p, d.target, d.range)) {
+    // A downed soldier is no threat: a turret leaves him (to be revived or finished by hand) for one on his feet.
+    if (!d.target || d.target.health.dead || d.target.health.downed || !this.#visible(p, d.target, d.range)) {
       d.scanT = (d.scanT ?? SCAN) + dt;
       d.target = null;
       if (d.scanT >= SCAN) { d.scanT = 0; d.target = this.#nearestVisibleEnemy(d, p); }
@@ -346,7 +347,7 @@ export class DeployableSystem {
   /** Nearest first, so the sight rays stop at the first enemy in view. */
   #nearestVisibleEnemy(d, p) {
     const near = [];
-    this.#enemiesNear(d, p, d.range + 1.5, (e) => { if (!e.status?.has('cloak')) near.push(e); });
+    this.#enemiesNear(d, p, d.range + 1.5, (e) => { if (!e.status?.has('cloak') && !e.health?.downed) near.push(e); });
     near.sort((a, b) => a.movement.state.position.distanceToSquared(p) - b.movement.state.position.distanceToSquared(p));
     for (const e of near) if (this.#visible(p, e, d.range)) return e;
     return null;

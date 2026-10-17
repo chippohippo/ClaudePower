@@ -15,6 +15,7 @@ import { buildFighter } from '../src/game/FighterFactory.js';
 import { CombatBotBrain } from '../src/ai/CombatBotBrain.js';
 import { routeCommand } from '../src/core/routing.js';
 import { StratagemComponent } from '../src/combat/Stratagems.js';
+import { BattlePoints } from '../src/game/BattlePoints.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
 export const data = {
@@ -24,16 +25,21 @@ export const data = {
   supers: J('supers.json'), melee: J('weapons/melee.json').weapons, vehicles: J('vehicles.json'),
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
-  down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'),
+  down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'), battlePoints: J('battle-points.json'),
 };
 export const DT = 1 / 60;
+let lastBp = null;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
-/** @param {object} o { down: true for the down-but-not-out rules (data/down.json) } */
-export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
+/**
+ * @param {object} o { down: true for the down-but-not-out rules (data/down.json), bp: battle points
+ *                    (data/battle-points.json; mode: a FrontlineMode-like { points } for captures) }
+ */
+export function makeWorld(cover = [], { down = false, terrain = null, bp = false, mode = null } = {}) {
   const melee = new MeleeSystem();
   const downCfg = down ? data.down : null;
   const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems });
+  if (bp) { lastBp?.dispose(); lastBp = world.bp = new BattlePoints(world, data.battlePoints, { mode }); }   // one listening at a time (fighter ids repeat between tests)
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
@@ -103,6 +109,7 @@ export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
       }
       world.update(DT);
       melee.resolve();
+      world.bp?.update(DT);
     }
   }
   const seconds = (s) => step(Math.round(s / DT));

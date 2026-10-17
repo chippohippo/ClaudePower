@@ -231,6 +231,11 @@ values).
 5. **Bugs from the survey, fixed.** Parries anywhere no longer shake your camera. The suppressor
    no longer throws, and now shortens how far a shot is heard. The Sunwell revives the downed
    rather than raising the dead.
+6. **Battle points** (P1). Earned for takedowns, assists, spots, revives, shared mags, digging
+   in, captures, defending and deliveries; lost for teamkills and halved on death. Spent on the
+   call-in panel: an extra use (400), a recon vehicle (800) or a tank (1200) dropped in a cradle,
+   the hero (2000: your super, charged). Bots earn and spend them too. Sentries now leave downed
+   soldiers alone (they were finishing most of their victims, which killed the revive game).
 
-Next, by the priority order: battle points and support roles (P1), melee readability on the
-front (P1), bot callouts and flanking (P1), then the camera, the director and audio (P2).
+Next, by the priority order: support roles (P1), melee readability on the front (P1), bot
+callouts and flanking (P1), then the camera, the director and audio (P2).

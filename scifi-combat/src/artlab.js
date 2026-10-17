@@ -23,6 +23,7 @@ import { paintMaterial } from './render/TrooperMaterial.js';
 import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
 import { GunFx } from './vfx/GunFx.js';
+import { VehicleViews } from './vfx/VehicleViews.js';
 import { bus } from './core/EventBus.js';
 
 const params = new URLSearchParams(location.search);
@@ -484,6 +485,11 @@ async function stratagemsStation(scene, views, atmo) {
   views.sentry = { pos: y(at(9.5, 1), 1.9), look: y(at(6, 6.5), 1.6), fov: 50, note: 'a sentry up on its pod, turning on the enemy', enter: () => { call('sentry', at(6, 6.5)); run(6.2); } };
   views.smoke = { pos: y(at(-2, -6), 2.4), look: y(at(0, 18), 2), fov: 58, note: 'a smoke screen across the front', enter: () => { call('smoke_screen', at(0, 17), typist); run(5.5); } };
   views.barrage = { pos: y(at(-14, -10), 7), look: y(at(0, 45), 4), fov: 55, note: 'an orbital barrage on the enemy line', enter: () => { call('orbital_barrage', at(0, 46)); run(7.8); } };
+  // A vehicle bought with battle points: the tank in its cradle on the way down, then on the
+  // ground with the empty cradle lifting away (the landed vehicle is VehicleViews', as in the game).
+  const vehicles = () => { if (!F.vv) { F.vv = new VehicleViews(scene, F.world, { localTeam: 0, palette }); tickers.push((dt) => F.vv.update(dt, window.__art.camera)); } };
+  views.cradle = { pos: y(at(-15, -3), 1.6), look: y(at(-3, 13), 12), fov: 55, note: 'a tank bought with battle points coming down in its drop cradle, retro thrusters burning', enter: () => { vehicles(); call('tank_drop', at(-3, 13)); run(7.8); } };
+  views.delivered = { pos: y(at(-13, 0), 2.2), look: y(at(-3, 13), 6), fov: 60, note: 'the tank delivered, the empty cradle lifting away', enter: () => { vehicles(); call('tank_drop', at(-3, 13)); run(9.3); } };
   views.beams = {
     pos: y(at(-10, -12), 3), look: y(at(0, 20), 12), fov: 60, note: 'every kind of beacon at once: strike, supply, sentry, smoke',
     enter: () => { call('orbital_barrage', at(-12, 44)); call('precision_strike', at(10, 38)); call('supply_drop', at(-5, 9)); call('sentry', at(7, 10)); call('smoke_screen', at(1, 20)); run(1.2); },

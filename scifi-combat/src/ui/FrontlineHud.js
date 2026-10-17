@@ -200,7 +200,8 @@ export class FrontlineHud {
       <div class="bar"><i style="width:${(hp.hp / hp.max * 100).toFixed(0)}%;background:#e8f1ff"></i></div>
       ${hp.maxShield ? `<div class="bar sm"><i style="width:${(hp.shield / hp.maxShield * 100).toFixed(0)}%;background:#7fd6ff"></i></div>` : ''}
       <div class="bar sm"><i style="width:${st.stamina.toFixed(0)}%;background:${st.exhausted ? '#ff6b6b' : '#c8d47a'}"></i></div>
-      <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${reloading}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>`;
+      <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${reloading}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>
+      ${s.bp ? `<div class="wpn" style="color:#ffe14d">★ <b>${s.bp.points(me)}</b> BATTLE POINTS</div>` : ''}`;
     this.el.feed.innerHTML = this.feed.filter((k) => this.time - k.t < 8).map((k) => k.html).join('<br>');
     // ---- respawn, downed, revives and banners
     const dead = me.health.dead && mode.winner < 0, rv = s.world.revives;

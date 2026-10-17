@@ -305,6 +305,11 @@ export class AudioDirector {
     on('stratagem:incoming', (e) => e.first && e.dir && this.play('callin.flyby', { tier: Tier.COMBAT, pos: at(e.from), radius: 1100, duration: 3.6 }));
     on('stratagem:smoke', (e) => this.play('callin.smoke', { tier: Tier.COMBAT, pos: at(e.at), radius: 80, gainDb: -3 }));
     on('stratagem:grab', (e) => mine(e) && this.play('callin.grab', { tier: Tier.COMBAT, gainDb: -2 }));
+    // Battle points: a small chime for each thing worth a line on the HUD (not each second on a point),
+    // a register for spending them, a swell for the hero.
+    on('bp:earn', (e) => mine(e) && e.amount >= 25 && this.play('callin.bp', { tier: Tier.COMBAT, intensity: Math.min(2, e.amount / 100), gainDb: -10 }));
+    on('bp:spend', (e) => mine(e) && this.play('callin.buy', { tier: Tier.COMBAT, gainDb: -4 }));
+    on('stratagem:instant', (e) => mine(e) && this.play('callin.hero', { tier: Tier.COMBAT, gainDb: -2 }));
   }
 
   #announceSuper(e) {
@@ -511,6 +516,18 @@ export class SynthBackend {
     } else if (kind === 'grab') {
       for (const at of [0, 0.13]) { env(hiss('highpass', 2200, 1800, at, 0.05), at, 0.001, 0.8, 0.05); tone('sine', 180, 110, at, 0.1, 0.6); }
       end = 0.3;
+    } else if (kind === 'bp') {
+      // Up a fifth; a bigger award rings a little longer.
+      tone('sine', 1318, 1318, 0, 0.08, 0.35); tone('sine', 1975, 1975, 0.055, 0.1 + 0.06 * intensity, 0.28);
+      end = 0.3;
+    } else if (kind === 'buy') {
+      tone('triangle', 784, 784, 0, 0.06, 0.5); tone('triangle', 1175, 1175, 0.05, 0.11, 0.45); tone('sine', 98, 70, 0, 0.2, 0.6);
+      end = 0.25;
+    } else if (kind === 'hero') {
+      env(hiss('bandpass', 400, 3200, 0, 0.9, 1.2), 0, 0.3, 0.6, 0.9);
+      [523, 659, 784, 1046].forEach((f, i) => tone('sawtooth', f, f, i * 0.08, 0.5, 0.16));
+      tone('sine', 65, 98, 0, 0.9, 0.7, 0.25);
+      end = 1.0;
     }
     const h = { osc: null, ended: false };
     setTimeout(() => { h.ended = true; try { out.disconnect(); } catch { /* gone */ } }, (end + 0.2) * 1000);

@@ -3,7 +3,9 @@
 //  * While the call-in is held: every stratagem in your loadout with its code as arrows; the
 //    arrows you've typed light up on the codes that still match, the rest dim; cooldowns and
 //    uses (and the rearm) where a stratagem isn't ready.
-//  * Beacon in hand: which one, and how to throw it or put it away.
+//    Battle points: what you have; a call-in that isn't ready shows what an extra use would cost
+//    (BUY 400, lit when you can pay); the vehicle drops and the hero show their price.
+//  * Beacon in hand: which one, and how to throw it or put it away (and what it will cost).
 //  * Every live beacon of your side on screen (or pinned to the edge): its name, a countdown to
 //    the payload, and DANGER CLOSE in red when you're inside a strike's radius.
 //  * Grabbing at a supply cache: a prompt when you're beside one.
@@ -13,7 +15,7 @@ import { bus } from '../core/EventBus.js';
 import { capsuleDist } from '../combat/Stratagems.js';
 
 const GLYPH = { U: '▲', D: '▼', L: '◀', R: '▶' };
-const KIND_COL = { strike: '#ff6a4d', supply: '#6cc3ff', sentry: '#7dff9a', smoke: '#e6e2da' };
+const KIND_COL = { strike: '#ff6a4d', supply: '#6cc3ff', sentry: '#7dff9a', smoke: '#e6e2da', vehicle: '#ffb347', hero: '#ffd84d' };
 const _v = new THREE.Vector3();
 
 const CSS = `
@@ -28,6 +30,8 @@ const CSS = `
 #sg-panel .row .cd b { color: #ffe14d; }
 #sg-panel .row.dead { opacity: .32; }
 #sg-panel .row .st { font-size: 10px; color: #a9a49a; min-width: 56px; text-align: right; }
+#sg-panel .row .st.buy { color: #9fd3ff; }
+#sg-panel h4 .bp { float: right; color: #f4f1e8; letter-spacing: .06em; }
 #sg-panel .tip { margin-top: 6px; font-size: 10px; color: #a9a49a; text-transform: uppercase; }
 .sg-mark { position: absolute; transform: translate(-50%, -100%); text-align: center; font: 800 11px system-ui; letter-spacing: .08em;
   text-transform: uppercase; text-shadow: 0 0 6px #000, 0 0 2px #000; white-space: nowrap; pointer-events: none; }
@@ -66,18 +70,21 @@ export class StratagemPanel {
   }
 
   #panel(S) {
-    const typed = S.code;
-    let html = `<h4>${S.state === 'armed' ? 'Beacon ready' : 'Call-in'}</h4>`;
+    const typed = S.code, bp = this.world.bp ? this.world.bp.points(this.player) : null;
+    let html = `<h4>${S.state === 'armed' ? 'Beacon ready' : 'Call-in'}${bp !== null ? `<span class="bp">${bp} BP</span>` : ''}</h4>`;
     if (S.state === 'armed') {
-      const d = S.armed.def;
-      html += `<div class="row"><i class="ic" style="background:${this.col[d.kind] ?? '#ffe14d'}"></i><span class="nm">${d.name}</span></div>`;
-      html += `<div class="tip">LMB throw · Tab put away</div>`;
+      const d = S.armed.def, price = S.price(S.armed);
+      html += `<div class="row"><i class="ic" style="background:${this.col[d.kind] ?? '#ffe14d'}"></i><span class="nm">${d.name}</span>${price ? `<span class="st buy">${price} BP</span>` : ''}</div>`;
+      html += `<div class="tip">LMB throw${price ? ` (pays ${price} BP)` : ''} · Tab put away</div>`;
     } else {
       for (const s of S.slots) {
-        const ready = S.ready(s), match = ready && s.def.code.startsWith(typed);
+        if (s.def.bp && bp === null) continue;                  // no battle points in this mode
+        const can = S.callable(s), match = can && s.def.code.startsWith(typed), price = S.price(s);
         const code = [...s.def.code].map((c, i) => (match && i < typed.length ? `<b>${GLYPH[c]}</b>` : GLYPH[c])).join('');
-        const st = s.cooldown > 0 ? `${Math.ceil(s.cooldown)}s` : s.rearm > 0 ? `rearm ${Math.ceil(s.rearm)}s` : Number.isFinite(s.uses) ? `${s.uses}/${s.def.uses}` : '';
-        html += `<div class="row${match ? '' : ' dead'}"><i class="ic" style="background:${this.col[s.def.kind] ?? '#ffe14d'}"></i><span class="nm">${s.def.name}</span><span class="cd">${code}</span><span class="st">${st}</span></div>`;
+        const wait = s.cooldown > 0 ? `${Math.ceil(s.cooldown)}s` : s.rearm > 0 ? `rearm ${Math.ceil(s.rearm)}s` : '';
+        // Free when ready; otherwise what it costs (an extra use, or a BP call-in's price), lit if you can pay.
+        const st = s.def.bp ? (wait || `${price} BP`) : S.ready(s) ? (Number.isFinite(s.uses) ? `${s.uses}/${s.def.uses}` : '') : can ? `BUY ${price}` : wait;
+        html += `<div class="row${match ? '' : ' dead'}"><i class="ic" style="background:${this.col[s.def.kind] ?? '#ffe14d'}"></i><span class="nm">${s.def.name}</span><span class="cd">${code}</span><span class="st${can && price ? ' buy' : ''}">${st}</span></div>`;
       }
       html += `<div class="tip">Hold Tab · type with WASD or the arrows</div>`;
     }

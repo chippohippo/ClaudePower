@@ -15,11 +15,18 @@
 //      pod            falls on the beacon and crushes whoever is under it; a supply cache to grab
 //                     ammo from (interact), or a sentry that shoots through whoever walks into its line
 //      smoke          a screen of clouds across the throw that blocks sight (world.sight) for a while
+//      vehicle pod    a vehicle dropped on the beacon in its cradle (crushing whoever is under it)
+//      instant        no beacon: the effect comes the moment the code is typed (the hero: your super)
+//  * Battle points (world.bp, src/game/BattlePoints.js): a call-in that's cooling down or spent
+//    can still be typed if you can pay for an extra use (data `bp.extraUse`); it's paid when the
+//    beacon leaves your hand and leaves the cooldown running. The BP call-ins (data `bp.slots`,
+//    on every loadout: vehicle drops, the hero) are bought outright at their `bp` price.
 //
 // Events: stratagem:open / close { id }, stratagem:arrow { id, code, ch }, stratagem:error { id },
 // stratagem:armed / stowed { id, stratagem }, stratagem:thrown { id, stratagem, beacon },
 // stratagem:beacon { beacon, at, eta, team, stratagem, kind }, stratagem:incoming { beacon, at, eta, team, kind, from, dir, first },
-// stratagem:pod / land { beacon, at, contents }, stratagem:grab { id, pod, mags }, stratagem:smoke { at, radius, duration, height }.
+// stratagem:pod / land { beacon, at, contents, vehicle }, stratagem:grab { id, pod, owner, mags }, stratagem:smoke { at, radius, duration, height },
+// stratagem:instant { id, stratagem }.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
@@ -62,9 +69,25 @@ export class StratagemComponent {
     this.throws = 0;         // beacons thrown (the rig plays the throw when this ticks up)
   }
 
-  /** Can this slot be typed now (off cooldown, uses left)? */
-  ready(slot) { return slot.cooldown <= 0 && slot.uses > 0; }
+  /** Is this slot free to call now (off cooldown, uses left)? BP call-ins never are: they're bought. */
+  ready(slot) { return !slot.def.bp && slot.cooldown <= 0 && slot.uses > 0; }
   slot(id) { return this.slots.find((s) => s.id === id) ?? null; }
+
+  /**
+   * Battle points this slot costs to call right now: a BP call-in's price, or an extra use of
+   * one that's cooling down or spent; 0 when it's ready.
+   */
+  price(slot) {
+    if (slot.def.bp) return slot.def.bp;
+    return this.ready(slot) ? 0 : this.sys.data?.bp?.extraUse ?? 400;
+  }
+
+  /** Can this slot be typed now: ready, or paid for with battle points (and good for something). */
+  callable(slot) {
+    if (this.ready(slot)) return true;
+    if (!this.sys.world.bp || (slot.def.bp && slot.cooldown > 0) || !this.sys.usable(this.owner, slot)) return false;
+    return this.sys.world.bp.points(this.owner) >= this.price(slot);
+  }
 
   /** Cooldowns run and spent uses rearm, typing or not. */
   #tick(dt) {
@@ -105,10 +128,11 @@ export class StratagemComponent {
   #arrow(ch) {
     const id = this.owner.id;
     this.code += ch;
-    const live = this.slots.filter((s) => this.ready(s) && s.def.code.startsWith(this.code));
+    const live = this.slots.filter((s) => this.callable(s) && s.def.code.startsWith(this.code));
     if (!live.length) { bus.emit('stratagem:error', { id, code: this.code }); this.code = ''; return; }
     bus.emit('stratagem:arrow', { id, code: this.code, ch });
     const done = live.find((s) => s.def.code === this.code);
+    if (done?.def.payload.kind === 'instant') { this.code = ''; this.#instant(done); return; }
     if (done) {
       this.state = 'armed'; this.armed = done; this.code = '';
       bus.emit('stratagem:armed', { id, stratagem: done.id });
@@ -116,12 +140,24 @@ export class StratagemComponent {
   }
 
   #throw(cmd) {
-    const s = this.armed;
+    const s = this.armed, price = this.price(s);
+    if (price > 0 && !this.sys.world.bp?.spend(this.owner, price, s.id)) { this.#reset('broke'); return; }
     this.armed = null; this.state = 'idle';
-    s.cooldown = s.def.cooldown ?? 0;
-    if (s.def.uses) { s.uses--; if (s.uses <= 0) s.rearm = s.def.rearm ?? 60; }
+    // A bought extra use leaves the cooldown and the uses as they were.
+    if (price === 0 || s.def.bp) {
+      s.cooldown = s.def.cooldown ?? 0;
+      if (s.def.uses) { s.uses--; if (s.uses <= 0) s.rearm = s.def.rearm ?? 60; }
+    }
     this.throws++;
     this.sys.throwBeacon(this.owner, s, cmd.yaw, cmd.pitch);
+  }
+
+  /** No beacon: paid for and done the moment the code is in (the panel stays open). */
+  #instant(s) {
+    const price = this.price(s);
+    if (price > 0 && !this.sys.world.bp?.spend(this.owner, price, s.id)) return;
+    s.cooldown = s.def.cooldown ?? 0;
+    this.sys.instant(this.owner, s);
   }
 
   #reset(why) {
@@ -144,10 +180,24 @@ export class StratagemSystem {
     this.time = 0;
   }
 
-  /** The loadout for a class role: the common pair, then the role's. */
+  /** The loadout for a class role: the common pair, then the role's, then the ones bought with battle points. */
   loadoutFor(role) {
     if (!this.data) return [];
-    return [...(this.data.common ?? []), ...(this.data.loadouts?.[role] ?? this.data.loadouts?.default ?? [])];
+    return [...(this.data.common ?? []), ...(this.data.loadouts?.[role] ?? this.data.loadouts?.default ?? []), ...(this.data.bp?.slots ?? [])];
+  }
+
+  /** Would this call-in do anything for this soldier now (the hero: not with the super charged, or in a form)? */
+  usable(owner, slot) {
+    const P = slot.def.payload;
+    if (P.kind === 'instant' && P.effect === 'super') { const a = owner.abilities; return !!a && !owner.transform && a.superEnergy < a.superCost; }
+    return true;
+  }
+
+  /** An instant call-in's effect. */
+  instant(owner, slot) {
+    const P = slot.def.payload;
+    if (P.effect === 'super') owner.abilities?.gainSuper(owner.abilities.superCost);
+    bus.emit('stratagem:instant', { id: owner.id, stratagem: slot.id, team: owner.team });
   }
 
   /** A soldier throws a beacon along the look direction (a little lob). */
@@ -243,7 +293,7 @@ export class StratagemSystem {
       const ux = P.across ? -dz : dx, uz = P.across ? dx : dz, u0 = P.across ? -0.5 : -0.08, u1 = P.across ? 0.5 : 0.92;
       return { ax: at.x + ux * u0 * P.length, az: at.z + uz * u0 * P.length, bx: at.x + ux * u1 * P.length, bz: at.z + uz * u1 * P.length, r: splash + 1 };
     }
-    const r = P.kind === 'shells' ? (P.spread ?? 0) + splash : P.kind === 'pod' ? P.crush ?? 1.5 : 0;
+    const r = P.kind === 'shells' ? (P.spread ?? 0) + splash : P.kind === 'pod' ? P.crush ?? 1.5 : 0;   // (an instant has none)
     return { ax: at.x, az: at.z, bx: at.x, bz: at.z, r };
   }
 
@@ -270,7 +320,8 @@ export class StratagemSystem {
     if (P.kind === 'shells') return (P.spread ?? 0) + (sh?.damage?.splash ?? 0);
     if (P.kind === 'line') return (P.across ? P.length / 2 : P.length) + (sh?.damage?.splash ?? 0);
     if (P.kind === 'pod') return P.crush ?? 1.5;
-    return P.length / 2;
+    if (P.kind === 'smoke') return P.length / 2;
+    return 0;
   }
   radiusOf(id) { return this.defs[id] ? this.#radius(this.defs[id]) : 0; }
 
@@ -343,10 +394,12 @@ export class StratagemSystem {
       });
       bus.emit('stratagem:incoming', { beacon: b.id, at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, kind: b.def.kind, from: origin.toArray(), dir: shot.dir, first: shot === b.plan[0] });
     } else if (shot.pod) {
-      const pod = { id: b.id, beacon: b, owner: b.owner, team: b.team, def: b.def, pos: new Vector3(shot.x, shot.y + 140, shot.z), ground: shot.y, vy: -140 / shot.fall, landed: false, grabs: P.grabs ?? 0, age: 0, done: false, contents: P.contents };
+      // A vehicle comes down facing the way it was thrown.
+      const yaw = Math.atan2(-(b.pos.x - b.from.x), -(b.pos.z - b.from.z));
+      const pod = { id: b.id, beacon: b, owner: b.owner, team: b.team, def: b.def, pos: new Vector3(shot.x, shot.y + 140, shot.z), ground: shot.y, vy: -140 / shot.fall, landed: false, grabs: P.grabs ?? 0, age: 0, done: false, contents: P.contents, yaw, vehicle: P.contents === 'vehicle' ? vehicleFor(P, b.team) : null };
       this.pods.push(pod);
       this.world.vehicles?.guns?.incoming.push({ x: shot.x, y: shot.y, z: shot.z, at: this.time + shot.fall, radius: (P.crush ?? 1.5) + 0.5, team: b.team, kind: 'pod', gun: null });
-      bus.emit('stratagem:pod', { beacon: b.id, at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, contents: P.contents });
+      bus.emit('stratagem:pod', { beacon: b.id, at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, contents: P.contents, vehicle: pod.vehicle, yaw });
     } else if (shot.smoke) {
       w.spawnZone?.({
         kind: 'smoke', ability: b.stratagem, ownerId: b.ownerId, team: b.team, center: new Vector3(shot.x, shot.y, shot.z),
@@ -372,7 +425,13 @@ export class StratagemSystem {
         });
         p.done = true;
       }
-      bus.emit('stratagem:land', { beacon: p.id, at: p.pos.toArray(), contents: p.contents, team: p.team });
+      let vehicle = null;
+      if (p.contents === 'vehicle') {
+        // The cradle lets go: the vehicle is yours (one called vehicle each; an empty older one is scrapped).
+        vehicle = this.world.vehicles?.spawn(p.vehicle, p.team, p.pos.clone(), p.yaw, { ownerId: p.owner.id }) ?? null;
+        p.done = true;
+      }
+      bus.emit('stratagem:land', { beacon: p.id, at: p.pos.toArray(), contents: p.contents, team: p.team, vehicle: vehicle?.id ?? null, vehicleType: p.vehicle, yaw: p.yaw });
       return;
     }
     // A supply cache: bots short of ammo help themselves as they pass (people press interact).
@@ -413,7 +472,7 @@ export class StratagemSystem {
     const got = e.weapons?.resupply?.(p.def.payload.mags ?? 2) ?? 0;
     if (!(got > 0)) return false;
     p.grabs--;
-    bus.emit('stratagem:grab', { id: e.id, pod: p.id, mags: got, left: p.grabs });
+    bus.emit('stratagem:grab', { id: e.id, pod: p.id, owner: p.owner?.id, mags: got, left: p.grabs });
     return true;
   }
 
@@ -430,6 +489,9 @@ export class StratagemSystem {
     return out;
   }
 }
+
+/** The vehicle a drop brings for a team (`vehicle`: one type, or one per team). */
+function vehicleFor(P, team) { return Array.isArray(P.vehicle) ? P.vehicle[team] ?? P.vehicle[0] : P.vehicle; }
 
 /** Below a third of a full load of ammo (bots help themselves at supply caches, and call them in). */
 export function lowOnAmmo(e) {

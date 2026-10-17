@@ -20,14 +20,19 @@
 //    supply pod folds its four doors down on four crates: one crate per grab left. A sentry pod
 //    pops its cap and the turret rises out of it, turning where the sim aims it; destroyed, its
 //    head is blown off and the pod stands as a wreck for a while.
+//  * A vehicle drop comes down in its cradle (StratagemKit.cradle), not spinning, facing the way it
+//    was thrown, its four retro thrusters burning all the way; on the ground the cradle lets go
+//    (the vehicle is the sim's now: VehicleViews draws it) and lifts away on its thrusters.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
 import { paintMaterial } from '../render/TrooperMaterial.js';
 import { DEFAULT_PALETTE } from '../render/CrowdRenderer.js';
-import { beaconModel, podModel, sentryModel, jetModel, POD } from '../render/StratagemKit.js';
+import { beaconModel, podModel, sentryModel, jetModel, cradleModel, POD } from '../render/StratagemKit.js';
+import { vehicleModel } from '../render/VehicleKit.js';
 
-const COLORS = { strike: '#ff5a3c', supply: '#4db3ff', sentry: '#5dff8f', smoke: '#ece7db' };
+const COLORS = { strike: '#ff5a3c', supply: '#4db3ff', sentry: '#5dff8f', smoke: '#ece7db', vehicle: '#ffb347', hero: '#ffd84d' };
+const CRADLES = new Map();          // vehicle type -> { cradle, vehicle } geometries
 const TICK = 1 / 60;
 const JET = { speed: 150, show: 1100, back: 45 };   // m/s; drawn this far either side of the pass (m); the sim's release offset behind each round (m)
 const UP = new THREE.Vector3(0, 1, 0);
@@ -311,8 +316,9 @@ export class StratagemViews {
       if (!p.landed) {
         v.root.position.copy(p.pos);
         v.root.position.y = Math.max(p.ground, p.pos.y + p.vy * alpha * TICK);
-        v.root.rotation.y += dt * 2.2;
-        this.fx?.reentry?.(v.root.position, dt);
+        if (v.cradle) this.#thrust(v, 1);
+        else v.root.rotation.y += dt * 2.2;
+        if (!v.cradle || v.root.position.y - p.ground > 30) this.fx?.reentry?.(v.root.position, dt);
         continue;
       }
       v.grabs = p.grabs;
@@ -321,6 +327,7 @@ export class StratagemViews {
       if (!v.landed) { if (v.seen !== this.time) { this.#dropPod(v); this.pods.delete(id); } continue; }
       v.t += dt;
       const gone = v.seen !== this.time;
+      if (v.cradle) { if (this.#liftOff(v, dt)) { this.#dropPod(v); this.pods.delete(id); } continue; }
       if (v.contents === 'sentry') this.#sentry(v, dt, gone);
       else this.#supply(v, dt, gone);
       if (v.sink > 0) {
@@ -332,6 +339,7 @@ export class StratagemViews {
   }
 
   #addPod(p) {
+    if (p.contents === 'vehicle') return this.#addCradle(p);
     const M = models().pod, kind = this.kinds[p.def.kind] ?? this.kinds.supply;
     const paint = paintMaterial(this.palette, { team: p.team, number: (p.id * 23 + 5) % 100 });
     const mesh = (geo, mat = paint) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; return m; };
@@ -376,6 +384,56 @@ export class StratagemViews {
     this.scene.add(root);
     this.pods.set(p.id, v);
     return v;
+  }
+
+  /** A vehicle in its drop cradle, painted for its side, its thrusters' flames ready to light. */
+  #addCradle(p) {
+    const def = this.world.vehicles?.defs?.vehicles?.[p.vehicle];
+    if (!CRADLES.has(p.vehicle)) CRADLES.set(p.vehicle, { cradle: cradleModel(def?.size ?? { x: 2, y: 1.5, z: 4 }), vehicle: def ? vehicleModel(def, p.vehicle) : null });
+    const M = CRADLES.get(p.vehicle);
+    const paint = paintMaterial(this.palette, { team: p.team, number: (p.id * 23 + 5) % 100 });
+    const mesh = (geo) => { const m = new THREE.Mesh(geo, paint); m.castShadow = m.receiveShadow = true; return m; };
+    const root = new THREE.Group(), load = new THREE.Group();
+    root.add(mesh(M.cradle.body));
+    if (M.vehicle) {
+      load.add(mesh(M.vehicle.body));
+      if (M.vehicle.turret) { const t = mesh(M.vehicle.turret); t.position.y = M.vehicle.turretY; load.add(t); }
+      load.position.y = def?.hoverHeight ?? 0;
+    }
+    root.add(load);
+    const flames = M.cradle.thrusters.map(([x, y, z]) => {
+      const f = new THREE.Sprite(this.flare);
+      f.position.set(x, y - 0.35, z);
+      root.add(f);
+      return f;
+    });
+    root.position.copy(p.pos);
+    root.rotation.y = p.yaw ?? 0;
+    this.scene.add(root);
+    const v = { id: p.id, root, paint, load, flames, cradle: true, contents: p.contents, team: p.team, landed: false, t: 0, seen: this.time, sink: 0 };
+    this.pods.set(p.id, v);
+    return v;
+  }
+
+  /** The retro thrusters: flickering flames, `k` their strength (0 out, 1 a full burn). */
+  #thrust(v, k) {
+    for (let i = 0; i < v.flames.length; i++) {
+      const f = v.flames[i], flick = 0.85 + 0.3 * Math.sin(this.time * 47 + i * 2.1) * Math.sin(this.time * 29 + i);
+      f.visible = k > 0.02;
+      f.scale.set(0.9 * k * flick, 2.4 * k * flick, 1);
+    }
+  }
+
+  /** Landed: the vehicle is the sim's now; the empty cradle burns and climbs away. True when it's gone. */
+  #liftOff(v, dt) {
+    v.load.visible = false;
+    const t = v.t;
+    if (t < 0.6) { this.#thrust(v, 0.35); return false; }
+    const u = t - 0.6;
+    v.root.position.y += (2 + u * 14) * dt;
+    v.root.rotation.z = Math.sin(u * 1.3) * 0.05;
+    this.#thrust(v, 1.2);
+    return u > 5;
   }
 
   /** A supply pod: the doors fold down on the crates; one crate per grab left. */

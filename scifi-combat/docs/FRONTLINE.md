@@ -1,15 +1,15 @@
 # Frontline: 4v4 to 200v200 trench battles
 
 Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode,
-Logistics) · `src/combat/Stratagems.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
+Logistics) · `src/combat/Stratagems.js` · `src/game/BattlePoints.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
 (squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
 `src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
 EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
 `src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `StratagemKit.js`, `src/ui/FrontlineHud.js`,
-`FireControl.js`, `StratagemPanel.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`FireControl.js`, `StratagemPanel.js`, `BattlePointsHud.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
-`tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`.
+`tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -175,6 +175,49 @@ The rules that make them honest:
   can see with none of theirs near the footprint, drop supplies when short of ammo, smoke a
   crossing under fire, and put sentries down when holding. They get out from under a pod coming
   down and shoot enemy sentries. Each side's call-ins are rationed by its size.
+- **Sentries shoot soldiers on their feet.** A downed enemy is left to be revived or finished by
+  hand, so a sentry suppresses and downs, and the revive game survives it.
+
+## Battle points (`BattlePoints`)
+
+Battlefront's arc, on the call-in panel: everyone earns points for what helps the team and
+spends them mid-match on bigger toys. Each soldier's points are his own; bots earn and spend
+them by the same rules (`data/battle-points.json`).
+
+| Earned for | Points | |
+|---|---|---|
+| Takedown | 100 | downing an enemy (or killing him outright: no down) |
+| Finish | 25 | killing an enemy who's down |
+| Assist | 50 | damage on him in the 10 s before someone else took him down |
+| Spot assist | 30 | he was revealed by you and someone else took him down |
+| Vehicle / deployable destroyed | 250 / 40 | |
+| Revive | 150 | more than a takedown: getting a teammate up is the best thing you can do |
+| Resupply | 40 a mag | a teammate's mags from your supply pod (yours from your own pod pay nothing) |
+| Dug in | 60 | a foxhole, sandbags, a trench link |
+| Point captured / neutralized | 200 / 100 | to everyone of the side standing on it when it flips |
+| Defending | 10 a second | on your side's point while the enemy contests it |
+| Supplies delivered | 80 a truckload | to the driver |
+| Teamkill | −150 | downing or killing a teammate |
+
+Kills made with something you own are yours: your sentry's, your vehicle's, a shell you called
+in. **Dying keeps half** of what you hadn't spent, so staying alive with your squad compounds.
+
+Spent from the call-in panel (it shows your points and every price):
+
+| Buy | Price | |
+|---|---|---|
+| An extra use | 400 | type a call-in that's cooling down or out of uses anyway; paid when the beacon leaves your hand (putting it away costs nothing), and its cooldown keeps running |
+| Recon Vehicle ◀▼▶▲ | 800 | a fast vehicle dropped on the beacon in its cradle (crushing whoever's under it), 60 s cooldown |
+| Tank Drop ◀▼◀▶▼ | 1200 | a tank, the same way, 150 s cooldown |
+| Hero ▲▲◀▼▶ | 2000 | your class super charged on the spot (not while it's charged or you're in your form) |
+
+A vehicle comes down in a drop cradle, four retro thrusters burning, facing the way you threw.
+On the ground the cradle lets go and lifts away; the vehicle is yours (one called vehicle each:
+an empty older one is scrapped). The HUD shows the total on the status panel and a line under the
+crosshair for each thing you did ("+100 TAKEDOWN", "+150 ASSIST ×3", a ticking DEFENDING), what you
+spent and what dying cost you; each comes with a small chime. In a six-minute 32v32 the best bots
+reach 3,000 points earned and spend some on extra strikes, a vehicle and the hero; most spend
+nothing before they die.
 
 ## Downs, ragdolls and reinforcements
 
@@ -356,7 +399,8 @@ dropships are arena-only).
 | Downs | Your bleed-out, give-up hold and revive progress; a revive prompt beside a downed teammate; red crosses over downed teammates |
 | Digging | Progress through foxhole, sandbags and trench |
 | Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
-| Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms; with a beacon in hand, which one and how to throw it; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
+| Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms, your battle points and every price (BUY 400 on one that's cooling down, lit when you can pay); with a beacon in hand, which one, how to throw it and what it will cost; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
+| Battle points (`BattlePointsHud`) | The total on the status panel; a line under the crosshair per thing you did, repeats adding up on one line, and what you spend or lose on death |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
 | Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
 | Suppression | The screen edges darken while rounds crack past you |

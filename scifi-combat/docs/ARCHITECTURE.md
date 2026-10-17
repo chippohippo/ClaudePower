@@ -80,6 +80,7 @@ scifi-combat/
 │  │      SupportCommand.js  CrewPilot.js   gun crews and drivers: posts, fire missions, convoys
 │  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
 │  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, think and pipeline LOD, waves)
+│  │        BattlePoints.js (earned for team play, spent on the call-in panel)
 │  │        frontline/ MapSizes.js (4v4–200v200)  FrontlineMap.js (a seeded map per size)  Trenches.js
 │  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules)
 │  │                   Logistics.js (supply war) → docs/FRONTLINE.md
@@ -103,6 +104,7 @@ scifi-combat/
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)
+│           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

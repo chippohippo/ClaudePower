@@ -3,13 +3,19 @@
   "arrowTime": 0.16,
   "beacon": { "speed": 21, "lift": 0.2, "gravity": 9.8, "life": 30 },
   "bots": {
-    "_note": "src/ai/CallInPlanner.js. every: s between call-ins of a kind for a side of `per` soldiers (a side of n waits every * per / n). cluster: enemies (a vehicle counts 3) a strike must catch. clear: no teammate within this of a strike's footprint, nor the thrower within selfClear. maxThrow: m.",
-    "every": { "strike": 8, "supply": 5, "smoke": 10, "sentry": 14 },
+    "_note": "src/ai/CallInPlanner.js. every: s between call-ins of a kind for a side of `per` soldiers (a side of n waits every * per / n). cluster: enemies (a vehicle counts 3) a strike must catch. clear: no teammate within this of a strike's footprint, nor the thrower within selfClear. maxThrow: m. buy: battle points a bot keeps after paying for anything (reserve), and how far off its objective must be before it drops itself a vehicle (far, m).",
+    "every": { "strike": 8, "supply": 5, "smoke": 10, "sentry": 14, "vehicle": 25, "hero": 30 },
     "per": 32,
     "cluster": { "precision_strike": 3, "strafing_run": 3, "airstrike": 3, "orbital_barrage": 4 },
     "clear": 15,
     "selfClear": 5,
-    "maxThrow": 40
+    "maxThrow": 40,
+    "buy": { "reserve": 400, "far": 120 }
+  },
+  "bp": {
+    "_note": "Battle points (data/battle-points.json, src/game/BattlePoints.js). extraUse: the price of typing a call-in that's cooling down or out of uses (paid when the beacon is thrown; its cooldown keeps running). slots: call-ins on every loadout that are only bought, each at its own bp price, with a cooldown after: a recon vehicle, a tank, the hero (your class super charged on the spot).",
+    "extraUse": 400,
+    "slots": ["recon_drop", "tank_drop", "hero"]
   },
   "common": ["supply_drop", "smoke_screen"],
   "loadouts": {
@@ -53,6 +59,18 @@
     "smoke_screen": {
       "name": "Smoke Screen", "code": "RUUD", "delay": 2, "cooldown": 70, "kind": "smoke",
       "payload": { "kind": "smoke", "count": 6, "length": 25, "radius": 4.5, "height": 7, "duration": 20 }
+    },
+    "recon_drop": {
+      "name": "Recon Vehicle", "code": "LDRU", "delay": 6, "cooldown": 60, "bp": 800, "kind": "vehicle",
+      "payload": { "kind": "pod", "contents": "vehicle", "vehicle": ["solari_hoverbike", "void_skiff"], "crush": 2.4 }
+    },
+    "tank_drop": {
+      "name": "Tank Drop", "code": "LDLRD", "delay": 8, "cooldown": 150, "bp": 1200, "kind": "vehicle",
+      "payload": { "kind": "pod", "contents": "vehicle", "vehicle": ["solari_lancer_tank", "void_crawler_tank"], "crush": 3.4 }
+    },
+    "hero": {
+      "name": "Hero", "code": "UULDR", "cooldown": 30, "bp": 2000, "kind": "hero",
+      "payload": { "kind": "instant", "effect": "super" }
     }
   },
   "shells": {

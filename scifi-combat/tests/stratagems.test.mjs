@@ -28,7 +28,7 @@ test('codes: a full code arms the beacon, a wrong arrow buzzes and clears, a spe
   const w = makeWorld();
   const A = w.fighter(1, 0, v(0, 0, 0), 'lancer', { role: 'assault' });
   const S = A.stratagems;
-  assert.deepEqual(S.slots.map((s) => s.id), ['supply_drop', 'smoke_screen', 'precision_strike', 'strafing_run'], 'common pair + the role\'s');
+  assert.deepEqual(S.slots.map((s) => s.id), ['supply_drop', 'smoke_screen', 'precision_strike', 'strafing_run', 'recon_drop', 'tank_drop', 'hero'], 'common pair + the role\'s + the ones bought with battle points');
   const ev = events(['stratagem:arrow', 'stratagem:error', 'stratagem:armed']);
   type(w, A, 'RRL');                       // R R is precision's start; L matches nothing
   assert.equal(ev.got.filter((x) => x.type === 'stratagem:error').length, 1, 'the wrong arrow buzzed');

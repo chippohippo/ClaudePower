@@ -203,6 +203,8 @@
     "blood": "#5e1410"
   },
   "stratagem": {
+    "vehicle": "#ffb347",
+    "hero": "#ffd84d",
     "strike": "#ff5a3c",
     "supply": "#4db3ff",
     "sentry": "#5dff8f",

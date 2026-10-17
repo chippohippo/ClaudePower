@@ -123,6 +123,13 @@ size (`bots.every`, s per kind at 32 soldiers a side). In a two-minute 32v32 tha
 strikes, eight sentries, eight smoke screens and a couple of supply drops, with no teammates killed
 by them. A 200v200 front sees several times that, at no measurable cost per tick.
 
+Battle points (`bots.buy`): a bot buys an extra use of a strike that's cooling down only if it
+keeps 400 points after paying. It buys the hero in a fight within 40 m. On foot with its objective
+more than 120 m off, no enemy near and no vehicle of ours within 30 m, a bot that likes vehicles
+drops itself the tank if it can keep its reserve, else the recon vehicle, 8 m to a side with no
+teammate within reach of the cradle; its pilot (`VehiclePilot`) then boards it like any other.
+Since dying halves a bot's points, most never save up; the best ones spend a few times a match.
+
 ### The whistle (`FrontlineCommander`)
 
 Squads ready in a trench report to the commander, who blows one whistle per trench line: 6 s after the

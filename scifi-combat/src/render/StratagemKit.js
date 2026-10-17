@@ -11,6 +11,9 @@
 //             with twin barrels and an ammo drum
 //  * jet      the strike craft that flies strafing runs and airstrikes: a heavy cranked-delta
 //             attack plane with canted twin tails, two big engines and bombs under the wings
+//  * cradle   the frame a vehicle is dropped in: four corner posts on skids, a top frame with a
+//             hazard-striped spine and the lift eye, four retro-thruster bells hung under the
+//             long beams (they fire all the way down and lift the empty frame away)
 
 import { CH, rbox, shell, cyl, lathe, tube, torus, quad, prism, merge } from './ModelKit.js';
 
@@ -153,4 +156,33 @@ export function jetModel({ fine = true } = {}) {
   }
   if (fine) for (const sx of [-1, 1]) b.push(shell(2.2, 0.32, 0.04, { corner: 0.03, nu: 4, nv: 1 }).paint(CH.hazard).rot(0, sx * -Math.PI / 2, 0).move(sx * 0.86, 0.1, -1.6));
   return { body: merge(b), nozzles };
+}
+
+// ---------------------------------------------------------------- vehicle drop cradle
+/**
+ * The frame round a vehicle of `size` { x, y, z } (m, as in vehicles.json): { body, thrusters }
+ * (the bells' mouths, for the flames). Faces -Z like the vehicle it carries.
+ */
+export function cradleModel(size) {
+  const b = [], hx = size.x / 2 + 0.4, hz = size.z / 2 + 0.35, top = size.y + 0.75;
+  const beam = (sx, sy, sz) => rbox(sx, sy, sz, { e1: 0.2, e2: 0.25, ws: 6, hs: 2 });
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) b.push(beam(0.22, top, 0.22).paint(CH.black, { dirt: (x, y) => Math.max(0, 0.7 - y * 0.25) }).move(sx * hx, top / 2, sz * hz));
+    b.push(beam(0.28, 0.32, hz * 2 + 0.34).paint(CH.armor, { dirt: 0.1 }).move(sx * hx, top, 0));          // the long beams
+    b.push(beam(0.32, 0.12, hz * 2 + 0.7).paint(CH.black, { dirt: 0.6 }).move(sx * hx, 0.06, 0));            // skids
+  }
+  for (const sz of [-1, 1]) b.push(beam(hx * 2 + 0.34, 0.3, 0.26).paint(CH.armor, { dirt: 0.1 }).move(0, top, sz * hz));
+  // The spine over the middle with the lift eye, and its hazard stripes.
+  b.push(beam(hx * 2, 0.24, 0.42).paint(CH.black).move(0, top + 0.06, 0));
+  b.push(beam(0.46, 0.36, hz * 2 - 0.2).paint(CH.hazard, { dirt: 0.15 }).move(0, top + 0.08, 0));
+  b.push(torus(0.24, 0.06, { seg: 12, radial: 4 }).paint(CH.metal).rot(0, 0, Math.PI / 2).move(0, top + 0.5, 0));
+  const thrusters = [];
+  for (const sx of [-1, 1]) for (const sz of [-0.5, 0.5]) {
+    // A bell hung under the beam, wide mouth down, on a black collar.
+    b.push(cyl(0.3, 0.17, 0.46, { seg: 10 }).paint(CH.metal, { dirt: 0.5 }).move(sx * hx, top - 0.66, sz * hz));
+    b.push(cyl(0.2, 0.2, 0.18, { seg: 10 }).paint(CH.black).move(sx * hx, top - 0.22, sz * hz));
+    thrusters.push([sx * hx, top - 0.72, sz * hz]);
+  }
+  for (const sz of [-1, 1]) b.push(number(0.5, 0.36).rot(0, sz > 0 ? 0 : Math.PI, 0).move(0, top, sz * (hz + 0.135)));
+  return { body: merge(b), thrusters, top };
 }

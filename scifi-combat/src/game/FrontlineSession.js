@@ -9,8 +9,9 @@
 //    every 2nd, 4th or 6th, with the last command held in between) → the same per-fighter
 //    pipeline players use (vehicles, movement, abilities, sword, guns; at 30 Hz for soldiers far
 //    from every camera) → world (projectiles, zones, deployables, vehicles) → melee resolve →
-//    logistics → mode → commanders → artillery and supply command → suppression → squad plans →
-//    reinforcement waves → nav repairs.
+//    logistics → mode → battle points → commanders → artillery and supply command → suppression →
+//    squad plans → reinforcement waves → nav repairs.
+//  * Battle points (data.battlePoints): earned for team play, spent from the call-in panel.
 //  * Reinforcements: the dead come back in waves, on their squad leader when it's safe, otherwise
 //    at the safe spawn nearest their front. Every death costs a ticket.
 
@@ -34,13 +35,15 @@ import { FortifySystem } from './frontline/Fortify.js';
 import { Logistics, COST } from './frontline/Logistics.js';
 import { SupportCommand } from '../ai/SupportCommand.js';
 import { parkSlot } from './frontline/FrontlineMap.js';
+import { BattlePoints } from './BattlePoints.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
 export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
-   *                         damageMatrix, supers, vehicleDefs, personalities, difficulty }
+   *                         damageMatrix, supers, vehicleDefs, personalities, difficulty, down, rules, stratagems,
+   *                         battlePoints }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
@@ -65,6 +68,7 @@ export class FrontlineSession {
       captureTime: M.captureTime, secureTime: M.secureTime, seed,
     });
     this.world.mode = this.mode;
+    this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
     this.world.wire = new WireField(this.map.wire);
     this.melee = new MeleeSystem();
     this.fighters = [];
@@ -120,6 +124,7 @@ export class FrontlineSession {
 
   dispose() {
     this.off.forEach((f) => f());
+    this.bp.dispose();
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
     this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
@@ -207,6 +212,7 @@ export class FrontlineSession {
     this.melee.resolve();
     this.logistics?.update(dt, this.fighters);
     this.mode.update(dt, this.fighters, w);
+    this.bp.update(dt);
     for (const c of this.commanders) c.update(dt);
     for (const sc of this.support ?? []) sc.update(dt);
     this.suppression.update(dt, this.fighters);

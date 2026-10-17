@@ -1,0 +1,24 @@
+{
+  "_note": "Battle points (src/game/BattlePoints.js, docs/GAMEPLAY_PLAN.md §5): earned for what helps the team, spent from the call-in panel. kill: downing an enemy (or killing him outright); finish: killing one who is down; assist: damage on him in the last assistWindow s; vehicle and object: destroying an enemy vehicle or deployable; resupply: per mag a teammate takes from your supply pod or ammo pack; heal: per HP of a teammate's you heal; build: a foxhole, sandbags or a trench link; repair: per HP; capture and neutralize: a point flipping while you stand on it; defend: per second on your team's point while the enemy contests it; deliver: per truckload brought to a depot; spot: an enemy you revealed downed by someone else; teamkill: a teammate downed or killed. deathKeeps: the share of your unspent points you keep when you die. Prices (extra uses, vehicle drops, the hero) are on the call-ins in stratagems.json.",
+  "earn": {
+    "kill": 100,
+    "finish": 25,
+    "assist": 50,
+    "vehicle": 250,
+    "object": 40,
+    "revive": 150,
+    "resupply": 40,
+    "heal": 1,
+    "build": 60,
+    "repair": 2,
+    "capture": 200,
+    "neutralize": 100,
+    "defend": 10,
+    "deliver": 80,
+    "spot": 30,
+    "teamkill": -150
+  },
+  "deathKeeps": 0.5,
+  "assistWindow": 10,
+  "start": 0
+}

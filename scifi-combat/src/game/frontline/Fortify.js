@@ -12,7 +12,7 @@
 // boxes (bullets, movement, nav, the tactical map, the renderer), and blasts can knock them down.
 // Each team may build `cap` positions per match (sized to the map). Sandbags cost supplies from the
 // forward depot when the match has logistics (`pay`); digging is free.
-// Events: fort:dig { id, stage, progress }, fort:built { team, kind, x, z }, fort:short { id, team }.
+// Events: fort:dig { id, stage, progress }, fort:built { team, kind, x, z, by }, fort:short { id, team }.
 
 import { Vector3 } from 'three';
 import { bus } from '../../core/EventBus.js';
@@ -65,9 +65,9 @@ export class FortifySystem {
       // Sandbags come from the forward depot: no supplies, no wall (the hole and trench are free).
       if (stage === 1 && this.pay && !this.pay(f.team)) { j.t = need; bus.emit('fort:short', { id: f.id, team: f.team }); return false; }
       j.t = 0;
-      if (stage === 0) this.#foxhole(site);
-      else if (stage === 1) this.#sandbags(site);
-      else this.#link(site, this.#linkTarget(site));
+      if (stage === 0) this.#foxhole(site, f);
+      else if (stage === 1) this.#sandbags(site, f);
+      else this.#link(site, this.#linkTarget(site), f);
     }
     return true;
   }
@@ -114,7 +114,7 @@ export class FortifySystem {
     return site;
   }
 
-  #foxhole(site) {
+  #foxhole(site, by) {
     const t = this.terrain;
     site.started = true;
     t?.carveDisc(site.x, site.z, 1.15, 0.65, 0.22);
@@ -122,10 +122,10 @@ export class FortifySystem {
     site.stage = 1;
     this.#settle(site.x - 2, site.z - 2, site.x + 2, site.z + 2);
     site.spot = this.tmap?.addFort?.(site) ?? null;
-    bus.emit('fort:built', { team: site.team, kind: 'foxhole', x: site.x, z: site.z });
+    bus.emit('fort:built', { team: site.team, kind: 'foxhole', x: site.x, z: site.z, by: by?.id });
   }
 
-  #sandbags(site) {
+  #sandbags(site, by) {
     const t = this.terrain, cx = site.x + site.face * 1.05, z0 = site.z - 1.2, z1 = site.z + 1.2;
     const x0 = cx - 0.3, x1 = cx + 0.3;
     let lo = Infinity, hi = -Infinity;
@@ -138,7 +138,7 @@ export class FortifySystem {
     this.world.nav?.updateRegion(x0 - 1, z0 - 1, x1 + 1, z1 + 1);
     bus.emit('world:coverAdded', { cover: box });
     if (site.spot) { site.spot.fire = 'over'; site.spot.h = 1.45; }
-    bus.emit('fort:built', { team: site.team, kind: 'sandbags', x: site.x, z: site.z });
+    bus.emit('fort:built', { team: site.team, kind: 'sandbags', x: site.x, z: site.z, by: by?.id });
   }
 
   /** The nearest friendly position this one isn't joined to yet, within LINK_RANGE. */
@@ -152,7 +152,7 @@ export class FortifySystem {
     return best;
   }
 
-  #link(a, b) {
+  #link(a, b, by) {
     if (!b) return;
     const t = this.terrain;
     // A zigzag in plan would be truer to life; a straight cut between two holes reads fine and
@@ -164,7 +164,7 @@ export class FortifySystem {
     }
     a.links.add(b); b.links.add(a);
     this.#settle(Math.min(a.x, b.x) - 2, Math.min(a.z, b.z) - 2, Math.max(a.x, b.x) + 2, Math.max(a.z, b.z) + 2);
-    bus.emit('fort:built', { team: a.team, kind: 'trench', x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, from: [a.x, a.z], to: [b.x, b.z] });
+    bus.emit('fort:built', { team: a.team, kind: 'trench', x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, from: [a.x, a.z], to: [b.x, b.z], by: by?.id });
   }
 
   /** Ground changed: the nav re-reads slopes there (the renderer reads terrain.dirty itself). */
