@@ -16,6 +16,8 @@ import { routeCommand } from './core/routing.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { kitFor } from './render/TrooperKit.js';
+import { vehicleModel } from './render/VehicleKit.js';
+import { paintMaterial } from './render/TrooperMaterial.js';
 
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
@@ -83,6 +85,7 @@ async function scene3d() {
   let focus = new THREE.Vector3();
   if (station === 'sky') skyStation(scene, views, atmo);
   if (station === 'troopers') await troopersStation(scene, views, atmo);
+  if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   const viewNames = Object.keys(views);
   let view = params.get('view') ?? viewNames[0];
   const setView = (name) => {
@@ -272,4 +275,49 @@ async function troopersStation(scene, views, atmo) {
   views.squad = { pos: y(at(-21, 5.5), 1.6), look: y(at(-21.3, -1.5), 0.8), fov: 46, note: 'a Solari squad in combat poses' };
   views.mid = { pos: y(at(0, 22), 2.2), look: y(mid, 1.0), fov: 50, note: 'both armies at mid range' };
   window.__art.people = people;
+}
+
+// Both armies' vehicles and guns in a row each, posed: turrets turned, guns set up and laid,
+// trucks loaded, rocket racks raised.
+async function vehiclesStation(scene, views, atmo) {
+  const { t } = scorchedGround(scene, { seed: 13, amp: 1, size: 400, z0: -200, flat: [[0, 0, 60]], craters: 25, spread: [300, 160] });
+  const file = await fetch('./data/vehicles.json').then((r) => r.json());
+  const defs = file.vehicles ?? file;
+  const camAz = (planet.sun.azimuth - 40) * Math.PI / 180;
+  const fwd = new THREE.Vector3(Math.sin(camAz), 0, -Math.cos(camAz)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const at = (a, f = 0) => new THREE.Vector3().addScaledVector(right, a).addScaledVector(fwd, f);
+  const facing = Math.atan2(fwd.x, fwd.z) + Math.PI;       // the models face -Z: turn them toward the camera
+  const ORDER = ['hoverbike', 'skiff', 'tank', 'crawler', 'field_gun', 'at_gun', 'rocket', 'supply', 'dawnship', 'carrier'];
+  const rank = (k) => ORDER.findIndex((o) => k.includes(o));
+  const place = (type, def, team, pos, yaw) => {
+    const M = vehicleModel(def, type), mat = paintMaterial(palette, { team, number: (type.length * 13) % 100 });
+    const mesh = (g) => { const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true; return m; };
+    const root = new THREE.Group();
+    root.position.copy(pos).setY(t.height(pos.x, pos.z) + (def.model === 'hover' ? 0.15 : 0));
+    root.rotation.y = yaw;
+    root.add(mesh(M.body));
+    if (M.turret) { const tu = new THREE.Group(); tu.position.y = M.turretY; tu.rotation.y = 0.5; tu.add(mesh(M.turret)); root.add(tu); }
+    const tr = def.gun?.trunnion ?? [0, 1, 0];
+    if (M.barrel || M.rack) {
+      const pivot = new THREE.Group(); pivot.position.set(tr[0], tr[1], tr[2]); pivot.rotation.y = 0.15;
+      const elev = new THREE.Group(); elev.rotation.x = M.rack ? 0.5 : 0.22; pivot.add(elev);
+      elev.add(mesh(M.barrel ?? M.rack)); root.add(pivot);
+    }
+    if (M.trail) for (const side of [-1, 1]) { const h = new THREE.Group(); h.position.set(side * 0.18, tr[1] * 0.42, tr[2] + 0.3); h.rotation.y = side * 0.34; h.add(mesh(M.trail)); root.add(h); }
+    if (M.leg) for (const [sx, sz] of [[-1, -0.3], [1, -0.3], [-1, 0.35], [1, 0.35]]) { const l = mesh(M.leg); l.position.set(sx * (def.size.x * 0.5 + 0.15), 0.25, sz * def.size.z); root.add(l); }
+    if (M.crate) for (let i = 0; i < 6; i++) { const c = mesh(M.crate); c.position.set((i % 2 ? 1 : -1) * def.size.x * 0.22, def.size.y * 0.42 + 0.37, def.size.z * (-0.05 + Math.floor(i / 2) * 0.17)); c.rotation.y = (i % 3 - 1) * 0.04; root.add(c); }
+    scene.add(root);
+  };
+  const rows = [Object.keys(defs).filter((k) => k.startsWith('solari')), Object.keys(defs).filter((k) => k.startsWith('void'))];
+  rows.forEach((list, team) => {
+    list.sort((a, b) => rank(a) - rank(b));
+    let x = -30;
+    for (const k of list) { const d = defs[k]; x += d.size.x / 2 + 2.5; place(k, d, team, at(x, -team * 16), facing + 0.6); x += d.size.x / 2 + 2.5; }
+  });
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  views.solari = { pos: y(at(-4, 22), 5), look: y(at(-4, 0), 1.2), fov: 50, note: 'Solari vehicles: hoverbike, light tank, field gun, AT gun, rocket battery, supply truck, dropship' };
+  views.void = { pos: y(at(-4, 6), 5), look: y(at(-4, -16), 1.2), fov: 50, note: 'Void vehicles, same order' };
+  views.tank = { pos: y(at(-14, 8), 2.6), look: y(at(-18.5, 0), 1.2), fov: 45, note: 'light tank up close' };
+  views.guns = { pos: y(at(-4, 7), 2.2), look: y(at(-7, 0), 0.9), fov: 48, note: 'field gun and AT gun, set up' };
+  views.trucks = { pos: y(at(12, 10), 3.2), look: y(at(9, 0), 1.4), fov: 48, note: 'rocket battery and supply truck' };
 }

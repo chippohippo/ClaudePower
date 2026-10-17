@@ -91,7 +91,7 @@ for (const f of session.fighters) {
 anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
-const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach) });
+const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette });
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam });
 const fx = new BattleFx(scene, { fog: scene.fog });
 

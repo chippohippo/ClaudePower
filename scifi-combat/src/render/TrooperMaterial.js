@@ -13,7 +13,9 @@
 //  * Decals: a stencilled two-digit number (iA.z) and each faction's cape emblem, drawn from
 //    aUv and cut out (discard) round the strokes.
 //  * Hazard channel: diagonal stripes, armor color and black.
-// The same bone and decal patches go into the shadow (depth) material.
+// The same bone and decal patches go into the shadow (depth) material. paintMaterial() is the
+// same paint without the bones, for static models (vehicles, guns): faction, number, tint and
+// glow are per-material uniforms.
 
 import * as THREE from 'three';
 import { CH, NCH } from './ModelKit.js';
@@ -182,4 +184,50 @@ export function trooperMaterials(palette, bones, factionKeys = ['solari', 'void'
   };
   depth.customProgramCacheKey = () => 'trooper-depth';
   return { material, depth, uniforms };
+}
+
+const STATIC_VERT_COMMON = `
+attribute vec4 aMat;
+attribute vec2 aUv;
+uniform float uTeam, uNumber, uTint;
+uniform vec3 uGlow;
+varying vec4 vMat;
+varying vec3 vLocal;
+varying vec2 vDecal;
+varying vec4 vI;
+varying vec3 vE;`;
+
+/**
+ * The trooper paint for a static model (a vehicle): one material per model, so its own damage
+ * tint (uTint), status glow (uGlow) and number. The program is shared by all of them.
+ * @returns {THREE.MeshStandardMaterial} with .paint = { team, number, tint, glow } uniforms
+ */
+export function paintMaterial(palette, { team = 0, number = 0, factionKeys = ['solari', 'void'] } = {}) {
+  const shared = (paintMaterial.cache ??= new Map());
+  const key = factionKeys.join();
+  if (!shared.has(key)) {
+    const pal = [];
+    for (const k of factionKeys) pal.push(...factionColors(palette.factions[k], palette.materials));
+    shared.set(key, {
+      uPal: { value: pal }, uSurf: { value: Object.entries(CH).sort((a, b) => a[1] - b[1]).map(([k]) => new THREE.Vector4(...SURF[k])) },
+      uBare: { value: new THREE.Color('#b3aea4') }, uDust: { value: new THREE.Color(palette.vfx?.dust ?? '#b9976a').multiplyScalar(0.9) },
+    });
+  }
+  const paint = { uTeam: { value: team }, uNumber: { value: number }, uTint: { value: 1 }, uGlow: { value: new THREE.Color(0, 0, 0) } };
+  const material = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, shared.get(key), paint);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\n${STATIC_VERT_COMMON}`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMat = aMat; vLocal = position + vec3(uNumber * 0.731, uNumber * 0.377, 0.0); vDecal = aUv; vI = vec4(0.0, uTeam, uNumber, uTint); vE = uGlow;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${FRAG_COMMON}`)
+      .replace('#include <color_fragment>', COLOR)
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = tkRough;')
+      .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = tkMetal;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += tkGlow + vE;');
+  };
+  material.customProgramCacheKey = () => 'paint-static';
+  material.paint = paint;
+  return material;
 }

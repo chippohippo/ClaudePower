@@ -324,12 +324,28 @@ export function torus(R, r, { seg = 24, radial = 6, arc = Math.PI * 2 } = {}) {
   return Part.from(new THREE.TorusGeometry(R, r, radial, seg, arc).rotateX(Math.PI / 2)).autoWear(0.3);
 }
 
-/** A flat quad facing -Z, w by h, centred, uv 0..1 (decals: stencils, emblems). */
+/**
+ * A flat quad facing -Z, w by h, centred, uv 0..1 (decals: stencils, emblems). Seen from the
+ * side it faces, u runs left to right and v bottom to top (from -Z the viewer's right is -X),
+ * so text reads true however the quad is turned.
+ */
 export function quad(w, h) {
   const P = [], N = [], U = [];
-  const v = [[-w / 2, -h / 2, 0, 0], [w / 2, -h / 2, 1, 0], [w / 2, h / 2, 1, 1], [-w / 2, h / 2, 0, 1]];
+  const v = [[-w / 2, -h / 2, 1, 0], [w / 2, -h / 2, 0, 0], [w / 2, h / 2, 0, 1], [-w / 2, h / 2, 1, 1]];
   for (const k of [0, 2, 1, 0, 3, 2]) { P.push(v[k][0], v[k][1], 0); N.push(0, 0, -1); U.push(v[k][2], v[k][3]); }
   return new Part(Float32Array.from(P), Float32Array.from(N), Float32Array.from(U));
+}
+
+/**
+ * A prism: a 2D outline [[u, v], ...] extruded `depth` with bevelled edges, centred on the
+ * extrusion, laid along an axis:
+ *   'x'  a side profile: u forward (toward -Z), v up, extruded across X (hulls, cabs)
+ *   'y'  a plan: u right (+X), v forward (toward -Z), extruded up from y = 0 (turrets, decks)
+ */
+export function prism(outline, depth, axis = 'x', { bevel = 0.02 } = {}) {
+  const p = plate(outline, depth, { bevel, bevelSegs: 1 }).autoWear(0.12);   // face toward -Z, back at 0; big flat walls: wear by noise only
+  if (axis === 'x') return p.rot(0, Math.PI / 2, 0).move(depth / 2, 0, 0);
+  return p.rot(-Math.PI / 2, 0, 0).move(0, depth, 0);
 }
 
 /** A chamfered rectangle outline (w by h, corners cut by c; per-corner [tl, tr, br, bl] allowed). */

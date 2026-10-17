@@ -1,32 +1,35 @@
-// VehicleViews: graybox presentation for vehicles. Read-only; reads VehicleSystem state each frame.
+// VehicleViews: vehicles and guns in the art direction's kit (render/VehicleKit.js: faction
+// paint, black and gunmetal mechanics, hazard stripes, stencilled numbers, work lights). Read-only;
+// reads VehicleSystem state each frame.
 //
-// Readability: team-colored hulls (enemy = red trim), a turret that visibly lags the camera
-// (its turn rate is the counterplay), a glowing rear weak-spot vent, an HP bar above enemy vehicles,
-// a boost flame, darkening and smoke at low HP, and exposed riders drawn on top of bikes.
+// Readability: the faction's paint, a turret that visibly lags the camera (its turn rate is the
+// counterplay), a glowing rear weak-spot vent, an HP bar above enemy vehicles, a boost flame,
+// darkening and smoke at low HP, and exposed riders drawn on top of bikes.
 // Field guns: wheels, shield and a split trail that spreads when the gun is set up, the barrel laid
 // and elevated where the sim has it (it recoils on every shot); rocket batteries raise their rack
 // and drop their stabilizers; supply trucks show their cargo as crates in the bed.
-// Distance LOD (a 200v200 front has ~80 vehicles of 10-20 meshes each): the full model up close,
-// one team-colored block past DETAIL m, nothing past the fog.
+// Distance LOD (a 200v200 front has ~80 vehicles): the full model up close, one painted block
+// past DETAIL m, nothing past the fog.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
+import { vehicleModel } from '../render/VehicleKit.js';
+import { paintMaterial } from '../render/TrooperMaterial.js';
+import { DEFAULT_PALETTE } from '../render/CrowdRenderer.js';
+import { CH, rbox, merge } from '../render/ModelKit.js';
 
-const TEAM = ['#d9a441', '#6b3fa0'];
-const ENEMY_TRIM = '#ff3b5c';
-const STEEL = '#3a3d42', DARK = '#1d1f22', WOOD = '#7a5a36';
-const box = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.7 }));
-const wheel = (r, w) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 14), new THREE.MeshStandardMaterial({ color: DARK, roughness: 0.9 })); m.rotation.z = Math.PI / 2; return m; };
 const DETAIL = 160;                                   // m: past this a vehicle is one block
-const BLOCK = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+const BLOCK = merge([rbox(1, 1, 1, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.armor).move(0, 0.5, 0)]);
+const MODELS = new Map();                             // type -> the kit's geometries (shared by every vehicle of a type)
 
 export class VehicleViews {
-  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end) } */
-  constructor(scene, world, { localTeam = 0, far = 540 } = {}) {
+  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end), palette (palette.json) } */
+  constructor(scene, world, { localTeam = 0, far = 540, palette = DEFAULT_PALETTE } = {}) {
     this.scene = scene;
     this.world = world;
     this.localTeam = localTeam;
     this.far = far;
+    this.palette = palette;
     this.views = new Map();
     this.time = 0;
     bus.on('vehicle:spawn', (e) => this.#add(e));
@@ -41,50 +44,21 @@ export class VehicleViews {
     const v = this.world.vehicles.list.find((x) => x.id === e.id);
     if (!v) return;
     const d = v.def;
-    const color = TEAM[v.team] ?? '#888';
-    const trim = v.team === this.localTeam ? color : ENEMY_TRIM;
-    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.4, roughness: 0.6 });
+    if (!MODELS.has(v.type)) MODELS.set(v.type, vehicleModel(d, v.type));
+    const M = MODELS.get(v.type);
+    // One material per vehicle: its own damage darkening and status glow, the shared program.
+    const mat = paintMaterial(this.palette, { team: v.team, number: (v.id * 29 + 7) % 100 });
+    const mesh = (geo) => { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; return m; };
     const root = new THREE.Group();
     const parts = { mat };
-    if (d.model === 'gun') this.#fieldGun(v, root, parts, mat, trim);
-    else {
-      const truck = !!(d.gun || d.cargo);   // trucks: a low chassis under the cab and bed
-      const hull = new THREE.Mesh(new THREE.BoxGeometry(d.size.x, d.size.y * (truck ? 0.18 : d.model === 'tracked' ? 0.55 : 0.6), d.size.z), mat);
-      hull.position.y = d.size.y * (truck ? 0.3 : 0.3);
-      hull.castShadow = true;
-      root.add(hull);
-      parts.hull = hull;
-      // Trim stripe: the fastest team read at range.
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(d.size.x * 1.02, 0.12, d.size.z * 1.02), new THREE.MeshBasicMaterial({ color: trim }));
-      stripe.position.y = d.size.y * 0.3;
-      root.add(stripe);
-    }
-
-    if (d.model === 'gun') { /* built above */ }
-    else if (d.gun || d.cargo) this.#truck(v, root, parts, mat);
-    else if (d.model === 'tracked') {
-      const turret = new THREE.Group(); turret.position.y = d.size.y * 0.75;
-      const dome = new THREE.Mesh(new THREE.CylinderGeometry(d.size.x * 0.32, d.size.x * 0.38, d.size.y * 0.4, 16), mat);
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, d.size.z * 0.7, 10), new THREE.MeshStandardMaterial({ color: '#333' }));
-      barrel.rotation.x = Math.PI / 2; barrel.position.z = -d.size.z * 0.4;
-      turret.add(dome, barrel);
+    root.add(mesh(M.body));
+    if (d.model === 'gun') this.#fieldGun(v, root, parts, M, mesh);
+    else if (d.gun || d.cargo) this.#truck(v, root, parts, M, mesh);
+    else if (M.turret) {
+      const turret = new THREE.Group(); turret.position.y = M.turretY;
+      turret.add(mesh(M.turret));
       root.add(turret);
       parts.turret = turret;
-      for (const side of [-1, 1]) {
-        const track = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, d.size.z * 1.05), new THREE.MeshStandardMaterial({ color: '#222' }));
-        track.position.set(side * (d.size.x / 2 + 0.2), 0.35, 0);
-        root.add(track);
-      }
-    } else if (d.model === 'flyer') {
-      for (const side of [-1, 1]) {
-        const wing = new THREE.Mesh(new THREE.BoxGeometry(d.size.x * 0.6, 0.2, d.size.z * 0.4), mat);
-        wing.position.set(side * d.size.x * 0.75, d.size.y * 0.4, 0.5);
-        root.add(wing);
-      }
-    } else {
-      const nose = new THREE.Mesh(new THREE.ConeGeometry(d.size.x * 0.45, d.size.z * 0.4, 8), mat);
-      nose.rotation.x = -Math.PI / 2; nose.position.set(0, d.size.y * 0.3, -d.size.z * 0.65);
-      root.add(nose);
     }
     // Rear weak spot glows so players learn where to shoot.
     if (d.weakSpot === 'rear') {
@@ -94,8 +68,7 @@ export class VehicleViews {
     }
     // Boost flame (hover vehicles) and low-HP smoke puffs.
     const flame = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.6, 10), new THREE.MeshBasicMaterial({ color: v.team === 0 ? '#ffcf6b' : '#a970ff', transparent: true, opacity: 0.85 }));
-    flame.rotation.x = Math.PI / 2; flame.position.set(0, d.size.y * 0.3, d.size.z / 2 + 0.8); flame.visible = false;
-    if (d.model !== 'hover') flame.visible = false;
+    flame.rotation.x = Math.PI / 2; flame.position.set(0, d.size.y * 0.45, d.size.z / 2 + 0.8); flame.visible = false;
     root.add(flame);
     parts.flame = flame;
     const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), new THREE.MeshBasicMaterial({ color: '#222', transparent: true, opacity: 0.5, depthWrite: false }));
@@ -105,14 +78,14 @@ export class VehicleViews {
     // HP bar (enemies only; your own HP is on the HUD).
     if (v.team !== this.localTeam) {
       const bg = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.6, depthTest: false }));
-      const fg = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18).translate(1, 0, 0), new THREE.MeshBasicMaterial({ color: ENEMY_TRIM, depthTest: false }));
+      const fg = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18).translate(1, 0, 0), new THREE.MeshBasicMaterial({ color: '#ff3b5c', depthTest: false }));
       fg.position.x = -1; fg.position.z = 0.01;
       const bar = new THREE.Group(); bar.add(bg, fg); bar.position.y = d.size.y + 1.2;
       bar.renderOrder = 10; root.add(bar);
       parts.bar = bar; parts.fg = fg;
     }
-    // LOD: the model built above, or past DETAIL a block of the hull's material (so it darkens
-    // with damage too). The HP bar stays on the root.
+    // LOD: the model built above, or past DETAIL a painted block (it darkens with damage too).
+    // The HP bar stays on the root.
     const full = new THREE.Group();
     for (const c of [...root.children]) if (c !== parts.bar) full.add(c);
     const block = new THREE.Mesh(BLOCK, mat);
@@ -144,9 +117,9 @@ export class VehicleViews {
       if (parts.crates) { const k = v.cargo / (v.def.cargo || 1); parts.crates.forEach((c, i) => { c.visible = i < Math.ceil(k * parts.crates.length - 1e-6); }); }
       parts.flame.visible = v.boostTime > 0;
       if (parts.flame.visible) parts.flame.scale.setScalar(0.9 + Math.sin(this.time * 40) * 0.15);
-      const hpFrac = v.health.hp / v.health.max;
-      parts.mat.emissive.set(v.status.silenced ? '#1f3a66' : '#000');
-      parts.mat.color.set(TEAM[v.team]).multiplyScalar(0.4 + 0.6 * hpFrac);
+      const hpFrac = v.health.hp / v.health.max, paint = parts.mat.paint;
+      paint.uGlow.value.set(v.status.silenced ? '#1f3a66' : '#000');
+      paint.uTint.value = 0.4 + 0.6 * hpFrac;
       parts.smoke.visible = hpFrac < 0.35;
       if (parts.smoke.visible) { parts.smoke.position.y = v.def.size.y + ((this.time * 2) % 1.5); parts.smoke.material.opacity = 0.6 - ((this.time * 2) % 1.5) * 0.35; }
       if (parts.bar) {
@@ -158,70 +131,49 @@ export class VehicleViews {
   }
 
   /**
-   * A towed field piece: axle and wheels, a shield, a split trail toward the rear (spread and
-   * spaded when set up), and the barrel on its trunnion.
+   * A towed field piece: the kit's carriage (axle, wheels, shield), a split trail toward the
+   * rear (spread and spaded when set up), and the barrel on its trunnion.
    */
-  #fieldGun(v, root, parts, mat, trim) {
-    const d = v.def, g = d.gun, W = d.size.x, L = d.size.z, small = g.kind === 'at';
-    const tr = g.trunnion ?? [0, 1, 0];
-    const axle = box(W * 0.85, 0.22, 0.3, STEEL); axle.position.set(0, tr[1] * 0.5, tr[2] + 0.2); root.add(axle);
-    for (const side of [-1, 1]) { const w = wheel(small ? 0.45 : 0.62, 0.22); w.position.set(side * W * 0.46, small ? 0.45 : 0.62, tr[2] + 0.2); root.add(w); }
-    const shield = new THREE.Mesh(new THREE.BoxGeometry(W * 0.92, small ? 0.8 : 1.05, 0.06), mat);
-    shield.position.set(0, tr[1] * 0.75, tr[2] - 0.15); shield.rotation.x = -0.12; shield.castShadow = true; root.add(shield);
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(W * 0.94, 0.1, 0.07), new THREE.MeshBasicMaterial({ color: trim }));
-    stripe.position.set(0, tr[1] * 0.75 + (small ? 0.3 : 0.42), tr[2] - 0.16); root.add(stripe);
+  #fieldGun(v, root, parts, M, mesh) {
+    const d = v.def, g = d.gun, tr = g.trunnion ?? [0, 1, 0];
     // Trail legs, hinged at the axle; they swing apart when the gun is set up.
     parts.trail = [];
     for (const side of [-1, 1]) {
       const hinge = new THREE.Group(); hinge.position.set(side * 0.18, tr[1] * 0.42, tr[2] + 0.3);
-      const leg = box(0.16, 0.16, L * 0.55, STEEL); leg.position.z = L * 0.27; leg.rotation.x = 0.16; leg.position.y = -0.2;
-      const spade = box(0.5, 0.35, 0.08, DARK); spade.position.set(0, -0.42, L * 0.53);
-      hinge.add(leg, spade); hinge.userData.side = side; root.add(hinge); parts.trail.push(hinge);
+      hinge.add(mesh(M.trail)); hinge.userData.side = side; root.add(hinge); parts.trail.push(hinge);
     }
     // The barrel: yaw and elevation on the trunnion, recoiling along its own axis.
     const pivot = new THREE.Group(); pivot.position.set(tr[0], tr[1], tr[2]);
     const elev = new THREE.Group(); pivot.add(elev);
-    const len = g.barrel ?? 2;
-    const tube = new THREE.Mesh(new THREE.CylinderGeometry(small ? 0.07 : 0.11, small ? 0.09 : 0.14, len, 12), new THREE.MeshStandardMaterial({ color: STEEL, metalness: 0.6, roughness: 0.4 }));
-    tube.rotation.x = Math.PI / 2; tube.position.z = -len / 2;
-    const cradle = box(0.36, 0.3, 0.9, STEEL); cradle.position.z = 0.1;
-    const slide = new THREE.Group(); slide.add(tube);
-    elev.add(cradle, slide);
+    const slide = new THREE.Group(); slide.add(mesh(M.barrel));
+    elev.add(slide);
     root.add(pivot);
     Object.assign(parts, { pivot, elev, slide, recoil: 0, spread: 0 });
   }
 
-  /** Rocket battery or supply truck: a cab up front, then the launcher rack or the cargo bed. */
-  #truck(v, root, parts, mat) {
+  /** Rocket battery or supply truck: the kit's cab and chassis, then the launcher rack or the cargo crates. */
+  #truck(v, root, parts, M, mesh) {
     const d = v.def, W = d.size.x, L = d.size.z, H = d.size.y;
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(W * 0.92, H * 0.5, L * 0.26), mat);
-    cab.position.set(0, H * 0.62, -L * 0.36); cab.castShadow = true; root.add(cab);
-    const glass = box(W * 0.8, H * 0.18, 0.05, '#28323c'); glass.position.set(0, H * 0.72, -L * 0.495); root.add(glass);
-    for (const z of [-0.33, 0.05, 0.33]) for (const side of [-1, 1]) { const w = wheel(0.5, 0.35); w.position.set(side * W * 0.47, 0.5, z * L); root.add(w); }
     if (d.cargo) {
-      const bed = box(W * 0.9, 0.12, L * 0.62, WOOD); bed.position.set(0, H * 0.42, L * 0.16); root.add(bed);
       parts.crates = [];
       for (let i = 0; i < 6; i++) {
-        const c = box(W * 0.38, 0.62, 0.9, '#8c6a3f');
+        const c = mesh(M.crate);
         c.position.set((i % 2 ? 1 : -1) * W * 0.22, H * 0.42 + 0.37, L * (-0.05 + Math.floor(i / 2) * 0.17));
+        c.rotation.y = (i % 3 - 1) * 0.04;
         root.add(c); parts.crates.push(c);
       }
-      const hitch = box(0.16, 0.16, 0.7, DARK); hitch.position.set(0, 0.7, L * 0.5 + 0.2); root.add(hitch);
       return;
     }
     // Rocket battery: a box of tubes on a turntable, and four stabilizer legs.
     const g = d.gun, tr = g.trunnion ?? [0, 2.3, 1];
     const pivot = new THREE.Group(); pivot.position.set(tr[0], tr[1], tr[2]);
     const elev = new THREE.Group(); pivot.add(elev);
-    const rack = new THREE.Mesh(new THREE.BoxGeometry(W * 0.75, 0.9, 2.4), mat);
-    rack.position.z = -0.6; rack.castShadow = true;
-    const face = box(W * 0.7, 0.8, 0.04, DARK); face.position.z = -1.82;
-    const slide = new THREE.Group(); slide.add(rack, face);
+    const slide = new THREE.Group(); slide.add(mesh(M.rack));
     elev.add(slide);
     root.add(pivot);
     parts.legs = [];
     for (const [sx, sz] of [[-1, -0.3], [1, -0.3], [-1, 0.35], [1, 0.35]]) {
-      const leg = box(0.18, 1, 0.18, STEEL); leg.position.set(sx * (W * 0.5 + 0.15), 0.6, sz * L); root.add(leg); parts.legs.push(leg);
+      const leg = mesh(M.leg); leg.position.set(sx * (W * 0.5 + 0.15), 0.6, sz * L); root.add(leg); parts.legs.push(leg);
     }
     Object.assign(parts, { pivot, elev, slide, recoil: 0, spread: 0 });
   }
@@ -251,7 +203,9 @@ export class VehicleViews {
     const view = this.views.get(id);
     if (!view) return;
     this.scene.remove(view.root);
-    view.root.traverse((o) => o.geometry?.dispose());
+    // The kit's geometries are shared by every vehicle of the type: only the per-vehicle bits go.
+    view.root.traverse((o) => { if (o.material && o.material !== view.parts.mat) { o.geometry?.dispose(); o.material.dispose?.(); } });
+    view.parts.mat.dispose();
     this.views.delete(id);
   }
 }
