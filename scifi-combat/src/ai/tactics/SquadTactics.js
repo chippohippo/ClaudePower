@@ -163,7 +163,7 @@ export class SquadTactics {
       if (t && b.sawAt >= b.time - 0.6 && !t.health?.dead) this.#spot(t, now);
       if (m.health.lastBy !== undefined && m.health.sinceDamage < 1.5) {
         const e = this.world.entity(m.health.lastBy);
-        if (e && e.team !== team && e.movement && !e.health?.dead && pos(e).distanceTo(pos(m)) < 120) this.#spot(e, now);
+        if (e && this.world.hostile(m, e) && e.movement && !e.health?.dead && pos(e).distanceTo(pos(m)) < 120) this.#spot(e, now);
       }
     }
     for (const [id, c] of this.contacts) if (now - c.t > MEMORY || c.e.health?.dead) this.contacts.delete(id);

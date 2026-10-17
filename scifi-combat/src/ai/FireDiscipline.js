@@ -1,7 +1,10 @@
 // FireDiscipline: friendly fire is on (data/rules.json), so every bot that pulls a trigger, throws
 // a grenade or lays a gun checks first that no teammate stands in the line of fire (a body's
 // width either side of it) or inside the blast round the aim point. A person steps aside for a
-// clean line; so do the bots (CombatBotBrain picks a new strafe when this says no).
+// clean line; so do the bots (CombatBotBrain picks a new strafe when this says no). A civilian in
+// the way counts as one of ours (Teams.js), unless he's the one shooting at us.
+
+import { CIVILIAN } from '../combat/Teams.js';
 
 /**
  * @param {CombatWorld} world
@@ -18,7 +21,8 @@ export function lineClearOfFriends(world, team, from, to, { width = 0.9, splash 
   let ok = true;
   _c.x = from.x + dx / 2; _c.y = from.y; _c.z = from.z + dz / 2;
   world.fightersNear(_c, l / 2 + splash + 2, (e) => {
-    if (!ok || e === exclude || e.team !== team || e.health.dead || e.isVehicle || (e.vehicle && !e.vehicle.exposed)) return;
+    // Our own, and a civilian minding his own business: nobody fires through either.
+    if (!ok || e === exclude || !(e.team === team || (e.team === CIVILIAN && !world.hostileTo(team, e))) || e.health.dead || e.isVehicle || (e.vehicle && !e.vehicle.exposed)) return;
     const p = e.movement.state.position, px = p.x - from.x, py = p.y + 1.0 - from.y, pz = p.z - from.z;
     const t = px * ux + py * uy + pz * uz;
     if (t > 0.4 && t < l + 0.6) {

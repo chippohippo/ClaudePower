@@ -28,6 +28,7 @@ export const data = {
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
   down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'), battlePoints: J('battle-points.json'),
   passives: J('passives.json'), support: J('support.json'), humanoid: J('animation/humanoid.json'), barks: J('ai/barks.json'),
+  civilians: J('civilians.json'),
 };
 export const DT = 1 / 60;
 let lastBp = null, lastBarks = null;
@@ -91,6 +92,13 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
     return e;
   }
 
+  /** Run an entity built elsewhere (the city's people: Neutrals.buildPerson) by its own e.brain. */
+  function adopt(e) {
+    if (e.melee) melee.add(e.melee);
+    fighters.set(e, { brain: e.brain, prev: new Set(), press: new Set(), hold: new Set() });
+    return e;
+  }
+
   let tick = 0;
   function step(n = 1) {
     for (let i = 0; i < n; i++) {
@@ -130,5 +138,5 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
   /** Mark a point for indirect fire (what the fire-control view or a fire mission sends). */
   const target = (e, x, z) => Object.assign(fighters.get(e), { target: x == null ? null : [x, z] });
   const brainOf = (e) => fighters.get(e)?.brain;
-  return { world, fighter, bot, brainOf, press, hold, release, aim, aimAt, move, target, step, seconds };
+  return { world, fighter, bot, adopt, brainOf, press, hold, release, aim, aimAt, move, target, step, seconds };
 }

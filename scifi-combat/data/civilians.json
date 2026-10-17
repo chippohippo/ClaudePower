@@ -1,0 +1,7 @@
+{
+  "_note": "The city's other people (src/game/Neutrals.js, src/ai/CivilianBrain.js, src/combat/Teams.js, src/combat/WeaponDrops.js). Civilians: perPlayers civilians per soldier in the match (between min and max), never armed at the start; brave: the share who will pick a gun up off the field and defend themselves with it; groups: the share sheltering together (groupSize), all brave, a gun cache in their shelter now and then (cache); defend: how close (m) an armed stranger may come before an armed civilian opens up (groupDefend for a group at its shelter); health. Bandits: gangs per map size, size members each, armed with guns, holding a turf of radius m against both armies (they don't chase past it). Drops: the chance a dying fighter drops his gun, how long (s) it lies, how many at most.",
+  "civilians": { "perPlayers": 0.45, "min": 6, "max": 64, "health": 70, "brave": 0.4, "groups": 0.3, "groupSize": [3, 5], "cache": 0.6, "defend": 12, "groupDefend": 18, "hear": 45, "see": 28 },
+  "bandits": { "gangs": { "4v4": 0, "12v12": 1, "32v32": 2, "64v64": 3, "200v200": 5 }, "size": [4, 6], "health": 120, "turf": 30, "difficulty": "recruit", "persona": "aggressive", "guns": ["sol_smg_wasp", "void_smg_leech", "sol_sg_lantern", "void_sg_maw", "sol_br_verdict", "void_ar_gnaw"] },
+  "drops": { "chance": 0.6, "ttl": 150, "max": 60 },
+  "gangs": ["Rust Saints", "Neon Jackals", "Static Kings", "Chrome Widows", "Ninth Ward", "Glass Dogs", "Low Tide", "Blackwire"]
+}

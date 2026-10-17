@@ -30,6 +30,7 @@
 // throw a moment later. Rushed by an enemy at close range, it lets go or puts the beacon away;
 // a strike's cluster gone by the time the beacon is in hand, it puts it away.
 
+import { CIVILIAN } from '../combat/Teams.js';
 import { Vector3 } from 'three';
 import { ARROW_KEYS, capsuleDist, lowOnAmmo } from '../combat/Stratagems.js';
 import { ballisticPitch } from './AbilityPlanner.js';
@@ -246,7 +247,7 @@ export class CallInPlanner {
     const self = this.b.self;
     let n = 0, sx = 0, sy = 0, sz = 0, w = 0;
     this.b.world.fightersNear(p, r, (e) => {
-      if (e.team === self.team || e.health.dead || e.health.downed || e.isDeployable) return;
+      if (!this.b.world.hostile(self, e) || e.health.dead || e.health.downed || e.isDeployable) return;
       const q = e.movement.state.position;
       if (hyp(q.x - p.x, q.z - p.z) > r) return;
       const k = e.isVehicle ? 3 : 1;
@@ -260,7 +261,7 @@ export class CallInPlanner {
     const self = this.b.self, L = hyp(zone.bx - zone.ax, zone.bz - zone.az);
     let n = 0;
     this.b.world.fightersNear(posOf((zone.ax + zone.bx) / 2, (zone.az + zone.bz) / 2), zone.r + pad + L / 2, (e) => {
-      if (e.team === self.team || e.health.dead || e.health.downed || e.isDeployable) return;
+      if (!this.b.world.hostile(self, e) || e.health.dead || e.health.downed || e.isDeployable) return;
       const q = e.movement.state.position;
       if (capsuleDist(zone, q.x, q.z) < pad) n += e.isVehicle ? 3 : 1;
     });
@@ -272,7 +273,7 @@ export class CallInPlanner {
     const self = this.b.self, L = hyp(zone.bx - zone.ax, zone.bz - zone.az);
     let ok = true;
     this.b.world.fightersNear(posOf((zone.ax + zone.bx) / 2, (zone.az + zone.bz) / 2), zone.r + clear + L / 2, (e) => {
-      if (!ok || e === self || e.team !== self.team || e.health.dead || e.isDeployable) return;
+      if (!ok || e === self || !(e.team === self.team || (e.team === CIVILIAN && !this.b.world.hostile(self, e))) || e.health.dead || e.isDeployable) return;   // (nor a civilian under it)
       const q = e.movement.state.position;
       if (capsuleDist(zone, q.x, q.z) < clear) ok = false;
     });
@@ -288,7 +289,7 @@ export class CallInPlanner {
     for (const t of turns) {
       const yaw = s.yaw + t, x = me.x - Math.sin(yaw) * d, z = me.z - Math.cos(yaw) * d;
       let taken = false;                                                     // a pod crushes: nobody of ours on or near the spot
-      w.fightersNear(posOf(x, z), clear + 1, (e) => { if (!taken && e !== self && e.team === self.team && !e.health.dead && hyp(e.movement.state.position.x - x, e.movement.state.position.z - z) < clear) taken = true; });
+      w.fightersNear(posOf(x, z), clear + 1, (e) => { if (!taken && e !== self && (e.team === self.team || e.team === CIVILIAN) && !e.health.dead && hyp(e.movement.state.position.x - x, e.movement.state.position.z - z) < clear) taken = true; });
       if (taken) continue;
       const y = w.groundHeight?.(posOf(x, z)) ?? me.y;
       _o.set(me.x, me.y + 1.5, me.z); _d.set(x - me.x, y + 0.5 - _o.y, z - me.z);

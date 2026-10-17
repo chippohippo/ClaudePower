@@ -17,7 +17,9 @@
 //
 // Three body weights (light, medium, heavy), six helmets, role gear (packs, antennas, the
 // medic's armband: gear may hang on any bone), seven weapons, the cape; each at two detail
-// levels (near: every pouch, strap and stencil; mid: the silhouette and paint).
+// levels (near: every pouch, strap and stencil; mid: the silhouette and paint). And the city's
+// people (src/game/Neutrals.js): street clothes and faces for its civilians, scavenged plates
+// and masks for its gangs ("The city's people", below).
 
 import { CH, rbox, shell, plate, cyl, lathe, tube, torus, quad, merge, tris } from './ModelKit.js';
 
@@ -396,6 +398,195 @@ function weapon(arch, L) {
   return bind(out, BONE.gun, 0.05);
 }
 
+// ---------------------------------------------------------------- the city's people
+// Civilians and the gangs wear no army's armor. Street clothes: a jacket or a long coat (the
+// collar up behind the neck, a neon line along it), trousers, street boots; a face (the skin
+// channel) under a hood, a cap or bare hair; a bag. A gang's raider wears the same under a
+// scavenged plate and one big spiked pauldron, with a jaw mask, goggles and a crest. The shader
+// varies their colours person to person from the stencil number, which these people never wear
+// (TrooperMaterial: jackets, accents, neon and skin; a gang's colour on its raiders).
+// Bodies: coat | jacket | raider. Heads: civhood | civcap | civhair | raider. Gear: satchel | pack.
+
+/** Chest: the jacket, its collar and neon line, lapels, a zip; a raider's plate and shell belt. */
+function streetChest(L, kind) {
+  const raider = kind === 'raider';
+  const out = [rb(L, 0.35, 0.42, 0.22, { e1: 0.6, e2: 0.65 }).paint(CH.suit).move(0, 0.02, 0.01)];
+  // The collar stands up round the back of the neck, open at the front.
+  const collar = (p) => p.rot(-0.15, Math.PI, 0).move(0, 0.215, 0.055);
+  out.push(collar(sh(L, 0.27, 0.1, 0.02, { corner: [0.03, 0.03, 0, 0], curveY: 0.11, nu: L.fine ? 8 : 3, nv: 2 }).paint(CH.suit)));
+  if (L.fine && !raider) out.push(collar(sh(L, 0.25, 0.008, 0.004, { corner: 0, nu: 8, nv: 1, bevel: 0.001 }).move(0, 0.046, -0.02).bendY(0.11).paint(CH.lamp)));
+  // Lapels folded back either side of the open front, and the zip.
+  for (const sx of [-1, 1]) out.push(sh(L, 0.075, 0.17, 0.012, { corner: [0.03, 0, 0.012, 0], nu: 2, nv: 3 }).paint(raider ? CH.suit : CH.cape).rot(0.08, sx * 0.4, 0).move(sx * 0.065, 0.095, -0.112));
+  if (L.fine) out.push(rb(L, 0.012, 0.34, 0.01, { e1: 0.2, e2: 0.2, hs: 3 }).paint(CH.metal).move(0, -0.02, -0.116));
+  for (const sx of [-1, 1]) out.push(rb(L, 0.12, 0.07, 0.2, { e1: 0.5, e2: 0.6 }).paint(CH.suit).move(sx * 0.15, 0.17, 0.005));   // the shoulders
+  if (raider) {
+    // A dented plate strapped over the chest, a belt of shells across it.
+    const pl = sh(L, 0.29, 0.23, 0.035, { corner: [0.07, 0.03, 0.04, 0.08], bevel: 0.01, nu: L.fine ? 6 : 2, nv: L.fine ? 5 : 2 }).paint(CH.armor);
+    if (L.fine) pl.warp((p) => { p.z += Math.sin(p.x * 31 + 1) * Math.sin(p.y * 23) * 0.004; });
+    out.push(pl.bendY(0.2).move(0, 0.055, -0.098));
+    out.push(tube([[0.17, 0.2, -0.105], [0.03, 0.02, -0.142], [-0.165, -0.17, -0.105]], 0.016, { seg: L.fine ? 12 : 4, radial: 4 }).paint(CH.webbing));
+    if (L.fine) for (let i = 0; i < 5; i++) out.push(cyl(0.011, 0.011, 0.045, { seg: 6 }).paint(CH.metal).rot(0, 0, 0.82).move(0.115 - i * 0.055, 0.14 - i * 0.06, -0.152));
+  }
+  return bind(out, BONE.chest, 0.04);
+}
+
+/** Abdomen: the jacket's waist, a band at its hem. */
+function streetAbdomen(L, kind) {
+  const out = [rb(L, 0.3, 0.36, 0.21, { e1: 0.7, e2: 0.7 }).paint(CH.suit).move(0, 0.17, 0)];
+  if (kind === 'jacket') out.push(rb(L, 0.31, 0.05, 0.22, { e1: 0.3, e2: 0.7 }).paint(CH.cape).move(0, 0.04, 0));
+  return bind(out, BONE.abdomen, 0.05);
+}
+
+/** Pelvis: trousers (a coat's hips), the belt, a raider's pouches. */
+function streetPelvis(L, kind) {
+  const out = [rb(L, 0.32, 0.22, 0.22, { e1: 0.5, e2: 0.6 }).paint(kind === 'coat' ? CH.suit : CH.gear).move(0, -0.04, 0)];
+  out.push(rb(L, 0.335, 0.045, 0.232, { e1: 0.15, e2: 0.75 }).paint(CH.black).move(0, 0.04, 0));
+  if (L.fine) out.push(rb(L, 0.05, 0.035, 0.02, { e1: 0.2, e2: 0.2 }).paint(CH.metal).move(0, 0.04, -0.118));
+  if (kind === 'raider') for (const sx of [-1, 1]) out.push(rb(L, 0.07, 0.1, 0.09, { e1: 0.3, e2: 0.3 }).paint(CH.webbing).move(sx * 0.165, -0.01, -0.04));
+  return bind(out, BONE.pelvis, 0.1);
+}
+
+/** Upper arm: the sleeve; a raider's right shoulder carries the gang's spiked pauldron. */
+function streetUpperArm(L, kind, right) {
+  const out = [lt(L, [[0.056, -0.03], [0.066, 0.04], [0.066, 0.15], [0.058, 0.26], [0.054, 0.3]]).paint(CH.suit)];
+  if (kind === 'raider' && right) {
+    const s = 0.25, bend = (p) => p.bendY(0.066).bendX(0.08);
+    const cap = [sh(L, s, s * 0.92, 0.032, { corner: [0.03, 0.06, 0.07, 0.03], curveY: 0.066, curveX: 0.08, bevel: 0.01, nu: L.fine ? 9 : 3, nv: L.fine ? 8 : 3 }).paint(CH.armor)];
+    if (L.fine) {
+      cap.push(sh(L, s * 0.9, 0.03, 0.02, { corner: 0.01, curveY: 0.066, nu: 8, nv: 1 }).paint(CH.trim).bendX(0.08).move(0, s * 0.38, -0.014));   // a stripe in the gang's colour
+      for (const [u, v] of [[-0.06, 0.05], [0.02, 0.075], [0.07, 0.02], [-0.01, -0.01]]) cap.push(bend(cyl(0.016, 0, 0.07, { seg: 6 }).paint(CH.metal).rot(-Math.PI / 2, 0, 0).move(u, v, -0.028)));
+    }
+    for (const p of cap) p.rot(0, -Math.PI / 2, 0).rot(0, 0, -0.75).move(0.04, -0.02, 0);
+    out.push(...cap);
+  }
+  return out;
+}
+
+/** Forearm: the sleeve to a cuff, and the hand (bare for a civilian, gloved for a raider). */
+function streetForeArm(L, kind) {
+  const out = [lt(L, [[0.052, -0.015], [0.055, 0.06], [0.05, 0.2], [0.046, 0.24]]).paint(CH.suit)];
+  out.push(lt(L, [[0.05, 0.215], [0.053, 0.22], [0.053, 0.255], [0.048, 0.26]]).paint(kind === 'raider' ? CH.black : CH.cape));
+  out.push(rb(L, 0.07, 0.095, 0.055, { e1: 0.5, e2: 0.55 }).paint(kind === 'raider' ? CH.black : CH.skin).move(0, 0.31, 0));
+  if (kind === 'raider' && L.fine) out.push(lathe([[0.056, 0.06], [0.06, 0.1], [0.057, 0.17], [0.05, 0.2]], { seg: 10, phi0: -0.3, phiLen: Math.PI * 1.1 }).paint(CH.armor));   // a bracer
+  return out;
+}
+
+/** Thigh: the trousers; a coat's tails hang round the back and outside of each leg. */
+function streetThigh(L, kind) {
+  const out = [lt(L, [[0.086, -0.03], [0.098, 0.06], [0.094, 0.22], [0.08, 0.38], [0.07, 0.46]]).paint(CH.gear)];
+  if (kind === 'coat') {
+    // Wrapped round the thigh from behind (its axis at the bone), flaring a little toward the knee.
+    out.push(sh(L, 0.32, 0.46, 0.016, { corner: [0, 0, 0.02, 0.02], curveY: 0.108, nu: L.fine ? 8 : 3, nv: L.fine ? 6 : 2 })
+      .paint(CH.suit).move(0, 0.17, -0.108).taper((y) => 1 + Math.max(0, y - 0.05) * 0.32).rot(0, -0.55, 0));
+  }
+  if (kind === 'raider' && L.fine) out.push(rb(L, 0.05, 0.12, 0.09, { e1: 0.3, e2: 0.3 }).paint(CH.webbing).move(0.095, 0.17, 0));
+  return bind(out, 0, climb(REF.thigh, 0.1, 0.22));
+}
+
+/** Shin: the trousers into the boot; a raider's knee pad. */
+function streetShin(L, kind) {
+  const out = [lt(L, [[0.07, -0.02], [0.076, 0.08], [0.07, 0.26], [0.062, 0.4], [0.06, 0.46]]).paint(CH.gear)];
+  if (kind === 'raider') out.push(rb(L, 0.1, 0.11, 0.06, { e1: 0.35, e2: 0.45 }).paint(CH.armor).move(0, 0.015, 0.06));
+  out.push(lt(L, [[0.062, 0.36], [0.069, 0.38], [0.068, 0.45], [0.062, 0.47]]).paint(kind === 'raider' ? CH.gear : CH.black));   // the boot's top
+  return bind(out, 0, climb(REF.shin, 0.22, 0.75));
+}
+
+/** Foot: a street boot, a pale sole (a raider's: heavy, treaded). */
+function streetBoot(L, kind) {
+  const raider = kind === 'raider';
+  const out = [
+    rb(L, 0.1, 0.105, 0.24, { e1: 0.4, e2: 0.5 }).paint(raider ? CH.gear : CH.black).move(0, -0.028, -0.05),
+    rb(L, 0.108, 0.032, 0.262, { e1: 0.25, e2: 0.4 }).paint(raider ? CH.rubber : CH.white).move(0, -0.064, -0.054),
+  ];
+  if (L.fine && !raider) out.push(rb(L, 0.102, 0.008, 0.25, { e1: 0.2, e2: 0.5, hs: 3 }).paint(CH.lamp).move(0, -0.046, -0.054));   // the sole's light strip
+  return bind(out, 0, 0.7);
+}
+
+/** A whole street body (coat, jacket or raider): 14 bones, one geometry. */
+function streetBody(kind, L) {
+  const parts = [...streetChest(L, kind), ...streetAbdomen(L, kind), ...streetPelvis(L, kind)];
+  const th = streetThigh(L, kind), sn = streetShin(L, kind), bt = streetBoot(L, kind);
+  parts.push(...bind(streetUpperArm(L, kind, true), BONE.upperArmR, 0.04), ...bind(mirror(streetUpperArm(L, kind, false)), BONE.upperArmL, 0.04));
+  parts.push(...bind(streetForeArm(L, kind), BONE.foreArmR, 0.05), ...bind(mirror(streetForeArm(L, kind)), BONE.foreArmL, 0.05));
+  parts.push(...bind(th, BONE.thighR), ...bind(mirror(th), BONE.thighL));
+  parts.push(...bind(sn, BONE.shinR), ...bind(mirror(sn), BONE.shinL));
+  parts.push(...bind(bt, BONE.footR), ...bind(mirror(bt), BONE.footL));
+  return parts;
+}
+
+/** The people's heads (head bone): a face, and a hood, a cap, hair, or a raider's mask and crest. */
+function streetHead(type, L) {
+  const out = [];
+  // The face: skull, jaw, nose, ears, the neck under it.
+  out.push(rb(L, 0.185, 0.23, 0.21, { e1: 0.62, e2: 0.62 }).paint(CH.skin).move(0, 0.035, 0));
+  out.push(rb(L, 0.145, 0.11, 0.15, { e1: 0.55, e2: 0.6 }).paint(CH.skin).move(0, -0.05, -0.028));
+  out.push(cyl(0.05, 0.054, 0.1, { seg: L.fine ? 10 : 5 }).paint(CH.skin).move(0, -0.17, 0.012));
+  if (L.fine) {
+    out.push(rb(L, 0.026, 0.05, 0.04, { e1: 0.5, e2: 0.5 }).paint(CH.skin).rot(-0.15, 0, 0).move(0, 0.0, -0.104));
+    for (const sx of [-1, 1]) out.push(rb(L, 0.022, 0.05, 0.035, { e1: 0.5, e2: 0.5 }).paint(CH.skin).move(sx * 0.094, 0.015, 0.012));
+    for (const sx of [-1, 1]) out.push(rb(L, 0.03, 0.012, 0.01, { e1: 0.4, e2: 0.4 }).paint(CH.black).move(sx * 0.038, 0.032, -0.104));   // brows
+  }
+  const glasses = (h = 0.036) => {
+    // Wraparound glasses: dark glass with a lit line along them (the city's neon).
+    out.push(sh(L, 0.19, h, 0.014, { corner: 0.01, curveY: 0.11, nu: L.fine ? 6 : 2, nv: 1 }).paint(CH.glass).move(0, 0.03, -0.1));
+    out.push(sh(L, 0.15, 0.005, 0.004, { corner: 0, curveY: 0.11, nu: L.fine ? 6 : 2, nv: 1, bevel: 0.001 }).paint(CH.visor).move(0, 0.03 - h * 0.25, -0.1145));
+  };
+  const hair = (top = 0.12) => out.push(rb(L, 0.2, top, 0.225, { e1: 0.55, e2: 0.6 }).paint(CH.black).move(0, 0.095 + (top - 0.12) / 2, 0.012));
+  if (type === 'civhood') {
+    // A hood up over the head, the face showing from it; the hood's drape behind the neck.
+    out.push(rb(L, 0.235, 0.27, 0.25, { e1: 0.6, e2: 0.62 }).paint(CH.cape).move(0, 0.05, 0.036));
+    out.push(sh(L, 0.28, 0.19, 0.02, { corner: [0.02, 0.02, 0.06, 0.06], curveY: 0.14, nu: L.fine ? 6 : 3, nv: L.fine ? 4 : 2 }).paint(CH.cape).rot(-0.35, Math.PI, 0).move(0, -0.1, 0.105));
+    glasses();
+    out.push(sh(L, 0.14, 0.075, 0.022, { corner: [0.01, 0.01, 0.03, 0.03], curveY: 0.09, nu: L.fine ? 5 : 2, nv: 2 }).paint(CH.black).move(0, -0.06, -0.098));   // a mask over the mouth
+  } else if (type === 'civcap') {
+    // Hair, a cap with a stiff brim, a respirator with two filters.
+    hair(0.1);
+    out.push(rb(L, 0.205, 0.09, 0.225, { e1: 0.4, e2: 0.6, bottom: 0 }).paint(CH.cape).move(0, 0.09, 0.008));
+    out.push(sh(L, 0.17, 0.09, 0.01, { corner: [0, 0, 0.04, 0.04], curveY: 0.12, nu: L.fine ? 5 : 2, nv: 2 }).paint(CH.cape).rot(-Math.PI / 2 + 0.12, 0, 0).move(0, 0.1, -0.1));
+    out.push(rb(L, 0.12, 0.08, 0.06, { e1: 0.4, e2: 0.45 }).paint(CH.black).move(0, -0.06, -0.098));
+    for (const sx of [-1, 1]) out.push(cyl(0.022, 0.024, 0.03, { seg: L.fine ? 10 : 5 }).paint(CH.metal).rot(Math.PI / 2, 0, sx * 0.6).move(sx * 0.045, -0.07, -0.125));
+    if (L.fine) out.push(rb(L, 0.03, 0.01, 0.006, { e1: 0.3, e2: 0.3 }).paint(CH.lamp).move(0, -0.045, -0.13));
+  } else if (type === 'civhair') {
+    // Hair swept up and back; an implant's light at the temple; a scarf round the neck.
+    hair(0.13);
+    out.push(rb(L, 0.15, 0.06, 0.2, { e1: 0.5, e2: 0.6 }).paint(CH.black).rot(0.25, 0, 0).move(0, 0.165, 0.02));
+    if (L.fine) out.push(rb(L, 0.006, 0.03, 0.03, { e1: 0.3, e2: 0.3 }).paint(CH.lamp).move(0.096, 0.035, -0.035));
+    glasses(0.03);
+    out.push(torus(0.075, 0.03, { seg: L.fine ? 16 : 8, radial: 5 }).paint(CH.cape).scale(1, 1.4, 1).move(0, -0.15, 0.005));
+  } else if (type === 'raider') {
+    // A crest down the shaved head in the gang's colour, goggles, a bone-white jaw mask.
+    out.push(rb(L, 0.19, 0.08, 0.215, { e1: 0.55, e2: 0.6, bottom: 0 }).paint(CH.black).move(0, 0.115, 0.01));
+    const crest = rb(L, 0.04, 0.1, 0.24, { e1: 0.3, e2: 0.35, ws: L.fine ? 10 : 6, hs: L.fine ? 8 : 4 }).paint(CH.trim).move(0, 0.175, 0.02);
+    if (L.fine) crest.warp((p) => { if (p.y > 0.17) p.y += Math.abs(Math.sin(p.z * 60)) * 0.03 * (p.y - 0.17) / 0.05; });
+    out.push(crest);
+    out.push(torus(0.104, 0.009, { seg: L.fine ? 18 : 8, radial: 4 }).paint(CH.black).scale(1, 1, 1.08).move(0, 0.035, 0.005));   // the goggles' strap
+    for (const sx of [-1, 1]) {
+      out.push(cyl(0.03, 0.03, 0.03, { seg: L.fine ? 12 : 6 }).paint(CH.black).rot(Math.PI / 2, 0, 0).move(sx * 0.045, 0.035, -0.115));
+      out.push(cyl(0.022, 0.022, 0.004, { seg: L.fine ? 12 : 6 }).paint(CH.visor).rot(Math.PI / 2, 0, 0).move(sx * 0.045, 0.035, -0.133));
+    }
+    out.push(sh(L, 0.155, 0.1, 0.03, { corner: [0.01, 0.01, 0.045, 0.045], curveY: 0.085, nu: L.fine ? 6 : 2, nv: L.fine ? 3 : 2 }).paint(CH.white).move(0, -0.06, -0.098));
+    if (L.fine) for (let i = -2; i <= 2; i++) out.push(rb(L, 0.006, 0.04, 0.008, { e1: 0.2, e2: 0.2, hs: 3 }).paint(CH.black).move(i * 0.022, -0.072, -0.129));   // its teeth
+  }
+  return bind(out, BONE.head, 0);
+}
+
+/** The people's gear (chest bone): a satchel on its strap, a small pack. */
+function streetGear(type, L) {
+  const out = [];
+  if (type === 'satchel') {
+    out.push(rb(L, 0.2, 0.15, 0.075, { e1: 0.3, e2: 0.35 }).paint(CH.gear).rot(0, -0.35, 0).move(0.15, -0.43, -0.05));
+    out.push(rb(L, 0.205, 0.07, 0.08, { e1: 0.25, e2: 0.3 }).paint(CH.cape).rot(0, -0.35, 0).move(0.15, -0.38, -0.052));
+    out.push(tube([[-0.13, 0.21, -0.02], [-0.06, 0.12, -0.13], [0.06, -0.12, -0.13], [0.14, -0.36, -0.08]], 0.01, { seg: L.fine ? 14 : 4, radial: 4 }).paint(CH.black));
+    out.push(tube([[-0.13, 0.21, -0.02], [-0.03, 0.08, 0.12], [0.1, -0.15, 0.11], [0.17, -0.36, 0.0]], 0.01, { seg: L.fine ? 14 : 4, radial: 4 }).paint(CH.black));
+  } else if (type === 'pack') {
+    out.push(rb(L, 0.23, 0.29, 0.12, { e1: 0.35, e2: 0.4 }).paint(CH.gear).move(0, -0.02, 0.17));
+    out.push(rb(L, 0.235, 0.09, 0.125, { e1: 0.3, e2: 0.35 }).paint(CH.cape).move(0, 0.1, 0.172));
+    for (const sx of [-1, 1]) out.push(tube([[sx * 0.09, 0.21, 0.08], [sx * 0.1, 0.2, -0.08], [sx * 0.11, 0.0, -0.13], [sx * 0.1, -0.15, 0.06]], 0.011, { seg: L.fine ? 12 : 4, radial: 4 }).paint(CH.black));
+    if (L.fine) out.push(rb(L, 0.16, 0.006, 0.006, { e1: 0.2, e2: 0.2, hs: 3 }).paint(CH.lamp).move(0, -0.06, 0.232));
+  }
+  return bind(out, BONE.chest, 0.05);
+}
+
 // ---------------------------------------------------------------- far impostor
 /**
  * Far LOD: a ~150-triangle trooper standing at the origin facing -Z (1.8 m), painted by
@@ -418,6 +609,17 @@ export function impostorGeometry() {
   return merge(P);
 }
 
+/**
+ * One of the city's people's kit (data/art/troopers.json `people`): a civilian's street clothes,
+ * a raider's; one of each list, picked by the person's id so he always looks the same.
+ */
+export function peopleKit(table, kind, id) {
+  const P = table?.people?.[kind] ?? (kind === 'bandit' ? { body: ['raider'], helmet: ['raider'], gear: [null] } : { body: ['coat', 'jacket'], helmet: ['civhood', 'civcap', 'civhair'], gear: ['satchel', null] });
+  const h = (Math.imul(id + 1, 2654435761) >>> 0) / 4294967296;
+  const pick = (list, k) => list[Math.floor(((h * k) % 1) * list.length)];
+  return { body: pick(P.body, 7.3), helmet: pick(P.helmet, 13.7), gear: pick(P.gear, 29.1) ?? null, cape: false };
+}
+
 /** A role's kit from the authored table (data/art/troopers.json), with defaults filled in. */
 export function kitFor(table, role) {
   const k = table?.roles?.[role] ?? table?.default ?? {};
@@ -435,6 +637,10 @@ export function buildKit() {
   for (const w of ['light', 'medium', 'heavy']) kit.body[w] = two((L) => body(w, L));
   for (const h of ['light', 'medium', 'heavy', 'crest', 'hood', 'pilot']) kit.helmet[h] = two((L) => helmet(h, L));
   for (const g of ['standard', 'radio', 'antenna', 'tools', 'medic', 'bandolier']) kit.gear[g] = two((L) => gear(g, L));
+  // The city's people.
+  for (const w of ['coat', 'jacket', 'raider']) kit.body[w] = two((L) => streetBody(w, L));
+  for (const h of ['civhood', 'civcap', 'civhair', 'raider']) kit.helmet[h] = two((L) => streetHead(h, L));
+  for (const g of ['satchel', 'pack']) kit.gear[g] = two((L) => streetGear(g, L));
   for (const a of Object.keys(GUN_LENGTH)) kit.weapon[a] = two((L) => weapon(a, L));
   return kit;
 }

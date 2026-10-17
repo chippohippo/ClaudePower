@@ -339,7 +339,7 @@ export class DeployableSystem {
   /** cb(e) for each live enemy of `d` within r of p (through the entity grid on big maps). */
   #enemiesNear(d, p, r, cb) {
     this.world.fightersNear(p, r, (e) => {
-      if (e.team === d.team || e.health.dead || e.movement.state.invulnerable) return;
+      if (e.health.dead || e.movement.state.invulnerable || !this.world.hostileTo(d.team, e)) return;   // (a turret never shoots a civilian minding his own business)
       if (e.movement.state.position.distanceTo(p) <= r) cb(e);
     });
   }

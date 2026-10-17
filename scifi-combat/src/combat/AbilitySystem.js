@@ -238,7 +238,7 @@ function forwardOf(c) {
   const y = c.casting.aimYaw, p = c.casting.aimPitch ?? 0;
   return _fwd.set(-Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p));
 }
-function enemiesOf(c, list) { return list.filter((e) => e.team !== c.owner.team && e.health && !e.movement?.state.invulnerable); }
+function enemiesOf(c, list) { return list.filter((e) => e.health && !e.movement?.state.invulnerable && (c.world.hostileTo ? c.world.hostileTo(c.owner.team, e) : e.team !== c.owner.team)); }
 function alliesOf(c, list) { return list.filter((e) => e.team === c.owner.team && e.health); }
 
 function hitEntities(c, fx, targets, slot) {

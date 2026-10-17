@@ -12,5 +12,10 @@
     "flameKnight":   { "body": "heavy",  "helmet": "crest",  "gear": "standard" },
     "demolitionist": { "body": "heavy",  "helmet": "heavy",  "gear": "bandolier" }
   },
-  "default": { "body": "medium", "helmet": "medium", "gear": "standard" }
+  "default": { "body": "medium", "helmet": "medium", "gear": "standard" },
+  "_people": "The city's people (src/game/Neutrals.js; meshes in TrooperKit.js 'The city's people'): each picks one of each list by its id. body: coat | jacket | raider. helmet: civhood | civcap | civhair | raider. gear: satchel | pack | null. No capes.",
+  "people": {
+    "civilian": { "body": ["coat", "jacket"], "helmet": ["civhood", "civcap", "civhair"], "gear": ["satchel", "pack", null] },
+    "bandit":   { "body": ["raider"], "helmet": ["raider"], "gear": [null, "pack", null] }
+  }
 }

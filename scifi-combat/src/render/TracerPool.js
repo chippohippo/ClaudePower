@@ -45,16 +45,19 @@ export class TracerPool {
   /**
    * @param {THREE.Scene} scene
    * @param {object} o { max, getEntity(id) -> { team }, speed (m/s), streak (m), width (m),
-   *                    look: a planet's `fx.bolts` { speed, streak, width, friendly, enemy },
+   *                    look: a planet's `fx.bolts` { speed, streak, width, friendly, enemy, neutral },
    *                    localTeam (whose side is "friendly"), muzzle(id, outVec3) -> bool }
    */
   constructor(scene, { max = 600, getEntity = () => null, speed = 450, streak = 7, width = 0.06, look = null, localTeam = 0, muzzle = null } = {}) {
     this.max = max; this.getEntity = getEntity; this.muzzle = muzzle;
     this.speed = look?.speed ?? speed; this.streak = look?.streak ?? streak; this.width = look?.width ?? width;
     this.glow = look?.glow ?? 1.6;
-    // Colours by team: the factions', or friend and foe from where you stand.
+    // Colours by team: the factions', or friend and foe from where you stand; a civilian's
+    // neutral, a gang's the enemy's (they're everyone's).
     const F = look?.friendly && new THREE.Color(look.friendly), E = look?.enemy && new THREE.Color(look.enemy);
-    this.colors = F && E ? (localTeam === 0 ? [F, E] : [E, F]) : TEAM;
+    this.colors = F && E ? (localTeam === 0 ? [F, E] : [E, F]) : [...TEAM];
+    this.colors[2] = new THREE.Color(look?.neutral ?? '#ffd98a');
+    this.colors[3] = E ?? new THREE.Color('#ff5a3a');
 
     const quad = new THREE.InstancedBufferGeometry();
     quad.setAttribute('position', new THREE.Float32BufferAttribute([0, -1, 0, 1, -1, 0, 0, 1, 0, 1, 1, 0], 3));

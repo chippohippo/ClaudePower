@@ -6,8 +6,11 @@
 //    Every kit mesh is rigidly skinned to those bones (TrooperMaterial), so one body mesh of a
 //    weight draws every trooper wearing it in a single call.
 //  * The kit by role (look.kit: body weight, helmet, role gear) and weapon archetype; paint by
-//    faction (look.team), a stencilled number per trooper (look.number), status glow
-//    (look.status: i-frames blue, vulnerable red, Scorch orange, transform auras).
+//    faction (look.team: the two armies, the city's civilians and gangs), a stencilled number per
+//    trooper (look.number; a civilian's colours, a raider's gang), status glow (look.status:
+//    i-frames blue, vulnerable red, Scorch orange, transform auras).
+//  * Rim light (look.rim, else by faction): the armies' colours; a civilian a neutral one (red
+//    while he fights you: the caller sets look.rim = crowd.rimHostile); a gang's raiders red.
 //  * LOD: near rigs inside `nearDist` draw the near kit (every pouch, strap and stencil); the
 //    rest of the rigs draw the mid kit (silhouette and paint); far fighters are one ~200-triangle
 //    impostor posed by stance (upright, crouched or lying).
@@ -111,9 +114,11 @@ export class CrowdRenderer {
     this.bones = new THREE.DataTexture(new Float32Array(NBONES * 4 * max * 4), NBONES * 4, max, THREE.RGBAFormat, THREE.FloatType);
     this.bones.magFilter = this.bones.minFilter = THREE.NearestFilter;
     this.mats = trooperMaterials(palette, this.bones);
-    // Rim light by faction (palette factions.*.rim, ui.rim: strength and sharpness); a look's `rim` overrides it.
-    const R = palette.ui?.rim ?? {}, k = R.strength ?? 1.6;
-    this.rims = ['solari', 'void'].map((f, i) => Object.assign(new THREE.Color(palette.factions?.[f]?.rim ?? ['#ffb43a', '#b07cff'][i]).multiplyScalar(k), { w: R.power ?? 3 }));
+    // Rim light by faction (palette factions.*.rim, ui.rim: strength and sharpness; civilians
+    // ui.rim.civilian, the gangs ui.rim.hostile); a look's `rim` overrides it.
+    const R = palette.ui?.rim ?? {}, k = R.strength ?? 1.6, rim = (c) => Object.assign(new THREE.Color(c).multiplyScalar(k), { w: R.power ?? 3 });
+    this.rimHostile = rim(R.hostile ?? '#ff3a2a');
+    this.rims = [rim(palette.factions?.solari?.rim ?? '#ffb43a'), rim(palette.factions?.void?.rim ?? '#b07cff'), rim(R.civilian ?? '#e6e2da'), this.rimHostile];
     // The kit's meshes, each at both levels: parts[group][name][level].
     this.parts = {};
     const part = (geo) => new Part(scene, geo, this.mats, max, shadows);
@@ -195,8 +200,8 @@ export class CrowdRenderer {
   #style(look) {
     const kit = look.kit ?? DEFAULT_KIT;
     return {
-      kit, team: look.team === 1 ? 1 : 0, number: look.number ?? 0,
-      tint: look.highlight ? 1.12 : 1, em: look.status ?? _black, rim: look.rim ?? this.rims[look.team === 1 ? 1 : 0],
+      kit, team: look.team >= 1 && look.team <= 3 ? look.team : 0, number: look.number ?? 0,
+      tint: look.highlight ? 1.12 : 1, em: look.status ?? _black, rim: look.rim ?? this.rims[look.team] ?? this.rims[0],
     };
   }
 

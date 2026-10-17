@@ -5,8 +5,11 @@
 //    vertex shader, so a whole crowd's armor is a handful of instanced draws. Limbs may
 //    stretch along their bone; normals use the matching inverse scale.
 //  * Paint by channel: the faction palette (data/art/palette.json `factions`) is a uniform
-//    array, two factions by NCH channels; the instance picks its faction (iA.y). Per channel:
-//    roughness, metalness, whether it's painted metal, and glow (visors, lamps).
+//    array, four factions by NCH channels (the two armies, the city's civilians, its gangs); the
+//    instance picks its faction (iA.y). Per channel: roughness, metalness, whether it's painted
+//    metal, and glow (visors, lamps). The city's people vary person to person: a civilian's
+//    jacket, accent, neon and skin, a raider's gang colour, from small palettes (uVar) by the
+//    stencil number (iA.z), which they never wear.
 //  * Wear (painted channels): paint chipped to bare metal where the geometry says edge (aMat.y)
 //    and the noise agrees, worn lighter round the chips, fine scratches. Dirt (aMat.z): ochre
 //    dust climbing the boots, shins and cape hem. Seeded per trooper so no two are alike.
@@ -28,8 +31,30 @@ const SURF = {
   gear: [0.88, 0, 0, 0], webbing: [0.9, 0, 0, 0], metal: [0.36, 0.85, 0, 0], stencil: [0.6, 0, 0, 0],
   hazard: [0.5, 0.12, 1, 0], glass: [0.07, 0.35, 0, 0], visor: [0.3, 0, 0, 2.6], cape: [0.96, 0, 0, 0],
   trim: [0.8, 0, 0, 0], lamp: [0.3, 0, 0, 5], rubber: [0.95, 0, 0, 0], white: [0.72, 0, 0, 0],
-  number: [0.62, 0, 0, 0], emblem: [0.8, 0, 0, 0],
+  number: [0.62, 0, 0, 0], emblem: [0.8, 0, 0, 0], skin: [0.62, 0, 0, 0],
 };
+
+/**
+ * The city's people when a palette doesn't have them (palette.json factions.civilian and
+ * .bandit are the authored ones): street clothes, faces; per-person jackets, accents, skin
+ * tones and neon; each gang's colour.
+ */
+export const PEOPLE = {
+  civilian: {
+    armor: '#565a63', armorShade: '#3e4148', black: '#1c1d21', suit: '#4b4f58', gear: '#2f3036', webbing: '#2a2a2e', stencil: '#d8d4cc', stripe: '#151517',
+    cape: '#6b5a4a', capeTrim: '#8a7a6a', visor: '#5ff3ff', visorGlass: '#0e1418', lamp: '#7af7ff', metal: '#5c6068', skin: '#c08f72',
+    jackets: ['#4b4f58', '#5d3b3a', '#3b4d46', '#5c5338', '#353a4f', '#6a6159', '#2b2d33', '#5b4560'],
+    accents: ['#8a6f5a', '#3f5f6f', '#6d3f4f', '#9a8f6a'], skins: ['#e0b49a', '#c08f72', '#8d5f45', '#5e3d2c'], neon: ['#5ff3ff', '#ff4fd8', '#ffb347', '#9dff6a'],
+  },
+  bandit: {
+    armor: '#6b5444', armorShade: '#4a3a30', black: '#18181b', suit: '#2c2a2e', gear: '#3a352f', webbing: '#2b2722', stencil: '#e8e2d4', stripe: '#121214',
+    cape: '#c43c2a', capeTrim: '#e0a030', visor: '#ff5a2a', visorGlass: '#14100e', lamp: '#ff7a4a', metal: '#4a4c50', skin: '#b0826a',
+    gangs: ['#ff4a2a', '#9dff3a', '#3ad8ff', '#ff3ad2', '#ffd23a', '#7a5cff', '#3affb0', '#ff8a2a'],
+  },
+};
+/** The factions' order: the team number picks one (Teams.js). */
+export const FACTIONS = ['solari', 'void', 'civilian', 'bandit'];
+const NVAR = 28;   // uVar: 8 jackets, 4 accents, 8 gang colours, 4 skin tones, 4 neons
 
 /** Channel colors for one faction (palette.json factions.*, plus shared materials). */
 function factionColors(f, materials) {
@@ -37,10 +62,25 @@ function factionColors(f, materials) {
     armor: f.armor, shade: f.armorShade, black: f.black, suit: f.suit, gear: f.gear, webbing: f.webbing,
     metal: f.metal, stencil: f.stencil, hazard: f.stripe, glass: f.visorGlass, visor: f.visor, cape: f.cape,
     trim: f.capeTrim, lamp: f.lamp, rubber: materials?.rubber ?? '#151515', white: '#d8d3c6', number: f.stencil, emblem: f.capeTrim,
+    skin: f.skin ?? '#c08f72',
   };
   const out = new Array(NCH);
   for (const [k, i] of Object.entries(CH)) out[i] = new THREE.Color(by[k] ?? '#ff00ff');
   return out;
+}
+
+/** The palette's colours for factions `keys` (the people's defaults where it has none). */
+function palColors(palette, keys) {
+  const pal = [];
+  for (const k of keys) pal.push(...factionColors(palette.factions?.[k] ?? PEOPLE[k] ?? palette.factions.solari, palette.materials));
+  return pal;
+}
+
+/** The people's variety (uVar): jackets, accents, gang colours, skin tones, neons. */
+function variety(palette) {
+  const C = { ...PEOPLE.civilian, ...(palette.factions?.civilian ?? {}) }, B = { ...PEOPLE.bandit, ...(palette.factions?.bandit ?? {}) };
+  const take = (list, n) => Array.from({ length: n }, (_, i) => new THREE.Color(list[i % list.length]));
+  return [...take(C.jackets, 8), ...take(C.accents, 4), ...take(B.gangs, 8), ...take(C.skins, 4), ...take(C.neon, 4)];
 }
 
 const VERT_COMMON = `
@@ -64,9 +104,10 @@ mat4 tkBone() {
 
 const VARYINGS = `vMat = aMat; vLocal = position + vec3(iA.z * 0.731, iA.z * 0.377, 0.0); vDecal = aUv; vI = iA; vE = iE; vR = iR;`;
 
-const FRAG_COMMON = `
-uniform vec3 uPal[${NCH * 2}];
+const fragCommon = (nf) => `
+uniform vec3 uPal[${NCH * nf}];
 uniform vec4 uSurf[${NCH}];
+uniform vec3 uVar[${NVAR}];
 uniform vec3 uBare, uDust;
 varying vec4 vMat;
 varying vec3 vLocal;
@@ -110,8 +151,17 @@ float tkEmblem(vec2 p, int team) {
 }`;
 
 const COLOR = `
-int tkCh = int(vMat.x + 0.5), tkTeam = int(vI.y + 0.5);
+int tkCh = int(vMat.x + 0.5), tkTeam = int(vI.y + 0.5), tkNum = int(vI.z + 0.5);
 vec3 tkCol = uPal[tkTeam * ${NCH} + tkCh];
+if (tkTeam == 2) {            // a civilian: his own jacket, accent, neon and skin
+  if (tkCh == ${CH.suit}) tkCol = uVar[tkNum % 8];
+  else if (tkCh == ${CH.cape} || tkCh == ${CH.trim}) tkCol = uVar[8 + (tkNum / 8) % 4];
+  else if (tkCh == ${CH.visor} || tkCh == ${CH.lamp}) tkCol = uVar[24 + (tkNum / 3) % 4];
+  else if (tkCh == ${CH.skin}) tkCol = uVar[20 + (tkNum / 5) % 4];
+} else if (tkTeam == 3) {     // a raider: his gang's colour on his crest, goggles and rags (number: gang * 10 + him)
+  if (tkCh == ${CH.cape} || tkCh == ${CH.trim} || tkCh == ${CH.visor} || tkCh == ${CH.lamp}) tkCol = uVar[12 + (tkNum / 10) % 8];
+  else if (tkCh == ${CH.skin}) tkCol = uVar[20 + tkNum % 4];
+}
 vec4 tkS = uSurf[tkCh];
 float tkRough = tkS.x, tkMetal = tkS.y;
 vec3 tkGlow = vec3(0.0);
@@ -148,16 +198,15 @@ int tkCh = int(vMat.x + 0.5);
 if (tkCh == ${CH.number} || tkCh == ${CH.emblem}) discard;`;
 
 /**
- * @param {object} palette  palette.json (factions: [solari, void] order = team 0, 1)
+ * @param {object} palette  palette.json (factions in FACTIONS order = team 0..3)
  * @param {THREE.DataTexture} bones
  * @returns {{ material, depth }}
  */
-export function trooperMaterials(palette, bones, factionKeys = ['solari', 'void']) {
-  const pal = [];
-  for (const k of factionKeys) pal.push(...factionColors(palette.factions[k], palette.materials));
+export function trooperMaterials(palette, bones, factionKeys = FACTIONS) {
+  const pal = palColors(palette, factionKeys);
   const surf = Object.entries(CH).sort((a, b) => a[1] - b[1]).map(([k]) => new THREE.Vector4(...SURF[k]));
   const uniforms = {
-    uBones: { value: bones }, uPal: { value: pal }, uSurf: { value: surf },
+    uBones: { value: bones }, uPal: { value: pal }, uSurf: { value: surf }, uVar: { value: variety(palette) },
     uBare: { value: new THREE.Color('#b3aea4') }, uDust: { value: new THREE.Color(palette.vfx?.dust ?? '#b9976a').multiplyScalar(0.9) },
   };
   const material = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
@@ -170,14 +219,14 @@ export function trooperMaterials(palette, bones, factionKeys = ['solari', 'void'
         vec3 objectNormal = normalize(mat3(bM) * (normal / bS2));`)
       .replace('#include <begin_vertex>', `vec3 transformed = (bM * vec4(position, 1.0)).xyz;\n${VARYINGS}`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${FRAG_COMMON}`)
+      .replace('#include <common>', `#include <common>\n${fragCommon(factionKeys.length)}`)
       .replace('#include <color_fragment>', COLOR)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = tkRough;')
       .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = tkMetal;')
       // The rim: a fresnel glow round the silhouette in the fighter's colour (faction, or a civilian's).
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += tkGlow + vE + vR.rgb * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), vR.w);');
   };
-  material.customProgramCacheKey = () => 'trooper';
+  material.customProgramCacheKey = () => `trooper${factionKeys.length}`;
   const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
   depth.onBeforeCompile = (shader) => {
     shader.uniforms.uBones = uniforms.uBones;
@@ -213,10 +262,8 @@ export function paintMaterial(palette, { team = 0, number = 0, factionKeys = ['s
   const shared = (paintMaterial.cache ??= new Map());
   const key = factionKeys.join();
   if (!shared.has(key)) {
-    const pal = [];
-    for (const k of factionKeys) pal.push(...factionColors(palette.factions[k], palette.materials));
     shared.set(key, {
-      uPal: { value: pal }, uSurf: { value: Object.entries(CH).sort((a, b) => a[1] - b[1]).map(([k]) => new THREE.Vector4(...SURF[k])) },
+      uPal: { value: palColors(palette, factionKeys) }, uSurf: { value: Object.entries(CH).sort((a, b) => a[1] - b[1]).map(([k]) => new THREE.Vector4(...SURF[k])) }, uVar: { value: variety(palette) },
       uBare: { value: new THREE.Color('#b3aea4') }, uDust: { value: new THREE.Color(palette.vfx?.dust ?? '#b9976a').multiplyScalar(0.9) },
     });
   }
@@ -228,13 +275,13 @@ export function paintMaterial(palette, { team = 0, number = 0, factionKeys = ['s
       .replace('#include <common>', `#include <common>\n${STATIC_VERT_COMMON}`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMat = aMat; vLocal = position + vec3(uNumber * 0.731, uNumber * 0.377, 0.0); vDecal = aUv; vI = vec4(0.0, uTeam, uNumber, uTint); vE = uGlow; vR = vec4(0.0);');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${FRAG_COMMON}`)
+      .replace('#include <common>', `#include <common>\n${fragCommon(factionKeys.length)}`)
       .replace('#include <color_fragment>', COLOR)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = tkRough;')
       .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = tkMetal;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += tkGlow + vE;');
   };
-  material.customProgramCacheKey = () => 'paint-static';
+  material.customProgramCacheKey = () => `paint-static${factionKeys.length}`;
   material.paint = paint;
   return material;
 }

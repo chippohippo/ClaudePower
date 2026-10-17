@@ -1097,6 +1097,7 @@ export class ProceduralHumanoid {
   #upperBody(P, dt) {
     const e = this.e;
     if (e.mode === 'sword' && e.melee) this.#swordHands(P);
+    else if (e.weapons && !e.weapons.current && !e.isVehicle) this.#emptyHands(P, dt);
     else this.#gunHands(P, dt);
     // Pose overrides (ledge, ground, handlebars). A hand taken off the weapon slings it.
     for (let i = 0; i < 2; i++) if (P.handW[i] > 1e-3) this.handT[i].lerp(P.hand[i], P.handW[i]);
@@ -1188,6 +1189,32 @@ export class ProceduralHumanoid {
     if (!leftDone) this.handT[0].copy(butt).addScaledVector(dir, g.fore * L).addScaledVector(U, -g.foreDrop * sc);
     pr.glow = w?.current?.usesHeat ? (w.current.heat ?? 0) / (st?.ammo?.max ?? 100) : 0;
     pr.twoHanded = true;
+  }
+
+  /**
+   * Nothing in his hands (the city's civilians until one picks a gun up): the arms hang and
+   * swing against the legs as he walks, pump bent when he runs; cowering (e.cower: hiding from
+   * the fighting), both hands clasped over the back of his head.
+   */
+  #emptyHands(P, dt) {
+    const e = this.e, s = e.movement.state, sc = this.scale, F = this.F.chest, neck = this.j.neck, pr = this.prop;
+    pr.kind = null; pr.glow = 0; pr.twoHanded = false;
+    this.raiseTarget = 0;
+    this.raise += (0 - this.raise) * approach(16, dt);
+    this.runK = (this.runK ?? 0) + ((s.sprinting ? 1 : 0) - (this.runK ?? 0)) * approach(8, dt);
+    this.cowerK = (this.cowerK ?? 0) + ((e.cower ? 1 : 0) - (this.cowerK ?? 0)) * approach(7, dt);
+    const rk = this.runK, ck = this.cowerK, walking = this.planter.walking && this.planterLive;
+    for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? -1 : 1;
+      // Swing: forward as the foot on the other side comes forward (its offset from its hip).
+      let sw = 0;
+      if (walking) {
+        const f = this.planter.feet[1 - i], hip = this.j.hip[1 - i];
+        sw = clamp(((f.pos.x - hip.x) * F.n.x + (f.pos.z - hip.z) * F.n.z) / (0.45 * sc), -1, 1);
+      }
+      const hx = side * lerp(0.21, 0.17, rk), hy = lerp(-0.6, -0.34, rk), hz = lerp(0.05, 0.12, rk) + sw * lerp(0.13, 0.22, rk);
+      frameToWorld(F, neck, lerp(hx, side * 0.06, ck) * sc, lerp(hy, 0.15, ck) * sc, lerp(hz, -0.03, ck) * sc, this.handT[i]);
+    }
   }
 
   #leftPoint(name, butt, dir, U, L, F, neck, out) {

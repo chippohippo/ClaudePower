@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|cars|city|scene|stratagems|gunfx|melee &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|people|vehicles|cars|city|scene|stratagems|gunfx|melee &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -17,7 +17,11 @@ import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { SandbagTops } from './render/SandbagTops.js';
 import { BattleFx } from './vfx/BattleFx.js';
-import { kitFor } from './render/TrooperKit.js';
+import { kitFor, peopleKit } from './render/TrooperKit.js';
+import { buildPerson } from './game/Neutrals.js';
+import { WeaponDrops } from './combat/WeaponDrops.js';
+import { DropViews } from './vfx/DropViews.js';
+import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { vehicleModel } from './render/VehicleKit.js';
 import { paintMaterial } from './render/TrooperMaterial.js';
 import { StratagemViews } from './vfx/StratagemViews.js';
@@ -35,11 +39,11 @@ import { bus } from './core/EventBus.js';
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
-const planet = palette.planets[params.get('planet') ?? (station === 'city' ? 'duskcity' : 'scorched')];
+const planet = palette.planets[params.get('planet') ?? (station === 'city' || station === 'people' ? 'duskcity' : 'scorched')];
 // The planet's own paint and effect colours over the shared ones (the dusk city: winter whites, snow kicked up).
 for (const [k, paint] of Object.entries(planet.factions ?? {})) if (palette.factions[k]) Object.assign(palette.factions[k], paint);
 Object.assign(palette.vfx, planet.vfx ?? {});
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
+const STATIONS = ['palette', 'sky', 'troopers', 'people', 'vehicles', 'cars', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -101,6 +105,7 @@ async function scene3d() {
   let focus = new THREE.Vector3();
   if (station === 'sky') skyStation(scene, views, atmo);
   if (station === 'troopers') await troopersStation(scene, views, atmo);
+  if (station === 'people') await peopleStation(scene, views, atmo);
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   if (station === 'cars') await carsStation(scene, views, atmo);
   if (station === 'city') await cityStation(scene, views, atmo);
@@ -237,14 +242,27 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
     people.push({ e, yaw, act, t: 0, pitch: extra.pitch ?? 0, steer: extra.steer ?? null });
     return e;
   };
+  // One of the city's people (Neutrals.buildPerson): a civilian unarmed (or with a gun picked up),
+  // a raider with his gang's gun; street clothes by id (peopleKit), a gang's colour by number.
+  const gunOf = (gid) => buildWeapon([ballistic, energy].find((f) => f.weapons.some((w) => w.id === gid)), gid, attachments.attachments, []);
+  const addPerson = (kind, pos, yaw, act = 'stand', { gun = null, gang = 0, ...extra } = {}) => {
+    const team = kind === 'bandit' ? 3 : 2, pid = id++;
+    const e = buildPerson(world, data, { id: pid, team, pos: pos.clone().setY(t.height(pos.x, pos.z) + 0.05), health: 100, guns: gun ? [gunOf(gun)] : [], faction: kind });
+    e.health.damage = () => ({});
+    e.look = { team, status: null, flame: new THREE.Color('#ff7a1a'), highlight: false, kit: peopleKit(table, kind, extra.kitId ?? pid), number: kind === 'bandit' ? gang * 10 + (pid % 10) : (pid * 37 + 11) % 100, ...extra };
+    anim.add(e);
+    people.push({ e, yaw, act, t: 0, pitch: extra.pitch ?? 0, steer: extra.steer ?? null });
+    return e;
+  };
   const DT = 1 / 60;
   const tick = () => {
     anim.snapshot();
     for (const p of people) {
       const e = p.e, held = new Set(), pressed = new Set();
-      if (p.act === 'aim') held.add('guard');
-      if (p.act === 'crouch' && p.t < 0.05) pressed.add('crouch');
-      if (p.act === 'prone' && p.t < 0.7) held.add('crouch');
+      if (p.act === 'aim' || p.act === 'kneelAim') held.add('guard');
+      if ((p.act === 'crouch' || p.act === 'cower' || p.act === 'kneelAim') && p.t < 0.05) pressed.add('crouch');
+      if ((p.act === 'prone' || p.act === 'cowerProne') && p.t < 0.7) held.add('crouch');
+      e.cower = p.act === 'cower' || p.act === 'cowerProne';      // hands over the head (a civilian hiding)
       const cmd = { moveX: 0, moveY: 0, yaw: p.yaw, pitch: p.act === 'aim' ? 0.04 + p.pitch : p.pitch, buttons: {}, ...(p.steer?.(p) ?? {}) };
       for (const k of new Set([...held, ...pressed])) cmd.buttons[k] = { down: true, pressed: pressed.has(k) || (held.has(k) && p.t < DT * 1.5), released: false };
       p.t += DT;
@@ -269,7 +287,7 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
     tickers.push(() => { if (!ctl.paused) tick(); draw(); });
     window.__art.people = people;
   };
-  return { add, start, world, people, tick, anim, ctl, meleeWeapons: melee.weapons };
+  return { add, addPerson, gunOf, table, start, world, people, tick, anim, ctl, crowd, meleeWeapons: melee.weapons };
 }
 
 async function troopersStation(scene, views, atmo) {
@@ -312,6 +330,69 @@ async function troopersStation(scene, views, atmo) {
   views.back = { pos: y(at(-2, -4.8), 1.7), look: y(at(-2, 0), 1.1), fov: 45, note: 'from behind: capes, packs, antennas (into the sun)' };
   views.squad = { pos: y(at(-21, 5.5), 1.6), look: y(at(-21.3, -1.5), 0.8), fov: 46, note: 'a Solari squad in combat poses' };
   views.mid = { pos: y(at(0, 22), 2.2), look: y(mid, 1.0), fov: 50, note: 'both armies at mid range' };
+}
+
+// The city's people (src/game/Neutrals.js; TrooperKit "The city's people"): civilians in their
+// street clothes under a street lamp, a gang's raiders, a family cowering behind a market's
+// counters with an armed neighbour fighting (his rim gone red), guns lying in the street.
+async function peopleStation(scene, views, atmo) {
+  const map = generateFrontlineMap({ seed: +(params.get('seed') ?? 7), size: params.get('size') ?? '32v32', theme: 'city' });
+  const mode = new FrontlineMode(map, { tickets: 100, timeLimit: 600, captureTime: 10, secureTime: 3, seed: 7 });
+  const bf = new BattlefieldRenderer(scene, map, { localTeam: 0, anisotropy: 4, art: { planet, palette } });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
+  const C = map.city, t = map.terrain;
+  const city = new CityRenderer(scene, map, { planet, palette, fx });
+  const F = await fighters(scene, t, { max: 48 });
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  const V = (x, z) => new THREE.Vector3(x, 0, z);
+  // A lamp on an avenue near the middle: the lineups stand in its light, facing +Z (the camera).
+  const avZ = C.avenues.find((z) => Math.abs(z) > 1) ?? C.avenues[0];
+  const seg = C.segs.filter((q) => q.axis === 'x' && q.at === avZ).sort((a, b) => Math.abs((a.from + a.to) / 2 + 60) - Math.abs((b.from + b.to) / 2 + 60))[0];
+  const sx = seg ? seg.from + 2 : -60;
+  const lamp = C.lamps.reduce((best, l) => (Math.hypot(l.x - (sx + 14), l.z - avZ) < Math.hypot(best.x - (sx + 14), best.z - avZ) ? l : best), C.lamps[0]);
+  const lx = lamp.x + lamp.nx * 2.2, lz = lamp.z + lamp.nz * 2.2, face = Math.atan2(-lamp.nx, -lamp.nz);
+  const out = new THREE.Vector3(lamp.nx, 0, lamp.nz), along = new THREE.Vector3(-lamp.nz, 0, lamp.nx);
+  const at = (a, o) => V(lx, lz).addScaledVector(along, a).addScaledVector(out, o);
+  // Civilians: one of each street body and head (ids picked for the variety).
+  const seen = new Set(), ids = [];
+  for (let k = 200; ids.length < 8 && k < 600; k++) {
+    const kit = peopleKit(F.table, 'civilian', k), key = `${kit.body}/${kit.helmet}`;
+    if (!seen.has(key) || seen.size >= 6) { seen.add(key); ids.push(k); }
+  }
+  ids.forEach((k, i) => F.addPerson('civilian', at((i - 3.5) * 1.15, 0), face, 'stand', { kitId: k, number: (k * 37 + 11) % 100 }));
+  // A gang's raiders behind them, two gangs' colours, guns up.
+  ['void_ar_gnaw', 'sol_smg_wasp', 'void_sg_maw', 'sol_br_verdict', 'void_smg_leech'].forEach((g, i) => F.addPerson('bandit', at((i - 2) * 1.4, -5), face, i % 2 ? 'aim' : 'stand', { gun: g, gang: 0 }));
+  ['sol_sg_lantern', 'void_ar_gnaw', 'sol_smg_wasp'].forEach((g, i) => F.addPerson('bandit', at(5 + i * 1.4, -5), face, 'aim', { gun: g, gang: 1 }));
+  // A market: a family down behind the counters, hands over their heads; a neighbour with a
+  // gun he picked up, kneeling and firing (red rim: he's fighting you).
+  const mk = C.markets.reduce((b, m) => (Math.hypot((m.x0 + m.x1) / 2 - lx, (m.z0 + m.z1) / 2 - lz) < Math.hypot((b.x0 + b.x1) / 2 - lx, (b.z0 + b.z1) / 2 - lz) ? m : b), C.markets[0]);
+  const st = mk.stalls.slice(0, 4), behind = (s, k = 0.75) => V(s.x - s.face[0] * k, s.z - s.face[1] * k);
+  const toward = (s) => Math.atan2(-s.face[0], -s.face[1]) + Math.PI;
+  st.slice(0, 3).forEach((s, i) => F.addPerson('civilian', behind(s).add(V(i === 1 ? 0.5 : 0, 0)), toward(s) + 0.4 * (i - 1), i === 2 ? 'cowerProne' : 'cower', { kitId: 310 + i * 7 }));
+  const armed = F.addPerson('civilian', behind(st[3] ?? st[0]), toward(st[3] ?? st[0]), 'kneelAim', { gun: 'sol_smg_wasp', kitId: 333 });
+  armed.look.rim = F.crowd.rimHostile;
+  // Guns lying in the street: dropped by the fallen, a cache by the stalls.
+  const drops = F.world.drops = new WeaponDrops(F.world, {});
+  const dv = new DropViews(scene, F.world, { kit: F.crowd.kit, palette, glint: planet.fx?.bolts?.neutral });
+  const g0 = at(3, 3.2);
+  ['void_ar_gnaw', 'sol_sg_lantern', 'sol_sr_longwatch'].forEach((g, i) => drops.drop(y(g0.clone().addScaledVector(along, i * 1.1).addScaledVector(out, (i % 2) * 0.8), 0), F.gunOf(g)));
+  F.start();
+  let warm = false;
+  tickers.push((dt) => {
+    const cam = window.__art.camera;
+    bf.update(mode, 0, cam.position);
+    if (!warm) { warm = true; for (let i = 0; i < 120; i++) { city.update(1 / 30, cam, window.__art.focus ?? cam.position); fx.update(1 / 30); } }
+    city.update(dt, cam, window.__art.focus ?? cam.position);
+    fx.update(dt); dv.update(dt);
+  });
+  const mc = behind(st[1] ?? st[0]);
+  views.lineup = { pos: y(at(0, 6.4), 1.6), look: y(at(0, 0), 1.05), fov: 46, note: 'civilians in street clothes: coats, jackets; hoods, caps, bare hair; the neon line on a collar; each his own colours and face', focus: y(at(0, 0), 0) };
+  views.close = { pos: y(at(-1.7, 2.3), 1.62), look: y(at(-1.7, 0), 1.5), fov: 40, note: 'faces up close: glasses lit along the rim, masks, a respirator', focus: y(at(0, 0), 0) };
+  views.gangs = { pos: y(at(1.5, 1.4), 1.5), look: y(at(1.5, -5), 1.15), fov: 52, note: "two gangs' raiders: scavenged plates, a spiked pauldron in the gang's colour, crests, goggles, jaw masks", focus: y(at(0, -5), 0) };
+  views.market = { pos: y(mc.clone().add(V(4.5, 5.5)), 2.4), look: y(mc, 0.6), fov: 50, note: 'a family down behind a market counter, hands over their heads; a neighbour firing a gun he picked up (red rim: fighting you)', focus: y(mc, 0) };
+  views.drops = { pos: y(g0.clone().addScaledVector(out, 3).addScaledVector(along, 1.1), 1.7), look: y(g0.clone().addScaledVector(along, 1.1), 0), fov: 45, note: 'guns lying in the street where the fallen dropped them, a glint round each', focus: y(g0, 0) };
+  const enterAll = (v) => () => { window.__art.focus = v.focus; };
+  for (const v of Object.values(views)) v.enter = enterAll(v);
 }
 
 // Both armies' vehicles and guns in a row each, posed: turrets turned, guns set up and laid,

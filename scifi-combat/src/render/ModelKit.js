@@ -23,8 +23,9 @@ export const CH = {
   armor: 0, shade: 1, black: 2, suit: 3, gear: 4, webbing: 5, metal: 6, stencil: 7,
   hazard: 8, glass: 9, visor: 10, cape: 11, trim: 12, lamp: 13, rubber: 14, white: 15,
   number: 16, emblem: 17,     // decals: a stencilled number, the faction's cape emblem (drawn from aUv)
+  skin: 18,                   // the city's people have faces (their tone varies per person)
 };
-export const NCH = 18;
+export const NCH = 19;
 
 const _v = new THREE.Vector3(), _n = new THREE.Vector3(), _m = new THREE.Matrix4(), _nm = new THREE.Matrix3(), _e = new THREE.Euler();
 const sgnPow = (x, p) => Math.sign(x) * Math.abs(x) ** p;

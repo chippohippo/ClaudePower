@@ -36,7 +36,9 @@ import { BattleFx } from './vfx/BattleFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { Atmosphere, installFog } from './render/Atmosphere.js';
 import { PostFX } from './render/PostFX.js';
-import { kitFor } from './render/TrooperKit.js';
+import { kitFor, peopleKit } from './render/TrooperKit.js';
+import { DropViews } from './vfx/DropViews.js';
+import { CIVILIAN, BANDIT, civilianEngaging } from './combat/Teams.js';
 
 const params = new URLSearchParams(location.search);
 const sizeParam = params.get('size'), playersParam = params.get('players');
@@ -46,13 +48,13 @@ const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 const mapTheme = params.get('map') === 'city' ? 'city' : 'trench';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support, barks] = await Promise.all([
+const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support, barks, civilians] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'), load('abilities/statuses.json'),
   load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
   load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
   load('art/palette.json'), load('art/troopers.json'), load('rules.json'), load('stratagems.json'), load('battle-points.json'),
-  load('passives.json'), load('support.json'), load('ai/barks.json'),
+  load('passives.json'), load('support.json'), load('ai/barks.json'), load('civilians.json'),
 ]);
 const planet = palette.planets[params.get('planet') ?? (mapTheme === 'city' ? 'duskcity' : 'scorched')] ?? palette.planets.scorched;
 installFog(planet);   // before any material compiles
@@ -65,7 +67,7 @@ const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
   personalities: ai.personalities, difficulty: ai.difficulty[params.get('difficulty') ?? 'veteran'] ?? ai.difficulty.veteran,
-  down, rules, stratagems, battlePoints, passives, support, humanoid, barks,
+  down, rules, stratagems, battlePoints, passives, support, humanoid, barks, civilians,   // (civilians: the city's people)
 };
 const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
@@ -98,10 +100,16 @@ const sunScreen = new THREE.Vector3();
 
 const battlefield = new BattlefieldRenderer(scene, map, { localTeam: myTeam, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()), art: { planet, palette } });
 const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: (x, z) => map.terrain.height(x, z) });
-// Each fighter wears its role's kit in its army's paint, with its own stencilled number.
+// Each fighter wears its role's kit in its army's paint, with its own stencilled number. The
+// city's people wear street clothes (their number picks their colours; a raider's, his gang's).
 for (const f of session.fighters) {
   anim.add(f);
-  f.look = { team: f.team, status: null, flame: new THREE.Color(), highlight: f === player, kit: kitFor(trooperKits, f.role), number: (f.id * 37 + 11) % 100 };
+  const people = f.team === CIVILIAN ? 'civilian' : f.team === BANDIT ? 'bandit' : null;
+  f.look = {
+    team: f.team, status: null, flame: new THREE.Color(), highlight: f === player,
+    kit: people ? peopleKit(trooperKits, people, f.id) : kitFor(trooperKits, f.role),
+    number: f.gang ? f.gang.id * 10 + (f.id % 10) : (f.id * 37 + 11) % 100,
+  };
 }
 anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
@@ -114,6 +122,7 @@ const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anis
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
 const gunFx = new GunFx(scene, { fx, anim, world, player, palette });          // muzzles, impacts, bullet holes
+const dropViews = new DropViews(scene, world, { kit: crowd.kit, palette, glint: planet.fx?.bolts?.neutral });   // guns lying on the ground
 
 const input = new InputManager(renderer.domElement);
 input.yaw = myTeam === 0 ? -Math.PI / 2 : Math.PI / 2; // face the enemy's side of the map
@@ -181,6 +190,8 @@ const loop = new FixedLoop({
         : st.has('scorch') ? STATUS_GLOW.scorch : st.has('volatile') || st.has('weaken') ? STATUS_GLOW.weaken
         : st.has('stim') ? STATUS_GLOW.stim : f.team !== myTeam && st.has('revealed') ? STATUS_GLOW.revealed : null;   // a spotter's mark: enemies he's revealed glow for us
       f.look.flame.set(f.melee.w.visual?.flameColor ?? (f.team === 0 ? '#ff7a1a' : '#8b5cf6'));
+      // A civilian's rim is neutral, red while he's fighting your side.
+      if (f.team === CIVILIAN) f.look.rim = civilianEngaging(world, f, myTeam) ? crowd.rimHostile : null;
     }
     // At an indirect-fire gun the overhead fire-control view takes over the screen.
     const view = fireControl.active ? fireControl.camera : rig.camera;
@@ -217,6 +228,7 @@ const loop = new FixedLoop({
     zoneViews.update(dt);
     stratViews.update(dt, cam, alpha);
     gunFx.update(dt, cam);
+    dropViews.update(dt);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio?.update(dt, rig.camera.position, player.movement.state.yaw);
@@ -228,6 +240,6 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices, dropViews };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

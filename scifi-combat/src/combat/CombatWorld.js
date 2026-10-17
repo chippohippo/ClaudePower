@@ -23,6 +23,7 @@ import { SupportItems } from './SupportItems.js';
 import { hitSpheres, silhouetteScale, BOUND } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
+import { CIVILIAN, civilianFights, civilianEngaging } from './Teams.js';
 
 /** Friendly fire by default (data/rules.json can change any share): everything hurts everyone. */
 const FRIENDLY_FIRE = { gun: 1, beam: 1, projectile: 1, explosion: 1, status: 1, melee: 1, ram: 1, deployable: 1, zone: 1, self: 0.5 };
@@ -42,6 +43,7 @@ export class CombatWorld {
    */
   constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null, stratagems = null, passives = null, support = null } = {}) {
     this.damageMatrix = damageMatrix;
+    this.time = 0;                // seconds of sim (grudges and engagements are timed on it)
     // Friendly fire (data/rules.json): on everywhere unless the rules say otherwise.
     this.ff = { ...FRIENDLY_FIRE, ...(rules?.friendlyFire ?? {}) };
     this.terrain = terrain;
@@ -97,6 +99,7 @@ export class CombatWorld {
   }
 
   update(dt) {
+    this.time += dt;
     this.refreshSpatial();
     this.vehicles.update(dt);
     this.projectiles.update(dt);
@@ -120,6 +123,25 @@ export class CombatWorld {
   harm(team, victim, kind) {
     if (team == null || team < 0 || victim?.team !== team) return 1;
     return this.ff[kind] ?? 1;
+  }
+
+  /**
+   * Is a fight on between a and b: would a shoot at b? (Teams.js: the armies and the bandits
+   * always; a civilian only armed, close or wronged, and only while he's shooting does anyone
+   * shoot back.) Targeting asks this; damage doesn't (stray rounds hurt everyone).
+   */
+  hostile(a, b) {
+    if (!a || !b || a === b || a.team === b.team || a.team == null || b.team == null) return false;
+    if (a.team === CIVILIAN) return civilianFights(this, a, b);
+    if (b.team === CIVILIAN) return civilianEngaging(this, b, a.team);
+    return true;
+  }
+
+  /** The same for a side (a gun crew, a turret, a team's call-ins): would `team` shoot at e? */
+  hostileTo(team, e) {
+    if (!e || team == null || e.team === team || e.team == null) return false;
+    if (e.team === CIVILIAN) return civilianEngaging(this, e, team);
+    return team !== CIVILIAN;
   }
 
   // ---------------------------------------------------------------- spatial queries

@@ -19,12 +19,16 @@
 //  * Support roles: your class passive and items on the status panel (stims, ammo packs), prompts
 //    to stim the teammate in front of you or repair the vehicle beside you, enemies a spotter
 //    has revealed on the minimap, and (Mindread) the abilities of the enemy in your sights.
+//  * The city's people: civilians near you grey on the minimap (red while one shoots at your
+//    side), a gang's raiders orange when they give themselves away, a banner as you walk into a
+//    gang's turf, and the killfeed's CIVILIAN tag on a civilian killed who wasn't fighting.
 
 import * as THREE from 'three';
 import { RIGHT_TIME } from '../vehicles/VehicleSystem.js';
 import { bus } from '../core/EventBus.js';
+import { CIVILIAN, BANDIT, civilianEngaging } from '../combat/Teams.js';
 
-const TEAM_COL = ['#ffcf6b', '#b994ff'];
+const TEAM_COL = ['#ffcf6b', '#b994ff', '#d8d4cc', '#ff7a4d'];   // Solari, Void, the city's civilians, its gangs
 const NEUTRAL_COL = '#d8dde6';
 const TEAM_NAME = ['SOLARI', 'VOID'];
 const _v = new THREE.Vector3();
@@ -87,10 +91,13 @@ export class FrontlineHud {
       bus.on('entity:death', (e) => {
         const vt = teamOf(e.id);
         if (vt < 0) return;
-        const kt = teamOf(e.by), tk = kt === vt && e.by && e.by !== e.id;   // friendly fire: a teamkill
-        this.feed.unshift({ html: `<span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▸ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span>${tk ? ' <b style="color:#ff4d40">TEAMKILL</b>' : ''}`, t: this.time });
+        const kt = teamOf(e.by), tk = kt === vt && e.by && e.by !== e.id && vt !== CIVILIAN;   // friendly fire: a teamkill
+        // A civilian who wasn't shooting at the side that killed him.
+        const v = fighter(e.id), innocent = vt === CIVILIAN && kt !== CIVILIAN && kt >= 0 && !(v && civilianEngaging(session.world, v, kt));
+        this.feed.unshift({ html: `<span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▸ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span>${tk ? ' <b style="color:#ff4d40">TEAMKILL</b>' : innocent ? ' <b style="color:#ffb36b">CIVILIAN</b>' : ''}`, t: this.time });
         this.feed.length = Math.min(this.feed.length, 6);
         if (tk && e.by === player.id) this.#say('tk', 'TEAMKILL · CHECK YOUR FIRE', '#ff4d40', 2, 4);
+        if (innocent && e.by === player.id) this.#say('civ', 'CIVILIAN KILLED · CHECK YOUR FIRE', '#ff4d40', 2, 4);
       }),
       // Friendly fire: your rounds in a teammate, or a teammate's in you.
       bus.on('weapon:hit', (e) => {
@@ -146,6 +153,13 @@ export class FrontlineHud {
   update(dt, camera) {
     this.time += dt;
     const s = this.s, mode = s.mode, me = this.player, team = this.team;
+    // ---- a gang's turf: said once as you walk into it (they shoot whoever comes in)
+    if (s.neutrals?.gangs.length) {
+      const p = me.movement.state.position;
+      const turf = s.neutrals.gangs.find((g) => Math.hypot(g.x - p.x, g.z - p.z) < g.r && g.members.some((m) => !m.health.dead)) ?? null;
+      if (turf && turf !== this.turf && !me.health.dead) this.banner(`${turf.name.toUpperCase()} TURF · THEY SHOOT ON SIGHT`, TEAM_COL[BANDIT], 2.5);
+      this.turf = turf;
+    }
     // ---- tickets and the sector strip
     this.el.tk0.innerHTML = `<b style="color:${TEAM_COL[0]}">${TEAM_NAME[0]}</b> ${mode.tickets[0]}`;
     this.el.tk1.innerHTML = `${mode.tickets[1]} <b style="color:${TEAM_COL[1]}">${TEAM_NAME[1]}</b>`;
@@ -370,12 +384,20 @@ export class FrontlineHud {
       c.beginPath(); c.arc(X(p.pos.x), Z(p.pos.z), 3.5, 0, Math.PI * 2); c.fill();
     }
     c.globalAlpha = 1;
+    const mp = this.player.movement.state.position;
     for (const f of s.fighters) {
       if (f.health.dead || f === this.player) continue;
-      const ally = f.team === this.team;
+      const ally = f.team === this.team, p = f.movement.state.position;
+      // The city's civilians: the ones near you, grey (red while one shoots at your side).
+      if (f.team === CIVILIAN) {
+        const hostile = civilianEngaging(s.world, f, this.team);
+        if (!hostile && Math.hypot(p.x - mp.x, p.z - mp.z) > 60) continue;
+        c.fillStyle = hostile ? '#ff4d6d' : '#cfd4dc';
+        c.fillRect(X(p.x) - 1, Z(p.z) - 1, 2, 2);
+        continue;
+      }
       const marked = !ally && f.status?.has('revealed');           // a spotter's mark: shown while it lasts
       if (!ally && !marked && this.time - (this.spotted.get(f.id) ?? -99) > 2) continue;
-      const p = f.movement.state.position;
       if (marked) { c.strokeStyle = '#ff4d6d'; c.strokeRect(X(p.x) - 2.5, Z(p.z) - 2.5, 5, 5); }
       if (ally && f.health.downed) {
         // Downed teammates: a small red cross, so the medics know where to go.
@@ -383,7 +405,7 @@ export class FrontlineHud {
         c.fillRect(X(p.x) - 2.5, Z(p.z) - 0.75, 5, 1.5); c.fillRect(X(p.x) - 0.75, Z(p.z) - 2.5, 1.5, 5);
         continue;
       }
-      c.fillStyle = ally ? '#9fd3ff' : '#ff4d6d';
+      c.fillStyle = ally ? '#9fd3ff' : f.team === BANDIT ? TEAM_COL[BANDIT] : '#ff4d6d';
       c.fillRect(X(p.x) - 1, Z(p.z) - 1, 2, 2);
     }
     // The supply war: our depots, guns and trucks; enemy guns we've located; rounds landing.

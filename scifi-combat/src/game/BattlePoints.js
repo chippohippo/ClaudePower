@@ -15,6 +15,7 @@
 // Events: bp:earn { id, why, amount, points }, bp:spend { id, what, amount, points },
 // bp:death { id, lost, points }.
 
+import { CIVILIAN } from '../combat/Teams.js';
 import { bus } from '../core/EventBus.js';
 
 export class BattlePoints {
@@ -99,6 +100,8 @@ export class BattlePoints {
   #takedown(victim, killer) {
     const enemy = (a) => a && a.team !== victim.team;
     if (victim.isVehicle || victim.isDeployable) { if (enemy(killer)) this.earn(killer, victim.isVehicle ? 'vehicle' : 'object'); return; }
+    // A civilian: paid for only if he was shooting at your side; otherwise it costs you, as a teamkill does.
+    if (victim.team === CIVILIAN) { if (killer && killer.team !== CIVILIAN && killer.bp) this.earn(killer, this.world.hostileTo?.(killer.team, victim) ? 'kill' : 'civilian'); return; }
     if (killer && killer !== victim) this.earn(killer, killer.team === victim.team ? 'teamkill' : 'kill');
     const h = victim.health, W = this.data.assistWindow ?? 10;
     if (h.recent?.size) {

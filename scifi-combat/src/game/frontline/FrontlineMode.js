@@ -73,7 +73,7 @@ export class FrontlineMode {
       if (!this.capturable(p)) { p.counts[0] = p.counts[1] = 0; p.contested = false; p.capturing = -1; continue; }
       const c = p.counts; c[0] = c[1] = 0;
       const count = (e) => {
-        if (e.isVehicle || e.isDeployable || e.health?.dead || e.health?.downed || (e.vehicle && !e.vehicle.exposed) || e.team === undefined) return;
+        if (e.isVehicle || e.isDeployable || e.health?.dead || e.health?.downed || (e.vehicle && !e.vehicle.exposed) || !(e.team === 0 || e.team === 1)) return;   // (the armies hold points: not civilians, not bandits)
         const q = e.movement.state.position;
         if (Math.abs(q.y - p.pos.y) > 4 || Math.hypot(q.x - p.pos.x, q.z - p.pos.z) > p.radius) return;
         c[e.team]++;

@@ -50,7 +50,7 @@ const _d = new Vector3();
 const _lc = new Vector3();
 
 /** Edge-correct button state: press() always produces a clean pressed edge, even on held keys. */
-class Buttons {
+export class Buttons {
   constructor() { this.prev = new Set(); this.down = new Set(); this.queued = new Set(); this.spare = new Set(); }
   hold(k) { this.down.add(k); }
   press(k) { this.queued.add(k); }
@@ -136,7 +136,7 @@ export class CombatBotBrain {
   // ---------------------------------------------------------------- reactions
   #onEnemyCast(e) {
     const caster = this.world.entity(e.id);
-    if (!caster || caster.team === this.self.team || this.self.health.dead || !caster.movement) return;
+    if (!caster || !this.world.hostile(this.self, caster) || this.self.health.dead || !caster.movement) return;
     const me = this.self.movement.state.position;
     const origin = _a.fromArray(e.origin);
     // 1. Dodge telegraphed shapes aimed from the caster's position (dashes, slams, strafing lines).
@@ -426,7 +426,7 @@ export class CombatBotBrain {
       const me = self.movement.state.position;
       let bd = 6;
       this.world.fightersNear(me, 6, (e) => {
-        if (e.team === self.team || !e.health?.downed || e.health.dead || e.isVehicle || e.finishedBy) return;
+        if (!this.world.hostile(self, e) || !e.health?.downed || e.health.dead || e.isVehicle || e.finishedBy) return;
         const d = e.movement.state.position.distanceTo(me);
         if (d < bd) { bd = d; v = e; }
       });
@@ -456,13 +456,13 @@ export class CombatBotBrain {
     const range = this.world.spatial ? this.diff.perceptionRange ?? 90 : Infinity;
     const cand = this._cand; cand.length = 0;
     this.world.fightersNear(me, range === Infinity ? 1e6 : range, (e) => {
-      if (e.team === this.self.team || e.health.dead || e.removed || e.isDeployable) return;
+      if (e.health.dead || e.removed || e.isDeployable || !this.world.hostile(this.self, e)) return;   // (not a civilian minding his own business)
       const d = e.movement.state.position.distanceTo(me);
       if (d <= range) cand.push(d, e);
     });
     // Enemy turrets in range are targets too: a sentry left alone owns its lane.
     for (const d of this.world.deployables.list) {
-      if (d.kind !== 'turret' || d.removed || !d.health || d.health.dead || d.team === this.self.team) continue;
+      if (d.kind !== 'turret' || d.removed || !d.health || d.health.dead || !this.world.hostileTo(this.self.team, d)) continue;
       const dd = d.movement.state.position.distanceTo(me);
       if (dd <= Math.min(range, 70)) cand.push(dd, d);
     }
@@ -543,7 +543,7 @@ export class CombatBotBrain {
         const d = e.movement.state.position.distanceTo(me);
         if (e.isVehicle && e.team === self.team && d < 30) N.vehicleNearby = true;
         if (e.health.downed) return;
-        if (e.team !== self.team) { if (d < 8) N.enemiesNear++; return; }
+        if (e.team !== self.team) { if (d < 8 && this.world.hostile(self, e)) N.enemiesNear++; return; }
         if (d < 12) N.alliesNear++;
         if (!e.isVehicle && e.health.hp / e.health.max < N.hurtAllyHp) { N.hurtAlly = { e, pos: e.movement.state.position }; N.hurtAllyHp = e.health.hp / e.health.max; N.hurtAllyDist = d; }
       });
@@ -598,7 +598,7 @@ export class CombatBotBrain {
       if (!slot?.recast) continue;
       const charge = this.world.deployables.list.find((d) => d.ownerId === this.self.id && d.ability === slot.def.id && d.kind === 'charge' && !d.removed);
       const r = slot.stats.recast.effects?.[0]?.radius ?? 4;
-      if (charge && this.world.fighters().some((e) => e.team !== this.self.team && !e.health.dead && e.movement.state.position.distanceTo(charge.movement.state.position) < r * 0.85)) {
+      if (charge && this.world.fighters().some((e) => this.world.hostile(this.self, e) && !e.health.dead && e.movement.state.position.distanceTo(charge.movement.state.position) < r * 0.85)) {
         this.btn.press(key); this.#note('recast', key); return;
       }
     }
@@ -793,7 +793,7 @@ export class CombatBotBrain {
     if (this.objective) { this.#advance(this.#context(), cmd); return; }
     const me = this.self.movement.state.position;
     let best = null, bd = Infinity;
-    for (const e of this.world.fighters()) if (e.team !== this.self.team && !e.health.dead && !e.isDeployable) { const d = e.movement.state.position.distanceTo(me); if (d < bd) { bd = d; best = e; } }
+    for (const e of this.world.fighters()) if (!e.health.dead && !e.isDeployable && this.world.hostile(this.self, e)) { const d = e.movement.state.position.distanceTo(me); if (d < bd) { bd = d; best = e; } }
     if (best && bd > this.persona.preferredRange) this.#moveToward(cmd, best.movement.state.position, false);
   }
 

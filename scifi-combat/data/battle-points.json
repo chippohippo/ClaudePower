@@ -16,7 +16,8 @@
     "defend": 10,
     "deliver": 80,
     "spot": 30,
-    "teamkill": -150
+    "teamkill": -150,
+    "civilian": -150
   },
   "deathKeeps": 0.5,
   "assistWindow": 10,

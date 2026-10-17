@@ -14,6 +14,7 @@
 //    the squad leader (moving and covering, flanking and suppressing, falling back) call say().
 // Event: squad:bark { id, team, squad, kind, text, name, at: [x, y, z] }.
 
+import { CIVILIAN } from '../combat/Teams.js';
 import { bus } from '../core/EventBus.js';
 
 const ARMY = ['solari', 'void'];
@@ -26,14 +27,14 @@ export class Barks {
     this.seed = (seed * 2654435761) >>> 0 || 1;
     this.mine = new Map();        // soldier id -> { at, kinds: Map(kind -> t) }
     this.squads = new Map();      // squad -> Map(kind -> t)
-    this.named = [0, 0];          // names handed out per team
+    this.named = [0, 0, 0, 0];    // names handed out per team (the armies, civilians, bandits)
     if (!data) { this.off = []; return; }
     this.off = [
       bus.on('weapon:reloadStart', (e) => { const f = this.#bot(e.id); if (f && (f.brain.nbr?.enemiesNear > 0 || f.health.sinceDamage < 3)) this.say(f, 'reloading'); }),
       bus.on('entity:downed', (e) => this.#downed(e)),
       bus.on('revive:start', (e) => { const f = this.#bot(e.id), p = this.world.entity(e.patient); if (f && p) this.say(f, 'revive', { name: p.name }); }),
       bus.on('weapon:hit', (e) => { if (!e.friendly) return; const f = this.#bot(e.victim), by = this.world.entity(e.attacker); if (f && by && by !== f) this.say(f, 'checkfire', { name: by.name }); }),
-      bus.on('entity:death', (e) => { const f = this.#bot(e.by), v = this.world.entity(e.id); if (f && v && v.team !== f.team && !v.isVehicle && !v.isDeployable && this.#roll() < 0.35) this.say(f, 'kill'); }),
+      bus.on('entity:death', (e) => { const f = this.#bot(e.by), v = this.world.entity(e.id); if (f && v && v.team !== f.team && v.team !== CIVILIAN && !v.isVehicle && !v.isDeployable && this.#roll() < 0.35) this.say(f, 'kill'); }),
       bus.on('stratagem:thrown', (e) => { const f = this.#bot(e.id), def = this.world.stratagems?.defs[e.stratagem]; if (f && def) { if (def.kind === 'strike') this.say(f, 'strike'); else if (def.kind === 'supply') this.say(f, 'supply'); } }),
     ];
   }

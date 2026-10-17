@@ -38,6 +38,7 @@ import { SupportCommand } from '../ai/SupportCommand.js';
 import { parkSlot } from './frontline/FrontlineMap.js';
 import { BattlePoints } from './BattlePoints.js';
 import { Barks } from '../ai/Barks.js';
+import { Neutrals } from './Neutrals.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -86,6 +87,12 @@ export class FrontlineSession {
     this.focus = [];                  // positions that keep bots at full think rate (human cameras)
     this.stats = { thinks: 0, simMs: 0 };
     this.#roster(players, humans);
+    // The city's other people (data.civilians): civilians sheltering from the battle, bandit gangs
+    // holding their turf. Simulated like any fighter; never respawned, never counted.
+    if (this.map.city && data.civilians) {
+      this.neutrals = new Neutrals(this);
+      for (const f of this.neutrals.all) { this.fighters.push(f); this.melee.add(f.melee); f.respawnAt = Infinity; }
+    }
     this.commanders = [0, 1].map((t) => { const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav }); c.squads = this.squads[t]; return c; });
     // Squad tactics: where the cover is, who is pinned down, and a leader's plan per squad.
     this.tactical = this.world.tactical = new TacticalMap(this.map);   // (bots search its cover)
@@ -129,7 +136,7 @@ export class FrontlineSession {
 
   dispose() {
     this.off.forEach((f) => f());
-    this.bp.dispose(); this.barks.dispose();
+    this.bp.dispose(); this.barks.dispose(); this.neutrals?.dispose();
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
     this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
@@ -218,6 +225,7 @@ export class FrontlineSession {
     w.update(dt);
     this.melee.resolve();
     this.logistics?.update(dt, this.fighters);
+    this.neutrals?.update(dt);
     this.mode.update(dt, this.fighters, w);
     this.bp.update(dt);
     this.barks.update(dt);
@@ -260,9 +268,10 @@ export class FrontlineSession {
   #onDeath(e) {
     const f = this.fighters.find((x) => x.id === e.id);
     if (!f) return;
+    this.lastCmd.delete(f.id);
+    if (f.team !== 0 && f.team !== 1) return;          // a civilian, a bandit: no ticket, no coming back
     this.mode.onDeath(f.team);
     f.respawnAt = this.time + 4;
-    this.lastCmd.delete(f.id);
   }
 
   #reinforce(dt) {

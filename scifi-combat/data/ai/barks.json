@@ -6,16 +6,20 @@
   "hear": 40,
   "names": {
     "solari": ["Kael", "Oren", "Sava", "Teodor", "Ilka", "Marek", "Dara", "Juno", "Brannoc", "Liesl", "Corvin", "Hale", "Adaeze", "Tomas", "Rhea", "Pell", "Iver", "Sorrel", "Anouk", "Bastian", "Calla", "Desmond", "Effie", "Galen", "Hollis", "Ines", "Jory", "Kestrel", "Linnea", "Maddox", "Nell", "Osric"],
-    "void": ["Vex", "Nyra", "Korr", "Sable", "Draven", "Hask", "Zeth", "Morrow", "Ysolde", "Grail", "Thane", "Ash", "Corvid", "Malka", "Rook", "Selk", "Ulric", "Wren", "Xander", "Yarrow", "Zorya", "Brand", "Cinder", "Dusk", "Ebon", "Fenn", "Gloam", "Hex", "Isolde", "Jinx", "Karst", "Lysander"]
+    "void": ["Vex", "Nyra", "Korr", "Sable", "Draven", "Hask", "Zeth", "Morrow", "Ysolde", "Grail", "Thane", "Ash", "Corvid", "Malka", "Rook", "Selk", "Ulric", "Wren", "Xander", "Yarrow", "Zorya", "Brand", "Cinder", "Dusk", "Ebon", "Fenn", "Gloam", "Hex", "Isolde", "Jinx", "Karst", "Lysander"],
+    "civilian": ["Mira", "Tobin", "Esk", "Lio", "Hanna", "Pavel", "Wen", "Rosa", "Ike", "Nadia", "Odo", "Suki", "Amos", "Lark", "Fen", "Greta", "Bo", "Yara", "Quill", "Tess", "Vik", "Ama", "Cyrus", "Della"],
+    "bandit": ["Rook", "Spanner", "Lynx", "Mags", "Cutter", "Dice", "Viper", "Ox", "Jinx", "Hex", "Snipe", "Torch", "Fang", "Gutter", "Slate", "Moth", "Rivet", "Saint"]
   },
   "lines": {
     "contact": {
       "solari": ["Contact {dir}!", "Enemy {dir}!", "Eyes {dir}, contact!", "Hostiles {dir}!"],
-      "void": ["Prey {dir}!", "There, {dir}!", "Movement {dir}!", "They come, {dir}!"]
+      "void": ["Prey {dir}!", "There, {dir}!", "Movement {dir}!", "They come, {dir}!"],
+      "bandit": ["Our street, {dir}!", "Fresh meat {dir}!", "Uniforms {dir}!", "They're in our block, {dir}!"]
     },
     "reloading": {
       "solari": ["Reloading!", "Changing mags!", "Cover me, reloading!"],
-      "void": ["Feeding the gun!", "Reloading!", "Empty, cover me!"]
+      "void": ["Feeding the gun!", "Reloading!", "Empty, cover me!"],
+      "bandit": ["Reloading!", "Cover me, mag!"]
     },
     "grenade": {
       "solari": ["Grenade!", "Grenade, get clear!", "Frag out, move!"],
@@ -27,7 +31,9 @@
     },
     "down": {
       "solari": ["Man down! {name}'s down!", "{name}'s hit!", "We've got a man down!"],
-      "void": ["{name} has fallen!", "{name} is down!", "We lost {name}!"]
+      "void": ["{name} has fallen!", "{name} is down!", "We lost {name}!"],
+      "bandit": ["I'm hit!", "Ah, they got me!"],
+      "civilian": ["Help me...", "I'm hit, I'm hit!"]
     },
     "medic": {
       "solari": ["Medic!", "I'm hit, I'm hit!", "Need a medic here!"],
@@ -71,7 +77,8 @@
     },
     "kill": {
       "solari": ["Got him!", "Tango down.", "He's down!"],
-      "void": ["One less.", "Got one!", "It falls."]
+      "void": ["One less.", "Got one!", "It falls."],
+      "bandit": ["Stay down!", "That's our turf.", "Next!"]
     },
     "strike": {
       "solari": ["Strike out, stay clear!", "Calling it in, get back!", "Danger close, move!"],
@@ -80,6 +87,12 @@
     "supply": {
       "solari": ["Supplies inbound, on me!", "Ammo drop coming!"],
       "void": ["Supplies coming!", "Ammunition, on me!"]
+    },
+    "scared": {
+      "civilian": ["Don't shoot!", "Get down, get down!", "Run!", "Somebody help!", "Not here, not again...", "Inside, now!"]
+    },
+    "armed": {
+      "civilian": ["I've got a gun, stay back!", "Nobody touches us!", "Back off or I shoot!"]
     }
   }
 }

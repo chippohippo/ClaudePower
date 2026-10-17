@@ -396,7 +396,7 @@
         "hi": 0.8
       },
       "fx": {
-        "_note": "BattleFx: 'puffs' draws smoke and debris as chunky faceted balls in the scene's light, their colours bleached toward tint. TracerPool: bolts are laser bolts (speed m/s, streak m, half width m, glow), blue for your side and red for the enemy's.",
+        "_note": "BattleFx: 'puffs' draws smoke and debris as chunky faceted balls in the scene's light, their colours bleached toward tint. TracerPool: bolts are laser bolts (speed m/s, streak m, half width m, glow), blue for your side and red for the enemy's (and a gang's); a civilian's, neutral.",
         "smoke": "puffs",
         "tint": "#efe2d2",
         "bleach": 0.7,
@@ -406,7 +406,8 @@
           "width": 0.11,
           "glow": 1.5,
           "friendly": "#4aa8ff",
-          "enemy": "#ff3b2e"
+          "enemy": "#ff3b2e",
+          "neutral": "#ffd98a"
         }
       },
       "factions": {
@@ -566,6 +567,82 @@
       "lamp": "#e3d4ff",
       "metal": "#37353d",
       "rim": "#b07cff"
+    },
+    "civilian": {
+      "name": "City folk",
+      "_note": "The city's civilians (TrooperKit 'The city's people'): street clothes, faces. The channels as an army's; then per-person variety the shader picks by id: jackets (the suit channel), accents (hoods, caps, lapels, scarves), neon (glasses, the collar line, sole strips), skins. Rim: ui.rim.civilian, ui.rim.hostile while one fights you.",
+      "armor": "#565a63",
+      "armorShade": "#3e4148",
+      "black": "#1c1d21",
+      "suit": "#4b4f58",
+      "gear": "#2f3036",
+      "webbing": "#2a2a2e",
+      "stencil": "#d8d4cc",
+      "stripe": "#151517",
+      "cape": "#6b5a4a",
+      "capeTrim": "#8a7a6a",
+      "visor": "#5ff3ff",
+      "visorGlass": "#0e1418",
+      "lamp": "#7af7ff",
+      "metal": "#5c6068",
+      "skin": "#c08f72",
+      "jackets": [
+        "#4b4f58",
+        "#5d3b3a",
+        "#3b4d46",
+        "#5c5338",
+        "#353a4f",
+        "#6a6159",
+        "#2b2d33",
+        "#5b4560"
+      ],
+      "accents": [
+        "#8a6f5a",
+        "#3f5f6f",
+        "#6d3f4f",
+        "#9a8f6a"
+      ],
+      "neon": [
+        "#5ff3ff",
+        "#ff4fd8",
+        "#ffb347",
+        "#9dff6a"
+      ],
+      "skins": [
+        "#e0b49a",
+        "#c08f72",
+        "#8d5f45",
+        "#5e3d2c"
+      ]
+    },
+    "bandit": {
+      "name": "The gangs",
+      "_note": "The city's bandit gangs: street clothes under a scavenged plate and a spiked pauldron, jaw masks, goggles, crests. gangs: each gang's colour (data/civilians.json gang names in order) on its raiders' crests, goggles and pauldron stripes. Rim: ui.rim.hostile.",
+      "armor": "#6b5444",
+      "armorShade": "#4a3a30",
+      "black": "#18181b",
+      "suit": "#2c2a2e",
+      "gear": "#3a352f",
+      "webbing": "#2b2722",
+      "stencil": "#e8e2d4",
+      "stripe": "#121214",
+      "cape": "#c43c2a",
+      "capeTrim": "#e0a030",
+      "visor": "#ff5a2a",
+      "visorGlass": "#14100e",
+      "lamp": "#ff7a4a",
+      "metal": "#4a4c50",
+      "skin": "#b0826a",
+      "gangs": [
+        "#ff4a2a",
+        "#9dff3a",
+        "#3ad8ff",
+        "#ff3ad2",
+        "#ffd23a",
+        "#7a5cff",
+        "#3affb0",
+        "#ff8a2a"
+      ]
     }
   },
   "materials": {
