@@ -9,6 +9,8 @@
 //  * Domes are translucent spheres; rotating-beam storms draw their actual spokes; tethers draw
 //    the beam between both ends (breaking it is the counterplay, so you must see it).
 //  * Turrets draw a laser sight along their real aim; mines and charges blink faster when armed.
+//  * Smoke screens are drawn by their smoke (BattleFx), and whatever `skip` claims (a stratagem's
+//    sentry, which StratagemViews draws on its pod) by its own view; their tracers are still here.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -17,8 +19,9 @@ const ENEMY = '#ff3b5c';
 const FACTION = ['#ffcf6b', '#a970ff']; // team 0 Solari gold, team 1 Void violet
 
 export class ZoneDeployableViews {
-  constructor(scene, world, { localTeam = 0, coverMeshes = new Map() } = {}) {
+  constructor(scene, world, { localTeam = 0, coverMeshes = new Map(), skip = () => false } = {}) {
     this.scene = scene;
+    this.skip = skip;
     this.world = world;
     this.localTeam = localTeam;
     this.coverMeshes = coverMeshes; // cover object -> mesh, for destruction
@@ -47,6 +50,7 @@ export class ZoneDeployableViews {
 
   // ---------------------------------------------------------------- zones
   #addZone(e, arming) {
+    if (e.smoke) return;
     const enemy = e.team !== this.localTeam;
     const color = this.#color(e.team);
     const root = new THREE.Group();
@@ -100,6 +104,7 @@ export class ZoneDeployableViews {
 
   // ---------------------------------------------------------------- deployables
   #addDeployable(e) {
+    if (this.skip(e)) return;
     const color = this.#color(e.team);
     const std = (c = color, emissive = 0.6) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: emissive });
     const root = new THREE.Group();

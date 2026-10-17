@@ -14,7 +14,11 @@
 //  6. Supers are announced. When an enemy super starts within its radius you get a 2D stinger, a
 //     VO line and a HUD direction arrow.
 //  7. Self-state cues stay 2D and quiet: ability ready, low ammo, overheat, low HP heartbeat.
-//  8. Foley is animation-driven. Footsteps, cloth and body impacts play only from the rig's
+//  8. Call-ins. The wrist pad's beeps are yours alone and 2D: each arrow a whole tone above the
+//     last, a buzz on a wrong one, a chime when the beacon's in your hand. Out in the world a
+//     planted beacon pings and then beeps faster as its payload nears (you hear the clock), a
+//     pod roars down, the strike jet tears past, smoke pops and hisses.
+//  9. Foley is animation-driven. Footsteps, cloth and body impacts play only from the rig's
 //     anim:footstep / anim:cloth / anim:impact events, so every thud lands on the frame the foot
 //     or body visibly hits. Their own tier is distance-culled before any node is created, so a
 //     128-player battle never spends voices on footsteps nobody can hear.
@@ -35,9 +39,11 @@ export class AudioDirector {
    * @param {object} backend   { play(cue, opts) -> handle, stop(handle), setBusGain(bus, db, rampSec), setListener(pos, yaw) }
    * @param {object} opts      { listenerId, getEntity(id) -> { team, position }, abilityIndex: Map(abilityId -> def), uiArrow(fn) }
    */
-  constructor(backend, { listenerId, getEntity, abilityIndex = new Map(), onSuperWarning = () => {}, guns = null } = {}) {
+  constructor(backend, { listenerId, getEntity, abilityIndex = new Map(), onSuperWarning = () => {}, guns = null, strats = null } = {}) {
     this.backend = backend;
     this.guns = guns;                // FieldGuns: rounds in the air (incoming whistles)
+    this.strats = strats;            // StratagemSystem: planted beacons (their beeping)
+    this.beeps = new WeakMap();      // beacon -> when it beeps next
     this.whistled = new WeakSet();
     this.listenerId = listenerId;
     this.getEntity = getEntity;
@@ -108,6 +114,17 @@ export class AudioDirector {
         if (Math.hypot(r.x - L.x, r.z - L.z) > 70) continue;
         this.whistled.add(r);
         this.play('artillery.whistle', { tier: Tier.THREAT, pos: { x: r.x, y: r.y + 6, z: r.z }, radius: 120, duration: left, gainDb: r.team === this.getEntity(this.listenerId)?.team ? -4 : 0 });
+      }
+    }
+    // A planted beacon near you beeps, faster as its payload nears.
+    const SB = this.strats;
+    if (SB?.beacons.length && L) {
+      for (const b of SB.beacons) {
+        if (!b.planted || (b.pos.x - L.x) ** 2 + (b.pos.z - L.z) ** 2 > 45 * 45) continue;
+        const delay = b.def.delay ?? 0, eta = delay - (SB.time - b.at);
+        if (eta <= 0 || this.time < (this.beeps.get(b) ?? 0)) continue;
+        this.beeps.set(b, this.time + 0.16 + (0.6 * eta) / Math.max(1, delay));
+        this.play('callin.beep', { tier: Tier.COMBAT, pos: { x: b.pos.x, y: b.pos.y + 0.3, z: b.pos.z }, radius: 45, gainDb: -6 });
       }
     }
   }
@@ -268,6 +285,21 @@ export class AudioDirector {
     // Melee: parries are the loudest and most satisfying sound in the game. Don't let anything mask them.
     on('melee:parry', (e) => this.play('melee.parry_burst', { tier: Tier.THREAT, pos: this.posOf(e.defender), gainDb: 2 }));
     on('melee:windup', (e) => this.relation(e.id) === 'enemy' && this.play(e.unblockable ? 'melee.windup_unblockable' : 'melee.windup', { tier: Tier.THREAT, pos: this.posOf(e.id) }));
+
+    // Stratagems: the wrist pad is yours alone (2D); beacons, pods, jets and smoke are out there.
+    const mine = (e) => e.id === this.listenerId;
+    on('stratagem:open', (e) => mine(e) && this.play('callin.open', { tier: Tier.COMBAT, gainDb: -6 }));
+    on('stratagem:arrow', (e) => mine(e) && this.play('callin.arrow', { tier: Tier.COMBAT, intensity: e.code.length, gainDb: -4 }));
+    on('stratagem:error', (e) => mine(e) && this.play('callin.error', { tier: Tier.COMBAT, gainDb: -4 }));
+    on('stratagem:armed', (e) => mine(e) && this.play('callin.armed', { tier: Tier.COMBAT, gainDb: -2 }));
+    on('stratagem:rearmed', (e) => mine(e) && this.play('callin.armed', { tier: Tier.COMBAT, gainDb: -12 }));
+    on('stratagem:thrown', (e) => this.play('callin.throw', { tier: Tier.FOLEY, pos: mine(e) ? null : this.posOf(e.id), radius: 18, gainDb: -4 }));
+    on('stratagem:beacon', (e) => this.play('callin.beacon', { tier: Tier.COMBAT, pos: at(e.at), radius: 70, gainDb: -2 }));
+    on('stratagem:pod', (e) => this.play('callin.pod', { tier: Tier.COMBAT, pos: at(e.at), radius: 500, duration: e.eta }));
+    on('stratagem:land', (e) => this.play('artillery.impact', { tier: Tier.COMBAT, pos: at(e.at), radius: 700, intensity: 0.5 }));
+    on('stratagem:incoming', (e) => e.first && e.dir && this.play('callin.flyby', { tier: Tier.COMBAT, pos: at(e.from), radius: 1100, duration: 3.6 }));
+    on('stratagem:smoke', (e) => this.play('callin.smoke', { tier: Tier.COMBAT, pos: at(e.at), radius: 80, gainDb: -3 }));
+    on('stratagem:grab', (e) => mine(e) && this.play('callin.grab', { tier: Tier.COMBAT, gainDb: -2 }));
   }
 
   #announceSuper(e) {
@@ -309,6 +341,7 @@ export class SynthBackend {
     if (kind === 'foot' || kind === 'impact' || kind === 'cloth' || kind === 'gear' || kind === 'dig') return this.#foley(kind, cue, { pos, gainDb, radius, intensity });
     if (cue.startsWith('squad.whistle')) return this.#whistle({ pos, gainDb, radius, threat: cue.endsWith('_threat') });
     if (kind === 'artillery') return this.#artillery(cue.slice(10), { pos, gainDb, radius, intensity, duration });
+    if (kind === 'callin') return this.#callin(cue.slice(7), { pos, gainDb, radius, intensity, duration });
     const ctx = this.ctx, t = ctx.currentTime;
     const threat = cue.includes('_threat') || tier === 0;
     const freq = noteHz(sig?.root) * (threat ? 1 : 2);   // threats sit an octave lower, so they're heavier
@@ -401,6 +434,80 @@ export class SynthBackend {
     }
     const h = { osc: null, ended: false };
     setTimeout(() => { h.ended = true; out.disconnect(); }, (end + 0.2) * 1000);
+    h.osc = { stop: () => { try { out.disconnect(); } catch { /* gone */ } } };
+    return h;
+  }
+
+  /**
+   * Call-ins, from oscillators and noise: the wrist pad (open: a rising blip; arrow: a short
+   * square beep a whole tone higher per key typed; error: a double buzz; armed: a three-note
+   * chime), the beacon (a bright ping as it plants, then short beeps), a drop pod's roar rising
+   * to the impact, the strike jet (a roaring, falling band of noise over a turbine whine and a
+   * sub rumble), the smoke canister (a pop, then a hiss), a supply grab (two clacks: two mags).
+   */
+  #callin(kind, { pos, gainDb = 0, radius = 60, intensity = 1, duration = 1.3 }) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    this.noise ??= (() => {
+      const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return b;
+    })();
+    const out = ctx.createGain();
+    out.gain.value = 10 ** ((gainDb - 10) / 20);
+    let node = out;
+    if (pos) {
+      const far = kind === 'pod' || kind === 'flyby', p = ctx.createPanner();
+      Object.assign(p, { panningModel: far ? 'equalpower' : 'HRTF', distanceModel: far ? 'inverse' : 'linear', refDistance: far ? (kind === 'flyby' ? 40 : 15) : 2, maxDistance: radius, rolloffFactor: far ? 0.8 : 1 });
+      p.positionX.value = pos.x; p.positionY.value = pos.y; p.positionZ.value = pos.z;
+      out.connect(p); node = p;
+    }
+    node.connect(this.buses.sfx);
+    const env = (g, at, a, peak, len) => { g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(peak, t + at + a); g.gain.exponentialRampToValueAtTime(0.0001, t + at + len); };
+    const tone = (type, f0, f1, at, len, peak = 1, attack = 0.004) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t + at);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + at + len);
+      env(g, at, attack, peak, len);
+      o.connect(g); g.connect(out); o.start(t + at); o.stop(t + at + len + 0.02);
+      return g;
+    };
+    const hiss = (type, f0, f1, at, len, q = 1) => {
+      const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      n.buffer = this.noise; n.loop = true;
+      f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t + at); f.frequency.exponentialRampToValueAtTime(f1, t + at + len);
+      n.connect(f); f.connect(g); g.connect(out); n.start(t + at, Math.random()); n.stop(t + at + len + 0.02);
+      return g;
+    };
+    let end = 0.3;
+    if (kind === 'open') { tone('sine', 660, 990, 0, 0.07, 0.6); end = 0.1; }
+    else if (kind === 'arrow') { const f = 520 * 2 ** ((Math.max(1, intensity) - 1) / 6); tone('square', f, f, 0, 0.05, 0.3); tone('sine', f * 2, f * 2, 0, 0.04, 0.2); end = 0.08; }
+    else if (kind === 'error') { tone('sawtooth', 150, 140, 0, 0.09, 0.6); tone('sawtooth', 150, 132, 0.12, 0.13, 0.6); end = 0.27; }
+    else if (kind === 'armed') { [880, 1175, 1568].forEach((f, i) => tone('sine', f, f, i * 0.055, 0.14, 0.5)); end = 0.32; }
+    else if (kind === 'throw') { env(hiss('bandpass', 1800, 420, 0, 0.22, 1.4), 0, 0.03, 0.5, 0.22); end = 0.25; }
+    else if (kind === 'beacon') { tone('sine', 2093, 2093, 0, 0.35, 0.6); tone('sine', 3136, 3136, 0, 0.18, 0.25); end = 0.4; }
+    else if (kind === 'beep') { tone('sine', 1760, 1760, 0, 0.05, 0.45); end = 0.07; }
+    else if (kind === 'pod') {
+      // The roar climbs to the impact and stops dead on it.
+      end = Math.max(0.6, duration);
+      const g = hiss('lowpass', 280, 2600, 0, end, 0.9);
+      g.gain.setValueAtTime(0.02, t); g.gain.exponentialRampToValueAtTime(1, t + end * 0.97); g.gain.linearRampToValueAtTime(0, t + end);
+      tone('triangle', 55, 85, 0, end, 0.7, end * 0.95);
+    } else if (kind === 'flyby') {
+      end = Math.max(1.5, duration);
+      const g = hiss('bandpass', 2600, 480, 0, end, 0.8);
+      g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(1, t + end * 0.18); g.gain.exponentialRampToValueAtTime(0.0001, t + end);
+      tone('sawtooth', 920, 410, 0, end, 0.12, end * 0.18);
+      tone('sine', 48, 34, 0, end * 0.8, 0.8, end * 0.15);
+    } else if (kind === 'smoke') {
+      env(hiss('lowpass', 900, 300, 0, 0.08), 0, 0.002, 1, 0.08);
+      env(hiss('highpass', 2600, 4200, 0.03, 1.6), 0.03, 0.08, 0.35, 1.6);
+      end = 1.7;
+    } else if (kind === 'grab') {
+      for (const at of [0, 0.13]) { env(hiss('highpass', 2200, 1800, at, 0.05), at, 0.001, 0.8, 0.05); tone('sine', 180, 110, at, 0.1, 0.6); }
+      end = 0.3;
+    }
+    const h = { osc: null, ended: false };
+    setTimeout(() => { h.ended = true; try { out.disconnect(); } catch { /* gone */ } }, (end + 0.2) * 1000);
     h.osc = { stop: () => { try { out.disconnect(); } catch { /* gone */ } } };
     return h;
   }

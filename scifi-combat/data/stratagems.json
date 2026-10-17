@@ -1,5 +1,5 @@
 {
-  "_note": "Stratagems (src/combat/Stratagems.js, docs/GAMEPLAY_PLAN.md §2): hold the call-in button and type the code (U D L R), throw the beacon, the payload comes after `delay` seconds. cooldown: seconds after a call before it can be typed again. uses + rearm: calls before a rearm, and how long the rearm takes once they're spent. Payload kinds: shells (count rounds over `over` s scattered within `spread` m), line (count rounds along `length` m: from the beacon on away from the thrower, or `across` the throw centred on it), pod (falls on the beacon and crushes what's under it: a supply cache or a sentry), smoke (a screen of `count` clouds across the throw, blocking sight). Codes are our own.",
+  "_note": "Stratagems (src/combat/Stratagems.js, docs/GAMEPLAY_PLAN.md §2): hold the call-in button and type the code (U D L R), throw the beacon, the payload comes after `delay` seconds. cooldown: seconds after a call before it can be typed again. uses + rearm: calls before a rearm, and how long the rearm takes once they're spent. Payload kinds: shells (count rounds over `over` s scattered within `spread` m), line (count rounds along `length` m: from the beacon on away from the thrower, or `across` the throw centred on it), pod (falls on the beacon and crushes what's under it: a supply cache, or a sentry that fires from its top, `muzzle` m up), smoke (a screen of `count` clouds across the throw, blocking sight). Codes are our own. Rounds are drawn as streaks by StratagemViews (vfx.tracer: strike).",
   "arrowTime": 0.16,
   "beacon": { "speed": 14, "lift": 0.2, "gravity": 9.8, "life": 30 },
   "common": ["supply_drop", "smoke_screen"],
@@ -39,7 +39,7 @@
     },
     "sentry": {
       "name": "Sentry", "code": "DURRU", "delay": 4, "cooldown": 150, "kind": "sentry",
-      "payload": { "kind": "pod", "contents": "sentry", "crush": 1.6, "turret": { "dps": 85, "range": 48, "turnRate": 120, "hp": 450, "life": 75 } }
+      "payload": { "kind": "pod", "contents": "sentry", "crush": 1.6, "turret": { "dps": 85, "range": 48, "turnRate": 120, "hp": 450, "life": 75, "muzzle": 2.15 } }
     },
     "smoke_screen": {
       "name": "Smoke Screen", "code": "RUUD", "delay": 2, "cooldown": 70, "kind": "smoke",
@@ -47,9 +47,9 @@
     }
   },
   "shells": {
-    "strat_precision": { "id": "strat_precision", "name": "Precision Strike", "ammoType": "explosive", "damage": { "base": 900, "splash": 7 }, "knockback": 24, "range": 6000, "vfx": { "tracer": "shell" }, "audio": "orbital", "artillery": { "crater": [3.4, 1.0, 0.16], "cover": 5 } },
-    "strat_barrage": { "id": "strat_barrage", "name": "Orbital Barrage", "ammoType": "explosive", "damage": { "base": 340, "splash": 8 }, "knockback": 18, "range": 6000, "vfx": { "tracer": "shell" }, "audio": "orbital", "artillery": { "crater": [2.6, 0.75, 0.12], "cover": 3.7 } },
-    "strat_strafe": { "id": "strat_strafe", "name": "Strafing Run", "ammoType": "explosive", "damage": { "base": 150, "splash": 3 }, "knockback": 9, "range": 6000, "vfx": { "tracer": "rocket" }, "audio": "rocket", "artillery": { "cover": 1.2 } },
-    "strat_bomb": { "id": "strat_bomb", "name": "Airstrike", "ammoType": "explosive", "damage": { "base": 420, "splash": 8 }, "knockback": 20, "range": 6000, "vfx": { "tracer": "shell" }, "audio": "howitzer", "artillery": { "crater": [2.4, 0.7, 0.12], "cover": 3.5 } }
+    "strat_precision": { "id": "strat_precision", "name": "Precision Strike", "ammoType": "explosive", "damage": { "base": 900, "splash": 7 }, "knockback": 24, "range": 6000, "vfx": { "tracer": "strike" }, "audio": "orbital", "artillery": { "crater": [3.4, 1.0, 0.16], "cover": 5 } },
+    "strat_barrage": { "id": "strat_barrage", "name": "Orbital Barrage", "ammoType": "explosive", "damage": { "base": 340, "splash": 8 }, "knockback": 18, "range": 6000, "vfx": { "tracer": "strike" }, "audio": "orbital", "artillery": { "crater": [2.6, 0.75, 0.12], "cover": 3.7 } },
+    "strat_strafe": { "id": "strat_strafe", "name": "Strafing Run", "ammoType": "explosive", "damage": { "base": 150, "splash": 3 }, "knockback": 9, "range": 6000, "vfx": { "tracer": "strike" }, "audio": "rocket", "artillery": { "cover": 1.2 } },
+    "strat_bomb": { "id": "strat_bomb", "name": "Airstrike", "ammoType": "explosive", "damage": { "base": 420, "splash": 8 }, "knockback": 20, "range": 6000, "vfx": { "tracer": "strike" }, "audio": "howitzer", "artillery": { "crater": [2.4, 0.7, 0.12], "cover": 3.5 } }
   }
 }

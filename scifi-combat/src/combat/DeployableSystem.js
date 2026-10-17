@@ -92,7 +92,7 @@ export class DeployableSystem {
 
   // ---------------------------------------------------------------- per-kind behaviour
   tick_turret(d, dt) {
-    const p = _muzzle.copy(d.movement.state.position).setY(d.movement.state.position.y + 1.1);
+    const p = _muzzle.copy(d.movement.state.position).setY(d.movement.state.position.y + (d.muzzle ?? 1.1));
     // Re-acquire the nearest visible enemy, preferring to keep the current one. With nobody in
     // sight it looks around a few times a second, not every tick.
     if (!d.target || d.target.health.dead || !this.#visible(p, d.target, d.range)) {

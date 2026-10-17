@@ -120,6 +120,16 @@ fins. `src/render/VehicleKit.js` (painted by `paintMaterial`, the trooper shader
 | Field and AT guns | Tyred wheels, a painted shield with a hazard band and the gun's number, a tapering barrel, recoil cylinders, breech, sight, spaded trail legs that spread when set up |
 | Rocket batteries, supply haulers | Half-tracks with an angular cab (raked windscreen, grille, bumper, light bar), a rack of tubes or a bed of crates and hazard-striped drums you can count |
 
+Stratagem hardware (`src/render/StratagemKit.js`, drawn by `src/vfx/StratagemViews.js`), in the
+same language:
+
+| Piece | Model |
+|---|---|
+| Beacon | A palm-sized black canister: a spike to stick it in, a hazard band, grip rings, an antenna, the lamp lit in the payload's color |
+| Drop pod | Octagonal: four faction-painted doors with hazard bands and the pod's number, black ribs at the corners, shade panels between, a buried spike, a cap with stubby thrusters and a lamp ring. The doors fold down like petals on four ammo crates whose ready lights are the grabs left |
+| Sentry | Rises out of its pod when the cap pops: a boxy sensor head on a yoke, the optic glowing, twin barrels with brakes, an ammo drum, a hazard band, an antenna |
+| Strike jet | A heavy cranked-delta attack plane: armored fuselage and nose, a bubble canopy, hazard-edged wings with bombs on pylons, canted twin tails with the number, two big engines with glowing nozzles |
+
 Props: sandbags (`#a68e66`) in wandering courses of stuffed bags, with real bags along every
 parapet top (`src/render/SandbagTops.js`: 64 m cells, a 36-triangle bag past 60 m, none past
 150 m); timber revetments and duckboards (`#6c4f32`); concrete (`#8a8478`); corrugated metal with
@@ -133,12 +143,18 @@ from their normal maps.
 | Shell burst | A flash brighter than the sun, a fireball (`#fff2c8` → `#ff8a2a` → `#d9440f`), a column of dirt (`#6b5236`) thrown up and falling back, a dark plume (`#2a2420`) that drifts for ten seconds, a scorch mark left on the ground |
 | Bullet impacts | Dust puffs (`#b9976a`) on dirt, sparks (`#ffc56b`) on metal, splinters on wood |
 | Tracers | Faction-tinted: gold for Solari, violet for Void |
+| Call-in beams | A pillar of light from the beacon up into the sky in the payload's color (palette `stratagem`: strike `#ff5a3c`, supply `#4db3ff`, sentry `#5dff8f`, smoke `#ece7db`). It has a hot center and saturated edges, gets wider with distance so it reads across the map, and its pulses run up faster as the payload nears. Drawn opaque-ish, never additive: added to the scorched sky it would only turn white |
+| Danger outline | A strike's blast area draped over the ground: a band, and a low fence of light fading upward so it reads from eye height |
+| Strike rounds | A white-hot streak behind each round coming down |
+| Drop pods | A trail of fire and dark smoke on the way down, then a flash, clods and a ring of dust racing out, which settles fast |
+| Smoke screen | Grey-to-white puffs billowing for as long as the sim blocks sight through them, thinning out as it stops |
 
 ## UI
 
 HD2's language: yellow (`#ffe14d`) and white on dark translucent panels with clipped corners,
 condensed uppercase type, thin rules, red for danger. Diegetic where we can (the gun panel and
-fire control read as equipment). Our own type and frames, not HD2's.
+fire control read as equipment). Our own type and frames, not HD2's. The call-in panel lists
+codes as ▲▼◀▶, with each stratagem's color as a tab; typed arrows light yellow.
 
 ## The art lab
 
@@ -152,10 +168,11 @@ sky and light, to model against and to screenshot:
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
 | `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
+| `stratagems` | the real sim run to each moment: `callin` (typing on the wrist pad, the panel up, a beacon cocked), `strike` (the red beam and danger fence on the enemy line), `inbound` (the round streaking down), `boom`, `strafe` (the jet), `supply` (the pod open on its crates), `sentry`, `smoke`, `barrage`, `beams` (every kind at once) |
 
 `node scripts/art-shots.mjs <outdir> station:view[:query] ...` captures them headless (serve the folder on :8765 first).
 
 ## Screenshots
 
 `screenshots/art/` holds the lab captures from building this pass (palette, sky, troopers,
-vehicles); `screenshots/game/` the same look in a match.
+vehicles); `screenshots/game/` the same look in a match; `screenshots/stratagems/` the call-ins.

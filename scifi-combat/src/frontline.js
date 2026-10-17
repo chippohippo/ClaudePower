@@ -3,9 +3,9 @@
 //      &planet=scorched (data/art/palette.json) &fx=low|off (post-processing quality)
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
-// (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers → post-processing (god rays,
-// bloom, grade) → HUD and audio. The look is the art direction's (docs/ART_DIRECTION.md): the
-// planet preset's sky, sun, fog and ground, troopers in their role's kit and faction's paint.
+// (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers, stratagems → post-processing
+// (god rays, bloom, grade) → HUD and audio. The look is the art direction's (docs/ART_DIRECTION.md):
+// the planet preset's sky, sun, fog and ground, troopers in their role's kit and faction's paint.
 
 import * as THREE from 'three';
 import { bus } from './core/EventBus.js';
@@ -19,6 +19,8 @@ import { BattlefieldRenderer } from './render/BattlefieldRenderer.js';
 import { TracerPool } from './render/TracerPool.js';
 import { VehicleViews } from './vfx/VehicleViews.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
+import { StratagemViews } from './vfx/StratagemViews.js';
+import { StratagemPanel } from './ui/StratagemPanel.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
@@ -92,8 +94,10 @@ anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette });
-const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam });
+// A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
+const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const fx = new BattleFx(scene, { fog: scene.fog });
+const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
 
 const input = new InputManager(renderer.domElement);
 input.yaw = myTeam === 0 ? -Math.PI / 2 : Math.PI / 2; // face the enemy's side of the map
@@ -109,12 +113,13 @@ let audio = null;
 renderer.domElement.addEventListener('mousedown', () => {
   if (audio) return;
   audio = new AudioDirector(new SynthBackend(), {
-    listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns,
+    listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns, strats: world.stratagems,
     getEntity: (id) => { const e = world.entity(id); return e && { team: e.team, position: e.movement.state.position }; },
   });
 });
 
 const hud = new FrontlineHud(document.getElementById('hud'), session, player);
+const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
 const gunPanel = Object.assign(document.createElement('div'), { id: 'fl-gunpanel' });
 document.getElementById('hud').appendChild(gunPanel);
 const fireControl = new FireControl(scene, { world, map, el: gunPanel, aspect: innerWidth / innerHeight });
@@ -179,12 +184,14 @@ const loop = new FixedLoop({
     tracers.update(dt);
     fx.update(dt);
     zoneViews.update(dt);
+    stratViews.update(dt, cam, alpha);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio?.update(dt, rig.camera.position, player.movement.state.yaw);
     hud.update(dt, cam);
+    callIn.update(dt, cam);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

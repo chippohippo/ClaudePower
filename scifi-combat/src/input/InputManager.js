@@ -103,7 +103,7 @@ export class InputManager {
       this.clampPitch();
     }
 
-    // The call-in: Ctrl on the keyboard; on a pad, LB held past HOLD_FOR_CALLIN (a tap stays ability1).
+    // The call-in: Tab (or Ctrl) on the keyboard; on a pad, LB held past HOLD_FOR_CALLIN (a tap stays ability1).
     const lb = !!pad?.buttons[PAD_LB]?.pressed;
     this.lbHeld = lb ? (this.lbHeld ?? 0) + dt : 0;
     const padCallIn = lb && this.lbHeld >= HOLD_FOR_CALLIN;

@@ -6,8 +6,9 @@
 //    a full code puts the beacon in your hand, the fire button throws it, the call-in button again
 //    puts it away. Your hands are busy while you type or hold a beacon: the gun, the sword and the
 //    abilities don't get those ticks. Humans and bots send the same buttons.
-//  * StratagemSystem (per world): beacons in flight stick to whatever they hit (and ride it), then
-//    the countdown, then the payload at the beacon:
+//  * StratagemSystem (per world): beacons in flight stick to whatever they hit (and ride it: the
+//    payload follows a beacon stuck on a tank until each part of it leaves the sky, and so do the
+//    warnings), then the countdown, then the payload at the beacon:
 //      shells, line   rounds walked in from the sky as FieldGuns-style shells: they crater, blow
 //                     sandbags away, scorch the ground, show in the incoming list (bots dive for
 //                     cover in time, the HUD warns) and hurt everyone in the blast (friendly fire)
@@ -17,8 +18,8 @@
 //
 // Events: stratagem:open / close { id }, stratagem:arrow { id, code, ch }, stratagem:error { id },
 // stratagem:armed / stowed { id, stratagem }, stratagem:thrown { id, stratagem, beacon },
-// stratagem:beacon { beacon, at, eta, team, stratagem, kind }, stratagem:incoming { at, eta, team, kind },
-// stratagem:pod / land { beacon, at, contents }, stratagem:grab { id, pod, mags }, stratagem:smoke { at, radius, duration }.
+// stratagem:beacon { beacon, at, eta, team, stratagem, kind }, stratagem:incoming { beacon, at, eta, team, kind, from, dir, first },
+// stratagem:pod / land { beacon, at, contents }, stratagem:grab { id, pod, mags }, stratagem:smoke { at, radius, duration, height }.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
@@ -51,6 +52,7 @@ export class StratagemComponent {
     this.state = 'idle';     // idle | typing | armed
     this.code = '';
     this.armed = null;       // the slot whose beacon is in hand
+    this.throws = 0;         // beacons thrown (the rig plays the throw when this ticks up)
   }
 
   /** Can this slot be typed now (off cooldown, uses left)? */
@@ -111,6 +113,7 @@ export class StratagemComponent {
     this.armed = null; this.state = 'idle';
     s.cooldown = s.def.cooldown ?? 0;
     if (s.def.uses) { s.uses--; if (s.uses <= 0) s.rearm = s.def.rearm ?? 60; }
+    this.throws++;
     this.sys.throwBeacon(this.owner, s, cmd.yaw, cmd.pitch);
   }
 
@@ -183,8 +186,13 @@ export class StratagemSystem {
       }
       return;
     }
-    // Riding a soldier or a vehicle: the beacon (and the strike) follows it.
-    if (b.on && !b.on.removed && !b.on.health?.dead) b.pos.copy(b.on.movement.state.position).add(b.offset);
+    // Riding a soldier or a vehicle: the beacon follows it, and so does whatever hasn't left the
+    // sky yet (and its warning on the incoming list).
+    if (b.on && !b.on.removed && !b.on.health?.dead) {
+      b.pos.copy(b.on.movement.state.position).add(b.offset);
+      b.shift.set(b.pos.x - b.at0.x, 0, b.pos.z - b.at0.z);
+      for (const { r, shot } of b.warned) if (!shot.fired) { r.x = shot.x + b.shift.x; r.z = shot.z + b.shift.z; }
+    }
     const t = this.time - b.at;
     for (const shot of b.plan) {
       if (shot.fired || t < shot.t) continue;
@@ -196,6 +204,7 @@ export class StratagemSystem {
 
   #plant(b, point, entity) {
     b.planted = true; b.at = this.time; b.pos.copy(point);
+    b.at0 = b.pos.clone(); b.shift = new Vector3(); b.warned = [];
     if (entity && !entity.isDeployable) { b.on = entity; b.offset.subVectors(point, entity.movement.state.position); }
     b.plan = this.#plan(b);
     const eta = b.def.delay ?? 0;
@@ -206,7 +215,9 @@ export class StratagemSystem {
     for (const shot of b.plan) {
       if (!shot.round) continue;
       const land = this.time + shot.t + shot.fall;
-      incoming?.push({ x: shot.x, y: shot.y, z: shot.z, at: land, radius: shot.round.damage?.splash ?? 0, team: b.team, kind: 'strike', gun: null });
+      const r = { x: shot.x, y: shot.y, z: shot.z, at: land, radius: shot.round.damage?.splash ?? 0, team: b.team, kind: 'strike', gun: null };
+      incoming?.push(r);
+      b.warned.push({ r, shot });
     }
   }
 
@@ -253,7 +264,9 @@ export class StratagemSystem {
       }
     } else if (P.kind === 'pod') {
       const fall = 1.3;
-      out.push({ t: Math.max(0, delay - fall), fall, x: b.pos.x, y: b.pos.y, z: b.pos.z, pod: true, fired: false });
+      // It lands where the beacon is: on the ground or on top of the cover it stuck to, never in
+      // mid-air on someone it stuck to.
+      out.push({ t: Math.max(0, delay - fall), fall, x: b.pos.x, y: b.on ? ground(b.pos.x, b.pos.z) : b.pos.y, z: b.pos.z, pod: true, fired: false });
     } else if (P.kind === 'smoke') {
       // A screen across the throw, centred on the beacon.
       _d.set(b.pos.x - b.from.x, 0, b.pos.z - b.from.z);
@@ -270,6 +283,9 @@ export class StratagemSystem {
   /** One part of a payload arrives (or leaves the sky, for rounds). */
   #deliver(b, shot) {
     const w = this.world, P = b.def.payload;
+    if (b.shift.lengthSq() > 1e-4) {      // the beacon rode off: aim where it is now
+      shot.x += b.shift.x; shot.z += b.shift.z; shot.y = w.groundHeight?.(_v.set(shot.x, 0, shot.z)) ?? shot.y;
+    }
     if (shot.round) {
       // From above (a line comes in from behind its run, low and fast): straight at the point.
       const h = P.height ?? 250, back = shot.dir ? 45 : 18;
@@ -282,7 +298,7 @@ export class StratagemSystem {
         weapon: shot.round, origin, dir, speed: dist / shot.fall, gravity: 0, maxAge: shot.fall + 4, highFly: true,
         ownerId: b.ownerId, team: b.team, damageMul: 1, splash: shot.round.damage?.splash ?? 0, deflectable: false, onHit: null,
       });
-      bus.emit('stratagem:incoming', { at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, kind: b.def.kind, from: origin.toArray() });
+      bus.emit('stratagem:incoming', { beacon: b.id, at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, kind: b.def.kind, from: origin.toArray(), dir: shot.dir, first: shot === b.plan[0] });
     } else if (shot.pod) {
       const pod = { id: b.id, beacon: b, owner: b.owner, team: b.team, def: b.def, pos: new Vector3(shot.x, shot.y + 140, shot.z), ground: shot.y, vy: -140 / shot.fall, landed: false, grabs: P.grabs ?? 0, age: 0, done: false, contents: P.contents };
       this.pods.push(pod);
@@ -292,7 +308,7 @@ export class StratagemSystem {
         kind: 'smoke', ability: b.stratagem, ownerId: b.ownerId, team: b.team, center: new Vector3(shot.x, shot.y, shot.z),
         radius: P.radius, lifetime: P.duration, blocksVision: true, smokeHeight: P.height ?? 7,
       });
-      bus.emit('stratagem:smoke', { at: [shot.x, shot.y, shot.z], radius: P.radius, duration: P.duration, team: b.team });
+      bus.emit('stratagem:smoke', { at: [shot.x, shot.y, shot.z], radius: P.radius, duration: P.duration, height: P.height ?? 7, team: b.team });
     }
   }
 
@@ -308,7 +324,7 @@ export class StratagemSystem {
         const T = p.def.payload.turret;
         this.world.spawnDeployable?.({
           kind: 'turret', ability: p.beacon.stratagem, ownerId: p.owner.id, team: p.team, at: p.pos.clone(), yaw: p.owner.movement.state.yaw,
-          hp: T.hp, dps: T.dps, range: T.range, turnRate: T.turnRate, lifetime: T.life, maxPerOwner: 3,
+          hp: T.hp, dps: T.dps, range: T.range, turnRate: T.turnRate, lifetime: T.life, maxPerOwner: 3, muzzle: T.muzzle,
         });
         p.done = true;
       }

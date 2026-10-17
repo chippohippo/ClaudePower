@@ -1,15 +1,15 @@
 # Frontline: 4v4 to 200v200 trench battles
 
 Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode,
-Logistics) · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
+Logistics) · `src/combat/Stratagems.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
 (squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
 `src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
 EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
-`src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `src/ui/FrontlineHud.js`,
-`FireControl.js`, `src/vfx/BattleFx.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `StratagemKit.js`, `src/ui/FrontlineHud.js`,
+`FireControl.js`, `StratagemPanel.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
-`tests/warfront.test.mjs`.
+`tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -43,8 +43,10 @@ downed teammate to revive. When you're down: crawl, hold **Space** to give up; w
 deploy. Your squad's bots follow you and take cover around you when you stop. At a gun, **X** takes a
 crew seat and **H** sets it up or packs it up; at a howitzer or rocket battery the view goes overhead
 and the mouse moves the fire mission's mark (hold LMB to fire). In a supply truck, stop inside the
-HQ dump to load and inside the forward depot to unload; **H** hitches the gun behind you. `arena.html`
-is the 4v4 feel lab and `rig-lab.html` the animation lab.
+HQ dump to load and inside the forward depot to unload; **H** hitches the gun behind you.
+Stratagems: hold **Tab** (or Ctrl) and type the code with WASD or the arrow keys, **LMB** throws the
+beacon, **Tab** again puts it away, **X** beside a supply pod takes two mags (pad: hold LB, the D-pad,
+RT). `arena.html` is the 4v4 feel lab and `rig-lab.html` the animation lab.
 
 ## A map per match size (`MapSizes`, `FrontlineMap`)
 
@@ -138,6 +140,37 @@ sentry shoots through the soldier who walks into its line, and burning ground bu
 kind of harm has a share (1 = all of it; `self` is your own blasts, 0.5). Friendly damage earns no
 super energy, teamkills are marked in the kill feed, and the HUD tells you when you hit a teammate
 or one hits you. Bots keep their fire discipline (docs/AI.md: Fire discipline).
+
+## Stratagems (`Stratagems`)
+
+Call-ins from the sky. Every soldier carries four: Supply Drop and Smoke Screen, and two more by
+role (`data/stratagems.json` `loadouts`). Hold the call-in key and type the code. A wrong arrow
+buzzes and clears it; a full code puts the beacon in your hand. Throw it (it flies in a lob and
+sticks to whatever it hits) and the payload comes after its delay. Your hands are busy while you
+type or hold a beacon: no gun, no sword, no abilities. That moment of exposure is the price.
+
+| Stratagem | Code | Arrives | Payload | Limit |
+|---|---|---|---|---|
+| Supply Drop | ▼▼▲▶ | 5 s | a pod that crushes whoever's under it and opens on four crates (**X**: two mags each) | 120 s |
+| Smoke Screen | ▶▲▲▼ | 2 s | six clouds across the throw that block sight for 20 s | 70 s |
+| Precision Strike | ▶▶▲ | 3 s | one heavy round on the beacon (900 damage, 7 m blast) | 90 s |
+| Orbital Barrage | ▶▼◀▲▲ | 5 s | 12 rounds over 8 s within 22 m | 180 s |
+| Strafing Run | ▲▶▶ | 1.5 s | a jet walks 14 rounds 32 m on from the beacon, along the throw | 2 uses, 100 s rearm |
+| Airstrike | ▲▶▼▶ | 2.5 s | a stick of five bombs, 26 m across the throw | 2 uses, 120 s rearm |
+| Sentry | ▼▲▶▶▲ | 4 s | a pod that opens into a turret (85 dps, 48 m, 450 hp, 75 s) firing from 2.15 m up | 150 s |
+
+The rules that make them honest:
+- **Everything hurts everyone.** Strikes, pods, bombs and the sentry's rounds hit friends as hard
+  as foes (`data/rules.json`, see Rules). The danger is shown, not hidden. Each beacon stands as
+  a pillar of light in its payload's color (strike red, supply blue, sentry green, smoke white).
+  Each strike draws its danger outline on the ground: a circle round a barrage, a capsule round a
+  run. The HUD marks your side's beacons with a countdown and **DANGER CLOSE** when you're inside one.
+- **Strikes go on the incoming list when the beacon plants.** Bots of both sides dive for cover in
+  time, and the audio whistles the rounds in.
+- **A beacon stuck on a soldier or a vehicle rides it.** The payload follows it until each part
+  leaves the sky.
+- **A beacon in hand glows in the thrower's right hand.** Everyone near can see what's coming. A
+  soldier typing has the wrist pad lit, and the rig poses both.
 
 ## Downs, ragdolls and reinforcements
 
@@ -316,6 +349,7 @@ dropships are arena-only).
 | Downs | Your bleed-out, give-up hold and revive progress; a revive prompt beside a downed teammate; red crosses over downed teammates |
 | Digging | Progress through foxhole, sandbags and trench |
 | Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
+| Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms; with a beacon in hand, which one and how to throw it; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
 | Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
 | Suppression | The screen edges darken while rounds crack past you |

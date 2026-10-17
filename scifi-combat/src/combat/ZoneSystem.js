@@ -253,6 +253,7 @@ export class ZoneSystem {
       id: z.id, ability: z.ability, owner: z.ownerId, team: z.team, center: z.center.toArray(), radius: z.radius,
       shape: z.shape ?? 'circle', length: z.length, width: z.width, yaw: z.yaw, delay: z.delay ?? 0, lifetime: z.lifetime,
       attach: z.attach, pattern: z.pattern, dome: !!z.blocksProjectiles, tether: z.target?.id, hostile: !!(z.damage || z.pull || z.enemyStatus || z.burst),
+      smoke: !!z.blocksVision,
     };
   }
 }

@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|scene &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|scene|stratagems &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -20,12 +20,14 @@ import { BattleFx } from './vfx/BattleFx.js';
 import { kitFor } from './render/TrooperKit.js';
 import { vehicleModel } from './render/VehicleKit.js';
 import { paintMaterial } from './render/TrooperMaterial.js';
+import { StratagemViews } from './vfx/StratagemViews.js';
+import { StratagemPanel } from './ui/StratagemPanel.js';
 
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
 const planet = palette.planets[params.get('planet') ?? 'scorched'];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene'];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -89,6 +91,7 @@ async function scene3d() {
   if (station === 'troopers') await troopersStation(scene, views, atmo);
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   if (station === 'scene') await sceneStation(scene, views, atmo);
+  if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
   const viewNames = Object.keys(views);
   let view = params.get('view') ?? viewNames[0];
   const setView = (name) => {
@@ -190,7 +193,7 @@ function scorchedGround(scene, { seed = 5, amp = 4, size = 1000, z0 = -900, flat
  * drawn by the CrowdRenderer in their role's kit. add(classId, team, pos, yaw, act) where act is
  * stand | aim | crouch | prone | blade; start() settles the poses and keeps them breathing.
  */
-async function fighters(scene, t, { max = 64 } = {}) {
+async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
   const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
   const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, humanoid, table, down] = await Promise.all([
     load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
@@ -202,7 +205,7 @@ async function fighters(scene, t, { max = 64 } = {}) {
     movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
     meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes: [solari, voidC], down,
   };
-  const world = new CombatWorld({ damageMatrix: damage.matrix, cover: [], supers, meleeWeapons: melee.weapons, recoilDefs: recoil.patterns, vehicleDefs: vehicles, statusDefs: statuses.statuses, terrain: t });
+  const world = new CombatWorld({ damageMatrix: damage.matrix, cover: [], supers, meleeWeapons: melee.weapons, recoilDefs: recoil.patterns, vehicleDefs: vehicles, statusDefs: statuses.statuses, terrain: t, stratagems });
   const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: () => 'dirt', groundY: (x, z) => t.height(x, z) });
   const crowd = new CrowdRenderer(scene, { max, palette, nearDist: params.get('lod') === 'mid' ? 0 : 80 });
   window.__art.crowd = crowd;
@@ -248,7 +251,7 @@ async function fighters(scene, t, { max = 64 } = {}) {
     tickers.push(() => { tick(); draw(); });
     window.__art.people = people;
   };
-  return { add, start, world, people };
+  return { add, start, world, people, tick, anim };
 }
 
 async function troopersStation(scene, views, atmo) {
@@ -416,3 +419,72 @@ async function sceneStation(scene, views, atmo) {
   views.across = { pos: y(at(6, 28), 1.6), look: y(at(-2, 0), 0.9), fov: 50, note: 'from no-man\'s-land: the trench line, the tank and the gun' };
   views.side = { pos: y(at(-16, 2.2), 1.2), look: y(at(4, 1.2), 0.6), fov: 52, note: 'down the trench' };
 }
+
+// Stratagems on a stretch of the front (docs/GAMEPLAY_PLAN.md §2), driven by the real sim: a
+// trooper typing a code on the wrist pad (the call-in panel up), one with a beacon cocked to
+// throw, and each payload at its moment: a strike's red beam and danger ring among the enemy,
+// the round streaking down and landing, the strafing run's jet overhead, a supply pod open on
+// its crates, a sentry up on its pod, a smoke screen, an orbital barrage, every beam at once.
+// Each view sets its call-in up and runs the sim to the moment.
+async function stratagemsStation(scene, views, atmo) {
+  // The enemy lies 75° off the sun: light from the front left, so the beams read against sky
+  // that isn't the sun's glare.
+  const sd = atmo.sunDir, sa = Math.atan2(sd.x, sd.z) + 1.3, toward = new THREE.Vector3(Math.sin(sa), 0, Math.cos(sa)), side = new THREE.Vector3(-toward.z, 0, toward.x);
+  const at = (a, f) => new THREE.Vector3().addScaledVector(side, a).addScaledVector(toward, f);
+  const yawOf = (d) => Math.atan2(-d.x, -d.z);
+  const { t, scorch, chunks } = scorchedGround(scene, { seed: 23, amp: 1.2, size: 600, z0: -300, flat: [[0, 0, 22]], craters: 0 });
+  let sr = 9;
+  const rnd = () => { sr = (Math.imul(sr, 1664525) + 1013904223) >>> 0; return sr / 4294967296; };
+  for (let i = 0; i < 40; i++) {
+    const p = at((rnd() - 0.5) * 110, 10 + rnd() * 90), r = 1.2 + rnd() * 3;
+    t.carveDisc(p.x, p.z, r, r * 0.35, 0.4);
+    scorch.stamp(p.x, p.z, r * 1.25, rnd() < 0.35 ? 1 : 0.35);
+  }
+  for (const c of chunks.chunks ?? []) c.dirty = true;
+  const strat = await fetch('./data/stratagems.json').then((r) => r.json());
+  const F = await fighters(scene, t, { max: 40, stratagems: strat });
+  const S = F.world.stratagems, face = yawOf(toward), back = yawOf(toward.clone().negate());
+  const typist = F.add('lancer', 0, at(-1.2, 0), face + 0.5, 'stand');
+  const thrower = F.add('artificer', 0, at(1.3, -1.1), face - 0.25, 'stand');
+  F.add('bastion', 0, at(3.4, 0.8), face + 0.05, 'aim');
+  F.add('lumen', 0, at(-3.6, -1.4), face + 0.3, 'crouch');
+  F.add('seraph', 0, at(5.8, -0.6), face - 0.12, 'aim');
+  F.add('breacher', 0, at(-6, 0.4), face + 0.15, 'aim');
+  for (let i = 0; i < 10; i++) F.add(['reaver', 'monolith', 'wraith', 'mender', 'rigger', 'riftbreaker', 'reaver', 'hollow_eye', 'ashsworn', 'psion'][i], 1, at(-16 + i * 3.5 + (rnd() - 0.5) * 2, 33 + rnd() * 14), back + (rnd() - 0.5) * 0.5, i % 3 ? 'aim' : 'stand');
+  F.start();
+  // The typist mid-code, the thrower with a sentry beacon cocked behind the shoulder.
+  typist.stratagems.state = 'typing'; typist.stratagems.code = 'RR';
+  thrower.stratagems.state = 'armed'; thrower.stratagems.armed = thrower.stratagems.slot('sentry');
+  const fx = new BattleFx(scene, { fog: scene.fog });
+  const sv = new StratagemViews(scene, F.world, { palette, fx, anim: F.anim, groundY: (x, z) => t.height(x, z) });
+  tickers.push(() => { sv.update(1 / 60, window.__art.camera); fx.update(1 / 60); });
+  /** A call-in planted at p, as if thrown from where `from` stands. */
+  const call = (id, p, from = thrower) => {
+    const b = S.throwBeacon(from, { id, def: S.defs[id] }, 0, 0);
+    b.pos.set(p.x, t.height(p.x, p.z) + 0.25, p.z); b.vel.set(0, -3, 0);
+    return b;
+  };
+  /** Run the sim (and its views) for `sec` seconds. */
+  const run = (sec) => {
+    for (let i = 0; i < sec * 60; i++) { F.tick(); F.anim.update(1 / 60, 1, window.__art.camera.position); sv.update(1 / 60, window.__art.camera); fx.update(1 / 60); }
+  };
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  views.callin = {
+    pos: y(at(-2.6, 2.6), 1.7), look: y(at(-0.4, -0.6), 1.2), fov: 50, note: 'typing a code on the wrist pad; a sentry beacon cocked to throw',
+    enter: () => { const panel = new StratagemPanel(document.body, { world: F.world, player: typist, colors: palette.stratagem }); tickers.push((dt) => panel.update(dt, window.__art.camera)); run(0.6); },
+  };
+  views.strike = { pos: y(at(-3, -5), 2.2), look: y(at(0, 30), 6), fov: 55, note: 'a precision strike called on the enemy line: the red beam and the danger ring', enter: () => { call('precision_strike', at(0, 37)); run(1.6); } };
+  views.inbound = { pos: y(at(-8, 18), 1.6), look: y(at(0, 37), 14), fov: 58, note: 'the round streaking down on the beacon', enter: () => { call('precision_strike', at(0, 37)); run(2.86); } };
+  views.boom = { pos: y(at(-3, -5), 2.2), look: y(at(0, 30), 4), fov: 55, note: 'the strike lands', enter: () => { call('precision_strike', at(0, 37)); run(3.4); } };
+  views.strafe = { pos: y(at(-5, -8), 1.6), look: y(at(0, 40), 18), fov: 70, note: 'a strafing run: the jet pulling away, the run walking up the field', enter: () => { call('strafing_run', at(0, 26), typist); run(1.9); } };
+  views.supply = { pos: y(at(-6.5, 1.5), 1.75), look: y(at(-3, 7), 0.9), fov: 50, note: 'a supply pod open on its four crates', enter: () => { call('supply_drop', at(-3, 7)); run(6.6); } };
+  views.sentry = { pos: y(at(9.5, 1), 1.9), look: y(at(6, 6.5), 1.6), fov: 50, note: 'a sentry up on its pod, turning on the enemy', enter: () => { call('sentry', at(6, 6.5)); run(6.2); } };
+  views.smoke = { pos: y(at(-2, -6), 2.4), look: y(at(0, 18), 2), fov: 58, note: 'a smoke screen across the front', enter: () => { call('smoke_screen', at(0, 17), typist); run(5.5); } };
+  views.barrage = { pos: y(at(-14, -10), 7), look: y(at(0, 45), 4), fov: 55, note: 'an orbital barrage on the enemy line', enter: () => { call('orbital_barrage', at(0, 46)); run(7.8); } };
+  views.beams = {
+    pos: y(at(-10, -12), 3), look: y(at(0, 20), 12), fov: 60, note: 'every kind of beacon at once: strike, supply, sentry, smoke',
+    enter: () => { call('orbital_barrage', at(-12, 44)); call('precision_strike', at(10, 38)); call('supply_drop', at(-5, 9)); call('sentry', at(7, 10)); call('smoke_screen', at(1, 20)); run(1.2); },
+  };
+  window.__art.call = call; window.__art.run = run; window.__art.sim = F.world; window.__art.anim = F.anim;
+}
+

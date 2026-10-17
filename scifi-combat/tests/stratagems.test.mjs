@@ -85,6 +85,31 @@ test('a precision strike: the beacon flies and sticks, the shell lands on it aft
   assert.ok(F.health.hp < 2000 - 200, `and the teammate: friendly fire (${2000 - F.health.hp})`);
 });
 
+test('a beacon stuck on a soldier: the strike follows him until the round leaves the sky', () => {
+  const w = makeWorld();
+  const A = w.fighter(1, 0, v(0, 0, 0), 'lancer', { hp: 5000 });
+  const E = w.fighter(2, 1, v(0, 0, -6), 'monolith', { hp: 5000 });
+  const ev = events(['stratagem:beacon', 'projectile:explode']);
+  type(w, A, 'RRU');
+  w.aim(A, 0, -0.15);                      // straight at him, chest high
+  w.press(A, 'light');
+  w.seconds(0.8);
+  const planted = ev.got.find((x) => x.type === 'stratagem:beacon');
+  assert.ok(planted, 'stuck');
+  const b = w.world.stratagems.beacons[0];
+  assert.equal(b.on, E, 'on him');
+  // He runs 9 m east before the round leaves the sky (2 s after planting).
+  E.movement.state.position.x += 9;
+  w.step(2);
+  const warn = w.world.vehicles.guns.incoming.find((r) => r.kind === 'strike');
+  assert.ok(warn && Math.abs(warn.x - 9) < 1.5, `the warning moved with him (${warn?.x.toFixed(1)})`);
+  w.seconds(3);
+  const boom = ev.got.find((x) => x.type === 'projectile:explode');
+  ev.off();
+  assert.ok(boom, 'it came down');
+  assert.ok(Math.hypot(boom.point.x - 9, boom.point.z + 6) < 2.5, `on where he went (${boom.point.x.toFixed(1)}, ${boom.point.z.toFixed(1)})`);
+});
+
 test('uses: a strafing run calls twice, then rearms', () => {
   const w = makeWorld();
   const A = w.fighter(1, 0, v(0, 0, 0), 'lancer');

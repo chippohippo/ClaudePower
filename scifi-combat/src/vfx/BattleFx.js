@@ -11,6 +11,9 @@
 //        rocket salvo's launch flare and billowing smoke;
 //      - shells and rockets in the air: a faint smoke trail behind every shell, and for rockets a
 //        bright exhaust and a thick trail. Artillery can be followed across the sky.
+//      - stratagems: a smoke screen's clouds (stratagem:smoke), billowing for as long as the sim
+//        blocks sight through them and thinning out as it stops; a drop pod's trail of fire on the
+//        way down (reentry, called by StratagemViews) and the dust it throws up landing.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -131,6 +134,9 @@ const SMOKE = [0.22, 0.21, 0.2, 0.55], SMOKE_END = [0.45, 0.45, 0.46, 0];
 const SMOKE_DARK = [0.14, 0.13, 0.12, 0.7];
 const PALE = [0.6, 0.58, 0.55, 0.45], PALE_END = [0.75, 0.75, 0.75, 0];
 const TEAM_EXHAUST = [[1.0, 0.72, 0.3, 1], [0.75, 0.5, 1.0, 1]];
+const SCREEN = [0.6, 0.58, 0.54, 0.62], SCREEN_END = [0.67, 0.66, 0.63, 0];
+const TRAIL = [0.16, 0.15, 0.14, 0.45], TRAIL_END = [0.3, 0.29, 0.28, 0];
+const DUST = [0.5, 0.42, 0.32, 0.5], DUST_END = [0.56, 0.5, 0.42, 0];
 
 export class BattleFx {
   /**
@@ -146,6 +152,8 @@ export class BattleFx {
       if (fog.isFogExp2) u.fogDensity.value = fog.density; else { u.fogNear.value = fog.near; u.fogFar.value = fog.far; }
     }
     this.trails = new Map();    // projectile ref -> { kind, t, team }
+    this.screens = [];          // smoke screens still billowing: { x, y, z, r, h, left, t }
+    this.reT = 0;
     this.rand = (() => { let s = 0x9e3779b9; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; })();
     this.off = [
       bus.on('artillery:impact', (e) => this.impact(e.point, e.radius, e.shell)),
@@ -156,6 +164,8 @@ export class BattleFx {
         if (st.startsWith('shell') || st.startsWith('rocket')) this.trails.set(e.ref, { kind: st.startsWith('rocket') ? 'rocket' : 'shell', t: 0, team: e.ref.team });
       }),
       bus.on('vehicle:destroyed', (e) => this.blast(e.at, 6, 1.6)),
+      bus.on('stratagem:smoke', (e) => this.smokeScreen(e.at, e.radius, e.duration, e.height)),
+      bus.on('stratagem:land', (e) => this.podLand(e.at)),
     ];
   }
 
@@ -218,7 +228,60 @@ export class BattleFx {
     }
   }
 
+  /**
+   * A smoke screen's cloud: a pop of smoke from the canister, then puffs billowing up and out
+   * for as long as the sim blocks sight through it (they stop 4.5 s before, so the cloud has
+   * thinned to nothing as the block ends: what you see is what blocks).
+   */
+  smokeScreen(at, radius = 4.5, duration = 20, height = 7) {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    for (let i = 0; i < 10; i++) {
+      const a = R() * Math.PI * 2, s = 2 + R() * 3;
+      this.matter.add(x, y + 0.4, z, Math.cos(a) * s, 1 + R() * 2, Math.sin(a) * s, 3.5 + R() * 2, 1.5, radius * 1.2, SCREEN, SCREEN_END, 0.9, -0.05);
+    }
+    this.screens.push({ x, y, z, r: radius, h: height, left: Math.max(1, duration - 4.5), t: 0 });
+  }
+
+  /** One frame of a drop pod's fall: fire round its nose, a dark trail left hanging behind. */
+  reentry(p, dt) {
+    const R = this.rand;
+    this.reT += dt;
+    for (let k = 0; this.reT > 0.012 && k < 4; k++) {
+      this.reT -= 0.012;
+      this.glow.add(p.x + (R() - 0.5) * 0.6, p.y + 0.6 + R() * 0.8, p.z + (R() - 0.5) * 0.6, 0, 0, 0, 0.22 + R() * 0.12, 1.4, 3.2, FIRE, FIRE_END);
+      if (R() < 0.4) this.matter.add(p.x + (R() - 0.5) * 0.6, p.y + 1.6 + R(), p.z + (R() - 0.5) * 0.6, (R() - 0.5) * 0.4, 0.3, (R() - 0.5) * 0.4, 1.4 + R() * 0.8, 0.8, 2.4, TRAIL, TRAIL_END, 0.4, -0.1);
+    }
+    this.reT = Math.min(this.reT, 0.05);
+  }
+
+  /** A drop pod lands: a flash, clods thrown up, dust racing out along the ground and hanging. */
+  podLand(at) {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    this.glow.add(x, y + 0.6, z, 0, 0, 0, 0.1, 2, 5, FLASH, FLASH_END);
+    for (let i = 0; i < 22; i++) {
+      const a = R() * Math.PI * 2, out = 1 + R() * 3;
+      this.matter.add(x + Math.cos(a) * 0.7, y + 0.2, z + Math.sin(a) * 0.7, Math.cos(a) * out, 6 + R() * 8, Math.sin(a) * out, 1.2 + R() * 0.8, 0.5 + R() * 0.4, 1.2 + R() * 0.8, DIRT, DIRT_END, 0.3, 14);
+    }
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + R() * 0.3, s = 9 + R() * 4;
+      this.matter.add(x, y + 0.3, z, Math.cos(a) * s, 0.4, Math.sin(a) * s, 1.3 + R() * 0.5, 0.8, 3, DUST, DUST_END, 2.2, 0);
+    }
+    for (let i = 0; i < 4; i++) this.matter.add(x + (R() - 0.5) * 2, y + 0.6 + R() * 0.6, z + (R() - 0.5) * 2, (R() - 0.5), 0.4 + R() * 0.5, (R() - 0.5), 1.8 + R(), 1.5, 3.5, DUST, DUST_END, 0.8, 0.05);
+  }
+
   update(dt) {
+    // Smoke screens billow while they last.
+    for (let i = this.screens.length - 1; i >= 0; i--) {
+      const s = this.screens[i], R = this.rand;
+      s.left -= dt; s.t += dt;
+      if (s.left <= 0) { this.screens.splice(i, 1); continue; }
+      for (; s.t > 0.09; s.t -= 0.09) {
+        const a = R() * Math.PI * 2, r = Math.sqrt(R()) * s.r * 0.75;
+        // Puffs from grey to near white, so the screen has some body and isn't one flat wall.
+        const g = 0.8 + R() * 0.25, c0 = [SCREEN[0] * g, SCREEN[1] * g, SCREEN[2] * g, SCREEN[3]];
+        this.matter.add(s.x + Math.cos(a) * r, s.y + 0.5 + R() * s.h * 0.5, s.z + Math.sin(a) * r, Math.cos(a) * 0.4, 0.25 + R() * 0.3, Math.sin(a) * 0.4, 4.5 + R() * 1.5, 2.5, s.r * (1.3 + R() * 0.4), c0, SCREEN_END, 0.3, -0.02);
+      }
+    }
     // Trails: puffs left behind shells; exhaust and thick smoke behind rockets.
     for (const [ref, tr] of this.trails) {
       if (!ref.alive) { this.trails.delete(ref); continue; }

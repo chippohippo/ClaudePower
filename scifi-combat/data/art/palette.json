@@ -1,5 +1,5 @@
 {
-  "_note": "The art direction's colors and look settings (docs/ART_DIRECTION.md). Planet presets set the sky, sun, fog, ground and post-processing; factions set the trooper paint; materials, vfx and ui are shared. Colors are sRGB hex.",
+  "_note": "The art direction's colors and look settings (docs/ART_DIRECTION.md). Planet presets set the sky, sun, fog, ground and post-processing; factions set the trooper paint; materials, vfx, stratagem (beacon, beam and HUD colors by payload kind) and ui are shared. Colors are sRGB hex.",
   "planets": {
     "scorched": {
       "name": "Scorched Ash Front",
@@ -201,6 +201,12 @@
       "#c59bff"
     ],
     "blood": "#5e1410"
+  },
+  "stratagem": {
+    "strike": "#ff5a3c",
+    "supply": "#4db3ff",
+    "sentry": "#5dff8f",
+    "smoke": "#ece7db"
   },
   "ui": {
     "accent": "#ffe14d",

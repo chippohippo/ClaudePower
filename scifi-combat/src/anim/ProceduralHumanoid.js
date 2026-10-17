@@ -318,6 +318,7 @@ export class ProceduralHumanoid {
     }
 
     this.#reviveLean(P);
+    this.#callIn(P);
     this.#layersAndFrames(P, dt);
     this.#upperBody(P, dt);
     this.#solveLimbs(P);
@@ -434,6 +435,42 @@ export class ProceduralHumanoid {
       _b.copy(_a).addScaledVector(_r, (i === 0 ? -0.09 : 0.09) * this.scale);
       _b.y += 0.12 * this.scale - press;
       P.hand[i].lerp(_b, P.handW[i] > 0 ? k : 1); P.handW[i] = Math.max(P.handW[i], k);
+    }
+  }
+
+  // ---------------------------------------------------------------- call-ins
+  /**
+   * Typing a call-in: the left wrist's pad comes up in front of the chest and the gun drops.
+   * Holding a beacon: it's up by the right shoulder (the gun slung), ready to throw; the throw
+   * snaps the hand forward and the gun comes back.
+   */
+  #callIn(P) {
+    const S = this.e.stratagems;
+    const st = S?.state ?? 'idle', dt = this.dt ?? 1 / 60;
+    if (S && S.throws !== this.seenThrows) { if (this.seenThrows !== undefined) this.throwT = 0; this.seenThrows = S.throws; }
+    if (this.throwT !== undefined) this.throwT += dt;
+    const throwing = this.throwT !== undefined && this.throwT < 0.3;
+    this.callW = (this.callW ?? 0) + ((st === 'typing' ? 1 : 0) - (this.callW ?? 0)) * approach(12, dt);
+    this.beaconW = (this.beaconW ?? 0) + ((st === 'armed' || throwing ? 1 : 0) - (this.beaconW ?? 0)) * approach(14, dt);
+    if (this.callW < 1e-3 && this.beaconW < 1e-3) return;
+    const sc = this.scale, fx = -Math.sin(P.yawC), fz = -Math.cos(P.yawC);
+    rightOf(P.yawC, _r);
+    if (this.callW > 1e-3) {
+      const k = this.callW;
+      // The left forearm up across the chest, the pad toward the eyes, like checking a watch.
+      _b.copy(P.pelvis).addScaledVector(_r, 0.08 * sc);
+      _b.x += fx * 0.4 * sc; _b.z += fz * 0.4 * sc; _b.y += 0.5 * sc;
+      P.hand[0].lerp(_b, P.handW[0] > 0 ? k : 1); P.handW[0] = Math.max(P.handW[0], k);
+      P.gunUp *= 1 - k; P.aimW *= 1 - 0.6 * k;
+    }
+    if (this.beaconW > 1e-3) {
+      const k = this.beaconW, u = throwing ? Math.sin(Math.min(1, this.throwT / 0.3) * Math.PI * 0.5) : 0;
+      // Cocked behind the shoulder, then out in front at the release.
+      const fwd = -0.1 + 0.6 * u, up = 0.8 - 0.12 * u;
+      _b.copy(P.pelvis).addScaledVector(_r, (0.24 - 0.12 * u) * sc);
+      _b.x += fx * fwd * sc; _b.z += fz * fwd * sc; _b.y += up * sc;
+      P.hand[1].lerp(_b, P.handW[1] > 0 ? k : 1); P.handW[1] = Math.max(P.handW[1], k);
+      P.gunUp *= 1 - k;
     }
   }
 

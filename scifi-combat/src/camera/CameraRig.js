@@ -72,6 +72,7 @@ export class CameraRig {
     bus.on('melee:guardBreak', () => this.addTrauma(0.4));
     bus.on('weapon:fire', (e) => e.id === this.targetId && this.addTrauma(e.shake ?? 0.05));
     bus.on('projectile:explode', (e) => this.#explosion(e));
+    bus.on('stratagem:land', (e) => this.#explosion({ point: { x: e.at[0], y: e.at[1], z: e.at[2] }, radius: 3.5 }));   // a pod slamming in
   }
 
   addTrauma(amount) { this.trauma = Math.min(1, this.trauma + amount); }

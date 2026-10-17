@@ -54,6 +54,7 @@ scifi-combat/
 ├─ data/                          ← ALL tuning lives here (hot-reloadable JSON)
 │  ├─ movement.json               base locomotion tuning (+ ragdoll)
 │  ├─ down.json                   down but not out: bleed-out, revive, finish-off
+│  ├─ rules.json  stratagems.json friendly fire shares; call-ins (codes, payloads, loadouts) → docs/FRONTLINE.md
 │  ├─ weapons/                    one file per category, ~80 weapons total
 │  │  ├─ ballistic.json  energy.json  heavy.json  exotic.json
 │  │  ├─ melee.json               flame swords, vibroblades, fists, spears
@@ -71,6 +72,7 @@ scifi-combat/
 │  │  ├─ melee/ MeleeSystem.js  MeleeStates.js  HitboxSweep.js  FlameSwordFx.js
 │  │  ├─ weapons/ WeaponSystem.js  RecoilPattern.js  Ballistics.js  Attachments.js
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
+│  │  ├─ Stratagems.js          call-ins: codes on the wrist pad, beacons, strikes, jets, pods, smoke
 │  │  ├─ HitReactions.js  ReviveSystem.js   ragdoll triggers; downs and revives
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
@@ -88,7 +90,7 @@ scifi-combat/
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
 │  ├─ render/ CrowdRenderer.js    the crowd in the trooper kit (bone texture, ~25 instanced draws, impostors)
-│  │          TrooperKit.js  VehicleKit.js  ModelKit.js (assets modeled in code)  TrooperMaterial.js (paint by channel)
+│  │          TrooperKit.js  VehicleKit.js  StratagemKit.js  ModelKit.js (assets modeled in code)  TrooperMaterial.js (paint by channel)
 │  │          Atmosphere.js (sky, sun, height fog, sky light, ash)  PostFX.js (god rays, bloom, grade)
 │  │          BattlefieldRenderer.js  TerrainChunks.js  ArtTextures.js  CoverTextures.js  ScorchField.js
 │  │          SandbagTops.js  TracerPool.js
@@ -96,8 +98,10 @@ scifi-combat/
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
+│  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
-│  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  HUD.js  store.js (zustand/vanilla)  menus/
+│  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
+│           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js
 ```
