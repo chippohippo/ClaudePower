@@ -45,6 +45,7 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   const e = { id, team, classId, faction, mode: 'gun', movement };
   e.health = new Health(e, { health: cls.health ?? 100, shield: cls.shield ?? cls.leechArmor ?? 0, armor: cls.armor ?? 'flesh' });
   e.status = new StatusComponent(e, data.statuses, world);
+  movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
   e.melee = new MeleeComponent(data.meleeWeapons[0], e, world);
   e.weapons = new WeaponComponent(e, resolveGuns(data, cls, faction).map((s) => new WeaponInstance(s, data.recoil)), world);
   e.abilities = new AbilityComponent(e, data.kits[classId], world);

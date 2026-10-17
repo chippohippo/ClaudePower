@@ -5,9 +5,10 @@
 
 const DEFAULT_BINDINGS = {
   jump:     { keys: ['Space'],                 pad: [0] },  // A / Cross
-  crouch:   { keys: ['KeyC', 'ControlLeft'],   pad: [1] },  // B / Circle (hold = prone)
+  crouch:   { keys: ['KeyC'],                  pad: [1] },  // B / Circle: tap = crouch, hold = prone (HD2 pad layout); while sprinting = slide
+  prone:    { keys: ['ControlLeft'],           pad: [] },   // direct prone toggle (PC)
   sprint:   { keys: ['ShiftLeft'],             pad: [10] }, // L3
-  dodge:    { keys: ['AltLeft', 'KeyV'],       pad: [2] },  // X / Square
+  dodge:    { keys: ['AltLeft', 'KeyV'],       pad: [2] },  // X / Square: HD2 dive (class evade for melee classes)
   light:    { mouse: [0],                      pad: [7] },  // RT  (fire when gun out)
   heavy:    { keys: ['KeyF'],                  pad: [5] },  // RB
   guard:    { mouse: [2],                      pad: [6] },  // LT  (ADS when gun out)

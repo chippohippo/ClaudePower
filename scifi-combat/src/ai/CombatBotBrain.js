@@ -140,6 +140,10 @@ export class CombatBotBrain {
     const ctx = this.#context();
     if (this.decideIn <= 0) this.decideIn = this.diff.decisionInterval * (0.8 + this.rand() * 0.4);
 
+    // ---- after a dive (or a knockdown into prone) bots get straight back up: jump = stand up from prone
+    const ms = self.movement.state;
+    if (ms.mode === 'ground' && ms.stance === 'prone' && !ms.stanceT && !self.vehicle) this.btn.press('jump');
+
     // ---- in a vehicle: the pilot owns the command
     if (self.vehicle) {
       cmd.yaw = self.movement.state.yaw; cmd.pitch = 0;
@@ -449,7 +453,8 @@ export class CombatBotBrain {
     const hit = this.world.raycastStatic(_a.set(me.x, me.y + 0.5, me.z), _d, 2.2, { includeWalls: true });
     if (!hit) return;
     const top = hit.cover ? hit.cover.max.y - me.y : 3;
-    if (top < 1.1 && cmd.moveY > 0.5) { this.btn.hold('sprint'); return; } // vault it
+    // Low cover: hold climb and the movement system vaults it when we reach it (HD2 hold-to-climb).
+    if (top < 1.1 && cmd.moveY > 0.5) { this.btn.hold('jump'); return; }
     cmd.moveX = this.strafeSign; // slide along it
     if (cmd.moveY > 0) cmd.moveY = 0.2;
   }

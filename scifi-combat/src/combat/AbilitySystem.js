@@ -70,6 +70,9 @@ export class AbilityComponent {
     const st = this.owner.status;
     this.superEnergy = Math.min(this.superCost, this.superEnergy + dt * 0.35); // slow trickle, about 5 min from empty
     if (this.iframeTime > 0 && (this.iframeTime -= dt) <= 0) this.owner.movement.state.invulnerable = false;
+    // A dive, evade or knockdown cancels a cast in progress (half the cooldown comes back, like an interrupt).
+    const mvs = this.owner.movement.state;
+    if ((mvs.diveStarted || mvs.knockStarted) && this.casting?.slot.phase === AbilityPhase.CASTING) this.interrupt(mvs.knockStarted ? 'knockdown' : 'dive');
 
     for (const [key, slot] of Object.entries(this.slots)) {
       const s = slot.stats;
@@ -106,7 +109,8 @@ export class AbilityComponent {
     if (!slot.ready) return false;
     if (key === 'super' && this.superEnergy < this.superCost) return false;
     if (s.cast?.groundedOnly && !mv.grounded) return false;
-    if (mv.mode === 'mantle' || mv.mode === 'vehicle') return false;
+    // No casting mid-dive, mid-climb, while knocked down, in a vehicle or while getting up from prone.
+    if (mv.busy || mv.mode === 'mantle' || mv.mode === 'vehicle' || mv.mode === 'knockdown' || mv.mode === 'dive') return false;
     if (this.owner.melee?.busy && !s.cast?.cancelsMelee) return false;
     return true;
   }

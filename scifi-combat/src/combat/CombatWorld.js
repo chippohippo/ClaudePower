@@ -11,8 +11,8 @@ import { ProjectileSystem } from './weapons/WeaponSystem.js';
 import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
+import { hitSpheres } from '../movement/Hitboxes.js';
 
-const HITBOXES = [[1.65, 0.22, 'head'], [1.1, 0.42, 'body'], [0.5, 0.35, 'limb']];
 const _oc = new Vector3();
 const _pt = new Vector3();
 const _ray = new Ray();
@@ -89,10 +89,11 @@ export class CombatWorld {
     for (const e of this.entities) {
       // Skip the shooter, the dead, protected occupants, and riders of the shooting vehicle itself.
       if (e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) continue;
-      for (const [y, r, zone] of HITBOXES) {
-        _oc.copy(e.movement.state.position); _oc.y += y; _oc.sub(o);
+      // Stance-aware spheres: prone, sliding and diving soldiers really are harder to hit.
+      for (const h of hitSpheres(e)) {
+        _oc.set(h.x - o.x, h.y - o.y, h.z - o.z);
         const t = _oc.dot(d);
-        if (t >= 0 && t <= max && _oc.lengthSq() - t * t < r * r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone });
+        if (t >= 0 && t <= max && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone });
       }
     }
     const veh = this.vehicles.raycast(o, d, max, ignoreId);
@@ -150,6 +151,13 @@ export class CombatWorld {
       const armor = e.health.armorFor?.('body') ?? 'flesh';
       const mul = this.damageMatrix[weapon.ammoType]?.[armor] ?? 1;
       e.health.damage(base * fall * mul * (isOwner ? 0.5 : 1) * (projectile?.spec?.damageMul ?? 1), { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType }, owner);
+      // HD2: explosions throw people. Close blasts knock you down; prone soldiers resist (MovementController).
+      if (!e.isVehicle && !e.health.dead) {
+        const away = _oc.subVectors(e.movement.state.position, point).setY(0);
+        const len = away.length() || 1;
+        const k = (weapon.knockback ?? 10) * (1 - Math.min(1, dist / radius));
+        e.movement.impulse?.((away.x / len) * k, k * 0.45, (away.z / len) * k, { cause: 'explosion' });
+      }
     }
     this.damageDeployables(point, radius, base, owner, weapon.ammoType, projectile?.team);
   }

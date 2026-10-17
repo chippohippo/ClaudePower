@@ -1,21 +1,284 @@
 {
-  "_comment": "Archetype + overrides. A weapon = archetype defaults merged with its own fields. Attachment ops apply after.",
-  "archetypes": {
-    "assaultRifle": { "fireMode": "auto", "rpm": 720, "projectile": "hitscan", "ammoType": "kinetic", "mag": 30, "reserve": 180, "reload": { "style": "mag", "tactical": 1.9, "empty": 2.5 }, "damage": { "base": 24, "falloffStart": 25, "falloffEnd": 60, "min": 16, "head": 1.6, "limb": 0.85 }, "spread": { "hip": 3.0, "ads": 0.25, "moveMul": 1.6, "airMul": 2.5, "slideMul": 1.4 }, "ads": { "time": 0.24, "fov": 54, "moveMul": 0.65 }, "recoil": "ar_standard", "handling": { "sprintToFire": 0.2, "swap": 0.5 }, "audio": "ar_mid", "vfx": { "muzzle": "flash_rifle", "tracer": "kinetic_yellow", "impact": "kinetic" }, "slots": ["optic", "barrel", "magazine", "underbarrel", "stock"] },
-    "smg": { "fireMode": "auto", "rpm": 950, "projectile": "hitscan", "ammoType": "kinetic", "mag": 35, "reserve": 210, "reload": { "style": "mag", "tactical": 1.6, "empty": 2.1 }, "damage": { "base": 17, "falloffStart": 12, "falloffEnd": 30, "min": 10, "head": 1.4, "limb": 0.9 }, "spread": { "hip": 2.2, "ads": 0.8, "moveMul": 1.2, "airMul": 1.6, "slideMul": 1.0 }, "ads": { "time": 0.17, "fov": 60, "moveMul": 0.8 }, "recoil": "smg_jitter", "handling": { "sprintToFire": 0.12, "swap": 0.35 }, "slots": ["optic", "barrel", "magazine", "stock"] },
-    "shotgun": { "fireMode": "pump", "rpm": 70, "projectile": "pellets", "pellets": 9, "ammoType": "kinetic", "mag": 7, "reserve": 35, "reload": { "style": "shell", "perShell": 0.5, "interruptible": true }, "damage": { "base": 14, "falloffStart": 6, "falloffEnd": 18, "min": 3, "head": 1.25, "limb": 1.0, "poise": 25 }, "spread": { "hip": 5.5, "ads": 4.0 }, "ads": { "time": 0.22, "fov": 62, "moveMul": 0.7 }, "recoil": "shotgun_kick", "slots": ["optic", "barrel", "magazine", "underbarrel"] },
-    "sniper": { "fireMode": "bolt", "rpm": 45, "projectile": "ballistic", "velocity": 900, "drop": 1.0, "ammoType": "kinetic", "mag": 5, "reserve": 25, "damage": { "base": 110, "head": 2.5, "limb": 0.7 }, "spread": { "hip": 8, "ads": 0, "moveMul": 3 }, "ads": { "time": 0.42, "fov": 18, "moveMul": 0.4, "sway": 0.6, "holdBreath": 3.0, "glint": true }, "recoil": "sniper_heavy", "slots": ["optic", "barrel", "magazine", "stock"] }
+ "_comment": "Archetype + overrides. A weapon = archetype defaults merged with its own fields. Attachment ops apply after.",
+ "archetypes": {
+  "assaultRifle": {
+   "fireMode": "auto",
+   "rpm": 720,
+   "projectile": "hitscan",
+   "ammoType": "kinetic",
+   "mag": 30,
+   "reserve": 180,
+   "reload": {
+    "style": "mag",
+    "tactical": 1.9,
+    "empty": 2.5
+   },
+   "damage": {
+    "base": 24,
+    "falloffStart": 25,
+    "falloffEnd": 60,
+    "min": 16,
+    "head": 1.6,
+    "limb": 0.85
+   },
+   "spread": {
+    "hip": 3.0,
+    "ads": 0.25,
+    "moveMul": 1.6,
+    "airMul": 2.5,
+    "slideMul": 1.4
+   },
+   "ads": {
+    "time": 0.24,
+    "fov": 54,
+    "moveMul": 0.65
+   },
+   "recoil": "ar_standard",
+   "handling": {
+    "sprintToFire": 0.2,
+    "swap": 0.5,
+    "ergonomics": 60
+   },
+   "audio": "ar_mid",
+   "vfx": {
+    "muzzle": "flash_rifle",
+    "tracer": "kinetic_yellow",
+    "impact": "kinetic"
+   },
+   "slots": [
+    "optic",
+    "barrel",
+    "magazine",
+    "underbarrel",
+    "stock"
+   ]
   },
-  "weapons": [
-    { "id": "sol_ar_halcyon", "name": "Halcyon AR-7", "archetype": "assaultRifle", "faction": "solari", "notes": "Baseline, low vertical recoil, slow-ish ADS." },
-    { "id": "sol_br_verdict", "name": "Verdict Battle Rifle", "archetype": "assaultRifle", "fireMode": "burst", "burst": 3, "burstDelay": 0.28, "rpm": 900, "mag": 24, "damage": { "base": 34, "falloffStart": 40, "falloffEnd": 80, "min": 24, "head": 1.8 }, "recoil": "br_burst_climb" },
-    { "id": "void_ar_gnaw", "name": "Gnaw Shardrifle", "archetype": "assaultRifle", "faction": "void", "projectile": "ballistic", "velocity": 300, "ammoType": "shard", "notes": "Slow shard projectiles that embed and detonate after 0.4s for bonus damage." },
-    { "id": "sol_smg_wasp", "name": "Wasp-9", "archetype": "smg", "rpm": 1100, "notes": "Spray monster, horizontal jitter, fastest sprint-to-fire." },
-    { "id": "void_smg_leech", "name": "Leech PDW", "archetype": "smg", "faction": "void", "special": { "lifesteal": 0.08 }, "rpm": 820 },
-    { "id": "sol_sg_lantern", "name": "Lantern Pump", "archetype": "shotgun", "notes": "Tight choke, best for flame-knight counterplay (flinch windups)." },
-    { "id": "void_sg_maw", "name": "Maw Autoshotgun", "archetype": "shotgun", "fireMode": "auto", "rpm": 240, "mag": 12, "reload": { "style": "mag", "tactical": 2.4, "empty": 3.0 }, "pellets": 7, "damage": { "base": 11, "poise": 15 } },
-    { "id": "sol_sr_longwatch", "name": "Longwatch", "archetype": "sniper", "notes": "Glint visible to enemies while scoped." },
-    { "id": "void_sr_needle", "name": "Hollow Needle", "archetype": "sniper", "faction": "void", "fireMode": "semi", "rpm": 120, "mag": 8, "damage": { "base": 72, "head": 2.2 }, "ads": { "fov": 24, "glint": false } }
-  ],
-  "_rosterPlan": "Ballistic 24: AR x5, BR x3, SMG x4, LMG x3, Shotgun x3, DMR x2, Sniper x2, Pistol/Revolver x2. Energy 18 (energy.json, heat-based), Heavy 10, Exotic 10, Melee 10, Throwables/Gadgets 10 = 82."
+  "smg": {
+   "fireMode": "auto",
+   "rpm": 950,
+   "projectile": "hitscan",
+   "ammoType": "kinetic",
+   "mag": 35,
+   "reserve": 210,
+   "reload": {
+    "style": "mag",
+    "tactical": 1.6,
+    "empty": 2.1
+   },
+   "damage": {
+    "base": 17,
+    "falloffStart": 12,
+    "falloffEnd": 30,
+    "min": 10,
+    "head": 1.4,
+    "limb": 0.9
+   },
+   "spread": {
+    "hip": 2.2,
+    "ads": 0.8,
+    "moveMul": 1.2,
+    "airMul": 1.6,
+    "slideMul": 1.0
+   },
+   "ads": {
+    "time": 0.17,
+    "fov": 60,
+    "moveMul": 0.8
+   },
+   "recoil": "smg_jitter",
+   "handling": {
+    "sprintToFire": 0.12,
+    "swap": 0.35,
+    "ergonomics": 85
+   },
+   "slots": [
+    "optic",
+    "barrel",
+    "magazine",
+    "stock"
+   ]
+  },
+  "shotgun": {
+   "fireMode": "pump",
+   "rpm": 70,
+   "projectile": "pellets",
+   "pellets": 9,
+   "ammoType": "kinetic",
+   "mag": 7,
+   "reserve": 35,
+   "reload": {
+    "style": "shell",
+    "perShell": 0.5,
+    "interruptible": true
+   },
+   "damage": {
+    "base": 14,
+    "falloffStart": 6,
+    "falloffEnd": 18,
+    "min": 3,
+    "head": 1.25,
+    "limb": 1.0,
+    "poise": 25
+   },
+   "spread": {
+    "hip": 5.5,
+    "ads": 4.0
+   },
+   "ads": {
+    "time": 0.22,
+    "fov": 62,
+    "moveMul": 0.7
+   },
+   "recoil": "shotgun_kick",
+   "slots": [
+    "optic",
+    "barrel",
+    "magazine",
+    "underbarrel"
+   ],
+   "handling": {
+    "ergonomics": 55
+   }
+  },
+  "sniper": {
+   "fireMode": "bolt",
+   "rpm": 45,
+   "projectile": "ballistic",
+   "velocity": 900,
+   "drop": 1.0,
+   "ammoType": "kinetic",
+   "mag": 5,
+   "reserve": 25,
+   "damage": {
+    "base": 110,
+    "head": 2.5,
+    "limb": 0.7
+   },
+   "spread": {
+    "hip": 8,
+    "ads": 0,
+    "moveMul": 3
+   },
+   "ads": {
+    "time": 0.42,
+    "fov": 18,
+    "moveMul": 0.4,
+    "sway": 0.6,
+    "holdBreath": 3.0,
+    "glint": true
+   },
+   "recoil": "sniper_heavy",
+   "slots": [
+    "optic",
+    "barrel",
+    "magazine",
+    "stock"
+   ],
+   "handling": {
+    "ergonomics": 35
+   }
+  }
+ },
+ "weapons": [
+  {
+   "id": "sol_ar_halcyon",
+   "name": "Halcyon AR-7",
+   "archetype": "assaultRifle",
+   "faction": "solari",
+   "notes": "Baseline, low vertical recoil, slow-ish ADS."
+  },
+  {
+   "id": "sol_br_verdict",
+   "name": "Verdict Battle Rifle",
+   "archetype": "assaultRifle",
+   "fireMode": "burst",
+   "burst": 3,
+   "burstDelay": 0.28,
+   "rpm": 900,
+   "mag": 24,
+   "damage": {
+    "base": 34,
+    "falloffStart": 40,
+    "falloffEnd": 80,
+    "min": 24,
+    "head": 1.8
+   },
+   "recoil": "br_burst_climb"
+  },
+  {
+   "id": "void_ar_gnaw",
+   "name": "Gnaw Shardrifle",
+   "archetype": "assaultRifle",
+   "faction": "void",
+   "projectile": "ballistic",
+   "velocity": 300,
+   "ammoType": "shard",
+   "notes": "Slow shard projectiles that embed and detonate after 0.4s for bonus damage."
+  },
+  {
+   "id": "sol_smg_wasp",
+   "name": "Wasp-9",
+   "archetype": "smg",
+   "rpm": 1100,
+   "notes": "Spray monster, horizontal jitter, fastest sprint-to-fire."
+  },
+  {
+   "id": "void_smg_leech",
+   "name": "Leech PDW",
+   "archetype": "smg",
+   "faction": "void",
+   "special": {
+    "lifesteal": 0.08
+   },
+   "rpm": 820
+  },
+  {
+   "id": "sol_sg_lantern",
+   "name": "Lantern Pump",
+   "archetype": "shotgun",
+   "notes": "Tight choke, best for flame-knight counterplay (flinch windups)."
+  },
+  {
+   "id": "void_sg_maw",
+   "name": "Maw Autoshotgun",
+   "archetype": "shotgun",
+   "fireMode": "auto",
+   "rpm": 240,
+   "mag": 12,
+   "reload": {
+    "style": "mag",
+    "tactical": 2.4,
+    "empty": 3.0
+   },
+   "pellets": 7,
+   "damage": {
+    "base": 11,
+    "poise": 15
+   }
+  },
+  {
+   "id": "sol_sr_longwatch",
+   "name": "Longwatch",
+   "archetype": "sniper",
+   "notes": "Glint visible to enemies while scoped."
+  },
+  {
+   "id": "void_sr_needle",
+   "name": "Hollow Needle",
+   "archetype": "sniper",
+   "faction": "void",
+   "fireMode": "semi",
+   "rpm": 120,
+   "mag": 8,
+   "damage": {
+    "base": 72,
+    "head": 2.2
+   },
+   "ads": {
+    "fov": 24,
+    "glint": false
+   }
+  }
+ ],
+ "_rosterPlan": "Ballistic 24: AR x5, BR x3, SMG x4, LMG x3, Shotgun x3, DMR x2, Sniper x2, Pistol/Revolver x2. Energy 18 (energy.json, heat-based), Heavy 10, Exotic 10, Melee 10, Throwables/Gadgets 10 = 82."
 }

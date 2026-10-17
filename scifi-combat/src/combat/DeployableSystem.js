@@ -133,7 +133,7 @@ export class DeployableSystem {
       if (e.isVehicle || e.vehicle || e.team !== d.team || d.cooldowns.has(e.id)) continue;
       _v.subVectors(e.movement.state.position, d.movement.state.position);
       if (Math.hypot(_v.x, _v.z) < 1.2 && Math.abs(_v.y) < 0.6) {
-        e.movement.impulse(0, d.launch, 0);
+        e.movement.impulse(0, d.launch, 0, { knockdown: false }); // a launch, not a blast
         d.cooldowns.set(e.id, 1);
         bus.emit('deployable:launch', { id: d.id, entity: e.id });
       }

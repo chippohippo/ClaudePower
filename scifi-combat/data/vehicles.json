@@ -1,129 +1,698 @@
 {
-  "_comment": "Vehicles. model: hover | tracked | flyer. Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes). weakSpot: hits on that face count as headshots. Every vehicle lists its counterplay.",
-  "vehicles": {
-    "solari_hoverbike": {
-      "name": "Sunrunner Hoverbike", "faction": "solari", "model": "hover", "hp": 450, "armor": "vehicle",
-      "size": { "x": 0.9, "y": 1.1, "z": 2.4 }, "radius": 1.1, "hoverHeight": 0.6,
-      "maxSpeed": 22, "accel": 28, "reverseSpeed": 8, "turnRate": 150, "grip": 4.5, "drag": 1.2,
-      "boost": { "speed": 34, "duration": 1.6, "cooldown": 6 },
-      "ram": { "minSpeed": 9, "damagePerMs": 6, "selfDamageMul": 0.25, "knock": 8 },
-      "crash": { "minSpeed": 12, "damagePerMs": 10 },
-      "seats": [ { "role": "driver", "offset": [0, 0.9, 0.2], "exposed": true, "weapon": "bike_blaster", "aim": "hull" } ],
-      "camera": { "distance": 5, "height": 1.6 },
-      "weakSpot": null,
-      "counterplay": "The rider is exposed. Shoot the rider, or clothesline the bike with a tripwire, Arc Snare or Concussion Slam. It shatters if it crashes at speed."
-    },
-    "void_skiff": {
-      "name": "Wraith-Skiff", "faction": "void", "model": "hover", "hp": 420, "armor": "vehicle",
-      "size": { "x": 1.0, "y": 1.0, "z": 2.6 }, "radius": 1.2, "hoverHeight": 0.7,
-      "maxSpeed": 21, "accel": 30, "reverseSpeed": 9, "turnRate": 160, "grip": 3.5, "drag": 1.1,
-      "boost": { "speed": 32, "duration": 1.4, "cooldown": 5, "phase": true },
-      "ram": { "minSpeed": 9, "damagePerMs": 6, "selfDamageMul": 0.25, "knock": 8 },
-      "crash": { "minSpeed": 12, "damagePerMs": 10 },
-      "seats": [ { "role": "driver", "offset": [0, 0.9, 0.2], "exposed": true, "weapon": "skiff_shard_gun", "aim": "hull" } ],
-      "camera": { "distance": 5, "height": 1.6 },
-      "weakSpot": null,
-      "counterplay": "Phase boost ignores ramming damage but not hitscan. Shoot the rider after the boost ends."
-    },
-    "solari_lancer_tank": {
-      "name": "Aegis Light Tank", "faction": "solari", "model": "tracked", "hp": 2400, "armor": "vehicle",
-      "size": { "x": 3.0, "y": 2.0, "z": 4.6 }, "radius": 2.4, "hoverHeight": 0,
-      "maxSpeed": 9, "accel": 7, "reverseSpeed": 5, "turnRate": 55, "turretTurnRate": 70, "grip": 12, "drag": 2.5,
-      "boost": null,
-      "ram": { "minSpeed": 4, "damagePerMs": 12, "selfDamageMul": 0, "knock": 10 },
-      "crash": null,
-      "seats": [
-        { "role": "driver", "offset": [0, 1.4, 0], "weapon": "tank_cannon", "aim": "turret" },
-        { "role": "gunner", "offset": [0.6, 2.1, 0.4], "weapon": "tank_repeater", "aim": "free" }
-      ],
-      "camera": { "distance": 9, "height": 3.2 },
-      "weakSpot": "rear",
-      "counterplay": "The turret turns at 70°/s, so circle it. The rear vent is a weak spot. Ion ammo and Arc Snare (Root) stop it; Grav Plate (Suppress) shuts off its weapons."
-    },
-    "void_crawler_tank": {
-      "name": "Monolith Crawler", "faction": "void", "model": "tracked", "hp": 2600, "armor": "vehicle",
-      "size": { "x": 3.2, "y": 2.1, "z": 4.8 }, "radius": 2.5, "hoverHeight": 0,
-      "maxSpeed": 8, "accel": 6, "reverseSpeed": 5, "turnRate": 50, "turretTurnRate": 65, "grip": 12, "drag": 2.5,
-      "boost": null,
-      "ram": { "minSpeed": 4, "damagePerMs": 14, "selfDamageMul": 0, "knock": 11 },
-      "crash": null,
-      "seats": [
-        { "role": "driver", "offset": [0, 1.4, 0], "weapon": "crawler_rift_mortar", "aim": "turret" },
-        { "role": "gunner", "offset": [0.6, 2.2, 0.4], "weapon": "crawler_leech_beam", "aim": "free" }
-      ],
-      "camera": { "distance": 9, "height": 3.2 },
-      "weakSpot": "rear",
-      "counterplay": "Mortar shells arc slowly, so keep moving. The rear vent is a weak spot. Radiant Scorch doesn't stack on vehicles, so bring ion or explosives."
-    },
-    "solari_dawnship": {
-      "name": "Dawnship Dropship", "faction": "solari", "model": "flyer", "hp": 3000, "armor": "vehicle",
-      "size": { "x": 6, "y": 2.4, "z": 8 }, "radius": 4, "hoverHeight": 0,
-      "maxSpeed": 16, "accel": 9, "reverseSpeed": 8, "turnRate": 45, "grip": 2, "drag": 0.8,
-      "climbRate": 7, "maxAltitude": 35, "minAltitude": 0,
-      "boost": null,
-      "ram": null, "crash": null,
-      "seats": [
-        { "role": "driver", "offset": [0, 1.6, -2.5], "weapon": "dropship_cannons", "aim": "hull" },
-        { "role": "gunner", "offset": [2.6, 1.2, 0], "weapon": "door_gun", "aim": "free" },
-        { "role": "passenger", "offset": [-1.2, 1.0, 1.0] },
-        { "role": "passenger", "offset": [1.2, 1.0, 1.0] },
-        { "role": "passenger", "offset": [-1.2, 1.0, 2.5] },
-        { "role": "passenger", "offset": [1.2, 1.0, 2.5] }
-      ],
-      "camera": { "distance": 16, "height": 5 },
-      "weakSpot": "rear",
-      "counterplay": "Big and loud, with engines at the rear. It must hover low to drop troops, so ambush the landing zone. Gravity Flak pulls it down."
-    },
-    "void_rift_carrier": {
-      "name": "Rift Carrier", "faction": "void", "model": "flyer", "hp": 2800, "armor": "vehicle",
-      "size": { "x": 6, "y": 2.4, "z": 8 }, "radius": 4, "hoverHeight": 0,
-      "maxSpeed": 17, "accel": 9, "reverseSpeed": 8, "turnRate": 50, "grip": 2, "drag": 0.8,
-      "climbRate": 7, "maxAltitude": 35, "minAltitude": 0,
-      "boost": null, "ram": null, "crash": null,
-      "seats": [
-        { "role": "driver", "offset": [0, 1.6, -2.5], "weapon": "carrier_void_lances", "aim": "hull" },
-        { "role": "gunner", "offset": [2.6, 1.2, 0], "weapon": "door_gun", "aim": "free" },
-        { "role": "passenger", "offset": [-1.2, 1.0, 1.0] },
-        { "role": "passenger", "offset": [1.2, 1.0, 1.0] },
-        { "role": "passenger", "offset": [-1.2, 1.0, 2.5] },
-        { "role": "passenger", "offset": [1.2, 1.0, 2.5] }
-      ],
-      "camera": { "distance": 16, "height": 5 },
-      "weakSpot": "rear",
-      "counterplay": "Same as the Dawnship. Its void lances are slow projectiles, so strafe."
+ "_comment": "Vehicles. model: hover | tracked | flyer. Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes). weakSpot: hits on that face count as headshots. Every vehicle lists its counterplay.",
+ "vehicles": {
+  "solari_hoverbike": {
+   "name": "Sunrunner Hoverbike",
+   "faction": "solari",
+   "model": "hover",
+   "hp": 450,
+   "armor": "vehicle",
+   "size": {
+    "x": 0.9,
+    "y": 1.1,
+    "z": 2.4
+   },
+   "radius": 1.1,
+   "hoverHeight": 0.6,
+   "maxSpeed": 22,
+   "accel": 28,
+   "reverseSpeed": 8,
+   "turnRate": 150,
+   "grip": 4.5,
+   "drag": 1.2,
+   "boost": {
+    "speed": 34,
+    "duration": 1.6,
+    "cooldown": 6
+   },
+   "ram": {
+    "minSpeed": 9,
+    "damagePerMs": 6,
+    "selfDamageMul": 0.25,
+    "knock": 8
+   },
+   "crash": {
+    "minSpeed": 12,
+    "damagePerMs": 10
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      0.9,
+      0.2
+     ],
+     "exposed": true,
+     "weapon": "bike_blaster",
+     "aim": "hull"
     }
+   ],
+   "camera": {
+    "distance": 5,
+    "height": 1.6
+   },
+   "weakSpot": null,
+   "counterplay": "The rider is exposed. Shoot the rider, or clothesline the bike with a tripwire, Arc Snare or Concussion Slam. It shatters if it crashes at speed."
   },
-  "weapons": {
-    "bike_blaster": { "id": "bike_blaster", "name": "Twin Blasters", "fireMode": "auto", "rpm": 540, "projectile": "bolt", "velocity": 170, "ammoType": "plasma",
-      "ammo": { "kind": "heat", "perShot": 5, "max": 100, "ventPerSec": 50, "ventDelay": 0.3, "overheatLock": 1.6, "manualVent": 1.0 },
-      "damage": { "base": 18 }, "spread": { "hip": 1.2, "ads": 1.2 }, "recoil": "pulse_soft", "deflectable": true, "muzzleHeight": 1.0, "audio": "bike_blaster" },
-    "skiff_shard_gun": { "id": "skiff_shard_gun", "name": "Shard Repeater", "fireMode": "auto", "rpm": 480, "projectile": "bolt", "velocity": 150, "ammoType": "shard",
-      "ammo": { "kind": "heat", "perShot": 5, "max": 100, "ventPerSec": 50, "ventDelay": 0.3, "overheatLock": 1.6, "manualVent": 1.0 },
-      "damage": { "base": 20 }, "spread": { "hip": 1.4, "ads": 1.4 }, "recoil": "pulse_soft", "muzzleHeight": 1.0, "audio": "skiff_gun" },
-    "tank_cannon": { "id": "tank_cannon", "name": "Sunfire Cannon", "fireMode": "semi", "rpm": 24, "projectile": "ballistic", "velocity": 90, "drop": 0.3, "ammoType": "explosive",
-      "ammo": { "kind": "heat", "perShot": 34, "max": 100, "ventPerSec": 20, "ventDelay": 1.0, "overheatLock": 3, "manualVent": 2 },
-      "damage": { "base": 220, "splash": 4.5 }, "spread": { "hip": 0.3, "ads": 0.3 }, "recoil": "sniper_heavy", "muzzleHeight": 2.0, "audio": "tank_cannon" },
-    "tank_repeater": { "id": "tank_repeater", "name": "Coax Repeater", "fireMode": "auto", "rpm": 600, "projectile": "hitscan", "ammoType": "kinetic",
-      "ammo": { "kind": "heat", "perShot": 2.5, "max": 100, "ventPerSec": 35, "ventDelay": 0.4, "overheatLock": 2, "manualVent": 1.2 },
-      "damage": { "base": 16, "falloffStart": 30, "falloffEnd": 70, "min": 10 }, "spread": { "hip": 1.5, "ads": 0.8 }, "recoil": "lmg_heavy", "muzzleHeight": 2.4, "audio": "repeater" },
-    "crawler_rift_mortar": { "id": "crawler_rift_mortar", "name": "Rift Mortar", "fireMode": "semi", "rpm": 30, "projectile": "ballistic", "velocity": 45, "drop": 1.0, "ammoType": "void",
-      "ammo": { "kind": "heat", "perShot": 30, "max": 100, "ventPerSec": 20, "ventDelay": 1.0, "overheatLock": 3, "manualVent": 2 },
-      "damage": { "base": 180, "splash": 5 }, "spread": { "hip": 0.5, "ads": 0.5 }, "recoil": "sniper_heavy", "muzzleHeight": 2.2,
-      "onHit": { "zone": { "radius": 4, "lifetime": 0.6, "tick": 0.1, "pull": 5 } }, "audio": "rift_mortar" },
-    "crawler_leech_beam": { "id": "crawler_leech_beam", "name": "Leech Beam", "fireMode": "beam", "projectile": "beam", "range": 40, "ammoType": "void",
-      "ammo": { "kind": "battery", "max": 100, "drainPerSec": 20, "rechargePerSec": 15 }, "damage": { "dps": 90, "rampUp": 0.8, "rampMul": 1.4 }, "recoil": "beam_wander", "muzzleHeight": 2.4, "audio": "leech_beam" },
-    "dropship_cannons": { "id": "dropship_cannons", "name": "Wing Cannons", "fireMode": "auto", "rpm": 300, "projectile": "bolt", "velocity": 140, "ammoType": "plasma",
-      "ammo": { "kind": "heat", "perShot": 6, "max": 100, "ventPerSec": 30, "ventDelay": 0.5, "overheatLock": 2, "manualVent": 1.2 },
-      "damage": { "base": 45, "splash": 2 }, "spread": { "hip": 0.8, "ads": 0.8 }, "recoil": "pulse_soft", "muzzleHeight": 0.5, "audio": "wing_cannons" },
-    "carrier_void_lances": { "id": "carrier_void_lances", "name": "Void Lances", "fireMode": "auto", "rpm": 200, "projectile": "bolt", "velocity": 90, "ammoType": "void",
-      "ammo": { "kind": "heat", "perShot": 8, "max": 100, "ventPerSec": 30, "ventDelay": 0.5, "overheatLock": 2, "manualVent": 1.2 },
-      "damage": { "base": 60, "splash": 2.5 }, "spread": { "hip": 0.8, "ads": 0.8 }, "recoil": "pulse_soft", "muzzleHeight": 0.5, "audio": "void_lances" },
-    "door_gun": { "id": "door_gun", "name": "Door Gun", "fireMode": "auto", "rpm": 750, "projectile": "hitscan", "ammoType": "kinetic",
-      "ammo": { "kind": "heat", "perShot": 2, "max": 100, "ventPerSec": 40, "ventDelay": 0.4, "overheatLock": 2, "manualVent": 1 },
-      "damage": { "base": 15, "falloffStart": 30, "falloffEnd": 80, "min": 9 }, "spread": { "hip": 1.8, "ads": 1.0 }, "recoil": "lmg_heavy", "muzzleHeight": 1.4, "audio": "door_gun" }
+  "void_skiff": {
+   "name": "Wraith-Skiff",
+   "faction": "void",
+   "model": "hover",
+   "hp": 420,
+   "armor": "vehicle",
+   "size": {
+    "x": 1.0,
+    "y": 1.0,
+    "z": 2.6
+   },
+   "radius": 1.2,
+   "hoverHeight": 0.7,
+   "maxSpeed": 21,
+   "accel": 30,
+   "reverseSpeed": 9,
+   "turnRate": 160,
+   "grip": 3.5,
+   "drag": 1.1,
+   "boost": {
+    "speed": 32,
+    "duration": 1.4,
+    "cooldown": 5,
+    "phase": true
+   },
+   "ram": {
+    "minSpeed": 9,
+    "damagePerMs": 6,
+    "selfDamageMul": 0.25,
+    "knock": 8
+   },
+   "crash": {
+    "minSpeed": 12,
+    "damagePerMs": 10
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      0.9,
+      0.2
+     ],
+     "exposed": true,
+     "weapon": "skiff_shard_gun",
+     "aim": "hull"
+    }
+   ],
+   "camera": {
+    "distance": 5,
+    "height": 1.6
+   },
+   "weakSpot": null,
+   "counterplay": "Phase boost ignores ramming damage but not hitscan. Shoot the rider after the boost ends."
   },
-  "pads": {
-    "_comment": "Battlefront-style pickups. respawn = seconds after destruction (or after being abandoned, empty, for 'abandonTime')",
-    "abandonTime": 40
+  "solari_lancer_tank": {
+   "name": "Aegis Light Tank",
+   "faction": "solari",
+   "model": "tracked",
+   "hp": 2400,
+   "armor": "vehicle",
+   "size": {
+    "x": 3.0,
+    "y": 2.0,
+    "z": 4.6
+   },
+   "radius": 2.4,
+   "hoverHeight": 0,
+   "maxSpeed": 9,
+   "accel": 7,
+   "reverseSpeed": 5,
+   "turnRate": 55,
+   "turretTurnRate": 70,
+   "grip": 12,
+   "drag": 2.5,
+   "boost": null,
+   "ram": {
+    "minSpeed": 4,
+    "damagePerMs": 12,
+    "selfDamageMul": 0,
+    "knock": 10
+   },
+   "crash": null,
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.4,
+      0
+     ],
+     "weapon": "tank_cannon",
+     "aim": "turret"
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      0.6,
+      2.1,
+      0.4
+     ],
+     "weapon": "tank_repeater",
+     "aim": "free"
+    }
+   ],
+   "camera": {
+    "distance": 9,
+    "height": 3.2
+   },
+   "weakSpot": "rear",
+   "counterplay": "The turret turns at 70\u00b0/s, so circle it. The rear vent is a weak spot. Ion ammo and Arc Snare (Root) stop it; Grav Plate (Suppress) shuts off its weapons."
+  },
+  "void_crawler_tank": {
+   "name": "Monolith Crawler",
+   "faction": "void",
+   "model": "tracked",
+   "hp": 2600,
+   "armor": "vehicle",
+   "size": {
+    "x": 3.2,
+    "y": 2.1,
+    "z": 4.8
+   },
+   "radius": 2.5,
+   "hoverHeight": 0,
+   "maxSpeed": 8,
+   "accel": 6,
+   "reverseSpeed": 5,
+   "turnRate": 50,
+   "turretTurnRate": 65,
+   "grip": 12,
+   "drag": 2.5,
+   "boost": null,
+   "ram": {
+    "minSpeed": 4,
+    "damagePerMs": 14,
+    "selfDamageMul": 0,
+    "knock": 11
+   },
+   "crash": null,
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.4,
+      0
+     ],
+     "weapon": "crawler_rift_mortar",
+     "aim": "turret"
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      0.6,
+      2.2,
+      0.4
+     ],
+     "weapon": "crawler_leech_beam",
+     "aim": "free"
+    }
+   ],
+   "camera": {
+    "distance": 9,
+    "height": 3.2
+   },
+   "weakSpot": "rear",
+   "counterplay": "Mortar shells arc slowly, so keep moving. The rear vent is a weak spot. Radiant Scorch doesn't stack on vehicles, so bring ion or explosives."
+  },
+  "solari_dawnship": {
+   "name": "Dawnship Dropship",
+   "faction": "solari",
+   "model": "flyer",
+   "hp": 3000,
+   "armor": "vehicle",
+   "size": {
+    "x": 6,
+    "y": 2.4,
+    "z": 8
+   },
+   "radius": 4,
+   "hoverHeight": 0,
+   "maxSpeed": 16,
+   "accel": 9,
+   "reverseSpeed": 8,
+   "turnRate": 45,
+   "grip": 2,
+   "drag": 0.8,
+   "climbRate": 7,
+   "maxAltitude": 35,
+   "minAltitude": 0,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.6,
+      -2.5
+     ],
+     "weapon": "dropship_cannons",
+     "aim": "hull"
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      2.6,
+      1.2,
+      0
+     ],
+     "weapon": "door_gun",
+     "aim": "free"
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -1.2,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      1.2,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -1.2,
+      1.0,
+      2.5
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      1.2,
+      1.0,
+      2.5
+     ]
+    }
+   ],
+   "camera": {
+    "distance": 16,
+    "height": 5
+   },
+   "weakSpot": "rear",
+   "counterplay": "Big and loud, with engines at the rear. It must hover low to drop troops, so ambush the landing zone. Gravity Flak pulls it down."
+  },
+  "void_rift_carrier": {
+   "name": "Rift Carrier",
+   "faction": "void",
+   "model": "flyer",
+   "hp": 2800,
+   "armor": "vehicle",
+   "size": {
+    "x": 6,
+    "y": 2.4,
+    "z": 8
+   },
+   "radius": 4,
+   "hoverHeight": 0,
+   "maxSpeed": 17,
+   "accel": 9,
+   "reverseSpeed": 8,
+   "turnRate": 50,
+   "grip": 2,
+   "drag": 0.8,
+   "climbRate": 7,
+   "maxAltitude": 35,
+   "minAltitude": 0,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.6,
+      -2.5
+     ],
+     "weapon": "carrier_void_lances",
+     "aim": "hull"
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      2.6,
+      1.2,
+      0
+     ],
+     "weapon": "door_gun",
+     "aim": "free"
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -1.2,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      1.2,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -1.2,
+      1.0,
+      2.5
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      1.2,
+      1.0,
+      2.5
+     ]
+    }
+   ],
+   "camera": {
+    "distance": 16,
+    "height": 5
+   },
+   "weakSpot": "rear",
+   "counterplay": "Same as the Dawnship. Its void lances are slow projectiles, so strafe."
   }
+ },
+ "weapons": {
+  "bike_blaster": {
+   "id": "bike_blaster",
+   "name": "Twin Blasters",
+   "fireMode": "auto",
+   "rpm": 540,
+   "projectile": "bolt",
+   "velocity": 170,
+   "ammoType": "plasma",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 5,
+    "max": 100,
+    "ventPerSec": 50,
+    "ventDelay": 0.3,
+    "overheatLock": 1.6,
+    "manualVent": 1.0
+   },
+   "damage": {
+    "base": 18
+   },
+   "spread": {
+    "hip": 1.2,
+    "ads": 1.2
+   },
+   "recoil": "pulse_soft",
+   "deflectable": true,
+   "muzzleHeight": 1.0,
+   "audio": "bike_blaster",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "skiff_shard_gun": {
+   "id": "skiff_shard_gun",
+   "name": "Shard Repeater",
+   "fireMode": "auto",
+   "rpm": 480,
+   "projectile": "bolt",
+   "velocity": 150,
+   "ammoType": "shard",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 5,
+    "max": 100,
+    "ventPerSec": 50,
+    "ventDelay": 0.3,
+    "overheatLock": 1.6,
+    "manualVent": 1.0
+   },
+   "damage": {
+    "base": 20
+   },
+   "spread": {
+    "hip": 1.4,
+    "ads": 1.4
+   },
+   "recoil": "pulse_soft",
+   "muzzleHeight": 1.0,
+   "audio": "skiff_gun",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "tank_cannon": {
+   "id": "tank_cannon",
+   "name": "Sunfire Cannon",
+   "fireMode": "semi",
+   "rpm": 24,
+   "projectile": "ballistic",
+   "velocity": 90,
+   "drop": 0.3,
+   "ammoType": "explosive",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 34,
+    "max": 100,
+    "ventPerSec": 20,
+    "ventDelay": 1.0,
+    "overheatLock": 3,
+    "manualVent": 2
+   },
+   "damage": {
+    "base": 220,
+    "splash": 4.5
+   },
+   "spread": {
+    "hip": 0.3,
+    "ads": 0.3
+   },
+   "recoil": "sniper_heavy",
+   "muzzleHeight": 2.0,
+   "audio": "tank_cannon",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "tank_repeater": {
+   "id": "tank_repeater",
+   "name": "Coax Repeater",
+   "fireMode": "auto",
+   "rpm": 600,
+   "projectile": "hitscan",
+   "ammoType": "kinetic",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 2.5,
+    "max": 100,
+    "ventPerSec": 35,
+    "ventDelay": 0.4,
+    "overheatLock": 2,
+    "manualVent": 1.2
+   },
+   "damage": {
+    "base": 16,
+    "falloffStart": 30,
+    "falloffEnd": 70,
+    "min": 10
+   },
+   "spread": {
+    "hip": 1.5,
+    "ads": 0.8
+   },
+   "recoil": "lmg_heavy",
+   "muzzleHeight": 2.4,
+   "audio": "repeater",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "crawler_rift_mortar": {
+   "id": "crawler_rift_mortar",
+   "name": "Rift Mortar",
+   "fireMode": "semi",
+   "rpm": 30,
+   "projectile": "ballistic",
+   "velocity": 45,
+   "drop": 1.0,
+   "ammoType": "void",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 30,
+    "max": 100,
+    "ventPerSec": 20,
+    "ventDelay": 1.0,
+    "overheatLock": 3,
+    "manualVent": 2
+   },
+   "damage": {
+    "base": 180,
+    "splash": 5
+   },
+   "spread": {
+    "hip": 0.5,
+    "ads": 0.5
+   },
+   "recoil": "sniper_heavy",
+   "muzzleHeight": 2.2,
+   "onHit": {
+    "zone": {
+     "radius": 4,
+     "lifetime": 0.6,
+     "tick": 0.1,
+     "pull": 5
+    }
+   },
+   "audio": "rift_mortar",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "crawler_leech_beam": {
+   "id": "crawler_leech_beam",
+   "name": "Leech Beam",
+   "fireMode": "beam",
+   "projectile": "beam",
+   "range": 40,
+   "ammoType": "void",
+   "ammo": {
+    "kind": "battery",
+    "max": 100,
+    "drainPerSec": 20,
+    "rechargePerSec": 15
+   },
+   "damage": {
+    "dps": 90,
+    "rampUp": 0.8,
+    "rampMul": 1.4
+   },
+   "recoil": "beam_wander",
+   "muzzleHeight": 2.4,
+   "audio": "leech_beam",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "dropship_cannons": {
+   "id": "dropship_cannons",
+   "name": "Wing Cannons",
+   "fireMode": "auto",
+   "rpm": 300,
+   "projectile": "bolt",
+   "velocity": 140,
+   "ammoType": "plasma",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 6,
+    "max": 100,
+    "ventPerSec": 30,
+    "ventDelay": 0.5,
+    "overheatLock": 2,
+    "manualVent": 1.2
+   },
+   "damage": {
+    "base": 45,
+    "splash": 2
+   },
+   "spread": {
+    "hip": 0.8,
+    "ads": 0.8
+   },
+   "recoil": "pulse_soft",
+   "muzzleHeight": 0.5,
+   "audio": "wing_cannons",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "carrier_void_lances": {
+   "id": "carrier_void_lances",
+   "name": "Void Lances",
+   "fireMode": "auto",
+   "rpm": 200,
+   "projectile": "bolt",
+   "velocity": 90,
+   "ammoType": "void",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 8,
+    "max": 100,
+    "ventPerSec": 30,
+    "ventDelay": 0.5,
+    "overheatLock": 2,
+    "manualVent": 1.2
+   },
+   "damage": {
+    "base": 60,
+    "splash": 2.5
+   },
+   "spread": {
+    "hip": 0.8,
+    "ads": 0.8
+   },
+   "recoil": "pulse_soft",
+   "muzzleHeight": 0.5,
+   "audio": "void_lances",
+   "handling": {
+    "ergonomics": 100
+   }
+  },
+  "door_gun": {
+   "id": "door_gun",
+   "name": "Door Gun",
+   "fireMode": "auto",
+   "rpm": 750,
+   "projectile": "hitscan",
+   "ammoType": "kinetic",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 2,
+    "max": 100,
+    "ventPerSec": 40,
+    "ventDelay": 0.4,
+    "overheatLock": 2,
+    "manualVent": 1
+   },
+   "damage": {
+    "base": 15,
+    "falloffStart": 30,
+    "falloffEnd": 80,
+    "min": 9
+   },
+   "spread": {
+    "hip": 1.8,
+    "ads": 1.0
+   },
+   "recoil": "lmg_heavy",
+   "muzzleHeight": 1.4,
+   "audio": "door_gun",
+   "handling": {
+    "ergonomics": 100
+   }
+  }
+ },
+ "pads": {
+  "_comment": "Battlefront-style pickups. respawn = seconds after destruction (or after being abandoned, empty, for 'abandonTime')",
+  "abandonTime": 40
+ }
 }

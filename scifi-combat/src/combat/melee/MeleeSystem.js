@@ -86,6 +86,13 @@ export class MeleeComponent {
     const b = cmd.buttons;
     const mv = this.owner.movement;
 
+    // A dive, evade or knockdown interrupts whatever the sword was doing; no swings while down or climbing.
+    const ms = mv.state;
+    if (ms.diveStarted || ms.knockStarted) {
+      if (this.busy || this.phase === MeleePhase.GUARD || this.phase === MeleePhase.CHARGING) { this.attack = null; this.queued = null; this.#setPhase(MeleePhase.IDLE); }
+    }
+    if (ms.mode === 'knockdown' || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'vehicle') { this.queued = null; return; }
+
     // Input buffering: a press during an attack is remembered and fired at the earliest legal frame.
     if (b.light?.pressed) this.queued = 'light';
     if (b.heavy?.pressed) { this.queued = 'heavy'; this.chargeTime = 0; }

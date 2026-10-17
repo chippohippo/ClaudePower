@@ -1,0 +1,165 @@
+# Movement: Helldivers 2 fidelity spec
+
+Code: `src/movement/MovementController.js` (simulation), `src/movement/Hitboxes.js` (stance-aware
+hit spheres), `src/camera/CameraRig.js` (camera), `src/combat/weapons/WeaponSystem.js`
+(ergonomics aim drag). Tuning: `data/movement.json`. Contract tests: `tests/movement-feel.test.mjs`.
+
+**Reference mandate:** the target is how Helldivers 2 feels the moment you start moving.
+Any change that makes movement lighter, floatier, slower to respond or less weighty than HD2 is
+rejected. The feel tests encode that as tolerance bands, so CI fails on it.
+
+## Where the numbers come from (read this first)
+
+There is no public spec of HD2's movement code. The values in `data/movement.json` come from
+HD2's observable behavior, plus its known armor ratings (Speed 550/500/450 and Stamina Regen
+125/100/50 for light/medium/heavy), and are tuned until the motion has the same shape: instant
+response, a long sprint ramp, carved sprint turns, a skidding stop, a low committed dive with a
+belly slide, and slow prone turning. Treat every number as a **calibration baseline**, not a
+measured fact. The procedure for locking them to the real game is in the next section.
+
+## Calibration procedure (to match HD2 frame-for-frame)
+
+1. Capture HD2 at 120 fps (or 60) on flat ground with a measurable reference: ground decals,
+   a grid map area, or a known prop spacing. Use medium armor (Speed 500) with no boosters.
+2. For each row in the table below, step through frames and record the value.
+3. Put the values into `data/movement.json` and tighten the matching band in
+   `tests/movement-feel.test.mjs` to about ±10% of the measurement.
+4. Record a matching run in the browser with the telemetry hooks (`move:*` events and
+   `movement.state`), overlay both curves, and iterate until the shapes line up (start curve, ramp,
+   skid, dive arc).
+
+| Quantity | Current value | Test band | How to measure in HD2 |
+|---|---|---|---|
+| Jog speed | 4.5 m/s | — | Distance per second between markers, stick fully forward |
+| 0 → 90% jog | ~0.12 s (accel 34 m/s²) | ≤ 0.15 s | Frames from input to steady-speed footfalls |
+| Stop from jog | ~0.12 s (38 m/s²) | ≤ 0.15 s | Frames from release to rest |
+| Sprint speed | 7.2 m/s | — | As jog, holding sprint |
+| Jog → 95% sprint | ~0.6 s (4.8 m/s²) | 0.45–0.75 s | Frames from sprint press to top speed |
+| Sprint-release skid | ~1.1 m | 0.8–1.6 m | Overrun distance after letting go of everything |
+| Sprint turn rate | 270°/s, carving | 0.28–0.45 s for 90° | Arc radius on a hard camera turn |
+| Sprint reversal | plant-and-pivot (26 m/s² skid, 720°/s swing) | speed dips < 50% | Frames of the reversal |
+| Jog strafe switch | ≤ 0.2 s to 90% lateral speed | ≤ 0.2 s | Frames from strafe input to steady strafe |
+| Sprint duration | ~14 s (7/s drain) | ≤ 15 s | Stopwatch from full stamina |
+| Stamina back to sprint | ~1.75 s | 1–2.5 s | Exhaustion until sprint resumes |
+| Dive airtime | ~0.41 s from sprint | 0.3–0.55 s | Takeoff to belly impact |
+| Dive travel (from sprint) | ~5.8 m incl. belly slide | 4–6.5 m | Takeoff point to rest |
+| Dive i-frames | 0.04–0.32 s | ≥ 0.2 s | *Unverified*: HD2 may rely on its low profile rather than true i-frames (see deviations) |
+| Drop to prone | 0.50 s | ±0.05 s | Frames of the drop |
+| Prone → stand | 0.62 s (0.45 s within 1.5 s of a dive) | fast < normal | Frames of the get-up |
+| Crawl speed | 0.95 m/s | ±0.1 | As jog, prone |
+| Prone turn | 110°/s | 0.7–1.0 s for 90° | Frames to rotate prone |
+| Climb 2 m | 0.62 s | ±0.05 s | Frames of a chest-high climb |
+| Heavy landing / knockdown | 9.5 m/s (~2 m) / 15 m/s (~5 m) | — | Drop heights that cause a stumble / ragdoll |
+| Ragdoll recovery | ~1.2–1.8 s total | 1–3.5 s | Impact to control |
+
+## State machine
+
+```
+            ┌─────────────── hold climb at a ledge ──────────────┐
+            │                                                      ▼
+ ┌────────────────────┐  dive key   ┌──────┐ belly lands ┌──────────────┐ slows   ┌────────────────┐
+ │ GROUND             │────────────▶│ DIVE │────────────▶│ SLIDE: belly │────────▶│ GROUND (prone) │
+ │ idle·walk·jog      │             └──────┘             └──────────────┘         └────────────────┘
+ │ sprint (flag)      │  sprint+crouch  ┌──────────────┐  ≥0.45 s & slow  ▲ jump/sprint = get up
+ │ stance: stand/     │────────────────▶│ SLIDE: feet  │──────────────────┘ (fast get-up)
+ │ crouch/prone       │◀────────────────│ (committed)  │── jump = slide-hop (85% momentum)
+ │ + timed stance     │  exit: crouch   └──────────────┘── dive = dive out of the slide
+ │   transitions      │
+ │                    │  Space (no ledge ahead)  ┌─────┐  lands: <9.5 m/s normal │ ≥9.5 LAND (stumble) │ ≥15 KNOCKDOWN
+ │                    │─────────────────────────▶│ AIR │──────────────────────────────────────────────────────▶
+ │                    │                          └─────┘
+ │                    │  explosion / ram / big shove ≥ 6 m/s (prone ×1.8)  ┌───────────────────────────────┐
+ │                    │───────────────────────────────────────────────────▶│ KNOCKDOWN: air→ground→get up  │
+ └────────────────────┘                                                    └───────────────────────────────┘
+   MANTLE (vault keeps momentum / climb ends standing) · DODGE (class evades) · VEHICLE
+```
+
+Other systems read per-tick flags the controller sets first in every tick:
+- **`diveStarted` / `knockStarted`:** these cancel melee swings and guards, ability casts (half the
+  cooldown refunded) and ADS. "Dive interrupts most other actions."
+- **`weaponReady`:** false while mantling, knocked down, getting up or down from prone, or sprinting.
+  The gun is lowered and comes back up after `sprintToFire`.
+- **`busy`:** no ability casts mid-dive, mid-climb, while down or during prone transitions.
+- **`aimYaw`:** the look yaw, except prone and belly slides clamp the gun to ±40° around the body.
+
+## Facing model (the core of the weight)
+
+- **`yaw`** is the camera or look direction, **`bodyYaw`** is where the body faces, and **velocity** is separate from both.
+- **Jog, walk and crouch:** movement is camera-relative (strafe), and the body turns to your aim at
+  720°/s (crouch 600). That's the third-person-shooter response.
+- **Sprint:** the body turns toward your input at **270°/s** and the velocity follows the body, so
+  sprint turns carve arcs. Tight carves bleed speed (0.25 per radian). Inputs past 115° start a
+  **plant-and-pivot**: skid along the old line at 26 m/s² while the body swings at 720°/s, then
+  accelerate the new way.
+- **Prone:** the body turns at **110°/s**, and the gun is clamped to an arc around it (`aimYaw`). Turning while
+  prone is slow and deliberate. The ergonomics reticle shows where the gun really points.
+- **Dive and slide:** the body snaps (dive, 1440°/s) or turns (slide, 90°/s) toward the motion.
+
+## Speed curve
+
+Accelerating toward jog speed is near-instant (34 m/s²). From jog to sprint is a long, heavy ramp
+(4.8 m/s²). Slowing from above jog speed is the sprint skid (18 m/s²); slowing below it is a crisp
+stop (38 m/s²). Armor scales every speed (light ×1.1, heavy ×0.9) and stamina regen (light ×1.25,
+heavy ×0.5). Slopes slow you uphill (−35% at 45°) and speed you up a little downhill (+12%).
+Ground steeper than 48° makes you lose footing.
+
+## Slides
+
+- **Feet-first combat slide (sprint + crouch):**
+  - Entry is ×1.12 sprint speed, capped at 8.6 m/s.
+  - It's committed for 0.45 s and lasts at most 1.35 s.
+  - Friction ramps from 4.5 to 9.5 m/s² over 0.9 s: it carries far, then stops decisively.
+  - Steering turns the velocity at 80°/s, and slope gravity adds speed downhill.
+  - Exits: jump = slide-hop keeping 85% momentum; the dive key = dive out of the slide. It ends crouched if you're holding crouch, standing otherwise.
+- **Belly slide (after a dive lands):** 75% of the landing speed, 9 m/s² friction, 35°/s steering.
+  It ends prone. Sprint or jump while it slows = fast get-up (0.45 s).
+
+## Deliberate deviations from HD2 (genre requirements)
+
+| Deviation | Why | Toggle |
+|---|---|---|
+| Space hops when no ledge is ahead | Battlefront genre needs a hop. It's short and heavy (5 m/s up, 22 m/s² gravity), with **no** coyote time or jump buffer | `jump.enabled` |
+| Feet-first slide from sprint + crouch | Requested slide fantasy. It uses the same committed-slide model as HD2's belly slide | — |
+| Dive i-frames (0.04–0.32 s) | Requested. HD2's dive protection may come mostly from its low profile, which we also have (prone/dive hitboxes) | `dive.iframeStart/End` |
+| Melee-class evades (`flameStep`, `ashStep`, `shoulderBash`) | A dive to prone would end every sword duel | class `movement.dodgeStyle` |
+| Wall-running | Disabled (HD2 has none) | `wallRun.enabled` |
+
+## Hitboxes
+
+Hit spheres come from the movement state (`Hitboxes.js`):
+- **Profiles:** stand head 1.65 m, crouch 1.10 m, prone 0.30 m, dive 0.85 m. Feet-first slide leans back; bike riders use a seated layout.
+- **Transitions:** stance changes blend between layouts.
+- **Scale:** transform supers scale the spheres with their silhouette.
+
+## Camera (HD2 third person)
+
+- **Look:** zero latency. The camera reads the latest mouse or stick yaw and pitch every render frame; only position lags.
+- **Follow:** critically damped springs, ω = 24 horizontal (~40 ms) and 14 vertical (~70 ms).
+  Slight lag that reads as weight, never float.
+- **Framing (right, up, back):**
+  - Stand: 0.55, 0.18, 2.35 m. Crouch: 0.5, 0.2, 2.2 m. Prone: 0.45, 0.38, 2.0 m.
+  - Sprint pulls back 0.35 m. ADS: 0.42, 0.12, 1.2 m.
+  - Collision pulls in instantly and eases out.
+- **Bob:** event-driven. Each `anim:footstep` (planted by the animation rig) kicks a stiff spring
+  down (ω 26, ζ 0.45, so a thud with a small rebound) plus an alternating roll. Footstep intensity scales
+  with gait and stance (sprint thuds, prone barely moves). It never wanders like a sine wave.
+- **Sway:** the camera banks into sprint carves (body turn rate × speed).
+- **FOV:** base 70, +6 at full sprint, +8 sliding, +10 diving. The dive start punches +5;
+  heavy landings dip −4 and knockdowns punch +6. ADS goes to the weapon's ADS FOV.
+- **Reduced motion:** bob is ×0.25, with no roll, sway or FOV effects, and a quarter of the shake.
+
+## Weapon handling tied to movement
+
+- **Ergonomics drag (HD2's second reticle):** the gun's aim chases the camera aim with a rate of
+  `4 + 0.22 × ergonomics` per second (×1.35 when aiming down sights). SMG 85 is snappy; sniper 35 drags;
+  vehicle guns are 100. Shots go where the gun points, not where the camera points.
+- **Sprint:** aiming or firing cancels the sprint; the gun comes up after `sprintToFire`.
+- **Dive:** ADS drops, hip fire stays available through the whole dive and from prone.
+
+## Animation sync contract
+
+Movement emits state; the animation rig (see the animation layer) plants feet in world space and
+emits `anim:footstep {id, foot, gait, intensity, surface}` on every heel strike, plus body-impact
+events (dive landing, slide start, knockdown, get-up). Camera bob and footstep, gear and cloth
+audio are driven only by those events, so they are frame-synced to the visible foot plant by
+construction.

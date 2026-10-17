@@ -15,6 +15,7 @@
 import { Vector3 } from 'three';
 import { bus } from '../../core/EventBus.js';
 import { computeDamage } from './WeaponDefs.js';
+import { angleDelta } from '../../core/geom.js';
 
 const DEG = Math.PI / 180;
 const _dir = new Vector3();
@@ -79,6 +80,8 @@ export class WeaponComponent {
     this.recoilYaw = 0;
     this.aimYaw = 0;
     this.aimPitch = 0;
+    this.weaponYaw = null;       // HD2 ergonomics: where the gun points (lags the camera aim)
+    this.weaponPitch = 0;
     this.activeReloadWindow = null; // { start, end } fraction of vent/reload for perfect timing
     this.buffs = { damageMul: 1, rpmMul: 1, reloadMul: 1, spreadMul: 1, until: 0 };
     this.time = 0;
@@ -105,19 +108,32 @@ export class WeaponComponent {
 
     // ADS blends with weapon-specific timing. Guarding with a sword reuses the same button,
     // so ADS only applies while a gun is the active weapon (the class/loadout layer decides that).
-    const wantAds = !!b.guard?.down && !mv.sprinting && this.phase !== WeaponPhase.SWAPPING;
+    // HD2: aiming or firing out of a sprint cancels the sprint (the gun comes up after sprintToFire).
+    if (mv.sprinting && (b.light?.down || b.guard?.down)) mv.locks.sprint = Math.max(mv.locks.sprint, 0.35);
+    if (mv.diveStarted) this.ads = 0; // diving drops ADS; hip fire stays available through the dive
+    const wantAds = !!b.guard?.down && !mv.sprinting && mv.mode !== 'dive' && mv.mode !== 'knockdown' && this.phase !== WeaponPhase.SWAPPING;
     const adsRate = 1 / Math.max(0.05, s.ads?.time ?? 0.25);
     this.ads = Math.max(0, Math.min(1, this.ads + (wantAds ? adsRate : -adsRate * 1.3) * dt));
     mv.speedScale = Math.min(mv.speedScale, 1 - (1 - (s.ads?.moveMul ?? 0.7)) * this.ads);
 
     this.#recoverRecoil(w, dt, !!b.light?.down);
     this.#passiveHeat(w, dt);
-    this.aimYaw = cmd.yaw + this.recoilYaw;
-    this.aimPitch = Math.max(-1.5, Math.min(1.5, cmd.pitch + this.recoilPitch));
+    // HD2 ergonomics: the weapon's aim chases the camera's aim with a time constant set by the gun's
+    // ergonomics (light guns snap, heavy guns drag), so the second reticle trails fast turns. Prone
+    // clamps the gun to an arc around the body (mv.aimYaw).
+    const targetYaw = mv.aimYaw ?? cmd.yaw;
+    if (this.weaponYaw === null) { this.weaponYaw = targetYaw; this.weaponPitch = cmd.pitch; }
+    const ergo = s.handling?.ergonomics ?? 60;
+    const follow = 1 - Math.exp(-(4 + ergo * 0.22) * (1 + this.ads * 0.35) * dt);
+    this.weaponYaw += angleDelta(this.weaponYaw, targetYaw) * follow;
+    this.weaponPitch += (cmd.pitch - this.weaponPitch) * follow;
+    this.aimYaw = this.weaponYaw + this.recoilYaw;
+    this.aimPitch = Math.max(-1.5, Math.min(1.5, this.weaponPitch + this.recoilPitch));
 
     // Sprinting lowers the weapon. Firing out of a sprint costs a short "sprint-to-fire" delay.
     // Reloads keep progressing while sprinting, as in most modern shooters.
-    if (mv.sprinting) {
+    // Weapon lowered: sprinting, climbing, knocked down, getting up or down from prone.
+    if (mv.sprinting || mv.weaponReady === false) {
       this.#endBeam();
       if (this.phase === WeaponPhase.RELOADING) return this.#tickReload(w, cmd);
       if (this.phase === WeaponPhase.READY) this.#setPhase(WeaponPhase.SPRINT_RECOVER, s.handling?.sprintToFire ?? 0.2);

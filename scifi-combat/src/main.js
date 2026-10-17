@@ -95,6 +95,7 @@ function makeFighter(id, team, color, pos, kit, guns) {
   const ent = { id, team, movement, mode: 'sword' };
   ent.health = new Health(ent, { health: 140, shield: 60, armor: 'plate' });
   ent.status = new StatusComponent(ent, statuses.statuses, world);
+  movement.hooks.fallDamage = (amount) => ent.health.damage(amount, { kind: 'fall' }, null);
   ent.melee = new MeleeComponent(sword, ent, world);
   ent.weapons = new WeaponComponent(ent, guns.map((g) => new WeaponInstance(g, recoil.patterns)), world);
   ent.abilities = new AbilityComponent(ent, kit, world);
@@ -191,7 +192,7 @@ bus.on('entity:death', (e) => {
 
 // ---------------------------------------------------------------- systems
 const input = new InputManager(renderer.domElement);
-const rig = new CameraRig({ collidables });
+const rig = new CameraRig({ raycast: (o, d, max) => world.raycastStatic(o, d, max) });
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
   rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix();
@@ -380,19 +381,15 @@ const loop = new FixedLoop({
 
     const ps = player.movement.state;
     const w = player.weapons;
-    // Bigger silhouettes (Siege Frame, greatswords) pull the third-person camera back to match.
-    // Vehicles: forced third person with the vehicle's own camera distance; otherwise scale with silhouette.
+    // HD2 camera: zero-latency look straight from the input (plus recoil), stiff follow, footfall bob, dynamic FOV.
     const pv = player.vehicle?.veh;
-    rig.tpOffset.z = pv ? pv.def.camera.distance : 2.6 * player.view.mesh.scale.x;
-    rig.tpOffset.y = pv ? pv.def.camera.height * 0.3 : 0.25 * player.view.mesh.scale.x;
-    rig.tpOffset.x = pv ? 0 : 0.45;
-    if (pv && rig.povTarget === 1) { rig.povTarget = 0; rig._restoreFp = true; }
-    if (!pv && rig._restoreFp) { rig.povTarget = 1; rig._restoreFp = false; }
-    const eye = (ps.mode === 'slide' ? 0.8 : ps.stance === 'crouch' ? 1.05 : ps.stance === 'prone' ? 0.4 : 1.65) * player.view.mesh.scale.x;
-    // In gun mode the camera renders the recoil-offset aim, so what you see is where shots go.
-    const pitch = player.mode === 'gun' ? w.aimPitch : lastPlayerCmd?.pitch ?? 0;
-    const view = { ...ps, position: player.view.mesh.position, yaw: player.mode === 'gun' ? w.aimYaw : ps.yaw };
-    rig.update(dt, view, pitch, eye, player.mode === 'gun' ? w.ads > 0.5 : player.melee.guarding);
+    const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
+    const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+    rig.update(dt, {
+      target: player, pos: player.view.mesh.position, yaw: lookYaw, pitch: lookPitch,
+      ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current.s.ads?.fov,
+      vehicle: pv ? pv.def.camera : null, scale: player.view.mesh.scale.x,
+    });
     views.update(dt);
     vehicleViews.update(dt, rig.camera);
     renderer.render(scene, rig.camera);

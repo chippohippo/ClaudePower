@@ -37,6 +37,7 @@ export function makeWorld(cover = []) {
     const e = { id, team, movement };
     e.health = new Health(e, { health: hp });
     e.status = new StatusComponent(e, data.statuses, world);
+    movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);
     e.abilities = new AbilityComponent(e, data.kits[kitId], world);
     e.melee = new MeleeComponent(data.melee[0], e, world);

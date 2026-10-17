@@ -1,25 +1,196 @@
 {
-  "walkSpeed": 4.2,
-  "sprintSpeed": 7.4,
-  "crouchSpeed": 2.4,
-  "proneSpeed": 0.9,
-  "groundAccel": 55,
-  "groundDecel": 70,
-  "turnAroundBoost": 1.6,
-  "airAccel": 14,
-  "airControl": 0.35,
-  "gravity": 24,
-  "lowJumpGravityMul": 2.2,
-  "fallGravityMul": 1.5,
-  "jumpVelocity": 7.6,
-  "coyoteTime": 0.12,
-  "jumpBuffer": 0.15,
-  "maxSlopeDeg": 50,
-  "stepHeight": 0.35,
-  "slide": { "minEntrySpeed": 5.5, "entryBoost": 1.15, "friction": 2.2, "slopeGravity": 1.0, "minDuration": 0.35, "maxDuration": 1.4, "exitSpeed": 3.0, "jumpCarry": 0.9 },
-  "dodge": { "speed": 11, "duration": 0.42, "iframeStart": 0.06, "iframeEnd": 0.30, "staminaCost": 25, "cancelableAfter": 0.30 },
-  "mantle": { "vaultMaxHeight": 1.1, "climbMaxHeight": 2.2, "vaultDuration": 0.32, "climbDuration": 0.45, "probeDistance": 0.8 },
-  "wallRun": { "enabled": true, "minSpeed": 6.0, "maxDuration": 1.1, "gravityMul": 0.25, "jumpOffForce": 7.0, "perAirtime": 1 },
-  "stamina": { "max": 100, "regenPerSec": 32, "regenDelay": 0.8, "sprintDrainPerSec": 0 },
-  "heights": { "stand": 1.8, "crouch": 1.15, "prone": 0.5, "slide": 0.9 }
+ "_comment": "Helldivers 2 locomotion baseline. Units: m, s, m/s, m/s^2, deg/s. Every value is a calibration target (see docs/MOVEMENT.md: how to measure each one against HD2 frame captures). 'medium' armor is the reference; armor classes scale speed and stamina regen exactly like HD2's Speed (550/500/450) and Stamina Regen (125/100/50) ratings.",
+ "armor": {
+  "light": {
+   "speedMul": 1.1,
+   "staminaRegenMul": 1.25
+  },
+  "medium": {
+   "speedMul": 1.0,
+   "staminaRegenMul": 1.0
+  },
+  "heavy": {
+   "speedMul": 0.9,
+   "staminaRegenMul": 0.5
+  }
+ },
+ "speeds": {
+  "_note": "HD2 has no walk key: full stick/keys = jog. Analog stick below 55% = walk. ADS scales via the weapon's ads.moveMul.",
+  "walk": 1.9,
+  "jog": 4.5,
+  "sprint": 7.2,
+  "crouch": 2.4,
+  "prone": 0.95,
+  "analogWalkBelow": 0.55
+ },
+ "accel": {
+  "_note": "The weight lives here, never in input latency. toJog is near-instant (0 to 90% jog in ~0.12 s); jogToSprint is the long, heavy sprint ramp (~0.55 s); sprintStop is the skid when you let go of a sprint (~1.1 m overrun).",
+  "toJog": 34,
+  "jogToSprint": 4.8,
+  "stop": 38,
+  "sprintStop": 18,
+  "air": 5.0
+ },
+ "turnRates": {
+  "_note": "Body yaw rates. Jog keeps the body on the aim (third-person shooter). Sprint carves: the body and velocity turn together at 270 deg/s, so sprint turns are wide arcs. Prone is slow and deliberate.",
+  "jog": 720,
+  "crouch": 600,
+  "prone": 110,
+  "sprint": 270,
+  "slide": 90,
+  "belly": 40,
+  "air": 300,
+  "dive": 1440,
+  "land": 360
+ },
+ "sprint": {
+  "_note": "HD2: sprint drains stamina; at 0 you drop to a jog and can't sprint again until it refills a little. Firing or aiming cancels sprint. Reversing direction is a plant-and-pivot skid, not an instant flip.",
+  "drainPerSec": 7.0,
+  "minStaminaToStart": 20,
+  "pivotAngle": 115,
+  "pivotTurnRate": 720,
+  "pivotDecel": 26,
+  "carveSpeedLoss": 0.25
+ },
+ "stamina": {
+  "max": 100,
+  "regenPerSec": 16,
+  "regenDelay": 0.5,
+  "lowAt": 30
+ },
+ "stance": {
+  "_note": "Transitions take real time and limit movement while they play. Pressing sprint or jump while prone gets you up. A get-up within 1.5 s of a dive landing uses the fast combat get-up.",
+  "standToCrouch": 0.16,
+  "crouchToStand": 0.2,
+  "standToProne": 0.5,
+  "crouchToProne": 0.4,
+  "proneToCrouch": 0.45,
+  "proneToStand": 0.62,
+  "fastGetUp": 0.45,
+  "fastGetUpWindow": 1.5,
+  "proneHold": 0.35,
+  "transitionMoveMul": 0.5,
+  "proneGetUpLockFrac": 0.5,
+  "proneAimArc": 40
+ },
+ "heights": {
+  "stand": 1.8,
+  "crouch": 1.15,
+  "prone": 0.5,
+  "slide": 0.9,
+  "dive": 0.9
+ },
+ "gravity": 22,
+ "terminalVelocity": 40,
+ "stepHeight": 0.35,
+ "jump": {
+  "_note": "HD2 has no free jump (that's what the Jump Pack is for). This short, heavy hop exists for the Battlefront genre. No coyote time and no jump buffer, because HD2 has no such leniency.",
+  "enabled": true,
+  "velocity": 5.0,
+  "coyoteTime": 0,
+  "buffer": 0
+ },
+ "slide": {
+  "_note": "Committed, feet-first combat slide from sprint + crouch. Friction ramps from low to high, so the slide carries far and then stops decisively. Steerable at 80 deg/s. Slopes add gravity along the surface. HD2's own slide is the belly slide after a dive (see dive.belly), and both use this model.",
+  "minEntrySpeed": 5.6,
+  "entryBoost": 1.12,
+  "maxEntrySpeed": 8.6,
+  "frictionStart": 4.5,
+  "frictionEnd": 9.5,
+  "frictionRampTime": 0.9,
+  "slopeGravity": 0.9,
+  "steerRate": 80,
+  "minDuration": 0.45,
+  "maxDuration": 1.35,
+  "exitSpeed": 2.4,
+  "jumpCarry": 0.85,
+  "jumpAfter": 0.15
+ },
+ "dive": {
+  "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part.",
+  "minSpeed": 4.8,
+  "boost": 1.4,
+  "maxSpeed": 8.6,
+  "upVelocity": 3.1,
+  "gravity": 15,
+  "airControl": 2.0,
+  "iframeStart": 0.04,
+  "iframeEnd": 0.32,
+  "staminaCost": 0,
+  "landSpeedKeep": 0.75,
+  "belly": {
+   "friction": 9.0,
+   "steerRate": 35,
+   "exitSpeed": 0.9,
+   "slopeGravity": 0.9
+  }
+ },
+ "evade": {
+  "_note": "Non-dive evades for classes that live in melee range (a dive to prone would end every sword duel).",
+  "flameStep": {
+   "speed": 11,
+   "duration": 0.24,
+   "iframeStart": 0.02,
+   "iframeEnd": 0.18,
+   "staminaCost": 18,
+   "cancelableAfter": 0.18
+  },
+  "ashStep": {
+   "speed": 11,
+   "duration": 0.24,
+   "iframeStart": 0.02,
+   "iframeEnd": 0.18,
+   "staminaCost": 18,
+   "cancelableAfter": 0.18
+  },
+  "shoulderBash": {
+   "speed": 9,
+   "duration": 0.32,
+   "iframeStart": 1,
+   "iframeEnd": 0,
+   "staminaCost": 22,
+   "cancelableAfter": 0.28
+  }
+ },
+ "mantle": {
+  "_note": "HD2: hold the climb key at a ledge. Vaults keep 85% of your momentum (min 3 m/s); climbs end at a stand. Auto-vault on sprint is off by default (HD2 needs the key).",
+  "vaultMaxHeight": 1.1,
+  "climbMaxHeight": 2.3,
+  "vaultDuration": 0.38,
+  "climbDuration": 0.62,
+  "probeDistance": 0.85,
+  "vaultMomentumKeep": 0.85,
+  "vaultMinExitSpeed": 3.0,
+  "autoVaultWhileSprinting": false
+ },
+ "landing": {
+  "_note": "Heavy landings: about 2 m (9.5 m/s) costs a recovery stumble; about 5 m (15 m/s) knocks you down and deals fall damage, as in HD2.",
+  "heavyAt": 9.5,
+  "heavyRecovery": 0.22,
+  "heavySpeedMul": 0.45,
+  "knockdownAt": 15,
+  "fallDamagePerMs": 9
+ },
+ "knockdown": {
+  "_note": "Ragdoll-lite: explosions, rams and big shoves throw you, you tumble and slide, then get up (~0.85 s). Prone soldiers need 1.8x the impulse.",
+  "threshold": 6,
+  "proneResist": 1.8,
+  "groundFriction": 10,
+  "restTime": 0.35,
+  "getUpTime": 0.85
+ },
+ "slopes": {
+  "maxWalkDeg": 48,
+  "uphillPenalty": 0.35,
+  "downhillBonus": 0.12
+ },
+ "wallRun": {
+  "_note": "Disabled: HD2 has no wall-running.",
+  "enabled": false,
+  "minSpeed": 6.0,
+  "maxDuration": 1.1,
+  "gravityMul": 0.25,
+  "jumpOffForce": 7.0,
+  "perAirtime": 1
+ }
 }

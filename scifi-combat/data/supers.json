@@ -37,7 +37,10 @@
     "tracer": "radiant_lance",
     "muzzle": "sun_flare"
    },
-   "audio": "super_lance"
+   "audio": "super_lance",
+   "handling": {
+    "ergonomics": 70
+   }
   },
   "super_judgment": {
    "id": "super_judgment",
@@ -68,7 +71,10 @@
    "vfx": {
     "tracer": "sun_beam"
    },
-   "audio": "super_judgment"
+   "audio": "super_judgment",
+   "handling": {
+    "ergonomics": 40
+   }
   },
   "super_rift_shotgun": {
    "id": "super_rift_shotgun",
@@ -105,7 +111,10 @@
    "vfx": {
     "tracer": "singularity_slug"
    },
-   "audio": "super_rift"
+   "audio": "super_rift",
+   "handling": {
+    "ergonomics": 60
+   }
   },
   "super_gaze_beam": {
    "id": "super_gaze_beam",
@@ -132,7 +141,10 @@
     }
    },
    "sightline": true,
-   "audio": "super_gaze"
+   "audio": "super_gaze",
+   "handling": {
+    "ergonomics": 50
+   }
   },
   "super_siege_cannon": {
    "id": "super_siege_cannon",
@@ -154,7 +166,10 @@
     "ads": 1.0
    },
    "recoil": "shotgun_kick",
-   "audio": "super_siege"
+   "audio": "super_siege",
+   "handling": {
+    "ergonomics": 45
+   }
   }
  },
  "movesets": {

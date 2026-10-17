@@ -78,7 +78,8 @@ test('occupants of enclosed seats cannot be hit; exposed bike riders can', () =>
   assert.equal(shotAtTank.entity, tank, 'the hull, not the driver');
   assert.ok(!w.world.fighters().includes(A));
   const rider = R.movement.state.position;
-  const shotAtRider = w.world.raycast(v(rider.x, rider.y + 1.65, rider.z - 20), v(0, 0, 1), 40, 99);
+  // Riders use the seated hitbox layout (chest ~0.5 m above the seat).
+  const shotAtRider = w.world.raycast(v(rider.x, rider.y + 0.5, rider.z - 20), v(0, 0, 1), 40, 99);
   assert.equal(shotAtRider.entity, R, 'bike rider is exposed');
   assert.ok(bike);
 });
