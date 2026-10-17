@@ -54,7 +54,7 @@ const _lay = { a: null, b: null, t: 0 };
 const lay = (a, b = null, t = 0) => { _lay.a = a; _lay.b = b; _lay.t = t; return _lay; };
 function layoutFor(e) {
   const s = e.movement.state;
-  if (e.vehicle) return lay(LAYOUTS.seated);
+  if (e.vehicle) return lay(e.vehicle.pose === 'stand' ? LAYOUTS.stand : LAYOUTS.seated);   // a ring-mount gunner stands
   switch (s.mode) {
     case 'dive': return lay(s.dive?.kind === 'back' ? LAYOUTS.diveBack : LAYOUTS.dive);
     case 'slide': return lay(s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide);

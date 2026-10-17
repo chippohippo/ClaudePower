@@ -108,7 +108,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
         e.status.update(DT); e.health.update(DT);
         if (world.revives.handleInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } }; }
         else if (world.support.repairInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { dig: c.buttons.dig } }; }
-        if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
+        if (world.vehicles.handleInput(e, c, DT)) { e.movement.update(c, DT); continue; } // driving or riding
         if (e.stratagems) c = e.stratagems.handleInput(c, DT);
         world.support.itemInput(e, c);
         e.movement.update(c, DT);

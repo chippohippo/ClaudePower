@@ -36,7 +36,7 @@ function tracks(L, x, w, h, st, out, fine, z0 = 0) {
 /** A lamp: housing and glowing lens, facing -Z. */
 const lamp = (out, x, y, z, r = 0.07) => {
   out.push(cyl(r * 1.3, r * 1.3, 0.1, { seg: 10 }).paint(CH.black).rot(-Math.PI / 2, 0, 0).move(x, y, z + 0.05));
-  out.push(cyl(r, r, 0.01, { seg: 10 }).paint(CH.lamp).rot(-Math.PI / 2, 0, 0).move(x, y, z - 0.003));
+  out.push(cyl(r, r, 0.01, { seg: 10 }).paint(CH.lamp).rot(-Math.PI / 2, 0, 0).move(x, y, z - 0.052));   // just proud of the housing's face
 };
 /** A stencilled number on a face (normal along -Z by default; rotate as needed). */
 const number = (w, h) => quad(w, h).paint(CH.number);
@@ -108,6 +108,122 @@ function bike(def, st, fine) {
     b.push(number(0.22, 0.12).rot(0, -Math.PI / 2, 0).move(W * 0.31, H * 0.56, L * 0.15));
   }
   return { body: merge(b) };
+}
+
+// ---------------------------------------------------------------- recon car
+/**
+ * A four-seat recon car (an open tub on a roll cage, the gunner standing at a ring mount over
+ * the rear deck): the static body, the ring-mounted gun (VehicleViews swings it on the ring's
+ * axis at `gunAt`) and one wheel (placed, steered and spun at each hub). Solari: round fenders,
+ * a curved hood, a bull bar. Void: a wedge nose, slab fenders, spines along the cage.
+ */
+function car(def, st, fine) {
+  const { x: W, y: H, z: L } = def.size, C = def.car, Wh = C.wheels, b = [], gun = [], wheel = [];
+  const hl = L / 2, bw = W * 0.82, side = bw / 2;
+  const seg = fine ? 14 : 6;
+  // Floor pan and chassis rails, the skid plate under the nose.
+  b.push(rbox(bw * 0.92, 0.08, L * 0.62, { e1: 0.2, e2: 0.2, ws: 6, hs: 2 }).paint(CH.black, { dirt: 0.6 }).move(0, 0.5, 0.05));
+  for (const sx of [-1, 1]) b.push(rbox(0.12, 0.14, L * 0.94, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.black, { dirt: 0.7 }).move(sx * side * 0.62, 0.48, 0));
+  b.push(shell(bw * 0.7, 0.5, 0.04, { corner: 0.04, nu: 3, nv: 2 }).paint(CH.metal, { dirt: 0.8 }).rot(-1.15, 0, 0).move(0, 0.5, -hl + 0.32));
+  // The hood: a side profile over the engine bay in front of the windscreen (a wedge for the Void).
+  const hood = st.void
+    ? [[0.95, 0.56], [hl - 0.05, 0.56], [hl, 0.7], [hl - 0.25, 0.84], [0.95, 1.08]]
+    : [[0.95, 0.56], [hl - 0.08, 0.56], [hl, 0.68], [hl - 0.08, 0.86], [hl - 0.6, 0.98], [0.95, 1.06]];
+  b.push(prism(hood, bw, 'x', { bevel: st.void ? 0.02 : 0.06 }).paint(CH.armor, { dirt: (x, y) => Math.max(0, 0.4 - (y - 0.56) * 0.9) }));
+  if (fine) {
+    // A louvred vent in the hood and a stripe down its middle.
+    const top = (z) => { let yv = 0.56; for (let i = 0; i < hood.length - 1; i++) { const [u0, v0] = hood[i], [u1, v1] = hood[i + 1]; if ((u0 - -z) * (u1 - -z) <= 0 && u0 !== u1 && Math.min(v0, v1) > 0.6) yv = Math.max(yv, v0 + ((v1 - v0) * (-z - u0)) / (u1 - u0)); } return yv; };
+    for (let k = 0; k < 4; k++) { const z = -1.25 - k * 0.12; b.push(rbox(bw * 0.34, 0.03, 0.05, { e1: 0.2, e2: 0.2, ws: 4, hs: 2 }).paint(CH.black).move(0, top(z) + 0.01, z)); }
+    b.push(shell(0.22, 1.0, 0.012, { corner: 0.01, nu: 2, nv: 4 }).paint(CH.hazard).rot(-Math.PI / 2 + 0.12, 0, 0).move(bw * 0.28, top(-1.55) + 0.012, -1.55));
+  }
+  // The rear deck over the engine (the gunner stands on its step), and the tail.
+  b.push(prism([[-hl + 0.02, 0.56], [-0.75, 0.56], [-0.75, 1.02], [-hl + 0.3, 1.04], [-hl + 0.02, 0.86]], bw, 'x', { bevel: st.void ? 0.02 : 0.05 }).paint(CH.armor, { dirt: (x, y) => Math.max(0, 0.4 - (y - 0.56) * 0.9) }));
+  // The tub's sides: door panels from the hood to the deck, open above the sill.
+  for (const sx of [-1, 1]) {
+    b.push(prism([[-0.78, 0.55], [0.98, 0.55], [0.98, 1.03], [0.7, 1.0], [-0.78, 0.98]], 0.08, 'x', { bevel: 0.015 }).paint(CH.armor, { dirt: (x, y) => Math.max(0, 0.45 - (y - 0.55)) }).move(sx * (side - 0.04), 0, 0));
+    if (fine) b.push(number(0.42, 0.22).rot(0, sx * -Math.PI / 2, 0).move(sx * (side + 0.002), 0.8, 0.12));
+  }
+  // Fenders over the wheels: round arches (Solari) or flat slabs (Void).
+  for (const z of [Wh.zf, Wh.zr]) for (const sx of [-1, 1]) {
+    const x = sx * Wh.x;
+    if (st.void) b.push(rbox(0.46, 0.08, 1.12, { e1: 0.1, e2: 0.1, ws: 4, hs: 2 }).paint(CH.armor, { dirt: 0.3 }).rot(0, 0, sx * 0.12).move(x, 0.98, z));
+    else b.push(lathe([[Wh.radius + 0.06, -0.23], [Wh.radius + 0.12, -0.21], [Wh.radius + 0.13, 0.21], [Wh.radius + 0.07, 0.23]], { seg: fine ? 16 : 8, phi0: Math.PI / 2 - 1.25, phiLen: 2.5 }).paint(CH.armor, { dirt: 0.35 }).rot(0, 0, Math.PI / 2).move(x, 0.44, z));
+  }
+  // The cockpit: four bucket seats, the dash, the wheel; a windscreen frame with a low glass pane.
+  const seats = def.seats.filter((q) => q.role !== 'gunner');
+  for (const q of seats) {
+    const [x, y, z] = q.offset;
+    b.push(rbox(0.46, 0.12, 0.46, { e1: 0.3, e2: 0.3, ws: 6, hs: 3 }).paint(CH.gear).move(x, y - 0.02, z + 0.02));
+    b.push(rbox(0.46, 0.6, 0.1, { e1: 0.3, e2: 0.3, ws: 6, hs: 3 }).paint(CH.gear).rot(-0.18, 0, 0).move(x, y + 0.3, z + 0.3));
+  }
+  b.push(rbox(bw * 0.9, 0.22, 0.24, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.black).move(0, 0.98, -0.88));
+  const drv = def.seats.find((q) => q.role === 'driver')?.offset ?? [-0.42, 0.72, -0.2];
+  b.push(torus(0.17, 0.022, { seg: 16, radial: 5 }).paint(CH.black).rot(Math.PI / 2 - 0.5, 0, 0).move(drv[0], 1.12, -0.62));
+  for (const sx of [-1, 1]) b.push(tube([[sx * side * 0.92, 1.04, -0.98], [sx * side * 0.9, 1.5, -0.86]], 0.03, { seg: 4, radial: 6 }).paint(CH.black));
+  b.push(tube([[-side * 0.9, 1.5, -0.86], [side * 0.9, 1.5, -0.86]], 0.03, { seg: 4, radial: 6 }).paint(CH.black));
+  b.push(shell(bw * 0.84, 0.28, 0.02, { corner: 0.03, nu: 3, nv: 1 }).paint(CH.glass).rot(-0.3, 0, 0).move(0, 1.2, -0.94));
+  // The roll cage: a hoop behind the front seats and one over the rear, joined along the roof,
+  // braced down to the tail.
+  const cageY = H - 0.04, cx = side * 0.86;
+  for (const z of [0.15, 0.75]) {
+    b.push(tube([[-cx, 1.0, z], [-cx * 0.95, cageY - 0.1, z], [-cx * 0.8, cageY, z], [cx * 0.8, cageY, z], [cx * 0.95, cageY - 0.1, z], [cx, 1.0, z]], 0.04, { seg: fine ? 16 : 8, radial: 6 }).paint(CH.black, { dirt: 0.2 }));
+  }
+  for (const sx of [-1, 1]) {
+    b.push(tube([[sx * side * 0.9, 1.5, -0.86], [sx * cx * 0.8, cageY, -0.3], [sx * cx * 0.8, cageY, 0.75]], 0.035, { seg: fine ? 10 : 6, radial: 6 }).paint(CH.black));
+    b.push(tube([[sx * cx * 0.8, cageY, 0.75], [sx * cx * 0.85, 1.3, 1.6], [sx * cx * 0.9, 1.02, hl - 0.2]], 0.035, { seg: fine ? 10 : 6, radial: 6 }).paint(CH.black));
+    if (st.void && fine) for (let k = 0; k < 3; k++) b.push(rbox(0.04, 0.22, 0.12, { e1: 0.1, e2: 0.1 }).paint(CH.shade).rot(-0.4, 0, 0).move(sx * cx * 0.8, cageY + 0.1, -0.15 + k * 0.32));   // spines
+  }
+  // The ring mount over the rear deck: a ring at the standing gunner's waist on four posts, a
+  // tread plate under his boots.
+  const [gx, gy, gz] = def.seats.find((q) => q.role === 'gunner')?.offset ?? [0, 1.04, 1.1];
+  const ringY = gy + 0.95;
+  b.push(rbox(0.9, 0.03, 0.8, { e1: 0.2, e2: 0.2, ws: 6, hs: 2 }).paint(CH.metal, { dirt: 0.5 }).move(gx, gy - 0.01, gz));
+  b.push(torus(0.52, 0.04, { seg: fine ? 28 : 12, radial: 6 }).paint(CH.metal).move(gx, ringY, gz));
+  for (const a of [0.6, 2.5, 3.8, 5.7]) b.push(tube([[gx + Math.cos(a) * 0.46, gy, gz + Math.sin(a) * 0.46], [gx + Math.cos(a) * 0.52, ringY, gz + Math.sin(a) * 0.52]], 0.028, { seg: 2, radial: 5 }).paint(CH.black));
+  // Front: bull bar (Solari) or a ram plate (Void), lamps, a hazard bumper; rear: tail lamps, the
+  // spare wheel, jerrycans; an aerial.
+  if (st.void) b.push(shell(bw * 0.86, 0.36, 0.06, { corner: [0.12, 0.12, 0.02, 0.02], nu: 4, nv: 2 }).paint(CH.black, { dirt: 0.5 }).rot(0.35, 0, 0).move(0, 0.66, -hl - 0.04));
+  else {
+    b.push(tube([[-bw * 0.42, 0.55, -hl + 0.05], [-bw * 0.4, 0.95, -hl - 0.1], [bw * 0.4, 0.95, -hl - 0.1], [bw * 0.42, 0.55, -hl + 0.05]], 0.04, { seg: fine ? 14 : 6, radial: 6 }).paint(CH.black, { dirt: 0.3 }));
+    for (const sx of [-0.18, 0.18]) b.push(tube([[sx * bw, 0.58, -hl - 0.02], [sx * bw, 0.94, -hl - 0.1]], 0.03, { seg: 2, radial: 5 }).paint(CH.black));
+  }
+  b.push(rbox(bw * 1.0, 0.14, 0.16, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.hazard, { dirt: 0.4 }).move(0, 0.56, -hl + 0.02));
+  if (fine) {
+    for (const sx of [-1, 1]) {
+      lamp(b, sx * bw * 0.3, st.void ? 0.72 : 0.84, -hl - (st.void ? 0.08 : 0.16), 0.085);
+      lamp(b, sx * 0.28, cageY + 0.08, -0.32, 0.06);                                   // roof lamps on the cage
+      b.push(rbox(0.12, 0.08, 0.04, { e1: 0.2, e2: 0.2 }).paint(CH.lamp).move(sx * bw * 0.38, 0.9, hl - 0.01));   // tail lamps
+      b.push(rbox(0.12, 0.32, 0.22, { e1: 0.2, e2: 0.2 }).paint(CH.gear).move(sx * bw * 0.3, 1.2, hl - 0.25));     // jerrycans
+    }
+    b.push(tube([[side * 0.8, cageY, 0.75], [side * 0.82, cageY + 0.9, 0.78], [side * 0.86, cageY + 1.7, 0.86]], 0.01, { seg: 8, radial: 4 }).paint(CH.black));
+    b.push(shell(bw * 0.5, 0.12, 0.03, { corner: 0.02, nu: 3, nv: 1 }).paint(CH.hazard).rot(0, Math.PI, 0).move(0, 0.75, hl + 0.01));
+  }
+  // The gun on the ring (origin at the ring's centre): pintle, receiver, a long barrel with a
+  // flash hider, the ammo can, a gun shield, spade grips.
+  gun.push(cyl(0.05, 0.05, 0.22, { seg: 8 }).paint(CH.black).move(0, 0, -0.3));
+  gun.push(rbox(0.16, 0.18, 0.62, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.black).move(0, 0.28, -0.25));
+  gun.push(lathe([[0.04, 0], [0.036, 0.9], [0.05, 0.92], [0.05, 1.08], [0.03, 1.1]], { seg: fine ? 10 : 6 }).paint(CH.metal).rot(-Math.PI / 2, 0, 0).move(0, 0.3, -0.55));
+  gun.push(rbox(0.16, 0.16, 0.26, { e1: 0.2, e2: 0.2 }).paint(CH.gear).move(-0.17, 0.24, -0.2));
+  gun.push(shell(0.72, 0.42, 0.04, { corner: st.void ? [0.2, 0.2, 0.02, 0.02] : [0.08, 0.08, 0.03, 0.03], curveY: 0.8, nu: fine ? 5 : 2, nv: 2 }).paint(CH.armor).move(0, 0.38, -0.5));
+  if (fine) {
+    gun.push(shell(0.66, 0.07, 0.045, { corner: 0.02, curveY: 0.8, nu: 4, nv: 1 }).paint(CH.hazard).move(0, 0.56, -0.505));
+    for (const sx of [-1, 1]) gun.push(tube([[sx * 0.06, 0.28, 0.06], [sx * 0.12, 0.3, 0.16], [sx * 0.12, 0.38, 0.2]], 0.018, { seg: 6, radial: 4 }).paint(CH.black));
+  }
+  // One wheel, its axle along X, the hub cap on +X (VehicleViews mirrors the left ones): a fat
+  // off-road tyre with tread blocks, a dished rim, lug nuts.
+  const r = Wh.radius, tw = 0.34;
+  wheel.push(lathe([[r * 0.62, -tw / 2], [r * 0.93, -tw / 2], [r, -tw / 2 + 0.05], [r, tw / 2 - 0.05], [r * 0.93, tw / 2], [r * 0.62, tw / 2]], { seg: fine ? 22 : 10 }).paint(CH.rubber, { dirt: 0.6 }).rot(0, 0, -Math.PI / 2));
+  if (fine) for (let k = 0; k < 18; k++) {
+    const a = (k / 18) * Math.PI * 2;
+    wheel.push(rbox(0.14, 0.05, 0.1, { e1: 0.3, e2: 0.3, ws: 4, hs: 2 }).paint(CH.rubber, { dirt: 0.7 }).move(k % 2 ? 0.07 : -0.07, r + 0.005, 0).rot(a, 0, 0));
+  }
+  wheel.push(cyl(r * 0.62, r * 0.62, tw * 0.8, { seg: fine ? 14 : 7 }).paint(CH.black, { dirt: 0.4 }).rot(0, 0, -Math.PI / 2).move(-tw * 0.4, 0, 0));
+  wheel.push(cyl(r * 0.25, r * 0.2, 0.06, { seg: 10 }).paint(CH.metal).rot(0, 0, -Math.PI / 2).move(tw * 0.4, 0, 0));
+  if (fine) for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; wheel.push(cyl(0.02, 0.02, 0.03, { seg: 6 }).paint(CH.metal).rot(0, 0, -Math.PI / 2).move(tw * 0.42, Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36)); }
+  // The spare, on the tail.
+  const spare = wheel.map((p) => p.clone().scale(0.92).rot(0, Math.PI / 2, 0).move(0, 1.0, hl + 0.1));
+  if (fine) b.push(...spare);
+  return { body: merge(b), gun: merge(gun), gunAt: [gx, ringY, gz], wheel: merge(wheel) };
 }
 
 // ---------------------------------------------------------------- dropship
@@ -224,7 +340,7 @@ function truck(def, st, fine) {
 }
 
 /**
- * The model for a vehicle def: { body, turret?, turretY?, barrel?, trail?, rack?, leg?, crate? }.
+ * The model for a vehicle def: { body, turret?, turretY?, barrel?, trail?, rack?, leg?, crate?, gun?, gunAt?, wheel? }.
  * @param {string} type  the def's key (vehicles.json), for the army's style
  */
 export function vehicleModel(def, type, { fine = true } = {}) {
@@ -233,5 +349,6 @@ export function vehicleModel(def, type, { fine = true } = {}) {
   if (def.gun || def.cargo) return truck(def, st, fine);
   if (def.model === 'tracked') return tank(def, st, fine);
   if (def.model === 'flyer') return dropship(def, st, fine);
+  if (def.model === 'car') return car(def, st, fine);
   return bike(def, st, fine);
 }

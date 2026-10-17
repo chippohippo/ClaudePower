@@ -99,10 +99,10 @@ for (const f of session.fighters) {
 anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
-const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette });
+const fx = new BattleFx(scene, { fog: scene.fog });
+const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
-const fx = new BattleFx(scene, { fog: scene.fog });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
 const gunFx = new GunFx(scene, { fx, anim, world, player, palette });          // muzzles, impacts, bullet holes
 
@@ -188,7 +188,7 @@ const loop = new FixedLoop({
     crowd.begin(cam);
     for (const r of anim.list) {
       const f = r.e, s = f.movement.state;
-      if (f.vehicle && !f.vehicle.exposed) continue;
+      if (f.vehicle && !f.vehicle.exposed && !f.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
       if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || f.health.dead }, f.look);
     }

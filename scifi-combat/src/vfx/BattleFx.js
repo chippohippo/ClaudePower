@@ -137,6 +137,7 @@ const TEAM_EXHAUST = [[1.0, 0.72, 0.3, 1], [0.75, 0.5, 1.0, 1]];
 const SCREEN = [0.6, 0.58, 0.54, 0.62], SCREEN_END = [0.67, 0.66, 0.63, 0];
 const TRAIL = [0.16, 0.15, 0.14, 0.45], TRAIL_END = [0.3, 0.29, 0.28, 0];
 const DUST = [0.5, 0.42, 0.32, 0.5], DUST_END = [0.56, 0.5, 0.42, 0];
+const BURN = [0.95, 0.45, 0.12, 0.9], SOOT = [0.06, 0.055, 0.05, 0.85], SOOT_END = [0.16, 0.15, 0.15, 0];   // a burning wreck's flames and its black smoke
 
 export class BattleFx {
   /**
@@ -242,6 +243,29 @@ export class BattleFx {
       this.matter.add(x, y + 0.4, z, Math.cos(a) * s, 1 + R() * 2, Math.sin(a) * s, 3.5 + R() * 2, 1.5, radius * 1.2, SCREEN, SCREEN_END, 0.9, -0.05);
     }
     this.screens.push({ x, y, z, r: radius, h: height, left: Math.max(1, duration - 4.5), t: 0 });
+  }
+
+  /**
+   * One frame of something burning (a killed car before it blows): tongues of flame licking up
+   * off `at`, spread over `r`, and the black smoke rolling off them. `k` 0..1 grows the fire.
+   */
+  fire(at, dt, r = 1, k = 1) {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    this.fireT = (this.fireT ?? 0) + dt;
+    for (let n = 0; this.fireT > 0.035 && n < 4; n++) {
+      this.fireT -= 0.035;
+      const a = R() * Math.PI * 2, d = Math.sqrt(R()) * r;
+      this.glow.add(x + Math.cos(a) * d, y + R() * 0.3, z + Math.sin(a) * d, (R() - 0.5) * 0.6, 1.8 + R() * 2, (R() - 0.5) * 0.6, 0.3 + R() * 0.25, (0.3 + R() * 0.3) * k, (0.8 + R() * 0.6) * k, BURN, FIRE_END, 1.5, -1.5);
+      if (R() < 0.5) this.matter.add(x + Math.cos(a) * d * 0.6, y + 1 + R() * 0.5, z + Math.sin(a) * d * 0.6, (R() - 0.5) * 0.6, 1.5 + R() * 1.2, (R() - 0.5) * 0.6, 2.8 + R() * 1.8, 0.8 * k, (3 + R() * 2.5) * k, SOOT, SOOT_END, 0.35, -0.1);
+    }
+    this.fireT = Math.min(this.fireT, 0.06);
+  }
+
+  /** A tyre sliding (a drift, a skid, wheelspin): dust kicked up behind it, more the harder it slides. */
+  skid(at, vx, vz, k = 1) {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    if (R() > k) return;
+    this.dust.add(x + (R() - 0.5) * 0.3, y + 0.15, z + (R() - 0.5) * 0.3, -vx * 0.15 + (R() - 0.5), 0.6 + R() * 0.8, -vz * 0.15 + (R() - 0.5), 0.9 + R() * 0.8, 0.5, 2.2 + R() * 1.4, DUST, DUST_END, 1.2, -0.05);
   }
 
   /** One frame of a drop pod's fall: fire round its nose, a dark trail left hanging behind. */

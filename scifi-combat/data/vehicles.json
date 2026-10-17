@@ -1,5 +1,5 @@
 {
- "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). climb: the tallest obstacle (m) it drives over (tracked and guns 0.5; trucks ride over trench parapets). Every vehicle lists its counterplay.",
+ "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun, 'stand' stands him at a ring mount. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). climb: the tallest obstacle (m) it drives over (tracked and guns 0.5; trucks ride over trench parapets). Every vehicle lists its counterplay. Model 'car': a rigid body on four raycast wheels (src/vehicles/CarPhysics.js, the `car` block): it squats, drifts, rolls and throws out its exposed crew. Seats with ownWeapon: the passenger leans out with his own gun; shown: a protected seat whose occupant is still drawn (an open car's driver).",
  "vehicles": {
   "solari_hoverbike": {
    "name": "Sunrunner Hoverbike",
@@ -33,7 +33,8 @@
    },
    "crash": {
     "minSpeed": 12,
-    "damagePerMs": 10
+    "damagePerMs": 10,
+    "eject": 17
    },
    "seats": [
     {
@@ -88,7 +89,8 @@
    },
    "crash": {
     "minSpeed": 12,
-    "damagePerMs": 10
+    "damagePerMs": 10,
+    "eject": 17
    },
    "seats": [
     {
@@ -1077,6 +1079,286 @@
    },
    "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short.",
    "climb": 1.0
+  },
+  "solari_recon_car": {
+   "name": "Kestrel Recon Car",
+   "faction": "solari",
+   "model": "car",
+   "hp": 1600,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.1,
+    "y": 1.75,
+    "z": 4.3
+   },
+   "radius": 2.2,
+   "maxSpeed": 21,
+   "accel": 9,
+   "reverseSpeed": 7,
+   "car": {
+    "_note": "src/vehicles/CarPhysics.js. mass kg; com: centre of mass over the base (high: it rolls when it trips); wheels: half track x, front/rear z, strut top y, radius, rest length, spring k N/m, damper c; engine: force N, top and reverse m/s, brake N (all four), rearBias of the drive; tire: mu, the peak slip angle (rad) and the share of grip left sliding; steer: max angle (rad) slow, at top speed, how fast it turns in (rad/s); handbrake: grip left on the locked rears; drag: air (quadratic); coast: rolling drag off the throttle (N); trip: a kerb under a wheel sliding across it catches the tire from the first height (m) and fully from the second (what trips it over); blast: how hard a blast shoves it; crash: speed change (m/s) from which a hit damages the car (damage per m/s), throws out the exposed (eject; rolling over throws them too, `roll` m/s out of the hatch) and hurts those inside (hurt, hurtMul per m/s); burn: s a wreck burns before it blows.",
+    "mass": 1300,
+    "com": [
+     0,
+     0.66,
+     0.12
+    ],
+    "inertia": 1,
+    "clearance": 0.4,
+    "wheels": {
+     "x": 0.93,
+     "zf": -1.42,
+     "zr": 1.36,
+     "y": 0.78,
+     "radius": 0.44,
+     "rest": 0.46,
+     "k": 42000,
+     "c": 2600
+    },
+    "engine": {
+     "force": 11000,
+     "top": 21,
+     "reverse": 7,
+     "brake": 16000,
+     "rearBias": 0.72
+    },
+    "tire": {
+     "mu": 1.1,
+     "peak": 0.16,
+     "slide": 0.72,
+     "rollRes": 0.012
+    },
+    "steer": {
+     "max": 0.58,
+     "atSpeed": 0.17,
+     "rate": 2.4
+    },
+    "handbrake": {
+     "rearMu": 0.42
+    },
+    "drag": 0.42,
+    "coast": 140,
+    "bounce": 0.15,
+    "hullFriction": 0.55,
+    "trip": [
+     0.04,
+     0.16
+    ],
+    "crash": {
+     "min": 5,
+     "damage": 38,
+     "eject": 6.5,
+     "hurt": 9,
+     "hurtMul": 7,
+     "roll": 4
+    },
+    "burn": 6
+   },
+   "ram": {
+    "minSpeed": 8.3,
+    "damagePerMs": 9,
+    "selfDamageMul": 0.03,
+    "knock": 9
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      -0.42,
+      0.72,
+      -0.2
+     ],
+     "shown": true
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      0,
+      1.04,
+      1.1
+     ],
+     "exposed": true,
+     "weapon": "recon_hmg",
+     "aim": "free",
+     "pose": "stand"
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0.42,
+      0.72,
+      -0.2
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -0.5,
+      0.78,
+      0.5
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0.5,
+      0.78,
+      0.5
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    }
+   ],
+   "camera": {
+    "distance": 7.5,
+    "height": 2.4
+   },
+   "weakSpot": "rear",
+   "counterplay": "Light and fast, but the gunner on the ring mount and anyone leaning out are in the open, and it flips: trip it on rubble at speed, or put a blast under it. A rollover throws out everyone exposed. Running people over takes speed (30 km/h)."
+  },
+  "void_recon_car": {
+   "name": "Jackal Raider",
+   "faction": "void",
+   "model": "car",
+   "hp": 1400,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.1,
+    "y": 1.75,
+    "z": 4.3
+   },
+   "radius": 2.2,
+   "maxSpeed": 22.5,
+   "accel": 9,
+   "reverseSpeed": 7,
+   "car": {
+    "_note": "src/vehicles/CarPhysics.js. mass kg; com: centre of mass over the base (high: it rolls when it trips); wheels: half track x, front/rear z, strut top y, radius, rest length, spring k N/m, damper c; engine: force N, top and reverse m/s, brake N (all four), rearBias of the drive; tire: mu, the peak slip angle (rad) and the share of grip left sliding; steer: max angle (rad) slow, at top speed, how fast it turns in (rad/s); handbrake: grip left on the locked rears; drag: air (quadratic); coast: rolling drag off the throttle (N); trip: a kerb under a wheel sliding across it catches the tire from the first height (m) and fully from the second (what trips it over); blast: how hard a blast shoves it; crash: speed change (m/s) from which a hit damages the car (damage per m/s), throws out the exposed (eject; rolling over throws them too, `roll` m/s out of the hatch) and hurts those inside (hurt, hurtMul per m/s); burn: s a wreck burns before it blows.",
+    "mass": 1180,
+    "com": [
+     0,
+     0.66,
+     0.12
+    ],
+    "inertia": 1,
+    "clearance": 0.4,
+    "wheels": {
+     "x": 0.93,
+     "zf": -1.42,
+     "zr": 1.36,
+     "y": 0.78,
+     "radius": 0.44,
+     "rest": 0.46,
+     "k": 42000,
+     "c": 2600
+    },
+    "engine": {
+     "force": 10600,
+     "top": 22.5,
+     "reverse": 7,
+     "brake": 15000,
+     "rearBias": 0.82
+    },
+    "tire": {
+     "mu": 1.05,
+     "peak": 0.15,
+     "slide": 0.68,
+     "rollRes": 0.012
+    },
+    "steer": {
+     "max": 0.58,
+     "atSpeed": 0.17,
+     "rate": 2.4
+    },
+    "handbrake": {
+     "rearMu": 0.36
+    },
+    "drag": 0.42,
+    "coast": 140,
+    "bounce": 0.15,
+    "hullFriction": 0.55,
+    "trip": [
+     0.04,
+     0.16
+    ],
+    "crash": {
+     "min": 5,
+     "damage": 38,
+     "eject": 6.5,
+     "hurt": 9,
+     "hurtMul": 7,
+     "roll": 4
+    },
+    "burn": 6
+   },
+   "ram": {
+    "minSpeed": 8.3,
+    "damagePerMs": 9,
+    "selfDamageMul": 0.03,
+    "knock": 9
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      -0.42,
+      0.72,
+      -0.2
+     ],
+     "shown": true
+    },
+    {
+     "role": "gunner",
+     "offset": [
+      0,
+      1.04,
+      1.1
+     ],
+     "exposed": true,
+     "weapon": "recon_hmg",
+     "aim": "free",
+     "pose": "stand"
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0.42,
+      0.72,
+      -0.2
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -0.5,
+      0.78,
+      0.5
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0.5,
+      0.78,
+      0.5
+     ],
+     "exposed": true,
+     "ownWeapon": true
+    }
+   ],
+   "camera": {
+    "distance": 7.5,
+    "height": 2.4
+   },
+   "weakSpot": "rear",
+   "counterplay": "Faster and lighter than the Kestrel, looser at the back and quicker to slide: the same open ring mount and leaning passengers, and it trips and rolls more easily. Running people over takes speed (30 km/h)."
   }
  },
  "weapons": {
@@ -1498,6 +1780,39 @@
    "audio": "at_gun",
    "artillery": {
     "cover": 1.2
+   }
+  },
+  "recon_hmg": {
+   "id": "recon_hmg",
+   "name": "Ring-Mount HMG",
+   "fireMode": "auto",
+   "rpm": 600,
+   "projectile": "hitscan",
+   "ammoType": "kinetic",
+   "ammo": {
+    "kind": "heat",
+    "perShot": 2.4,
+    "max": 100,
+    "ventPerSec": 40,
+    "ventDelay": 0.4,
+    "overheatLock": 2,
+    "manualVent": 1
+   },
+   "damage": {
+    "base": 22,
+    "falloffStart": 35,
+    "falloffEnd": 90,
+    "min": 12
+   },
+   "spread": {
+    "hip": 1.1,
+    "ads": 0.6
+   },
+   "recoil": "pulse_soft",
+   "muzzleHeight": 2.3,
+   "audio": "door_gun",
+   "handling": {
+    "ergonomics": 100
    }
   }
  },

@@ -286,6 +286,8 @@ export class CombatWorld {
       if (dist <= radius) this.#blast(e, point, radius, dist, weapon);
     });
     this.damageDeployables(point, radius, base, owner, weapon.ammoType, projectile?.team);
+    // Cars are thrown about by any blast, whoever's it is: rocked, lifted, rolled over (or back).
+    for (const v of this.vehicles.list) if (v.car && !v.removed && v.id !== projectile?.ownerId && v.movement.state.position.distanceTo(point) < radius + 3) v.car.blast(point, radius, weapon.knockback);
     // Shells cut barbed wire: the gap opens for everyone (and for the bots' routes).
     this.cutWire(point, radius * 0.6);
   }

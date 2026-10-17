@@ -276,7 +276,8 @@ export class ProceduralHumanoid {
     this.yaw = ctx.yaw ?? s.bodyYaw;
     this.aimYaw = ctx.aimYaw ?? e.weapons?.aimYaw ?? s.aimYaw;
     this.aimPitch = ctx.aimPitch ?? e.weapons?.aimPitch ?? 0;
-    this.visible = !(e.vehicle && !e.vehicle.exposed);
+    // Inside a hull: unseen. An open car's driver is seen, while it's the right way up.
+    this.visible = !(e.vehicle && !e.vehicle.exposed && !(e.vehicle.shown && (e.vehicle.veh.car?.upright ?? 1) > 0.5));
 
     // ---- which state; crossfade on the incoming state's duration and curve (data: blend.fade)
     const key = this.#activeKey(s);
@@ -920,6 +921,12 @@ export class ProceduralHumanoid {
     if (v?.veh?.seats?.[v.seat]?.def?.pose === 'crew') {
       this.#keyPose('kneel', out, this.root, v.veh.gun?.yaw ?? yaw);
       out.aimW = 0.15; out.gunUp = 0; out.handW[0] = 0; out.handW[1] = 0;
+      return out;
+    }
+    // A ring-mount gunner stands at his gun, both hands on it, turning with it.
+    if (v?.veh?.seats?.[v.seat]?.def?.pose === 'stand') {
+      this.#keyPose('stand', out, this.root, this.aimYaw ?? yaw);
+      out.aimW = 1; out.gunUp = 1;
       return out;
     }
     this.#keyPose('seated', out, this.root, yaw);

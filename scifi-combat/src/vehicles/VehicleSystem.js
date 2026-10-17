@@ -4,7 +4,15 @@
 // Design goals (Battlefront + Helldivers feel):
 //  * Snappy entry and exit. Interact within range seats you in 0.35 s (input locked only that long);
 //    interact again hops you out to the first clear side. Destruction ejects everyone, hurt and airborne.
-//  * Three physics models, all arcade-first:
+//  * Physics models:
+//      car     = a rigid body on four raycast wheels (CarPhysics): W/S throttle, brake and
+//                reverse, A/D steer, Space the handbrake; it squats, drifts, jumps, rolls and
+//                crashes. A hard hit damages it and throws out whoever is exposed (the ring-mount
+//                gunner, passengers leaning out), flung on with the speed the car just lost;
+//                a rollover does the same; at rest on its side or roof everyone climbs out, and a
+//                soldier on foot can push it back over (hold interact). Blasts shove it, and can
+//                flip it either way. It runs people down from 30 km/h. Killed, it burns a few
+//                seconds before it blows. Bailing out at speed keeps the car's speed: you tumble.
 //      hover   = steers toward your camera, low lateral grip (drift), boost on sprint
 //      tracked = W/S throttle, A/D turns the hull, the turret tracks your camera at a limited rate
 //      flyer   = steers toward camera, Space/C climb and descend, carries passengers
@@ -33,6 +41,8 @@ import { WeaponComponent, WeaponInstance } from '../combat/weapons/WeaponSystem.
 import { emptyCommand } from '../input/InputManager.js';
 import { rayYawBox, localToWorld, angleDelta, hyp } from '../core/geom.js';
 import { FieldGuns } from './FieldGuns.js';
+import { CarBody } from './CarPhysics.js';
+import { Quaternion } from 'three';
 
 const IDLE = Object.freeze({ ...emptyCommand(), buttons: Object.freeze({}) });   // an empty gun seat's command, every tick
 
@@ -44,7 +54,9 @@ const _f = new Vector3();
 const _r = new Vector3();
 const _v = new Vector3();
 const _p = new Vector3();
+const _o = new Vector3(), _d = new Vector3(), _qi = new Quaternion();
 let nextVehicleId = 200000;
+export const RIGHT_TIME = 1.5;   // s of holding interact to push a car back onto its wheels
 const NO_BUTTON = Object.freeze({ down: false, pressed: false, released: false });
 /** EMP: the gun's crew can't fire (nor set it up), but the command otherwise stands. */
 const stripFire = (cmd) => ({ ...cmd, buttons: { ...cmd.buttons, light: NO_BUTTON, dig: NO_BUTTON } });
@@ -77,6 +89,12 @@ export class VehicleSystem {
       // Knock-backs barely move heavy vehicles: scaled by a rough mass from HP.
       impulse: (x, y, z) => { const m = Math.max(1, def.hp / 400); v.movement.state.velocity.x += x / m; v.movement.state.velocity.z += z / m; },
     };
+    if (def.model === 'car') {
+      // A rigid body on four wheels: its base is the vehicle's position from here on.
+      v.car = new CarBody(def, pos, yaw);
+      v.flippedT = 0;
+      v.movement.impulse = (x, y, z) => v.car.impulse(_v.set(x, y, z).multiplyScalar(v.car.m * 0.12), v.car.c);
+    }
     v.health = new Health(v, { health: def.hp, armor: def.armor ?? 'vehicle' });
     v.status = new StatusComponent(v, this.world.statusDefs ?? {}, this.world);
     v.status.immune = new Set(VEHICLE_IMMUNE);
@@ -123,7 +141,7 @@ export class VehicleSystem {
   }
 
   // ---------------------------------------------------------------- input
-  handleInput(e, cmd) {
+  handleInput(e, cmd, dt = 1 / 60) {
     if (e.vehicle) {
       const v = e.vehicle.veh, seat = v.seats[e.vehicle.seat];
       if (e.vehicle.lock > 0) { seat.cmd = emptyCommand(); return true; }
@@ -131,6 +149,16 @@ export class VehicleSystem {
       seat.cmd = cmd;
       return true;
     }
+    // A car on its side or roof: hold interact beside it to push it back onto its wheels.
+    if (cmd.buttons.interact?.down && !e.health.dead && !e.health.downed) {
+      const c = this.#flippedNear(e);
+      if (c) {
+        e.righting = { car: c, t: (e.righting?.car === c ? e.righting.t : 0) + dt };
+        if (e.righting.t >= RIGHT_TIME) { c.car.rightIt(); e.righting = null; bus.emit('vehicle:righted', { id: c.id, by: e.id }); }
+        return false;
+      }
+    }
+    if (e.righting && !cmd.buttons.interact?.down) e.righting = null;
     if (cmd.buttons.interact?.pressed) {
       const v = this.nearestEnterable(e);
       if (!v) return false;
@@ -141,11 +169,19 @@ export class VehicleSystem {
     return false;
   }
 
+  /** A friendly car lying on its side or roof within reach (the HUD prompts, interact rights it). */
+  #flippedNear(e) {
+    const p = e.movement.state.position;
+    for (const v of this.list) if (v.car && !v.removed && !v.wreck && v.team === e.team && v.car.upright < 0.35 && v.car.speed < 1.5 && v.movement.state.position.distanceTo(p) < v.def.radius + 1.6) return v;
+    return null;
+  }
+  flippedNear(e) { return this.#flippedNear(e); }
+
   /** Closest vehicle in range that this entity's team can use and that has a free seat. Also used by the HUD prompt. */
   nearestEnterable(e) {
     let best = null, bd = ENTER_RANGE;
     for (const v of this.list) {
-      if (v.removed || v.team !== e.team || v.gun?.towedBy || !v.seats.some((s) => !s.occupant)) continue;
+      if (v.removed || v.team !== e.team || v.gun?.towedBy || !v.seats.some((s) => !s.occupant) || v.wreck || (v.car && v.car.upright < 0.5)) continue;
       const d = hyp(v.movement.state.position.x - e.movement.state.position.x, v.movement.state.position.z - e.movement.state.position.z) - v.def.radius;
       if (d < bd) { bd = d; best = v; }
     }
@@ -153,7 +189,8 @@ export class VehicleSystem {
   }
 
   enter(e, v, seatIndex = null) {
-    if (e.health.dead || e.transform || v.team !== e.team) return false;
+    const mode = e.movement.state.mode;
+    if (e.health.dead || e.health.downed || e.transform || v.team !== e.team || mode === 'ragdoll' || mode === 'knockdown') return false;
     const idx = seatIndex ?? v.seats.findIndex((s) => !s.occupant);
     if (idx < 0 || v.seats[idx].occupant) return false;
     e.abilities?.interrupt?.('vehicle');
@@ -161,33 +198,59 @@ export class VehicleSystem {
     v.seats[idx].occupant = e;
     v.seats[idx].cmd = emptyCommand();
     const lock = ENTER_TIME * (e.perks?.enterTime ?? 1);           // Ace and Drift board faster
-    e.vehicle = { veh: v, seat: idx, lock, exposed: !!v.seats[idx].def.exposed };
+    const sd = v.seats[idx].def;
+    e.vehicle = { veh: v, seat: idx, lock, exposed: !!sd.exposed, shown: !!sd.shown, pose: sd.pose ?? null };   // shown: protected, but in sight (an open car's driver)
     this.world.version++;
     e.movement.enterVehicle();
+    // A seat to lean out of with your own gun (a car's passengers): the gun stays up.
+    e.movement.state.armedSeat = !!v.seats[idx].def.ownWeapon;
+    if (e.movement.state.armedSeat && e.weapons) e.mode = 'gun';
     v.emptyTime = 0;
     bus.emit('vehicle:enter', { id: v.id, entity: e.id, seat: idx, role: v.seats[idx].def.role, duration: lock, team: v.team });
     return true;
   }
 
-  exit(e, { eject = false } = {}) {
+  /**
+   * Out of the seat. `eject`: thrown out (destruction); `fling`: thrown out of a crash or a
+   * rollover with that velocity, tumbling (a ragdoll). Out of a car you keep its speed, and at
+   * speed you tumble too.
+   */
+  exit(e, { eject = false, fling = null } = {}) {
     const ref = e.vehicle;
     if (!ref) return;
     const v = ref.veh;
-    v.seats[ref.seat].occupant = null;
-    v.seats[ref.seat].cmd = null;
+    const seat = v.seats[ref.seat];
+    seat.occupant = null;
+    seat.cmd = null;
     e.vehicle = null;
+    e.movement.state.armedSeat = false;
+    v.ramCd.set(e.id, 1.5);           // whoever just got out (or was thrown) isn't run over by his own ride
     this.world.version++;
+    if (fling) {
+      // Thrown from where he sat, on with the speed the car just lost.
+      const from = v.car ? v.car.point(_v.fromArray(seat.def.offset), new Vector3()) : localToWorld(new Vector3(), v.movement.state.position, v.yaw, seat.def.offset);
+      from.y = Math.max(from.y, this.world.groundHeight(from) + 0.3);
+      e.movement.exitVehicle(from, fling);
+      // Folded as he sat (a gunner at a ring mount stands), and shoved along the throw at head
+      // height: he goes head over heels, not up like a post.
+      if (seat.def.pose !== 'stand') e.movement.state.stance = 'crouch';
+      e.movement.startRagdoll?.(fling.x * 0.6, 2, fling.z * 0.6, { cause: 'thrown', at: { x: from.x, y: from.y + 1.3, z: from.z }, focus: 0.8 });
+      bus.emit('vehicle:exit', { id: v.id, entity: e.id, eject: true, thrown: true });
+      return;
+    }
     const pos = this.#exitPoint(v);
-    const vel = v.movement.state.velocity.clone().multiplyScalar(eject ? 0.2 : 0.5);
+    const vel = v.movement.state.velocity.clone().multiplyScalar(v.car ? 1 : eject ? 0.2 : 0.5);
     if (eject) vel.y = 6;
     e.movement.exitVehicle(pos, vel);
+    // Bailing out of a moving car: you keep its speed, and past a run you go tumbling.
+    if (v.car && !eject && Math.hypot(vel.x, vel.z) > 7) e.movement.startRagdoll?.(0, 1, 0, { cause: 'bail' });
     bus.emit('vehicle:exit', { id: v.id, entity: e.id, eject });
   }
 
   /** First clear spot to the left, right, back or front, falling back to on top. */
   #exitPoint(v) {
     const s = v.movement.state;
-    const r = v.def.radius + 0.8;
+    const r = v.car ? v.def.size.x / 2 + 0.7 : v.def.radius + 0.8;
     for (const off of [[-r, 0, 0], [r, 0, 0], [0, 0, r + 0.5], [0, 0, -(r + 0.5)]]) {
       localToWorld(_p, s.position, v.yaw, off);
       if (!this.#blocked(_p, 0.4)) { const out = _p.clone(); out.y = Math.max(this.world.groundHeight(out), s.position.y - (v.def.hoverHeight ?? 0)); return out; }
@@ -212,7 +275,12 @@ export class VehicleSystem {
       if (v.removed) continue;
       v.status.update(dt);
       v.health.update(dt);
-      if (v.health.dead) { this.#destroy(v); continue; }
+      if (v.health.dead) {
+        // A car burns a few seconds before it blows (time to bail); everything else goes at once.
+        if (!v.car || (v.wreck && v.wreck.t >= (v.def.car.burn ?? 6))) { this.#destroy(v); continue; }
+        if (!v.wreck) { v.wreck = { t: 0 }; bus.emit('vehicle:burning', { id: v.id, at: v.movement.state.position.toArray(), duration: v.def.car.burn ?? 6 }); }
+        v.wreck.t += dt;
+      }
       for (const s of v.seats) if (s.occupant?.vehicle) s.occupant.vehicle.lock = Math.max(0, s.occupant.vehicle.lock - dt);
 
       const driver = v.seats.find((s) => s.def.role === 'driver');
@@ -226,6 +294,7 @@ export class VehicleSystem {
         else { const g = this.guns.hitchable(v); if (g) this.guns.hitch(v, g); }
       }
       if (v.gun?.towedBy) continue;            // trails its tower (below), after the tower has moved
+      if (v.car) { this.#car(v, cmd, dt, stalled, driver?.occupant); this.#seatsAndWeapons(v, dt, emp); this.#abandon(v, dt); continue; }
       if (v.def.model === 'gun') this.#carriage(v, cmd, dt, stalled);
       else if (v.def.model === 'tracked') this.#tracked(v, cmd, dt, stalled);
       else if (v.def.model === 'flyer') this.#flyer(v, cmd, dt, stalled);
@@ -234,12 +303,9 @@ export class VehicleSystem {
       this.#collide(v);
       if (v.def.ram) this.#ram(v, driver?.occupant, dt);
       this.#seatsAndWeapons(v, dt, emp);
-
-      // Abandonment: an empty pad vehicle far from its pad respawns there after a while.
-      const occupied = v.seats.some((s) => s.occupant);
-      v.emptyTime = occupied ? 0 : v.emptyTime + dt;
-      if (v.pad && !occupied && v.emptyTime > (this.defs.pads?.abandonTime ?? 40) && v.movement.state.position.distanceTo(v.pad.at) > 15) this.#remove(v, 'abandoned');
+      this.#abandon(v, dt);
     }
+    this.#carsMeet();
     for (const v of this.list) if (!v.removed && v.gun?.towedBy) { this.guns.follow(v, dt, this.#ground); this.#seatsAndWeapons(v, dt, false); }
     this.list = this.list.filter((v) => !v.removed);
     for (const pad of this.pads) {
@@ -248,6 +314,102 @@ export class VehicleSystem {
       if (pad.timer < pad.respawn) continue;
       if (this.payFor && !this.payFor(pad)) { pad.timer = pad.respawn; continue; }   // waits for supplies
       pad.timer = 0; pad.current = this.spawn(pad.vehicle, pad.team, pad.at, pad.yaw, { pad });
+    }
+  }
+
+  /** Abandonment: an empty pad vehicle far from its pad respawns there after a while. */
+  #abandon(v, dt) {
+    const occupied = v.seats.some((s) => s.occupant);
+    v.emptyTime = occupied ? 0 : v.emptyTime + dt;
+    if (v.pad && !occupied && v.emptyTime > (this.defs.pads?.abandonTime ?? 40) && v.movement.state.position.distanceTo(v.pad.at) > 15) this.#remove(v, 'abandoned');
+  }
+
+  // ---------------------------------------------------------------- cars
+  /** What the car physics asks of the world. */
+  #carWorld = {
+    terrainHeight: (x, z) => this.world.terrain ? this.world.terrain.height(x, z) : 0,
+    terrainNormal: (x, z, out) => this.world.terrain ? this.world.terrain.normal(x, z, out) : out.set(0, 1, 0),
+    groundHeight: (p) => this.world.groundHeight(p),
+    coverIn: (x0, z0, x1, z1, fn) => this.world.coverIn(x0, z0, x1, z1, fn),
+  };
+
+  #car(v, cmd, dt, stalled, driver) {
+    const s = v.movement.state, C = v.car;
+    if (s.position.distanceToSquared(C.base) > 1e-4) C.teleport(s.position);   // somebody moved it
+    const res = C.step(this.#carWorld, { throttle: cmd.moveY, steer: cmd.moveX, handbrake: !!cmd.buttons.jump?.down, dead: stalled || !!v.wreck || !driver }, dt, driver?.perks?.handling ?? 1);
+    s.position.copy(C.base); s.velocity.copy(C.vel); v.yaw = C.yaw;
+    s.grounded = res.grounded;
+    const gunner = v.seats.find((q) => q.def.role === 'gunner');
+    if (gunner?.cmd) v.turretYaw = gunner.cmd.yaw;
+    this.#crash(v, res, dt);
+    if (v.def.ram) this.#ram(v, driver, dt);
+    if (Math.hypot(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, 0.8);
+  }
+
+  /**
+   * What a crash does: the car takes the hit; past `eject`, or rolling over, everyone exposed is
+   * thrown out with the speed the car had; past `hurt`, those inside are hurt. At rest on its
+   * side or roof, everyone climbs out.
+   */
+  #crash(v, res, dt) {
+    const Cr = v.def.car.crash, C = v.car, up = C.upright, impact = res.impact;
+    if (impact > Cr.min) {
+      v.health.damage((impact - Cr.min) * Cr.damage, { kind: 'crash' }, null);
+      bus.emit('vehicle:crash', { id: v.id, impact, at: v.movement.state.position.toArray(), rolled: up < 0.3 });
+    }
+    // Going over (past the tipping point, ~53 degrees: it will roll): nobody stays in an open seat.
+    const rolling = up < 0.6;
+    if (impact > Cr.eject || rolling) {
+      for (const seat of v.seats) {
+        const e = seat.occupant;
+        if (!e || !seat.def.exposed) continue;
+        // On with the speed the car had before the hit; rolling, with the speed his seat had and
+        // out of the hatch the way the roof is going over.
+        const base = impact > Cr.eject ? res.before : C.pointVelocity(_v.fromArray(seat.def.offset), _p);
+        const fling = new Vector3(base.x * 0.9, Math.min(7, Math.max(3, base.y + 3 + Math.min(4, impact * 0.25))), base.z * 0.9);
+        if (impact <= Cr.eject) { _d.set(0, 1, 0).applyQuaternion(C.q).setY(0); if (_d.lengthSq() > 1e-4) fling.addScaledVector(_d.normalize(), Cr.roll ?? 4); }
+        this.exit(e, { fling });
+        e.health.damage(Math.max(8, impact * 3), { kind: 'crash', thrown: true }, null);
+      }
+    }
+    if (impact > Cr.hurt) {
+      for (const seat of v.seats) if (seat.occupant && !seat.def.exposed) seat.occupant.health.damage((impact - Cr.hurt) * Cr.hurtMul, { kind: 'crash' }, null);
+    }
+    // On its side or roof and stopped: everyone climbs out.
+    v.flippedT = up < 0.35 && C.speed < 1.5 ? v.flippedT + dt : 0;
+    if (v.flippedT > 0.6) for (const seat of v.seats) if (seat.occupant) this.exit(seat.occupant);
+  }
+
+  /** Cars against each other and against other vehicles: pushed apart, an impulse each. */
+  #carsMeet() {
+    const cars = this._cars ??= [];
+    cars.length = 0;
+    for (const v of this.list) if (v.car && !v.removed) cars.push(v);
+    if (!cars.length) return;
+    for (const a of cars) {
+      const A = a.car, pa = a.movement.state.position;
+      for (const b of this.list) {
+        if (b === a || b.removed || (b.car && b.id < a.id)) continue;
+        const pb = b.movement.state.position, R = a.def.radius * 0.85 + b.def.radius * 0.85;
+        const dx = pa.x - pb.x, dz = pa.z - pb.z, d = Math.hypot(dx, dz);
+        if (d >= R || d < 1e-4 || Math.abs(pa.y - pb.y) > 3) continue;
+        const nx = dx / d, nz = dz / d, push = (R - d) * 0.5;
+        _d.set(nx, 0, nz);
+        const mb = b.car ? b.car.m : Math.max(1500, b.def.hp * 3);
+        const share = mb / (A.m + mb);
+        A.c.addScaledVector(_d, push * 2 * share);
+        const vb = b.car ? b.car.vel : b.movement.state.velocity;
+        const rel = (A.vel.x - vb.x) * nx + (A.vel.z - vb.z) * nz;
+        if (rel >= 0) continue;
+        const j = (-1.2 * rel) / (1 / A.m + 1 / mb);
+        const at = _o.set(pa.x - nx * a.def.size.x * 0.4, A.c.y, pa.z - nz * a.def.size.x * 0.4);
+        A.impulse(_v.set(nx * j, 0, nz * j), at);
+        if (b.car) { b.car.c.addScaledVector(_d, -push * 2 * (1 - share)); b.car.impulse(_v.set(-nx * j, 0, -nz * j), at); }
+        else { vb.x -= nx * j / mb; vb.z -= nz * j / mb; }
+        const dv = j / A.m;
+        if (dv > a.def.car.crash.min) this.#crash(a, { impact: dv, before: A.prevVel.clone(), grounded: true }, 0);
+        if (b.car && j / b.car.m > b.def.car.crash.min) this.#crash(b, { impact: j / b.car.m, before: b.car.prevVel.clone(), grounded: true }, 0);
+      }
     }
   }
 
@@ -261,6 +423,8 @@ export class VehicleSystem {
     // Steer toward where the driver is looking: the "point and go" feel of a speeder bike.
     if (!stalled) v.yaw += Math.max(-d.turnRate * DEG * dt, Math.min(d.turnRate * DEG * dt, angleDelta(v.yaw, cmd.yaw)));
     this.#basis(v.yaw);
+    // Back on the stick (S) cuts a boost short: the brake.
+    if (v.boostTime > 0 && cmd.moveY < -0.5) { v.boostTime = 0; bus.emit('vehicle:boostEnd', { id: v.id }); }
     const boosting = this.#boost(v, cmd, dt, emp || stalled);
     const throttle = stalled ? 0 : boosting ? 1 : cmd.moveY;
     const top = (boosting ? d.boost.speed : throttle < 0 ? d.reverseSpeed : d.maxSpeed) * v.status.speedMul;
@@ -413,11 +577,21 @@ export class VehicleSystem {
       s.position.x = cx + nx * d.radius; s.position.z = cz + nz * d.radius;
       const vn = s.velocity.x * nx + s.velocity.z * nz;
       if (vn < 0) {
+        const pre = _o.copy(s.velocity);
         s.velocity.x -= 1.3 * vn * nx; s.velocity.z -= 1.3 * vn * nz;
         const impact = -vn;
         if (d.crash && impact > d.crash.minSpeed) {
           v.health.damage((impact - d.crash.minSpeed + 1) * d.crash.damagePerMs, { kind: 'crash' }, null);
           bus.emit('vehicle:crash', { id: v.id, impact, at: s.position.toArray() });
+          // Over the bars: a hard enough hit throws an exposed rider up and on, the way he was going.
+          if (impact > (d.crash.eject ?? Infinity)) {
+            for (const seat of v.seats) {
+              const e = seat.occupant;
+              if (!e || !seat.def.exposed) continue;
+              this.exit(e, { fling: new Vector3(pre.x * 0.5, 5.5, pre.z * 0.5) });
+              e.health.damage(impact, { kind: 'crash', thrown: true }, null);
+            }
+          }
         }
       }
     }
@@ -446,7 +620,7 @@ export class VehicleSystem {
       e.movement.impulse?.(_v.x * r.knock, 4, _v.z * r.knock);
       const phased = v.boostTime > 0 && v.def.boost?.phase;
       if (r.selfDamageMul && !phased) v.health.damage(dmg * r.selfDamageMul, { kind: 'ramSelf' }, null);
-      s.velocity.multiplyScalar(0.8);
+      if (v.car) v.car.vel.multiplyScalar(0.9); else s.velocity.multiplyScalar(0.8);
       bus.emit('vehicle:ram', { id: v.id, victim: e.id, damage: dmg, speed });
     }
   }
@@ -456,9 +630,15 @@ export class VehicleSystem {
     for (const seat of v.seats) {
       const occ = seat.occupant;
       if (occ) {
-        localToWorld(occ.movement.state.position, s.position, v.yaw, seat.def.offset);
+        if (v.car) v.car.point(_v.fromArray(seat.def.offset), occ.movement.state.position);
+        else localToWorld(occ.movement.state.position, s.position, v.yaw, seat.def.offset);
         occ.movement.state.velocity.copy(s.velocity);
         occ.movement.body?.teleport?.(occ.movement.state.position);
+      }
+      // Leaning out with his own gun: it fires along his aim, from where he sits.
+      if (occ && seat.def.ownWeapon && occ.weapons) {
+        const c = seat.cmd ?? emptyCommand();
+        occ.weapons.update(occ.vehicle?.lock > 0 ? IDLE : { ...c, buttons: { ...c.buttons, sprint: NO_BUTTON } }, dt);
       }
       if (!seat.weapons) continue;
       const wc = seat.weapons;
@@ -495,13 +675,21 @@ export class VehicleSystem {
    */
   rayOne(v, o, dir, max, ignoreId) {
     if (v.removed || v.id === ignoreId) return null;
+    if (ignoreId != null && v.seats.some((s) => s.occupant?.id === ignoreId)) return null;   // your own ride doesn't stop your rounds
     const d = v.def;
     const vp = v.movement.state.position, cx = vp.x - o.x, cy = vp.y - (d.hoverHeight ?? 0) + d.size.y * 0.5 - o.y, cz = vp.z - o.z;
     const along = Math.max(0, Math.min(max, cx * dir.x + cy * dir.y + cz * dir.z));
     const ex = cx - dir.x * along, ey = cy - dir.y * along, ez = cz - dir.z * along, rb = (v.boundR ??= 0.5 * hyp(d.size.x, d.size.y, d.size.z));
     if (ex * ex + ey * ey + ez * ez > rb * rb) return null;
     const base = _p.copy(vp); base.y -= d.hoverHeight ?? 0;
-    const hit = rayYawBox(o, dir, base, v.yaw, v.half ??= { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);
+    let hit;
+    if (v.car) {
+      // A car can be on its side or roof: the ray into its body frame, against the upright box.
+      _qi.copy(v.car.q).invert();
+      _o.subVectors(o, base).applyQuaternion(_qi).add(base);
+      _d.copy(dir).applyQuaternion(_qi);
+      hit = rayYawBox(_o, _d, base, 0, v.half ??= { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);
+    } else hit = rayYawBox(o, dir, base, v.yaw, v.half ??= { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);
     if (!hit) return null;
     const weak = d.weakSpot === 'rear' && hit.local.z > d.size.z * 0.2;
     return { entity: v, distance: hit.t, point: o.clone().addScaledVector(dir, hit.t), zone: weak ? 'head' : 'body', weakSpot: weak, surface: 'vehicle' };

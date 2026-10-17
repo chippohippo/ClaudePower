@@ -275,7 +275,7 @@ export class WeaponComponent {
     this.bloom = Math.min(sp.hip, this.bloom + (sp.bloomPerShot ?? 0.12));
 
     // Muzzle: eye position and aim direction. Third-person converges to the camera's aim point.
-    _origin.copy(mv.position); _origin.y += this.owner.muzzleHeight ?? (mv.stance === 'crouch' ? 1.05 : mv.stance === 'prone' ? 0.4 : 1.6); // vehicles set muzzleHeight
+    _origin.copy(mv.position); _origin.y += this.owner.muzzleHeight ?? (mv.mode === 'vehicle' ? 0.7 : mv.stance === 'crouch' ? 1.05 : mv.stance === 'prone' ? 0.4 : 1.6); // vehicles set muzzleHeight; a rider fires from his seat
     const pellets = s.pellets ?? 1;
     const hits = [];
     for (let i = 0; i < pellets; i++) {

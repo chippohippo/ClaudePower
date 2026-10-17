@@ -253,6 +253,18 @@ values).
    that loses sight searches the last seen spot instead of tracking through walls; a squad that
    loses half its men in 20 s falls back.
 
+10. **The vehicle overhaul** (from the same request). The recon cars are now real rigid bodies on
+    four sprung wheels, built from research into how the Helldivers 2 recon car drives: soft and
+    bouncy, a rear-biased drive that oversteers, a handbrake for slides, about 75 km/h, no air
+    control.
+    - **Crashes:** they trip on kerbs, roll on bad landings and get turned over by blasts.
+      Whoever is exposed is flung out with the speed the car had, and a soldier on foot can push
+      a car back over.
+    - **Riders:** passengers shoot their own guns from the seats. Bike riders go over the bars in
+      hard crashes.
+    - **Wrecks:** a killed car burns before it blows.
+    - **Bots** drive, circle, run people down, gun in bursts and right their cars.
+    - **Docs:** `docs/VEHICLES.md` ("Recon cars").
+
 Next, by the priority order: the camera, the director and audio (P2). Outside the plan, from
-the same request: the vehicle overhaul (driving, crashes and ejection, `docs/VEHICLES.md`) and the
-night city warfront.
+the same request: the night city warfront.

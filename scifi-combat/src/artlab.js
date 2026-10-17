@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|scene|stratagems|gunfx &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|cars|scene|stratagems|gunfx|melee &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -32,7 +32,7 @@ const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
 const planet = palette.planets[params.get('planet') ?? 'scorched'];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems', 'gunfx', 'melee'];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -95,6 +95,7 @@ async function scene3d() {
   if (station === 'sky') skyStation(scene, views, atmo);
   if (station === 'troopers') await troopersStation(scene, views, atmo);
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
+  if (station === 'cars') await carsStation(scene, views, atmo);
   if (station === 'scene') await sceneStation(scene, views, atmo);
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
   if (station === 'gunfx') await gunfxStation(scene, views, atmo);
@@ -252,13 +253,14 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
     for (const r of anim.list) r.lod < 2 ? crowd.drawRig(r.h, r.e.look, 0) : crowd.drawImpostor(r.root, { yaw: r.e.movement.state.bodyYaw, height: 1.8 }, r.e.look);
     crowd.end();
   };
+  const ctl = { paused: false };              // paused: the moment held still (the rigs keep drawing)
   const start = () => {
     for (let i = 0; i < 150; i++) tick();     // settle into the poses (and let the capes hang)
     for (let i = 0; i < 30; i++) { tick(); anim.update(DT, 1, new THREE.Vector3()); }
-    tickers.push(() => { tick(); draw(); });
+    tickers.push(() => { if (!ctl.paused) tick(); draw(); });
     window.__art.people = people;
   };
-  return { add, start, world, people, tick, anim, meleeWeapons: melee.weapons };
+  return { add, start, world, people, tick, anim, ctl, meleeWeapons: melee.weapons };
 }
 
 async function troopersStation(scene, views, atmo) {
@@ -328,6 +330,90 @@ async function vehiclesStation(scene, views, atmo) {
   views.tank = { pos: y(at(-14, 8), 2.6), look: y(at(-18.5, 0), 1.2), fov: 45, note: 'light tank up close' };
   views.guns = { pos: y(at(-4, 7), 2.2), look: y(at(-7, 0), 0.9), fov: 48, note: 'field gun and AT gun, set up' };
   views.trucks = { pos: y(at(12, 10), 3.2), look: y(at(9, 0), 1.4), fov: 48, note: 'rocket battery and supply truck' };
+}
+
+// The recon cars (docs/VEHICLES.md), the real sim and the game's own views: both parked with
+// their crews aboard, then the physics at its moments: a handbrake slide, a sideways slide that
+// catches a kerb and rolls (the ring gunner flung out of the hatch), the car on its roof, a car
+// killed and burning while its crew bails.
+async function carsStation(scene, views, atmo) {
+  const camAz = (planet.sun.azimuth - 40) * Math.PI / 180;
+  const fwd = new THREE.Vector3(Math.sin(camAz), 0, -Math.cos(camAz)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const at = (a, f = 0) => new THREE.Vector3().addScaledVector(right, a).addScaledVector(fwd, f);
+  const { t } = scorchedGround(scene, { seed: 19, amp: 0.25, size: 400, z0: -200, flat: [[0, 0, 70]], craters: 6, spread: [200, 100] });
+  const F = await fighters(scene, t, { max: 40 });
+  const W = F.world, VS = W.vehicles, DT = 1 / 60;
+  const facing = Math.atan2(fwd.x, fwd.z) + Math.PI;       // toward the camera
+  const crew = (car, team, classes) => classes.forEach((c, seat) => { if (c) { const e = F.add(c, team, car.movement.state.position.clone().add(new THREE.Vector3(3 + seat, 0, 0)), 0, 'aim'); VS.enter(e, car, seat); } });
+  // Parked, crewed: driver, ring gunner, passengers.
+  const kestrel = VS.spawn('solari_recon_car', 0, at(-3.2, 0), facing + 0.65);
+  const jackal = VS.spawn('void_recon_car', 1, at(3.4, -2), facing + 0.95);
+  crew(kestrel, 0, ['lancer', 'bastion', 'lumen', null, 'seraph']);
+  crew(jackal, 1, ['reaver', 'monolith', null, 'wraith', null]);
+  // The kerb a slide trips on, 40 m off to the side, and a car for each moment.
+  const kerbAt = at(-40, 0), concrete = triplanar(new THREE.MeshStandardMaterial({ color: palette.materials.concrete ?? '#8b8780', roughness: 0.95 }), concreteTexture(), 1, 1);
+  const kg = t.height(kerbAt.x, kerbAt.z);
+  const kerb = { min: new THREE.Vector3(kerbAt.x - 0.6, kg - 0.3, kerbAt.z - 14), max: new THREE.Vector3(kerbAt.x + 30, kg + 0.22, kerbAt.z + 14), surface: 'concrete' };
+  W.cover.push(kerb);
+  const km = new THREE.Mesh(new THREE.BoxGeometry(30.6, 0.52, 28), concrete); km.position.set(kerbAt.x + 14.7, kg - 0.04, kerbAt.z); km.receiveShadow = true; scene.add(km);
+  F.start();
+  const fx = new BattleFx(scene, { fog: scene.fog });
+  const vv = new VehicleViews(scene, W, { localTeam: 0, palette, fx });
+  tickers.push((dt) => { vv.update(dt, window.__art.camera); fx.update(dt); });
+  const run = (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) { F.tick(); F.anim.update(DT, 1, window.__art.camera.position); vv.update(DT, window.__art.camera); fx.update(DT); } };
+  const hold = () => { F.ctl.paused = true; };
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  // A car sliding sideways (east, toward the kerb) from `x` m short of it: its crew aboard.
+  const slider = (speed, gap, yaw = 0) => {
+    const car = VS.spawn('solari_recon_car', 0, new THREE.Vector3(kerbAt.x - gap, 0, kerbAt.z), yaw);
+    crew(car, 0, ['lancer', 'bastion', 'lumen', 'artificer', null]);
+    run(0.6);
+    car.car.vel.set(speed, 0, 0);
+    return car;
+  };
+  views.parked = { pos: y(at(0.5, 11.5), 2.6), look: y(at(0, -1), 1.0), fov: 46, note: 'Kestrel Recon Car (Solari) and Jackal Raider (Void), crewed: driver, ring gunner standing at the gun, passengers' };
+  views.kestrel = { pos: y(at(-6.8, 4.6), 1.7), look: y(at(-3.2, 0), 1.1), fov: 44, note: 'the Kestrel up close: bull bar, roll cage, ring-mount HMG, fat tyres on long-travel struts' };
+  views.jackal = { pos: y(at(7.6, 2.8), 1.7), look: y(at(3.4, -2), 1.1), fov: 44, note: 'the Jackal: wedge nose, slab fenders, spines along the cage' };
+  views.rear = { pos: y(at(-1.2, -7), 2.6), look: y(at(-3.2, 0), 1.3), fov: 44, note: 'from behind: the gunner at the ring, the spare, the rear vent (the weak spot)' };
+  views.drift = {
+    pos: y(at(34, 9), 1.6), look: y(at(28, -4), 0.8), fov: 50, note: 'a handbrake slide: the rear broken loose, the body leaning on its springs',
+    enter: () => {
+      const car = VS.spawn('solari_recon_car', 0, at(36, -22), facing - 0.35);
+      crew(car, 0, ['lancer', 'bastion', null, null, 'seraph']);
+      run(0.5);
+      const f = new THREE.Vector3(-Math.sin(car.yaw), 0, -Math.cos(car.yaw));
+      car.car.vel.copy(f).multiplyScalar(17); car.car.w.set(0, -1.6, 0);
+      car.seats[0].cmd = { ...car.seats[0].cmd, moveX: 1, moveY: 0.6, buttons: { jump: { down: true, pressed: false, released: false } } };
+      run(0.75); hold();
+      // Frame it where it went: three-quarters ahead of its slide, 9 m off.
+      const p = car.movement.state.position, vel = car.car.vel, c = window.__art.camera;
+      const dir = vel.clone().setY(0).normalize(), side = new THREE.Vector3(-dir.z, 0, dir.x);
+      c.position.copy(p).addScaledVector(dir, 7).addScaledVector(side, -6); c.position.y = t.height(c.position.x, c.position.z) + 1.7;
+      c.lookAt(p.x, p.y + 0.7, p.z);
+    },
+  };
+  views.roll = {
+    pos: y(kerbAt.clone().add(new THREE.Vector3(-9, 0, 9)), 2.2), look: y(kerbAt, 1.2), fov: 52, note: 'a sideways slide catches the kerb and trips it over: the ring gunner flung out of the hatch',
+    enter: () => { slider(14, 5); run(0.55); hold(); },
+  };
+  views.over = {
+    pos: y(kerbAt.clone().add(new THREE.Vector3(-8, 0, 7)), 2.4), look: y(kerbAt.clone().add(new THREE.Vector3(1.5, 0, 0)), 0.9), fov: 52, note: 'over it goes: on its roof, crew in the air',
+    enter: () => { slider(15, 5); run(1.5); hold(); },
+  };
+  views.thrown = {
+    pos: y(kerbAt.clone().add(new THREE.Vector3(-8, 0, 7)), 2.4), look: y(kerbAt.clone().add(new THREE.Vector3(1.5, 0, 0)), 1.4), fov: 52, note: 'going over: the crew thrown out tumbling',
+    enter: () => { slider(15, 5); run(1.05); hold(); },
+  };
+  views.burning = {
+    pos: y(at(10, 9), 2.2), look: y(at(3.4, -2), 1.2), fov: 50, note: 'killed: it burns for a few seconds before it blows, time for the crew to get out',
+    enter: () => {
+      jackal.health.damage(1e6, { kind: 'test' }, null);
+      run(1.6);
+      const [d] = jackal.seats; if (d.occupant) VS.exit(d.occupant);
+      run(1.4); hold();
+    },
+  };
+  window.__art.sim = W; window.__art.run = run;
 }
 
 /** A vehicle from the kit, posed for a still: turret turned, gun set up and laid, cargo loaded. */

@@ -121,17 +121,17 @@ test('soldiers hit the dirt when a round is about to land on them', () => {
 
 test('AT crews set up behind the front line and kill enemy armor that shows itself', () => {
   const s = new FrontlineSession(sessionData, { size: '32v32', seed: 7 });
-  run(s, 70);
+  // Only the test tank: every other enemy vehicle is kept at the enemy HQ, out of reach, from the
+  // start (their AT guns would duel ours before ours have a tank to shoot; their crews would
+  // drive the guns back to the front, and the AT gun rightly takes the nearest armor).
+  const hq1 = s.map.hq[1];
+  const away = () => { for (const v of s.world.vehicles.list) if (v.team === 1 && v !== tank) { v.movement.state.position.set(hq1.x, hq1.y, hq1.z); v.movement.state.velocity.set(0, 0, 0); } };
+  let tank = null;
+  run(s, 70, away);
   const sc = s.support[0], at = sc.units.filter((u) => u.kind === 'at').map((u) => sc.vehicle(u)).filter(Boolean);
   const set = at.filter((v) => v.gun.state === 'deployed');
   assert.ok(set.length >= 1, 'an AT gun is set up');
   const g = set[0], muzzle = s.world.vehicles.guns.muzzle(g);
-  // Only the test tank: every other enemy vehicle is kept at the enemy HQ, out of reach (their
-  // crews would drive the guns back to the front, and the AT gun rightly takes the nearest armor).
-  const hq1 = s.map.hq[1];
-  const away = () => { for (const v of s.world.vehicles.list) if (v.team === 1 && v !== tank) { v.movement.state.position.set(hq1.x, hq1.y, hq1.z); v.movement.state.velocity.set(0, 0, 0); } };
-  let tank = null;
-  away();
   // An enemy tank 120 m in front of it.
   const at2 = new Vector3(P(g).x + 120, 0, P(g).z);
   at2.y = s.map.terrain.height(at2.x, at2.z);

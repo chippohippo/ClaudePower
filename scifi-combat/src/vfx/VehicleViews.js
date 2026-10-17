@@ -8,6 +8,9 @@
 // Field guns: wheels, shield and a split trail that spreads when the gun is set up, the barrel laid
 // and elevated where the sim has it (it recoils on every shot); rocket batteries raise their rack
 // and drop their stabilizers; supply trucks show their cargo as crates in the bed.
+// Recon cars: the whole body turns with the physics (on its side, on its roof), each wheel sits
+// where its strut has it, steered and spinning, the ring gun swings with its gunner, and a car
+// that has been killed burns (flames, a flickering light, black smoke) until it blows.
 // Distance LOD (a 200v200 front has ~80 vehicles): the full model up close, one painted block
 // past DETAIL m, nothing past the fog.
 
@@ -19,14 +22,17 @@ import { DEFAULT_PALETTE } from '../render/CrowdRenderer.js';
 import { CH, rbox, merge } from '../render/ModelKit.js';
 
 const DETAIL = 160;                                   // m: past this a vehicle is one block
+const FIRES = [[0, 1.0, 0.3, 0.7], [0, 0.9, -0.32, 0.5]];   // a burning car: the engine deck and the hood (z as a share of its length), spread
+const _fp = new THREE.Vector3(), _fw = new THREE.Vector3();
 const BLOCK = merge([rbox(1, 1, 1, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.armor).move(0, 0.5, 0)]);
 const MODELS = new Map();                             // type -> the kit's geometries (shared by every vehicle of a type)
 
 export class VehicleViews {
-  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end), palette (palette.json) } */
-  constructor(scene, world, { localTeam = 0, far = 540, palette = DEFAULT_PALETTE } = {}) {
+  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end), palette (palette.json), fx: BattleFx (a burning car's flames and smoke) } */
+  constructor(scene, world, { localTeam = 0, far = 540, palette = DEFAULT_PALETTE, fx = null } = {}) {
     this.scene = scene;
     this.world = world;
+    this.fx = fx;
     this.localTeam = localTeam;
     this.far = far;
     this.palette = palette;
@@ -53,6 +59,7 @@ export class VehicleViews {
     const parts = { mat };
     root.add(mesh(M.body));
     if (d.model === 'gun') this.#fieldGun(v, root, parts, M, mesh);
+    else if (d.model === 'car') this.#car(v, root, parts, M, mesh);
     else if (d.gun || d.cargo) this.#truck(v, root, parts, M, mesh);
     else if (M.turret) {
       const turret = new THREE.Group(); turret.position.y = M.turretY;
@@ -62,8 +69,9 @@ export class VehicleViews {
     }
     // Rear weak spot glows so players learn where to shoot.
     if (d.weakSpot === 'rear') {
-      const vent = new THREE.Mesh(new THREE.BoxGeometry(d.size.x * 0.6, d.size.y * 0.3, 0.1), new THREE.MeshBasicMaterial({ color: '#ffb347' }));
-      vent.position.set(0, d.size.y * 0.35, d.size.z / 2 + 0.05);
+      const car = d.model === 'car';   // a car's is its radiator, under the spare
+      const vent = new THREE.Mesh(new THREE.BoxGeometry(d.size.x * (car ? 0.42 : 0.6), car ? 0.12 : d.size.y * 0.3, 0.1), new THREE.MeshBasicMaterial({ color: '#ffb347' }));
+      vent.position.set(0, car ? 0.66 : d.size.y * 0.35, d.size.z / 2 + 0.05);
       root.add(vent);
     }
     // Boost flame (hover vehicles) and low-HP smoke puffs.
@@ -107,11 +115,14 @@ export class VehicleViews {
       const d2 = camera ? s.position.distanceToSquared(camera.position) : 0;
       root.visible = d2 < far2;
       if (!root.visible) continue;
-      root.position.copy(s.position); root.position.y -= v.def.hoverHeight ?? 0;
-      root.rotation.y = v.yaw;
-      // Bikes bank into turns; dropships pitch with speed.
-      const lat = s.velocity.x * Math.cos(v.yaw) - s.velocity.z * Math.sin(v.yaw);
-      root.rotation.z = THREE.MathUtils.damp(root.rotation.z, v.def.model === 'hover' ? -lat * 0.04 : 0, 6, dt);
+      if (v.car) { root.position.copy(v.car.base); root.quaternion.copy(v.car.q); this.#carPose(v, parts, dt); }
+      else {
+        root.position.copy(s.position); root.position.y -= v.def.hoverHeight ?? 0;
+        root.rotation.y = v.yaw;
+        // Bikes bank into turns; dropships pitch with speed.
+        const lat = s.velocity.x * Math.cos(v.yaw) - s.velocity.z * Math.sin(v.yaw);
+        root.rotation.z = THREE.MathUtils.damp(root.rotation.z, v.def.model === 'hover' ? -lat * 0.04 : 0, 6, dt);
+      }
       if (parts.turret) parts.turret.rotation.y = v.turretYaw - v.yaw;
       if (v.gun) this.#gunPose(v, parts, dt);
       if (parts.crates) { const k = v.cargo / (v.def.cargo || 1); parts.crates.forEach((c, i) => { c.visible = i < Math.ceil(k * parts.crates.length - 1e-6); }); }
@@ -120,7 +131,7 @@ export class VehicleViews {
       const hpFrac = v.health.hp / v.health.max, paint = parts.mat.paint;
       paint.uGlow.value.set(v.status.silenced ? '#1f3a66' : '#000');
       paint.uTint.value = 0.4 + 0.6 * hpFrac;
-      parts.smoke.visible = hpFrac < 0.35;
+      parts.smoke.visible = hpFrac < 0.35 && !v.wreck;
       if (parts.smoke.visible) { parts.smoke.position.y = v.def.size.y + ((this.time * 2) % 1.5); parts.smoke.material.opacity = 0.6 - ((this.time * 2) % 1.5) * 0.35; }
       if (parts.bar) {
         parts.bar.visible = d2 < 120 * 120;   // the bar draws over everything: only for vehicles close enough to fight
@@ -149,6 +160,48 @@ export class VehicleViews {
     elev.add(slide);
     root.add(pivot);
     Object.assign(parts, { pivot, elev, slide, recoil: 0, spread: 0 });
+  }
+
+  /**
+   * A recon car: four wheels (the left pair mirrored) on steering knuckles, the gun on its ring,
+   * and the fire it burns with once it's been killed (hidden until then).
+   */
+  #car(v, root, parts, M, mesh) {
+    parts.wheels = v.car.wheels.map((wh) => {
+      const knuckle = new THREE.Group(), spin = mesh(M.wheel);
+      if (wh.mount.x < 0) spin.scale.x = -1;
+      knuckle.add(spin); root.add(knuckle);
+      return { wh, knuckle, spin };
+    });
+    const ring = new THREE.Group(); ring.position.fromArray(M.gunAt);
+    ring.add(mesh(M.gun)); root.add(ring);
+    parts.ring = ring;
+    // Burning: a light that flickers with the flames (the flames and smoke are BattleFx particles).
+    const glow = new THREE.PointLight('#ff7a2a', 0, 14, 1.6); glow.position.set(0, 1.8, v.def.size.z * 0.15);
+    glow.visible = false;
+    root.add(glow); parts.glow = glow;
+  }
+
+  /** Wheels from the struts, the gun after its gunner, the wreck's fire. */
+  #carPose(v, parts, dt) {
+    const C = v.car;
+    const sp = C.speed;
+    for (const w of parts.wheels) {
+      C.hub(w.wh, w.knuckle.position);
+      w.knuckle.rotation.y = -w.wh.steer;
+      w.spin.rotation.x = -w.wh.spin;            // (the mirror is across the axle: both sides roll the same way)
+      // A tyre sliding sideways kicks up the dirt.
+      if (this.fx && w.wh.contact && sp > 4 && w.wh.slip > 0.22) this.fx.skid(C.point(_fp.copy(w.wh.mount).setY(0), _fw), C.vel.x, C.vel.z, Math.min(1, (w.wh.slip - 0.22) * 3) * dt * 40);
+    }
+    parts.ring.rotation.y = v.seats.some((q) => q.def.role === 'gunner' && q.occupant) ? v.turretYaw - v.yaw : THREE.MathUtils.damp(parts.ring.rotation.y, 0, 1.5, dt);
+    const burning = !!v.wreck;
+    parts.glow.visible = burning;
+    if (burning) {
+      const t = this.time, k = Math.min(1, 0.3 + v.wreck.t * 0.8);
+      parts.glow.intensity = (14 + 6 * Math.sin(t * 23) + 4 * Math.sin(t * 37)) * k;
+      // Fire over the engine and the cockpit (where they are now: a wreck can lie on its side).
+      if (this.fx) for (const [x, y, z, r] of FIRES) this.fx.fire(C.point(_fp.set(x, y, z * v.def.size.z), _fw), dt * 0.5, r, k);
+    }
   }
 
   /** Rocket battery or supply truck: the kit's cab and chassis, then the launcher rack or the cargo crates. */

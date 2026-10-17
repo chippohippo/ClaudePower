@@ -14,3 +14,4 @@ art lab, the `.scratch/*-game.mjs` scripts for matches).
 | `melee/` | Melee on the front (art lab and a match): every class's blade in guard, a duel mid-swing, a spear's thrust, the rifle-butt shove, a finisher, and the windup chevron in a match |
 | `support/` | Support roles in a match: a Void medic's passive and stims on the status panel, the stim prompt on a hurt squadmate and the heal it pays, an engineer's ammo pack on the ground |
 | `battle-points/` | Battle points: the call-in panel with prices, the "+100 TAKEDOWN" lines, a tank coming down in its drop cradle and the cradle lifting away (art lab), a recon vehicle bought in a match |
+| `cars/` | The vehicle overhaul: both recon cars crewed (art lab `?station=cars`), a handbrake slide kicking up dust, a sideways slide tripping on a kerb, the crew flung out as it rolls, the car on its roof, a killed car burning; and in a match, driving with the squad aboard and on the handbrake |

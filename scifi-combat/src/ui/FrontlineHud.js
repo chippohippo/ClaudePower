@@ -21,6 +21,7 @@
 //    has revealed on the minimap, and (Mindread) the abilities of the enemy in your sights.
 
 import * as THREE from 'three';
+import { RIGHT_TIME } from '../vehicles/VehicleSystem.js';
 import { bus } from '../core/EventBus.js';
 
 const TEAM_COL = ['#ffcf6b', '#b994ff'];
@@ -278,9 +279,23 @@ export class FrontlineHud {
     el.innerHTML = `${(t.name ?? '').toUpperCase()} · ${parts.join(' · ')}`;
   }
 
-  /** "X: crew the Sunhammer Field Gun" beside a vehicle you could take. */
+  /**
+   * "X: crew the Sunhammer Field Gun" beside a vehicle you could take; "HOLD X" beside one of our
+   * cars on its roof (with how far over it is); in a car, its controls.
+   */
   #boardPrompt(me) {
-    if (me.vehicle || me.health.dead || me.health.downed) return '';
+    if (me.health.dead || me.health.downed) return '';
+    if (me.vehicle) {
+      const v = me.vehicle.veh, role = v.seats[me.vehicle.seat].def.role;
+      if (!v.car) return '';
+      if (v.wreck) return `<span style="color:#ff6b5c">ON FIRE: GET OUT</span> · <b>X</b>`;
+      return role === 'driver' ? '<b>W S</b> DRIVE · <b>A D</b> STEER · <b>SPACE</b> HANDBRAKE · <b>X</b> GET OUT' : '<b>X</b> GET OUT (AT SPEED YOU TUMBLE)';
+    }
+    const flipped = this.s.world.vehicles.flippedNear(me);
+    if (flipped) {
+      const k = me.righting?.car === flipped ? me.righting.t / RIGHT_TIME : 0;
+      return `HOLD <b>X</b> TO PUSH THE ${flipped.def.name.toUpperCase()} BACK OVER${k > 0 ? ` ${bar(k, '#d9b77a')}` : ''}`;
+    }
     const v = this.s.world.vehicles.nearestEnterable(me);
     if (!v) return '';
     const crew = !!v.def.gun && v.def.model === 'gun';

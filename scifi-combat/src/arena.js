@@ -347,13 +347,13 @@ const loop = new FixedLoop({
     // Revives first (kneel, nothing else), then vehicles: a driver or rider's vehicle consumes the command.
     const kneel = (e, c) => ({ ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } });
     if (world.revives.handleInput(player, pc, dt)) { player.movement.kneel(); tickEntity(player, kneel(player, pc), kneel(player, pc), kneel(player, pc), null); }
-    else if (world.vehicles.handleInput(player, pc)) player.movement.update(pc, dt);
+    else if (world.vehicles.handleInput(player, pc, dt)) player.movement.update(pc, dt);
     else tickEntity(player, pc, pc, meleeCmd, gunCmd);
     // Bots: same pipeline as the player, with the command split between sword and gun by mode.
     for (const b of bots) {
       const bc = b.brain.think(dt, tick);
       if (world.revives.handleInput(b, bc, dt)) { b.movement.kneel(); const k = kneel(b, bc); tickEntity(b, k, k, k, null); continue; }
-      if (world.vehicles.handleInput(b, bc)) { b.movement.update(bc, dt); continue; }
+      if (world.vehicles.handleInput(b, bc, dt)) { b.movement.update(bc, dt); continue; }
       const r = routeCommand(b, b.status.rooted ? strip(bc, []) : bc);
       tickEntity(b, bc, bc, r.meleeCmd, r.gunCmd);
     }
@@ -395,7 +395,7 @@ const loop = new FixedLoop({
     crowd.begin(rig.camera);
     for (const r of animSys.list) {
       const e = r.e, s = e.movement.state;
-      if (e.vehicle && !e.vehicle.exposed) continue;
+      if (e.vehicle && !e.vehicle.exposed && !e.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
       if (r.lod < 2) crowd.drawRig(r.h, e.look, r.lod);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(e), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || e.health.dead }, e.look);
     }
@@ -420,10 +420,12 @@ const loop = new FixedLoop({
     }
     const cw = w.current;
     const ammo = cw.usesHeat ? `HEAT ${cw.heat.toFixed(0)}%${w.phase === 'overheated' ? ' OVERHEATED' : w.phase === 'venting' ? ' VENTING (R in window = perfect)' : ''}` : `${cw.mag}/${cw.reserve}${w.phase === 'reloading' ? ' RELOADING' : ''}`;
-    const near = !player.vehicle && world.vehicles.nearestEnterable(player);
+    const flippedCar = !player.vehicle && world.vehicles.flippedNear(player);
+    const near = !player.vehicle && !flippedCar && world.vehicles.nearestEnterable(player);
     const prompt = document.getElementById('prompt');
-    prompt.style.display = near ? 'block' : 'none';
-    if (near) prompt.textContent = `X  Enter ${near.def.name} (${near.seats.find((s) => !s.occupant).def.role})`;
+    prompt.style.display = near || flippedCar ? 'block' : 'none';
+    if (flippedCar) prompt.textContent = `Hold X  Push the ${flippedCar.def.name} back over`;
+    else if (near) prompt.textContent = `X  Enter ${near.def.name} (${near.seats.find((s) => !s.occupant).def.role})`;
     const vehLine = pv ? (() => {
       const seat = pv.seats[player.vehicle.seat];
       const wpn = seat.weapons?.current;

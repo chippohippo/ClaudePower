@@ -992,7 +992,7 @@ export class MovementController {
     s.aimYaw = prone ? s.bodyYaw + clamp(angleDelta(s.bodyYaw, s.yaw), -arc, arc) : s.yaw;
     const proneTransition = s.stanceT && (s.stanceT.from === Stance.PRONE || s.stanceT.to === Stance.PRONE);
     const limp = s.mode === MoveState.RAGDOLL || s.mode === MoveState.KNOCKDOWN;
-    s.weaponReady = !(limp || s.mode === MoveState.MANTLE || s.mode === MoveState.VEHICLE || proneTransition || s.sprinting || s.downed);
+    s.weaponReady = !(limp || s.mode === MoveState.MANTLE || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
     s.busy = limp || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
     const low = s.stamina < t.stamina.lowAt;
     if (low !== s.lowStamina) { s.lowStamina = low; bus.emit('move:lowStamina', { id: this.id, on: low }); }

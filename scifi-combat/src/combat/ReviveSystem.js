@@ -112,7 +112,10 @@ export class ReviveSystem {
     }
     const v = job.victim;
     if (!v.health.downed || v.health.dead || v.movement.state.position.distanceTo(f.movement.state.position) > c.reviveRange + 0.6) { this.#endFinisher(f, 'lost'); return false; }
-    job.t += dt; f.reviveJob.t = job.t;
+    job.t += dt;
+    // (the kneel can be cleared under us: a respawn, a revive finishing; put it back)
+    f.reviveJob ??= { patient: v, t: 0, need: job.need, finish: true };
+    f.reviveJob.t = job.t;
     if (job.t < job.need) return true;
     this.#endFinisher(f, null);
     v.health.damage(v.health.downHp + 1, { kind: 'finisher', melee: true, noDown: true }, f);

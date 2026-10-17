@@ -204,7 +204,7 @@ export class FrontlineSession {
       if (w.revives.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       else if (w.support.repairInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       else if (this.fortify.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
-      if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, fdt); continue; }
+      if (w.vehicles.handleInput(f, cmd, fdt)) { f.movement.update(cmd, fdt); continue; }
       if (f.stratagems) cmd = f.stratagems.handleInput(cmd, fdt);   // typing a call-in or holding a beacon: hands busy
       w.support.itemInput(f, cmd);                                    // a stim, an ammo pack
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;

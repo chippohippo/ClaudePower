@@ -1,11 +1,12 @@
 # Vehicles
 
 Companion to [ARCHITECTURE.md](ARCHITECTURE.md) and [ABILITIES.md](ABILITIES.md).
-Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vehicles/FieldGuns.js` (crew-served guns) ·
-`src/vfx/VehicleViews.js` (graybox views) · bot drivers: `src/ai/VehiclePilot.js`, gun crews and
-truck drivers: `src/ai/CrewPilot.js` · fire control: `src/ui/FireControl.js` · data:
-`data/vehicles.json` · tests: `tests/vehicles.test.mjs`, `tests/artillery.test.mjs` (and
-`tests/squads.test.mjs` for armor in the trench war).
+Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vehicles/CarPhysics.js` (the cars' rigid body) ·
+`src/vehicles/FieldGuns.js` (crew-served guns) · `src/vfx/VehicleViews.js` (views) · models:
+`src/render/VehicleKit.js` · bot drivers: `src/ai/VehiclePilot.js`, gun crews and truck drivers:
+`src/ai/CrewPilot.js` · fire control: `src/ui/FireControl.js` · data: `data/vehicles.json` · tests:
+`tests/vehicles.test.mjs`, `tests/vehicles-car.test.mjs`, `tests/artillery.test.mjs` (and
+`tests/squads.test.mjs` for armor in the trench war) · art lab: `?station=cars`.
 
 ## Roster
 
@@ -21,6 +22,98 @@ truck drivers: `src/ai/CrewPilot.js` · fire control: `src/ui/FireControl.js` ·
 | Starfall / Swarm Rocket Battery | Solari / Void | self-propelled | 1500 | commander, loader | 16-rocket salvo (170 / 160, 6.5 / 7 m), 48 rockets | 28 s reload between salvos; wide scatter; anchored while set up |
 | Lance AT Gun / Spike Cannon | Solari / Void | towed AT gun | 700 / 650 | commander, loader | 460 antitank slug (×2.2 on armor), 20 rounds | Low and slow to swing (14°/s past its 30° arc); shell it or flank it |
 | Hauler / Crawler Supply Truck | Solari / Void | truck | 1000 | driver, 2 passengers | 150 supplies | Its cargo burns with it: interdict the road |
+| Kestrel Recon Car / Jackal Raider | Solari / Void | car | 1600 / 1400 | driver, ring gunner (exposed), 3 passengers (exposed, own guns) | Ring-Mount HMG (heat) | The gunner and passengers are in the open; trip it on a kerb or rubble at speed, or put a blast beside it, and it rolls and throws them all out |
+
+## Recon cars (`CarPhysics`)
+
+The cars are built to drive the way players describe the Helldivers 2 recon car, and to crash the
+way they love it crashing: "it's really fun when your characters get into a car accident and the
+car flips and you get flung out".
+
+**What the research said.** The HD2 FRV is light and floaty on soft, bouncy suspension. It has a
+rear-biased drive that oversteers and a handbrake that locks the rears for slides. There is no air
+control, and top speed is about 75 km/h. It rolls on kerbs and bad landings. Hard hits and
+rollovers throw out the gunner and anyone leaning out, while seated occupants stay in but get
+hurt. Bailing out at speed keeps the car's speed. There is no ram damage below about 30 km/h. A
+killed car burns for several seconds and then explodes. Players' complaints were that it flips on
+flat ground and can't be righted, so we fixed both (sources: helldivers.wiki.gg M-102 FRV and
+patch 01.002.101, helldivers.fandom.com, Steam community threads, MP1st patch notes).
+
+**The model** (`src/vehicles/CarPhysics.js`, the `car` block in vehicles.json): one rigid body
+(mass, box inertia, quaternion), integrated in two substeps a tick and deterministic.
+- **Four raycast wheels** on spring-and-damper struts (k 42 kN/m, c 2.6 kN·s/m, 0.46 m travel):
+  it squats under power, dives under braking and leans into turns. The struts read the terrain
+  and anything low enough to drive onto (a kerb, rubble, a sandbag top). The damper force is
+  capped, so a kerb is a jolt, not a launch.
+- **Tyres:** lateral grip is what it takes to stop the sideways slide, capped by a slip curve
+  that falls to 72% past the peak slip angle (that's a drift). Drive, brakes and rolling
+  resistance act along the wheel, inside a friction circle.
+- **Engine and controls:** the drive fades toward top speed, 72% of it to the rear (Void 82%).
+  Brakes act on all four wheels, and the handbrake locks the rears (Space). Steering ramps in
+  and narrows from 0.58 rad slow to 0.17 rad at top speed. Back on the stick brakes, then
+  reverses. In the air, nothing.
+- **Hull collision:** 30 points (a floor grid, the bumpers, the sides, the cage roof) against the
+  terrain and the cover boxes. Each point leaves a box by the face it came in through. Boxes
+  poking in between the points (posts, bollards) are caught by their own corners. A lip under
+  0.12 m is ridden over. A wall hit at an angle spins the car, and a car on its roof slides to a
+  stop on it.
+- **Kerb trips:** a step under a wheel that is sliding across it (from 4 cm, fully at 16 cm)
+  stops the slide at the tyre's contact, low under the centre of mass. That is what rolls a car
+  over. On the flat it never rolls: its tipping threshold (track/2 ÷ CoM height ≈ 1.33) is above
+  the tyres' grip (1.1).
+- **Measured** (tests/vehicles-car.test.mjs, `.scratch` probes):
+  - 0–60 km/h in about 3 s; top speed 74 km/h (Void 81); coasts long; brakes from top speed in
+    about 2 s.
+  - A full-lock handbrake J-turn at top speed stays on its wheels.
+  - Sliding sideways into a 20 cm kerb: tips at 9 m/s, rolls over at 12 m/s, lands on its roof
+    at 15 m/s.
+  - Off a 1.6 m ramp at 19 m/s: 0.9 s in the air, 20 m long.
+
+**What happens to the people in it** (VehicleSystem `#crash`):
+- **Hard hits:** a hit's speed change (m/s) damages the car past 5 m/s.
+- **Thrown out:** past 6.5 m/s every exposed rider is thrown on with the speed the car had (a
+  ragdoll, shoved at head height so he goes head over heels).
+- **Rollovers:** once the car is past its tipping point (53°), the open seats empty. Riders go
+  out of the hatch the way the roof is going over, at least 4 m/s, with the speed their seat
+  had.
+- **Strapped in:** the driver stays in, hurt by hits past 9 m/s, and climbs out once the car
+  lies still on its side or roof.
+- **Bailing out:** you keep the car's speed, and past 7 m/s you tumble.
+- **No run-overs by your own ride:** a vehicle never runs over the person who just left it.
+
+**Righting it:** beside one of your cars on its side or roof, hold X for 1.5 s and you push it
+back onto its wheels (the HUD prompts with a bar). Bots do it for a car of theirs lying within
+18 m. Blasts can turn a car either way.
+
+**Blasts:** any explosion shoves cars at the hull point nearest the burst, upward and outward,
+in proportion to (knockback − 4). A grenade rocks a car. A shell beside it or an orbital strike
+turns it over.
+
+**Running people over:** from 30 km/h (8.3 m/s), 9 damage per m/s. Each hit costs the car 10%
+of its speed.
+
+**Killed:** the car burns for 6 s (flames, a flickering light, black smoke; `vehicle:burning`),
+then blows. Bots bail out of a burning car at once. Whoever stays aboard is thrown out of the
+blast, hurt.
+
+**Seats:**
+- **Driver:** `shown`, protected but drawn while the car is upright.
+- **Ring gunner:** stands at the HMG (pose `stand`, standing hit spheres), exposed.
+- **Three passengers:** exposed and `ownWeapon`. They lean out and fire their own guns from the
+  seat at chest height (a hit on the move spreads more).
+
+**Bots** (`VehiclePilot`):
+- **Driving:** they steer the wheels toward the objective, lifting off for wide corners and
+  braking for hairpins. When stuck they back off.
+- **In a fight:** with guns aboard they circle the target at 20–40 m (in from far, round, out
+  when close). An aggressive driver, or one alone, runs infantry down instead.
+- **Gunners:** fire in heat bursts and let the gun cool right down, holding the chest and
+  pulling down against the recoil.
+- **Passengers:** ride along when a teammate drives past and shoot from the seats. They get out
+  where it pulls up near the fight or the objective, and don't hop back in for 40 s.
+
+**Where they come from:** a Recon Vehicle call-in (LDRU, 800 BP), and a recon pad in the motor
+pool from 12v12 up (respawn 30 s, 35 supplies).
 
 ## Field guns (`FieldGuns`)
 
@@ -67,9 +160,12 @@ truck: **H** in a truck hitches the gun behind it. Rocket batteries drive themse
   is locked for only 0.35 s. Press X again to hop out to the first clear side, keeping half the
   vehicle's momentum. You can't enter enemy vehicles, or enter while in a transform super.
 - **Hover:** steers toward the camera at its turn rate. Low lateral grip makes it drift. Shift
-  boosts (34 m/s) on a cooldown. It floats over low cover such as crates and banks into turns.
-  It rides on the highest ground under its hull, so it lifts over a trench parapet instead of
-  dropping into the trench.
+  boosts (34 m/s) on a cooldown, and S cuts a boost short. It floats over low cover such as
+  crates and banks into turns. It rides on the highest ground under its hull, so it lifts over a
+  trench parapet instead of dropping into the trench. Hit something at more than 17 m/s and the
+  rider goes over the bars: thrown up and on, a ragdoll. Bot riders look down their lane (its
+  middle and both edges) before they boost, and brake and swing wide of a wall coming up.
+- **Car:** see "Recon cars" above.
 - **Tracked:** W/S throttle and A/D turn the hull. The turret follows the camera at its own
   limited rate, which is the counterplay. It climbs cover up to 0.5 m and crushes destructible
   cover up to 2 m tall (below). Anything else taller stops it.
@@ -159,4 +255,6 @@ state for netcode snapshots.
 - Aircraft on the Western Front (the dropships fly in the arena; spotter planes calling in fire would suit the artillery war).
 - Infantry riding along on a tank's hull, and crews coordinating with their squad's assault (smoke, holding at the wire).
 - Lock-on launchers (an anti-vehicle class tool) and vehicle-specific abilities (tank smoke, dropship flares).
-- Seat switching inside a vehicle (F1–F4), and passengers firing their own weapons from open bays.
+- Seat switching inside a vehicle (F1–F4).
+- Cars: tyres you can shoot out (a swerve, understeer, a flip under braking), surfaces (ice, mud),
+  a burned-out husk left where a car blew, and occupants that tilt with the car as it rolls.

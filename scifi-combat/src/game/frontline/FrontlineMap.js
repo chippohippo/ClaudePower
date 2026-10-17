@@ -33,8 +33,9 @@ const VEHICLES = {
   tank: ['solari_lancer_tank', 'void_crawler_tank'], hoverbike: ['solari_hoverbike', 'void_skiff'],
   howitzer: ['solari_field_gun', 'void_field_gun'], rockets: ['solari_rocket_battery', 'void_rocket_battery'],
   at: ['solari_at_gun', 'void_at_gun'], truck: ['solari_supply_truck', 'void_supply_truck'],
+  recon: ['solari_recon_car', 'void_recon_car'],
 };
-const RESPAWN = { tank: 45, hoverbike: 20, howitzer: 60, rockets: 60, at: 40, truck: 25 };
+const RESPAWN = { tank: 45, hoverbike: 20, recon: 30, howitzer: 60, rockets: 60, at: 40, truck: 25 };
 const GUN_GAP = 13;          // metres between guns in a park row
 const PARK_ROWS = 12;        // metres between a park's front row (field guns) and back row (AT guns)
 

@@ -23,7 +23,7 @@ import { bus } from '../../core/EventBus.js';
 
 /** Supplies each thing costs. Rounds are per shell or rocket; a magazine is one magazine's worth. */
 export const COST = {
-  tank: 120, hoverbike: 25, howitzer: 70, rockets: 90, at: 40, truck: 0,
+  tank: 120, hoverbike: 25, recon: 35, howitzer: 70, rockets: 90, at: 40, truck: 0,
   sandbags: 6, mag: 1, howitzerRound: 2, rocketsRound: 1, atRound: 2,
 };
 const RATE = 25;                 // supplies a second a truck loads or unloads

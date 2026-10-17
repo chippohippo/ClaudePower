@@ -201,7 +201,7 @@ export class CombatBotBrain {
     if (self.vehicle) {
       cmd.yaw = self.movement.state.yaw; cmd.pitch = 0;
       this.pilot.drive(dt, ctx, cmd, this.btn);
-      if (cmd.buttons.interact?.pressed || this.btn.queued.has('interact')) this.vehicleCooldown = 6;
+      if (cmd.buttons.interact?.pressed || this.btn.queued.has('interact')) { this.vehicleCooldown = Math.max(this.vehicleCooldown, 6); this.vehicleGoal = null; }
       this.btn.finalize(cmd);
       return cmd;
     }
@@ -210,7 +210,8 @@ export class CombatBotBrain {
     const fix = this.items.repairJob(ctx);
     if (fix) this.vehicleGoal = null;
     if (!fix && !this.duty && this.vehicleCooldown <= 0 && (this.vehicleGoal || this.decideIn > this.diff.decisionInterval * 0.7)) {
-      const want = this.vehicleGoal && !this.vehicleGoal.removed && this.vehicleGoal.seats.some((s) => !s.occupant) ? this.vehicleGoal : this.pilot.wantVehicle(ctx);
+      const G = this.vehicleGoal;
+      const want = G && !G.removed && !G.wreck && G.health.hp >= G.health.max * 0.35 && G.seats.some((s) => !s.occupant) ? G : this.pilot.wantVehicle(ctx);
       if (want !== this.vehicleGoal) { this.vehicleGoal = want; this.vehicleGoalTime = 0; }
     }
     if (this.vehicleGoal) {
@@ -221,7 +222,9 @@ export class CombatBotBrain {
         this.#moveToward(cmd, bp, true);
         const me = self.movement.state.position;
         this.moveDir.set(bp.x - me.x, 0, bp.z - me.z).normalize();
-        if (this.world.vehicles.nearestEnterable(self) === this.vehicleGoal) this.btn.press('interact');
+        // On its roof: hold interact beside it to push it over; on its wheels: get in.
+        if (this.vehicleGoal.car && this.vehicleGoal.car.upright < 0.5) { if (this.world.vehicles.flippedNear(self) === this.vehicleGoal) this.btn.hold('interact'); }
+        else if (this.world.vehicles.nearestEnterable(self) === this.vehicleGoal) this.btn.press('interact');
         if (ctx.target && ctx.los) { this.#gunfight(dt, ctx, cmd, true); this.#worldMove(cmd, this.moveDir); } // shoot on the way
         this.btn.finalize(cmd);
         return cmd;

@@ -62,7 +62,7 @@
     },
     "recon_drop": {
       "name": "Recon Vehicle", "code": "LDRU", "delay": 6, "cooldown": 60, "bp": 800, "kind": "vehicle",
-      "payload": { "kind": "pod", "contents": "vehicle", "vehicle": ["solari_hoverbike", "void_skiff"], "crush": 2.4 }
+      "payload": { "kind": "pod", "contents": "vehicle", "vehicle": ["solari_recon_car", "void_recon_car"], "crush": 2.4 }
     },
     "tank_drop": {
       "name": "Tank Drop", "code": "LDLRD", "delay": 8, "cooldown": 150, "bp": 1200, "kind": "vehicle",

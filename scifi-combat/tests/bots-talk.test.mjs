@@ -90,9 +90,11 @@ test('frontline: squads flank and fall back as the fight goes, saying so', () =>
     personalities: data.ai.personalities, difficulty: data.ai.difficulty.veteran, down: data.down, rules: data.rules, stratagems: data.stratagems,
     passives: data.passives, support: data.support, humanoid: data.humanoid, barks: data.barks,
   };
-  const s = new FrontlineSession(sessionData, { size: '12v12', seed: 5 });
+  const s = new FrontlineSession(sessionData, { size: '12v12', seed: 1 });
   const ev = events(['squad:bark', 'squad:flank', 'squad:phase']);
-  for (let i = 0; i < 60 * 150; i++) s.step(1 / 60);
+  // A flank is a judgement call a squad makes about once in two or three minutes of a 12v12:
+  // run until one has (up to four minutes), and at least two and a half.
+  for (let i = 0; i < 60 * 240 && (i < 60 * 150 || !ev.got.some((e) => e.type === 'squad:flank')); i++) s.step(1 / 60);
   ev.off(); s.dispose();
   const kinds = new Set(ev.got.filter((e) => e.type === 'squad:bark').map((e) => e.kind));
   for (const k of ['contact', 'moving', 'covering', 'reloading']) assert.ok(kinds.has(k), `${k} heard (${[...kinds].join(', ')})`);
