@@ -110,8 +110,10 @@ test('NavGrid: flow fields route around walls, stay out of enclosures, reopen wh
   assert.equal(nav.sample(f, -30, 0, new Vector3()), false);
   // Blow the plug: the route opens through the gap.
   world.destroyCover(v(0, 1, 23), 2, null);
+  assert.equal(nav.field('B', 30, 0, 3), f, 'the stale field stays usable (no rebuild hitch on a blast)');
+  nav.maintain(1000);
   const f2 = nav.field('B', 30, 0, 3);
-  assert.notEqual(f2, f, 'field rebuilt after the cover changed');
+  assert.notEqual(f2, f, 'maintain() rebuilt it after the cover changed');
   const route = nav.trace(f2, -30, 0);
   assert.ok(route.reached, 'reaches the goal');
   assert.ok(route.pts.some((p) => p.z > 18 && p.z < 28 && Math.abs(p.x) < 3), 'through the breach');

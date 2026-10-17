@@ -28,6 +28,7 @@ export class NavGrid {
     this.cost = new Float32Array(this.nx * this.nz);
     this.version = 0;
     this.fields = new Map();
+    this.stale = new Set();
     this.#rebuild(0, 0, this.nx - 1, this.nz - 1);
   }
 
@@ -81,11 +82,31 @@ export class NavGrid {
    */
   field(key, gx, gz, radius = 4) {
     let f = this.fields.get(key);
-    if (f && f.version === this.version && f.gx === gx && f.gz === gz) return f;
+    if (f && f.gx === gx && f.gz === gz) {
+      // A stale field stays usable: destroyed cover only opens new routes, so the old ones are
+      // still walkable. maintain() refreshes stale fields on a time budget (no hitch per blast).
+      if (f.version !== this.version) this.stale.add(key);
+      return f;
+    }
     f = this.#dijkstra(gx, gz, radius);
-    f.key = key; f.gx = gx; f.gz = gz;
+    f.key = key; f.gx = gx; f.gz = gz; f.radius = radius;
     this.fields.set(key, f);
     return f;
+  }
+
+  /** Recompute stale fields within a time budget (call once per tick or so). */
+  maintain(budgetMs = 4) {
+    const t0 = performance.now();
+    for (const key of this.stale) {
+      const old = this.fields.get(key);
+      this.stale.delete(key);
+      if (old && old.version !== this.version) {
+        const f = this.#dijkstra(old.gx, old.gz, old.radius);
+        Object.assign(f, { key, gx: old.gx, gz: old.gz, radius: old.radius });
+        this.fields.set(key, f);
+      }
+      if (performance.now() - t0 > budgetMs) break;
+    }
   }
 
   #dijkstra(gx, gz, radius) {
@@ -143,13 +164,25 @@ export class NavGrid {
     }
     if (!any) return false;
     const len = Math.hypot(sx, sz);
-    if (len < 1e-6) return atGoal ? false : false;
+    if (len < 1e-6) return false;
     out.set(sx / len, 0, sz / len);
     return true;
   }
 
-  /** Route length (m) from a position to the field's goal, or Infinity. */
-  distance(f, x, z) { const i = this.index(x, z); return i < 0 ? Infinity : f.dist[i] * this.cell; }
+  /** Route length (m) from a position to the field's goal, or Infinity (blocked cells use the best neighbour). */
+  distance(f, x, z) {
+    const i = this.index(x, z);
+    if (i < 0) return Infinity;
+    if (this.cost[i] !== Infinity) return f.dist[i] * this.cell;
+    let best = Infinity;
+    const ix = i % this.nx, iz = (i - ix) / this.nx;
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+      const jx = ix + dx, jz = iz + dz;
+      if (jx < 0 || jz < 0 || jx >= this.nx || jz >= this.nz) continue;
+      best = Math.min(best, f.dist[jz * this.nx + jx] + Math.hypot(dx, dz));
+    }
+    return best * this.cell;
+  }
 
   /** Follows the field from a point (tests, debug drawing). */
   trace(f, x, z, maxSteps = 2000) {

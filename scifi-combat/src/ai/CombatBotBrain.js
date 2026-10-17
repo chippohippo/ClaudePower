@@ -10,6 +10,8 @@
 //                 compensation, burst control, reloads, venting, ADS, gun swaps
 //   Sword       - MeleeDuelistBrain for close fights (parry/feint/guard-break reading)
 //   Safety      - steps out of telegraphed zones and line casts, retreats at low HP
+//   Objective   - frontline orders (FrontlineCommander): follow the flow field to the point,
+//                 fight on the way, spread over the point and hold it
 //
 // Tells (fairness): bots react after `reactionTime`, aim with wandering error, and their casts
 // go through the same telegraphs as yours.
@@ -76,6 +78,9 @@ export class CombatBotBrain {
     this.prevDist = null;
     this.profiles = new Map();
     this.log = [];                      // recent decisions, handy in tests and debug overlays
+    this.objective = null;              // { id, pos, radius, field, role, slot, of } from a commander
+    this.moveDir = new Vector3(); this.hasMoveDir = false;
+    this._cand = [];
     this.#listen();
   }
 
@@ -126,6 +131,7 @@ export class CombatBotBrain {
     const cmd = emptyCommand();
     cmd.tick = tick;
     const self = this.self;
+    this.hasMoveDir = false;
     if (self.health.dead) { this.target = null; this.vehicleGoal = null; this.pilot.lifeRoll = undefined; this.btn.finalize(cmd); return cmd; }
     this.decideIn -= dt; this.abilityLock -= dt; this.modeTimer += dt; this.swapTimer -= dt; this.vehicleCooldown -= dt;
 
@@ -164,8 +170,10 @@ export class CombatBotBrain {
       else {
         const bp = this.pilot.boardPoint(this.vehicleGoal, _b);
         this.#moveToward(cmd, bp, true);
+        const me = self.movement.state.position;
+        this.moveDir.set(bp.x - me.x, 0, bp.z - me.z).normalize();
         if (this.world.vehicles.nearestEnterable(self) === this.vehicleGoal) this.btn.press('interact');
-        if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); // shoot on the way
+        if (ctx.target && ctx.los) { this.#gunfight(dt, ctx, cmd, true); this.#worldMove(cmd, this.moveDir); } // shoot on the way
         this.btn.finalize(cmd);
         return cmd;
       }
@@ -177,8 +185,13 @@ export class CombatBotBrain {
     // ---- mode: sword or gun
     this.#chooseMode(ctx);
 
-    if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle) this.#swordfight(dt, tick, ctx, cmd);
-    else this.#gunfight(dt, ctx, cmd, false);
+    // Frontline orders: fight what's close (or on our point); otherwise keep pushing to the
+    // objective along the flow field, shooting on the move.
+    this.hasMoveDir = false; this.dodging = false;
+    const engage = ctx.target && (!this.objective || this.#worthFighting(ctx));
+    if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle && engage) this.#swordfight(dt, tick, ctx, cmd);
+    else if (engage || !this.objective) this.#gunfight(dt, ctx, cmd, false);
+    else { this.#advance(ctx, cmd); if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); }
 
     // ---- safety overrides: telegraph dodges, hostile zones, low-HP retreat
     this.#safety(ctx, cmd);
@@ -189,20 +202,35 @@ export class CombatBotBrain {
       const a = o.p && ctx.target && ['target', 'ground', 'level', 'near'].includes(o.p.aim) ? aimAbility(o.p, this.#context()) : o;
       cmd.yaw = a.yaw; cmd.pitch = a.pitch;
     }
+    // World-space moves (objective paths, dodges, zone escapes) become stick input relative to the
+    // final aim, so aiming elsewhere never bends the path.
+    if (this.hasMoveDir) { this.#worldMove(cmd, this.moveDir); if (!this.dodging) this.#avoidObstacles(cmd); }
     this.btn.finalize(cmd);
     return cmd;
   }
 
   // ---------------------------------------------------------------- perception
-  #valid(t) { return t && !t.removed && !t.health?.dead && this.world.fighters().includes(t); }
+  /** Same membership as world.fighters() without scanning it: alive, targetable, not inside a hull. */
+  #valid(t) { return !!t && !t.removed && !t.health?.dead && !t.isDeployable && (t.isVehicle || !t.vehicle || t.vehicle.exposed); }
 
   #pickTarget() {
     const me = this.self.movement.state.position;
-    let best = null, bs = Infinity;
-    for (const e of this.world.fighters()) {
-      if (e.team === this.self.team || e.health.dead || e.removed || e.isDeployable) continue;
+    // Candidates from the spatial grid on big maps; line of sight only for the nearest few
+    // (128 bots each raycasting every enemy would cost more than the whole battle).
+    const range = this.world.spatial ? this.diff.perceptionRange ?? 90 : Infinity;
+    const cand = this._cand; cand.length = 0;
+    this.world.fightersNear(me, range === Infinity ? 1e6 : range, (e) => {
+      if (e.team === this.self.team || e.health.dead || e.removed || e.isDeployable) return;
       const d = e.movement.state.position.distanceTo(me);
-      const vis = this.#visible(e, d);
+      if (d <= range) cand.push(d, e);
+    });
+    const order = [];
+    for (let i = 0; i < cand.length; i += 2) order.push(i);
+    order.sort((a, b) => cand[a] - cand[b]);
+    let best = null, bs = Infinity;
+    for (let k = 0; k < order.length; k++) {
+      const d = cand[order[k]], e = cand[order[k] + 1];
+      const vis = k < 4 && this.#visible(e, d);
       let s = d * (vis ? 1 : 2.2);
       if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
       else if (e.isVehicle) s += 8;
@@ -241,13 +269,13 @@ export class CombatBotBrain {
       ownsDeployable: (kind) => this.world.deployables.list.some((d) => d.ownerId === self.id && d.kind === kind && !d.removed),
       target: null, dist: Infinity, los: false, holdInterrupts: this.diff.interruptChance >= 0.5,
     };
-    for (const e of this.world.fighters()) {
-      if (e === self || e.health.dead || e.isDeployable) continue;
+    this.world.fightersNear(me, 30, (e) => {
+      if (e === self || e.health.dead || e.isDeployable) return;
       const d = e.movement.state.position.distanceTo(me);
-      if (e.team !== self.team) { if (d < 8) ctx.enemiesNear++; continue; }
+      if (e.team !== self.team) { if (d < 8) ctx.enemiesNear++; return; }
       if (d < 12) ctx.alliesNear++;
       if (!e.isVehicle && e.health.hp / e.health.max < ctx.hurtAllyHp) { ctx.hurtAlly = { e, pos: e.movement.state.position }; ctx.hurtAllyHp = e.health.hp / e.health.max; ctx.hurtAllyDist = d; }
-    }
+    });
     if (t) {
       const tp = t.movement.state.position;
       ctx.target = { e: t, pos: tp, isVehicle: !!t.isVehicle };
@@ -424,12 +452,51 @@ export class CombatBotBrain {
     }
   }
 
-  /** No target in sight: move toward the nearest enemy we know about. */
+  /** No target in sight: go to the objective if we have orders, else toward the nearest enemy we know about. */
   #hunt(cmd) {
+    if (this.objective) { this.#advance(this.#context(), cmd); return; }
     const me = this.self.movement.state.position;
     let best = null, bd = Infinity;
     for (const e of this.world.fighters()) if (e.team !== this.self.team && !e.health.dead && !e.isDeployable) { const d = e.movement.state.position.distanceTo(me); if (d < bd) { bd = d; best = e; } }
     if (best && bd > this.persona.preferredRange) this.#moveToward(cmd, best.movement.state.position, false);
+  }
+
+  // ---------------------------------------------------------------- frontline orders
+  /** Fight it out when the enemy is close, or on (or near) the point we're taking or holding. */
+  #worthFighting(ctx) {
+    if (ctx.dist < 40 || ctx.underFire) return true;
+    const o = this.objective, tp = ctx.target.pos;
+    return Math.hypot(tp.x - o.pos.x, tp.z - o.pos.z) < o.radius + 25;
+  }
+
+  /**
+   * Move to the objective: flow field around cover when far, straight to a slot on the point
+   * when close (the squad spreads over it), then hold facing the enemy's side.
+   * Sets a world-space move (applied after aiming, so shooting on the move doesn't bend the path).
+   */
+  #advance(ctx, cmd) {
+    const o = this.objective, me = this.self.movement.state.position, nav = this.world.nav;
+    const ang = (o.slot / Math.max(1, o.of)) * Math.PI * 2 + (o.id ?? 0) * 1.3;
+    const slotR = o.radius * (o.role === 'defend' ? 0.75 : 0.5);
+    const sx = o.pos.x + Math.cos(ang) * slotR, sz = o.pos.z + Math.sin(ang) * slotR;
+    const toPoint = Math.hypot(me.x - o.pos.x, me.z - o.pos.z);
+    const dir = this.moveDir;
+    if (toPoint < o.radius * 1.8) {
+      dir.set(sx - me.x, 0, sz - me.z);
+      const l = dir.length();
+      if (l < 1.5) {
+        // Holding: face the enemy's side of the map and wait for them.
+        const enemyHq = this.world.mode?.map.hq[1 - this.self.team];
+        if (enemyHq) { cmd.yaw = Math.atan2(-(enemyHq.x - me.x), -(enemyHq.z - me.z)) + Math.sin(this.time * 0.3 + o.slot) * 0.6; this.aimYaw = cmd.yaw; }
+        return;
+      }
+      dir.divideScalar(l);
+    } else if (!(nav && nav.sample(nav.field(o.field, o.pos.x, o.pos.z, o.radius * 0.6), me.x, me.z, dir))) {
+      dir.set(o.pos.x - me.x, 0, o.pos.z - me.z).normalize();
+    }
+    cmd.yaw = Math.atan2(-dir.x, -dir.z); cmd.pitch = 0; this.aimYaw = cmd.yaw;
+    this.hasMoveDir = true;
+    if (toPoint > 30 && !ctx.underFire && ctx.enemiesNear === 0 && !(ctx.target && ctx.los && ctx.dist < 50)) this.btn.hold('sprint');
   }
 
   #moveToward(cmd, p, sprint) {
@@ -463,15 +530,16 @@ export class CombatBotBrain {
   #safety(ctx, cmd) {
     const me = this.self.movement.state.position;
     // Telegraphed cast incoming at our position: sidestep (and roll if there's time).
+    this.dodging = false;
     if (this.time < this.dodgeUntil && this.time >= (this.dodgeAt ?? 0)) {
-      this.#worldMove(cmd, this.dodgeDir);
+      this.moveDir.copy(this.dodgeDir); this.hasMoveDir = true; this.dodging = true;
       if (this.dodgeRoll) { this.btn.press('dodge'); this.dodgeRoll = false; }
       this.btn.down.delete('light'); this.btn.down.delete('guard');
       return;
     }
     // Standing in a hostile zone (airstrike, anchor, storm): walk out along the threat vector.
     const threat = this.world.zones.threatAt(me, this.self.team, _b);
-    if (threat.lengthSq() > 0) { this.#worldMove(cmd, threat.normalize()); this.btn.hold('sprint'); }
+    if (threat.lengthSq() > 0) { this.moveDir.copy(threat.normalize()); this.hasMoveDir = true; this.btn.hold('sprint'); }
   }
 
   #worldMove(cmd, dir) {
