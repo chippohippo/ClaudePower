@@ -31,7 +31,7 @@ const CELL = 0.5;
  * @param {object} o  { id, x, z0, z1, bay, jog, width, depth, parapet, comms, dugouts, exits, clear(x0, z0, x1, z1) }
  *                     x, z0, bay, jog, width: whole metres (x - width/2 and z0 on the nav grid);
  *                     clear: may a communication trench or dugout be dug there?
- * @returns {object}  { id, x, z0, z1, corridors, positions, exits, dugouts, bays, width, depth, parapet }
+ * @returns {object}  { id, x, cx (centre line), z0, z1, corridors, positions, exits, dugouts, bays, width, depth, parapet }
  */
 export function buildTrenchLine(b, o) {
   const { id, x, z0, z1, bay = 10, jog = 4, width = 2, depth = 0.75, parapet = 0.5, comms = 2, dugouts = 2, exits = 24, clear = () => true } = o;
@@ -244,7 +244,7 @@ export function buildTrenchLine(b, o) {
       }
     }
   }
-  return { id, x, z0, z1, corridors, positions, exits: exitList, dugouts: dug, bays, width, depth, parapet };
+  return { id, x, cx: x + jog / 2, z0, z1, corridors, positions, exits: exitList, dugouts: dug, bays, width, depth, parapet };
 }
 
 /** Dig the corridor of a short trench or foxhole line at runtime (fortification); no boxes. */

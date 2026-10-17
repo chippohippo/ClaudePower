@@ -20,14 +20,19 @@ const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
 export class NavGrid {
   /**
    * @param {object} bounds { minX, minZ, width, depth, cell }
-   * @param {object} opts   { cover (array | CoverIndex), terrain, maxSlope, vaultHeight, agentRadius, zones: [{ minX, minZ, maxX, maxZ, cost }] }
+   * @param {object} opts   { cover (array | CoverIndex), terrain, maxSlope, vaultHeight, agentRadius, zones: [{ minX, minZ, maxX, maxZ, cost }],
+   *                          portals: [{ x, z, nx, nz }] doorways (routes thread through their centres) }
    */
-  constructor({ minX, minZ, width, depth, cell = 2 }, { cover = [], terrain = null, maxSlope = 38, vaultHeight = 1.0, agentRadius = 0.45, zones = [] } = {}) {
+  constructor({ minX, minZ, width, depth, cell = 2 }, { cover = [], terrain = null, maxSlope = 38, vaultHeight = 1.0, agentRadius = 0.45, zones = [], portals = [] } = {}) {
     this.minX = minX; this.minZ = minZ; this.cell = cell;
     this.nx = Math.ceil(width / cell); this.nz = Math.ceil(depth / cell);
     this.cover = cover; this.terrain = terrain;
     this.maxSlope = maxSlope; this.vaultHeight = vaultHeight; this.agentRadius = agentRadius;
     this.zones = zones;
+    // Doorways (narrower than a cell): their cells stay open and routes pass through the door's
+    // centre. portal[cell] = index + 1 into `portals`.
+    this.portals = portals;
+    this.portal = new Uint16Array(this.nx * this.nz);
     this.cost = new Float32Array(this.nx * this.nz);
     this.version = 0;
     this.fields = new Map();
@@ -71,18 +76,30 @@ export class NavGrid {
       const ground = t ? t.height((b.min.x + b.max.x) / 2, (b.min.z + b.max.z) / 2) : 0;
       const h = b.max.y - Math.max(ground, b.min.y);
       if (h <= 0.35) return;
-      // Trench parapets are climbable (going over the top) and aren't grown: the trench floor
-      // beside them stays its own open column of cells.
+      // Trench parapets are climbable (going over the top, at a cost that keeps routes from
+      // walking along their tops) and aren't grown: the floor beside them stays its own column.
       const parapet = b.kind === 'parapet', g = parapet ? -0.01 : r;
       const bx0 = Math.max(x0, Math.floor((b.min.x - g - this.minX) / c)), bx1 = Math.min(x1, Math.floor((b.max.x + g - this.minX) / c));
       const bz0 = Math.max(z0, Math.floor((b.min.z - g - this.minZ) / c)), bz1 = Math.min(z1, Math.floor((b.max.z + g - this.minZ) / c));
       for (let iz = bz0; iz <= bz1; iz++) for (let ix = bx0; ix <= bx1; ix++) {
         const i = iz * this.nx + ix;
-        this.cost[i] = h > this.vaultHeight && !parapet ? Infinity : Math.max(this.cost[i], 4);
+        this.cost[i] = h > this.vaultHeight && !parapet ? Infinity : Math.max(this.cost[i], parapet ? 6 : 4);
       }
     };
     if (this.cover?.queryAABB) this.cover.queryAABB(minX - r, minZ - r, maxX + r, maxZ + r, visit);
     else for (const b of this.cover ?? []) if (b.max.x >= minX - r && b.min.x <= maxX + r && b.max.z >= minZ - r && b.min.z <= maxZ + r) visit(b);
+    for (const [k, d] of this.portals.entries()) {
+      if (d.x < minX - c || d.x > maxX + c || d.z < minZ - c || d.z > maxZ + c) continue;
+      // The cells the doorway's opening passes through (across the wall, ±1 m), open at a small cost.
+      for (const s of [-1, 0, 1]) {
+        const i = this.index(d.x + d.nx * s, d.z + d.nz * s);
+        if (i < 0) continue;
+        const ix = i % this.nx, iz = (i - ix) / this.nx;
+        if (ix < x0 || ix > x1 || iz < z0 || iz > z1) continue;
+        this.cost[i] = this.cost[i] === Infinity ? 1.5 : Math.max(this.cost[i], 1.5);
+        this.portal[i] = k + 1;
+      }
+    }
     for (const z of this.zones) {
       if (z.maxX < minX || z.minX > maxX || z.maxZ < minZ || z.minZ > maxZ) continue;
       const zx0 = Math.max(x0, Math.floor((z.minX - this.minX) / c)), zx1 = Math.min(x1, Math.floor((z.maxX - this.minX) / c));
@@ -238,6 +255,111 @@ export class NavGrid {
       best = Math.min(best, f.dist[jz * this.nx + jx] + Math.hypot(dx, dz));
     }
     return best * this.cell;
+  }
+
+  /**
+   * A* route between two points, for squad moves (cover to cover, a doorway, a formation slot):
+   * world-space waypoints, string-pulled so soldiers walk straight across open ground and only
+   * turn at corners. The search gives up after `maxExpand` cells and returns the route to the
+   * reachable cell nearest the goal (`reached: false`: walk on and ask again). Shortcuts never
+   * take a costlier cell (wire, a parapet) than the route itself crossed there.
+   * @returns {{ pts: number[], reached: boolean } | null}  pts = [x0, z0, x1, z1, ...] (start excluded)
+   */
+  path(sx, sz, gx, gz, { maxExpand = 3000 } = {}) {
+    const nx = this.nx, nz = this.nz, cost = this.cost;
+    if (!this.astar) {
+      const n = nx * nz;
+      this.astar = { g: new Float32Array(n), from: new Int32Array(n), seen: new Uint32Array(n), closed: new Uint32Array(n), gen: 0, heap: new MinHeap(8192) };
+    }
+    const A = this.astar, heap = A.heap;
+    const gen = ++A.gen;
+    const s = this.#nearestOpen(this.index(sx, sz)), goal = this.#nearestOpen(this.index(gx, gz));
+    if (s < 0 || goal < 0) return null;
+    const gix = goal % nx, giz = (goal - gix) / nx;
+    const h = (i) => { const ix = i % nx, iz = (i - ix) / nx, dx = Math.abs(ix - gix), dz = Math.abs(iz - giz); return dx + dz + (Math.SQRT2 - 2) * Math.min(dx, dz); };
+    heap.size = 0;
+    A.g[s] = 0; A.from[s] = -1; A.seen[s] = gen;
+    heap.push(s, h(s));
+    let best = s, bestH = h(s), expanded = 0, reached = false;
+    while (heap.size) {
+      const i = heap.pop();
+      if (A.closed[i] === gen) continue;
+      A.closed[i] = gen;
+      if (i === goal) { best = i; reached = true; break; }
+      const hi = h(i);
+      if (hi < bestH) { bestH = hi; best = i; }
+      if (++expanded > maxExpand) break;
+      const ix = i % nx, iz = (i - ix) / nx, gi = A.g[i];
+      for (let k = 0; k < 8; k++) {
+        const jx = ix + DX[k], jz = iz + DZ[k];
+        if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
+        const j = jz * nx + jx;
+        if (cost[j] === Infinity || A.closed[j] === gen) continue;
+        if (k >= 4 && (cost[iz * nx + jx] === Infinity || cost[jz * nx + ix] === Infinity)) continue;
+        const ng = gi + LEN[k] * 0.5 * (cost[i] + cost[j]);
+        if (A.seen[j] !== gen || ng < A.g[j]) { A.seen[j] = gen; A.g[j] = ng; A.from[j] = i; heap.push(j, ng + h(j)); }
+      }
+    }
+    const cells = [];
+    for (let i = best; i >= 0 && cells.length < 4096; i = A.from[i]) cells.push(i);
+    cells.reverse();
+    // String-pull: keep a waypoint only where the straight line from the last one stops being clear.
+    const pts = [], c = this.cell, cx = (i) => this.minX + ((i % nx) + 0.5) * c, cz = (i) => this.minZ + (Math.floor(i / nx) + 0.5) * c;
+    let ax = sx, az = sz, run = cost[cells[0]], anchor = 0;
+    for (let k = 1; k < cells.length; k++) {
+      const door = this.portal[cells[k]];
+      if (door && this.portal[cells[k - 1]] !== door) {
+        // Into a doorway: straight to the threshold, through the door's centre, out the far side.
+        const d = this.portals[door - 1], side = Math.sign((d.x - ax) * d.nx + (d.z - az) * d.nz) || 1;
+        if (k - 1 > anchor) pts.push(cx(cells[k - 1]), cz(cells[k - 1]));
+        pts.push(d.x - d.nx * side * 0.8, d.z - d.nz * side * 0.8, d.x + d.nx * side * 0.8, d.z + d.nz * side * 0.8);
+        ax = d.x + d.nx * side * 0.8; az = d.z + d.nz * side * 0.8;
+        while (k + 1 < cells.length && this.portal[cells[k + 1]] === door) k++;
+        anchor = k; run = cost[cells[k]];
+        continue;
+      }
+      run = Math.max(run, cost[cells[k]]);
+      if (k - anchor < 40 && this.lineClear(ax, az, cx(cells[k]), cz(cells[k]), run)) continue;
+      const w = cells[k - 1];
+      ax = cx(w); az = cz(w); pts.push(ax, az);
+      anchor = k - 1; run = Math.max(cost[w], cost[cells[k]]);
+    }
+    if (reached) pts.push(gx, gz); else if (cells.length > 1) pts.push(cx(best), cz(best));
+    return { pts, reached };
+  }
+
+  /** Is the straight segment walkable through cells no costlier than `maxCost`? (grid DDA) */
+  lineClear(x0, z0, x1, z1, maxCost = 1) {
+    const c = this.cell, nx = this.nx, nz = this.nz;
+    let ix = Math.floor((x0 - this.minX) / c), iz = Math.floor((z0 - this.minZ) / c);
+    const ex = Math.floor((x1 - this.minX) / c), ez = Math.floor((z1 - this.minZ) / c);
+    const dx = x1 - x0, dz = z1 - z0;
+    const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+    const tdx = dx !== 0 ? Math.abs(c / dx) : Infinity, tdz = dz !== 0 ? Math.abs(c / dz) : Infinity;
+    let tx = dx !== 0 ? ((sx > 0 ? this.minX + (ix + 1) * c - x0 : x0 - (this.minX + ix * c)) / Math.abs(dx)) : Infinity;
+    let tz = dz !== 0 ? ((sz > 0 ? this.minZ + (iz + 1) * c - z0 : z0 - (this.minZ + iz * c)) / Math.abs(dz)) : Infinity;
+    for (let guard = 0; guard < 4096; guard++) {
+      if (ix < 0 || iz < 0 || ix >= nx || iz >= nz) return false;
+      const k = this.cost[iz * nx + ix];
+      if (k === Infinity || k > maxCost) return false;
+      if ((ix === ex && iz === ez) || Math.min(tx, tz) > 1) return true;   // reached the end cell (or passed the end on a cell corner)
+      if (tx < tz) { tx += tdx; ix += sx; } else { tz += tdz; iz += sz; }
+    }
+    return false;
+  }
+
+  #nearestOpen(i) {
+    if (i < 0) return -1;
+    if (this.cost[i] !== Infinity) return i;
+    const ix = i % this.nx, iz = (i - ix) / this.nx;
+    let best = -1, bd = Infinity;
+    for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+      const jx = ix + dx, jz = iz + dz;
+      if (jx < 0 || jz < 0 || jx >= this.nx || jz >= this.nz) continue;
+      const j = jz * this.nx + jx, d = dx * dx + dz * dz;
+      if (this.cost[j] !== Infinity && d < bd) { bd = d; best = j; }
+    }
+    return best;
   }
 
   /** Follows the field from a point (tests, debug drawing). */

@@ -25,6 +25,15 @@ const v = (x, y, z) => new Vector3(x, y, z);
 const alignOdd = (x, origin) => { const r = Math.round(x); return (r - origin) % 2 === 0 ? r + 1 : r; };
 const VEHICLES = { tank: ['solari_lancer_tank', 'void_crawler_tank'], hoverbike: ['solari_hoverbike', 'void_skiff'] };
 
+/** Every doorway of every ruin once (interior doors are listed by both rooms). */
+function doorways(ruins) {
+  const out = [];
+  for (const r of ruins) for (const room of r.rooms) for (const d of room.doors) {
+    if (!out.some((q) => Math.abs(q.x - d.x) < 0.01 && Math.abs(q.z - d.z) < 0.01)) out.push({ x: d.x, z: d.z, nx: d.nx, nz: d.nz });
+  }
+  return out;
+}
+
 /**
  * @param {object} o { seed, size: '4v4' | '12v12' | '32v32' | '64v64', layout (a MapSizes-style profile) }
  * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors, points, hq, pads, trenches, ruins, wire, craters, structures, bounds }}
@@ -232,6 +241,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   const nav = new NavGrid({ minX: P.minX, minZ: P.minZ, width: P.width, depth: P.depth, cell: 2 }, {
     cover, terrain, maxSlope: 38, vaultHeight: 1.1,
     zones: wire.map((w) => ({ minX: w.min.x, minZ: w.min.z, maxX: w.max.x, maxZ: w.max.z, cost: 8 })),
+    portals: doorways(ruins),
   });
 
   // ---- vehicle pads by the HQs

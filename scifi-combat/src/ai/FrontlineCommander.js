@@ -7,8 +7,11 @@
 //    under attack. Priorities: points being captured from us, then enemy points we're closest to
 //    taking, then neutral points. Allocation is proportional with a minimum of one squad per
 //    attack point, and squads keep their orders unless the plan changed a lot (no thrashing).
-//  * Orders are plain data on each brain (`brain.objective`); CombatBotBrain follows the flow
-//    field there, fights on the way, then holds the point.
+//  * Orders are plain data on each brain (`brain.objective`); each squad's SquadTactics turns
+//    them into moves (bounding, clearing, holding the line) for its soldiers.
+//  * Over the top: squads attacking across their own trench line man it and report ready; the
+//    commander blows one whistle for the whole line (waiting a few seconds for other squads to
+//    get in, at most one wave every 18 s), and every squad ready in that trench goes at once.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
@@ -42,13 +45,39 @@ export class FrontlineCommander {
     this.timer = 0;
     this.time = 0;
     this.squads = [];
+    this.waves = new Map();   // trench id -> { at, ready: Set<SquadTactics>, blown, x, z }
     this.off = bus.on('mode:sector', () => { this.timer = 0; });
+  }
+
+  /** A squad is in position in trench T: it goes with the next whistle on that line. */
+  readyAtTrench(tactics, T) {
+    let w = this.waves.get(T.id);
+    if (!w) { w = { at: null, ready: new Set(), blown: -1e9 }; this.waves.set(T.id, w); }
+    // Just missed a whistle? Go with it.
+    if (this.time - w.blown < 3) { tactics.overTheTop(); return w.blown; }
+    w.ready.add(tactics);
+    if (w.at === null) w.at = Math.max(this.time + 6, w.blown + 18);
+    return w.at;
+  }
+
+  #whistles() {
+    for (const [id, w] of this.waves) {
+      if (w.at === null || this.time < w.at) continue;
+      const list = [...w.ready].filter((t) => t.jump && !t.jump.gone && t.jump.T.id === id && t.phase === 'jumpoff');
+      w.at = null; w.ready.clear();
+      if (!list.length) continue;
+      w.blown = this.time;
+      const x = list[0].jump.T.cx, z = list.reduce((a, t) => a + t.center.z, 0) / list.length;
+      for (const t of list) t.overTheTop();
+      bus.emit('squad:whistle', { team: this.team, trench: id, x, z, squads: list.map((t) => t.squad.id) });
+    }
   }
 
   dispose() { this.off?.(); }
 
   update(dt) {
     this.time += dt;
+    this.#whistles();
     this.timer -= dt;
     if (this.timer > 0) return;
     this.timer = this.interval;

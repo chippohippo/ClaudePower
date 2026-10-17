@@ -32,6 +32,7 @@ export class EntityGrid {
   /** cb(e) for every entity whose cell overlaps the circle (callers do the exact distance test). */
   queryCircle(x, z, r, cb) {
     const c = this.cell;
+    if (!Number.isFinite(x + z + r) || r > 4096) return;   // never a runaway loop on a corrupt query
     const x0 = Math.floor((x - r) / c), x1 = Math.floor((x + r) / c), z0 = Math.floor((z - r) / c), z1 = Math.floor((z + r) / c);
     for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) {
       const cell = this.cells.get(KEY(ix, iz));

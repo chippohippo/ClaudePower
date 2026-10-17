@@ -10,6 +10,13 @@
 //                 compensation, burst control, reloads, venting, ADS, gun swaps
 //   Sword       - MeleeDuelistBrain for close fights (parry/feint/guard-break reading)
 //   Safety      - steps out of telegraphed zones and line casts, retreats at low HP
+//   Orders      - squad orders (SquadTactics): move, bound, overwatch, man a trench, hold, stack
+//                 on a door, enter and sweep a room, throw a grenade in, assault, charge. The
+//                 brain walks there (A* between cover, the flow field when far), takes the stance
+//                 the cover allows (crouch behind half cover and stand to fire over it, lean out
+//                 past a corner, prone in a crater), pops up to fire in bursts and back down,
+//                 suppresses what the squad has seen, and unsticks itself when blocked.
+//                 Without orders (arena, no squad): the frontline objective, or free fighting.
 //   Objective   - frontline orders (FrontlineCommander): follow the flow field to the point,
 //                 fight on the way, spread over the point and hold it
 //   Downs       - downed: crawl toward help, lie still while being revived, give up when alone;
@@ -24,7 +31,7 @@ import { emptyCommand } from '../input/InputManager.js';
 import { rng } from '../combat/weapons/WeaponSystem.js';
 import { angleDelta } from '../core/geom.js';
 import { MeleeDuelistBrain } from './MeleeDuelistBrain.js';
-import { profileAbility, scoreAbility, aimAbility, abilityReach } from './AbilityPlanner.js';
+import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch } from './AbilityPlanner.js';
 import { VehiclePilot } from './VehiclePilot.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
@@ -82,6 +89,13 @@ export class CombatBotBrain {
     this.log = [];                      // recent decisions, handy in tests and debug overlays
     this.objective = null;              // { id, pos, radius, field, role, slot, of } from a commander
     this.reviveGoal = null; this.downT = 0;
+    this.order = null;                  // squad order (SquadTactics), or null
+    this.route = null;                  // { pts, i, gx, gz, at } A* waypoints to the order's position
+    this.stuck = { t: 0, x: 0, z: 0, level: 0, side: 1, until: 0, repath: false };
+    this.sawAt = -1e9;                  // last time the target was in sight (squads share sightings)
+    this.expose = { up: false, until: 0 };   // pop up to fire over cover, then back down
+    this.proneAt = -1e9;                // last time an order wanted us prone (crater, pinned)
+    this.arriving = false;              // the last metres to a cover spot: no feeler sidesteps
     this.moveDir = new Vector3(); this.hasMoveDir = false;
     this._cand = [];
     this.#listen();
@@ -153,7 +167,7 @@ export class CombatBotBrain {
 
     // ---- after a dive (or a knockdown into prone) bots get straight back up: jump = stand up from prone
     const ms = self.movement.state;
-    if (ms.mode === 'ground' && ms.stance === 'prone' && !ms.stanceT && !self.vehicle) this.btn.press('jump');
+    if (ms.mode === 'ground' && ms.stance === 'prone' && !ms.stanceT && !self.vehicle && this.time - this.proneAt > 0.5) this.btn.press('jump');
 
     // ---- in a vehicle: the pilot owns the command
     if (self.vehicle) {
@@ -193,13 +207,16 @@ export class CombatBotBrain {
     // ---- mode: sword or gun
     this.#chooseMode(ctx);
 
-    // Frontline orders: fight what's close (or on our point); otherwise keep pushing to the
-    // objective along the flow field, shooting on the move.
     this.hasMoveDir = false; this.dodging = false;
-    const engage = ctx.target && (!this.objective || this.#worthFighting(ctx));
-    if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle && engage) this.#swordfight(dt, tick, ctx, cmd);
-    else if (engage || !this.objective) this.#gunfight(dt, ctx, cmd, false);
-    else { this.#advance(ctx, cmd); if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); }
+    if (this.order) this.#execute(this.order, ctx, cmd, dt, tick);
+    else {
+      // Frontline orders without a squad plan: fight what's close (or on our point); otherwise
+      // keep pushing to the objective along the flow field, shooting on the move.
+      const engage = ctx.target && (!this.objective || this.#worthFighting(ctx));
+      if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle && engage) this.#swordfight(dt, tick, ctx, cmd);
+      else if (engage || !this.objective) this.#gunfight(dt, ctx, cmd, false);
+      else { this.#advance(ctx, cmd); if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); }
+    }
 
     // ---- safety overrides: telegraph dodges, hostile zones, low-HP retreat
     this.#safety(ctx, cmd);
@@ -212,7 +229,8 @@ export class CombatBotBrain {
     }
     // World-space moves (objective paths, dodges, zone escapes) become stick input relative to the
     // final aim, so aiming elsewhere never bends the path.
-    if (this.hasMoveDir) { this.#worldMove(cmd, this.moveDir); if (!this.dodging) this.#avoidObstacles(cmd); }
+    if (this.hasMoveDir) { this.#worldMove(cmd, this.moveDir); if (!this.dodging && !this.arriving) this.#avoidObstacles(cmd); }
+    this.arriving = false;
     this.btn.finalize(cmd);
     return cmd;
   }
@@ -368,6 +386,7 @@ export class CombatBotBrain {
       ctx.targetVel = t.movement.state.velocity;
       ctx.dist = tp.distanceTo(me);
       ctx.los = this.#visible(t, ctx.dist);
+      if (ctx.los) this.sawAt = this.time;
       ctx.vehicleLos = ctx.los;
       ctx.targetSpeed = Math.hypot(t.movement.state.velocity.x, t.movement.state.velocity.z);
       ctx.targetRooted = !!t.status?.rooted || t.status?.has('slow');
@@ -484,7 +503,7 @@ export class CombatBotBrain {
     const step = this.diff.aimSpeed * dt;
     this.aimYaw += Math.max(-step, Math.min(step, angleDelta(this.aimYaw, wantYaw)));
     this.aimPitch += Math.max(-step, Math.min(step, wantPitch - this.aimPitch));
-    const err = (this.diff.aimError * Math.PI) / 180;
+    const err = (this.diff.aimError * (1 + 1.6 * (self.suppression ?? 0)) * Math.PI) / 180;   // rounds cracking past spoil your aim
     const ey = Math.sin(this.time * 1.3 + this.errPhase) * err * (0.6 + 0.4 * Math.sin(this.time * 0.7));
     const ep = Math.sin(this.time * 1.7 + this.errPhase * 2) * err * 0.5;
     const comp = this.diff.recoilComp;
@@ -515,7 +534,9 @@ export class CombatBotBrain {
     const reacted = this.time - this.targetSince > this.diff.reactionTime;
     const range = s.range ?? (s.projectile === 'beam' ? 35 : s.pellets ? 25 : 120);
     const hot = w.usesHeat && w.heat > w.s.ammo.max * 0.85;
-    const canFire = ctx.los && reacted && aimed && ctx.dist < range && !hot && wc.phase === 'ready' && !this.self.status.disarmed;
+    // Crouched or prone behind cover: the muzzle may be under the parapet (posture stands us up first).
+    const low = self.movement.state.stance !== 'stand' && !this.#muzzleClear(t.pos, ctx.dist);
+    const canFire = ctx.los && reacted && aimed && ctx.dist < range && !hot && wc.phase === 'ready' && !this.self.status.disarmed && !low;
     if (wc.shotIndex !== this.lastShotIndex) { this.burstShots += wc.shotIndex - this.lastShotIndex; this.lastShotIndex = wc.shotIndex; }
     this.burstPause -= dt;
     const burstLen = ctx.dist < 10 ? 30 : ctx.dist < 25 ? 9 : 4;
@@ -590,6 +611,239 @@ export class CombatBotBrain {
     cmd.yaw = Math.atan2(-dir.x, -dir.z); cmd.pitch = 0; this.aimYaw = cmd.yaw;
     this.hasMoveDir = true;
     if (toPoint > 30 && !ctx.underFire && ctx.enemiesNear === 0 && !(ctx.target && ctx.los && ctx.dist < 50)) this.btn.hold('sprint');
+  }
+
+  // ---------------------------------------------------------------- squad orders
+  /** Carry out a squad order: get there, then fight from there the way the cover allows. */
+  #execute(o, ctx, cmd, dt, tick) {
+    const self = this.self, sup = self.suppression ?? 0, t = ctx.target;
+    // Sword fighters close in on enemies near them whatever the order: the sword is their gun.
+    if (this.persona.melee === 'prefer' && self.mode === 'sword' && t && !t.isVehicle && ctx.los && ctx.dist < 14 && o.kind !== 'grenade') {
+      this.#swordfight(dt, tick, ctx, cmd); this.#stance('stand'); return;
+    }
+    if (o.kind === 'charge') { this.#charge(o, ctx, cmd, dt, tick); return; }
+    // An enemy we can see close by is fought whatever the order; on the move we stop for him.
+    const close = !!(t && ctx.los && ctx.dist < (o.kind === 'bound' ? 7 : 10));
+    const moveOrder = o.kind === 'move' || o.kind === 'bound' || o.kind === 'regroup';
+    if (close && moveOrder) {
+      if (self.mode === 'sword' && !t.isVehicle) this.#swordfight(dt, tick, ctx, cmd); else this.#gunfight(dt, ctx, cmd, false);
+      this.#stance(sup > 0.6 ? 'crouch' : 'stand');
+      return;
+    }
+    // Where to stand: the order's position, or the corner to lean out from while firing.
+    const spot = o.spot;
+    const exposing = this.#exposure(o, ctx, sup, dt);
+    let dest = exposing && spot?.peek ? spot.peek : o.pos;
+    // Waypoints spelled out by the squad (through a doorway): walk them in order first.
+    if (o.via) {
+      if (this.viaOf !== o.via) { this.viaOf = o.via; this.viaIdx = 0; }
+      const me = self.movement.state.position;
+      while (this.viaIdx < o.via.length && Math.hypot(o.via[this.viaIdx].x - me.x, o.via[this.viaIdx].z - me.z) < 0.7) this.viaIdx++;
+      if (this.viaIdx < o.via.length) {
+        const w = o.via[this.viaIdx];
+        if (this.viaIdx === 0 && Math.hypot(w.x - me.x, w.z - me.z) > 3) { this.#goTo(cmd, w, dt, { sprint: false, radius: 0.5 }); }
+        else { this.moveDir.set(w.x - me.x, 0, w.z - me.z).normalize(); this.hasMoveDir = true; this.arriving = true; this.#unstick(dt); }
+        if (t && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
+        this.#stance('stand');
+        return;
+      }
+    }
+    let arrived = true;
+    if (dest) arrived = this.#goTo(cmd, dest, dt, { sprint: o.sprint && sup < 0.6, radius: o.arrive ?? 1, field: o.field, follow: o.follow });
+    if (o.kind === 'grenade') { if (arrived) this.#throwGrenade(o, cmd); this.#stance('crouch'); return; }
+    // Fire discipline: overwatch and holds engage what they see, movers only what's near.
+    const fire = o.fire ?? 'free';
+    if (t && ctx.los && (fire === 'free' || fire === 'cover' || (fire === 'move' && ctx.dist < 45) || close)) this.#gunfight(dt, ctx, cmd, true);
+    else if (o.suppress && arrived && fire === 'cover' && exposing && this.#canSuppress(o.suppress)) this.#suppressFire(o.suppress, cmd, dt);
+    else this.#look(cmd, arrived ? o.face : null, dt);
+    this.#posture(o, arrived, exposing, sup);
+  }
+
+  /**
+   * Behind cover, fighting is a rhythm: up for a burst or two, down to reload or when the fire
+   * gets heavy, then up again. Returns true while exposed.
+   */
+  #exposure(o, ctx, sup, dt) {
+    const E = this.expose, w = this.self.weapons;
+    const wants = (ctx.target && ctx.los) || (o.suppress && o.fire === 'cover');
+    const reloading = w.phase === 'reloading' || w.phase === 'venting';
+    if (!wants || reloading || sup > 0.8) { E.up = false; return false; }
+    if (this.time >= E.until) {
+      E.up = !E.up;
+      E.until = this.time + (E.up ? 1.6 + this.rand() * 1.6 : 0.6 + this.rand() * 0.8 + sup * 1.2);
+    }
+    return E.up;
+  }
+
+  /**
+   * Walk to a point: A* waypoints between cover (string-pulled), the objective's flow field when
+   * far, straight at it when there's no nav. Returns true once within `radius`.
+   */
+  #goTo(cmd, p, dt, { sprint = false, radius = 1, field = null, follow = false } = {}) {
+    const me = this.self.movement.state.position, nav = this.world.nav, dir = this.moveDir;
+    const dx = p.x - me.x, dz = p.z - me.z, d = Math.hypot(dx, dz);
+    // Arrived (and at the right level: on the trench floor, not on the sandbags above the spot).
+    const level = p.y === undefined || Math.abs(p.y - me.y) < 0.9;
+    if (d <= radius && level) { this.route = null; this.stuck.level = 0; this.stuck.t = 0; return true; }
+    if (d <= radius) { this.moveDir.set(dx / Math.max(d, 0.05), 0, dz / Math.max(d, 0.05)); this.hasMoveDir = true; this.arriving = true; return false; }   // step down to it
+    this.arriving = d < 2.6;
+    let steered = false;
+    if (nav && field && d > 60) {
+      steered = nav.sample(nav.field(field, p.x, p.z, 4), me.x, me.z, dir);
+    } else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
+      let R = this.route;
+      const moved = R ? Math.hypot(R.gx - p.x, R.gz - p.z) : Infinity;
+      if (!R || (moved > 1.5 && this.time - R.at > 0.8) || moved > 5 || this.time - R.at > 6 || this.stuck.repath) {
+        const res = nav.path(me.x, me.z, p.x, p.z, { maxExpand: d > 80 ? 6000 : 2500 });
+        R = this.route = { pts: res?.pts?.length ? res.pts : [p.x, p.z], i: 0, gx: p.x, gz: p.z, at: this.time };
+        this.stuck.repath = false;
+      }
+      while (R.i < R.pts.length - 2 && Math.hypot(R.pts[R.i] - me.x, R.pts[R.i + 1] - me.z) < 1.4) R.i += 2;
+      const wx = R.pts[R.i], wz = R.pts[R.i + 1], l = Math.hypot(wx - me.x, wz - me.z);
+      if (l > 0.05) { dir.set((wx - me.x) / l, 0, (wz - me.z) / l); steered = true; }
+    }
+    if (!steered) dir.set(dx / d, 0, dz / d);
+    this.#unstick(dt);
+    this.hasMoveDir = true;
+    if (sprint && d > 4) this.btn.hold('sprint');
+    return false;
+  }
+
+  /** Blocked for a while? Climb, then re-plan the route, then sidestep out of the corner. */
+  #unstick(dt) {
+    const S = this.stuck, me = this.self.movement.state.position;
+    S.t += dt;
+    if (S.t >= 1.0) {
+      const moved = Math.hypot(me.x - S.x, me.z - S.z);
+      S.level = moved < 0.45 ? S.level + 1 : 0;
+      S.t = 0; S.x = me.x; S.z = me.z;
+      if (S.level === 2) S.repath = true;
+      if (S.level >= 3) { S.side = this.rand() < 0.5 ? 1 : -1; S.until = this.time + 0.9; if (S.level > 5) { S.level = 1; S.repath = true; } }
+    }
+    if (S.level >= 1) this.btn.hold('jump');                     // climb or vault whatever is in the way
+    if (this.time < S.until) this.moveDir.set(-this.moveDir.z * S.side, 0, this.moveDir.x * S.side);
+  }
+
+  /** Face a point (watching a sector, with a slow scan), or along the move. */
+  #look(cmd, face, dt) {
+    const me = this.self.movement.state.position;
+    let yaw;
+    if (face) yaw = Math.atan2(-(face.x - me.x), -(face.z - me.z)) + Math.sin(this.time * 0.45 + this.errPhase) * 0.35;
+    else if (this.hasMoveDir) yaw = Math.atan2(-this.moveDir.x, -this.moveDir.z);
+    else return;
+    const step = this.diff.aimSpeed * 0.6 * dt;
+    this.aimYaw += Math.max(-step, Math.min(step, angleDelta(this.aimYaw, yaw)));
+    this.aimPitch *= 0.9;
+    cmd.yaw = this.aimYaw; cmd.pitch = this.aimPitch;
+  }
+
+  /** The stance a position calls for: low behind cover, up to fire over it, prone in a crater. */
+  #posture(o, arrived, exposing, sup) {
+    if (!arrived) { this.#stance(o.kind === 'bound' || o.sprint ? 'stand' : sup > 0.75 ? 'crouch' : 'stand'); return; }
+    const s = o.spot;
+    let want;
+    if (o.stance) want = o.stance;
+    else if (s?.fire === 'prone' || (!s && sup > 0.85) || (o.kind === 'bound' && !s && sup > 0.5)) want = 'prone';
+    else if (s?.fire === 'over') want = exposing ? 'stand' : 'crouch';
+    else if (s?.fire === 'around' || s?.fire === 'hide') want = sup > 0.6 && !exposing ? 'crouch' : 'stand';
+    else want = (o.kind === 'hold' || o.kind === 'overwatch' || o.kind === 'man') && !exposing ? 'crouch' : sup > 0.6 ? 'crouch' : 'stand';
+    this.#stance(want);
+  }
+
+  /** Get to a stance with the same inputs a player has (crouch tap/hold, prone key, jump). */
+  #stance(want) {
+    const ms = this.self.movement.state;
+    if (want === 'prone') this.proneAt = this.time;
+    if (ms.mode !== 'ground' || ms.stanceT || ms.crouchPress) return;
+    const cur = ms.stance;
+    if (cur === want) return;
+    if (want === 'prone') { this.proneAt = this.time; this.btn.press('prone'); return; }
+    if (cur === 'prone') { this.btn.press(want === 'stand' ? 'jump' : 'crouch'); return; }
+    if (this.btn.down.has('sprint')) return;                   // crouching at a sprint is a slide
+    this.btn.press('crouch');                                   // stand <-> crouch tap
+  }
+
+  /** Can rounds fired from the muzzle (at this stance) reach the target's chest? */
+  #muzzleClear(tp, dist) {
+    const me = this.self.movement.state.position, st = this.self.movement.state.stance;
+    _a.set(me.x, me.y + (st === 'prone' ? 0.4 : st === 'crouch' ? 1.05 : 1.6), me.z);
+    _d.set(tp.x - me.x, tp.y + 1.1 - _a.y, tp.z - me.z);
+    const l = _d.length();
+    if (l < 0.5) return true;
+    return !this.world.raycastStatic(_a, _d.divideScalar(l), Math.min(dist, l) - 0.3);
+  }
+
+  /** Will rounds fired at a remembered enemy position land near it (not in the cover in front of us)? */
+  #canSuppress(p) {
+    const me = this.self.movement.state.position;
+    const from = this.#eye(_a);
+    _d.set(p.x - from.x, (p.y ?? me.y) + 1 - from.y, p.z - from.z);
+    const l = _d.length();
+    if (l < 3 || l > 110) return false;
+    const hit = this.world.raycastStatic(from, _d.divideScalar(l), l);
+    return !hit || hit.distance > l * 0.75;
+  }
+
+  /** Suppressive fire: bursts swept across where the enemy was last seen. */
+  #suppressFire(p, cmd, dt) {
+    const me = this.self.movement.state.position, wc = this.self.weapons, w = wc.current, s = w.s;
+    const sweep = Math.sin(this.time * 1.3 + this.errPhase) * 1.6;
+    const dx = p.x - me.x, dz = p.z - me.z, l = Math.hypot(dx, dz) || 1;
+    const ax = p.x + (-dz / l) * sweep, az = p.z + (dx / l) * sweep, ay = (p.y ?? me.y) + 1.0;
+    const wantYaw = Math.atan2(-(ax - me.x), -(az - me.z));
+    const wantPitch = Math.atan2(ay - (me.y + 1.6), Math.max(0.5, Math.hypot(ax - me.x, az - me.z)));
+    const step = this.diff.aimSpeed * dt;
+    this.aimYaw += Math.max(-step, Math.min(step, angleDelta(this.aimYaw, wantYaw)));
+    this.aimPitch += Math.max(-step, Math.min(step, wantPitch - this.aimPitch));
+    cmd.yaw = this.aimYaw - wc.recoilYaw * this.diff.recoilComp; cmd.pitch = this.aimPitch - wc.recoilPitch * this.diff.recoilComp;
+    if (wc.shotIndex !== this.lastShotIndex) { this.burstShots += wc.shotIndex - this.lastShotIndex; this.lastShotIndex = wc.shotIndex; }
+    this.burstPause -= dt;
+    if (this.burstShots >= 5) { this.burstShots = 0; this.burstPause = 0.5 + this.rand() * 0.7; }
+    const aimed = Math.abs(angleDelta(wc.aimYaw, wantYaw)) < 0.08;
+    const lowAmmo = !w.usesHeat && !w.usesBattery && w.mag + w.reserve < (s.mag ?? 30) * 0.6;   // keep some for real targets
+    if (aimed && this.burstPause <= 0 && wc.phase === 'ready' && !lowAmmo && this.self.movement.state.stance === 'stand') {
+      if (s.fireMode === 'auto' || s.fireMode === 'beam' || s.fireMode === 'spool') this.btn.hold('light');
+      else if (s.fireMode !== 'charge') this.btn.pressIfReady('light', wc);
+    }
+    if (!w.usesHeat && !w.usesBattery && w.mag === 0 && w.reserve > 0) this.btn.press('reload');
+  }
+
+  /** The charge: sprint in, sword out if we carry one, firing from the hip if not. */
+  #charge(o, ctx, cmd, dt, tick) {
+    const self = this.self, t = ctx.target;
+    this.#stance('stand');
+    if (self.mode === 'sword' && t && !t.isVehicle && ctx.dist < 12) { this.#swordfight(dt, tick, ctx, cmd); return; }
+    const p = o.target && !o.target.health?.dead ? o.target.movement.state.position : o.pos;
+    this.#goTo(cmd, p, dt, { sprint: !(t && ctx.los && ctx.dist < 20), radius: o.arrive ?? 1.5 });
+    if (t && ctx.los) this.#gunfight(dt, ctx, cmd, true);
+    else this.#look(cmd, null, dt);
+  }
+
+  /** A ready grenade-type ability slot (frags for room clearing), or null. */
+  grenadeReady() {
+    const ab = this.self.abilities;
+    if (!ab || ab.casting || this.self.status.silenced) return null;
+    for (const key of ['grenade', 'ability1', 'ability2']) {
+      const slot = ab.slots[key];
+      if (!slot || slot.recast || !slot.ready) continue;
+      const p = this.#profile(key, slot);
+      if (p.tags.has('grenade') && p.drop > 0) return key;
+    }
+    return null;
+  }
+
+  /** Lob a grenade at a point (through a doorway, over a parapet). */
+  #throwGrenade(o, cmd) {
+    const key = this.grenadeReady(), me = this.self.movement.state.position;
+    if (!key || !o.at || !Number.isFinite(o.at.x + o.at.y + o.at.z)) return;
+    const p = this.#profile(key, this.self.abilities.slots[key]);
+    const dist = Math.hypot(o.at.x - me.x, o.at.z - me.z);
+    const yaw = Math.atan2(-(o.at.x - me.x), -(o.at.z - me.z));
+    const pitch = ballisticPitch(Math.max(1, dist), o.at.y - (me.y + 1.5), p.speed, 9.8 * p.drop);
+    this.aimOverride = { yaw, pitch, until: this.time + p.cast + 0.15 };
+    cmd.yaw = yaw; cmd.pitch = pitch; this.aimYaw = yaw; this.aimPitch = pitch;
+    this.btn.press(key);
+    this.#note('frag', key);
   }
 
   #moveToward(cmd, p, sprint) {

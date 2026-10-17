@@ -32,6 +32,8 @@ export class CoverIndex {
 
   #range(minX, minZ, maxX, maxZ) {
     const c = this.cell;
+    // A corrupt query (NaN, or a body flung to infinity) must never turn into a billion-cell loop.
+    if (!Number.isFinite(minX + minZ + maxX + maxZ) || maxX - minX > 4096 || maxZ - minZ > 4096) return [1, 1, 0, 0];
     return [Math.floor(minX / c), Math.floor(minZ / c), Math.floor(maxX / c), Math.floor(maxZ / c)];
   }
 

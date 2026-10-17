@@ -566,7 +566,7 @@ export class ProjectileSystem {
       const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone }, { id: p.ownerId });
       bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point });
     } else {
-      bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: s.vfx?.impact });
+      bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: s.vfx?.impact, ownerId: p.ownerId, team: p.team, damage: s.damage?.base ?? 0 });
     }
   }
 }

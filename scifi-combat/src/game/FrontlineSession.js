@@ -3,11 +3,13 @@
 //
 //  * Build: seeded map (terrain, cover, nav) → CombatWorld with spatial queries → FrontlineMode →
 //    two factions of fighters from the class rosters, in squads of 4 → a commander per team →
+//    a tactical map (cover spots), suppression tracking and a SquadTactics plan per squad →
 //    vehicle pads at the HQs.
 //  * Step (fixed 60 Hz): bot think (LOD by distance from the humans: near every tick, mid every
 //    2nd, far every 3rd, with the last command held in between) → the same per-fighter pipeline
 //    players use (vehicles, movement, abilities, sword, guns) → world (projectiles, zones,
-//    deployables, vehicles) → melee resolve → mode → commanders → reinforcement waves.
+//    deployables, vehicles) → melee resolve → mode → commanders → suppression → squad plans →
+//    reinforcement waves.
 //  * Reinforcements: the dead come back in waves, on their squad leader when it's safe, otherwise
 //    at the safe spawn nearest their front. Every death costs a ticket.
 
@@ -24,6 +26,9 @@ import { generateFrontlineMap } from './frontline/FrontlineMap.js';
 import { mapSizeFor } from './frontline/MapSizes.js';
 import { WireField } from '../world/WireField.js';
 import { FrontlineMode } from './frontline/FrontlineMode.js';
+import { TacticalMap } from '../ai/tactics/TacticalMap.js';
+import { Suppression } from '../ai/tactics/Suppression.js';
+import { SquadTactics } from '../ai/tactics/SquadTactics.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -68,12 +73,21 @@ export class FrontlineSession {
     this.stats = { thinks: 0, simMs: 0 };
     this.#roster(players, humans);
     this.commanders = [0, 1].map((t) => { const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav }); c.squads = this.squads[t]; return c; });
+    // Squad tactics: where the cover is, who is pinned down, and a leader's plan per squad.
+    this.tactical = new TacticalMap(this.map);
+    this.suppression = new Suppression(this.world);
+    for (const team of [0, 1]) for (const sq of this.squads[team]) {
+      sq.tactics = new SquadTactics(sq, { world: this.world, map: this.map, tmap: this.tactical, mode: this.mode, commander: this.commanders[team], seed });
+    }
     for (const pad of this.map.pads) this.world.vehicles.addPad(pad);
     // Flow fields for every point up front (~25 ms each), so orders never hitch mid-battle.
     for (const p of this.map.points) this.map.nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
     this.off = [bus.on('entity:death', (e) => this.#onDeath(e))];
-    // Everyone deploys at the start of the match.
-    for (const f of this.fighters) this.#deploy(f, true);
+    // Everyone deploys at the start of the match, each squad together at one spawn.
+    for (const team of [0, 1]) for (const sq of this.squads[team]) {
+      const at = this.mode.spawnPosition(team, () => false, new Vector3());
+      for (const f of sq.members) this.#deploy(f, true, at);
+    }
     this.world.refreshSpatial();
     for (const c of this.commanders) c.update(0);
   }
@@ -82,6 +96,7 @@ export class FrontlineSession {
     this.off.forEach((f) => f());
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
+    this.tactical.dispose(); this.suppression.dispose();
   }
 
   #roster(players, humans) {
@@ -131,6 +146,7 @@ export class FrontlineSession {
       let cmd;
       if (f.brain) cmd = this.#think(f, dt);
       else cmd = this.humans.get(f.id) ?? EMPTY;
+      if (!Number.isFinite(cmd.yaw + cmd.pitch + cmd.moveX + cmd.moveY)) cmd = { ...cmd, yaw: Number.isFinite(cmd.yaw) ? cmd.yaw : f.movement.state.yaw, pitch: Number.isFinite(cmd.pitch) ? cmd.pitch : 0, moveX: Number.isFinite(cmd.moveX) ? cmd.moveX : 0, moveY: Number.isFinite(cmd.moveY) ? cmd.moveY : 0 }; // never let a bad number into the sim
       // Reviving a teammate owns the tick: kneel, no moving, shooting or casting.
       if (w.revives.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, dt); continue; }
@@ -145,6 +161,8 @@ export class FrontlineSession {
     this.melee.resolve();
     this.mode.update(dt, this.fighters, w);
     for (const c of this.commanders) c.update(dt);
+    this.suppression.update(dt, this.fighters);
+    for (const team of this.squads) for (const sq of team) sq.tactics.update(dt);
     this.#reinforce(dt);
     this.map.nav.maintain(4000); // flow-field refresh after cover breaks, sliced by a work budget
     this.stats.simMs = performance.now() - t0;
@@ -183,10 +201,30 @@ export class FrontlineSession {
     }
   }
 
+  /** The safe spawn nearest the rest of the squad (so a reinforcement rejoins it), else the front's. */
+  #squadSpawn(f, enemiesNear, out) {
+    const mates = f.squad?.members.filter((m) => m !== f && !m.health.dead && !m.vehicle) ?? [];
+    if (!mates.length) return this.mode.spawnPosition(f.team, enemiesNear, out);
+    const c = new Vector3();
+    for (const m of mates) c.add(m.movement.state.position);
+    c.divideScalar(mates.length);
+    let best = null, bd = Infinity;
+    for (const [i, s] of this.map.sectors.entries()) {
+      if (this.mode.sectors[i].owner !== f.team || s.kind !== 'line') continue;
+      for (const p of [...s.spawns[f.team], ...s.rearSpawns[f.team]]) {
+        if (enemiesNear(p)) continue;
+        const d = Math.hypot(p.x - c.x, p.z - c.z);
+        if (d < bd) { bd = d; best = p; }
+      }
+    }
+    if (!best) return this.mode.spawnPosition(f.team, enemiesNear, out);
+    return out.set(best.x + (this.mode.rand() - 0.5) * 6, best.y, best.z + (this.mode.rand() - 0.5) * 6);
+  }
+
   /** Human respawn request (the client decides when). */
   respawn(id) { const f = this.fighters.find((x) => x.id === id); if (f?.health.dead && this.time >= f.respawnAt) this.#deploy(f); }
 
-  #deploy(f, initial = false) {
+  #deploy(f, initial = false, near = null) {
     const w = this.world, team = f.team;
     if (f.vehicle) w.vehicles.exit(f);
     revertTransform(f, 'respawn');
@@ -194,10 +232,11 @@ export class FrontlineSession {
     const pos = new Vector3();
     const lead = f.squad?.leader;
     // On the squad leader when it's safe (alive, on foot, not under fire, no enemy close).
-    if (!initial && lead && lead !== f && !lead.vehicle && !lead.health.dead && lead.health.sinceDamage > 3 && !enemiesNear(lead.movement.state.position)) {
+    if (near) pos.set(near.x + (this.mode.rand() - 0.5) * 7, 0, near.z + (this.mode.rand() - 0.5) * 7);
+    else if (!initial && lead && lead !== f && !lead.vehicle && !lead.health.dead && !lead.health.downed && lead.health.sinceDamage > 3 && !enemiesNear(lead.movement.state.position)) {
       const lp = lead.movement.state.position;
       pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);
-    } else this.mode.spawnPosition(team, enemiesNear, pos);
+    } else this.#squadSpawn(f, enemiesNear, pos);
     pos.y = w.groundHeight(new Vector3(pos.x, pos.y + 50, pos.z));
     f.movement.reset(pos, team === 0 ? -Math.PI / 2 : Math.PI / 2);
     if (f.health.dead) f.health.revive(1);

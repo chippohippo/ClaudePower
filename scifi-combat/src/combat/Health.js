@@ -43,6 +43,7 @@ export class Health {
     amount *= this.owner.status?.damageTakenMul ?? 1;
     const start = amount;
     this.sinceDamage = 0;
+    if (by?.id !== undefined && by.id !== this.owner.id) this.lastBy = by.id;   // who's shooting at us (squads call it out)
     if (this.downed) {
       // Finishing a downed soldier: damage eats the downed pool.
       this.downHp -= amount;
