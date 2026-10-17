@@ -38,6 +38,12 @@ export class VehicleViews {
     this.palette = palette;
     this.views = new Map();
     this.time = 0;
+    // Burning wrecks light their surroundings from a fixed pair of lights, given to the fires nearest
+    // the camera. They never leave the scene (dark when there's no fire): a light appearing or
+    // vanishing changes the scene's light count, which rebuilds every lit shader, a stall of seconds
+    // on some PCs.
+    this.fireLights = [0, 1].map(() => { const l = new THREE.PointLight('#ff7a2a', 0, 14, 1.6); scene.add(l); return l; });
+    this.burning = [];
     bus.on('vehicle:spawn', (e) => this.#add(e));
     bus.on('vehicle:removed', (e) => this.#remove(e.id));
     bus.on('vehicle:destroyed', (e) => this.#burst(new THREE.Vector3().fromArray(e.at)));
@@ -108,6 +114,7 @@ export class VehicleViews {
 
   update(dt, camera) {
     this.time += dt;
+    this.burning.length = 0;
     const far2 = this.far * this.far;
     for (const { v, root, parts } of this.views.values()) {
       const s = v.movement.state;
@@ -139,6 +146,14 @@ export class VehicleViews {
         if (camera) parts.bar.quaternion.copy(root.quaternion).invert().multiply(camera.quaternion);
       }
     }
+    // The fire lights go to the fires nearest the camera; the rest stay dark.
+    if (camera && this.burning.length > 1) { const c = camera.position; this.burning.sort((a, b) => a.p.distanceToSquared(c) - b.p.distanceToSquared(c)); }
+    this.fireLights.forEach((l, i) => {
+      const f = this.burning[i];
+      if (!f) { l.intensity = 0; return; }
+      l.position.copy(f.p);
+      l.intensity = (14 + 6 * Math.sin(this.time * 23 + f.phase) + 4 * Math.sin(this.time * 37 + f.phase * 2)) * f.k;
+    });
   }
 
   /**
@@ -176,10 +191,6 @@ export class VehicleViews {
     const ring = new THREE.Group(); ring.position.fromArray(M.gunAt);
     ring.add(mesh(M.gun)); root.add(ring);
     parts.ring = ring;
-    // Burning: a light that flickers with the flames (the flames and smoke are BattleFx particles).
-    const glow = new THREE.PointLight('#ff7a2a', 0, 14, 1.6); glow.position.set(0, 1.8, v.def.size.z * 0.15);
-    glow.visible = false;
-    root.add(glow); parts.glow = glow;
   }
 
   /** Wheels from the struts, the gun after its gunner, the wreck's fire. */
@@ -194,11 +205,10 @@ export class VehicleViews {
       if (this.fx && w.wh.contact && sp > 4 && w.wh.slip > 0.22) this.fx.skid(C.point(_fp.copy(w.wh.mount).setY(0), _fw), C.vel.x, C.vel.z, Math.min(1, (w.wh.slip - 0.22) * 3) * dt * 40);
     }
     parts.ring.rotation.y = v.seats.some((q) => q.def.role === 'gunner' && q.occupant) ? v.turretYaw - v.yaw : THREE.MathUtils.damp(parts.ring.rotation.y, 0, 1.5, dt);
-    const burning = !!v.wreck;
-    parts.glow.visible = burning;
-    if (burning) {
+    if (v.wreck) {
       const t = this.time, k = Math.min(1, 0.3 + v.wreck.t * 0.8);
-      parts.glow.intensity = (14 + 6 * Math.sin(t * 23) + 4 * Math.sin(t * 37)) * k;
+      // Its light flickers with the flames (one of the fire lights, if it's among the nearest).
+      this.burning.push({ p: C.point(_fp.set(0, 1.8, v.def.size.z * 0.15), new THREE.Vector3()), k, phase: v.id });
       // Fire over the engine and the cockpit (where they are now: a wreck can lie on its side).
       if (this.fx) FIRES.forEach(([x, y, z, r], i) => this.fx.fire(C.point(_fp.set(x, y, z * v.def.size.z), _fw), dt * 0.5, r, k, (parts.fires ??= [{}, {}])[i]));
     }

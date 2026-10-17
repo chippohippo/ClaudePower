@@ -1,11 +1,16 @@
 // Fixed-timestep simulation with interpolated rendering ("Fix Your Timestep").
 // sim(dt, tick) runs at a constant rate; render(alpha) gets the blend factor between ticks.
+// A computer that can't keep up runs the battle in slow motion rather than freezing: at most
+// maxSteps ticks per frame, and time it couldn't simulate is dropped (no spiral of death, where
+// each frame owes more ticks than the last).
 export class FixedLoop {
-  constructor({ hz = 60, sim, render, maxFrame = 0.25 }) {
+  constructor({ hz = 60, sim, render, maxFrame = 0.25, maxSteps = 4 }) {
     this.dt = 1 / hz;
     this.sim = sim;
     this.render = render;
     this.maxFrame = maxFrame; // avoid spiral of death after tab-switch
+    this.maxSteps = maxSteps;
+    this.behind = 0;          // frames in a row that hit maxSteps (the computer is falling behind)
     this.acc = 0;
     this.tick = 0;
     this.last = 0;
@@ -20,10 +25,13 @@ export class FixedLoop {
       const now = performance.now() / 1000;
       this.acc += Math.min(now - this.last, this.maxFrame);
       this.last = now;
-      while (this.acc >= this.dt) {
+      let steps = 0;
+      while (this.acc >= this.dt && steps < this.maxSteps) {
         this.sim(this.dt, this.tick++);
         this.acc -= this.dt;
+        steps++;
       }
+      if (this.acc >= this.dt) { this.acc %= this.dt; this.behind++; } else this.behind = 0;
       this.render(this.acc / this.dt, now);
       requestAnimationFrame(frame);
     };

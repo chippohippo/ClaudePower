@@ -138,7 +138,28 @@ the boots and shins, scorch on the cape hem, a stencilled squad number on the ch
 **Rim light.** Every fighter has a fresnel glow round its silhouette in its army's colour,
 gold (`#ffb43a`) for Solari and violet (`#b07cff`) for the Void Legion, so you read who is who at a
 glance in any light (`factions.*.rim`; `ui.rim`: strength 1.1, power 5, tight to the edge).
-Civilians have a neutral one (`#e6e2da`) that turns red (`#ff3a2a`) while they fight you.
+Civilians have a neutral one (`#e6e2da`) that turns red (`#ff3a2a`) while they fight you; the
+gangs' raiders are always rimmed red.
+
+## The city's people
+
+The city's civilians and its gangs (FRONTLINE.md, "The city's people") wear no army's armor, so
+they never read as soldiers. Their kit is in `TrooperKit.js` ("The city's people") and
+`data/art/troopers.json` (`people`: each person picks one of each list by id); their palettes are
+`factions.civilian` and `factions.bandit`.
+
+| | Civilians | The gangs |
+|---|---|---|
+| Body | a long coat (its tails wrapped round each thigh) or a jacket with a hem band; the collar up behind the neck with a neon line along it, lapels, a zip; trousers; street boots with pale soles and a light strip | the jacket under a dented scavenged chest plate, a belt of shells across it, one big spiked pauldron (a stripe in the gang's colour), a bracer, knee pads, heavy boots |
+| Head | a face (skin channel: skull, jaw, nose, ears, brows, neck) under a hood with lit wraparound glasses and a mouth mask; or a cap with a respirator; or hair swept up, an implant's light at the temple, glasses, a scarf | a shaved head, a crest down it, goggles with lit lenses, a bone-white jaw mask with teeth |
+| Gear | a satchel on its strap, a small pack, or nothing | nothing, or a small pack |
+| Colour | per person (by the stencil number they never wear): one of eight jackets, four accents (hood, cap, lapels, scarf), four neons (glasses, collar line, sole strip), four skin tones | the gang's colour (one of eight, in `data/civilians.json`'s gang order) on crest, goggles, pauldron stripe; the rest scavenged rust and black |
+| Rim | neutral `#e6e2da`; red while one fights you | red |
+
+Unarmed, their arms hang and swing against their legs (pumping when they run); hiding, they cower
+with both hands over the head (`ProceduralHumanoid`'s empty hands). Guns lying in the street
+(`DropViews`) are the troopers' own guns on their sides, in their army's paint, with a slow glint
+on the ground round each.
 
 ## How the troopers are built
 
@@ -230,6 +251,7 @@ sky and light, to model against and to screenshot:
 | `palette` | the swatch sheet |
 | `sky` | `sun` (halo, god rays through posts), `away`, `moon`, `wide` (craters and fog to 900 m), `trench`, `ground`, `up` |
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
+| `people` | the city's people in a 32v32 city (`duskcity`): `lineup` (civilians under a street lamp), `close` (faces), `gangs` (two gangs' raiders), `cower` (a family down in the street, an armed neighbour firing), `drops` (guns lying in the street) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
 | `cars` | the recon cars (the real sim run to each moment): `parked`, `kestrel`, `jackal`, `rear`, `drift`, `roll`, `over`, `thrown`, `burning` |
 | `city` | the city (a 32v32 city map, `duskcity` sky; `&planet=nightcity` for the aurora night): `street` (down an avenue), `squad` (under a street lamp), `fire` (a burning wreck), `barricade`, `crossing`, `park` (the fountain), `aurora`, `above` |

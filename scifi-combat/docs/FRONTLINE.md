@@ -10,7 +10,9 @@ EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
 `tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`,
-`tests/support-roles.test.mjs`, `tests/melee-front.test.mjs`, `tests/city-map.test.mjs`.
+`tests/support-roles.test.mjs`, `tests/melee-front.test.mjs`, `tests/city-map.test.mjs`, `tests/houses.test.mjs`,
+`tests/civilians.test.mjs` · the city's people: `src/game/Neutrals.js`, `src/ai/CivilianBrain.js`,
+`src/combat/Teams.js`, `src/combat/WeaponDrops.js`, `src/vfx/DropViews.js`, `data/civilians.json`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -27,7 +29,10 @@ The biggest size, **Extreme Warfront**, puts 400 soldiers on a 2.6 km front.
 
 ## Play it
 
-Serve the folder statically and open `index.html`:
+Double-click `play.bat` (Windows) or `play.command` (Mac), or run `./play.sh` or `npm start`: a small
+server for this folder starts on your computer and the start menu (`start.html`) opens in your browser.
+Pick the battlefield, size, side and class there and deploy ([PLAY.md](../PLAY.md)). Or serve the
+folder any way you like and open `index.html` with these parameters:
 
 | Param | Default | |
 |---|---|---|
@@ -35,6 +40,8 @@ Serve the folder statically and open `index.html`:
 | `players` | (from size) | 8–400 fighters in total; picks the size built for that count if `size` isn't given |
 | `seed` | 7 | map and match seed (deterministic map) |
 | `map` | trench | `city`: the same front fought through a city at night (below) |
+| `planet` | (by map) | the sky and look: `scorched` (trenches), `duskcity` (the city's default), `nightcity` |
+| `fx` | high | post-processing: `high`, `low` or `off` |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
@@ -180,6 +187,49 @@ stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `
   neon trim with giant ad screens beyond the edges, flying traffic, cables over the streets.
 - **The cover index** holds a house's (a scaffold's, a bridge's) hundred-odd boxes as one group
   under its bounds (`CoverIndex`): a ray or a query that misses the bounds skips every box in it.
+
+### The city's people (`Neutrals`, `CivilianBrain`, `Teams`, `data/civilians.json`)
+
+The city is still lived in. Besides the two armies there are its **civilians** (team 2) and its
+**bandit gangs** (team 3). Neither respawns, costs a ticket or counts on a point.
+
+- **Who fights whom** (`Teams.js`, `CombatWorld.hostile`): the armies fight each other and the gangs
+  always. A civilian never starts a fight: armed (only with a gun picked up off the field), he shoots
+  at an armed stranger who comes within his reach (12 m, 18 m for a group at its shelter) or at a
+  side that hurt him or his people (for 25 s). Whoever he's shooting at fights him back while he does
+  (8 s after his last shot), nobody else. Unarmed, nobody targets him; stray rounds and blasts still
+  kill him. Bots don't fire through civilians any more than through their own (`FireDiscipline`),
+  nor call strikes on them. Killing one who wasn't fighting you costs battle points (`civilian`,
+  -150) and shows CIVILIAN in the killfeed.
+- **Where they are:** about one per two soldiers (`perPlayers`), spread over the line sectors (more
+  toward the middle, where the fighting starts), clear of the points and spawns: in a house's
+  rooms, a ruin's, behind a market's counters, some out in the street near their shelter when the
+  battle starts (they walk about between a few spots there until it reaches them). Some shelter
+  together in a house (`groups`), all brave, now and then with guns hidden there (`cache`).
+- **What they do** (`CivilianBrain`, the same Command a player sends):
+  - fighting heard (shots within 45 m, blasts further): get down where they are if they're
+    indoors; out in the open, run for the safest shelter they know (away from it, near, indoors
+    best) and get down there;
+  - danger (hurt, an armed stranger in sight within 10 m, rounds or a blast right by them): run, at
+    a sprint along a nav route, to a shelter away from it; not twice in a few seconds. A group
+    holds its shelter together; only the hurt one runs;
+  - hiding: crouched (flat under fire), hands over the head (the rig's cower pose); standing again
+    when it has been quiet for 40 s;
+  - brave ones (40%), once the fighting has come near and nothing is close: fetch a gun lying near
+    (`WeaponDrops`: a fallen soldier drops his 60% of the time; caches) and take it, then defend
+    themselves with it, in bursts, badly;
+  - downed: crawl away from the trouble.
+- **The gangs** (one per 12v12 match, two at 32v32, three at 64v64, five at 200v200): four to six
+  raiders each, armed, holding a turf (30 m round a house or a market off the main fight) with the
+  soldiers' own brain and the turf as the point they defend, so they fight whoever walks in, see no
+  further than their own streets (60 m) and drift back rather than chase. A banner warns you as you
+  walk into one's turf.
+- **Their look:** street clothes for the civilians (coats, jackets, hoods, caps, bare hair, lit
+  glasses, bags; their colours and faces vary person to person) with a neutral rim light that turns
+  red while one fights your side; raiders in scavenged plates with a spiked pauldron, crest and
+  goggles in their gang's colour, rimmed red. Civilians' bolts are pale gold, the gangs' the
+  enemy's red. Guns lying in the street glint. On the minimap: civilians near you grey, raiders who
+  give themselves away orange.
 
 ## Rules (`FrontlineMode`, simulation only)
 
@@ -608,3 +658,11 @@ dropships are arena-only).
   no block or street in it and the fountain on its point. Barricade lines cross every avenue,
   never in an intersection. The renderer dresses it all, with real lights on the lamps and fires
   nearest the action. A city match runs with nobody ending up inside a building.
+- `tests/civilians.test.mjs`: who fights whom (the armies and gangs always; a civilian only armed and
+  close or wronged, fought only while he fights); a civilian out in the open runs from shots to a
+  shelter away from them and gets down, hands over his head; one indoors gets down where he is and
+  stands once it's quiet; a brave one arms himself only once the fighting has come near and shoots
+  only at whoever comes close; a group holds its shelter and only the hurt one runs; a gang opens up
+  on a soldier who walks into its turf, lets one far off pass and doesn't chase; bots never target an
+  unarmed civilian; a city match with its people (unarmed and spread out, gangs on their turf, none
+  counted on the tickets or the points).

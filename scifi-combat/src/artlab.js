@@ -333,8 +333,8 @@ async function troopersStation(scene, views, atmo) {
 }
 
 // The city's people (src/game/Neutrals.js; TrooperKit "The city's people"): civilians in their
-// street clothes under a street lamp, a gang's raiders, a family cowering behind a market's
-// counters with an armed neighbour fighting (his rim gone red), guns lying in the street.
+// street clothes under a street lamp, a gang's raiders, a family cowering in the street with an
+// armed neighbour fighting (his rim gone red), guns lying in the street.
 async function peopleStation(scene, views, atmo) {
   const map = generateFrontlineMap({ seed: +(params.get('seed') ?? 7), size: params.get('size') ?? '32v32', theme: 'city' });
   const mode = new FrontlineMode(map, { tickets: 100, timeLimit: 600, captureTime: 10, secureTime: 3, seed: 7 });
@@ -363,13 +363,11 @@ async function peopleStation(scene, views, atmo) {
   // A gang's raiders behind them, two gangs' colours, guns up.
   ['void_ar_gnaw', 'sol_smg_wasp', 'void_sg_maw', 'sol_br_verdict', 'void_smg_leech'].forEach((g, i) => F.addPerson('bandit', at((i - 2) * 1.4, -5), face, i % 2 ? 'aim' : 'stand', { gun: g, gang: 0 }));
   ['sol_sg_lantern', 'void_ar_gnaw', 'sol_smg_wasp'].forEach((g, i) => F.addPerson('bandit', at(5 + i * 1.4, -5), face, 'aim', { gun: g, gang: 1 }));
-  // A market: a family down behind the counters, hands over their heads; a neighbour with a
-  // gun he picked up, kneeling and firing (red rim: he's fighting you).
-  const mk = C.markets.reduce((b, m) => (Math.hypot((m.x0 + m.x1) / 2 - lx, (m.z0 + m.z1) / 2 - lz) < Math.hypot((b.x0 + b.x1) / 2 - lx, (b.z0 + b.z1) / 2 - lz) ? m : b), C.markets[0]);
-  const st = mk.stalls.slice(0, 4), behind = (s, k = 0.75) => V(s.x - s.face[0] * k, s.z - s.face[1] * k);
-  const toward = (s) => Math.atan2(-s.face[0], -s.face[1]) + Math.PI;
-  st.slice(0, 3).forEach((s, i) => F.addPerson('civilian', behind(s).add(V(i === 1 ? 0.5 : 0, 0)), toward(s) + 0.4 * (i - 1), i === 2 ? 'cowerProne' : 'cower', { kitId: 310 + i * 7 }));
-  const armed = F.addPerson('civilian', behind(st[3] ?? st[0]), toward(st[3] ?? st[0]), 'kneelAim', { gun: 'sol_smg_wasp', kitId: 333 });
+  // Down the street: a family down in the snow, hands over their heads; a neighbour with a gun he
+  // picked up, kneeling and firing (red rim: he's fighting you).
+  const back = face + Math.PI;
+  [[-7.2, 3.4], [-6.3, 3.9], [-5.3, 3.3]].forEach(([a, o], i) => F.addPerson('civilian', at(a, o), back + 0.5 * (i - 1), i === 1 ? 'cowerProne' : 'cower', { kitId: 310 + i * 7 }));
+  const armed = F.addPerson('civilian', at(-3.6, 3.6), back - 0.3, 'kneelAim', { gun: 'sol_smg_wasp', kitId: 333 });
   armed.look.rim = F.crowd.rimHostile;
   // Guns lying in the street: dropped by the fallen, a cache by the stalls.
   const drops = F.world.drops = new WeaponDrops(F.world, {});
@@ -385,11 +383,10 @@ async function peopleStation(scene, views, atmo) {
     city.update(dt, cam, window.__art.focus ?? cam.position);
     fx.update(dt); dv.update(dt);
   });
-  const mc = behind(st[1] ?? st[0]);
   views.lineup = { pos: y(at(0, 6.4), 1.6), look: y(at(0, 0), 1.05), fov: 46, note: 'civilians in street clothes: coats, jackets; hoods, caps, bare hair; the neon line on a collar; each his own colours and face', focus: y(at(0, 0), 0) };
   views.close = { pos: y(at(-1.7, 2.3), 1.62), look: y(at(-1.7, 0), 1.5), fov: 40, note: 'faces up close: glasses lit along the rim, masks, a respirator', focus: y(at(0, 0), 0) };
   views.gangs = { pos: y(at(1.5, 1.4), 1.5), look: y(at(1.5, -5), 1.15), fov: 52, note: "two gangs' raiders: scavenged plates, a spiked pauldron in the gang's colour, crests, goggles, jaw masks", focus: y(at(0, -5), 0) };
-  views.market = { pos: y(mc.clone().add(V(4.5, 5.5)), 2.4), look: y(mc, 0.6), fov: 50, note: 'a family down behind a market counter, hands over their heads; a neighbour firing a gun he picked up (red rim: fighting you)', focus: y(mc, 0) };
+  views.cower = { pos: y(at(-5.4, 8.6), 2.3), look: y(at(-5.4, 3.6), 0.5), fov: 48, note: 'a family down in the street, hands over their heads; a neighbour firing a gun he picked up (red rim: fighting you)', focus: y(at(-5.4, 3.6), 0) };
   views.drops = { pos: y(g0.clone().addScaledVector(out, 3).addScaledVector(along, 1.1), 1.7), look: y(g0.clone().addScaledVector(along, 1.1), 0), fov: 45, note: 'guns lying in the street where the fallen dropped them, a glint round each', focus: y(g0, 0) };
   const enterAll = (v) => () => { window.__art.focus = v.focus; };
   for (const v of Object.values(views)) v.enter = enterAll(v);

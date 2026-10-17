@@ -41,6 +41,12 @@ import { DropViews } from './vfx/DropViews.js';
 import { CIVILIAN, BANDIT, civilianEngaging } from './combat/Teams.js';
 
 const params = new URLSearchParams(location.search);
+// The loading line (index.html #loading): what's being built while the page is busy.
+const loading = {
+  el: document.getElementById('loading'),
+  show(text) { if (this.el) { this.el.textContent = text; this.el.style.display = 'grid'; } },
+  hide() { if (this.el) this.el.style.display = 'none'; },
+};
 const sizeParam = params.get('size'), playersParam = params.get('players');
 const requestedPlayers = playersParam ? Math.max(8, Math.min(400, +playersParam)) : null;
 const seed = +(params.get('seed') ?? 7);
@@ -73,6 +79,8 @@ const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
 
 const PLAYER_ID = 1;
+loading.show(`Building the ${mapTheme === 'city' ? 'city' : 'front'}…`);
+await new Promise((r) => setTimeout(r, 30));          // (let the line paint before the build holds the page)
 const session = new FrontlineSession(data, { size: sizeParam ?? (requestedPlayers ? null : '32v32'), players: requestedPlayers, seed, map: mapTheme, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
 const { world, map, mode } = session;
 const players = session.players;
@@ -83,7 +91,10 @@ player.name = 'You';
 // ---------------------------------------------------------------- scene
 const fxMode = params.get('fx') ?? 'high';
 const renderer = new THREE.WebGLRenderer({ antialias: fxMode === 'off', powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, fxMode === 'high' ? 1.5 : 1.25));
+// Sharp on a high-DPI screen, but never more than ~3.7 million pixels a frame (a 4K laptop screen
+// at 150% would otherwise ask an integrated GPU for 8 million, every frame, through the post chain).
+const pixelRatio = () => Math.max(0.5, Math.min(devicePixelRatio, fxMode === 'high' ? 1.5 : 1.25, Math.sqrt(3.7e6 / (innerWidth * innerHeight))));
+renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;   // for the plain path (PostFX tone-maps itself)
@@ -132,7 +143,17 @@ const groundOrCover = (o, d, max) => {
 };
 const rig = new CameraRig({ raycast: groundOrCover });
 rig.camera.far = 1500; rig.camera.updateProjectionMatrix();
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); post.setSize(innerWidth, innerHeight); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); });
+addEventListener('resize', () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.setSize(innerWidth, innerHeight); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); });
+// The graphics driver gave up (a GPU too busy for too long resets, and the page's WebGL with it):
+// say so and come back with lighter effects instead of sitting on a frozen frame.
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  loop.stop();
+  const next = new URLSearchParams(location.search);
+  next.set('fx', fxMode === 'high' ? 'low' : 'off');
+  loading.show('The graphics driver reset. Restarting with lighter effects…');
+  setTimeout(() => location.replace(`${location.pathname}?${next}`), 1800);
+});
 
 let audio = null;
 renderer.domElement.addEventListener('mousedown', () => {
@@ -241,5 +262,13 @@ const loop = new FixedLoop({
   },
 });
 window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices, dropViews };
+// Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
+// stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
+// through the whole post chain, so its passes and the shadow pass are compiled too.
+loading.show(`Compiling shaders · ${map.name}`);
+await new Promise((r) => setTimeout(r, 30));
+await renderer.compileAsync(scene, rig.camera);
+loop.render(0, performance.now() / 1000);
+loading.hide();
 loop.start();
 bus.emit('frontline:ready', { players, seed });

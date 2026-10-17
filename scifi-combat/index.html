@@ -59,6 +59,7 @@
     #fl-supply { position: absolute; right: 12px; bottom: 140px; background: #0009; padding: 5px 9px; border-radius: 5px; font-size: 12px; line-height: 1.5; text-align: right; }
     #fl-supply:empty { display: none; }
     #fl-supply .pbar { width: 90px; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #1d1730ee, #0d0b16f5); color: #f1edf8; font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 3px; text-transform: uppercase; z-index: 10; pointer-events: none; }
     #help { position: fixed; left: 12px; top: 62px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
     @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
   </style>
@@ -67,6 +68,7 @@
   </script>
 </head>
 <body>
+  <div id="loading">Deploying…</div>
   <div id="hud"></div>
   <div id="help">
     <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.
