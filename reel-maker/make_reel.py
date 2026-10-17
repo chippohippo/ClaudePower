@@ -286,14 +286,15 @@ def fit_window(pil, fill, shot: Shot, scale: float, fx: float, fy: float):
     y0 = min(max(fy * ih - vh / 2, 0), ih - vh)
     wh = int(W * vh / vw)
     win = pil.resize((W, wh), Image.BICUBIC, box=(x0, y0, x0 + vw, y0 + vh))
-    bg = fill.resize((W // 8, H // 8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(6))
-    bg = Image.eval(bg.resize((W, H), Image.BICUBIC), lambda v: int(v * 0.78))
+    bg = fill.resize((W // 4, H // 4), Image.BILINEAR).filter(ImageFilter.GaussianBlur(14))
+    bg = bg.resize((W, H), Image.BICUBIC).filter(ImageFilter.GaussianBlur(6))
+    bg = Image.eval(bg, lambda v: int(v * 0.72))
     # feathered top/bottom edges so the window melts into the fill
     mask = Image.new("L", (W, wh), 255)
     f = max(1, wh // 9)
     grad = np.ones(wh, np.float32)
-    grad[:f] = np.linspace(0, 1, f)
-    grad[-f:] = np.linspace(1, 0, f)
+    grad[:f] = np.linspace(0, 1, f) ** 1.5
+    grad[-f:] = np.linspace(1, 0, f) ** 1.5
     mask = Image.fromarray((np.tile(grad[:, None], (1, W)) * 255).astype(np.uint8))
     bg.paste(win, (0, (H - wh) // 2), mask)
     return bg

@@ -131,9 +131,9 @@
    "path": "0497.mp4",
    "start": 1.0,
    "length": 2.4,
-   "x": 0.52,
+   "x": 0.47,
    "track": false,
-   "fit": 0.5,
+   "fit": 0.66,
    "zoom": 0.04
   },
   {
@@ -142,16 +142,16 @@
    "length": 2.4,
    "x": 0.43,
    "track": false,
-   "fit": 0.42,
+   "fit": 0.6,
    "zoom": 0.04
   },
   {
    "path": "0488.mp4",
    "start": 9.0,
    "length": 2.6,
-   "x": 0.52,
+   "x": 0.55,
    "track": false,
-   "fit": 0.52,
+   "fit": 0.72,
    "zoom": -0.04
   },
   {
@@ -160,7 +160,7 @@
    "length": 2.4,
    "x": 0.47,
    "track": false,
-   "fit": 0.5,
+   "fit": 0.66,
    "zoom": 0.04
   },
   {
@@ -170,7 +170,7 @@
    "x": 0.5,
    "y": 0.55,
    "track": false,
-   "fit": 0.62,
+   "fit": 0.86,
    "zoom": 0.05
   }
  ],
