@@ -1,3 +1,4 @@
 music/*.wav
 .cache/
 *.mp4
+footage/

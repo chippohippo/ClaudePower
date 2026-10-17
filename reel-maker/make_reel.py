@@ -161,14 +161,28 @@ class Source:
             self.duration = math.inf
             self.clip = None
         else:
-            self.clip = VideoFileClip(path, audio=CONFIG["clip_audio_volume"] > 0)
+            # readers are opened lazily and closed when idle (see Reel.source):
+            # each one holds a decode process + frame buffer, so dozens of
+            # open 4K clips would exhaust memory.
+            self.clip = None
+            self.open()
             self.size = self.clip.size
             self.duration = self.clip.duration
+
+    def open(self):
+        if self.clip is None and not self.is_image:
+            self.clip = VideoFileClip(self.path, audio=CONFIG["clip_audio_volume"] > 0)
+
+    def close(self):
+        if self.clip is not None:
+            self.clip.close()
+            self.clip = None
 
     def frame(self, t: float) -> np.ndarray:
         if self.is_image:
             return self.still
         t = min(max(t, 0), self.duration - 1.0 / CONFIG["fps"] - 0.01)
+        self.open()
         return self.clip.get_frame(t).astype(np.float32) / 255.0
 
 
@@ -310,8 +324,8 @@ def finish(img: np.ndarray) -> np.ndarray:
 STYLE_DEFAULTS = {
     #          font    size  y(0..1)  shadow
     "title":  ("title", 118, 0.40, True),
-    "body":   ("body",   46, 0.72, True),
-    "kicker": ("body",   34, 0.33, True),
+    "body":   ("body",   56, 0.72, True),
+    "kicker": ("body",   38, 0.33, True),
     "lower":  ("body",   40, 0.74, True),
     "end":    ("title", 132, 0.46, True),
 }
@@ -432,15 +446,27 @@ class Reel:
         for s in project.shots:
             s.path = fetch_if_url(s.path, cache)
             if s.path not in self.sources:
-                self.sources[s.path] = Source(s.path)
+                self.sources[s.path] = src = Source(s.path)
+                src.close()
+        self._open = []  # most recently used video sources
         print("• building timeline")
         self.beats = beat_grid(project.music, project.music_start, total)
         build_timeline(project.shots, self.beats, total)
         for i, s in enumerate(project.shots):
             print(f"   {i:2d}  {s.t0:6.2f}–{s.t1:6.2f}s  {os.path.basename(s.path)} @ {s.start:.1f}s")
 
+    def source(self, path: str, keep: int = 3) -> Source:
+        src = self.sources[path]
+        if path in self._open:
+            self._open.remove(path)
+        self._open.insert(0, path)
+        for old in self._open[keep:]:
+            self.sources[old].close()
+        del self._open[keep:]
+        return src
+
     def shot_frame(self, s: Shot, t: float) -> np.ndarray:
-        src = self.sources[s.path]
+        src = self.source(s.path)
         xf = CONFIG["crossfade"]
         # progress spans the shot incl. its dissolve tail so motion never stalls
         span = (s.t1 - s.t0) + xf
@@ -536,7 +562,8 @@ def load_project(path: str) -> Project:
     texts = [Text(**t) for t in data.get("texts", [])]
     music = data.get("music")
     return Project(shots=shots, texts=texts,
-                   music=resolve(music) if music else None,
+                   # music is relative to the project file, not media_dir
+                   music=(music if os.path.isabs(music) else os.path.join(base, music)) if music else None,
                    music_start=data.get("music_start", 0.0),
                    output=data.get("output", "reel.mp4"))
 
