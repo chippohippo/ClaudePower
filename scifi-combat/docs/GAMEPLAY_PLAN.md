@@ -216,7 +216,21 @@ values).
 
 ## Built in this pass
 
-1. Friendly fire everywhere, with fire discipline and its HUD (above).
-2. Stratagems, P0: the input, beacons, payloads, cooldowns and uses, the HUD panel, bots calling in.
-3. Hit feedback, P0: hit markers, damage direction, small-arms muzzle and impact effects.
-4. Reloads that cost, P0: mags as objects, staged progress, sprint pauses.
+1. **Friendly fire everywhere**, with fire discipline and its HUD (above).
+2. **Stratagems** (P0). Codes on the wrist pad, the call-in panel, beacons that stick and ride,
+   and seven payloads: strikes, runs and bombs flown by a strike jet, supply and sentry pods,
+   smoke. Cooldowns, uses and rearms. Beams by kind, danger fences, strike streaks, audio. Bots
+   call them in carefully, rationed per side (`CallInPlanner`), get out from under pods and
+   shoot sentries. The sentry is balanced against a bot battle.
+3. **Hit feedback** (P0). Markers by result, each with its own sound. Damage-direction wedges,
+   the camera's hit flinch and the gun's aim knock, hit-stop on your own melee and kills.
+   Muzzle flashes at the barrel that light the scene, impacts by surface, 256 bullet holes.
+4. **Reloads that cost** (P0). Whole-mag reserves, the mag thrown away on a tactical reload, two
+   stages with stage 2 kept, sprint holds, hits hold, a slower walk. The HUD shows mag pips, the
+   rig drops the mag, and the audio has the out and the in.
+5. **Bugs from the survey, fixed.** Parries anywhere no longer shake your camera. The suppressor
+   no longer throws, and now shortens how far a shot is heard. The Sunwell revives the downed
+   rather than raising the dead.
+
+Next, by the priority order: battle points and support roles (P1), melee readability on the
+front (P1), bot callouts and flanking (P1), then the camera, the director and audio (P2).

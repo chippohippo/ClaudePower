@@ -191,12 +191,16 @@ export class FrontlineHud {
     }
     // ---- status, ammo
     const hp = me.health, st = me.movement.state, cw = wc.current;
-    const ammo = cw ? (cw.usesHeat ? `HEAT ${cw.heat.toFixed(0)}%` : cw.usesBattery ? `${cw.battery.toFixed(0)}%` : `${cw.mag} / ${cw.reserve}`) : '';
+    // Ammo: the mag, and the reserve as whole magazines (a pip each); shells are counted.
+    const per = cw?.s.mag ?? 30, mags = cw ? Math.ceil(cw.reserve / per) : 0;
+    const reserve = !cw ? '' : cw.s.reload?.style === 'shell' ? `${cw.reserve}` : mags ? `${'▮'.repeat(Math.min(mags, 10))}${mags > 10 ? `+${mags - 10}` : ''}` : 'NO MAGS';
+    const ammo = cw ? (cw.usesHeat ? `HEAT ${cw.heat.toFixed(0)}%` : cw.usesBattery ? `${cw.battery.toFixed(0)}%` : `${cw.mag}${cw.magOut ? ' MAG OUT' : ''} · ${reserve}`) : '';
+    const reloading = wc.phase === 'reloading' ? (st.sprinting ? ' · RELOAD HELD' : ` · RELOADING ${Math.min(99, Math.round((wc.phaseTime / Math.max(0.01, wc.phaseDuration)) * 100))}%`) : '';
     this.el.status.innerHTML = `
       <div class="bar"><i style="width:${(hp.hp / hp.max * 100).toFixed(0)}%;background:#e8f1ff"></i></div>
       ${hp.maxShield ? `<div class="bar sm"><i style="width:${(hp.shield / hp.maxShield * 100).toFixed(0)}%;background:#7fd6ff"></i></div>` : ''}
       <div class="bar sm"><i style="width:${st.stamina.toFixed(0)}%;background:${st.exhausted ? '#ff6b6b' : '#c8d47a'}"></i></div>
-      <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${wc.phase === 'reloading' ? ' · RELOADING' : ''}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>`;
+      <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${reloading}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>`;
     this.el.feed.innerHTML = this.feed.filter((k) => this.time - k.t < 8).map((k) => k.html).join('<br>');
     // ---- respawn, downed, revives and banners
     const dead = me.health.dead && mode.winner < 0, rv = s.world.revives;

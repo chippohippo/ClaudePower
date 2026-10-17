@@ -19,6 +19,7 @@ const HOLES = 256;
 const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3();
 
 const lin = (hex, a = 1) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b, a]; };
+const MAG = [0.03, 0.03, 0.035, 1];
 const fade = (c) => [c[0], c[1], c[2], 0];
 
 /** A bullet hole: a dark centre fading out through a scorched, ragged edge (alpha). */
@@ -64,6 +65,7 @@ export class GunFx {
       bus.on('weapon:fire', (e) => this.#muzzle(e)),
       bus.on('weapon:impact', (e) => this.#impact(e.point, e.normal, e.surface)),
       bus.on('weapon:hit', (e) => this.#hit(e)),
+      bus.on('weapon:magOut', (e) => this.#magOut(e)),
     ];
   }
 
@@ -145,6 +147,14 @@ export class GunFx {
     // Flesh: a dark mist, a little more for a headshot.
     const R = this.rand, C = this.col, n = e.zone === 'head' ? 4 : 2;
     for (let i = 0; i < n; i++) this.fx.dust.add(p.x, p.y, p.z, (R() - 0.5) * 1.2, R() * 0.6, (R() - 0.5) * 1.2, 0.35 + R() * 0.2, 0.06, 0.3, C.blood, fade(C.blood), 2.5, 1);
+  }
+
+  /** A reload throws the old mag away: it drops from the gun, tumbling. */
+  #magOut(e) {
+    const rec = this.anim?.record(e.id), pr = rec?.lod === 0 ? rec.h?.prop : null;
+    if (pr?.kind !== 'gun' || !this.#near(pr.base)) return;
+    _p.copy(pr.base).addScaledVector(pr.dir, pr.length * 0.35);
+    this.fx.matter.add(_p.x, _p.y - 0.08, _p.z, (this.rand() - 0.5) * 0.6, -0.4, (this.rand() - 0.5) * 0.6, 0.55, 0.09, 0.08, MAG, MAG, 0, 9.8);
   }
 
   /** A hole on the surface at p, facing along n. */

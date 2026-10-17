@@ -264,6 +264,21 @@ Attachments: slots `optic, barrel, magazine, underbarrel, stock, core` (core = e
 Each attachment is a list of stat ops `{stat, op: mul|add|set, value}` applied in slot order,
 plus visual mesh + socket name. Trade-offs are mandatory (every positive has a negative).
 
+**Reloads that cost** (`WeaponComponent`, [GAMEPLAY_PLAN.md](GAMEPLAY_PLAN.md) §1). For magazine-fed guns:
+- The reserve is whole magazines; the HUD shows a pip per mag.
+- Reloading with rounds still in the mag throws that mag away, rounds and all. You top up only
+  when it's worth it.
+- A reload is two stages: the old mag out, then the new one in. From empty, the bolt is worked
+  too. The data can set `reload.stages` and `reload.chamber`; otherwise they're split from
+  `tactical` and `empty`. The AR is 0.9 + 1.0 s, plus 0.6 s from empty.
+- Interrupted in stage 1, a reload starts over with the old mag still in. Once the old mag is
+  out, the next reload picks up stage 2 where it stopped.
+- Sprinting holds a reload with its progress kept. A hit holds it 0.2 s rather than cancelling
+  it. You walk at 85% while you reload.
+
+Shell-fed guns load shell by shell, and firing stops them. Heat guns vent. Every hit also knocks
+the victim's aim (`flinch`): half of what their camera takes, recovered by the ergonomics chase.
+
 ---
 
 ## 6. Classes (summary — full data in data/classes)

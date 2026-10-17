@@ -50,6 +50,9 @@ export class WeaponInstance {
     this.heat = 0;                     // heat-ammo weapons
     this.battery = stats.ammo?.max ?? 0;
     this.chambered = true;             // pump/bolt cycling
+    this.magOut = false;               // a reload got the old mag out, then was interrupted: the next picks up stage 2
+    this.inT = 0;                      // how far into stage 2 (s)
+    this.needsChamber = false;         // reloading from empty: the bolt wants working once the new mag is in
   }
   get usesHeat() { return this.s.ammo?.kind === 'heat'; }
   get usesBattery() { return this.s.ammo?.kind === 'battery'; }
@@ -84,6 +87,8 @@ export class WeaponComponent {
     this.weaponYaw = null;       // HD2 ergonomics: where the gun points (lags the camera aim)
     this.weaponPitch = 0;
     this.activeReloadWindow = null; // { start, end } fraction of vent/reload for perfect timing
+    this.rl = null;                 // a magazine reload under way: { stage, t, out, in } (s)
+    this.reloadHold = 0;            // s a hit holds the reload for
     this.buffs = { damageMul: 1, rpmMul: 1, reloadMul: 1, spreadMul: 1, until: 0 };
     this.time = 0;
     this.prevFire = false;
@@ -116,6 +121,8 @@ export class WeaponComponent {
     const adsRate = 1 / Math.max(0.05, s.ads?.time ?? 0.25);
     this.ads = Math.max(0, Math.min(1, this.ads + (wantAds ? adsRate : -adsRate * 1.3) * dt));
     mv.speedScale = Math.min(mv.speedScale, 1 - (1 - (s.ads?.moveMul ?? 0.7)) * this.ads);
+    // Hands on the mag: you walk slower (sprinting is still yours: it holds the reload instead).
+    if (this.phase === WeaponPhase.RELOADING && !b.sprint?.down) mv.speedScale = Math.min(mv.speedScale, 0.85);
 
     this.#recoverRecoil(w, dt, !!b.light?.down);
     this.#passiveHeat(w, dt);
@@ -132,11 +139,11 @@ export class WeaponComponent {
     this.aimPitch = Math.max(-1.5, Math.min(1.5, this.weaponPitch + this.recoilPitch));
 
     // Sprinting lowers the weapon. Firing out of a sprint costs a short "sprint-to-fire" delay.
-    // Reloads keep progressing while sprinting, as in most modern shooters.
+    // A reload holds while you sprint (progress kept: you pick it up when you stop).
     // Weapon lowered: sprinting, climbing, knocked down, getting up or down from prone.
     if (mv.sprinting || mv.weaponReady === false) {
       this.#endBeam();
-      if (this.phase === WeaponPhase.RELOADING) return this.#tickReload(w, cmd);
+      if (this.phase === WeaponPhase.RELOADING) return this.#tickReload(w, cmd, dt);
       if (this.phase === WeaponPhase.READY) this.#setPhase(WeaponPhase.SPRINT_RECOVER, s.handling?.sprintToFire ?? 0.2);
       if (this.phase === WeaponPhase.SPRINT_RECOVER) this.phaseTime = 0; // the timer starts once you stop sprinting
       return;
@@ -151,7 +158,7 @@ export class WeaponComponent {
         return;
 
       case WeaponPhase.RELOADING:
-        return this.#tickReload(w, cmd);
+        return this.#tickReload(w, cmd, dt);
 
       case WeaponPhase.VENTING:
       case WeaponPhase.OVERHEATED:
@@ -405,6 +412,16 @@ export class WeaponComponent {
     return w.mag <= 0;
   }
 
+  // Reloads that cost (docs/GAMEPLAY_PLAN.md §1), for magazine-fed guns:
+  //  * The reserve is whole magazines. Reloading with rounds still in the mag throws that mag away,
+  //    rounds and all: you top up only when it's worth it.
+  //  * Two stages: the old mag out, then the new one in (and the bolt worked, from empty: data
+  //    `reload.stages`, `reload.chamber`, or split from `tactical` and `empty`). Interrupted in
+  //    stage 1 (a swap, a stun, a melee hit) it starts over next time, the old mag still in; once
+  //    the old mag is out, the next reload picks up stage 2 where it stopped.
+  //  * Sprinting holds a reload, progress kept; a hit that flinches you holds it 0.2 s instead of
+  //    cancelling it; you walk at 85% while you reload.
+  // Shell-fed guns load shell by shell (firing stops it, keeping what's in); heat guns vent.
   #startReload(w, empty) {
     const s = w.s;
     if (w.usesHeat) {
@@ -414,30 +431,58 @@ export class WeaponComponent {
       this.#setPhase(WeaponPhase.VENTING, (s.ammo.manualVent ?? 1.2) / this.buffs.reloadMul);
       return bus.emit('weapon:ventStart', { id: this.owner.id, duration: this.phaseDuration, window: this.activeReloadWindow });
     }
-    if (w.usesBattery || w.mag >= s.mag || w.reserve <= 0) return;
+    if (w.usesBattery || w.reserve <= 0 || (w.mag >= s.mag && !w.magOut)) return;
     const r = s.reload ?? { style: 'mag', tactical: 2, empty: 2.5 };
-    const dur = r.style === 'shell' ? r.perShell : empty ? r.empty : r.tactical;
     this.reloadStyle = r.style;
-    this.#setPhase(WeaponPhase.RELOADING, dur / this.buffs.reloadMul);
-    bus.emit('weapon:reloadStart', { id: this.owner.id, style: r.style, empty, duration: this.phaseDuration });
+    this.reloadHold = 0;
+    if (r.style === 'shell') {
+      this.#setPhase(WeaponPhase.RELOADING, r.perShell / this.buffs.reloadMul);
+      return bus.emit('weapon:reloadStart', { id: this.owner.id, style: r.style, empty, duration: this.phaseDuration });
+    }
+    const [outT, inT] = r.stages ?? [r.tactical * 0.47, r.tactical * 0.53];
+    if (w.mag === 0 && !w.magOut) w.needsChamber = true;
+    const chamber = w.needsChamber ? r.chamber ?? Math.max(0, (r.empty ?? r.tactical) - r.tactical) : 0;
+    this.rl = { stage: w.magOut ? 2 : 1, t: w.magOut ? w.inT : 0, out: outT, in: inT + chamber };
+    this.#setPhase(WeaponPhase.RELOADING, (outT + inT + chamber) / this.buffs.reloadMul);
+    this.phaseTime = this.rl.stage === 2 ? (outT + this.rl.t) / this.buffs.reloadMul : 0;
+    bus.emit('weapon:reloadStart', { id: this.owner.id, style: r.style, empty: w.needsChamber, duration: this.phaseDuration, stage: this.rl.stage, resumed: this.rl.stage === 2 });
   }
 
-  #tickReload(w, cmd) {
-    const s = w.s;
-    // Shell reloads can be interrupted by firing (you keep the shells already loaded).
-    if (this.reloadStyle === 'shell' && cmd.buttons.light?.pressed && w.mag > 0) { this.#setPhase(WeaponPhase.READY); return this.#tickTrigger(w, cmd, 0); }
-    if (this.phaseTime < this.phaseDuration) return;
+  #tickReload(w, cmd, dt) {
+    const s = w.s, mv = this.owner.movement.state;
     if (this.reloadStyle === 'shell') {
+      // Firing stops a shell reload (you keep the shells already in).
+      if (cmd.buttons.light?.pressed && w.mag > 0) { this.#setPhase(WeaponPhase.READY); return this.#tickTrigger(w, cmd, 0); }
+      if (this.phaseTime < this.phaseDuration) return;
       w.mag++; w.reserve--;
       bus.emit('weapon:shellIn', { id: this.owner.id });
       if (w.mag < s.mag && w.reserve > 0) { this.phaseTime = 0; return; }
       w.chambered = true;
-    } else {
-      // Tactical reload keeps one in the chamber (+1); empty reload does not.
-      const need = s.mag - w.mag;
-      const take = Math.min(need, w.reserve);
-      w.mag += take; w.reserve -= take;
+      this.consecutive = 0;
+      this.#setPhase(WeaponPhase.READY);
+      return bus.emit('weapon:reloadEnd', { id: this.owner.id });
     }
+    // Held: sprinting or the gun lowered (climbing, getting up), or flinching from a hit.
+    this.phaseTime -= dt;
+    if (this.reloadHold > 0) { this.reloadHold -= dt; return; }
+    if (mv.sprinting || mv.weaponReady === false) return;
+    const rl = this.rl;
+    rl.t += dt * this.buffs.reloadMul;
+    this.phaseTime = ((rl.stage === 2 ? rl.out : 0) + rl.t) / this.buffs.reloadMul;
+    if (rl.stage === 1) {
+      if (rl.t < rl.out) return;
+      // The old mag comes out and goes, with whatever was left in it.
+      const lost = w.mag;
+      w.mag = 0; w.magOut = true; w.inT = 0;
+      bus.emit('weapon:magOut', { id: this.owner.id, lost });
+      rl.stage = 2; rl.t = 0;
+      return;
+    }
+    w.inT = rl.t;
+    if (rl.t < rl.in) return;
+    const take = Math.min(s.mag, w.reserve);
+    w.mag = take; w.reserve -= take;
+    w.magOut = false; w.inT = 0; w.needsChamber = false;
     this.consecutive = 0;
     this.#setPhase(WeaponPhase.READY);
     bus.emit('weapon:reloadEnd', { id: this.owner.id });
@@ -465,8 +510,12 @@ export class WeaponComponent {
 
   #setPhase(p, duration = 0) { this.phase = p; this.phaseTime = 0; this.phaseDuration = duration; }
 
-  /** Melee hits, stagger, and ability effects (EMP, stun) cancel reloads, charges and ADS. */
+  /**
+   * Melee hits, stagger, and ability effects (EMP, stun) cancel reloads (a magazine reload keeps
+   * stage 2's progress on the gun), charges and ADS. A round's flinch only holds a reload 0.2 s.
+   */
   interrupt(reason) {
+    if (reason === 'flinch' && this.phase === WeaponPhase.RELOADING) { this.reloadHold = Math.max(this.reloadHold ?? 0, 0.2); return; }
     if (this.phase === WeaponPhase.RELOADING || this.phase === WeaponPhase.CHARGING || this.phase === WeaponPhase.VENTING) {
       bus.emit('weapon:interrupted', { id: this.owner.id, reason, phase: this.phase });
       this.charge = 0;
@@ -497,7 +546,7 @@ export class WeaponComponent {
   /** A fresh loadout (redeploying): full magazines and reserves, cool barrels, charged batteries. */
   restock() {
     this.#endBeam();
-    for (const w of this.loadout) { w.mag = w.s.mag ?? 0; w.reserve = w.s.reserve ?? 0; w.heat = 0; w.battery = w.s.ammo?.max ?? 0; w.chambered = true; }
+    for (const w of this.loadout) { w.mag = w.s.mag ?? 0; w.reserve = w.s.reserve ?? 0; w.heat = 0; w.battery = w.s.ammo?.max ?? 0; w.chambered = true; w.magOut = false; w.inT = 0; w.needsChamber = false; }
     this.charge = 0; this.burstLeft = 0; this.consecutive = 0; this.cooldown = 0;
     this.#setPhase(WeaponPhase.READY);
   }

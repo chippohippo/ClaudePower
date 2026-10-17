@@ -173,6 +173,9 @@ export class AudioDirector {
     // Weapons
     on('weapon:fire', (e) => this.play(`${e.audio ?? 'gun'}.fire${this.relation(e.id) === 'self' ? '_1p' : ''}`, { tier: Tier.WEAPON, pos: e.id === this.listenerId ? null : this.posOf(e.id), radius: 90 * (e.audioRadius ?? 1), gainDb: e.lowAmmo && e.id === this.listenerId ? 0 : -1 }));   // a suppressor carries a third as far
     on('weapon:empty', (e) => e.id === this.listenerId && this.play('ui.mag_empty_click', { tier: Tier.COMBAT, gainDb: -4 }));
+    // The reload's two stages, heard: the old mag out (with a rattle if it still had rounds), the new one in.
+    on('weapon:magOut', (e) => e.id === this.listenerId && this.play('gear.mag_out', { tier: Tier.FOLEY, intensity: e.lost > 0 ? 1 : 0.6, gainDb: -4 }));
+    on('weapon:reloadEnd', (e) => e.id === this.listenerId && this.play('gear.mag_in', { tier: Tier.FOLEY, intensity: 1, gainDb: -2 }));
     on('weapon:overheat', (e) => this.play('weapon.overheat_vent', { tier: Tier.COMBAT, pos: e.id === this.listenerId ? null : this.posOf(e.id) }));
     on('weapon:perfectVent', (e) => e.id === this.listenerId && this.play('ui.perfect_vent', { tier: Tier.COMBAT }));
     on('weapon:hit', (e) => {
