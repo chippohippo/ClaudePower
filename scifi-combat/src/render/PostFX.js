@@ -8,6 +8,9 @@
 //  4. Final pass to the screen: rays added in the light's color, exposure, ACES filmic, the
 //     grade (lift, gamma, gain, contrast, saturation), vignette, film grain, and a little
 //     chromatic aberration toward the edges; then sRGB.
+//  5. The stylized look (`post.outline`, `post.letterbox`): ink lines where the depth breaks
+//     (silhouettes and creases, found as a kink in 1/depth, so flat ground never draws one), on
+//     the near side of the edge, 2 px wide up to 1080p, fading out with distance; cinematic bars.
 // quality 'low' drops multisampling and halves the ray samples.
 
 import * as THREE from 'three';
@@ -41,11 +44,13 @@ void main() {
 }`;
 
 const FINAL_FRAG = `
-uniform sampler2D tColor, tRays;
-uniform vec3 rayColor, lift, gamma, gain;
+uniform sampler2D tColor, tRays, tDepth;
+uniform vec3 rayColor, lift, gamma, gain, inkColor;
 uniform float rayStrength, exposure, saturation, contrast, vignette, grain, aberration, time;
+uniform float ink, inkEdge, inkNear, inkFar, camNear, camFar, letterbox;
 uniform vec2 resolution;
 varying vec2 vUv;
+float invDepth(vec2 uv) { float z = texture2D(tDepth, uv).r * 2.0 - 1.0; return (camFar + camNear - z * (camFar - camNear)) / (2.0 * camNear * camFar); }
 vec3 RRTAndODTFit(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
 vec3 aces(vec3 color) {
   const mat3 ACESInputMat = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
@@ -63,6 +68,17 @@ void main() {
   vec2 off = d * aberration * r2 * 4.0;
   vec3 c = vec3(texture2D(tColor, vUv + off).r, texture2D(tColor, vUv).g, texture2D(tColor, vUv - off).b);
   c += texture2D(tRays, vUv).rgb * rayColor * rayStrength;
+  // Ink: a kink in 1/depth across the pixel (zero on any flat surface), on the near side only.
+  if (ink > 0.0) {
+    vec2 px = vec2(max(2.0, floor(resolution.y / 540.0 + 0.5))) / resolution;   // whole pixels: 2 up to 1080p
+    float ic = invDepth(vUv);
+    float il = invDepth(vUv - vec2(px.x, 0.0)), ir = invDepth(vUv + vec2(px.x, 0.0));
+    float id = invDepth(vUv - vec2(0.0, px.y)), iu = invDepth(vUv + vec2(0.0, px.y));
+    float kink = max(-(il + ir - 2.0 * ic), -(id + iu - 2.0 * ic)) / max(ic, 1e-6);
+    float dist = 1.0 / max(ic, 1e-6);
+    float k = smoothstep(inkEdge, inkEdge * 2.5, kink) * smoothstep(inkFar, inkNear, dist) * ink;
+    c = mix(c, inkColor * (0.7 + 0.6 * max(max(c.r, c.g), c.b)), k);   // the ink takes a little of the light it's drawn in
+  }
   c = aces(c * exposure);
   // Grade (display-referred): lift the shadows cool, warm the highlights, then contrast and saturation.
   c = pow(max(c * gain + lift * (1.0 - c), 0.0), 1.0 / gamma);
@@ -73,6 +89,7 @@ void main() {
   c = clamp(c, 0.0, 1.0);
   c = toSRGB(c);
   c += (hash(vUv * resolution + fract(time * 13.0) * 97.0) - 0.5) * grain;
+  if (vUv.y < letterbox || vUv.y > 1.0 - letterbox) c = vec3(0.0);   // cinematic bars
   gl_FragColor = vec4(c, 1.0);
 }`;
 
@@ -103,6 +120,10 @@ export class PostFX {
         exposure: { value: post.exposure }, lift: { value: new THREE.Vector3(...gr.lift) }, gamma: { value: new THREE.Vector3(...gr.gamma) }, gain: { value: new THREE.Vector3(...gr.gain) },
         saturation: { value: gr.saturation }, contrast: { value: gr.contrast }, vignette: { value: post.vignette }, grain: { value: post.grain },
         aberration: { value: post.aberration }, time: { value: 0 }, resolution: { value: new THREE.Vector2(W, H) },
+        tDepth: { value: this.rt.depthTexture }, camNear: { value: 0.1 }, camFar: { value: 1000 },
+        ink: { value: post.outline?.strength ?? 0 }, inkColor: { value: new THREE.Color(post.outline?.color ?? '#2a2444') },
+        inkEdge: { value: post.outline?.edge ?? 0.12 }, inkNear: { value: post.outline?.near ?? 4 }, inkFar: { value: post.outline?.far ?? 70 },
+        letterbox: { value: post.letterbox ?? 0 },
       },
     });
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.raysMat);
@@ -145,6 +166,7 @@ export class PostFX {
     this.bloom.render(R, null, this.rt, dt, false);
     // Final.
     this.finalMat.uniforms.time.value = this.time;
+    this.finalMat.uniforms.camNear.value = camera.near; this.finalMat.uniforms.camFar.value = camera.far;
     this.quad.material = this.finalMat;
     R.setRenderTarget(null);
     R.render(this.quadScene, this.quadCam);

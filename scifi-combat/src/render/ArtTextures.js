@@ -121,7 +121,7 @@ export function groundDetailTexture(size = 1024) {
  * from TerrainChunks), cracks in patches, relief from the normal map.
  * @param {{ map, normal }} detail  groundDetailTexture()
  */
-export function groundMaterial(detail, { relief = 1 } = {}) {
+export function groundMaterial(detail, { relief = 1, grain = 1 } = {}) {
   detail.map.anisotropy = detail.normal.anisotropy = detail.macro.anisotropy = detail.crackNormal.anisotropy = 8;
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.97, metalness: 0 });
   mat.onBeforeCompile = (shader) => {
@@ -131,18 +131,19 @@ export function groundMaterial(detail, { relief = 1 } = {}) {
     shader.uniforms.gMacro = { value: detail.macro };
     shader.uniforms.gMean = { value: detail.map.userData.mean || 0.8 };
     shader.uniforms.gRelief = { value: relief };
+    shader.uniforms.gGrain = { value: grain };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vGroundUv;')
       .replace('#include <uv_vertex>', '#include <uv_vertex>\nvGroundUv = uv;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform sampler2D gDetail, gNormal, gCrack, gMacro;\nuniform float gMean, gRelief;\nvarying vec2 vGroundUv;')
+      .replace('#include <common>', '#include <common>\nuniform sampler2D gDetail, gNormal, gCrack, gMacro;\nuniform float gMean, gRelief, gGrain;\nvarying vec2 vGroundUv;')
       .replace('#include <map_fragment>', `#include <map_fragment>
         vec2 gUv = vGroundUv * (6.0 / 8.0);                          // the tile is 8 m
         vec2 gUv2 = gUv * 0.173 + 0.31;                              // and a ~46 m one, so tiling never lines up
         vec4 gA = texture2D(gDetail, gUv), gB = texture2D(gDetail, gUv2);
         // Cracked plates only in patches: a world-scale mask from the dust of a ~260 m tile.
         float gCrackMask = smoothstep(0.56, 0.7, texture2D(gDetail, gUv * 0.031 + 0.7).g);
-        diffuseColor.rgb *= ((gA.r * 0.7 + gB.r * 0.3) / gMean) * (1.0 - gA.b * 0.16 * gCrackMask);`)
+        diffuseColor.rgb *= mix(1.0, ((gA.r * 0.7 + gB.r * 0.3) / gMean) * (1.0 - gA.b * 0.16 * gCrackMask), gGrain);   // (snow: less of it)`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         {
           // Heightfield tangent frame in world space (x and z along the ground), then back to view space.
@@ -156,6 +157,6 @@ export function groundMaterial(detail, { relief = 1 } = {}) {
           normal = normalize(mat3(viewMatrix) * gN);
         }`);
   };
-  mat.customProgramCacheKey = () => `ground:${detail.map.uuid}`;
+  mat.customProgramCacheKey = () => `ground:${detail.map.uuid}`;   // (relief and grain are uniforms)
   return mat;
 }

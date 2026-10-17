@@ -64,6 +64,28 @@ itself, in pools.
 | Markers | The point beacons and the line's curtain at 40% (`markerGlow`): at night they'd be all that glows |
 | Post | Exposure 1.3; bloom at a low threshold (0.72), so the lamps, windows and neon glow; faint cool god rays; lifted blue shadows; a strong vignette |
 
+## Planet preset: Snowfall at Dusk (the city, default)
+
+`palette.json` `planets.duskcity`: the city warfront's default sky (`index.html?map=city`; `&planet=nightcity`
+for the aurora night). It is the stylized look of the reference clips: blue hour over a snowed-in
+city, flat-lit low-poly forms with ink outlines, lavender light and shadow, warm lamps.
+
+| Element | Spec |
+|---|---|
+| Sky | Deep indigo zenith (`#24223a`) to a dusty rose horizon (`#8e8296`), a warm glow (`#d9a58a`) toward the low sun; a few stars; no aurora |
+| Sun | Low and warm (`#ffbf96`, 8° up, azimuth 236°): long shadows down the cross streets, a peach glow in the fog toward it |
+| Fill | A grey-lavender sky fill (`#9c97b8`, 1.1) and bounce, so shade is lavender, never black |
+| Fog | Grey-lavender (`#67637e`, density 0.0045): the skyline fades into it |
+| Ground | Snow on the streets (`#bdb8c8`), the park (`#d0ccd8`) and its paths; the ground's detail tile turned down (`terrain`: relief 0.3, grain 0.35), so fresh snow lies smooth |
+| Snow lying | On every top (`snow`, `src/render/SnowCover.js`): roofs, sidewalk slabs, barriers, wrecks, sandbags, tree crowns go white (`#d6d2e0`) where the world normal points up (full above 0.8, none under 0.55); walls keep their colour |
+| Snow falling | Big soft flakes (`ash`: 4000 in a 30 m box round the camera, size 0.1, alpha 0.85), coming as close as 0.35 m to the lens, the same size on any screen |
+| Troopers | The planet's own paint (`factions`): Solari in winter whites (`#d8dae0`) with red markings and capes and cyan lamps; the Void Legion in night black (`#34323b`) with red visors. Snow, not ochre dust, on their boots (`vfx.dust`) |
+| Smoke | Chunky faceted puffs (`fx.smoke: 'puffs'`): instanced low-poly balls in the scene's own light, bleached toward cream (`#efe2d2`, 70%); they pop out, swell and shrink away, tumbling, and the ink outlines them. Fire and flashes stay glowing |
+| Gunfire | Laser bolts (`fx.bolts`): ribbons 22 cm wide and 3.2 m long at 240 m/s, a paler core in a coloured glow, blue (`#4aa8ff`) for your side and red (`#ff3b2e`) for the enemy's, leaving the rifle's muzzle |
+| City | Fewer windows lit (`city.windows` 0.45), warm lamps (`#ffa95a`), cyan, coral, amber and green neon |
+| Ink | `post.outline`: dark indigo lines (`#2a2444`) 2 px wide where the depth breaks: silhouettes, contact edges, creases. Found as a kink in 1/depth, which is zero on any flat surface, so the ground draws none. On the near side of the edge, fading out by 90 m |
+| Frame | `post.letterbox` 0.065: cinematic bars top and bottom. Exposure 1.15, contrast 1.16, saturation 0.82, lifted lavender shadows, a light vignette and grain |
+
 Further presets (same data shape): a fog-and-mud creek, a frozen front.
 
 ## The two trooper armies
@@ -165,7 +187,7 @@ from their normal maps.
 | Muzzle blast | A white-gold flash (`#ffe0a0`) for two frames at the animated gun's barrel, a small puff that hangs 0.6 s; your own shots light the scene for those frames (`src/vfx/GunFx.js`) |
 | Shell burst | A flash brighter than the sun, a fireball (`#fff2c8` → `#ff8a2a` → `#d9440f`), a column of dirt (`#6b5236`) thrown up and falling back, a dark plume (`#2a2420`) that drifts for ten seconds, a scorch mark left on the ground |
 | Bullet impacts | A flash where each round lands, then by surface: dirt clods and a soft spray of dust (`#b9976a`), sand off sandbags, splinters off timber, grey chips off concrete, sparks (`#ffc56b`) off metal, vehicles and armor plate, a flash of blue off a shield, a dark mist (`#5e1410`) off flesh. 256 bullet holes, dark-centred with a scorched edge, on whatever was hit (never people) |
-| Tracers | Faction-tinted: gold for Solari, violet for Void |
+| Tracers | Faction-tinted: gold for Solari, violet for Void: camera-facing ribbons, a hot core in a coloured glow, fading toward the tail, leaving the muzzle (a planet can make them laser bolts: Snowfall at Dusk) |
 | Call-in beams | A pillar of light from the beacon up into the sky in the payload's color (palette `stratagem`: strike `#ff5a3c`, supply `#4db3ff`, sentry `#5dff8f`, smoke `#ece7db`). It has a hot center and saturated edges, gets wider with distance so it reads across the map, and its pulses run up faster as the payload nears. Drawn opaque-ish, never additive: added to the scorched sky it would only turn white |
 | Danger outline | A strike's blast area draped over the ground: a band, and a low fence of light fading upward so it reads from eye height |
 | Strike rounds | A white-hot streak behind each round coming down |
@@ -191,7 +213,7 @@ sky and light, to model against and to screenshot:
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
 | `cars` | the recon cars (the real sim run to each moment): `parked`, `kestrel`, `jackal`, `rear`, `drift`, `roll`, `over`, `thrown`, `burning` |
-| `city` | the night city (a 32v32 city map, `nightcity` sky): `street` (down an avenue), `squad` (under a street lamp), `fire` (a burning wreck), `barricade`, `crossing`, `park` (the fountain), `aurora`, `above` |
+| `city` | the city (a 32v32 city map, `duskcity` sky; `&planet=nightcity` for the aurora night): `street` (down an avenue), `squad` (under a street lamp), `fire` (a burning wreck), `barricade`, `crossing`, `park` (the fountain), `aurora`, `above` |
 | `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
 | `gunfx` | `impacts` (rounds landing on sandbags, timber, metal, concrete and dirt), `muzzle` (a trooper firing) |
 | `melee` | `blades`, `duel`, `spear`, `bash`, `finisher` |

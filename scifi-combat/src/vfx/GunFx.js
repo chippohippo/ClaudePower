@@ -16,7 +16,7 @@ import { DEFAULT_PALETTE } from '../render/CrowdRenderer.js';
 
 const SEEN = 90;                 // m: no effects past this from the camera
 const HOLES = 256;
-const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3();
+const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _d2 = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3();
 
 const lin = (hex, a = 1) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b, a]; };
 const MAG = [0.03, 0.03, 0.035, 1];
@@ -74,18 +74,26 @@ export class GunFx {
   #near(p) { return (p.x - this.eye.x) ** 2 + (p.y - this.eye.y) ** 2 + (p.z - this.eye.z) ** 2 < SEEN * SEEN; }
 
   // ---------------------------------------------------------------- the muzzle
+  /**
+   * Where fighter `id`'s muzzle is (the rig's gun when it's posed close up, else from its aim),
+   * into `p` and the barrel's direction into `d`; false for a vehicle or nobody. (TracerPool
+   * starts its streaks here.)
+   */
+  muzzleAt(id, p, d = _d2) {
+    const ent = this.world.entity(id);
+    if (!ent || ent.vehicle || !ent.movement) return false;
+    const rec = this.anim?.record(id), pr = rec?.lod <= 1 ? rec.h?.prop : null;
+    if (pr?.kind === 'gun') { p.copy(pr.base).addScaledVector(pr.dir, pr.length * 1.02); d.copy(pr.dir); return true; }
+    const s = ent.movement.state, w = ent.weapons;
+    const yaw = w?.aimYaw ?? s.yaw, pitch = w?.aimPitch ?? 0;
+    d.set(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+    p.copy(s.position).addScaledVector(d, 0.8); p.y += s.stance === 'prone' ? 0.35 : s.stance === 'crouch' ? 1.0 : 1.45;
+    return true;
+  }
+
   #muzzle(e) {
+    if (!this.muzzleAt(e.id, _p, _d) || !this.#near(_p)) return;
     const ent = this.world.entity(e.id);
-    if (!ent || ent.vehicle) return;
-    const rec = this.anim?.record(e.id), pr = rec?.lod <= 1 ? rec.h?.prop : null;
-    if (pr?.kind === 'gun') { _p.copy(pr.base).addScaledVector(pr.dir, pr.length * 1.02); _d.copy(pr.dir); }
-    else {
-      const s = ent.movement.state, w = ent.weapons;
-      const yaw = w?.aimYaw ?? s.yaw, pitch = w?.aimPitch ?? 0;
-      _d.set(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
-      _p.copy(s.position).addScaledVector(_d, 0.8); _p.y += s.stance === 'prone' ? 0.35 : s.stance === 'crouch' ? 1.0 : 1.45;
-    }
-    if (!this.#near(_p)) return;
     const R = this.rand, C = this.col, big = /shotgun|sniper|marksman|heavy|launcher/.test(e.weaponId ?? '') ? 1.5 : 1;
     this.fx.glow.add(_p.x, _p.y, _p.z, _d.x * 3, _d.y * 3, _d.z * 3, 0.035, 0.1 * big, 0.26 * big, C.flash, fade(C.flash), 0, 0);
     this.fx.glow.add(_p.x + _d.x * 0.12, _p.y + _d.y * 0.12, _p.z + _d.z * 0.12, _d.x * 6, _d.y * 6, _d.z * 6, 0.03, 0.06 * big, 0.18 * big, C.flash, fade(C.flash), 0, 0);

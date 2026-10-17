@@ -14,6 +14,9 @@
 //      - stratagems: a smoke screen's clouds (stratagem:smoke), billowing for as long as the sim
 //        blocks sight through them and thinning out as it stops; a drop pod's trail of fire on the
 //        way down (reentry, called by StratagemViews) and the dust it throws up landing.
+//  * style 'puffs' (the stylized look, palette.json `fx.smoke`): smoke and debris are chunky
+//    faceted puffs instead (instanced low-poly balls, flat-lit by the sun with a pale ink rim,
+//    swelling and then shrinking away); fire and flashes stay glowing billboards.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -56,16 +59,25 @@ const FRAG = /* glsl */ `
 class Pool {
   constructor(scene, max, additive) {
     this.max = max; this.n = 0;
+    if (!scene) { this.#arrays(max); return; }   // (PuffPool builds its own mesh)
+    this.#arrays(max);
+    this.#mesh(scene, max, additive);
+  }
+
+  #arrays(max) {
     const F = Float32Array;
     this.p = new F(max * 3); this.v = new F(max * 3); this.life = new F(max); this.age = new F(max);
     this.s0 = new F(max); this.s1 = new F(max); this.c0 = new F(max * 4); this.c1 = new F(max * 4);
-    this.drag = new F(max); this.grav = new F(max);
-    const quad = new THREE.PlaneGeometry(1, 1);
-    const geo = new THREE.InstancedBufferGeometry();
-    geo.index = quad.index; geo.setAttribute('position', quad.getAttribute('position'));
+    this.drag = new F(max); this.grav = new F(max); this.seed = new F(max);
     this.aPos = new THREE.InstancedBufferAttribute(new F(max * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.aSize = new THREE.InstancedBufferAttribute(new F(max), 1).setUsage(THREE.DynamicDrawUsage);
     this.aCol = new THREE.InstancedBufferAttribute(new F(max * 4), 4).setUsage(THREE.DynamicDrawUsage);
+  }
+
+  #mesh(scene, max, additive) {
+    const quad = new THREE.PlaneGeometry(1, 1);
+    const geo = new THREE.InstancedBufferGeometry();
+    geo.index = quad.index; geo.setAttribute('position', quad.getAttribute('position'));
     geo.setAttribute('iPos', this.aPos); geo.setAttribute('iSize', this.aSize); geo.setAttribute('iColor', this.aCol);
     geo.instanceCount = 0;
     this.mat = new THREE.ShaderMaterial({
@@ -89,7 +101,7 @@ class Pool {
     this.v[i3] = vx; this.v[i3 + 1] = vy; this.v[i3 + 2] = vz;
     this.life[i] = life; this.age[i] = 0; this.s0[i] = s0; this.s1[i] = s1;
     for (let k = 0; k < 4; k++) { this.c0[i4 + k] = c0[k]; this.c1[i4 + k] = c1[k]; }
-    this.drag[i] = drag; this.grav[i] = grav;
+    this.drag[i] = drag; this.grav[i] = grav; this.seed[i] = Math.random();
   }
 
   update(dt) {
@@ -113,6 +125,7 @@ class Pool {
       for (let c = 0; c < 4; c++) C[i4 + c] = this.c0[i4 + c] + (this.c1[i4 + c] - this.c0[i4 + c]) * u;
     }
     this.n = n;
+    if (!this.geo) return;                             // (PuffPool draws its own)
     this.geo.instanceCount = n;
     this.aPos.needsUpdate = this.aSize.needsUpdate = this.aCol.needsUpdate = true;
     this.aPos.addUpdateRange?.(0, n * 3); this.aSize.addUpdateRange?.(0, n); this.aCol.addUpdateRange?.(0, n * 4);
@@ -123,9 +136,59 @@ class Pool {
     for (let k = 0; k < 3; k++) { this.p[t3 + k] = this.p[f3 + k]; this.v[t3 + k] = this.v[f3 + k]; }
     for (let k = 0; k < 4; k++) { this.c0[t4 + k] = this.c0[f4 + k]; this.c1[t4 + k] = this.c1[f4 + k]; }
     this.life[to] = this.life[from]; this.age[to] = this.age[from]; this.s0[to] = this.s0[from]; this.s1[to] = this.s1[from];
-    this.drag[to] = this.drag[from]; this.grav[to] = this.grav[from];
+    this.drag[to] = this.drag[from]; this.grav[to] = this.grav[from]; this.seed[to] = this.seed[from];
   }
 }
+
+/**
+ * Chunky faceted smoke (the stylized look): the same add() as Pool, drawn as one instanced mesh
+ * of low-poly balls in the scene's own light (sun, sky fill, shadows, fog), so the post pass inks
+ * their outlines like everything else. Colours are bleached toward `tint` (pale smoke reads in
+ * the dusk light); a puff's alpha scales it instead of fading it, so puffs pop out, swell and
+ * shrink away, each tumbling slowly and squashed a little its own way.
+ */
+class PuffPool extends Pool {
+  constructor(scene, max, { tint = '#efe2d2', bleach = 0.55 } = {}) {
+    super(null, max, false);
+    const ball = new THREE.IcosahedronGeometry(1, 1);
+    this.mat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, metalness: 0, flatShading: true, envMapIntensity: 0.8 });
+    this.mesh = new THREE.InstancedMesh(ball, this.mat, max);
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage);
+    this.mesh.count = 0;
+    this.mesh.frustumCulled = false;
+    this.mesh.receiveShadow = true;
+    this.tint = new THREE.Color(tint); this.bleach = bleach;
+    scene.add(this.mesh);
+  }
+
+  add(x, y, z, vx, vy, vz, life, s0, s1, c0, c1, drag = 0, grav = 0) {
+    // Bleach toward the tint; alpha becomes the size envelope (1 at birth, c1's share at death).
+    const t = this.tint, k = this.bleach, a0 = Math.max(c0[3], 1e-3);
+    _c0[0] = c0[0] + (t.r - c0[0]) * k; _c0[1] = c0[1] + (t.g - c0[1]) * k; _c0[2] = c0[2] + (t.b - c0[2]) * k; _c0[3] = 1;
+    _c1[0] = c1[0] + (t.r - c1[0]) * k; _c1[1] = c1[1] + (t.g - c1[1]) * k; _c1[2] = c1[2] + (t.b - c1[2]) * k; _c1[3] = c1[3] / a0;
+    super.add(x, y, z, vx, vy, vz, life, s0, s1, _c0, _c1, drag, grav);
+  }
+
+  update(dt) {
+    super.update(dt);
+    const n = this.n, P = this.aPos.array, S = this.aSize.array, C = this.aCol.array, M = this.mesh.instanceMatrix.array, IC = this.mesh.instanceColor.array;
+    for (let i = 0; i < n; i++) {
+      const sd = this.seed[i], i3 = i * 3, i4 = i * 4;
+      _ax.set(Math.sin(sd * 41.3), Math.cos(sd * 17.9), Math.sin(sd * 29.7)).normalize();
+      _q.setFromAxisAngle(_ax, sd * 6.283 + this.age[i] * (sd - 0.5));       // a slow tumble
+      const r = 0.5 * S[i] * Math.max(0, C[i4 + 3]), sq = 0.82 + 0.36 * ((sd * 7.7) % 1);
+      _s.set(r * sq, r * (2 - sq), r);
+      _v.set(P[i3], P[i3 + 1], P[i3 + 2]);
+      _m.compose(_v, _q, _s).toArray(M, i * 16);
+      IC[i3] = C[i4]; IC[i3 + 1] = C[i4 + 1]; IC[i3 + 2] = C[i4 + 2];
+    }
+    this.mesh.count = n;
+    this.mesh.instanceMatrix.needsUpdate = true;
+    this.mesh.instanceColor.needsUpdate = true;
+  }
+}
+const _c0 = [0, 0, 0, 0], _c1 = [0, 0, 0, 0], _ax = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _m = new THREE.Matrix4();
 
 const FIRE = [1.0, 0.62, 0.22, 1], FIRE_END = [0.6, 0.15, 0.02, 0];
 const FLASH = [1.0, 0.9, 0.7, 1], FLASH_END = [1.0, 0.5, 0.15, 0];
@@ -142,14 +205,16 @@ const BURN = [0.95, 0.45, 0.12, 0.9], SOOT = [0.06, 0.055, 0.05, 0.85], SOOT_END
 export class BattleFx {
   /**
    * @param {THREE.Scene} scene
-   * @param {object} o { fog: THREE.Fog or THREE.FogExp2 }
+   * @param {object} o { fog: THREE.Fog or THREE.FogExp2, look: the planet's `fx` (palette.json):
+   *                    { smoke: 'puffs' for chunky faceted smoke, tint, bleach } }
    */
-  constructor(scene, { fog = null, maxGlow = 1600, maxMatter = 5000, maxDust = 2500 } = {}) {
+  constructor(scene, { fog = null, maxGlow = 1600, maxMatter = 5000, maxDust = 2500, look = null } = {}) {
     this.glow = new Pool(scene, maxGlow, true);
-    this.matter = new Pool(scene, maxMatter, false);
+    this.matter = look?.smoke === 'puffs' ? new PuffPool(scene, Math.min(maxMatter, 3000), look) : new Pool(scene, maxMatter, false);
     this.dust = new Pool(scene, maxDust, false);       // soft-edged: small-arms dust and spray (GunFx)
     this.dust.mat.uniforms.soft.value = 1.8;
     if (fog) for (const p of [this.glow, this.matter, this.dust]) {
+      if (!p.geo) continue;                            // (puffs take the scene's fog)
       const u = p.mat.uniforms;
       u.fogColor.value.copy(fog.color);
       if (fog.isFogExp2) u.fogDensity.value = fog.density; else { u.fogNear.value = fog.near; u.fogFar.value = fog.far; }

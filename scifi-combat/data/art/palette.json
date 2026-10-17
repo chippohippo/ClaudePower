@@ -294,6 +294,227 @@
       },
       "_axes": "Azimuth in degrees clockwise from north (-Z) seen from above: 90 = east (+X, where Solari attack). Elevation in degrees above the horizon.",
       "markerGlow": 0.4
+    },
+    "duskcity": {
+      "name": "Snowfall at Dusk",
+      "_look": "The stylized look of the reference clips: blue hour over a snowed-in city. Lavender light and shadow, a low warm sun behind the towers, snow lying on every top (snow) and falling in big soft flakes (ash), warm street lamps, chunky faceted smoke (fx), pale ink outlines and cinematic bars (post.outline, post.letterbox).",
+      "sky": {
+        "zenith": "#24223a",
+        "upper": "#3d3a55",
+        "horizon": "#8e8296",
+        "below": "#2a2834",
+        "haze": "#d9a58a",
+        "streaks": "#4a4458"
+      },
+      "sun": {
+        "color": "#ffbf96",
+        "intensity": 2.6,
+        "elevation": 8,
+        "azimuth": 236,
+        "disk": "#ffe2c4",
+        "halo": "#ff9a6a",
+        "size": 2.2,
+        "gain": 0.7
+      },
+      "moon": {
+        "elevation": -20,
+        "azimuth": 60,
+        "size": 6,
+        "color": "#c9bfdc",
+        "shade": "#2c2640",
+        "ring": "#d6cbe8",
+        "haze": 0.6
+      },
+      "fill": {
+        "sky": "#9c97b8",
+        "ground": "#3a3644",
+        "intensity": 1.1,
+        "bounce": "#a09ab8",
+        "bounceIntensity": 0.3,
+        "env": 0.75
+      },
+      "fog": {
+        "color": "#67637e",
+        "sunColor": "#c79c8e",
+        "density": 0.0045,
+        "heightFalloff": 0.03,
+        "base": -2,
+        "sunPower": 6
+      },
+      "ground": {
+        "dust": "#cbc7d4",
+        "earth": "#a8a2b2",
+        "rock": "#6e6a78",
+        "scorch": "#2c2833",
+        "ash": "#5f5869",
+        "mud": "#4d4656",
+        "grass": "#d0ccd8",
+        "asphalt": "#bdb8c8",
+        "path": "#c4c0ce",
+        "rubble": "#8e8896"
+      },
+      "terrain": {
+        "_note": "How much of the ground's detail tile shows: relief (its bumps and cracks) and grain (its light and dark), 1 = all of it. Fresh snow lies smooth.",
+        "relief": 0.3,
+        "grain": 0.35
+      },
+      "ash": {
+        "count": 4000,
+        "color": "#f6f2fb",
+        "ember": "#ffffff",
+        "embers": 0,
+        "fall": 0.9,
+        "drift": [
+          0.5,
+          0.15
+        ],
+        "size": 0.1,
+        "alpha": 0.85,
+        "near": 0.35,
+        "box": 30
+      },
+      "smokeColumns": [
+        {
+          "azimuth": 64,
+          "distance": 1300,
+          "height": 300,
+          "width": 60
+        },
+        {
+          "azimuth": 300,
+          "distance": 1700,
+          "height": 260,
+          "width": 55
+        }
+      ],
+      "stars": 0.12,
+      "snow": {
+        "_note": "Snow lying on upward faces (SnowCover): its colour, how much of a top it covers, and the slope it clings to (world normal's up-component: none under lo, full over hi).",
+        "color": "#d6d2e0",
+        "amount": 0.9,
+        "lo": 0.55,
+        "hi": 0.8
+      },
+      "fx": {
+        "_note": "BattleFx: 'puffs' draws smoke and debris as chunky faceted balls in the scene's light, their colours bleached toward tint. TracerPool: bolts are laser bolts (speed m/s, streak m, half width m, glow), blue for your side and red for the enemy's.",
+        "smoke": "puffs",
+        "tint": "#efe2d2",
+        "bleach": 0.7,
+        "bolts": {
+          "speed": 240,
+          "streak": 3.2,
+          "width": 0.11,
+          "glow": 1.5,
+          "friendly": "#4aa8ff",
+          "enemy": "#ff3b2e"
+        }
+      },
+      "factions": {
+        "_note": "Paint for this planet, over the shared factions: Solari in winter whites with red markings and cyan lamps, the Void Legion in night black with red visors (the reference's two sides).",
+        "solari": {
+          "armor": "#d8dae0",
+          "armorShade": "#a3a7b2",
+          "black": "#26262c",
+          "suit": "#3b3d44",
+          "gear": "#585b63",
+          "webbing": "#3a3c42",
+          "stencil": "#c0262a",
+          "stripe": "#c0262a",
+          "cape": "#8c1f1c",
+          "capeTrim": "#e8e9ee",
+          "visor": "#7fe0ff",
+          "visorGlass": "#16202a",
+          "lamp": "#c8f2ff",
+          "metal": "#4a4d55"
+        },
+        "void": {
+          "armor": "#34323b",
+          "armorShade": "#22212a",
+          "black": "#16151a",
+          "suit": "#25242b",
+          "gear": "#3a3842",
+          "webbing": "#2a2930",
+          "stencil": "#ff5a4a",
+          "stripe": "#ff3a30",
+          "cape": "#1a1820",
+          "capeTrim": "#ff3a30",
+          "visor": "#ff4a3a",
+          "visorGlass": "#1d0d0d",
+          "lamp": "#ffb0a0",
+          "metal": "#2e2d34"
+        }
+      },
+      "vfx": {
+        "_note": "Effect colours for this planet, over the shared vfx: snow kicked up by hits and boots, not ochre dust.",
+        "dirt": "#b7b0c6",
+        "dust": "#d6d0e2",
+        "smokeLight": "#b8b0c4",
+        "smokeDark": "#4a4458"
+      },
+      "city": {
+        "_note": "The night city's lights (CityRenderer): street lamps cool and warm (sodium), their pools of light on the ground, neon sign colours, windows warm and cool, searchlights, the real lights near the camera; windows: the share of windows lit (1 = the city's own).",
+        "lampCool": "#ffd9b0",
+        "lampWarm": "#ffa95a",
+        "pool": 0.8,
+        "neon": [
+          "#2ef2ff",
+          "#ff6a4a",
+          "#ffb030",
+          "#5cff9a"
+        ],
+        "windowWarm": "#ffc880",
+        "windowCool": "#a8c8ff",
+        "searchlight": "#ffd8b0",
+        "lights": 8,
+        "windows": 0.45
+      },
+      "post": {
+        "exposure": 1.15,
+        "bloom": {
+          "strength": 0.55,
+          "radius": 0.5,
+          "threshold": 0.85
+        },
+        "godRays": {
+          "strength": 0.35,
+          "decay": 0.95,
+          "density": 0.8,
+          "samples": 32,
+          "color": "#ffb08a"
+        },
+        "grade": {
+          "lift": [
+            0.03,
+            0.03,
+            0.045
+          ],
+          "gamma": [
+            1.0,
+            1.0,
+            0.98
+          ],
+          "gain": [
+            1.02,
+            0.99,
+            1.0
+          ],
+          "saturation": 0.82,
+          "contrast": 1.16
+        },
+        "vignette": 0.3,
+        "grain": 0.03,
+        "aberration": 0.001,
+        "outline": {
+          "color": "#2a2444",
+          "strength": 0.9,
+          "edge": 0.05,
+          "near": 3,
+          "far": 90
+        },
+        "letterbox": 0.065
+      },
+      "_axes": "Azimuth in degrees clockwise from north (-Z) seen from above: 90 = east (+X, where Solari attack). Elevation in degrees above the horizon.",
+      "markerGlow": 0.4
     }
   },
   "factions": {

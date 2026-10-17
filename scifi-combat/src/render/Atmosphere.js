@@ -11,7 +11,9 @@
 //    into an environment map (image-based light: metal reflects the burning sky, shade is lit by
 //    it); a hemisphere fill (warm sky above, dark earth below) and a soft bounce from the camera
 //    side so shaded faces never go black.
-//  * Ash: flakes (and a few embers) falling and drifting around the camera, wrapped in a box.
+//  * Ash: flakes (and a few embers) falling and drifting around the camera, wrapped in a box. A
+//    preset can make it snow (`ash.size`, `alpha`, `near`, `box`: big soft flakes, thick around
+//    you and close to the lens).
 //  * Night presets (`stars`, `aurora`): a star field, and aurora curtains folding and drifting
 //    round the sky, brightest and highest on one side (their colour is baked into the
 //    environment light too); the "sun" is then the moon, its disk dimmed by `sun.gain`.
@@ -216,7 +218,7 @@ void main() {
 const ASH_VERT = `
 attribute float seed;
 uniform vec3 uCam;
-uniform float uTime, uBox, uFall, uSize, uEmbers;
+uniform float uTime, uBox, uFall, uSize, uEmbers, uNear, uPx;
 uniform vec2 uDrift;
 varying float vSeed, vFade;
 void main() {
@@ -228,13 +230,13 @@ void main() {
   p = mod(p - base, uBox) + base;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   float ember = step(1.0 - uEmbers, fract(seed * 7.31));
-  gl_PointSize = uSize * (ember > 0.5 ? 1.6 : 1.0) * (0.6 + fract(seed * 3.3)) * 240.0 / max(-mv.z, 0.5);
-  vFade = smoothstep(uBox * 0.5, uBox * 0.3, length(p - uCam)) * smoothstep(1.5, 4.0, -mv.z);   // none in your face
+  gl_PointSize = uSize * (ember > 0.5 ? 1.6 : 1.0) * (0.6 + fract(seed * 3.3)) * 240.0 * uPx / max(-mv.z, 0.5);   // (uPx: the same size on any screen)
+  vFade = smoothstep(uBox * 0.5, uBox * 0.3, length(p - uCam)) * smoothstep(uNear, uNear * 2.6, -mv.z);   // none in your face (snow comes closer)
   gl_Position = projectionMatrix * mv;
 }`;
 const ASH_FRAG = `
 uniform vec3 uAsh, uEmber;
-uniform float uEmbers, uTime;
+uniform float uEmbers, uTime, uAlpha;
 varying float vSeed, vFade;
 void main() {
   vec2 c = gl_PointCoord - 0.5;
@@ -243,7 +245,7 @@ void main() {
   float ember = step(1.0 - uEmbers, fract(vSeed * 7.31));
   float flicker = 0.6 + 0.4 * sin(uTime * 9.0 + vSeed * 50.0);
   vec3 col = ember > 0.5 ? uEmber * (3.0 + 3.0 * flicker) : uAsh;
-  float a = (1.0 - r * 4.0) * vFade * (ember > 0.5 ? 0.9 : 0.4);
+  float a = (1.0 - r * 4.0) * vFade * (ember > 0.5 ? 0.9 : uAlpha);
   gl_FragColor = vec4(col, a);
 }`;
 
@@ -317,7 +319,8 @@ export class Atmosphere {
       this.ashMat = new THREE.ShaderMaterial({
         vertexShader: ASH_VERT, fragmentShader: ASH_FRAG, transparent: true, depthWrite: false, fog: false,
         uniforms: {
-          uCam: { value: new THREE.Vector3() }, uTime: { value: 0 }, uBox: { value: 60 }, uFall: { value: P.ash.fall }, uSize: { value: 0.026 },
+          uCam: { value: new THREE.Vector3() }, uTime: { value: 0 }, uBox: { value: P.ash.box ?? 60 }, uFall: { value: P.ash.fall }, uSize: { value: P.ash.size ?? 0.026 },
+          uAlpha: { value: P.ash.alpha ?? 0.4 }, uNear: { value: P.ash.near ?? 1.5 }, uPx: { value: 1 },
           uDrift: { value: new THREE.Vector2(...P.ash.drift) }, uEmbers: { value: P.ash.embers }, uAsh: { value: C(P.ash.color) }, uEmber: { value: C(P.ash.ember) },
         },
       });
@@ -326,6 +329,7 @@ export class Atmosphere {
       scene.add(this.ash);
     }
     this.time = 0;
+    this.renderer = renderer;
     if (renderer) this.bakeEnvironment(renderer);
   }
 
@@ -359,7 +363,11 @@ export class Atmosphere {
     this.bounce.target.position.copy(focus);
     this.bounce.position.copy(camera.position).add(new THREE.Vector3(0, 6, 0));
     this.bounce.target.updateMatrixWorld();
-    if (this.ash) { this.ashMat.uniforms.uCam.value.copy(camera.position); this.ashMat.uniforms.uTime.value = this.time; }
+    if (this.ash) {
+      const u = this.ashMat.uniforms;
+      u.uCam.value.copy(camera.position); u.uTime.value = this.time;
+      if (this.renderer) u.uPx.value = this.renderer.getDrawingBufferSize(_v2).y / 720;
+    }
   }
 
   /** Sun direction in screen space (for the god rays): uv and how much it's in front of the camera. */
@@ -369,4 +377,4 @@ export class Atmosphere {
     return out.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5, ahead);
   }
 }
-const _p = new THREE.Vector3(), _f = new THREE.Vector3();
+const _p = new THREE.Vector3(), _f = new THREE.Vector3(), _v2 = new THREE.Vector2();

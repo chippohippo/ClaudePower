@@ -114,7 +114,9 @@ build the same map.
 
 The second warfront: the same front (sectors, points, spawns, motor pools, depots, guns, HQs, the
 same rules) fought through a futuristic city at night under a purple aurora instead of across
-trench country. `index.html?map=city` (any size) picks the **Neon Night** sky by default.
+trench country. `index.html?map=city` (any size) picks the **Snowfall at Dusk** sky by default (the
+stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `&planet=nightcity` for the
+**Neon Night** under the aurora; [ART_DIRECTION.md](ART_DIRECTION.md)).
 
 | Size | City | | Size | City |
 |---|---|---|---|---|

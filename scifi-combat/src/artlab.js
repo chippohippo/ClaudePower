@@ -35,7 +35,10 @@ import { bus } from './core/EventBus.js';
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
-const planet = palette.planets[params.get('planet') ?? (station === 'city' ? 'nightcity' : 'scorched')];
+const planet = palette.planets[params.get('planet') ?? (station === 'city' ? 'duskcity' : 'scorched')];
+// The planet's own paint and effect colours over the shared ones (the dusk city: winter whites, snow kicked up).
+for (const [k, paint] of Object.entries(planet.factions ?? {})) if (palette.factions[k]) Object.assign(palette.factions[k], paint);
+Object.assign(palette.vfx, planet.vfx ?? {});
 const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
@@ -363,7 +366,7 @@ async function carsStation(scene, views, atmo) {
   W.cover.push(kerb);
   const km = new THREE.Mesh(new THREE.BoxGeometry(30.6, 0.52, 28), concrete); km.position.set(kerbAt.x + 14.7, kg - 0.04, kerbAt.z); km.receiveShadow = true; scene.add(km);
   F.start();
-  const fx = new BattleFx(scene, { fog: scene.fog });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
   const vv = new VehicleViews(scene, W, { localTeam: 0, palette, fx });
   tickers.push((dt) => { vv.update(dt, window.__art.camera); fx.update(dt); });
   const run = (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) { F.tick(); F.anim.update(DT, 1, window.__art.camera.position); vv.update(DT, window.__art.camera); fx.update(DT); } };
@@ -430,7 +433,7 @@ async function cityStation(scene, views, atmo) {
   const map = generateFrontlineMap({ seed: +(params.get('seed') ?? 7), size: params.get('size') ?? '32v32', theme: 'city' });
   const mode = new FrontlineMode(map, { tickets: 100, timeLimit: 600, captureTime: 10, secureTime: 3, seed: 7 });
   const bf = new BattlefieldRenderer(scene, map, { localTeam: 0, anisotropy: 4, art: { planet, palette } });
-  const fx = new BattleFx(scene, { fog: scene.fog });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
   const C = map.city, t = map.terrain;
   const city = new CityRenderer(scene, map, { planet, palette, fx });
   // Soldiers (the art lab's real rigs) where the views want them.
@@ -454,9 +457,12 @@ async function cityStation(scene, views, atmo) {
   F.add('wraith', 1, V(fo.x + 6, fo.z + 3), Math.PI / 2, 'aim');
   F.add('reaver', 1, V(fo.x + 7, fo.z - 4), Math.PI / 2 + 0.3, 'aim');
   F.start();
+  let warm = false;
   tickers.push((dt) => {
     const cam = window.__art.camera;
     bf.update(mode, 0, cam.position);
+    // The fires have been burning a while (headless captures only get a few frames a second).
+    if (!warm) { warm = true; for (let i = 0; i < 120; i++) { city.update(1 / 30, cam, window.__art.focus ?? cam.position); fx.update(1 / 30); } }
     city.update(dt, cam, window.__art.focus ?? cam.position);
     fx.update(dt);
   });
@@ -632,7 +638,7 @@ async function sceneStation(scene, views, atmo) {
   placeVehicle(scene, t, 'solari_field_gun', defs.solari_field_gun, 0, at(9, -7), face, { elev: 0.18 });
   placeVehicle(scene, t, 'void_crawler_tank', defs.void_crawler_tank, 1, at(12, 78), back, { turret: -0.2 });
   // Shells landing out front: fire, a column of dirt, smoke that hangs.
-  const fx = new BattleFx(scene, { fog: scene.fog });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
   let next = 0, time = 0;
   const shell = () => { const p = at((rnd() - 0.5) * 60, 14 + rnd() * 45); fx.impact([p.x, t.height(p.x, p.z), p.z], 9); };
   for (let i = 0; i < 6; i++) { shell(); fx.update(0.6); }
@@ -679,7 +685,7 @@ async function stratagemsStation(scene, views, atmo) {
   // The typist mid-code, the thrower with a sentry beacon cocked behind the shoulder.
   typist.stratagems.state = 'typing'; typist.stratagems.code = 'RR';
   thrower.stratagems.state = 'armed'; thrower.stratagems.armed = thrower.stratagems.slot('sentry');
-  const fx = new BattleFx(scene, { fog: scene.fog });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
   const sv = new StratagemViews(scene, F.world, { palette, fx, anim: F.anim, groundY: (x, z) => t.height(x, z) });
   tickers.push(() => { sv.update(1 / 60, window.__art.camera); fx.update(1 / 60); });
   /** A call-in planted at p, as if thrown from where `from` stands. */
@@ -787,7 +793,7 @@ async function gunfxStation(scene, views, atmo) {
   const F = await fighters(scene, t, { max: 8 });
   const shooter = F.add('lancer', 0, at(5.5, 3.2), Math.atan2(-(at(0.6, 7).x - at(5.5, 3.2).x), -(at(0.6, 7).z - at(5.5, 3.2).z)), 'aim');
   F.start();
-  const fx = new BattleFx(scene, { fog: scene.fog });
+  const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
   const gfx = new GunFx(scene, { fx, anim: F.anim, world: F.world, player: shooter, palette });
   let sr = 5, time = 0, nextHit = 0, nextShot = 0;
   const rnd = () => { sr = (Math.imul(sr, 1664525) + 1013904223) >>> 0; return sr / 4294967296; };

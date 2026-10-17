@@ -1,6 +1,7 @@
 // Frontline: a Battlefront-style battle against bots, on a map built for the match size.
 // URL: ?size=4v4|12v12|32v32|64v64|200v200 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
-//      &map=trench|city (the trench war, or the night city) &planet=scorched|nightcity (data/art/palette.json)
+//      &map=trench|city (the trench war, or the city) &planet=scorched|duskcity|nightcity (data/art/palette.json;
+//      the city defaults to duskcity, the snowfall at dusk, nightcity is its aurora night)
 //      &fx=low|off (post-processing quality)
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
@@ -53,8 +54,11 @@ const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses
   load('art/palette.json'), load('art/troopers.json'), load('rules.json'), load('stratagems.json'), load('battle-points.json'),
   load('passives.json'), load('support.json'), load('ai/barks.json'),
 ]);
-const planet = palette.planets[params.get('planet') ?? (mapTheme === 'city' ? 'nightcity' : 'scorched')] ?? palette.planets.scorched;
+const planet = palette.planets[params.get('planet') ?? (mapTheme === 'city' ? 'duskcity' : 'scorched')] ?? palette.planets.scorched;
 installFog(planet);   // before any material compiles
+// The planet's own paint and effect colours over the shared ones (the dusk city: winter whites, snow kicked up).
+for (const [k, paint] of Object.entries(planet.factions ?? {})) if (palette.factions[k]) Object.assign(palette.factions[k], paint);
+Object.assign(palette.vfx, planet.vfx ?? {});
 const classes = [solari, voidC];
 const myClass = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
 const data = {
@@ -101,8 +105,8 @@ for (const f of session.fighters) {
 }
 anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
-const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
-const fx = new BattleFx(scene, { fog: scene.fog });
+const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id), look: planet.fx?.bolts, localTeam: myTeam, muzzle: (id, p) => gunFx.muzzleAt(id, p) });   // (gunFx: below)
+const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
@@ -224,6 +228,6 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

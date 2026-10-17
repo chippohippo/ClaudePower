@@ -19,6 +19,7 @@
 import * as THREE from 'three';
 import { wreckModels, WRECK_COLORS, BURNED, lampModels, jerseyModel, containerModel, CONTAINER_COLORS, hedgehogModel, propModels, treeModels, hedgeModel, fountainModel, signAtlas } from './CityKit.js';
 import { concreteTexture, triplanar } from './CoverTextures.js';
+import { snowCover } from './SnowCover.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler(), _c = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -32,11 +33,12 @@ export class CityRenderer {
   /**
    * @param {THREE.Scene} scene
    * @param {object} map   generateFrontlineMap({ theme: 'city' })
-   * @param {object} o     { planet (palette.json, its `city` lights), palette, fx: BattleFx (burning wrecks), lights: how many real lights }
+   * @param {object} o     { planet (palette.json, its `city` lights and `snow`), palette, fx: BattleFx (burning wrecks), lights: how many real lights }
    */
   constructor(scene, map, { planet, palette = null, fx = null, anisotropy = 4, lights = null } = {}) {
     this.scene = scene; this.map = map; this.city = map.city; this.fx = fx;
     this.L = planet.city ?? {};
+    this.snow = planet.snow ?? null;   // lying on the roofs, sidewalks, barriers and wrecks (SnowCover)
     this.group = new THREE.Group();
     scene.add(this.group);
     this.time = 0;
@@ -60,6 +62,7 @@ export class CityRenderer {
   // ---------------------------------------------------------------- buildings
   #buildings() {
     const C = this.city, M = this.map, warm = this.L.windowWarm ?? '#ffcf8a', cool = this.L.windowCool ?? '#9ac8ff';
+    const winShare = this.L.windows ?? 1;   // how many of the windows are lit (dusk: fewer than at night)
     // The skyline: towers ringing the map beyond its edges (seeded), lit like the rest.
     const b = M.bounds, sky = [];
     let s = (M.seed ?? 1) * 7717 + 3;
@@ -120,6 +123,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     totalEmissiveRadiance += mix(${glsl(warm)}, ${glsl(cool)}, cityHash(vec2(bayS, face))) * shopLit * 0.45 * vB.w;
   }`);
     };
+    snowCover(mat, this.snow);
     const mesh = new THREE.InstancedMesh(geo, mat, count);
     const put = (i, x0, y0, z0, x1, y1, z1, color, seed, lit, dmg, glow) => {
       _m.compose(_p.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), _q.identity(), _s.set(x1 - x0, y1 - y0, z1 - z0));
@@ -129,11 +133,11 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     };
     C.buildings.forEach((bd, i) => {
       const B = bd.box;
-      put(i, B.min.x, B.min.y + 0.25, B.min.z, B.max.x, B.max.y, B.max.z, STYLE[bd.style], bd.seed, bd.damaged ? bd.lit * 0.5 : bd.lit, bd.damaged ? 1 : 0, 1);
+      put(i, B.min.x, B.min.y + 0.25, B.min.z, B.max.x, B.max.y, B.max.z, STYLE[bd.style], bd.seed, (bd.damaged ? bd.lit * 0.5 : bd.lit) * winShare, bd.damaged ? 1 : 0, 1);
     });
     sky.forEach((t, k) => {
       const g = this.ground(Math.max(b.minX, Math.min(b.maxX, t.x)), Math.max(b.minZ, Math.min(b.maxZ, t.z)));
-      put(n0 + k, t.x - t.w / 2, g - 1, t.z - t.d / 2, t.x + t.w / 2, g + t.h, t.z + t.d / 2, STYLE[t.seed % 4], t.seed, 0.16 + (t.seed % 7) * 0.035, 0, 1.15);
+      put(n0 + k, t.x - t.w / 2, g - 1, t.z - t.d / 2, t.x + t.w / 2, g + t.h, t.z + t.d / 2, STYLE[t.seed % 4], t.seed, (0.16 + (t.seed % 7) * 0.035) * winShare, 0, 1.15);
     });
     geo.setAttribute('aB', new THREE.InstancedBufferAttribute(aB, 4));
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
@@ -146,7 +150,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
   #sidewalks() {
     const blocks = this.city.blocks;
     const tex = concreteTexture(); tex.anisotropy = this.anisotropy;
-    const mat = triplanar(new THREE.MeshStandardMaterial({ color: '#4a4844', roughness: 0.95 }), tex, 0.45, 0.6);
+    const mat = snowCover(triplanar(new THREE.MeshStandardMaterial({ color: '#4a4844', roughness: 0.95 }), tex, 0.45, 0.6), this.snow);
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, blocks.length);
     blocks.forEach((k, i) => {
       const B = k.slab;
@@ -215,7 +219,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     const W = this.city.wrecks, models = wreckModels();
     const by = new Map();
     for (const w of W) { if (!by.has(w.type)) by.set(w.type, []); by.get(w.type).push(w); }
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.35 });
+    const mat = snowCover(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.35 }), this.snow);
     this.burning = [];
     for (const [type, list] of by) {
       const mesh = new THREE.InstancedMesh(models[type].geo, mat, list.length);
@@ -237,14 +241,14 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
   #barricades() {
     const bars = this.city.barricades;
     const jer = bars.filter((b) => b.kind === 'jersey'), con = bars.filter((b) => b.kind === 'container');
-    const jm = new THREE.InstancedMesh(jerseyModel(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), Math.max(1, jer.length));
+    const jm = new THREE.InstancedMesh(jerseyModel(), snowCover(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), this.snow), Math.max(1, jer.length));
     jm.count = jer.length;
     jer.forEach((b, i) => {
       const B = b.box, len = B.max.z - B.min.z;
       _m.compose(_p.set((B.min.x + B.max.x) / 2, B.min.y + 0.25, (B.min.z + B.max.z) / 2), _q.identity(), _s.set(1, 1, len / 3));
       jm.setMatrixAt(i, _m);
     });
-    const cm = new THREE.InstancedMesh(containerModel(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.4 }), Math.max(1, con.length));
+    const cm = new THREE.InstancedMesh(containerModel(), snowCover(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.4 }), this.snow), Math.max(1, con.length));
     cm.count = con.length;
     con.forEach((b, i) => {
       const B = b.box, len = B.max.z - B.min.z;
@@ -257,7 +261,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
 
   #props() {
     const P = this.city.props, models = propModels(), trees = treeModels();
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.1 });
+    const mat = snowCover(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.1 }), this.snow);
     const inst = (geo, list, place, material = mat) => {
       if (!list.length) return null;
       const mesh = new THREE.InstancedMesh(geo, material, list.length);
@@ -281,7 +285,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     // The fountain.
     const F = this.city.fountain;
     if (F) {
-      const f = new THREE.Mesh(fountainModel(F.r * 0.75), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.2 }));
+      const f = new THREE.Mesh(fountainModel(F.r * 0.75), snowCover(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.2 }), this.snow));
       f.position.set(F.x, this.ground(F.x, F.z), F.z);
       f.castShadow = f.receiveShadow = true;
       this.group.add(f);
@@ -333,7 +337,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     }
     const craters = this.map.craters ?? [];
     const keep = quads.filter(([x, z]) => !craters.some((cr) => Math.hypot(cr.x - x, cr.z - z) < cr.r + 1));
-    const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#77746c', roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), Math.max(1, keep.length));
+    const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), snowCover(new THREE.MeshStandardMaterial({ color: '#77746c', roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), this.snow, 0.8), Math.max(1, keep.length));
     mesh.count = keep.length;
     keep.forEach(([x, z, w, d], i) => { _m.compose(_p.set(x, this.ground(x, z) + 0.03, z), _q.identity(), _s.set(w, 1, d)); mesh.setMatrixAt(i, _m); });
     mesh.receiveShadow = true; mesh.frustumCulled = false; mesh.renderOrder = -2;

@@ -21,6 +21,7 @@ import { sandbagTexture, concreteTexture, woodTexture, rockTexture, metalTexture
 import { groundDetailTexture, groundMaterial } from './ArtTextures.js';
 import { ScorchField } from './ScorchField.js';
 import { SandbagTops } from './SandbagTops.js';
+import { snowCover } from './SnowCover.js';
 
 const TEAM = [new THREE.Color('#ffcf6b'), new THREE.Color('#b994ff')];
 const NEUTRAL = new THREE.Color('#d8dde6');
@@ -73,7 +74,8 @@ export class BattlefieldRenderer {
       const k = s / 4294967296;
       this.scorch.stamp(c.x, c.z, c.r * 1.25, k < 0.15 ? 0.9 : 0.28 + k * 0.2);
     }
-    this.groundMat = groundMaterial(groundDetailTexture());
+    const T = this.art.planet.terrain;   // how much of the detail tile shows (snow lies smoother than dust)
+    this.groundMat = groundMaterial(groundDetailTexture(), { relief: T?.relief ?? 1, grain: T?.grain ?? 1 });
     this.chunks = new TerrainChunks(this.scene, t, { material: this.groundMat, ground: this.art.planet.ground, scorch: (x, z) => this.scorch.at(x, z), paint: this.map.city?.paint ?? null });
     if (this.map.city) this.chunks.group.renderOrder = -2;   // the ground first: the city's lamp pools add their light over it and nothing else (CityRenderer)
     const burn = (p, r, k) => { if (r > 0.2) this.chunks.invalidate(this.scorch.stamp(p.x ?? p[0], p.z ?? p[2], r, k)); };
@@ -89,6 +91,7 @@ export class BattlefieldRenderer {
     const aniso = (t) => { t.anisotropy = this.anisotropy; return t; };
     // The art-directed look takes its colors from the palette and lights the textures' relief.
     const M = this.art?.palette.materials, G = this.art?.planet.ground, b = this.art ? 1 : 0;
+    const snow = this.art?.planet.snow;   // (lying on the tops: SnowCover)
     this.kinds = {
       concrete: triplanar(new THREE.MeshStandardMaterial({ color: M?.concrete ?? '#7d828c', roughness: 0.92 }), aniso(concreteTexture()), 0.25, 0.7 * b),
       sandbag: triplanar(new THREE.MeshStandardMaterial({ color: M?.sandbag ?? '#8f8061', roughness: 1 }), aniso(sandbagTexture()), 1, 1.2 * b),
@@ -96,6 +99,7 @@ export class BattlefieldRenderer {
       rock: triplanar(new THREE.MeshStandardMaterial({ color: G?.rock ?? '#5e5b57', roughness: 1 }), aniso(rockTexture()), 0.3, 1 * b),
       metal: triplanar(new THREE.MeshStandardMaterial({ color: M?.steel ?? '#5a6170', roughness: 0.6, metalness: 0.4 }), aniso(metalTexture()), 0.25, 0.5 * b),
     };
+    for (const m of Object.values(this.kinds)) snowCover(m, snow);
     const groups = new Map(Object.keys(this.kinds).map((k) => [k, []]));
     // (a city's buildings, sidewalks, lamps, wrecks and street furniture are CityRenderer's)
     for (const b of this.map.cover) if (b.render !== 'city') groups.get(this.#kindOf(b)).push(b);
@@ -114,7 +118,10 @@ export class BattlefieldRenderer {
       this.scene.add(mesh);
     }
     // Real bags along the top of every parapet (the art-directed look).
-    if (this.art) this.sandbags = new SandbagTops(this.scene, groups.get('sandbag'), { color: this.art.palette.materials.sandbag, capacity: fortCapacity * 6 });
+    if (this.art) {
+      this.sandbags = new SandbagTops(this.scene, groups.get('sandbag'), { color: this.art.palette.materials.sandbag, capacity: fortCapacity * 6 });
+      snowCover(this.sandbags.mat, snow);
+    }
   }
 
   #kindOf(b) { return b.kind === 'building' ? 'metal' : this.kinds[b.surface] ? b.surface : 'concrete'; }
