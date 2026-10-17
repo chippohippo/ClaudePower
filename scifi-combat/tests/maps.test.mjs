@@ -38,16 +38,17 @@ test('a map per match size: bigger matches get bigger maps with more of everythi
     assert.ok(stats[i].area > stats[i - 1].area * 1.8, `${stats[i].size} is much bigger than ${stats[i - 1].size}`);
     assert.ok(stats[i].points >= stats[i - 1].points, `${stats[i].size} has at least as many points`);
   }
-  assert.ok(stats.at(-1).ms < 4000, `64v64 builds in ${stats.at(-1).ms.toFixed(0)} ms`);
+  assert.ok(stats.at(-1).ms < 4000, `${stats.at(-1).size} builds in ${stats.at(-1).ms.toFixed(0)} ms`);
   assert.equal(mapSizeFor(null, 8).id, '4v4'); assert.equal(mapSizeFor(null, 24).id, '12v12');
   assert.equal(mapSizeFor(null, 64).id, '32v32'); assert.equal(mapSizeFor(null, 128).id, '64v64');
+  assert.equal(mapSizeFor(null, 400).id, '200v200');
 });
 
 test('every point is reachable from both HQs, and spawns are on walkable ground', () => {
   for (const size of SIZES) {
     const m = mapOf(size), nav = m.nav;
     for (const [team, h] of m.hq.entries()) {
-      const f = nav.field(`test-hq${team}`, h.x, h.z, 6);
+      const f = nav.field(`test-hq${team}`, h.x, h.z, 6, { reach: Infinity });   // the whole map (a big map's fields stop at REACH)
       for (const p of m.points) assert.ok(Number.isFinite(nav.distance(f, p.pos.x, p.pos.z)), `${size}: ${p.name} reachable from HQ ${team}`);
     }
     for (const s of m.sectors.filter((x) => x.kind === 'line')) for (const team of [0, 1]) for (const sp of [...s.spawns[team], ...s.rearSpawns[team]]) {

@@ -108,7 +108,7 @@ export class CrewPilot {
   #sees(from, p, d, up) {
     _d.set(p.x - from.x, p.y + up - from.y, p.z - from.z);
     const l = _d.length();
-    return l < 0.5 || !this.brain.world.raycastStatic(from, _d.divideScalar(l), Math.min(d, l) - 1);
+    return l < 0.5 || !this.brain.world.sight(from, _d.divideScalar(l), Math.min(d, l) - 1);   // a ridge in the way: the shell would bury itself
   }
 
   // ---------------------------------------------------------------- trucks
@@ -118,15 +118,19 @@ export class CrewPilot {
     const team = v.team, hq = L.hq(team), fr = L.front(team);
     const leg = unit.leg ?? (unit.leg = v.cargo >= v.def.cargo * 0.5 ? 'deliver' : 'load');
     const d = leg === 'load' ? hq : fr;
-    const field = leg === 'load' ? `logi:${team}:hq` : `logi:${team}:front:${fr.sector}`;
-    const there = this.#steer(dt, cmd, v, d.pos, field, Math.max(3, d.radius - 4), 18);
+    const field = leg === 'load' ? `logi:${team}:hq:${fr.sector}` : `logi:${team}:front:${fr.sector}`;   // one per front position: each covers that run
+    const there = this.#steer(dt, cmd, v, d.pos, field, Math.max(3, d.radius - 4), 18, leg === 'load' ? fr.pos : hq.pos);   // the whole haul: HQ to the front can be 1.3 km
     if (!there) { this.wait = 0; return; }
     this.#brake(cmd, v);
     this.wait += dt;
     const done = leg === 'load'
       ? v.cargo >= v.def.cargo - 0.5 || (hq.stock < 2 && v.cargo >= 20) || this.wait > 30
       : v.cargo < 0.5 || fr.stock >= fr.cap - 0.5 || this.wait > 30;
-    if (done && this.wait > 1) { unit.leg = leg === 'load' ? 'deliver' : 'load'; this.wait = 0; }
+    // Loaded trucks leave the dump `spacing` seconds apart (a stream of deliveries rather than one
+    // convoy every few minutes), unless one has waited a minute.
+    const gap = L.cfg.spacing ?? 0;
+    if (done && leg === 'load' && gap && L.clock - L.lastOut[team] < gap && this.wait < 60) return;
+    if (done && this.wait > 1) { if (leg === 'load') L.lastOut[team] = L.clock; unit.leg = leg === 'load' ? 'deliver' : 'load'; this.wait = 0; }
   }
 
   // ---------------------------------------------------------------- driving
@@ -141,13 +145,14 @@ export class CrewPilot {
    * if it's well off), throttle when lined up, slow down near the end. Backs out of anything it
    * sticks on. Returns true when within `arrive`.
    */
-  #steer(dt, cmd, v, dest, field, arrive, slowR) {
+  #steer(dt, cmd, v, dest, field, arrive, slowR, from = v.movement.state.position) {
     const s = v.movement.state, p = s.position, nav = this.brain.world.nav, S = this.stuck, now = this.brain.time;
     const dist = Math.hypot(dest.x - p.x, dest.z - p.z);
     if (dist < arrive) { cmd.moveX = 0; cmd.moveY = 0; S.t = 0; return true; }
     if (now < S.until) { cmd.moveY = -1; cmd.moveX = S.turn; return false; }
     let dx = dest.x - p.x, dz = dest.z - p.z;
-    const f = nav && field && dist > 12 ? nav.want(field, dest.x, dest.z, Math.max(2, arrive * 0.5)) : null;
+    // The field covers the trip (from here, or from the far end of a supply run), not the map.
+    const f = nav && field && dist > 12 ? nav.want(field, dest.x, dest.z, Math.max(2, arrive * 0.5), { from }) : null;
     if (f && nav.sample(f, p.x, p.z, _m)) { dx = _m.x; dz = _m.z; }
     const turn = angleDelta(v.yaw, Math.atan2(-dx, -dz)), a = Math.abs(turn);
     cmd.moveX = clamp(-turn * 2, -1, 1);

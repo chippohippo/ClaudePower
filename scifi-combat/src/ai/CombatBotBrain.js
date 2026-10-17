@@ -29,7 +29,7 @@ import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { emptyCommand } from '../input/InputManager.js';
 import { rng } from '../combat/weapons/WeaponSystem.js';
-import { angleDelta } from '../core/geom.js';
+import { angleDelta, hyp } from '../core/geom.js';
 import { MeleeDuelistBrain } from './MeleeDuelistBrain.js';
 import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch } from './AbilityPlanner.js';
 import { VehiclePilot } from './VehiclePilot.js';
@@ -37,23 +37,28 @@ import { CrewPilot } from './CrewPilot.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
 const POSITIONAL = new Set(['man', 'hold', 'overwatch', 'stack', 'enter', 'grenade']);
+const NBR = 0.2;   // s between neighbourhood scans (see #context)
 const _a = new Vector3();
 const _b = new Vector3();
 const _d = new Vector3();
 
 /** Edge-correct button state: press() always produces a clean pressed edge, even on held keys. */
 class Buttons {
-  constructor() { this.prev = new Set(); this.down = new Set(); this.queued = new Set(); }
+  constructor() { this.prev = new Set(); this.down = new Set(); this.queued = new Set(); this.spare = new Set(); }
   hold(k) { this.down.add(k); }
   press(k) { this.queued.add(k); }
   pressIfReady(k, wc) { if (wc && wc.cooldown <= 0 && wc.phase === 'ready') this.press(k); }
   finalize(cmd) {
-    const carry = new Set();
+    const carry = this.spare;
+    carry.clear();
     for (const k of this.queued) { if (this.prev.has(k) && !this.down.has(k)) carry.add(k); else this.down.add(k); }
-    for (const k of new Set([...this.down, ...this.prev])) {
-      cmd.buttons[k] = { down: this.down.has(k), pressed: this.down.has(k) && !this.prev.has(k), released: !this.down.has(k) && this.prev.has(k) };
-    }
-    this.prev = this.down; this.down = new Set(); this.queued = carry;
+    for (const k of this.down) cmd.buttons[k] = { down: true, pressed: !this.prev.has(k), released: false };
+    for (const k of this.prev) if (!this.down.has(k)) cmd.buttons[k] = { down: false, pressed: false, released: true };
+    // The same four sets go round (no new ones per think): held -> previous, the old previous is
+    // emptied for the next think, queued presses that must wait carry over.
+    const old = this.prev;
+    this.prev = this.down; this.down = old; old.clear();
+    this.spare = this.queued; this.queued = carry;
   }
 }
 
@@ -102,7 +107,10 @@ export class CombatBotBrain {
     this.proneAt = -1e9;                // last time an order wanted us prone (crater, pinned)
     this.arriving = false;              // the last metres to a cover spot: no feeler sidesteps
     this.moveDir = new Vector3(); this.hasMoveDir = false;
-    this._cand = [];
+    this._cand = []; this._near = new Int32Array(4);   // target picking scratch (no arrays per think)
+    // Who's around (30 m), looked at every NBR seconds: about a reaction time, and a 400-soldier
+    // battle can't afford a neighbourhood scan per bot per think.
+    this.nbr = { t: -1e9, enemiesNear: 0, alliesNear: 0, hurtAlly: null, hurtAllyHp: 1, hurtAllyDist: Infinity, vehicleNearby: false };
     this.#listen();
   }
 
@@ -266,7 +274,7 @@ export class CombatBotBrain {
     if (v.seats[want]?.occupant) want = v.seats.findIndex((q) => !q.occupant);
     if (want < 0) return false;
     const me = self.movement.state.position, bp = this.pilot.boardPoint(v, _b);
-    if (Math.hypot(bp.x - me.x, bp.z - me.z) < 2.6 && this.world.vehicles.nearestEnterable(self) === v) {
+    if (hyp(bp.x - me.x, bp.z - me.z) < 2.6 && this.world.vehicles.nearestEnterable(self) === v) {
       cmd.seat = want; cmd.yaw = self.movement.state.yaw;
       this.btn.press('interact');
       return true;
@@ -376,13 +384,18 @@ export class CombatBotBrain {
       const d = e.movement.state.position.distanceTo(me);
       if (d <= range) cand.push(d, e);
     });
-    const order = [];
-    for (let i = 0; i < cand.length; i += 2) order.push(i);
-    order.sort((a, b) => cand[a] - cand[b]);
+    // The nearest four (a partial selection: no sort of everyone in range) get a sight ray.
+    const near = this._near; near.fill(-1);
+    for (let i = 0; i < cand.length; i += 2) {
+      let j = 3;
+      if (near[j] >= 0 && cand[near[j]] <= cand[i]) continue;
+      while (j > 0 && (near[j - 1] < 0 || cand[near[j - 1]] > cand[i])) { near[j] = near[j - 1]; j--; }
+      near[j] = i;
+    }
     let best = null, bs = Infinity;
-    for (let k = 0; k < order.length; k++) {
-      const d = cand[order[k]], e = cand[order[k] + 1];
-      const vis = k < 4 && this.#visible(e, d);
+    for (let i = 0; i < cand.length; i += 2) {
+      const d = cand[i], e = cand[i + 1];
+      const vis = (near[0] === i || near[1] === i || near[2] === i || near[3] === i) && this.#visible(e, d);
       let s = d * (vis ? 1 : 2.2);
       if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
       else if (e.isVehicle) s += 8;
@@ -409,7 +422,7 @@ export class CombatBotBrain {
     const len = dir.length();
     if (len < 0.5) return true;
     if (this.world.zones.blocksVisionBetween(from, tp)) return false;
-    return !this.world.raycastStatic(from, dir.divideScalar(len), len - 0.3);
+    return !this.world.sight(from, dir.divideScalar(len), len - 0.3);
   }
 
   /** Direction along the flow field toward `pos` (false while a big map is still building it). */
@@ -439,15 +452,22 @@ export class CombatBotBrain {
       ownsDeployable: (kind) => this.world.deployables.list.some((d) => d.ownerId === self.id && d.kind === kind && !d.removed),
       target: null, dist: Infinity, los: false, holdInterrupts: this.diff.interruptChance >= 0.5,
     };
-    this.world.fightersNear(me, 30, (e) => {
-      if (e === self || e.health.dead || e.isDeployable) return;
-      const d = e.movement.state.position.distanceTo(me);
-      if (e.isVehicle && e.team === self.team && d < 30) ctx.vehicleNearby = true;
-      if (e.health.downed) return;
-      if (e.team !== self.team) { if (d < 8) ctx.enemiesNear++; return; }
-      if (d < 12) ctx.alliesNear++;
-      if (!e.isVehicle && e.health.hp / e.health.max < ctx.hurtAllyHp) { ctx.hurtAlly = { e, pos: e.movement.state.position }; ctx.hurtAllyHp = e.health.hp / e.health.max; ctx.hurtAllyDist = d; }
-    });
+    const N = this.nbr;
+    if (this.time - N.t >= NBR || N.t > this.time) {
+      N.t = this.time; N.enemiesNear = 0; N.alliesNear = 0; N.hurtAlly = null; N.hurtAllyHp = 1; N.hurtAllyDist = Infinity; N.vehicleNearby = false;
+      this.world.fightersNear(me, 30, (e) => {
+        if (e === self || e.health.dead || e.isDeployable) return;
+        const d = e.movement.state.position.distanceTo(me);
+        if (e.isVehicle && e.team === self.team && d < 30) N.vehicleNearby = true;
+        if (e.health.downed) return;
+        if (e.team !== self.team) { if (d < 8) N.enemiesNear++; return; }
+        if (d < 12) N.alliesNear++;
+        if (!e.isVehicle && e.health.hp / e.health.max < N.hurtAllyHp) { N.hurtAlly = { e, pos: e.movement.state.position }; N.hurtAllyHp = e.health.hp / e.health.max; N.hurtAllyDist = d; }
+      });
+    }
+    if (N.hurtAlly?.e.health.dead) { N.hurtAlly = null; N.hurtAllyHp = 1; N.hurtAllyDist = Infinity; }
+    ctx.enemiesNear = N.enemiesNear; ctx.alliesNear = N.alliesNear; ctx.vehicleNearby = N.vehicleNearby;
+    ctx.hurtAlly = N.hurtAlly; ctx.hurtAllyHp = N.hurtAllyHp; ctx.hurtAllyDist = N.hurtAllyDist;
     if (t) {
       const tp = t.movement.state.position;
       ctx.target = { e: t, pos: tp, isVehicle: !!t.isVehicle };
@@ -456,7 +476,7 @@ export class CombatBotBrain {
       ctx.los = this.#visible(t, ctx.dist);
       if (ctx.los) this.sawAt = this.time;
       ctx.vehicleLos = ctx.los;
-      ctx.targetSpeed = Math.hypot(t.movement.state.velocity.x, t.movement.state.velocity.z);
+      ctx.targetSpeed = hyp(t.movement.state.velocity.x, t.movement.state.velocity.z);
       ctx.targetRooted = !!t.status?.rooted || t.status?.has('slow');
       ctx.targetCloaked = !!t.status?.has('cloak');
       ctx.targetHp = t.health.hp / t.health.max;
@@ -470,9 +490,12 @@ export class CombatBotBrain {
 
   // ---------------------------------------------------------------- abilities
   #profile(slotKey, slot) {
+    const c = slot._botProfile;
+    if (c && c.def === slot.def && c.tier === slot.tier) return c.p;     // no key string per slot per think
     const key = `${slot.def.id}:${slot.tier}`;
     let p = this.profiles.get(key);
     if (!p) { p = profileAbility(slot.stats, slotKey); this.profiles.set(key, p); }
+    slot._botProfile = { def: slot.def, tier: slot.tier, p };
     return p;
   }
 
@@ -569,7 +592,7 @@ export class CombatBotBrain {
     if (speed && s.drop) _a.y += 0.5 * 9.8 * s.drop * tt * tt;
     const eyeY = me.y + 1.6;
     const wantYaw = Math.atan2(-(_a.x - me.x), -(_a.z - me.z));
-    const wantPitch = Math.atan2(_a.y - eyeY, Math.max(0.5, Math.hypot(_a.x - me.x, _a.z - me.z)));
+    const wantPitch = Math.atan2(_a.y - eyeY, Math.max(0.5, hyp(_a.x - me.x, _a.z - me.z)));
 
     // Human-ish tracking: limited turn speed plus a slow wandering error.
     const step = this.diff.aimSpeed * dt;
@@ -650,9 +673,9 @@ export class CombatBotBrain {
   #worthFighting(ctx) {
     if (ctx.dist < 18) return true;
     const o = this.objective, me = this.self.movement.state.position, tp = ctx.target.pos;
-    if (Math.hypot(me.x - o.pos.x, me.z - o.pos.z) < o.radius * 1.8) return false;
+    if (hyp(me.x - o.pos.x, me.z - o.pos.z) < o.radius * 1.8) return false;
     if (ctx.underFire && ctx.dist < 30) return true;
-    return Math.hypot(tp.x - o.pos.x, tp.z - o.pos.z) < o.radius + 25;
+    return hyp(tp.x - o.pos.x, tp.z - o.pos.z) < o.radius + 25;
   }
 
   /**
@@ -665,7 +688,7 @@ export class CombatBotBrain {
     const ang = (o.slot / Math.max(1, o.of)) * Math.PI * 2 + (o.id ?? 0) * 1.3;
     const slotR = o.radius * (o.role === 'defend' ? 0.75 : 0.5);
     const sx = o.pos.x + Math.cos(ang) * slotR, sz = o.pos.z + Math.sin(ang) * slotR;
-    const toPoint = Math.hypot(me.x - o.pos.x, me.z - o.pos.z);
+    const toPoint = hyp(me.x - o.pos.x, me.z - o.pos.z);
     const dir = this.moveDir;
     if (toPoint < o.radius * 1.8) {
       dir.set(sx - me.x, 0, sz - me.z);
@@ -710,10 +733,10 @@ export class CombatBotBrain {
     if (o.via) {
       if (this.viaOf !== o.via) { this.viaOf = o.via; this.viaIdx = 0; }
       const me = self.movement.state.position;
-      while (this.viaIdx < o.via.length && Math.hypot(o.via[this.viaIdx].x - me.x, o.via[this.viaIdx].z - me.z) < 0.7) this.viaIdx++;
+      while (this.viaIdx < o.via.length && hyp(o.via[this.viaIdx].x - me.x, o.via[this.viaIdx].z - me.z) < 0.7) this.viaIdx++;
       if (this.viaIdx < o.via.length) {
         const w = o.via[this.viaIdx];
-        if (this.viaIdx === 0 && Math.hypot(w.x - me.x, w.z - me.z) > 3) { this.#goTo(cmd, w, dt, { sprint: false, radius: 0.5 }); }
+        if (this.viaIdx === 0 && hyp(w.x - me.x, w.z - me.z) > 3) { this.#goTo(cmd, w, dt, { sprint: false, radius: 0.5 }); }
         else { this.moveDir.set(w.x - me.x, 0, w.z - me.z).normalize(); this.hasMoveDir = true; this.arriving = true; this.#unstick(dt); }
         if (t && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
         this.#stance('stand');
@@ -768,27 +791,27 @@ export class CombatBotBrain {
 
   #goTo(cmd, p, dt, { sprint = false, radius = 1, field = null, follow = false, direct = false } = {}) {
     const me = this.self.movement.state.position, nav = this.world.nav, dir = this.moveDir;
-    const dx = p.x - me.x, dz = p.z - me.z, d = Math.hypot(dx, dz);
+    const dx = p.x - me.x, dz = p.z - me.z, d = hyp(dx, dz);
     // Arrived (and at the right level: on the trench floor, not on the sandbags above the spot).
     const level = p.y === undefined || Math.abs(p.y - me.y) < 0.9;
     if (d <= radius && level) { this.route = null; this.stuck.level = 0; this.stuck.t = 0; return true; }
     if (d <= radius) { this.moveDir.set(dx / Math.max(d, 0.05), 0, dz / Math.max(d, 0.05)); this.hasMoveDir = true; this.arriving = true; return false; }   // step down to it
     this.arriving = d < 2.6;
     let steered = false;
-    const ff = !direct && nav && field && d > 60 ? nav.want(field, p.x, p.z, 4) : null;   // big maps: null while it's being built
+    // A big map's field is null while it's being built, and doesn't reach the far rear: A* then.
+    const ff = !direct && nav && field && d > 60 ? nav.want(field, p.x, p.z, 4) : null;
     if (direct) { /* straight at it: the feelers climb what's in the way */ }
-    else if (ff) {
-      steered = nav.sample(ff, me.x, me.z, dir);
-    } else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
+    else if (ff && nav.sample(ff, me.x, me.z, dir)) steered = true;
+    else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
       let R = this.route;
-      const moved = R ? Math.hypot(R.gx - p.x, R.gz - p.z) : Infinity;
+      const moved = R ? hyp(R.gx - p.x, R.gz - p.z) : Infinity;
       if (!R || (moved > 1.5 && this.time - R.at > 0.8) || moved > 5 || this.time - R.at > 6 || this.stuck.repath) {
         const res = nav.path(me.x, me.z, p.x, p.z, { maxExpand: d > 80 ? 6000 : 2500 });
         R = this.route = { pts: res?.pts?.length ? res.pts : [p.x, p.z], i: 0, gx: p.x, gz: p.z, at: this.time };
         this.stuck.repath = false;
       }
-      while (R.i < R.pts.length - 2 && Math.hypot(R.pts[R.i] - me.x, R.pts[R.i + 1] - me.z) < 1.4) R.i += 2;
-      const wx = R.pts[R.i], wz = R.pts[R.i + 1], l = Math.hypot(wx - me.x, wz - me.z);
+      while (R.i < R.pts.length - 2 && hyp(R.pts[R.i] - me.x, R.pts[R.i + 1] - me.z) < 1.4) R.i += 2;
+      const wx = R.pts[R.i], wz = R.pts[R.i + 1], l = hyp(wx - me.x, wz - me.z);
       if (l > 0.05) { dir.set((wx - me.x) / l, 0, (wz - me.z) / l); steered = true; }
     }
     if (!steered) dir.set(dx / d, 0, dz / d);
@@ -803,7 +826,7 @@ export class CombatBotBrain {
     const S = this.stuck, me = this.self.movement.state.position;
     S.t += dt;
     if (S.t >= 1.0) {
-      const moved = Math.hypot(me.x - S.x, me.z - S.z);
+      const moved = hyp(me.x - S.x, me.z - S.z);
       S.level = moved < 0.45 ? S.level + 1 : 0;
       S.t = 0; S.x = me.x; S.z = me.z;
       if (S.level === 2) S.repath = true;
@@ -860,7 +883,7 @@ export class CombatBotBrain {
     _d.set(tp.x - me.x, tp.y + 1.1 - _a.y, tp.z - me.z);
     const l = _d.length();
     if (l < 0.5) return true;
-    return !this.world.raycastStatic(_a, _d.divideScalar(l), Math.min(dist, l) - 0.3);
+    return !this.world.sight(_a, _d.divideScalar(l), Math.min(dist, l) - 0.3);
   }
 
   /** Will rounds fired at a remembered enemy position land near it (not in the cover in front of us)? */
@@ -870,7 +893,7 @@ export class CombatBotBrain {
     _d.set(p.x - from.x, (p.y ?? me.y) + 1 - from.y, p.z - from.z);
     const l = _d.length();
     if (l < 3 || l > 110) return false;
-    const hit = this.world.raycastStatic(from, _d.divideScalar(l), l);
+    const hit = this.world.sight(from, _d.divideScalar(l), l);
     return !hit || hit.distance > l * 0.75;
   }
 
@@ -878,10 +901,10 @@ export class CombatBotBrain {
   #suppressFire(p, cmd, dt) {
     const me = this.self.movement.state.position, wc = this.self.weapons, w = wc.current, s = w.s;
     const sweep = Math.sin(this.time * 1.3 + this.errPhase) * 1.6;
-    const dx = p.x - me.x, dz = p.z - me.z, l = Math.hypot(dx, dz) || 1;
+    const dx = p.x - me.x, dz = p.z - me.z, l = hyp(dx, dz) || 1;
     const ax = p.x + (-dz / l) * sweep, az = p.z + (dx / l) * sweep, ay = (p.y ?? me.y) + 1.0;
     const wantYaw = Math.atan2(-(ax - me.x), -(az - me.z));
-    const wantPitch = Math.atan2(ay - (me.y + 1.6), Math.max(0.5, Math.hypot(ax - me.x, az - me.z)));
+    const wantPitch = Math.atan2(ay - (me.y + 1.6), Math.max(0.5, hyp(ax - me.x, az - me.z)));
     const step = this.diff.aimSpeed * dt;
     this.aimYaw += Math.max(-step, Math.min(step, angleDelta(this.aimYaw, wantYaw)));
     this.aimPitch += Math.max(-step, Math.min(step, wantPitch - this.aimPitch));
@@ -927,7 +950,7 @@ export class CombatBotBrain {
     const key = this.grenadeReady(), me = this.self.movement.state.position;
     if (!key || !o.at || !Number.isFinite(o.at.x + o.at.y + o.at.z)) return;
     const p = this.#profile(key, this.self.abilities.slots[key]);
-    const dist = Math.hypot(o.at.x - me.x, o.at.z - me.z);
+    const dist = hyp(o.at.x - me.x, o.at.z - me.z);
     const yaw = Math.atan2(-(o.at.x - me.x), -(o.at.z - me.z));
     const pitch = ballisticPitch(Math.max(1, dist), o.at.y - (me.y + 1.5), p.speed, 9.8 * p.drop);
     this.aimOverride = { yaw, pitch, until: this.time + p.cast + 0.15 };
@@ -955,7 +978,7 @@ export class CombatBotBrain {
     const y = cmd.yaw;
     const fx = -Math.sin(y), fz = -Math.cos(y), rx = Math.cos(y), rz = -Math.sin(y);
     const dirX = fx * cmd.moveY + rx * cmd.moveX, dirZ = fz * cmd.moveY + rz * cmd.moveX;
-    const len = Math.hypot(dirX, dirZ);
+    const len = hyp(dirX, dirZ);
     if (len < 0.1) return;
     _d.set(dirX / len, 0, dirZ / len);
     const hit = this.world.raycastStatic(_a.set(me.x, me.y + 0.5, me.z), _d, 2.2, { includeWalls: true });

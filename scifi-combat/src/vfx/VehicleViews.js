@@ -6,6 +6,8 @@
 // Field guns: wheels, shield and a split trail that spreads when the gun is set up, the barrel laid
 // and elevated where the sim has it (it recoils on every shot); rocket batteries raise their rack
 // and drop their stabilizers; supply trucks show their cargo as crates in the bed.
+// Distance LOD (a 200v200 front has ~80 vehicles of 10-20 meshes each): the full model up close,
+// one team-colored block past DETAIL m, nothing past the fog.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -15,12 +17,16 @@ const ENEMY_TRIM = '#ff3b5c';
 const STEEL = '#3a3d42', DARK = '#1d1f22', WOOD = '#7a5a36';
 const box = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.7 }));
 const wheel = (r, w) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 14), new THREE.MeshStandardMaterial({ color: DARK, roughness: 0.9 })); m.rotation.z = Math.PI / 2; return m; };
+const DETAIL = 160;                                   // m: past this a vehicle is one block
+const BLOCK = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
 
 export class VehicleViews {
-  constructor(scene, world, { localTeam = 0 } = {}) {
+  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end) } */
+  constructor(scene, world, { localTeam = 0, far = 540 } = {}) {
     this.scene = scene;
     this.world = world;
     this.localTeam = localTeam;
+    this.far = far;
     this.views = new Map();
     this.time = 0;
     bus.on('vehicle:spawn', (e) => this.#add(e));
@@ -105,14 +111,29 @@ export class VehicleViews {
       bar.renderOrder = 10; root.add(bar);
       parts.bar = bar; parts.fg = fg;
     }
+    // LOD: the model built above, or past DETAIL a block of the hull's material (so it darkens
+    // with damage too). The HP bar stays on the root.
+    const full = new THREE.Group();
+    for (const c of [...root.children]) if (c !== parts.bar) full.add(c);
+    const block = new THREE.Mesh(BLOCK, mat);
+    block.scale.set(d.size.x, d.size.y * (d.model === 'gun' ? 0.6 : 0.8), d.size.z);
+    const lod = new THREE.LOD();
+    lod.addLevel(full, 0); lod.addLevel(block, DETAIL);
+    root.add(lod);
+    parts.lod = lod;
     this.scene.add(root);
     this.views.set(v.id, { v, root, parts });
   }
 
   update(dt, camera) {
     this.time += dt;
+    const far2 = this.far * this.far;
     for (const { v, root, parts } of this.views.values()) {
       const s = v.movement.state;
+      // Past the fog there is nothing to draw (and no pose to work out).
+      const d2 = camera ? s.position.distanceToSquared(camera.position) : 0;
+      root.visible = d2 < far2;
+      if (!root.visible) continue;
       root.position.copy(s.position); root.position.y -= v.def.hoverHeight ?? 0;
       root.rotation.y = v.yaw;
       // Bikes bank into turns; dropships pitch with speed.
@@ -128,7 +149,11 @@ export class VehicleViews {
       parts.mat.color.set(TEAM[v.team]).multiplyScalar(0.4 + 0.6 * hpFrac);
       parts.smoke.visible = hpFrac < 0.35;
       if (parts.smoke.visible) { parts.smoke.position.y = v.def.size.y + ((this.time * 2) % 1.5); parts.smoke.material.opacity = 0.6 - ((this.time * 2) % 1.5) * 0.35; }
-      if (parts.bar) { parts.fg.scale.x = Math.max(0.001, hpFrac); if (camera) parts.bar.quaternion.copy(root.quaternion).invert().multiply(camera.quaternion); }
+      if (parts.bar) {
+        parts.bar.visible = d2 < 120 * 120;   // the bar draws over everything: only for vehicles close enough to fight
+        parts.fg.scale.x = Math.max(0.001, hpFrac);
+        if (camera) parts.bar.quaternion.copy(root.quaternion).invert().multiply(camera.quaternion);
+      }
     }
   }
 

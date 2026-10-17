@@ -58,6 +58,7 @@ export class AbilityComponent {
     this.owner = owner;
     this.world = world;
     this.slots = Object.fromEntries(SLOTS.filter((k) => kit[k]).map((k) => [k, new AbilitySlot(kit[k])]));
+    this.slotList = Object.entries(this.slots);   // ticked every frame: no entries() array per tick
     this.superEnergy = 0;
     this.superCost = superCost;
     this.flux = 0;                       // upgrade currency earned in the match
@@ -74,8 +75,8 @@ export class AbilityComponent {
     const mvs = this.owner.movement.state;
     if ((mvs.diveStarted || mvs.knockStarted) && this.casting?.slot.phase === AbilityPhase.CASTING) this.interrupt(mvs.knockStarted ? 'knockdown' : 'dive');
 
-    for (const [key, slot] of Object.entries(this.slots)) {
-      const s = slot.stats;
+    for (let i = 0; i < this.slotList.length; i++) {
+      const [key, slot] = this.slotList[i], s = slot.stats;
       // Cooldowns run while not casting, one charge at a time.
       if (key !== 'super' && slot.charges < (s.charges ?? 1) && slot.phase !== AbilityPhase.CASTING) {
         slot.cooldown -= dt / this.cooldownMul;

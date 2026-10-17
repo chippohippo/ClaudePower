@@ -17,7 +17,7 @@ import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { ReviveSystem } from './ReviveSystem.js';
-import { hitSpheres } from '../movement/Hitboxes.js';
+import { hitSpheres, silhouetteScale, BOUND } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
 
@@ -39,7 +39,7 @@ export class CombatWorld {
     this.terrain = terrain;
     this.nav = nav;
     this.spatial = spatial;
-    this.grid = new EntityGrid({ cell: 12 });
+    this.grid = new EntityGrid({ cell: 12, bounds: terrain ? { minX: terrain.minX, minZ: terrain.minZ, width: terrain.width, depth: terrain.depth } : null });
     this.version = 0;             // bumped when fighter membership changes (adds, vehicles, seats)
     this._fighters = null; this._fightersVersion = -1;
     this.statusDefs = statusDefs;
@@ -133,35 +133,50 @@ export class CombatWorld {
   raycast(o, d, max, ignoreId, opts = {}) {
     let best = null;
     const consider = (h) => { if (h && h.distance <= max && (!best || h.distance < best.distance)) best = h; };
+    const reach = () => (best ? best.distance : max);
 
+    // What doesn't move goes first (cover, ground, domes): most shots on a battlefield end in the
+    // dirt or a sandbag a few metres out, and then only that much of the ray is searched for
+    // fighters. Piercing shots (Judgment) only test characters and vehicles.
+    if (!opts.ignoreCover) {
+      consider(this.raycastStatic(o, d, max, { includeWalls: false }));
+      consider(this.raycastGround(o, d, reach()));
+      const team = opts.team ?? this.entity(ignoreId)?.team;
+      const domeT = this.zones.blockDistance(o, d, reach(), team);
+      if (domeT !== null) consider({ entity: null, distance: domeT, point: o.clone().addScaledVector(d, domeT), surface: 'dome', blocked: true });
+    }
     const testFighter = (e) => {
       // Hulls the grid finds along the ray are tested here (the grid holds vehicles too).
-      if (e.isVehicle) { if (this.spatial) consider(this.vehicles.rayOne(e, o, d, best ? best.distance : max, ignoreId)); return; }
+      if (e.isVehicle) { if (this.spatial) consider(this.vehicles.rayOne(e, o, d, reach(), ignoreId)); return; }
       // Skip the shooter, the dead, protected occupants and riders of the shooting vehicle itself.
       if (e.isDeployable || e.id === ignoreId || e.health.dead || (e.vehicle && (!e.vehicle.exposed || e.vehicle.veh.id === ignoreId))) return;
-      // Stance-aware spheres: prone, sliding and diving soldiers really are harder to hit.
+      // A bounding sphere first (most soldiers along a ray's corridor are metres off it), then the
+      // stance-aware spheres: prone, sliding and diving soldiers really are harder to hit.
+      const s = e.movement.state, p = s.position;
+      if (s.mode !== 'ragdoll') {
+        const sc = silhouetteScale(e), R = BOUND[1] * sc;
+        _oc.set(p.x - o.x, p.y + BOUND[0] * sc - o.y, p.z - o.z);
+        const t = _oc.dot(d);
+        if (t < -R || t > reach() + R || _oc.lengthSq() - t * t > R * R) return;
+      }
       for (const h of hitSpheres(e)) {
         _oc.set(h.x - o.x, h.y - o.y, h.z - o.z);
         const t = _oc.dot(d);
-        if (t >= 0 && t <= max && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone });
+        if (t >= 0 && t <= reach() && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone });
       }
     };
-    if (this.spatial) this.grid.queryRay(o, d, max, 2.5, testFighter);
+    // The pad covers a soldier's spheres and moves since the grid was built, and a hull's size
+    // (the grid holds vehicles by their centre).
+    if (this.spatial) this.grid.queryRay(o, d, reach(), 6, testFighter);
     else {
       for (const e of this.entities) testFighter(e);
-      const veh = this.vehicles.raycast(o, d, max, ignoreId);
+      const veh = this.vehicles.raycast(o, d, reach(), ignoreId);
       if (veh) consider(veh);
     }
-    // Piercing shots (Judgment) only test characters and vehicles: cover, walls, domes and ground are ignored.
-    if (opts.ignoreCover) return best;
-    const dep = this.deployables.raycast(o, d, max);
-    if (dep && dep.entity.id !== ignoreId) consider(dep);
-    consider(this.raycastStatic(o, d, max, { includeWalls: false }));
-    consider(this.raycastGround(o, d, best ? best.distance : max));
-
-    const team = opts.team ?? this.entity(ignoreId)?.team;
-    const domeT = this.zones.blockDistance(o, d, max, team);
-    if (domeT !== null) consider({ entity: null, distance: domeT, point: o.clone().addScaledVector(d, domeT), surface: 'dome', blocked: true });
+    if (!opts.ignoreCover) {
+      const dep = this.deployables.raycast(o, d, reach());
+      if (dep && dep.entity.id !== ignoreId) consider(dep);
+    }
     if (best?.blocked) bus.emit('zone:blocked', { point: best.point.toArray() });
     return best;
   }
@@ -193,6 +208,16 @@ export class CombatWorld {
     return best;
   }
 
+  /**
+   * Line of sight: cover, deployable walls and the ground. A ridge hides a soldier as well as a
+   * wall does (and stops rounds the same way), so this is what seeing and aiming ask.
+   */
+  sight(o, d, max) {
+    const a = this.raycastStatic(o, d, max);
+    const b = this.terrain ? this.terrain.raycast(o, d, a ? a.distance : max) : null;
+    return b && (!a || b.distance < a.distance) ? b : a;
+  }
+
   /** The ground itself: terrain heightfield on big maps, the y = 0 plane otherwise. */
   raycastGround(o, d, max) {
     if (this.terrain) return this.terrain.raycast(o, d, max);
@@ -202,9 +227,11 @@ export class CombatWorld {
 
   /** Highest walkable surface under p: terrain (or 0) and cover tops within reach. */
   groundHeight(p) {
-    let h = this.terrain ? this.terrain.height(p.x, p.z) : 0;
-    this.coverIn(p.x, p.z, p.x, p.z, (b) => { if (p.x >= b.min.x && p.x <= b.max.x && p.z >= b.min.z && p.z <= b.max.z && b.max.y <= p.y + 1.5) h = Math.max(h, b.max.y); });
-    return h;
+    const h = this.terrain ? this.terrain.height(p.x, p.z) : 0;
+    if (this.cover.topAt) return Math.max(h, this.cover.topAt(p.x, p.z, p.y + 1.5));
+    let top = h;
+    for (const b of this.cover) if (p.x >= b.min.x && p.x <= b.max.x && p.z >= b.min.z && p.z <= b.max.z && b.max.y <= p.y + 1.5) top = Math.max(top, b.max.y);
+    return top;
   }
 
   // ---------------------------------------------------------------- damage helpers

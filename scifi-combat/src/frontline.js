@@ -1,5 +1,5 @@
 // Frontline: a Battlefront-style battle against bots, on a map built for the match size.
-// URL: ?size=4v4|12v12|32v32|64v64 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
+// URL: ?size=4v4|12v12|32v32|64v64|200v200 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
 // (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers → HUD and audio.
@@ -24,7 +24,7 @@ import { silhouetteScale } from './movement/Hitboxes.js';
 
 const params = new URLSearchParams(location.search);
 const sizeParam = params.get('size'), playersParam = params.get('players');
-const requestedPlayers = playersParam ? Math.max(8, Math.min(128, +playersParam)) : null;
+const requestedPlayers = playersParam ? Math.max(8, Math.min(400, +playersParam)) : null;
 const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
@@ -87,7 +87,7 @@ for (const f of session.fighters) { anim.add(f); f.look = { team: f.team, status
 anim.focusId = PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + 8 });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
-const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam });
+const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: scene.fog.far + 20 });
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam });
 const fx = new BattleFx(scene, { fog: scene.fog });
 

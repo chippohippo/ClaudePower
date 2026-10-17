@@ -31,8 +31,10 @@ import { Health } from '../combat/Health.js';
 import { StatusComponent } from '../combat/StatusSystem.js';
 import { WeaponComponent, WeaponInstance } from '../combat/weapons/WeaponSystem.js';
 import { emptyCommand } from '../input/InputManager.js';
-import { rayYawBox, localToWorld, angleDelta } from '../core/geom.js';
+import { rayYawBox, localToWorld, angleDelta, hyp } from '../core/geom.js';
 import { FieldGuns } from './FieldGuns.js';
+
+const IDLE = Object.freeze({ ...emptyCommand(), buttons: Object.freeze({}) });   // an empty gun seat's command, every tick
 
 const DEG = Math.PI / 180;
 const ENTER_RANGE = 3.2;
@@ -144,7 +146,7 @@ export class VehicleSystem {
     let best = null, bd = ENTER_RANGE;
     for (const v of this.list) {
       if (v.removed || v.team !== e.team || v.gun?.towedBy || !v.seats.some((s) => !s.occupant)) continue;
-      const d = Math.hypot(v.movement.state.position.x - e.movement.state.position.x, v.movement.state.position.z - e.movement.state.position.z) - v.def.radius;
+      const d = hyp(v.movement.state.position.x - e.movement.state.position.x, v.movement.state.position.z - e.movement.state.position.z) - v.def.radius;
       if (d < bd) { bd = d; best = v; }
     }
     return best;
@@ -197,7 +199,7 @@ export class VehicleSystem {
     this.world.coverIn(p.x - radius, p.z - radius, p.x + radius, p.z + radius, (b) => {
       if (blocked || p.y >= b.max.y - 0.1) return;
       const cx = Math.max(b.min.x, Math.min(p.x, b.max.x)), cz = Math.max(b.min.z, Math.min(p.z, b.max.z));
-      if (Math.hypot(p.x - cx, p.z - cz) < radius) blocked = true;
+      if (hyp(p.x - cx, p.z - cz) < radius) blocked = true;
     });
     return blocked;
   }
@@ -282,9 +284,11 @@ export class VehicleSystem {
     // climb (0.5 m; anything taller stops them, or is crushed), what a truck rides over (`climb`).
     const base = s.position.y - (d.hoverHeight ?? 0), probeY = d.model === 'hover' || d.model === 'flyer' ? base : base + (d.climb ?? 0.5) - 1.5;
     let best = -Infinity;
-    for (const [lx, lz] of [[0, 0], [0, -hl], [0, hl], [-hw, 0], [hw, 0]]) {
-      localToWorld(_p, s.position, v.yaw, [lx, 0, lz]);
-      _p.y = probeY;
+    const c = Math.cos(v.yaw), sn = Math.sin(v.yaw);
+    for (let k = 0; k < 5; k++) {
+      // Centre, nose, tail, left, right (localToWorld's rotation, without an array per probe).
+      const lx = k === 3 ? -hw : k === 4 ? hw : 0, lz = k === 1 ? -hl : k === 2 ? hl : 0;
+      _p.set(s.position.x + lx * c + lz * sn, probeY, s.position.z - lx * sn + lz * c);
       best = Math.max(best, this.world.groundHeight(_p));
     }
     return best;
@@ -309,7 +313,7 @@ export class VehicleSystem {
     const ground = this.#support(v, 0.85);
     s.position.y = ground > s.position.y ? ground : s.position.y + (ground - s.position.y) * Math.min(1, dt * 10);
     // What tanks were built for: wire flattened under the tracks.
-    if ((d.cutsWire ?? true) && Math.hypot(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, d.radius * 0.8);
+    if ((d.cutsWire ?? true) && hyp(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, d.radius * 0.8);
   }
 
   /**
@@ -375,7 +379,7 @@ export class VehicleSystem {
   }
 
   #clampSpeed(vel, top) {
-    const h = Math.hypot(vel.x, vel.z);
+    const h = hyp(vel.x, vel.z);
     if (h > top && h > 0) { vel.x *= top / h; vel.z *= top / h; }
   }
 
@@ -386,13 +390,13 @@ export class VehicleSystem {
     const near = this._near ??= [];
     near.length = 0;
     this.world.coverIn(s.position.x - d.radius, s.position.z - d.radius, s.position.x + d.radius, s.position.z + d.radius, (b) => near.push(b));
-    const speed = Math.hypot(s.velocity.x, s.velocity.z);
+    const speed = hyp(s.velocity.x, s.velocity.z);
     for (const b of near) {
       // Tanks crush what's destructible and not too tall under their tracks (sandbags, crates,
       // broken walls): a tank crossing a trench line leaves a gap in the parapet behind it.
       if ((d.crush ?? d.model === 'tracked') && b.destructible && b.max.y - base < 2 && b.max.y > base - 0.3 && speed > 0.8) {
         const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
-        if (Math.hypot(s.position.x - cx, s.position.z - cz) < d.radius * 0.8) {
+        if (hyp(s.position.x - cx, s.position.z - cz) < d.radius * 0.8) {
           this.world.removeCover?.(b, v.seats.find((q) => q.def.role === 'driver')?.occupant ?? v);
           s.velocity.multiplyScalar(0.93);
           continue;
@@ -402,7 +406,7 @@ export class VehicleSystem {
       if (d.model === 'flyer' && base > b.max.y) continue;
       const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
       let nx = s.position.x - cx, nz = s.position.z - cz;
-      const dist = Math.hypot(nx, nz);
+      const dist = hyp(nx, nz);
       if (dist >= d.radius) continue;
       if (dist < 1e-4) { nx = 1; nz = 0; } else { nx /= dist; nz /= dist; }
       s.position.x = cx + nx * d.radius; s.position.z = cz + nz * d.radius;
@@ -421,7 +425,7 @@ export class VehicleSystem {
   #ram(v, driver, dt) {
     const s = v.movement.state, r = v.def.ram;
     for (const [k, t] of v.ramCd) if (t - dt <= 0) v.ramCd.delete(k); else v.ramCd.set(k, t - dt);
-    const speed = Math.hypot(s.velocity.x, s.velocity.z);
+    const speed = hyp(s.velocity.x, s.velocity.z);
     if (speed < 0.5 && !v.ramCd.size) return;      // parked: nobody gets rammed
     const near = this._ramNear ??= [];
     near.length = 0;
@@ -456,7 +460,7 @@ export class VehicleSystem {
       if (!seat.weapons) continue;
       const wc = seat.weapons;
       wc.owner.movement.state.position = s.position;
-      if (!occ) { wc.update(emptyCommand(), dt); continue; }
+      if (!occ) { wc.update(IDLE, dt); continue; }
       const c = seat.cmd ?? emptyCommand();
       // Aim rules: hull guns fire within ±25° of the nose; turrets fire along the turret; free mounts aim anywhere.
       let yaw = c.yaw;
@@ -491,7 +495,7 @@ export class VehicleSystem {
     const d = v.def;
     const vp = v.movement.state.position, cx = vp.x - o.x, cy = vp.y - (d.hoverHeight ?? 0) + d.size.y * 0.5 - o.y, cz = vp.z - o.z;
     const along = Math.max(0, Math.min(max, cx * dir.x + cy * dir.y + cz * dir.z));
-    const ex = cx - dir.x * along, ey = cy - dir.y * along, ez = cz - dir.z * along, rb = (v.boundR ??= 0.5 * Math.hypot(d.size.x, d.size.y, d.size.z));
+    const ex = cx - dir.x * along, ey = cy - dir.y * along, ez = cz - dir.z * along, rb = (v.boundR ??= 0.5 * hyp(d.size.x, d.size.y, d.size.z));
     if (ex * ex + ey * ey + ez * ez > rb * rb) return null;
     const base = _p.copy(vp); base.y -= d.hoverHeight ?? 0;
     const hit = rayYawBox(o, dir, base, v.yaw, v.half ??= { x: d.size.x / 2, y: d.size.y, z: d.size.z / 2 }, max);

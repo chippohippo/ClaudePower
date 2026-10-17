@@ -1,15 +1,16 @@
-// FrontlineSession: builds and runs a Battlefront-style frontline match for 64-128 fighters.
+// FrontlineSession: builds and runs a Battlefront-style frontline match for 8 to 400 fighters.
 // Simulation only, so the browser client, headless tests and benchmarks run the exact same match.
 //
 //  * Build: seeded map (terrain, cover, nav) → CombatWorld with spatial queries → FrontlineMode →
 //    two factions of fighters from the class rosters, in squads of 4 → a commander per team →
 //    a tactical map (cover spots), suppression tracking and a SquadTactics plan per squad →
 //    vehicle pads at the HQs.
-//  * Step (fixed 60 Hz): bot think (LOD by distance from the humans: near every tick, mid every
-//    2nd, far every 3rd, with the last command held in between) → the same per-fighter pipeline
-//    players use (vehicles, movement, abilities, sword, guns) → world (projectiles, zones,
-//    deployables, vehicles) → melee resolve → mode → commanders → suppression → squad plans →
-//    reinforcement waves.
+//  * Step (fixed 60 Hz): bot think (LOD by distance from the humans: every tick up close, then
+//    every 2nd, 4th or 6th, with the last command held in between) → the same per-fighter
+//    pipeline players use (vehicles, movement, abilities, sword, guns; at 30 Hz for soldiers far
+//    from every camera) → world (projectiles, zones, deployables, vehicles) → melee resolve →
+//    logistics → mode → commanders → artillery and supply command → suppression → squad plans →
+//    reinforcement waves → nav repairs.
 //  * Reinforcements: the dead come back in waves, on their squad leader when it's safe, otherwise
 //    at the safe spawn nearest their front. Every death costs a ticket.
 
@@ -40,7 +41,7 @@ export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
    *                         damageMatrix, supers, vehicleDefs, personalities, difficulty }
-   * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' (or players: the size built for that count),
+   * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
   constructor(data, { size = null, players = null, seed = 1, humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
@@ -178,21 +179,28 @@ export class FrontlineSession {
     const w = this.world;
     for (const f of this.fighters) { f.status.update(dt); f.health.update(dt); }
     for (const f of this.fighters) {
-      if (f.health.dead) { f.movement.simulateCorpse(dt); continue; } // bodies keep falling until they rest
+      if (f.health.dead) { f.movement.simulateCorpse(dt); f.simTick = this.tick; continue; } // bodies keep falling until they rest
+      // LOD: a soldier far from every camera runs his whole pipeline at 30 Hz, every other tick
+      // with a double step (not limp bodies: a Verlet ragdoll needs its step steady; not crews).
+      const near = this.#nearFocus(f);
+      const half = this.focus.length > 0 && near >= this.lodCfg.mid && !f.vehicle && f.movement.state.mode !== 'ragdoll';
+      if (half && (this.tick + f.id) % 2 !== 0) continue;
+      const fdt = f.movement.state.mode === 'ragdoll' ? dt : Math.min(2, this.tick - (f.simTick ?? this.tick - 1)) * dt;
+      f.simTick = this.tick;
       let cmd;
-      if (f.brain) cmd = this.#think(f, dt);
+      if (f.brain) cmd = this.#think(f, dt, near);
       else cmd = this.humans.get(f.id) ?? EMPTY;
       if (!Number.isFinite(cmd.yaw + cmd.pitch + cmd.moveX + cmd.moveY)) cmd = { ...cmd, yaw: Number.isFinite(cmd.yaw) ? cmd.yaw : f.movement.state.yaw, pitch: Number.isFinite(cmd.pitch) ? cmd.pitch : 0, moveX: Number.isFinite(cmd.moveX) ? cmd.moveX : 0, moveY: Number.isFinite(cmd.moveY) ? cmd.moveY : 0 }; // never let a bad number into the sim
       // Reviving a teammate or digging in owns the tick: kneel, no moving, shooting or casting.
-      if (w.revives.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
-      else if (this.fortify.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
-      if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, dt); continue; }
+      if (w.revives.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
+      else if (this.fortify.handleInput(f, cmd, fdt)) { cmd = kneeling(cmd); f.movement.kneel(); }
+      if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, fdt); continue; }
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);
-      f.movement.update(c, dt);
+      f.movement.update(c, fdt);
       const p = f.movement.state.position;
       f.movement.state.speedScale = f.status.speedMul * (w.wire ? w.wire.slowAt(p.x, p.z) : 1); // wire: slow, no sprint
-      f.abilities.update(c, dt); f.melee.update(r.meleeCmd, dt); f.weapons.update(r.gunCmd, dt);
+      f.abilities.update(c, fdt); f.melee.update(r.meleeCmd, fdt); f.weapons.update(r.gunCmd, fdt);
     }
     w.update(dt);
     this.melee.resolve();
@@ -207,16 +215,22 @@ export class FrontlineSession {
     this.stats.simMs = performance.now() - t0;
   }
 
+  /** Distance (Manhattan, m) to the nearest human camera: Infinity headless. */
+  #nearFocus(f) {
+    const p = f.movement.state.position, F = this.focus;
+    let near = Infinity;
+    for (let i = 0; i < F.length; i++) near = Math.min(near, Math.abs(F[i].x - p.x) + Math.abs(F[i].z - p.z));
+    return near;
+  }
+
   /**
    * Think-rate LOD: bots far from every human camera think less often and hold their last
    * command: every tick up close, every 2nd within `mid`, every 4th within `far`, every 6th
    * beyond (the far side of a 2.6 km front). Without a camera (headless) every 2nd tick, every
-   * 3rd for the biggest battles.
+   * 3rd for the biggest battles. Periods past `mid` are even: those bots only run on every
+   * other tick anyway (see step()).
    */
-  #think(f, dt) {
-    const p = f.movement.state.position;
-    let near = Infinity;
-    for (const q of this.focus) near = Math.min(near, Math.abs(q.x - p.x) + Math.abs(q.z - p.z));
+  #think(f, dt, near) {
     const L = this.lodCfg;
     const every = this.focus.length === 0 ? (this.players > 128 ? 3 : 2) : near < L.near ? 1 : near < L.mid ? 2 : near < (L.far ?? 400) ? 4 : 6;
     const last = this.lastCmd.get(f.id);

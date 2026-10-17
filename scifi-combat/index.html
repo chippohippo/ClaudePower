@@ -15,6 +15,7 @@
     #fl-strip .sec.hot { box-shadow: 0 0 8px #fff8; animation: hot 1.2s infinite; }
     #fl-strip .sec em { position: absolute; top: -3px; right: 1px; font-style: normal; font-size: 9px; }
     #fl-strip .sec i { position: absolute; left: 0; bottom: 0; height: 3px; background: #fff; }
+    #fl-strip.many { gap: 2px; } #fl-strip.many .sec { width: 25px; font-size: 11px; }
     @keyframes hot { 50% { box-shadow: 0 0 2px #fff4; } }
     #fl-orders { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); background: #000a; padding: 3px 10px; border-radius: 4px; font-size: 13px; }
     #fl-orders:empty { display: none; }
@@ -57,7 +58,7 @@
     #fl-supply { position: absolute; right: 12px; bottom: 140px; background: #0009; padding: 5px 9px; border-radius: 5px; font-size: 12px; line-height: 1.5; text-align: right; }
     #fl-supply:empty { display: none; }
     #fl-supply .pbar { width: 90px; }
-    #help { position: fixed; left: 12px; top: 12px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
+    #help { position: fixed; left: 12px; top: 62px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
     @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
   </style>
   <script type="importmap">
@@ -75,6 +76,7 @@
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=12v12">12v12</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=32v32">32v32</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=64v64">64v64</a> ·
+    <a style="pointer-events:auto;color:#9fd3ff" href="?size=200v200">200v200 Extreme Warfront</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="arena.html">arena (4v4 feel lab)</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="rig-lab.html">rig lab</a>
   </div>

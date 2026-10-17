@@ -1,25 +1,35 @@
 // NavGrid: walkability over a big map plus per-goal flow fields, for bot macro navigation.
 //
 // One Dijkstra from each goal (a capture point, a spawn, a squad rally) gives every cell the
-// direction of its cheapest route to that goal, so 128 bots can share one field per objective
-// instead of running 128 path searches. Fields are cached; when cover is destroyed they go stale
-// (version stamps) and maintain() rebuilds them as resumable Dijkstra runs sliced across ticks,
-// while the stale field keeps serving. Locally, bots still steer, take cover and fight; the field only
-// answers "which way is the objective from here, around the walls".
+// direction of its cheapest route to that goal, so 400 bots can share one field per objective
+// instead of running 400 path searches. Fields are cached and kept true as the battlefield changes:
+// when cover is built or blown away, each field whose search reached that far repairs itself in
+// place (only the cells whose routes ran through the change are solved again), sliced across ticks
+// by a work budget. Locally, bots still steer, take cover and fight; the field only answers "which
+// way is the objective from here, around the walls".
 //
 // Cells: steep terrain (> maxSlope) and cover taller than vaultHeight are blocked; vaultable
 // cover is passable at extra cost (bots vault it with the hold-to-climb input), and cost zones
 // (barbed wire) are passable but expensive, so routes go through the gaps.
+//
+// Big maps (64v64 and up): fields are built in the background (want()), reach REACH metres of
+// route around their goal (beyond that, callers use A* or a straight line), and the ones nobody
+// has asked for in a while are evicted.
 
 import { Vector3 } from 'three';
 
-const IDLE = 600;            // maintain() calls (~10 s) after which an unused stale field stops being refreshed
-const SOFT = 0.3;            // share of maintain()'s budget for fields whose routes only got better
-const BIG = 150000;          // cells (a 64v64 map and up): past this, fields are built in the background (want()) and evicted when idle
+const IDLE = 600;            // maintain() calls (~10 s) after which an unused field stops being repaired (until it's asked for again)
+const SOFT = 0.3;            // share of maintain()'s budget for repairs that only shorten routes
+const BIG = 150000;          // cells: past this a map is big (see above)
+const REACH = 900;           // m of route a big map's field covers around its goal
 const MAX_FIELDS = 24;       // fields a big map keeps
+const MAX_CHANGES = 8000;    // changed cells a field collects before rebuilding it is cheaper than repairing it
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DZ = [0, 0, 1, -1, 1, -1, 1, -1];
 const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
+const OPP = [1, 0, 3, 2, 7, 6, 5, 4];          // the step back
+const KOF = [7, 3, 5, 1, -1, 0, 6, 2, 4];      // the step for (dx, dz): KOF[(dz + 1) * 3 + dx + 1]
+const CORNERS = [[0, 2], [0, 3], [1, 2], [1, 3]];   // pairs of orthogonal steps: a cell is the corner of the diagonal between them
 
 export class NavGrid {
   /**
@@ -38,15 +48,17 @@ export class NavGrid {
     this.portals = portals;
     this.portal = new Uint16Array(this.nx * this.nz);
     this.cost = new Float32Array(this.nx * this.nz);
-    this.version = 0;
     this.fields = new Map();
-    this.stale = new Set();
-    this.job = null;                                  // the rebuild maintain() is part-way through
+    this.stale = new Set();                           // keys of fields with changes to repair
+    this.job = null;                                  // the build or repair maintain() is part-way through
     this.clock = 0;                                   // maintain() calls: fields remember when they were last asked for
     this.pending = new Map();                         // big maps: fields asked for with want(), built in maintain()
-    this.soft = 0;                                    // bumped when cells only got cheaper (see updateRegion)
     this.syncHeap = new MinHeap(this.nx * this.nz);   // shared search heaps: no 1.6 MB of garbage per solve
     this.jobHeap = new MinHeap(this.nx * this.nz);
+    this.queue = null;                                // a repair's cut-off cells, and their stamps (made on the first repair)
+    this.mark = null; this.gen = 0;
+    this.pool = [];                                   // big maps: the arrays of evicted fields, for the next build
+    this.stats = { builds: 0, repairs: 0, cells: 0 };
     this.#rebuild(0, 0, this.nx - 1, this.nz - 1);
   }
 
@@ -62,33 +74,43 @@ export class NavGrid {
   blocked(x, z) { const i = this.index(x, z); return i < 0 || this.cost[i] === Infinity; }
 
   /**
-   * Recompute walkability in a world rectangle (cover destroyed or added, ground dug) and
-   * invalidate the flow fields, but only when it matters:
-   *  * a cell got worse (blocked, or costlier): fields refresh first, on the full budget (an old
-   *    route may lead into it);
-   *  * cells only got better (a shell blew a gap in a parapet, wire was cut): the old fields are
-   *    still good, just not the shortest, so they refresh on a small share of the budget (SOFT).
-   *    A barrage then costs a trickle instead of rebuilding every field all the time;
-   *  * nothing changed (a crater on open ground): nothing to do.
+   * Recompute walkability in a world rectangle (cover destroyed or added, ground dug) and queue
+   * repairs for the fields that care: the ones whose search reached this far, and only for the
+   * cells that changed (a crater on open ground costs nothing). Cells that got dearer or blocked
+   * (an old route may lead into them) are repaired first, on the full budget; cells that only got
+   * cheaper (a shell blew a gap in a parapet, wire was cut) leave every old route walkable, just
+   * not the shortest, so they are repaired on a share of it (SOFT).
    */
   updateRegion(minX, minZ, maxX, maxZ) {
     const c = this.cell, nx = this.nx;
     const x0 = Math.max(0, Math.floor((minX - this.minX) / c) - 1), z0 = Math.max(0, Math.floor((minZ - this.minZ) / c) - 1);
     const x1 = Math.min(this.nx - 1, Math.floor((maxX - this.minX) / c) + 1), z1 = Math.min(this.nz - 1, Math.floor((maxZ - this.minZ) / c) + 1);
+    if (x0 > x1 || z0 > z1) return;   // off the map
     const w = x1 - x0 + 1, before = new Float32Array(w * (z1 - z0 + 1));
     for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) before[(iz - z0) * w + ix - x0] = this.cost[iz * nx + ix];
     this.#rebuild(x0, z0, x1, z1);
-    let better = false;
+    let worse = null, better = null;
     for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) {
-      const was = before[(iz - z0) * w + ix - x0], now = this.cost[iz * nx + ix];
-      if (now > was) {
-        this.version++;
-        if (this.job && !this.job.hard) { this.stale.add(this.job.key); this.job = null; }   // drop a slow refresh in progress
-        return;
-      }
-      if (now < was) better = true;
+      const i = iz * nx + ix, was = before[(iz - z0) * w + ix - x0], now = this.cost[i];
+      if (now > was) (worse ??= []).push(i);
+      else if (now < was) (better ??= []).push(i);
     }
-    if (better) this.soft++;
+    if (!worse && !better) return;
+    const hits = (b) => b[0] <= x1 && b[2] >= x0 && b[1] <= z1 && b[3] >= z0;
+    let any = false;
+    for (const [key, f] of this.fields) if (hits(f.box)) { this.#note(f, worse, better); this.stale.add(key); any = true; }
+    // A build in progress read some of these cells before they changed: its field is repaired once installed.
+    const job = this.job;
+    if (job && !job.repair && hits(job.box)) this.#note(job, worse, better);
+    if (job && worse && any && !job.hard) job.hard = true;   // a slow repair in progress finishes quickly: this one can't wait
+  }
+
+  /** Queue changed cells for a field's next repair (or a rebuild, past MAX_CHANGES). */
+  #note(f, worse, better) {
+    if (f.rebuild) return;
+    if (worse) for (const i of worse) f.worse.push(i);
+    if (better) for (const i of better) f.better.push(i);
+    if (f.worse.length + f.better.length > MAX_CHANGES) { f.rebuild = true; f.worse.length = 0; f.better.length = 0; }
   }
 
   #rebuild(x0, z0, x1, z1) {
@@ -156,35 +178,27 @@ export class NavGrid {
    * it is field() (solved at once). On big maps a missing field is queued and built in
    * maintain(), on its budget, and want() returns null until it's ready: the caller falls back
    * to an A* route or a straight line for those few seconds.
+   * @param {object} o  { reach: metres of route the field covers (default: all of a small map,
+   *                      REACH on a big one), from: {x, z} — or only the trip from there (a box
+   *                      around both ends, with room to go around what's in between) }
    */
-  want(key, gx, gz, radius = 4) {
-    if (!this.big) return this.field(key, gx, gz, radius);
+  want(key, gx, gz, radius = 4, o = {}) {
+    if (!this.big) return this.field(key, gx, gz, radius, o);
     const f = this.fields.get(key);
-    if (f && f.gx === gx && f.gz === gz) {
-      f.used = this.clock;
-      if (f.version !== this.version || f.soft !== this.soft) this.stale.add(key);
-      return f;
-    }
-    if (!this.pending.has(key) && this.job?.key !== key) this.pending.set(key, { gx, gz, radius });
+    if (f && f.gx === gx && f.gz === gz) return this.#use(key, f);
+    if (!this.pending.has(key) && this.job?.key !== key) this.pending.set(key, { gx, gz, radius, reach: o.reach ?? REACH, from: o.from ? { x: o.from.x, z: o.from.z } : null });
     return null;
   }
 
   /**
    * Flow field toward a goal disc, cached by key. A new key is solved at once; a cached field
-   * whose walkability changed keeps serving and is queued for maintain().
-   * @returns {{ dist: Float32Array, dir: Int8Array, version, key }}
+   * keeps serving while the changes around it are repaired in maintain().
+   * @returns {{ dist: Float32Array, dir: Int8Array, key, gx, gz, radius, reach, box }}
    */
-  field(key, gx, gz, radius = 4) {
+  field(key, gx, gz, radius = 4, o = {}) {
     let f = this.fields.get(key);
-    if (f && f.gx === gx && f.gz === gz) {
-      f.used = this.clock;
-      if (f.soft !== this.soft) this.stale.add(key);
-      // A stale field stays usable: destroyed cover only opens new routes, so the old ones are
-      // still walkable. maintain() refreshes stale fields on a time budget (no hitch per blast).
-      if (f.version !== this.version) this.stale.add(key);
-      return f;
-    }
-    const job = this.#begin(gx, gz, radius, this.syncHeap);
+    if (f && f.gx === gx && f.gz === gz) return this.#use(key, f);
+    const job = this.#begin(gx, gz, radius, o.reach ?? (this.big ? REACH : Infinity), o.from ? { x: o.from.x, z: o.from.z } : null, this.syncHeap);
     this.#advance(job, Infinity);
     f = this.#finish(job, key);
     f.used = this.clock;
@@ -192,12 +206,20 @@ export class NavGrid {
     return f;
   }
 
+  #use(key, f) {
+    // An idle field fell out of the repair queue: asked for again, it goes back in.
+    if (f.used !== this.clock && (f.rebuild || f.worse.length || f.better.length)) this.stale.add(key);
+    f.used = this.clock;
+    return f;
+  }
+
   /**
-   * Refresh stale fields in slices (call every tick): a rebuild expands at most `cells` search
-   * nodes per call and resumes on the next one, while the stale field keeps serving. The budget
-   * counts work, not wall-clock time, so the sim stays deterministic (server, clients and replays
-   * agree on the tick a field flips). 4000 cells is ~0.7 ms; a full 1 km field (100k cells)
-   * finishes in a few dozen ticks instead of costing one ~20 ms hitch.
+   * Repairs and builds fields in slices (call every tick): at most `cells` search nodes per call,
+   * resuming on the next one. A field keeps serving meanwhile (the cells being re-solved send
+   * their callers to A* for a moment). The budget counts work, not wall-clock time, so the sim
+   * stays deterministic (server, clients and replays agree on the tick a route changes). 4000
+   * cells is ~0.8 ms; a full 1 km field (100k cells) is built in a few dozen ticks instead of one
+   * ~20 ms hitch, and the usual repair (a parapet blown open, sandbags stacked) takes one tick.
    */
   maintain(cells = 4000) {
     let budget = cells, soft = Math.min(cells, Math.ceil(cells * SOFT));
@@ -210,38 +232,42 @@ export class NavGrid {
         let key, best = -Infinity;
         for (const k of this.stale) {
           const f = this.fields.get(k);
-          if (!f || (f.version === this.version && f.soft === this.soft) || this.clock - (f.used ?? -1) > IDLE) { this.stale.delete(k); continue; }
-          const pri = (f.version !== this.version ? 1e12 : 0) + (f.used ?? 0);
+          if (!f || !(f.rebuild || f.worse.length || f.better.length) || this.clock - (f.used ?? -1) > IDLE) { this.stale.delete(k); continue; }
+          const pri = (f.rebuild || f.worse.length ? 1e12 : 0) + (f.used ?? 0);
           if (pri > best) { best = pri; key = k; }
         }
         if (best < 1e12 && this.pending.size) {
           // A field someone asked for (want()) comes before routes that only got better.
           const [k, g] = this.pending.entries().next().value;
           this.pending.delete(k);
-          this.job = this.#begin(g.gx, g.gz, g.radius, this.jobHeap);
+          this.job = this.#begin(g.gx, g.gz, g.radius, g.reach, g.from, this.jobHeap);
           this.job.key = k; this.job.hard = true; this.job.fresh = true;
         } else {
           if (key === undefined) return;
           this.stale.delete(key);
-          const old = this.fields.get(key);
-          this.job = this.#begin(old.gx, old.gz, old.radius, this.jobHeap);
-          this.job.key = key;
-          this.job.hard = old.version !== this.version;
+          const f = this.fields.get(key);
+          if (f.rebuild) { this.job = this.#begin(f.gx, f.gz, f.radius, f.reach, f.from, this.jobHeap); this.job.key = key; this.job.hard = true; }
+          else this.job = this.#repairJob(key, f);
         }
       }
-      const allow = this.job.hard ? budget : Math.min(budget, soft);
-      const left = this.#advance(this.job, allow);
-      if (left < 0) return; // out of budget: resume next call
+      const job = this.job, allow = job.hard ? budget : Math.min(budget, soft);
+      const left = job.repair ? this.#repair(job, allow) : this.#advance(job, allow);
+      if (left < 0) { this.stats.cells += allow; return; } // out of budget: resume next call
+      this.stats.cells += allow - left;
       budget -= allow - left; soft -= allow - left;
-      const job = this.job, cur = this.fields.get(job.key);
       this.job = null;
-      // Install unless field() re-solved this key for a moved goal in the meantime. Walkability
-      // that changed mid-search leaves the result older than `version`: it is simply queued again.
-      if (job.fresh || (cur && cur.gx === job.gx && cur.gz === job.gz)) {
-        const f = this.#finish(job, job.key);
-        f.used = cur?.used ?? this.clock;
-        this.fields.set(job.key, f);
-        if (job.fresh) this.#evict();
+      if (!job.repair) {
+        // Install unless field() re-solved this key for a moved goal in the meantime. Cells that
+        // changed while it was being built come with it, to be repaired next.
+        const cur = this.fields.get(job.key);
+        if (job.fresh || (cur && cur.gx === job.gx && cur.gz === job.gz)) {
+          const f = this.#finish(job, job.key);
+          f.used = cur?.used ?? this.clock;
+          this.fields.set(job.key, f);
+          if (cur && this.big) this.#recycle(cur);
+          if (f.rebuild || f.worse.length || f.better.length) this.stale.add(job.key);
+          if (job.fresh) this.#evict();
+        }
       }
       if (budget <= 0) return;
     }
@@ -252,14 +278,20 @@ export class NavGrid {
     if (!this.big || this.fields.size <= MAX_FIELDS) return;
     let oldest = null, ou = Infinity;
     for (const [k, f] of this.fields) if ((f.used ?? 0) < ou && this.clock - (f.used ?? 0) > IDLE) { ou = f.used ?? 0; oldest = k; }
-    if (oldest !== null) { this.fields.delete(oldest); this.stale.delete(oldest); }
+    if (oldest === null) return;
+    this.#recycle(this.fields.get(oldest));
+    this.fields.delete(oldest); this.stale.delete(oldest);
   }
 
+  /** A big map's field arrays are 3 MB: a dropped field's go to the next build instead of the GC. */
+  #recycle(f) { if (this.pool.length < 3) this.pool.push({ dist: f.dist, dir: f.dir }); }
+
   /** Starts a Dijkstra from the goal disc: seeds the goal cells, nothing expanded yet. */
-  #begin(gx, gz, radius, heap) {
+  #begin(gx, gz, radius, reach, from, heap) {
     const n = this.nx * this.nz, nx = this.nx, nz = this.nz, cost = this.cost;
-    const dist = new Float32Array(n).fill(Infinity);
-    const dir = new Int8Array(n).fill(-1);
+    const a = this.pool.pop();
+    const dist = a ? a.dist.fill(Infinity) : new Float32Array(n).fill(Infinity);
+    const dir = a ? a.dir.fill(-1) : new Int8Array(n).fill(-1);
     heap.size = 0;
     const c = this.cell, r = Math.max(radius, c * 0.75);
     const x0 = Math.max(0, Math.floor((gx - r - this.minX) / c)), x1 = Math.min(nx - 1, Math.floor((gx + r - this.minX) / c));
@@ -270,26 +302,42 @@ export class NavGrid {
       if (Math.hypot(this.minX + (ix + 0.5) * c - gx, this.minZ + (iz + 0.5) * c - gz) > r) continue;
       dist[i] = 0; heap.push(i, 0);
     }
-    return { gx, gz, radius, dist, dir, heap, version: this.version, soft: this.soft, key: null };
+    // The search stays in `box` (cells), and changes outside it don't concern the field. A trip
+    // (`from`): both ends, with a margin to go around what's in between. Otherwise route costs
+    // are in cells (x terrain cost) and every step costs at least one: nothing more than `cap`
+    // cells from the goal disc is reached.
+    let cap = reach / c, box;
+    if (from) {
+      const m = Math.max(120, 0.3 * Math.hypot(from.x - gx, from.z - gz)) / c;
+      const fx = (from.x - this.minX) / c, fz = (from.z - this.minZ) / c;
+      box = [Math.max(0, Math.floor(Math.min(x0, fx) - m)), Math.max(0, Math.floor(Math.min(z0, fz) - m)), Math.min(nx - 1, Math.ceil(Math.max(x1, fx) + m)), Math.min(nz - 1, Math.ceil(Math.max(z1, fz) + m))];
+      cap = Infinity;
+    } else {
+      const span = Number.isFinite(cap) ? Math.ceil(cap) + 2 : Infinity;
+      box = [Math.max(0, x0 - span), Math.max(0, z0 - span), Math.min(nx - 1, x1 + span), Math.min(nz - 1, z1 + span)];
+    }
+    this.stats.builds++;
+    return { gx, gz, radius, reach, from, cap, box, dist, dir, heap, key: null, worse: [], better: [] };
   }
 
   /** Expands up to `budget` cells: returns the unused budget when the search completes, -1 if it ran out first. */
   #advance(job, budget) {
-    const nx = this.nx, nz = this.nz, cost = this.cost, { dist, dir, heap } = job;
+    const nx = this.nx, cost = this.cost, { dist, dir, heap, cap } = job, [bx0, bz0, bx1, bz1] = job.box;
     while (heap.size) {
       if (budget-- <= 0) return -1;
       const i = heap.pop(), di = dist[i];
-      if (heap.lastKey > di) continue; // stale entry
+      if (heap.lastKey !== di) continue;              // stale entry (the cell got a better route, or was cut off by a repair)
+      if (di > cap) { heap.size = 0; break; }         // the rest is beyond the field's reach
       const ix = i % nx, iz = (i - ix) / nx;
       for (let k = 0; k < 8; k++) {
         const jx = ix + DX[k], jz = iz + DZ[k];
-        if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
+        if (jx < bx0 || jz < bz0 || jx > bx1 || jz > bz1) continue;
         const j = jz * nx + jx;
         if (cost[j] === Infinity) continue;
         // No diagonal corner cutting past blocked (or costlier) cells.
         if (k >= 4) { const top = Math.max(cost[i], cost[j]); if (cost[iz * nx + jx] > top || cost[jz * nx + ix] > top) continue; }
         const nd = di + LEN[k] * 0.5 * (cost[i] + cost[j]);
-        if (nd < dist[j]) { dist[j] = nd; dir[j] = k ^ 1 ^ (k >= 4 ? 2 : 0); heap.push(j, nd); }
+        if (nd < dist[j]) { dist[j] = nd; dir[j] = OPP[k]; heap.push(j, nd); }
       }
     }
     return Math.max(0, budget);
@@ -297,7 +345,114 @@ export class NavGrid {
 
   // dir[j] stores the neighbour index pointing back toward i (the step toward the goal).
   #finish(job, key) {
-    return { dist: job.dist, dir: job.dir, version: job.version, soft: job.soft, key, gx: job.gx, gz: job.gz, radius: job.radius };
+    const { dist, dir, gx, gz, radius, reach, from, cap, box, worse, better } = job;
+    return { dist, dir, key, gx, gz, radius, reach, from, cap, box, worse, better, rebuild: !!job.rebuild, used: 0 };
+  }
+
+  // ---------------------------------------------------------------- repair
+  // A field is repaired in place, in four slices of work:
+  //  0. every cell that got dearer loses its route (and so does any cell whose route took a
+  //     diagonal it now blocks);
+  //  1. so does everything routed through them: the subtree of the route tree under those cells
+  //     (followed backwards: the neighbours whose step points at a cut cell);
+  //  2. each cut cell on the edge of that region takes the best route its neighbours that kept
+  //     theirs offer (seeding from other cut cells would start the search from poor guesses);
+  //  3. the neighbours of cells that got cheaper offer their routes again (a gap blown in a wall);
+  // and a Dijkstra from all of those settles the rest. Cells that kept their routes had the
+  // shortest one before and still do (costs elsewhere only went up), so the search stays inside
+  // the cut-off region, plus wherever a cheaper cell shortens routes: work in proportion to what
+  // changed, where a rebuild would solve the whole field again.
+
+  #repairJob(key, f) {
+    const job = { repair: true, key, f, dist: f.dist, dir: f.dir, heap: this.jobHeap, cap: f.cap, box: f.box, worse: f.worse, better: f.better, hard: f.worse.length > 0, phase: 0, k: 0, qh: 0, qt: 0, gen: ++this.gen };
+    f.worse = []; f.better = [];
+    this.jobHeap.size = 0;
+    this.queue ??= new Int32Array(this.nx * this.nz);
+    this.mark ??= new Uint32Array(this.nx * this.nz);
+    this.stats.repairs++;
+    return job;
+  }
+
+  #repair(job, budget) {
+    if (this.fields.get(job.key) !== job.f) return budget;   // replaced meanwhile (its goal moved)
+    const nx = this.nx, nz = this.nz, cost = this.cost, { dist, dir, heap, f, gen } = job, Q = this.queue, M = this.mark;
+    const cut = (j) => { if (dir[j] >= 0 || dist[j] !== Infinity) { dist[j] = Infinity; dir[j] = -1; M[j] = gen; Q[job.qt++] = j; } };
+    if (job.phase === 0) {
+      for (; job.k < job.worse.length; job.k++) {
+        if (budget-- <= 0) return -1;
+        const c = job.worse[job.k], cx = c % nx, cz = (c - cx) / nx;
+        if (dist[c] === 0 && cost[c] !== Infinity) {
+          // A goal cell that got dearer stays a goal; the routes that leave it cost more now.
+          for (let k = 0; k < 8; k++) {
+            const jx = cx + DX[k], jz = cz + DZ[k];
+            if (jx >= 0 && jz >= 0 && jx < nx && jz < nz && dir[jz * nx + jx] === OPP[k]) cut(jz * nx + jx);
+          }
+          heap.push(c, 0);
+        } else if (dist[c] !== Infinity) cut(c);
+        // Diagonals between its neighbours that it now blocks (no corner cutting past dearer cells).
+        for (const [p, q] of CORNERS) {
+          const ax = cx + DX[p], az = cz + DZ[p], bx = cx + DX[q], bz = cz + DZ[q];
+          if (ax < 0 || az < 0 || ax >= nx || az >= nz || bx < 0 || bz < 0 || bx >= nx || bz >= nz) continue;
+          const a = az * nx + ax, b = bz * nx + bx;
+          if (cost[c] <= Math.max(cost[a], cost[b])) continue;
+          if (dir[a] === KOF[(bz - az + 1) * 3 + bx - ax + 1]) cut(a);
+          if (dir[b] === KOF[(az - bz + 1) * 3 + ax - bx + 1]) cut(b);
+        }
+      }
+      job.phase = 1;
+    }
+    if (job.phase === 1) {
+      while (job.qh < job.qt) {
+        if (budget-- <= 0) return -1;
+        const u = Q[job.qh++], ux = u % nx, uz = (u - ux) / nx;
+        for (let k = 0; k < 8; k++) {
+          const jx = ux + DX[k], jz = uz + DZ[k];
+          if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
+          const j = jz * nx + jx;
+          if (dir[j] === OPP[k]) { dist[j] = Infinity; dir[j] = -1; M[j] = gen; Q[job.qt++] = j; }
+        }
+      }
+      job.phase = 2; job.k = 0;
+    }
+    if (job.phase === 2) {
+      for (; job.k < job.qt; job.k++) {
+        if (budget-- <= 0) return -1;
+        const u = Q[job.k];
+        if (cost[u] === Infinity || dist[u] === 0) continue;
+        const ux = u % nx, uz = (u - ux) / nx;
+        let best = Infinity, bk = -1;
+        for (let k = 0; k < 8; k++) {
+          const jx = ux + DX[k], jz = uz + DZ[k];
+          if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
+          const j = jz * nx + jx;
+          if (M[j] === gen || dist[j] === Infinity || cost[j] === Infinity) continue;   // only from cells that kept their routes
+          if (k >= 4) { const top = Math.max(cost[u], cost[j]); if (cost[uz * nx + jx] > top || cost[jz * nx + ux] > top) continue; }
+          const nd = dist[j] + LEN[k] * 0.5 * (cost[u] + cost[j]);
+          if (nd < best) { best = nd; bk = k; }
+        }
+        if (bk >= 0 && best < dist[u]) { dist[u] = best; dir[u] = bk; heap.push(u, best); }
+      }
+      job.phase = 3; job.k = 0;
+    }
+    if (job.phase === 3) {
+      const c = this.cell, r = Math.max(f.radius, c * 0.75);
+      for (; job.k < job.better.length; job.k++) {
+        if (budget-- <= 0) return -1;
+        const b = job.better[job.k], bx = b % nx, bz = (b - bx) / nx;
+        if (cost[b] === Infinity) continue;
+        // A goal cell that opened up (or got cheaper) is a goal again.
+        if (Math.hypot(this.minX + (bx + 0.5) * c - f.gx, this.minZ + (bz + 0.5) * c - f.gz) <= r) { dist[b] = 0; dir[b] = -1; }
+        if (dist[b] !== Infinity) heap.push(b, dist[b]);
+        for (let k = 0; k < 8; k++) {
+          const jx = bx + DX[k], jz = bz + DZ[k];
+          if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
+          const j = jz * nx + jx;
+          if (dist[j] !== Infinity) heap.push(j, dist[j]);
+        }
+      }
+      job.phase = 4;
+    }
+    return this.#advance(job, budget);
   }
 
   /**

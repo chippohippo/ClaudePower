@@ -13,9 +13,9 @@
 //  * match: tickets per player, reinforcement waves, capture and time limits, squad size, and how
 //    many positions each team may dig in (Fortify).
 //  * support: each team's field guns ([kind, count]: howitzer, rockets, at) in its artillery park,
-//    supply trucks at its HQ dump, and the supply economy (Logistics): what the HQ produces per
-//    minute, starting stock at the HQ and the forward depot, and their capacities. null = no
-//    artillery or logistics (the 4v4 skirmish).
+//    supply trucks at its HQ dump (leaving `spacing` s apart, if set), and the supply economy
+//    (Logistics): what the HQ produces per minute, starting stock at the HQ and the forward depot,
+//    and their capacities. null = no artillery or logistics (the 4v4 skirmish).
 
 const sector = (x0, x1, lanes = null) => ({ x0, x1, lanes, kind: lanes ? 'line' : 'hq' });
 
@@ -68,7 +68,8 @@ export const MAP_SIZES = {
     support: { guns: [['howitzer', 4], ['rockets', 2], ['at', 3]], trucks: 3, production: 200, hqStart: 600, frontStart: 320, hqCap: 3000, frontCap: 800 },
   },
   // Extreme Warfront: 400 soldiers along a 2.6 km front, eleven line sectors and ten trench
-  // lines between the HQs, batteries of guns, convoys on the roads. An hour of war.
+  // lines between the HQs, batteries of guns, a stream of supply trucks on a kilometre-long
+  // haul. An hour of war.
   '200v200': {
     name: 'Extreme Warfront', players: 400, minX: -1300, minZ: -440, width: 2600, depth: 880, terrainAmp: 11,
     sectors: [
@@ -81,7 +82,7 @@ export const MAP_SIZES = {
     villages: [3, 5, 7, 9], ruinsPerVillage: [6, 9], craters: 9,
     scatterPerHa: 10, structures: 4, pads: [['tank', 4], ['hoverbike', 5]],
     match: { ticketsPerPlayer: 4, waveInterval: 8, captureTime: 12, secureTime: 4, timeLimit: 3600, squadSize: 4, fortCap: 120 },
-    support: { guns: [['howitzer', 8], ['rockets', 4], ['at', 6]], trucks: 6, production: 520, hqStart: 1500, frontStart: 900, hqCap: 6000, frontCap: 2400 },
+    support: { guns: [['howitzer', 8], ['rockets', 4], ['at', 6]], trucks: 10, spacing: 14, production: 560, hqStart: 1500, frontStart: 1200, hqCap: 6000, frontCap: 2400 },
   },
 };
 

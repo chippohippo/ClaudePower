@@ -49,6 +49,7 @@ export class Logistics {
     }
     this.trench = this.#trenchGrid(map);
     this.clock = 0;
+    this.lastOut = [-1e9, -1e9];  // when each team's last loaded truck left the HQ dump (see spacing)
     this.debt = [0, 0];          // fractional supplies owed (rounds and magazines cost fractions)
     this.carried = new Map();    // truck id -> { mode, amount, depot } for load/unload events
     this.shortAt = new Map();    // `${team}:${what}` -> time of the last shortage event

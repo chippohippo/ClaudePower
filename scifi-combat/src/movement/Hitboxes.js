@@ -48,16 +48,20 @@ export function bodyAxisYaw(e) {
 
 const layoutOf = (stance, s) => (stance === 'prone' && s.supine ? LAYOUTS.supine : LAYOUTS[stance] ?? LAYOUTS.stand);
 
+// The layout (or the two being blended) for a fighter's state, in a reused object: hit spheres
+// are built for every soldier along every bullet's path.
+const _lay = { a: null, b: null, t: 0 };
+const lay = (a, b = null, t = 0) => { _lay.a = a; _lay.b = b; _lay.t = t; return _lay; };
 function layoutFor(e) {
   const s = e.movement.state;
-  if (e.vehicle) return { a: LAYOUTS.seated };
+  if (e.vehicle) return lay(LAYOUTS.seated);
   switch (s.mode) {
-    case 'dive': return { a: s.dive?.kind === 'back' ? LAYOUTS.diveBack : LAYOUTS.dive };
-    case 'slide': return { a: s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide };
-    case 'knockdown': return { a: s.knock?.phase === 'air' ? LAYOUTS.dive : s.knock?.phase === 'getup' ? LAYOUTS.crouch : LAYOUTS.prone };
+    case 'dive': return lay(s.dive?.kind === 'back' ? LAYOUTS.diveBack : LAYOUTS.dive);
+    case 'slide': return lay(s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide);
+    case 'knockdown': return lay(s.knock?.phase === 'air' ? LAYOUTS.dive : s.knock?.phase === 'getup' ? LAYOUTS.crouch : LAYOUTS.prone);
     default:
-      if (s.stanceT) return { a: layoutOf(s.stanceT.from, s), b: layoutOf(s.stanceT.to, s), t: Math.min(1, s.stanceT.t / s.stanceT.dur) };
-      return { a: layoutOf(s.stance, s) };
+      if (s.stanceT) return lay(layoutOf(s.stanceT.from, s), layoutOf(s.stanceT.to, s), Math.min(1, s.stanceT.t / s.stanceT.dur));
+      return lay(layoutOf(s.stance, s));
   }
 }
 
@@ -80,7 +84,7 @@ function ragdollSpheres(rd) {
 export function hitSpheres(e) {
   const s = e.movement.state;
   if (s.mode === 'ragdoll' && e.movement.ragdoll) return ragdollSpheres(e.movement.ragdoll);
-  const { a, b, t = 0 } = layoutFor(e);
+  const { a, b, t } = layoutFor(e);
   const scale = silhouetteScale(e);
   const axis = bodyAxisYaw(e);
   const fx = -Math.sin(axis), fz = -Math.cos(axis);
@@ -97,6 +101,13 @@ export function hitSpheres(e) {
   }
   return pool;
 }
+
+/**
+ * A sphere around all of a standing, crouched, prone, sliding or diving soldier's hit spheres
+ * (not a ragdoll's: its limbs can be anywhere), for a cheap first test: [height of its centre
+ * above the feet, radius], times the silhouette scale.
+ */
+export const BOUND = [0.9, 1.3];
 
 /** Centre of mass for line-of-sight checks and AI aim (the "chest" sphere). */
 export function chestPoint(e, out) {

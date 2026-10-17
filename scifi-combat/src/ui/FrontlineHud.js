@@ -137,6 +137,7 @@ export class FrontlineHud {
     // ---- tickets and the sector strip
     this.el.tk0.innerHTML = `<b style="color:${TEAM_COL[0]}">${TEAM_NAME[0]}</b> ${mode.tickets[0]}`;
     this.el.tk1.innerHTML = `${mode.tickets[1]} <b style="color:${TEAM_COL[1]}">${TEAM_NAME[1]}</b>`;
+    this.el.strip.classList.toggle('many', mode.sectors.length > 9);   // the Extreme Warfront's thirteen sectors
     this.el.strip.innerHTML = mode.sectors.map((sec, i) => {
       const col = sec.owner >= 0 ? TEAM_COL[sec.owner] : NEUTRAL_COL;
       const attacked = mode.isAttacked(i), fall = Math.max(...sec.secure) / mode.cfg.secureTime;

@@ -18,9 +18,11 @@
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { Health } from './Health.js';
+import { EntityGrid } from '../world/EntityGrid.js';
 
 const LIMITS = { wall: 1, turret: 2, mine: 2, tripwire: 2, beacon: 1, launchpad: 1, charge: 1, decoy: 1, vehicle: 1, engine: 1 };
 const ARM_TIME = { mine: 0.8, tripwire: 0.8 };
+const SCAN = 0.2;   // s between an idle turret's looks around (it re-checks its current target every tick)
 const _v = new Vector3();
 const _f = new Vector3();
 // Scratch that must survive calls back into this system: the turret muzzle is the origin of its
@@ -34,6 +36,11 @@ export class DeployableSystem {
   constructor(world) {
     this.world = world;
     this.list = [];
+    this.walls = [];   // the only kind line-of-sight rays care about
+    // Everything else that can be shot, hashed once a tick, so a bullet's ray tests the few
+    // deployables along it instead of all of them.
+    this.grid = null;
+    this.hittable = [];
   }
 
   spawn(spec) {
@@ -57,6 +64,7 @@ export class DeployableSystem {
     const hp = spec.hp ?? ({ mine: 1, tripwire: 1, charge: 1, decoy: 1 }[spec.kind]);
     if (hp) d.health = new Health(d, { health: hp, armor: spec.kind === 'wall' || spec.kind === 'engine' ? 'barrier' : 'plate' });
     this.list.push(d);
+    if (d.kind === 'wall') this.walls.push(d);
     bus.emit('deployable:spawn', this.describe(d));
     return d;
   }
@@ -71,14 +79,27 @@ export class DeployableSystem {
       const tick = this[`tick_${d.kind}`];
       if (tick) tick.call(this, d, dt);
     }
-    this.list = this.list.filter((d) => !d.removed);
+    if (this.list.some((d) => d.removed)) { this.list = this.list.filter((d) => !d.removed); this.walls = this.walls.filter((d) => !d.removed); }
+    const H = this.hittable;
+    H.length = 0;
+    for (const d of this.list) if (d.health && d.kind !== 'wall') H.push(d);
+    if (H.length > 12) {
+      const t = this.world.terrain;
+      this.grid ??= new EntityGrid({ cell: 16, bounds: t ? { minX: t.minX, minZ: t.minZ, width: t.width, depth: t.depth } : null });
+      this.grid.rebuild(H);
+    }
   }
 
   // ---------------------------------------------------------------- per-kind behaviour
   tick_turret(d, dt) {
     const p = _muzzle.copy(d.movement.state.position).setY(d.movement.state.position.y + 1.1);
-    // Re-acquire the nearest visible enemy, preferring to keep the current one.
-    if (!d.target || d.target.health.dead || !this.#visible(p, d.target, d.range)) d.target = this.#nearestVisibleEnemy(d, p);
+    // Re-acquire the nearest visible enemy, preferring to keep the current one. With nobody in
+    // sight it looks around a few times a second, not every tick.
+    if (!d.target || d.target.health.dead || !this.#visible(p, d.target, d.range)) {
+      d.scanT = (d.scanT ?? SCAN) + dt;
+      d.target = null;
+      if (d.scanT >= SCAN) { d.scanT = 0; d.target = this.#nearestVisibleEnemy(d, p); }
+    }
     if (!d.target) return;
     const tp = d.target.movement.state.position;
     const want = Math.atan2(-(tp.x - p.x), -(tp.z - p.z));
@@ -101,8 +122,9 @@ export class DeployableSystem {
     if (!d.armed) return;
     const p = d.movement.state.position;
     this.#proximityCue(d, dt, 6);
-    const victim = this.#enemies(d).find((e) => e.movement.state.position.distanceTo(p) <= d.trigger);
-    if (victim) this.#trigger(d, d.onTrigger, p);
+    let hit = false;
+    this.#enemiesNear(d, p, d.trigger, () => { hit = true; });
+    if (hit) this.#trigger(d, d.onTrigger, p);
   }
 
   tick_tripwire(d, dt) {
@@ -110,39 +132,42 @@ export class DeployableSystem {
     // The wire runs `length` metres along the placement yaw. Anyone crossing within 0.35 m trips it.
     const a = d.movement.state.position;
     _f.set(-Math.sin(d.yaw), 0, -Math.cos(d.yaw));
-    for (const e of this.#enemies(d)) {
+    let tripped = null;
+    _c.copy(a).addScaledVector(_f, d.length / 2);
+    this.#enemiesNear(d, _c, d.length / 2 + 0.5, (e) => {
+      if (tripped) return;
       _v.subVectors(e.movement.state.position, a).setY(0);
       const along = _v.dot(_f);
-      if (along < 0 || along > d.length) continue;
-      if (_v.addScaledVector(_f, -along).length() < 0.35 && e.movement.state.stance !== 'prone') {
-        if (d.onTrigger.status) e.status?.apply(d.onTrigger.status.id, { stacks: d.onTrigger.status.stacks ?? 1, source: d.owner });
-        if (d.onTrigger.reveal) e.status?.apply('revealed', { duration: d.onTrigger.reveal, source: d.owner });
-        bus.emit('deployable:triggered', { id: d.id, kind: d.kind, victim: e.id, point: e.movement.state.position.toArray() });
-        this.destroy(d, 'triggered');
-        return;
-      }
-    }
+      if (along < 0 || along > d.length) return;
+      if (_v.addScaledVector(_f, -along).length() < 0.35 && e.movement.state.stance !== 'prone') tripped = e;
+    });
+    if (!tripped) return;
+    const e = tripped;
+    if (d.onTrigger.status) e.status?.apply(d.onTrigger.status.id, { stacks: d.onTrigger.status.stacks ?? 1, source: d.owner });
+    if (d.onTrigger.reveal) e.status?.apply('revealed', { duration: d.onTrigger.reveal, source: d.owner });
+    bus.emit('deployable:triggered', { id: d.id, kind: d.kind, victim: e.id, point: e.movement.state.position.toArray() });
+    this.destroy(d, 'triggered');
   }
 
   tick_beacon(d) {
-    const a = d.aura;
-    for (const e of this.world.fighters()) {
-      if (e.team !== d.team || e.movement.state.position.distanceTo(d.movement.state.position) > a.radius) continue;
+    const a = d.aura, p = d.movement.state.position;
+    this.world.fightersNear(p, a.radius, (e) => {
+      if (e.team !== d.team || e.movement.state.position.distanceTo(p) > a.radius) return;
       if (a.status) e.status?.apply(a.status, { duration: 0.5, source: d.owner });
       if (a.reloadMul) e.weapons?.applyBuff({ reloadMul: a.reloadMul }, 0.5);
-    }
+    });
   }
 
   tick_launchpad(d) {
-    for (const e of this.world.fighters()) {
-      if (e.isVehicle || e.vehicle || e.team !== d.team || d.cooldowns.has(e.id)) continue;
+    this.world.fightersNear(d.movement.state.position, 1.5, (e) => {
+      if (e.isVehicle || e.vehicle || e.team !== d.team || d.cooldowns.has(e.id)) return;
       _v.subVectors(e.movement.state.position, d.movement.state.position);
       if (Math.hypot(_v.x, _v.z) < 1.2 && Math.abs(_v.y) < 0.6) {
         e.movement.impulse(0, d.launch, 0, { knockdown: false }); // a launch, not a blast
         d.cooldowns.set(e.id, 1);
         bus.emit('deployable:launch', { id: d.id, entity: e.id });
       }
-    }
+    });
   }
 
   tick_decoy(d, dt) {
@@ -155,7 +180,8 @@ export class DeployableSystem {
     if (d.arrived || d.age < (d.delay ?? 2)) return;
     d.arrived = true;
     // Standing on the marker denies the drop (stated counterplay). The cooldown is not refunded.
-    const blocker = this.#enemies(d).find((e) => e.movement.state.position.distanceTo(d.movement.state.position) < 2);
+    let blocker = null;
+    this.#enemiesNear(d, d.movement.state.position, 2, (e) => { blocker ??= e; });
     if (blocker) { bus.emit('deployable:vehicleDenied', { id: d.id, by: blocker.id, owner: d.ownerId }); this.destroy(d, 'denied'); return; }
     const at = this.#dropSpot(d);
     bus.emit('deployable:vehicleArrived', { id: d.id, vehicle: d.vehicle, at: at.toArray(), owner: d.ownerId, team: d.team });
@@ -206,11 +232,10 @@ export class DeployableSystem {
     if (d.sincePulse >= pulse.interval) {
       d.sincePulse = 0; d.charging = false;
       const p = d.movement.state.position;
-      for (const e of this.#enemies(d)) {
-        if (e.movement.state.position.distanceTo(p) > pulse.radius) continue;
+      this.#enemiesNear(d, p, pulse.radius, (e) => {
         e.health.damage(pulse.damage, { kind: 'deployable', ability: d.ability }, d.owner);
         if (pulse.status) e.status?.apply(pulse.status, { source: d.owner });
-      }
+      });
       bus.emit('deployable:pulse', { id: d.id, center: p.toArray(), radius: pulse.radius, team: d.team });
     }
   }
@@ -233,11 +258,17 @@ export class DeployableSystem {
    */
   raycast(o, dir, max, team = null, kind = null) {
     let best = null;
-    for (const d of this.list) {
-      if (!d.health || d.health.dead || d.removed || (kind && d.kind !== kind)) continue;
-      const t = d.kind === 'wall' ? this.#rayWall(d, o, dir, max) : this.#raySphere(d, o, dir, max);
+    const test = (d) => {
+      if (!d.health || d.health.dead || d.removed || (kind && d.kind !== kind)) return;
+      const t = d.kind === 'wall' ? this.#rayWall(d, o, dir, best ? best.distance : max) : this.#raySphere(d, o, dir, best ? best.distance : max);
       if (t && (!best || t.distance < best.distance)) best = t;
-    }
+    };
+    if (kind === 'wall') { for (const d of this.walls) test(d); return best; }
+    // Walls are few and wide; the rest (spheres under 0.6 m, at most 1.2 m up) come from the grid
+    // when there are many: last tick's, so the pad also covers a decoy's run since.
+    for (const d of this.walls) test(d);
+    if (this.grid && this.hittable.length > 12) this.grid.queryRay(o, dir, max, 2, test);
+    else for (const d of this.list) if (d.kind !== 'wall') test(d);
     return best;
   }
 
@@ -258,8 +289,9 @@ export class DeployableSystem {
 
   // ---------------------------------------------------------------- internals
   #trigger(d, t, at) {
-    for (const e of this.#enemies(d)) {
-      if (e.movement.state.position.distanceTo(at) > (t.radius ?? d.trigger)) continue;
+    const hit = [];
+    this.#enemiesNear(d, at, t.radius ?? d.trigger, (e) => hit.push(e));
+    for (const e of hit) {
       if (t.status) e.status?.apply(t.status.id, { stacks: t.status.stacks ?? 1, duration: t.status.duration, source: d.owner });
       if (t.reveal) e.status?.apply('revealed', { duration: t.reveal, source: d.owner });
       if (t.damage) {
@@ -277,27 +309,33 @@ export class DeployableSystem {
     d.sinceTickCue += dt;
     if (d.sinceTickCue < every) return;
     d.sinceTickCue = 0;
-    const near = this.#enemies(d).filter((e) => e.movement.state.position.distanceTo(d.movement.state.position) <= range).map((e) => e.id);
+    const near = [];
+    this.#enemiesNear(d, d.movement.state.position, range, (e) => near.push(e.id));
     if (near.length) bus.emit('deployable:proximity', { id: d.id, kind: d.kind, listeners: near, at: d.movement.state.position.toArray() });
   }
 
-  #enemies(d) { return this.world.fighters().filter((e) => e.team !== d.team && !e.health.dead && !e.movement.state.invulnerable); }
+  /** cb(e) for each live enemy of `d` within r of p (through the entity grid on big maps). */
+  #enemiesNear(d, p, r, cb) {
+    this.world.fightersNear(p, r, (e) => {
+      if (e.team === d.team || e.health.dead || e.movement.state.invulnerable) return;
+      if (e.movement.state.position.distanceTo(p) <= r) cb(e);
+    });
+  }
 
+  /** Nearest first, so the sight rays stop at the first enemy in view. */
   #nearestVisibleEnemy(d, p) {
-    let best = null, bd = Infinity;
-    for (const e of this.#enemies(d)) {
-      if (e.status?.has('cloak')) continue;
-      const dist = e.movement.state.position.distanceTo(p);
-      if (dist < bd && this.#visible(p, e, d.range)) { bd = dist; best = e; }
-    }
-    return best;
+    const near = [];
+    this.#enemiesNear(d, p, d.range + 1.5, (e) => { if (!e.status?.has('cloak')) near.push(e); });
+    near.sort((a, b) => a.movement.state.position.distanceToSquared(p) - b.movement.state.position.distanceToSquared(p));
+    for (const e of near) if (this.#visible(p, e, d.range)) return e;
+    return null;
   }
 
   #visible(p, e, range) {
     const tp = _f.copy(e.movement.state.position); tp.y += 1.1;
     const dir = tp.clone().sub(p); const len = dir.length();
     if (len > range) return false;
-    return !this.world.raycastStatic?.(p, dir.divideScalar(len), len);
+    return !(this.world.sight ?? this.world.raycastStatic)?.call(this.world, p, dir.divideScalar(len), len);
   }
 
   #raySphere(d, o, dir, max) {
@@ -310,8 +348,12 @@ export class DeployableSystem {
   }
 
   #rayWall(d, o, dir, max) {
-    // Transform the ray into wall-local space (x = width, y = up, z = thickness).
     const p = d.movement.state.position;
+    // Bounding sphere first: most rays pass nowhere near the wall.
+    const cx = p.x - o.x, cy0 = p.y + d.height / 2 - o.y, cz = p.z - o.z, R = Math.hypot(d.width / 2, d.height / 2) + 0.3;
+    const tc = cx * dir.x + cy0 * dir.y + cz * dir.z;
+    if (tc < -R || tc > max + R || cx * cx + cy0 * cy0 + cz * cz - tc * tc > R * R) return null;
+    // Transform the ray into wall-local space (x = width, y = up, z = thickness).
     const cy = Math.cos(-d.yaw), sy = Math.sin(-d.yaw);
     const lo = { x: (o.x - p.x) * cy + (o.z - p.z) * sy, y: o.y - p.y, z: -(o.x - p.x) * sy + (o.z - p.z) * cy };
     const ld = { x: dir.x * cy + dir.z * sy, y: dir.y, z: -dir.x * sy + dir.z * cy };

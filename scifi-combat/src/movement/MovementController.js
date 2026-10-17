@@ -27,6 +27,7 @@
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { Ragdoll, J } from '../physics/Ragdoll.js';
+import { hyp } from '../core/geom.js';
 
 export const MoveState = Object.freeze({
   GROUND: 'ground', AIR: 'air', SLIDE: 'slide', DIVE: 'dive', DODGE: 'dodge', MANTLE: 'mantle',
@@ -140,7 +141,7 @@ export class MovementController {
     if (s.mode === MoveState.VEHICLE) return;
     if (s.mode === MoveState.RAGDOLL) { this.ragdoll.applyImpulse(x, y, z, opts.at ?? this.#pushPoint(x, z), opts.focus ?? this.t.ragdoll.blastFocus); return; }
     const k = this.t.knockdown;
-    const mag = Math.hypot(x, y, z);
+    const mag = hyp(x, y, z);
     const threshold = k.threshold * (s.stance === Stance.PRONE ? k.proneResist : 1);
     if (opts.ragdoll || (opts.knockdown !== false && mag >= threshold)) { this.startRagdoll(x, y, z, opts); return; }
     s.velocity.x += x; s.velocity.y += y; s.velocity.z += z;
@@ -176,7 +177,7 @@ export class MovementController {
       s.knockStarted = true;
       s.grounded = false; s.timeSinceGrounded = 99;
       this.body.setHeight(this.t.heights.prone);
-      const mag = Math.hypot(x, y, z);
+      const mag = hyp(x, y, z);
       bus.emit('move:ragdoll', { id: this.id, cause, impulse: mag });
       bus.emit('move:knockdown', { id: this.id, cause, impulse: mag }); // camera, audio and AI listen for this
     }
@@ -189,7 +190,7 @@ export class MovementController {
    * up from the ground), so the legs go first and the body tumbles instead of sliding upright.
    */
   #pushPoint(x, z) {
-    const l = Math.hypot(x, z), p = this.state.position;
+    const l = hyp(x, z), p = this.state.position;
     if (l < 0.5) return null;
     return { x: p.x - (x / l) * 0.8, y: p.y + 0.1, z: p.z - (z / l) * 0.8 };
   }
@@ -373,7 +374,7 @@ export class MovementController {
     const s = this.state, d = this.t.downed;
     s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.stance = Stance.PRONE;
     const target = d.crawlSpeed * (s.supine ? d.supineMul : 1) * wishMag * Math.min(1, s.speedScale ?? 1);
-    const dvx = _wish.x * target - s.velocity.x, dvz = _wish.z * target - s.velocity.z, dvl = Math.hypot(dvx, dvz);
+    const dvx = _wish.x * target - s.velocity.x, dvz = _wish.z * target - s.velocity.z, dvl = hyp(dvx, dvz);
     if (dvl > 1e-5) { const step = Math.min(dvl, d.accel * dt); s.velocity.x += (dvx / dvl) * step; s.velocity.z += (dvz / dvl) * step; }
     if (wishMag > 0.1) {
       // Belly: head first toward the wish. Back: the head leads too, and it lies behind bodyYaw.
@@ -443,7 +444,7 @@ export class MovementController {
     const target = this.#speedFor(base) * analog;
     const sp = this.#hspeed();
     const dvx = _wish.x * target - s.velocity.x, dvz = _wish.z * target - s.velocity.z;
-    const dvl = Math.hypot(dvx, dvz);
+    const dvl = hyp(dvx, dvz);
     if (dvl > 1e-5) {
       // Speeding up below jog: near-instant. Slowing from above jog: the heavy sprint skid.
       const slowing = target < sp - 0.05;
@@ -468,7 +469,7 @@ export class MovementController {
     const n = s.groundNormal;
     if (s.grounded && n.y < 0.999 && this.#hspeed() > 0.5) {
       // Climb ratio along the direction of travel: uphill slows you, downhill speeds you up a little.
-      const vx = s.velocity.x, vz = s.velocity.z, l = Math.hypot(vx, vz);
+      const vx = s.velocity.x, vz = s.velocity.z, l = hyp(vx, vz);
       const climb = -(vx * n.x + vz * n.z) / l / Math.max(0.2, n.y);
       k *= 1 - this.t.slopes.uphillPenalty * clamp(climb, 0, 1) + this.t.slopes.downhillBonus * clamp(-climb, 0, 1);
     }
@@ -1018,7 +1019,7 @@ export class MovementController {
     bus.emit('move:iframes', { id: this.id, on });
   }
 
-  #hspeed() { return Math.hypot(this.state.velocity.x, this.state.velocity.z); }
+  #hspeed() { return hyp(this.state.velocity.x, this.state.velocity.z); }
 
   #setMode(mode) {
     const s = this.state;

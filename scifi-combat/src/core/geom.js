@@ -1,5 +1,8 @@
 // Small geometry helpers shared by sim systems (no Three.js scene objects).
 
+/** Math.hypot for 2 or 3 values, without the array V8 allocates for its arguments on every call. */
+export const hyp = (a, b, c = 0) => Math.sqrt(a * a + b * b + c * c);
+
 /**
  * Ray vs. a yaw-rotated box whose base sits at `base` (y = 0 in local space is the floor of the box).
  * half = { x, y (full height), z }. Returns { t, local: {x,y,z} } or null.

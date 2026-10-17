@@ -15,7 +15,7 @@
 import { Vector3 } from 'three';
 import { bus } from '../../core/EventBus.js';
 import { computeDamage } from './WeaponDefs.js';
-import { angleDelta } from '../../core/geom.js';
+import { angleDelta, hyp } from '../../core/geom.js';
 
 const DEG = Math.PI / 180;
 const HIGH = 45;               // m above the tallest ground: nothing up there for a shell to hit (flyers stay below 35 m)
@@ -256,7 +256,7 @@ export class WeaponComponent {
     // Spread: base (hip↔ADS) × movement state × bloom. Degrees, converted to a cone.
     const sp = s.spread ?? { hip: 2, ads: 0.3 };
     let spread = sp.hip + (sp.ads - sp.hip) * this.ads;
-    const speed = Math.hypot(mv.velocity.x, mv.velocity.z);
+    const speed = hyp(mv.velocity.x, mv.velocity.z);
     if (!mv.grounded) spread *= sp.airMul ?? 2;
     else if (mv.mode === 'slide') spread *= sp.slideMul ?? 1.4;
     else if (speed > 0.5) spread *= 1 + ((sp.moveMul ?? 1.5) - 1) * Math.min(1, speed / 7);
@@ -374,7 +374,7 @@ export class WeaponComponent {
     this.bloom = Math.max(0, this.bloom - dt * 4);
     if (firing && this.sinceShot < 0.15) return;
     const rec = (w.recoil.recovery ?? 10) * DEG * dt;
-    const mag = Math.hypot(this.recoilPitch, this.recoilYaw);
+    const mag = hyp(this.recoilPitch, this.recoilYaw);
     if (mag <= rec) { this.recoilPitch = 0; this.recoilYaw = 0; return; }
     this.recoilPitch -= (this.recoilPitch / mag) * rec;
     this.recoilYaw -= (this.recoilYaw / mag) * rec;

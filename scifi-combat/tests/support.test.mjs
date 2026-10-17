@@ -126,16 +126,19 @@ test('AT crews set up behind the front line and kill enemy armor that shows itse
   const set = at.filter((v) => v.gun.state === 'deployed');
   assert.ok(set.length >= 1, 'an AT gun is set up');
   const g = set[0], muzzle = s.world.vehicles.guns.muzzle(g);
-  // Only the test tank: every other enemy vehicle goes back to the enemy HQ, out of reach.
+  // Only the test tank: every other enemy vehicle is kept at the enemy HQ, out of reach (their
+  // crews would drive the guns back to the front, and the AT gun rightly takes the nearest armor).
   const hq1 = s.map.hq[1];
-  for (const v of s.world.vehicles.list) if (v.team === 1) { v.movement.state.position.set(hq1.x, hq1.y, hq1.z); v.movement.state.velocity.set(0, 0, 0); }
+  const away = () => { for (const v of s.world.vehicles.list) if (v.team === 1 && v !== tank) { v.movement.state.position.set(hq1.x, hq1.y, hq1.z); v.movement.state.velocity.set(0, 0, 0); } };
+  let tank = null;
+  away();
   // An enemy tank 120 m in front of it.
   const at2 = new Vector3(P(g).x + 120, 0, P(g).z);
   at2.y = s.map.terrain.height(at2.x, at2.z);
-  const tank = s.world.vehicles.spawn('void_crawler_tank', 1, at2, Math.PI / 2);
+  tank = s.world.vehicles.spawn('void_crawler_tank', 1, at2, Math.PI / 2);
   const ray = new Vector3().subVectors(P(tank).clone().setY(P(tank).y + 1), muzzle);
-  const clear = !s.world.raycastStatic(muzzle, ray.clone().normalize(), ray.length() - 2);
-  run(s, 25);
+  const clear = !s.world.sight(muzzle, ray.clone().normalize(), ray.length() - 2);   // cover and ground
+  run(s, 25, away);
   if (clear) assert.ok(tank.removed || tank.health.hp < tank.health.max * 0.4, `tank at ${Math.round(tank.health.hp)} HP`);
   else assert.ok(true, 'no line of sight from this post (terrain): nothing to assert');
   s.dispose();

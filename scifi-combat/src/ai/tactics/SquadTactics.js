@@ -260,8 +260,8 @@ export class SquadTactics {
   }
 
   #routeLeft(p, obj) {
-    const nav = this.world.nav, f = nav?.fields.get(obj.field);
-    return f ? nav.distance(f, p.x, p.z) : d2(p, obj.pos);
+    const nav = this.world.nav, f = nav?.fields.get(obj.field), r = f ? nav.distance(f, p.x, p.z) : Infinity;
+    return r < Infinity ? r : d2(p, obj.pos);   // no field yet, or beyond its reach
   }
 
   /** The direction the route runs at a point (unit, XZ). */

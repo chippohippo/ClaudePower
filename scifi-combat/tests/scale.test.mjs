@@ -110,10 +110,10 @@ test('NavGrid: flow fields route around walls, stay out of enclosures, reopen wh
   assert.equal(nav.sample(f, -30, 0, new Vector3()), false);
   // Blow the plug: the route opens through the gap.
   world.destroyCover(v(0, 1, 23), 2, null);
-  assert.equal(nav.field('B', 30, 0, 3), f, 'the stale field stays usable (no rebuild hitch on a blast)');
+  assert.equal(nav.field('B', 30, 0, 3), f, 'the field keeps serving (no rebuild hitch on a blast)');
   nav.maintain(Infinity);
   const f2 = nav.field('B', 30, 0, 3);
-  assert.notEqual(f2, f, 'maintain() rebuilt it after the cover changed');
+  assert.ok(Number.isFinite(nav.distance(f2, -30, 0)), 'maintain() repaired it after the cover changed');
   const route = nav.trace(f2, -30, 0);
   assert.ok(route.reached, 'reaches the goal');
   assert.ok(route.pts.some((p) => p.z > 18 && p.z < 28 && Math.abs(p.x) < 3), 'through the breach');
@@ -126,20 +126,106 @@ test('NavGrid: flow fields route around walls, stay out of enclosures, reopen wh
   assert.ok(Math.hypot(p.x - 30, p.z) < 5, `arrived (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
 });
 
-test('NavGrid: a stale 1 km field is rebuilt in slices across ticks and matches a fresh solve', () => {
-  // Frontline-sized grid (500 x 200 cells): one full search is far over a tick's nav budget.
+/** Same reachable cells and the same route lengths (to float rounding: a repair adds them up in another order). */
+function sameField(a, b, msg) {
+  let worst = 0, diff = 0;
+  for (let i = 0; i < b.dist.length; i++) {
+    const x = a.dist[i], y = b.dist[i];
+    if (x === Infinity || y === Infinity) { if (x !== y) diff++; continue; }
+    worst = Math.max(worst, Math.abs(x - y) / Math.max(1, y));
+  }
+  assert.equal(diff, 0, `${msg}: ${diff} cells reachable in one and not the other`);
+  assert.ok(worst < 1e-4, `${msg}: route lengths differ by ${(worst * 100).toFixed(4)}%`);
+}
+
+test('NavGrid: a field repairs only what a change cut off, in slices, and matches a fresh solve', () => {
+  // Frontline-sized grid (500 x 200 cells) with scattered cover.
   const cover = new CoverIndex(randomBoxes(400, 900));
-  const nav = new NavGrid({ minX: -500, minZ: -200, width: 1000, depth: 400, cell: 2 }, { cover });
+  const grid = { minX: -500, minZ: -200, width: 1000, depth: 400, cell: 2 };
+  const nav = new NavGrid(grid, { cover });
   const f = nav.field('pt', 300, 0, 6);
-  nav.updateRegion(-10, -10, 10, 10); // as if cover broke: walkability version moves on
-  assert.equal(nav.field('pt', 300, 0, 6), f, 'stale field keeps serving');
+  const change = (b, add) => { if (add) cover.add(b); else cover.remove(b); nav.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z); };
+  // A wall goes up across the routes from the west, a tall box near the goal is blown away, and
+  // sandbags (vaultable) are stacked on the goal itself.
+  change({ min: v(100, 0, -15), max: v(104, 3, 15) }, true);
+  change(cover.list.find((b) => b.max.y > 2 && b.min.x > 200 && b.min.x < 280 && Math.abs(b.min.z) < 150), false);
+  change({ min: v(299, 0, -3), max: v(300, 0.8, 3) }, true);
+  assert.equal(nav.field('pt', 300, 0, 6), f, 'keeps serving while it waits for repair');
+  const work = nav.stats.cells;
   let calls = 0;
-  while (nav.field('pt', 300, 0, 6) === f && calls < 10000) { nav.maintain(4000); calls++; }
-  const f2 = nav.field('pt', 300, 0, 6);
-  assert.ok(calls > 1, `rebuild was split across ${calls} maintain() calls`);
-  assert.equal(f2.version, nav.version, 'fresh after the rebuild');
-  const ref = new NavGrid({ minX: -500, minZ: -200, width: 1000, depth: 400, cell: 2 }, { cover }).field('pt', 300, 0, 6);
-  assert.deepEqual(f2.dist, ref.dist, 'a sliced solve equals an uninterrupted one');
+  while ((nav.job || nav.stale.size) && calls < 10000) { nav.maintain(4000); calls++; }
+  const ref = new NavGrid(grid, { cover }).field('pt', 300, 0, 6);
+  sameField(f, ref, 'repaired');
+  assert.ok(nav.stats.repairs >= 1 && nav.stats.builds === 1, `repaired in place (${nav.stats.repairs} repairs, ${nav.stats.builds} builds)`);
+  assert.ok(nav.stats.cells - work < 50000, `half the work of a rebuild or less (${nav.stats.cells - work} cells of 100k)`);
+  // Following it from behind the wall reaches the goal, around it.
+  const route = nav.trace(f, -100, 0);
+  assert.ok(route.reached, 'reaches the goal');
+  assert.ok(!route.pts.some((p) => p.x > 99 && p.x < 105 && Math.abs(p.z) < 15), 'around the wall');
+});
+
+test('NavGrid: repairs stay exact through many changes, built and blown, near and far', () => {
+  const cover = new CoverIndex(randomBoxes(300, 400));
+  const grid = { minX: -250, minZ: -120, width: 500, depth: 240, cell: 2 };
+  const nav = new NavGrid(grid, { cover });
+  const fs = [nav.field('a', 150, 0, 4), nav.field('b', -180, 60, 3), nav.field('c', 0, -100, 5)];
+  const r = mulberry32(99), added = [];
+  for (let round = 0; round < 40; round++) {
+    // Up to three changes before the nav catches up (some land mid-repair).
+    for (let k = 0; k < 1 + Math.floor(r() * 3); k++) {
+      let b;
+      if (added.length && r() < 0.4) { b = added.splice(Math.floor(r() * added.length), 1)[0]; cover.remove(b); }
+      else {
+        const x = -240 + r() * 480, z = -110 + r() * 220, w = 0.5 + r() * (r() < 0.2 ? 40 : 6), d = 0.5 + r() * 6;
+        b = { min: v(x, 0, z), max: v(x + w, r() < 0.5 ? 0.8 : 2.5, z + d) };
+        cover.add(b); added.push(b);
+      }
+      nav.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z);
+      nav.maintain(1500);
+    }
+    if (round % 8 !== 7) continue;
+    for (let i = 0; i < 10000 && (nav.job || nav.stale.size); i++) nav.maintain(4000);
+    const ref = new NavGrid(grid, { cover });
+    sameField(fs[0], ref.field('a', 150, 0, 4), `round ${round}, field a`);
+    sameField(fs[1], ref.field('b', -180, 60, 3), `round ${round}, field b`);
+    sameField(fs[2], ref.field('c', 0, -100, 5), `round ${round}, field c`);
+  }
+});
+
+test('NavGrid on a big map: fields build in the background, reach REACH metres, and only nearby changes touch them', () => {
+  // 1000 x 200 cells (2 km x 400 m): a big map.
+  const cover = new CoverIndex(randomBoxes(500, 1000));
+  const grid = { minX: -1000, minZ: -200, width: 2000, depth: 400, cell: 2 };
+  const nav = new NavGrid(grid, { cover });
+  assert.ok(nav.big);
+  assert.equal(nav.want('east', 700, 0, 6), null, 'not ready at once');
+  let calls = 0;
+  while (!nav.want('east', 700, 0, 6) && calls < 10000) { nav.maintain(4000); calls++; }
+  const f = nav.want('east', 700, 0, 6);
+  assert.ok(f && calls > 1, `built across ${calls} maintain() calls`);
+  assert.ok(Number.isFinite(nav.distance(f, 300, 0)), 'reaches 400 m');
+  assert.equal(nav.distance(f, -600, 0), Infinity, 'but not 1.3 km');
+  const full = nav.field('full', 700, 0, 6, { reach: Infinity });
+  assert.ok(Number.isFinite(nav.distance(full, -600, 0)), 'a field asked for with reach: Infinity covers the map');
+  // Within its reach, a capped field is the full one.
+  let same = 0, n = 0;
+  for (let i = 0; i < f.dist.length; i++) if (f.dist[i] <= f.cap) { n++; if (f.dist[i] === full.dist[i]) same++; }
+  assert.equal(same, n, 'same routes inside the reach');
+  // A wall far beyond its reach doesn't touch it; one close by does.
+  const before = nav.stats.repairs;
+  const far = { min: v(-900, 0, -50), max: v(-896, 3, 50) };
+  cover.add(far); nav.updateRegion(far.min.x, far.min.z, far.max.x, far.max.z);
+  assert.equal(f.worse.length, 0, 'a wall 1.6 km away is none of its business');
+  assert.ok(full.worse.length > 0, 'the full field cares');
+  const near = { min: v(500, 0, -50), max: v(504, 3, 50) };
+  cover.add(near); nav.updateRegion(near.min.x, near.min.z, near.max.x, near.max.z);
+  assert.ok(f.worse.length > 0, 'one 200 m away is');
+  for (let i = 0; i < 10000 && (nav.job || nav.stale.size); i++) nav.maintain(4000);
+  assert.ok(nav.stats.repairs > before, 'repaired');
+  const ref = new NavGrid(grid, { cover });
+  sameField(full, ref.field('full', 700, 0, 6, { reach: Infinity }), 'the full field');
+  const capped = ref.field('east', 700, 0, 6);
+  for (let i = 0; i < f.dist.length; i++) if (capped.dist[i] <= f.cap) assert.ok(Math.abs(f.dist[i] - capped.dist[i]) < 1e-3 * Math.max(1, capped.dist[i]), 'the capped one, inside its reach');
 });
 
 test('CombatWorld with spatial indexes answers exactly like the brute-force world', () => {

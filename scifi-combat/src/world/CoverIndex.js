@@ -11,7 +11,9 @@
 
 import { Vector3 } from 'three';
 
-const KEY = (ix, iz) => (ix + 32768) * 65536 + (iz + 32768);
+// A small integer (< 2^30) for cells within ±16384 of the origin: V8 keeps it unboxed, where a
+// bigger key would allocate a heap number on every lookup.
+const KEY = (ix, iz) => ((ix + 16384) << 15) | (iz + 16384);
 
 export class CoverIndex {
   constructor(boxes = [], { cell = 8 } = {}) {
@@ -78,6 +80,17 @@ export class CoverIndex {
     }
   }
 
+  /** The highest box top at or below `below` over the point (x, z), or -Infinity. One cell, no callback. */
+  topAt(x, z, below) {
+    const cell = this.cells.get(KEY(Math.floor(x / this.cell), Math.floor(z / this.cell)));
+    let top = -Infinity;
+    if (cell) for (let i = 0; i < cell.length; i++) {
+      const b = cell[i];
+      if (x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z && b.max.y <= below && b.max.y > top) top = b.max.y;
+    }
+    return top;
+  }
+
   /**
    * Nearest box hit along a ray (d normalized).
    * @returns {{ distance, point: Vector3, normal: Vector3, cover }} | null
@@ -90,15 +103,16 @@ export class CoverIndex {
     let tMaxX = ((ix + (stepX > 0 ? 1 : 0)) * c - o.x) / dx;
     let tMaxZ = ((iz + (stepZ > 0 ? 1 : 0)) * c - o.z) / dz;
     const tDX = Math.abs(c / dx), tDZ = Math.abs(c / dz);
-    let best = null, bestT = max, t = 0;
+    let best = null, bestT = max, axis = 1, sign = 1, t = 0;
     for (let guard = 0; guard < 4096; guard++) {
       const cell = this.cells.get(KEY(ix, iz));
-      if (cell) for (const b of cell) {
+      if (cell) for (let i = 0; i < cell.length; i++) {
+        const b = cell[i];
         if (b._stamp === s) continue;
         b._stamp = s;
         if (filter && !filter(b)) continue;
-        const hit = rayBox(o, d, b, bestT);
-        if (hit !== null) { bestT = hit.t; best = { b, axis: hit.axis, sign: hit.sign }; }
+        const h = slab(o, d, b, bestT);
+        if (h >= 0) { bestT = h; best = b; axis = _hit.axis; sign = _hit.sign; }
       }
       // The nearest hit so far is before the next cell: nothing further can beat it.
       const next = Math.min(tMaxX, tMaxZ);
@@ -108,22 +122,46 @@ export class CoverIndex {
       if (tMaxX < tMaxZ) { ix += stepX; tMaxX += tDX; } else { iz += stepZ; tMaxZ += tDZ; }
     }
     if (!best) return null;
-    const normal = new Vector3(); normal.setComponent(best.axis, best.sign);
-    return { distance: bestT, point: new Vector3().copy(o).addScaledVector(d, bestT), normal, cover: best.b, surface: best.b.surface ?? 'metal' };
+    const normal = new Vector3(); normal.setComponent(axis, sign);
+    return { distance: bestT, point: new Vector3().copy(o).addScaledVector(d, bestT), normal, cover: best, surface: best.surface ?? 'metal' };
   }
 }
 
 /** Slab test. Returns { t, axis, sign } of the entry face, or null. A ray starting inside reports t = 0. */
 export function rayBox(o, d, b, maxDist) {
-  let tmin = 0, tmax = maxDist, axis = 1, sign = 1;
-  for (let i = 0; i < 3; i++) {
-    const a = i === 0 ? 'x' : i === 1 ? 'y' : 'z';
-    if (Math.abs(d[a]) < 1e-12) { if (o[a] < b.min[a] || o[a] > b.max[a]) return null; continue; }
-    let t1 = (b.min[a] - o[a]) / d[a], t2 = (b.max[a] - o[a]) / d[a], sg = -1;
-    if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; sg = 1; }
-    if (t1 > tmin) { tmin = t1; axis = i; sign = sg; }
+  const t = slab(o, d, b, maxDist);
+  return t < 0 ? null : { t, axis: _hit.axis, sign: _hit.sign };
+}
+
+// The slab test itself, unrolled and allocation-free (it runs for every box along every ray):
+// returns the entry distance or -1, and leaves the entry face in _hit.
+const _hit = { axis: 1, sign: 1 };
+function slab(o, d, b, maxDist) {
+  let tmin = 0, tmax = maxDist, axis = 1, sign = 1, t1, t2, sg;
+  if (Math.abs(d.x) < 1e-12) { if (o.x < b.min.x || o.x > b.max.x) return -1; }
+  else {
+    t1 = (b.min.x - o.x) / d.x; t2 = (b.max.x - o.x) / d.x; sg = -1;
+    if (t1 > t2) { const k = t1; t1 = t2; t2 = k; sg = 1; }
+    if (t1 > tmin) { tmin = t1; axis = 0; sign = sg; }
     if (t2 < tmax) tmax = t2;
-    if (tmin > tmax) return null;
+    if (tmin > tmax) return -1;
   }
-  return { t: tmin, axis, sign };
+  if (Math.abs(d.y) < 1e-12) { if (o.y < b.min.y || o.y > b.max.y) return -1; }
+  else {
+    t1 = (b.min.y - o.y) / d.y; t2 = (b.max.y - o.y) / d.y; sg = -1;
+    if (t1 > t2) { const k = t1; t1 = t2; t2 = k; sg = 1; }
+    if (t1 > tmin) { tmin = t1; axis = 1; sign = sg; }
+    if (t2 < tmax) tmax = t2;
+    if (tmin > tmax) return -1;
+  }
+  if (Math.abs(d.z) < 1e-12) { if (o.z < b.min.z || o.z > b.max.z) return -1; }
+  else {
+    t1 = (b.min.z - o.z) / d.z; t2 = (b.max.z - o.z) / d.z; sg = -1;
+    if (t1 > t2) { const k = t1; t1 = t2; t2 = k; sg = 1; }
+    if (t1 > tmin) { tmin = t1; axis = 2; sign = sg; }
+    if (t2 < tmax) tmax = t2;
+    if (tmin > tmax) return -1;
+  }
+  _hit.axis = axis; _hit.sign = sign;
+  return tmin;
 }

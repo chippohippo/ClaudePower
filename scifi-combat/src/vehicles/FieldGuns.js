@@ -24,7 +24,7 @@
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
-import { localToWorld, angleDelta } from '../core/geom.js';
+import { localToWorld, angleDelta, hyp } from '../core/geom.js';
 import { rng } from '../combat/weapons/WeaponSystem.js';
 
 const DEG = Math.PI / 180;
@@ -81,7 +81,7 @@ export class FieldGuns {
     const loader = v.seats.some((q) => q.def.role === 'loader' && q.occupant);
     // ---- set up / pack up
     if (manned && cmd.buttons.dig?.pressed && !G.towedBy) {
-      if (G.state === 'packed' && Math.hypot(s.velocity.x, s.velocity.z) < 0.8) this.#state(v, 'deploying', d.deployTime);
+      if (G.state === 'packed' && hyp(s.velocity.x, s.velocity.z) < 0.8) this.#state(v, 'deploying', d.deployTime);
       else if (G.state === 'deployed') this.#state(v, 'packing', d.packTime);
     }
     if (G.state === 'deploying' || G.state === 'packing') {
@@ -173,7 +173,7 @@ export class FieldGuns {
    * @returns {{ yaw, pitch, speed, eta, range } | null}
    */
   solve(from, x, y, z, d) {
-    const dx = x - from.x, dz = z - from.z, R = Math.hypot(dx, dz), dh = y - from.y;
+    const dx = x - from.x, dz = z - from.z, R = hyp(dx, dz), dh = y - from.y;
     const th = d.arc * DEG, c = Math.cos(th), den = 2 * c * c * (R * Math.tan(th) - dh);
     if (R < 1 || den <= 0) return null;
     const speed = Math.sqrt((d.gravity * R * R) / den);
@@ -235,7 +235,7 @@ export class FieldGuns {
     for (const s of this.incoming) {
       const left = s.at - this.time;
       if (left < -0.1 || left > within) continue;
-      const d = Math.hypot(s.x - x, s.z - z);
+      const d = hyp(s.x - x, s.z - z);
       if (d < r + s.radius && (!best || left < best.left)) best = { ...s, left, dist: d };
     }
     return best;
@@ -281,7 +281,7 @@ export class FieldGuns {
     if (!tower || tower.removed || tower.health.dead) { if (tower) tower.towing = null; gun.gun.towedBy = null; return; }
     const s = gun.movement.state, h = this.hitchPoint(tower), L = gun.def.size.z / 2 + 0.3;
     let dx = s.position.x - h.x, dz = s.position.z - h.z;
-    const len = Math.hypot(dx, dz) || 1;
+    const len = hyp(dx, dz) || 1;
     dx /= len; dz /= len;
     gun.gun.hitchT = (gun.gun.hitchT ?? 1) + dt;
     const k = gun.gun.hitchT < 0.5 ? Math.min(1, dt * 8) : 1;

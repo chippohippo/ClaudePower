@@ -132,7 +132,7 @@ export class FrontlineCommander {
       for (const x of wants) {
         if (x.slots <= 0) continue;
         const f = this.nav?.want(`pt:${x.p.id}`, x.p.pos.x, x.p.pos.z, x.p.radius * 0.6);
-        const d = f ? this.nav.distance(f, at.x, at.z) : at.distanceTo(x.p.pos);
+        const r = f ? this.nav.distance(f, at.x, at.z) : Infinity, d = r < Infinity ? r : at.distanceTo(x.p.pos);   // beyond a big map's field: as the crow flies
         if (d < bd) { bd = d; best = x; }
       }
       if (!best) best = wants.reduce((a, b) => (b.w > a.w ? b : a));
