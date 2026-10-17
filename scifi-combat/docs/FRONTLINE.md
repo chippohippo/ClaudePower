@@ -157,7 +157,7 @@ type or hold a beacon: no gun, no sword, no abilities. That moment of exposure i
 | Orbital Barrage | ▶▼◀▲▲ | 5 s | 12 rounds over 8 s within 22 m | 180 s |
 | Strafing Run | ▲▶▶ | 1.5 s | a jet walks 14 rounds 32 m on from the beacon, along the throw | 2 uses, 100 s rearm |
 | Airstrike | ▲▶▼▶ | 2.5 s | a stick of five bombs, 26 m across the throw | 2 uses, 120 s rearm |
-| Sentry | ▼▲▶▶▲ | 4 s | a pod that opens into a turret (85 dps, 48 m, 450 hp, 75 s) firing from 2.15 m up | 150 s |
+| Sentry | ▼▲▶▶▲ | 4 s | a pod that opens into a turret (42 dps, 45 m, 400 hp, 60 s) firing from 2.15 m up; it misses more at range and against a running target | 150 s |
 
 The rules that make them honest:
 - **Everything hurts everyone.** Strikes, pods, bombs and the sentry's rounds hit friends as hard
@@ -171,6 +171,10 @@ The rules that make them honest:
   leaves the sky.
 - **A beacon in hand glows in the thrower's right hand.** Everyone near can see what's coming. A
   soldier typing has the wrist pad lit, and the rig poses both.
+- **Bots call in too, carefully** (`CallInPlanner`, see [AI.md](AI.md)). They strike clusters they
+  can see with none of theirs near the footprint, drop supplies when short of ammo, smoke a
+  crossing under fire, and put sentries down when holding. They get out from under a pod coming
+  down and shoot enemy sentries. Each side's call-ins are rationed by its size.
 
 ## Downs, ragdolls and reinforcements
 

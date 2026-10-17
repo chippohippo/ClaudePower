@@ -1,10 +1,10 @@
 # Bots: full kits, guns, swords and vehicles
 
-Code: `src/ai/CombatBotBrain.js` · `src/ai/AbilityPlanner.js` · `src/ai/VehiclePilot.js` ·
+Code: `src/ai/CombatBotBrain.js` · `src/ai/AbilityPlanner.js` · `src/ai/CallInPlanner.js` · `src/ai/VehiclePilot.js` ·
 `src/ai/MeleeDuelistBrain.js` (sword sub-brain) · `src/ai/tactics/` (SquadTactics, TacticalMap,
 Suppression) · `src/ai/FrontlineCommander.js` · `src/ai/SupportCommand.js`, `src/ai/CrewPilot.js`
-(gun crews and truck drivers) · data: `data/ai/personalities.json` · tests: `tests/ai.test.mjs`,
-`tests/squads.test.mjs`, `tests/support.test.mjs`.
+(gun crews and truck drivers) · data: `data/ai/personalities.json`, `data/stratagems.json` (`bots`) ·
+tests: `tests/ai.test.mjs`, `tests/squads.test.mjs`, `tests/support.test.mjs`, `tests/callin-bots.test.mjs`.
 
 Bots produce the same `Command` a player's InputManager produces. Every system treats them
 exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and counterplay all apply.
@@ -13,7 +13,7 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 
 | Layer | What it does |
 |---|---|
-| Perception | Targets the nearest enemy (vehicles included; empty vehicles are deprioritized), with hysteresis. Line of sight uses cover, walls, smoke and the terrain (nobody sees through a ridge); only the four nearest candidates get a sight ray. Cloaked enemies are invisible beyond 8 m unless Revealed. Incoming damage rate (EMA) gives "under fire"; in a vehicle it's the hull's HP. Who's around (allies, enemies at arm's length, the most hurt teammate) is rescanned every 0.2 s. |
+| Perception | Targets the nearest enemy (vehicles and turrets included: empty vehicles are deprioritized, a turret firing at the bot comes first), with hysteresis. Line of sight uses cover, walls, smoke and the terrain (nobody sees through a ridge); only the four nearest candidates get a sight ray. Cloaked enemies are invisible beyond 8 m unless Revealed. Incoming damage rate (EMA) gives "under fire"; in a vehicle it's the hull's HP. Who's around (allies, enemies at arm's length, the most hurt teammate) is rescanned every 0.2 s. |
 | Vehicles | `VehiclePilot.wantVehicle()` walks to a friendly vehicle and presses interact. Driving per model: hover = point and boost, strafe-pass or ram; tracked = 18–35 m standoff, turret leads and fires only when on target; flyer = gun altitude, circle-strafe, drops passengers low. Gunners aim freely. Bots bail at under 18% hull HP while under fire. |
 | Abilities | `AbilityPlanner` (below). Reacts to enemy casts with interrupts and dodges. |
 | Guns | Holds the personality's range band, strafes, flanks, and sprints to close or retreat. Tracks at a limited turn rate with wandering error, compensates recoil, controls bursts by range, reloads, vents, aims down sights at range, and swaps to the shotgun up close. |
@@ -21,7 +21,8 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 | Safety | Sidesteps (and rolls) out of telegraphed line and circle casts aimed at it, walks out of hostile zones while they arm, and retreats at low HP. |
 | Squad orders (frontline) | Its squad's `SquadTactics` hands it an order (below): move, bound, overwatch, man a trench, hold, stack, enter, grenade, assault or charge. The brain walks there, takes the stance the position allows and fights from it. Without a squad (the arena) it falls back to the commander's objective and free fighting. |
 | Downs | Downed: crawls toward help, lies still while being revived, gives up when nobody's coming. Up: revives downed teammates nearby (medics go further), one reviver per patient, and finishes a revive once it's well under way. |
-| Shellfire | A round about to land within a few metres (the guns' `incoming` list, the same one the audio whistles from): drop prone until just after it lands. |
+| Shellfire | A round about to land within a few metres (the guns' `incoming` list, the same one the audio whistles from): drop prone until just after it lands. A drop pod about to land on it: sprint out from under it (prone is how you get crushed). |
+| Call-ins | `CallInPlanner` (below): strikes, supply drops, smoke and sentries, typed and thrown like a player's. Short of ammo with one of our supply pods within 30 m, it walks over and takes its mags. |
 | Duty (frontline, 12v12 and up) | Gun crews and truck drivers (below) get to their gun or truck and take their seat; `CrewPilot` drives it. They fight as infantry only when an enemy is in their face or their vehicle isn't back yet. |
 
 ## Squads (`SquadTactics`)
@@ -100,6 +101,27 @@ like a person would. Grenades aren't thrown into a room with a teammate in it, a
 put on a target with teammates round it (or used as a shockwave with teammates round the bot), AT
 crews hold the slug while one of ours is between the gun and its target, and fire missions are never
 called within 32 m of our own soldiers (`SupportCommand`).
+
+### Call-ins (`CallInPlanner`)
+
+Bots call in stratagems (see [FRONTLINE.md](FRONTLINE.md)) by the player's rules, with the same
+buttons. They hold the call-in key and type the code an arrow every 0.16-0.22 s, then aim the lob
+(ballistic, the beacon's lift and their own drift taken out, their aim error put in) and throw a
+moment later. Rushed by an enemy within 9 m, they let go or put the beacon away. When:
+
+| Call-in | When | Where |
+|---|---|---|
+| Strike | A cluster it can see: 3+ enemies (a vehicle counts 3; 4+ for a barrage) inside the payload's footprint, within 40 m | The cluster's centre; a strafing run starts 6 m short of it and walks through. Never with a teammate (downed ones too) within 15 m of the footprint, nor the thrower within 5 m; never on a cluster another of our strikes is coming down on |
+| Supply drop | Ammo below a third of a full load, no supply pod or beacon of ours within 40 m, no enemy close | 7 m off to a side clear of teammates (a pod crushes), with no wall in the way |
+| Smoke | Crossing open ground (move, bound, charge, over the top) under fire with the enemy in sight 20-80 m ahead | 40% of the way to them (at most a throw), the screen across the line of fire |
+| Sentry | Holding (man, hold, overwatch) with an enemy in sight 15-45 m out, no turret of its own up | Beside it and a step back |
+
+With the beacon in hand a strike follows its cluster: from where the bot last saw it, one enemy
+fewer will do, and 3 m of slack on the teammate check. The bot puts the beacon away if the cluster is
+gone or one of ours walks into the danger. A side spends call-ins from a budget that grows with its
+size (`bots.every`, s per kind at 32 soldiers a side). In a two-minute 32v32 that comes to about five
+strikes, eight sentries, eight smoke screens and a couple of supply drops, with no teammates killed
+by them. A 200v200 front sees several times that, at no measurable cost per tick.
 
 ### The whistle (`FrontlineCommander`)
 

@@ -115,7 +115,14 @@ export class DeployableSystem {
       const ray = this.world.raycast?.(p, _v.divideScalar(len), len + 0.5, d.id, { ignoreCover: true });
       const victim = ray?.entity && !ray.entity.isVehicle ? ray.entity : d.target;
       const share = this.world.harm ? this.world.harm(d.team, victim, 'deployable') : victim.team === d.team ? 0 : 1;
-      const dmg = d.dps * dt * share;
+      // Spread: with `falloff` set, fewer rounds find a far or running target (out at full range,
+      // or at a sprint, a share `falloff` of them miss).
+      let acc = 1;
+      if (d.falloff) {
+        const vv = victim.movement?.state.velocity, run = vv ? Math.min(1, Math.hypot(vv.x, vv.z) / 6) : 0;
+        acc = 1 - d.falloff * Math.min(1, 0.6 * (len / d.range) + 0.4 * run);
+      }
+      const dmg = d.dps * dt * share * acc;
       if (dmg > 0) {
         victim.health.damage(dmg, { kind: 'deployable', ability: d.ability, ammoType: 'kinetic', friendly: victim.team === d.team }, d.owner);
         if (d.lifesteal && victim.team !== d.team) d.owner?.health.heal(dmg * d.lifesteal);
@@ -353,8 +360,9 @@ export class DeployableSystem {
   }
 
   #raySphere(d, o, dir, max) {
-    const r = d.kind === 'turret' || d.kind === 'engine' || d.kind === 'beacon' ? 0.6 : 0.25;
-    const c = _c.copy(d.movement.state.position); c.y += d.kind === 'turret' ? 1.0 : d.kind === 'engine' ? 1.2 : d.kind === 'decoy' ? 1.1 : 0.15;
+    // A turret up on its pod (a stratagem's sentry, `muzzle` m up) is a bigger target, higher up.
+    const r = d.kind === 'turret' && d.muzzle ? 0.85 : d.kind === 'turret' || d.kind === 'engine' || d.kind === 'beacon' ? 0.6 : 0.25;
+    const c = _c.copy(d.movement.state.position); c.y += d.kind === 'turret' ? (d.muzzle ?? 1.6) - 0.6 : d.kind === 'engine' ? 1.2 : d.kind === 'decoy' ? 1.1 : 0.15;
     const oc = c.sub(o);
     const t = oc.dot(dir);
     if (t < 0 || t > max || oc.lengthSq() - t * t > r * r) return null;

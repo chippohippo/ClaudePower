@@ -76,8 +76,8 @@ uses and rearm, a call-in loadout, supply drops, reinforcements, a HUD.
   moves you. Each arrow is a press; the panel narrows to the codes that still match.
   A wrong arrow buzzes and clears the code. Your left wrist's call-in pad (modeled on every
   trooper) lights up while you type.
-- **Beacon:** a full code puts a glowing beacon in your hand; fire throws it (14 m/s, a little
-  lob), it sticks where it lands (ground, cover, vehicles, people). Pressing the call-in key again
+- **Beacon:** a full code puts a glowing beacon in your hand; fire throws it (21 m/s, a lob of
+  up to about 46 m), it sticks where it lands (ground, cover, vehicles, people). Pressing the call-in key again
   without typing puts it away. A beam of the team's light marks it for everyone.
 - **Delay, then the payload**, at the beacon. Strikes walk in from the sky (FieldGuns rounds:
   craters, blown sandbags, scorch marks, bots diving for cover from the incoming list), so they
@@ -99,10 +99,12 @@ Codes are our own; the verbs are the genre's. Every soldier gets Supply Drop and
 class kit adds two (assault: Precision + Strafing; demolitionist: Barrage + Airstrike; engineer:
 Sentry + Supply; and so on in `data/stratagems.json`).
 
-**Bots call in too**, by the same rules: a strike when they see 3+ enemies clustered 35-120 m away
-with no teammate within the payload's radius + 15 m (they can't see through FieldGuns' incoming
-list any better than you can), a supply drop when the squad's ammo is low, smoke to cover a
-squad crossing open ground. They take as long to type as a quick human (0.16 s per arrow).
+**Bots call in too**, by the same rules (`src/ai/CallInPlanner.js`, [AI.md](AI.md)). They strike
+a cluster of 3+ enemies they can see within a throw (40 m; the beacon flies at 21 m/s, about
+46 m at most), with no teammate within 15 m of the payload's footprint and themselves outside it.
+They drop supplies when short of ammo and fetch from the pod, lay smoke to cross open ground
+under fire, and put a sentry down when holding. They take as long to type as a quick human (0.16 s
+per arrow), and each side's call-ins are rationed by its size.
 
 **HUD:** a panel left of the crosshair while the key is held: each stratagem's name, its code as
 arrows (typed arrows lit, dead codes dimmed), its cooldown or uses; an incoming marker and a

@@ -1,7 +1,16 @@
 {
-  "_note": "Stratagems (src/combat/Stratagems.js, docs/GAMEPLAY_PLAN.md §2): hold the call-in button and type the code (U D L R), throw the beacon, the payload comes after `delay` seconds. cooldown: seconds after a call before it can be typed again. uses + rearm: calls before a rearm, and how long the rearm takes once they're spent. Payload kinds: shells (count rounds over `over` s scattered within `spread` m), line (count rounds along `length` m: from the beacon on away from the thrower, or `across` the throw centred on it), pod (falls on the beacon and crushes what's under it: a supply cache, or a sentry that fires from its top, `muzzle` m up), smoke (a screen of `count` clouds across the throw, blocking sight). Codes are our own. Rounds are drawn as streaks by StratagemViews (vfx.tracer: strike).",
+  "_note": "Stratagems (src/combat/Stratagems.js, docs/GAMEPLAY_PLAN.md §2): hold the call-in button and type the code (U D L R), throw the beacon, the payload comes after `delay` seconds. cooldown: seconds after a call before it can be typed again. uses + rearm: calls before a rearm, and how long the rearm takes once they're spent. Payload kinds: shells (count rounds over `over` s scattered within `spread` m), line (count rounds along `length` m: from the beacon on away from the thrower, or `across` the throw centred on it), pod (falls on the beacon and crushes what's under it: a supply cache, or a sentry that fires from its top, `muzzle` m up, its damage falling off by `falloff` at full range and against a running target), smoke (a screen of `count` clouds across the throw, blocking sight). Codes are our own. Rounds are drawn as streaks by StratagemViews (vfx.tracer: strike).",
   "arrowTime": 0.16,
-  "beacon": { "speed": 14, "lift": 0.2, "gravity": 9.8, "life": 30 },
+  "beacon": { "speed": 21, "lift": 0.2, "gravity": 9.8, "life": 30 },
+  "bots": {
+    "_note": "src/ai/CallInPlanner.js. every: s between call-ins of a kind for a side of `per` soldiers (a side of n waits every * per / n). cluster: enemies (a vehicle counts 3) a strike must catch. clear: no teammate within this of a strike's footprint, nor the thrower within selfClear. maxThrow: m.",
+    "every": { "strike": 8, "supply": 5, "smoke": 10, "sentry": 14 },
+    "per": 32,
+    "cluster": { "precision_strike": 3, "strafing_run": 3, "airstrike": 3, "orbital_barrage": 4 },
+    "clear": 15,
+    "selfClear": 5,
+    "maxThrow": 40
+  },
   "common": ["supply_drop", "smoke_screen"],
   "loadouts": {
     "assault": ["precision_strike", "strafing_run"],
@@ -39,7 +48,7 @@
     },
     "sentry": {
       "name": "Sentry", "code": "DURRU", "delay": 4, "cooldown": 150, "kind": "sentry",
-      "payload": { "kind": "pod", "contents": "sentry", "crush": 1.6, "turret": { "dps": 85, "range": 48, "turnRate": 120, "hp": 450, "life": 75, "muzzle": 2.15 } }
+      "payload": { "kind": "pod", "contents": "sentry", "crush": 1.6, "turret": { "dps": 42, "range": 45, "turnRate": 110, "hp": 400, "life": 60, "muzzle": 2.15, "falloff": 0.45 } }
     },
     "smoke_screen": {
       "name": "Smoke Screen", "code": "RUUD", "delay": 2, "cooldown": 70, "kind": "smoke",

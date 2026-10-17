@@ -32,6 +32,13 @@ const BUSY = ['light', 'heavy', 'guard', 'reload', 'swapWeapon', 'toggleMelee', 
 const _v = new Vector3(), _d = new Vector3();
 let nextBeaconId = 1;
 
+/** Ground distance (m) from (x, z) to a capsule { ax, az, bx, bz, r } (a payload's footprint): negative inside. */
+export function capsuleDist(c, x, z) {
+  const dx = c.bx - c.ax, dz = c.bz - c.az, L2 = dx * dx + dz * dz;
+  const t = L2 > 1e-9 ? Math.max(0, Math.min(1, ((x - c.ax) * dx + (z - c.az) * dz) / L2)) : 0;
+  return Math.hypot(x - (c.ax + dx * t), z - (c.az + dz * t)) - c.r;
+}
+
 function rng(seed) {
   let s = seed >>> 0 || 1;
   return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
@@ -221,6 +228,42 @@ export class StratagemSystem {
     }
   }
 
+  /**
+   * Where a payload hurts, as a capsule on the ground { ax, az, bx, bz, r }: a barrage's circle
+   * (spread + splash) round the beacon; a run from just short of the beacon on along the throw,
+   * or a stick of bombs across it (splash + 1 either side); a pod's crush. `from` is where it's
+   * thrown from (it sets a line's direction). The bots plan with it, the HUD warns with it.
+   */
+  footprint(def, at, from) {
+    const P = def.payload, splash = this.shells[P.shell]?.damage?.splash ?? 0;
+    let dx = at.x - from.x, dz = at.z - from.z;
+    const l = Math.hypot(dx, dz);
+    if (l > 1e-6) { dx /= l; dz /= l; } else { dx = 0; dz = -1; }
+    if (P.kind === 'line') {
+      const ux = P.across ? -dz : dx, uz = P.across ? dx : dz, u0 = P.across ? -0.5 : -0.08, u1 = P.across ? 0.5 : 0.92;
+      return { ax: at.x + ux * u0 * P.length, az: at.z + uz * u0 * P.length, bx: at.x + ux * u1 * P.length, bz: at.z + uz * u1 * P.length, r: splash + 1 };
+    }
+    const r = P.kind === 'shells' ? (P.spread ?? 0) + splash : P.kind === 'pod' ? P.crush ?? 1.5 : 0;
+    return { ax: at.x, az: at.z, bx: at.x, bz: at.z, r };
+  }
+
+  /**
+   * The bots' call-in budget (data `bots`): a side starts a call-in of a kind (strike, supply,
+   * smoke, sentry) at most every `every[kind]` s at `per` soldiers a side, more often the bigger
+   * the side. True if this one may go (and it's spent).
+   */
+  spendBot(team, kind) {
+    const B = this.data?.bots;
+    if (!B?.every?.[kind]) return true;
+    this.botNext ??= [{}, {}];
+    const next = this.botNext[team] ??= {};
+    if (this.time < (next[kind] ?? 0)) return false;
+    let n = 0;
+    for (const e of this.world.fighters()) if (e.team === team && e.stratagems) n++;
+    next[kind] = this.time + (B.every[kind] * (B.per ?? 32)) / Math.max(1, n);
+    return true;
+  }
+
   /** The payload's danger radius (for HUD rings and the bots' danger-close checks). */
   #radius(def) {
     const P = def.payload, sh = this.shells[P.shell];
@@ -302,6 +345,7 @@ export class StratagemSystem {
     } else if (shot.pod) {
       const pod = { id: b.id, beacon: b, owner: b.owner, team: b.team, def: b.def, pos: new Vector3(shot.x, shot.y + 140, shot.z), ground: shot.y, vy: -140 / shot.fall, landed: false, grabs: P.grabs ?? 0, age: 0, done: false, contents: P.contents };
       this.pods.push(pod);
+      this.world.vehicles?.guns?.incoming.push({ x: shot.x, y: shot.y, z: shot.z, at: this.time + shot.fall, radius: (P.crush ?? 1.5) + 0.5, team: b.team, kind: 'pod', gun: null });
       bus.emit('stratagem:pod', { beacon: b.id, at: [shot.x, shot.y, shot.z], eta: shot.fall, team: b.team, contents: P.contents });
     } else if (shot.smoke) {
       w.spawnZone?.({
@@ -324,7 +368,7 @@ export class StratagemSystem {
         const T = p.def.payload.turret;
         this.world.spawnDeployable?.({
           kind: 'turret', ability: p.beacon.stratagem, ownerId: p.owner.id, team: p.team, at: p.pos.clone(), yaw: p.owner.movement.state.yaw,
-          hp: T.hp, dps: T.dps, range: T.range, turnRate: T.turnRate, lifetime: T.life, maxPerOwner: 3, muzzle: T.muzzle,
+          hp: T.hp, dps: T.dps, range: T.range, turnRate: T.turnRate, lifetime: T.life, maxPerOwner: 3, muzzle: T.muzzle, falloff: T.falloff,
         });
         p.done = true;
       }
@@ -374,19 +418,21 @@ export class StratagemSystem {
   }
 
   // ---------------------------------------------------------------- for the bots and the HUD
-  /** Live beacons of a team (or all): { id, pos, stratagem, kind, eta, radius, team }. */
+  /** Live beacons of a team (or all): { id, pos, stratagem, kind, eta, radius, team, zone (footprint, where it lands now) }. */
   live(team = null) {
     const out = [];
     for (const b of this.beacons) {
       if (!b.planted || (team !== null && b.team !== team)) continue;
-      out.push({ id: b.id, pos: b.pos, stratagem: b.stratagem, kind: b.def.kind, eta: Math.max(0, (b.def.delay ?? 0) - (this.time - b.at)), radius: this.#radius(b.def), team: b.team });
+      const zone = this.footprint(b.def, b.at0, b.from);
+      zone.ax += b.shift.x; zone.bx += b.shift.x; zone.az += b.shift.z; zone.bz += b.shift.z;
+      out.push({ id: b.id, pos: b.pos, stratagem: b.stratagem, kind: b.def.kind, eta: Math.max(0, (b.def.delay ?? 0) - (this.time - b.at)), radius: this.#radius(b.def), team: b.team, zone });
     }
     return out;
   }
 }
 
-/** Below a third of a full load of ammo (bots help themselves at supply caches). */
-function lowOnAmmo(e) {
+/** Below a third of a full load of ammo (bots help themselves at supply caches, and call them in). */
+export function lowOnAmmo(e) {
   const w = e.weapons?.current;
   if (!w || w.usesHeat || w.usesBattery) return false;
   const full = (w.s.mag ?? 30) + (w.s.reserve ?? 180);

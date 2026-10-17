@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
+import { capsuleDist } from '../combat/Stratagems.js';
 
 const GLYPH = { U: '▲', D: '▼', L: '◀', R: '▶' };
 const KIND_COL = { strike: '#ff6a4d', supply: '#6cc3ff', sentry: '#7dff9a', smoke: '#e6e2da' };
@@ -97,7 +98,7 @@ export class StratagemPanel {
       n++;
       const x = Math.max(24, Math.min(innerWidth - 24, (_v.x * 0.5 + 0.5) * innerWidth)), y = Math.max(40, Math.min(innerHeight - 20, (-_v.y * 0.5 + 0.5) * innerHeight));
       const def = this.world.stratagems.defs[b.stratagem];
-      const close = b.kind === 'strike' && Math.hypot(me.x - b.pos.x, me.z - b.pos.z) < b.radius + 3;
+      const close = b.kind === 'strike' && capsuleDist(b.zone, me.x, me.z) < 3;   // inside its footprint, or 3 m from it
       el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.color = this.col[b.kind] ?? '#ffe14d'; el.style.display = 'block';
       el.innerHTML = `${def?.name ?? b.stratagem}<br><span class="t">${b.eta > 0 ? b.eta.toFixed(1) : '▼'}</span>${close ? '<br><span class="dc">Danger close</span>' : ''}`;
     }

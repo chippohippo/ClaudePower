@@ -67,7 +67,7 @@ test('a precision strike: the beacon flies and sticks, the shell lands on it aft
   const planted = ev.got.find((x) => x.type === 'stratagem:beacon');
   assert.ok(planted, 'the beacon stuck');
   const [bx, , bz] = planted.at;
-  assert.ok(bz < -5 && bz > -25 && Math.abs(bx) < 1.5, `it flew forward and landed (${bx.toFixed(1)}, ${bz.toFixed(1)})`);
+  assert.ok(bz < -5 && bz > -40 && Math.abs(bx) < 1.5, `it flew forward and landed (${bx.toFixed(1)}, ${bz.toFixed(1)})`);
   assert.equal(A.stratagems.slot('precision_strike').cooldown > 80, true, 'the cooldown runs from the throw');
   // People near the beacon: an enemy and a teammate.
   const E = w.fighter(2, 1, v(bx + 2, 0, bz), 'monolith', { hp: 2000 });
@@ -130,7 +130,7 @@ test('a supply drop: the pod crushes whoever is under it, then hands out mags', 
   const A = w.fighter(1, 0, v(0, 0, 0), 'lancer');
   const ev = events(['stratagem:beacon', 'stratagem:land', 'stratagem:grab']);
   type(w, A, 'DDUR'); w.aim(A, 0, 0.1); w.press(A, 'light');
-  w.seconds(1.2);
+  w.seconds(1.8);
   const [bx, , bz] = ev.got.find((x) => x.type === 'stratagem:beacon').at;
   const U = w.fighter(2, 1, v(bx, 0, bz), 'monolith', { hp: 900 });    // standing on the beacon
   w.seconds(5);

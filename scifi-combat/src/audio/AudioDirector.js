@@ -109,6 +109,7 @@ export class AudioDirector {
     const G = this.guns, L = this.listenerPos;
     if (G?.incoming.length && L) {
       for (const r of G.incoming) {
+        if (r.kind === 'pod') continue;                  // a pod roars down on its own (callin.pod)
         const left = r.at - G.time;
         if (left > 2.6 || left < 0.3 || this.whistled.has(r)) continue;
         if (Math.hypot(r.x - L.x, r.z - L.z) > 70) continue;

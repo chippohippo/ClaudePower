@@ -72,6 +72,7 @@ export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
     melee.add(e.melee);
     const diff = typeof difficulty === 'string' ? data.ai.difficulty[difficulty] : { ...data.ai.difficulty.veteran, ...difficulty };
     const brain = new CombatBotBrain(e, world, persona ?? data.ai.personalities[e.ai], diff, { seed });
+    e.brain = brain;                       // as in FrontlineSession (the sim asks: supply pods hand bots their mags)
     fighters.set(e, { brain, prev: new Set(), press: new Set(), hold: new Set() });
     return e;
   }

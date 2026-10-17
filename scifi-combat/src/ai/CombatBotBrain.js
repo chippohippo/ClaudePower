@@ -21,6 +21,9 @@
 //                 fight on the way, spread over the point and hold it
 //   Downs       - downed: crawl toward help, lie still while being revived, give up when alone;
 //                 up: revive downed teammates nearby (medics go further), one reviver per patient
+//   Call-ins    - CallInPlanner: strikes on clusters it can see with none of ours near, supply
+//                 drops when short of ammo (and fetching from our pods), smoke to cross open
+//                 ground under fire, sentries when holding; typed and thrown like a player
 //
 // Tells (fairness): bots react after `reactionTime`, aim with wandering error, and their casts
 // go through the same telegraphs as yours.
@@ -35,6 +38,7 @@ import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch 
 import { lineClearOfFriends } from './FireDiscipline.js';
 import { VehiclePilot } from './VehiclePilot.js';
 import { CrewPilot } from './CrewPilot.js';
+import { CallInPlanner } from './CallInPlanner.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
 const POSITIONAL = new Set(['man', 'hold', 'overwatch', 'stack', 'enter', 'grenade']);
@@ -77,6 +81,7 @@ export class CombatBotBrain {
     this.btn = new Buttons();
     this.pilot = new VehiclePilot(this);
     this.crew = new CrewPilot(this);
+    this.callIn = new CallInPlanner(this);
     this.duty = null;                   // { unit, seat }: a gun crew or truck driver (SupportCommand)
     this.dirtUntil = -1e9;              // a shell is about to land close by: prone until then
     this.duelist = new MeleeDuelistBrain(self, { aggression: persona.aggression, parrySkill: difficulty.parrySkill, reactionTime: difficulty.reactionTime }, this.rand);
@@ -228,18 +233,25 @@ export class CombatBotBrain {
     this.#chooseMode(ctx);
 
     this.hasMoveDir = false; this.dodging = false;
-    if (this.order) this.#execute(this.order, ctx, cmd, dt, tick);
+    // Short of ammo with one of our supply pods close: go and take some (the pod hands it over).
+    const pod = this.callIn.podToFetch(ctx);
+    if (pod) {
+      this.#goTo(cmd, pod.pos, dt, { sprint: true, radius: 1.2 });
+      if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
+    } else if (this.order) this.#execute(this.order, ctx, cmd, dt, tick);
     else {
       // Frontline orders without a squad plan: fight what's close (or on our point); otherwise
       // keep pushing to the objective along the flow field, shooting on the move.
       const engage = ctx.target && (!this.objective || this.#worthFighting(ctx));
-      if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle && engage) this.#swordfight(dt, tick, ctx, cmd);
+      if (self.mode === 'sword' && ctx.target && !ctx.target.isVehicle && !ctx.target.isObject && engage) this.#swordfight(dt, tick, ctx, cmd);
       else if (engage || !this.objective) this.#gunfight(dt, ctx, cmd, false);
       else { this.#advance(ctx, cmd); if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); }
     }
 
     // ---- safety overrides: telegraph dodges, hostile zones, low-HP retreat
     this.#safety(ctx, cmd);
+    // ---- call-ins: typed with the same buttons, the throw aimed through the aim override below
+    this.callIn.update(ctx);
 
     if (this.aimOverride && this.time < this.aimOverride.until) {
       // Keep tracking the target through the cast: aim is read again when the effect fires.
@@ -289,12 +301,22 @@ export class CombatBotBrain {
     return true;
   }
 
-  /** Whistle overhead: a round about to land within a few metres -> prone until just after it does. */
+  /**
+   * Whistle overhead: a round about to land within a few metres -> prone until just after it does.
+   * A drop pod coming down on us is different (lying flat under it is how you get crushed): get
+   * out from under it.
+   */
   #incoming() {
     const G = this.world.vehicles.guns;
     if (!G.incoming.length) return;
-    const p = this.self.movement.state.position, s = G.incomingNear(p.x, p.z, 6, 2.4);
-    if (s) this.dirtUntil = Math.max(this.dirtUntil, this.time + s.left + 0.8);
+    const p = this.self.movement.state.position;
+    for (const r of G.incoming) {
+      if (r.kind !== 'pod') continue;
+      const left = r.at - G.time, dx = p.x - r.x, dz = p.z - r.z, d = hyp(dx, dz);
+      if (left > -0.1 && left < 4 && d < r.radius + 1.2) this.podDodge = { x: d > 0.05 ? dx / d : 1, z: d > 0.05 ? dz / d : 0, until: this.time + Math.max(0.3, left + 0.3) };
+    }
+    const s = G.incomingNear(p.x, p.z, 6, 2.4);
+    if (s && s.kind !== 'pod') this.dirtUntil = Math.max(this.dirtUntil, this.time + s.left + 0.8);
     if (this.time < this.dirtUntil) this.#stance('prone');
   }
 
@@ -372,8 +394,8 @@ export class CombatBotBrain {
   }
 
   // ---------------------------------------------------------------- perception
-  /** Same membership as world.fighters() without scanning it: alive, targetable, not inside a hull. */
-  #valid(t) { return !!t && !t.removed && !t.health?.dead && !t.isDeployable && (t.isVehicle || !t.vehicle || t.vehicle.exposed); }
+  /** Same membership as world.fighters() without scanning it (plus enemy turrets): alive, targetable, not inside a hull. */
+  #valid(t) { return !!t && !t.removed && !t.health?.dead && (!t.isDeployable || (t.kind === 'turret' && !!t.health)) && (t.isVehicle || !t.vehicle || t.vehicle.exposed); }
 
   #pickTarget() {
     const me = this.self.movement.state.position;
@@ -386,6 +408,12 @@ export class CombatBotBrain {
       const d = e.movement.state.position.distanceTo(me);
       if (d <= range) cand.push(d, e);
     });
+    // Enemy turrets in range are targets too: a sentry left alone owns its lane.
+    for (const d of this.world.deployables.list) {
+      if (d.kind !== 'turret' || d.removed || !d.health || d.health.dead || d.team === this.self.team) continue;
+      const dd = d.movement.state.position.distanceTo(me);
+      if (dd <= Math.min(range, 70)) cand.push(dd, d);
+    }
     // The nearest four (a partial selection: no sort of everyone in range) get a sight ray.
     const near = this._near; near.fill(-1);
     for (let i = 0; i < cand.length; i += 2) {
@@ -399,7 +427,8 @@ export class CombatBotBrain {
       const d = cand[i], e = cand[i + 1];
       const vis = (near[0] === i || near[1] === i || near[2] === i || near[3] === i) && this.#visible(e, d);
       let s = d * (vis ? 1 : 2.2);
-      if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
+      if (e.isDeployable) s += e.target === this.self ? -4 : 5;          // a turret: first if it's shooting at us
+      else if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
       else if (e.isVehicle) s += 8;
       if (e === this.target) s -= 6;                                     // hysteresis
       if (e.health?.downed) s += 40;                                     // finish the downed only when nothing's standing
@@ -419,7 +448,7 @@ export class CombatBotBrain {
     const from = this.#eye(_a), tp = e.movement.state.position;
     // dir is the only use of _b here: the smoke-zone check takes the raw position (it used to
     // re-copy it into _b, overwriting dir, so sight rays pointed along the target's world position).
-    const dir = _b.copy(tp); dir.y += e.isVehicle ? e.def.size.y * 0.5 : 1.1;
+    const dir = _b.copy(tp); dir.y += e.isVehicle ? e.def.size.y * 0.5 : e.isDeployable ? (e.muzzle ?? 1.6) - 0.6 : 1.1;
     dir.sub(from);
     const len = dir.length();
     if (len < 0.5) return true;
@@ -472,7 +501,7 @@ export class CombatBotBrain {
     ctx.hurtAlly = N.hurtAlly; ctx.hurtAllyHp = N.hurtAllyHp; ctx.hurtAllyDist = N.hurtAllyDist;
     if (t) {
       const tp = t.movement.state.position;
-      ctx.target = { e: t, pos: tp, isVehicle: !!t.isVehicle };
+      ctx.target = { e: t, pos: tp, isVehicle: !!t.isVehicle, isObject: !!t.isDeployable };
       ctx.targetVel = t.movement.state.velocity;
       ctx.dist = tp.distanceTo(me);
       ctx.los = this.#visible(t, ctx.dist);
@@ -566,7 +595,7 @@ export class CombatBotBrain {
     const self = this.self;
     if (self.transform) return; // the super decided the mode
     const pref = this.persona.melee;
-    const tv = ctx.target?.isVehicle;
+    const tv = ctx.target?.isVehicle || ctx.target?.isObject;          // hulls and turrets get the gun
     let want = 'gun';
     if (ctx.target && !tv) {
       if (pref === 'prefer' && ctx.dist < 12) want = 'sword';
@@ -595,7 +624,7 @@ export class CombatBotBrain {
     const speed = s.projectile === 'hitscan' || s.projectile === 'pellets' || s.projectile === 'beam' ? 0 : s.velocity ?? 120;
     const tt = speed ? ctx.dist / speed : 0;
     _a.copy(t.pos).addScaledVector(ctx.targetVel, tt);
-    _a.y += t.isVehicle ? t.e.def.size.y * 0.5 : 1.1;
+    _a.y += t.isVehicle ? t.e.def.size.y * 0.5 : t.isObject ? (t.e.muzzle ?? 1.6) - 0.6 : 1.1;
     if (speed && s.drop) _a.y += 0.5 * 9.8 * s.drop * tt * tt;
     const eyeY = me.y + 1.6;
     const wantYaw = Math.atan2(-(_a.x - me.x), -(_a.z - me.z));
@@ -720,7 +749,7 @@ export class CombatBotBrain {
   #execute(o, ctx, cmd, dt, tick) {
     const self = this.self, sup = self.suppression ?? 0, t = ctx.target;
     // Sword fighters close in on enemies near them whatever the order: the sword is their gun.
-    if (this.persona.melee === 'prefer' && self.mode === 'sword' && t && !t.isVehicle && ctx.los && ctx.dist < 14 && o.kind !== 'grenade') {
+    if (this.persona.melee === 'prefer' && self.mode === 'sword' && t && !t.isVehicle && !t.isObject && ctx.los && ctx.dist < 14 && o.kind !== 'grenade') {
       this.#swordfight(dt, tick, ctx, cmd); this.#stance('stand'); return;
     }
     if (o.kind === 'charge') { this.#charge(o, ctx, cmd, dt, tick); return; }
@@ -728,7 +757,7 @@ export class CombatBotBrain {
     const close = !!(t && ctx.los && ctx.dist < (o.kind === 'bound' ? 7 : 10));
     const moveOrder = o.kind === 'move' || o.kind === 'bound' || o.kind === 'regroup';
     if (close && moveOrder) {
-      if (self.mode === 'sword' && !t.isVehicle) this.#swordfight(dt, tick, ctx, cmd); else this.#gunfight(dt, ctx, cmd, false);
+      if (self.mode === 'sword' && !t.isVehicle && !t.isObject) this.#swordfight(dt, tick, ctx, cmd); else this.#gunfight(dt, ctx, cmd, false);
       this.#stance(sup > 0.6 ? 'crouch' : 'stand');
       return;
     }
@@ -962,7 +991,7 @@ export class CombatBotBrain {
   #charge(o, ctx, cmd, dt, tick) {
     const self = this.self, t = ctx.target;
     this.#stance('stand');
-    if (self.mode === 'sword' && t && !t.isVehicle && ctx.dist < 12) { this.#swordfight(dt, tick, ctx, cmd); return; }
+    if (self.mode === 'sword' && t && !t.isVehicle && !t.isObject && ctx.dist < 12) { this.#swordfight(dt, tick, ctx, cmd); return; }
     const p = o.target && !o.target.health?.dead ? o.target.movement.state.position : o.pos;
     this.#goTo(cmd, p, dt, { sprint: !(t && ctx.los && ctx.dist < 20), radius: o.arrive ?? 1.5 });
     if (t && ctx.los) this.#gunfight(dt, ctx, cmd, true);
@@ -1044,6 +1073,12 @@ export class CombatBotBrain {
       this.moveDir.copy(this.dodgeDir); this.hasMoveDir = true; this.dodging = true;
       if (this.dodgeRoll) { this.btn.press('dodge'); this.dodgeRoll = false; }
       this.btn.down.delete('light'); this.btn.down.delete('guard');
+      return;
+    }
+    // A pod coming down on us: out from under it, now.
+    if (this.podDodge && this.time < this.podDodge.until) {
+      this.moveDir.set(this.podDodge.x, 0, this.podDodge.z); this.hasMoveDir = true; this.dodging = true;
+      this.btn.hold('sprint');
       return;
     }
     // Standing in a hostile zone (airstrike, anchor, storm): walk out along the threat vector.
