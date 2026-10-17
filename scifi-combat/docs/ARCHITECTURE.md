@@ -87,8 +87,11 @@ scifi-combat/
 │  ├─ physics/ Ragdoll.js       deterministic particle ragdolls (blasts, criticals, downs, deaths)
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
-│  ├─ render/ CrowdRenderer.js    instanced crowd (5 draw calls, team colors, status glow, impostors)
-│  │          BattlefieldRenderer.js  TerrainChunks.js  CoverTextures.js  TracerPool.js
+│  ├─ render/ CrowdRenderer.js    the crowd in the trooper kit (bone texture, ~25 instanced draws, impostors)
+│  │          TrooperKit.js  VehicleKit.js  ModelKit.js (assets modeled in code)  TrooperMaterial.js (paint by channel)
+│  │          Atmosphere.js (sky, sun, height fog, sky light, ash)  PostFX.js (god rays, bloom, grade)
+│  │          BattlefieldRenderer.js  TerrainChunks.js  ArtTextures.js  CoverTextures.js  ScorchField.js
+│  │          SandbagTops.js  TracerPool.js
 │  │          chunked terrain, triplanar cover, trenches, wire, objectives; pooled tracers
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
