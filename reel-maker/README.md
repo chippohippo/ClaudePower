@@ -22,7 +22,7 @@ What it does:
 # ffmpeg (system)
 sudo apt install ffmpeg            # macOS: brew install ffmpeg   Windows: winget install ffmpeg
 
-pip install "moviepy>=2.1" numpy pillow scipy librosa
+pip install "moviepy>=2.1" numpy pillow scipy librosa "opencv-python-headless<5"
 ```
 
 `librosa` is optional (it's only used for beat detection). The fonts are bundled in `fonts/` under the SIL OFL licence.
