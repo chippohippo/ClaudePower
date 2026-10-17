@@ -130,7 +130,7 @@ export class FrontlineSession {
     this.mode.update(dt, this.fighters, w);
     for (const c of this.commanders) c.update(dt);
     this.#reinforce(dt);
-    if (this.tick % 30 === 0) this.map.nav.maintain(3);
+    this.map.nav.maintain(4000); // flow-field refresh after cover breaks, sliced by a work budget
     this.stats.simMs = performance.now() - t0;
   }
 
@@ -180,7 +180,7 @@ export class FrontlineSession {
     // On the squad leader when it's safe (alive, on foot, not under fire, no enemy close).
     if (!initial && lead && lead !== f && !lead.vehicle && !lead.health.dead && lead.health.sinceDamage > 3 && !enemiesNear(lead.movement.state.position)) {
       const lp = lead.movement.state.position;
-      pos.set(lp.x + (Math.random() - 0.5) * 4, 0, lp.z + (Math.random() - 0.5) * 4);
+      pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);
     } else this.mode.spawnPosition(team, enemiesNear, pos);
     pos.y = w.groundHeight(new Vector3(pos.x, pos.y + 50, pos.z));
     const m = f.movement;

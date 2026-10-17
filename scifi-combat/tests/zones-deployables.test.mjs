@@ -20,6 +20,28 @@ test('turret tracks at its turn rate, damages enemies, and enemies can destroy i
   assert.ok(tur.removed, 'turret destroyed by gunfire');
 });
 
+test('turret sight: shots leave its own muzzle and never pass through an Aegis Wall', () => {
+  // Regression: the muzzle shared a scratch vector with the deployable raycast, so a turret aimed
+  // and fired from the map origin; and its own hit sphere, the first thing on every ray it casts,
+  // hid any wall behind it.
+  const { world, fighter, press, seconds } = makeWorld();
+  const A = fighter(1, 0, v(20, 0, 20), 'artificer');
+  press(A, 'ability1'); seconds(1);
+  const tur = world.deployables.list.find((d) => d.kind === 'turret');
+  const W = fighter(3, 0, v(20, 0, -11), 'bastion');
+  press(W, 'ability1'); seconds(1);
+  assert.ok(world.deployables.list.some((d) => d.kind === 'wall'), 'wall up between the turret and the far enemy');
+  const hidden = fighter(4, 1, v(20, 0, -24), 'monolith');
+  const open = fighter(5, 1, v(38, 0, -10), 'monolith'); // farther than the hidden one, so only sight decides
+  const { got, off } = events(['deployable:fire']);
+  seconds(3);
+  off();
+  assert.equal(hidden.health.hp, hidden.health.max, 'no damage through the wall');
+  assert.ok(open.health.hp < open.health.max, 'the enemy in the open is shot');
+  const muzzle = tur.movement.state.position.clone().setY(1.1);
+  assert.ok(got.length > 0 && got.every(({ e }) => v(...e.from).distanceTo(muzzle) < 1e-6), 'every shot leaves the muzzle');
+});
+
 test('Aegis Wall blocks hitscan both ways and its emitter strip counts as a headshot', () => {
   const { world, fighter, press, seconds } = makeWorld();
   fighter(1, 0, v(0, 0, 0), 'bastion');

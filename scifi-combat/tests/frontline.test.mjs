@@ -128,7 +128,7 @@ test('the commander covers every attack point and reinforces a point being taken
   cmd.dispose();
 });
 
-test('headless battle: 64 bots fight over the line, capture points, die and reinforce', () => {
+test('headless battle: 64 bots fight over the line, capture points, die and reinforce', (t) => {
   const data = {
     movement: H.movement, weaponFiles: [H.ballistic, H.energy], attachments: H.attachments, recoil: H.recoil, statuses: H.statuses,
     meleeWeapons: H.melee, kits: H.kits, classes: H.classes, damageMatrix: H.matrix, supers: H.supers, vehicleDefs: H.vehicles,
@@ -137,23 +137,36 @@ test('headless battle: 64 bots fight over the line, capture points, die and rein
   const s = new FrontlineSession(data, { players: 64, seed: 3 });
   const ev = { point: 0, deploy: 0, hit: 0 };
   const offs = [bus.on('mode:point', () => ev.point++), bus.on('fighter:deploy', () => ev.deploy++), bus.on('weapon:hit', () => ev.hit++)];
-  // Navigation: count bots that reach their current objective point at some point (orders change
-  // as sectors fall, so "distance right now" is a noisy measure).
-  const reached = new Set();
-  let total = 0;
+  // Navigation: how fast bots close the route distance to their objective while en route (orders
+  // change as sectors fall, and many die on the way, so "who got there" alone is noisy), plus how
+  // many reached their current objective at some point.
+  const nav = s.map.nav, last = new Map(), reached = new Set();
+  let total = 0, gained = 0, enRoute = 0;
   const steps = 60 * 50;
   for (let i = 0; i < steps; i++) {
     s.step(1 / 60); if (i > 0) total += s.stats.simMs;
-    if (i % 30 === 0) for (const f of s.bots) { const o = f.brain.objective; if (o && !f.health.dead && f.movement.state.position.distanceTo(o.pos) < o.radius + 8) reached.add(f.id); }
+    if (i % 30 !== 0) continue;
+    for (const f of s.bots) {
+      const o = f.brain.objective, p = f.movement.state.position;
+      if (!o || f.health.dead) { last.delete(f.id); continue; }
+      if (p.distanceTo(o.pos) < o.radius + 8) reached.add(f.id);
+      const route = nav.distance(nav.fields.get(o.field), p.x, p.z), prev = last.get(f.id);
+      if (prev && prev.id === o.id && prev.route > o.radius * 1.8 && Number.isFinite(route + prev.route)) { gained += prev.route - route; enRoute += 0.5; }
+      last.set(f.id, { id: o.id, route });
+    }
   }
+  const closing = gained / enRoute;
   offs.forEach((f) => f());
+  const avg = total / (steps - 1);
+  // The sim is deterministic per seed (seeded bot RNGs, work-budgeted nav), so these numbers repeat.
+  t.diagnostic(`closing on objectives at ${closing.toFixed(2)} m/s en route, ${reached.size}/${s.bots.length} reached one, ${ev.point} point flips, ${ev.hit} hits, ${ev.deploy} redeploys, ${avg.toFixed(2)} ms/tick`);
   for (const f of s.fighters) { const p = f.movement.state.position; assert.ok(Number.isFinite(p.x + p.y + p.z), 'finite positions'); }
-  assert.ok(reached.size > s.bots.length * 0.5, `${reached.size}/${s.bots.length} bots reached their objective point`);
+  assert.ok(closing > 2, `bots close on their objectives at ${closing.toFixed(2)} m/s en route (jog is 4.5)`);
+  assert.ok(reached.size >= s.bots.length * 0.3, `${reached.size}/${s.bots.length} bots reached their objective point`);
   assert.ok(ev.point >= 1, 'points change hands');
   assert.ok(ev.hit > 50, `a real fight (${ev.hit} hits)`);
   assert.ok(ev.deploy >= 5, `the dead come back as reinforcements (${ev.deploy} redeploys)`);
   assert.ok(s.mode.tickets[0] < s.mode.cfg.tickets + 30 || s.mode.tickets[1] < s.mode.cfg.tickets + 30, 'deaths cost tickets');
-  const avg = total / (steps - 1);
   assert.ok(avg < 8, `${avg.toFixed(2)} ms per tick for 64 fighters`);
   s.dispose();
 });

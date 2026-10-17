@@ -17,6 +17,7 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 | Guns | Holds the personality's range band, strafes, flanks, and sprints to close or retreat. Tracks at a limited turn rate with wandering error, compensates recoil, controls bursts by range, reloads, vents, aims down sights at range, and swaps to the shotgun up close. |
 | Sword | `MeleeDuelistBrain` for close fights: parry and block timing, feints, guard breaks. Duelists switch to the sword under 12 m; others only when an enemy is in their face. |
 | Safety | Sidesteps (and rolls) out of telegraphed line and circle casts aimed at it, walks out of hostile zones while they arm, and retreats at low HP. |
+| Orders (frontline) | With an objective from `FrontlineCommander`, the bot follows that point's flow field and shoots on the move. It only stops to fight in three cases: an enemy within 18 m, being shot from within 30 m, or an enemy holding its point. On the point it holds its slot ([FRONTLINE.md](FRONTLINE.md)). |
 
 ## AbilityPlanner: kits without per-ability code
 

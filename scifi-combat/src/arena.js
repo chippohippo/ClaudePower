@@ -2,7 +2,7 @@
 // Bots use CombatBotBrain: full class kits, guns, swords and vehicles (?difficulty=recruit|veteran|elite).
 // Demonstrates the full loop: Input → fixed-step sim (movement + melee + guns + abilities + statuses)
 // → events → camera/juice/audio/HUD.
-// Run: `npx serve scifi-combat` (or any static server) and open index.html.
+// Run: `npx serve scifi-combat` (or any static server) and open arena.html (index.html is the frontline battle).
 
 import * as THREE from 'three';
 import { bus } from './core/EventBus.js';

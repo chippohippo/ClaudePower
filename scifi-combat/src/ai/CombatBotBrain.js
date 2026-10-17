@@ -58,7 +58,7 @@ export class CombatBotBrain {
     this.rand = rng(self.id, seed);
     this.btn = new Buttons();
     this.pilot = new VehiclePilot(this);
-    this.duelist = new MeleeDuelistBrain(self, { aggression: persona.aggression, parrySkill: difficulty.parrySkill, reactionTime: difficulty.reactionTime });
+    this.duelist = new MeleeDuelistBrain(self, { aggression: persona.aggression, parrySkill: difficulty.parrySkill, reactionTime: difficulty.reactionTime }, this.rand);
     this.duelist.world = world;
     this.time = 0;
     this.target = null; this.targetSince = 0;
@@ -248,11 +248,14 @@ export class CombatBotBrain {
   #visible(e, d = null) {
     const dist = d ?? e.movement.state.position.distanceTo(this.self.movement.state.position);
     if (e.status?.has('cloak') && !e.status.has('revealed') && dist > 8) return false;
-    const from = this.#eye(_a);
-    const to = _b.copy(e.movement.state.position); to.y += e.isVehicle ? e.def.size.y * 0.5 : 1.1;
-    const dir = to.sub(from); const len = dir.length();
+    const from = this.#eye(_a), tp = e.movement.state.position;
+    // dir is the only use of _b here: the smoke-zone check takes the raw position (it used to
+    // re-copy it into _b, overwriting dir, so sight rays pointed along the target's world position).
+    const dir = _b.copy(tp); dir.y += e.isVehicle ? e.def.size.y * 0.5 : 1.1;
+    dir.sub(from);
+    const len = dir.length();
     if (len < 0.5) return true;
-    if (this.world.zones.blocksVisionBetween(from, _b.copy(e.movement.state.position))) return false;
+    if (this.world.zones.blocksVisionBetween(from, tp)) return false;
     return !this.world.raycastStatic(from, dir.divideScalar(len), len - 0.3);
   }
 
@@ -462,10 +465,17 @@ export class CombatBotBrain {
   }
 
   // ---------------------------------------------------------------- frontline orders
-  /** Fight it out when the enemy is close, or on (or near) the point we're taking or holding. */
+  /**
+   * Stop and fight properly (range band, strafing, sword duels), or keep pushing to the objective
+   * while shooting on the move? Battlefront soldiers with orders keep moving: they only stop for
+   * an enemy too close to walk past, one shooting them from nearby, or one holding their point.
+   * On the point itself they keep their slot and fight from it.
+   */
   #worthFighting(ctx) {
-    if (ctx.dist < 40 || ctx.underFire) return true;
-    const o = this.objective, tp = ctx.target.pos;
+    if (ctx.dist < 18) return true;
+    const o = this.objective, me = this.self.movement.state.position, tp = ctx.target.pos;
+    if (Math.hypot(me.x - o.pos.x, me.z - o.pos.z) < o.radius * 1.8) return false;
+    if (ctx.underFire && ctx.dist < 30) return true;
     return Math.hypot(tp.x - o.pos.x, tp.z - o.pos.z) < o.radius + 25;
   }
 

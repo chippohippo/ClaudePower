@@ -2,8 +2,9 @@
 //
 // One Dijkstra from each goal (a capture point, a spawn, a squad rally) gives every cell the
 // direction of its cheapest route to that goal, so 128 bots can share one field per objective
-// instead of running 128 path searches. Fields are cached and rebuilt lazily when cover is
-// destroyed (version stamps). Locally, bots still steer, take cover and fight; the field only
+// instead of running 128 path searches. Fields are cached; when cover is destroyed they go stale
+// (version stamps) and maintain() rebuilds them as resumable Dijkstra runs sliced across ticks,
+// while the stale field keeps serving. Locally, bots still steer, take cover and fight; the field only
 // answers "which way is the objective from here, around the walls".
 //
 // Cells: steep terrain (> maxSlope) and cover taller than vaultHeight are blocked; vaultable
@@ -29,6 +30,9 @@ export class NavGrid {
     this.version = 0;
     this.fields = new Map();
     this.stale = new Set();
+    this.job = null;                                  // the rebuild maintain() is part-way through
+    this.syncHeap = new MinHeap(this.nx * this.nz);   // shared search heaps: no 1.6 MB of garbage per solve
+    this.jobHeap = new MinHeap(this.nx * this.nz);
     this.#rebuild(0, 0, this.nx - 1, this.nz - 1);
   }
 
@@ -77,7 +81,8 @@ export class NavGrid {
   }
 
   /**
-   * Flow field toward a goal disc (cached by key; rebuilt when walkability changed).
+   * Flow field toward a goal disc, cached by key. A new key is solved at once; a cached field
+   * whose walkability changed keeps serving and is queued for maintain().
    * @returns {{ dist: Float32Array, dir: Int8Array, version, key }}
    */
   field(key, gx, gz, radius = 4) {
@@ -88,32 +93,49 @@ export class NavGrid {
       if (f.version !== this.version) this.stale.add(key);
       return f;
     }
-    f = this.#dijkstra(gx, gz, radius);
-    f.key = key; f.gx = gx; f.gz = gz; f.radius = radius;
+    const job = this.#begin(gx, gz, radius, this.syncHeap);
+    this.#advance(job, Infinity);
+    f = this.#finish(job, key);
     this.fields.set(key, f);
     return f;
   }
 
-  /** Recompute stale fields within a time budget (call once per tick or so). */
-  maintain(budgetMs = 4) {
-    const t0 = performance.now();
-    for (const key of this.stale) {
-      const old = this.fields.get(key);
-      this.stale.delete(key);
-      if (old && old.version !== this.version) {
-        const f = this.#dijkstra(old.gx, old.gz, old.radius);
-        Object.assign(f, { key, gx: old.gx, gz: old.gz, radius: old.radius });
-        this.fields.set(key, f);
+  /**
+   * Refresh stale fields in slices (call every tick): a rebuild expands at most `cells` search
+   * nodes per call and resumes on the next one, while the stale field keeps serving. The budget
+   * counts work, not wall-clock time, so the sim stays deterministic (server, clients and replays
+   * agree on the tick a field flips). 4000 cells is ~0.7 ms; a full 1 km field (100k cells)
+   * finishes in a few dozen ticks instead of costing one ~20 ms hitch.
+   */
+  maintain(cells = 4000) {
+    let budget = cells;
+    for (;;) {
+      if (!this.job) {
+        const key = this.stale.values().next().value;
+        if (key === undefined) return;
+        this.stale.delete(key);
+        const old = this.fields.get(key);
+        if (!old || old.version === this.version) continue;
+        this.job = this.#begin(old.gx, old.gz, old.radius, this.jobHeap);
+        this.job.key = key;
       }
-      if (performance.now() - t0 > budgetMs) break;
+      budget = this.#advance(this.job, budget);
+      if (budget < 0) return; // out of budget: resume next call
+      const job = this.job, cur = this.fields.get(job.key);
+      this.job = null;
+      // Install unless field() re-solved this key for a moved goal in the meantime. Walkability
+      // that changed mid-search leaves the result older than `version`: it is simply queued again.
+      if (cur && cur.gx === job.gx && cur.gz === job.gz) this.fields.set(job.key, this.#finish(job, job.key));
+      if (budget <= 0) return;
     }
   }
 
-  #dijkstra(gx, gz, radius) {
+  /** Starts a Dijkstra from the goal disc: seeds the goal cells, nothing expanded yet. */
+  #begin(gx, gz, radius, heap) {
     const n = this.nx * this.nz, nx = this.nx, nz = this.nz, cost = this.cost;
     const dist = new Float32Array(n).fill(Infinity);
     const dir = new Int8Array(n).fill(-1);
-    const heap = new MinHeap(n);
+    heap.size = 0;
     const c = this.cell, r = Math.max(radius, c * 0.75);
     const x0 = Math.max(0, Math.floor((gx - r - this.minX) / c)), x1 = Math.min(nx - 1, Math.floor((gx + r - this.minX) / c));
     const z0 = Math.max(0, Math.floor((gz - r - this.minZ) / c)), z1 = Math.min(nz - 1, Math.floor((gz + r - this.minZ) / c));
@@ -123,7 +145,14 @@ export class NavGrid {
       if (Math.hypot(this.minX + (ix + 0.5) * c - gx, this.minZ + (iz + 0.5) * c - gz) > r) continue;
       dist[i] = 0; heap.push(i, 0);
     }
+    return { gx, gz, radius, dist, dir, heap, version: this.version, key: null };
+  }
+
+  /** Expands up to `budget` cells: returns the unused budget when the search completes, -1 if it ran out first. */
+  #advance(job, budget) {
+    const nx = this.nx, nz = this.nz, cost = this.cost, { dist, dir, heap } = job;
     while (heap.size) {
+      if (budget-- <= 0) return -1;
       const i = heap.pop(), di = dist[i];
       if (heap.lastKey > di) continue; // stale entry
       const ix = i % nx, iz = (i - ix) / nx;
@@ -138,8 +167,12 @@ export class NavGrid {
         if (nd < dist[j]) { dist[j] = nd; dir[j] = k ^ 1 ^ (k >= 4 ? 2 : 0); heap.push(j, nd); }
       }
     }
-    // dir[j] stores the neighbour index pointing back toward i (the step toward the goal).
-    return { dist, dir, version: this.version };
+    return Math.max(0, budget);
+  }
+
+  // dir[j] stores the neighbour index pointing back toward i (the step toward the goal).
+  #finish(job, key) {
+    return { dist: job.dist, dir: job.dir, version: job.version, key, gx: job.gx, gz: job.gz, radius: job.radius };
   }
 
   /**

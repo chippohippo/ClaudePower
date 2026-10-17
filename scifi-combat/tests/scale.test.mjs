@@ -111,7 +111,7 @@ test('NavGrid: flow fields route around walls, stay out of enclosures, reopen wh
   // Blow the plug: the route opens through the gap.
   world.destroyCover(v(0, 1, 23), 2, null);
   assert.equal(nav.field('B', 30, 0, 3), f, 'the stale field stays usable (no rebuild hitch on a blast)');
-  nav.maintain(1000);
+  nav.maintain(Infinity);
   const f2 = nav.field('B', 30, 0, 3);
   assert.notEqual(f2, f, 'maintain() rebuilt it after the cover changed');
   const route = nav.trace(f2, -30, 0);
@@ -124,6 +124,22 @@ test('NavGrid: flow fields route around walls, stay out of enclosures, reopen wh
     assert.ok(!nav.blocked(p.x, p.z), 'never inside blocked cells');
   }
   assert.ok(Math.hypot(p.x - 30, p.z) < 5, `arrived (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+});
+
+test('NavGrid: a stale 1 km field is rebuilt in slices across ticks and matches a fresh solve', () => {
+  // Frontline-sized grid (500 x 200 cells): one full search is far over a tick's nav budget.
+  const cover = new CoverIndex(randomBoxes(400, 900));
+  const nav = new NavGrid({ minX: -500, minZ: -200, width: 1000, depth: 400, cell: 2 }, { cover });
+  const f = nav.field('pt', 300, 0, 6);
+  nav.updateRegion(-10, -10, 10, 10); // as if cover broke: walkability version moves on
+  assert.equal(nav.field('pt', 300, 0, 6), f, 'stale field keeps serving');
+  let calls = 0;
+  while (nav.field('pt', 300, 0, 6) === f && calls < 10000) { nav.maintain(4000); calls++; }
+  const f2 = nav.field('pt', 300, 0, 6);
+  assert.ok(calls > 1, `rebuild was split across ${calls} maintain() calls`);
+  assert.equal(f2.version, nav.version, 'fresh after the rebuild');
+  const ref = new NavGrid({ minX: -500, minZ: -200, width: 1000, depth: 400, cell: 2 }, { cover }).field('pt', 300, 0, 6);
+  assert.deepEqual(f2.dist, ref.dist, 'a sliced solve equals an uninterrupted one');
 });
 
 test('CombatWorld with spatial indexes answers exactly like the brute-force world', () => {

@@ -45,6 +45,17 @@ test('a bot acquires, aims (with recoil comp) and damages a target at range', ()
   assert.ok(T.health.hp < 5000 - 150, `dealt ${5000 - T.health.hp}`);
 });
 
+test('bot sight: an enemy behind a wall loses to a visible one, anywhere on the map', () => {
+  // Regression: the sight ray's direction aliased a scratch vector and became the target's world
+  // position over the distance, so line of sight was only right near the map origin.
+  const w = makeWorld([{ min: v(36, 0, 33), max: v(44, 3, 34) }]);
+  const B = w.bot(1, 0, v(40, 0, 40), 'lancer');
+  w.fighter(2, 1, v(40, 0, 28), 'monolith'); // 12 m away, behind the wall
+  w.fighter(3, 1, v(55, 0, 40), 'monolith'); // 15 m away, in the open
+  w.seconds(0.5);
+  assert.equal(w.brainOf(B).target?.id, 3, 'targets the enemy it can see');
+});
+
 test('all 20 class kits get used by bots (super charged, mirrored 1v1s)', () => {
   const sol = data.classes[0].classes.map((c) => c.id), vd = data.classes[1].classes.map((c) => c.id);
   const usedBy = new Map();

@@ -23,6 +23,10 @@ const LIMITS = { wall: 1, turret: 2, mine: 2, tripwire: 2, beacon: 1, launchpad:
 const ARM_TIME = { mine: 0.8, tripwire: 0.8 };
 const _v = new Vector3();
 const _f = new Vector3();
+// Scratch that must survive calls back into this system: the turret muzzle is the origin of its
+// line-of-sight rays, which run through raycast() -> #raySphere(), so neither may share _v.
+const _muzzle = new Vector3();
+const _c = new Vector3();
 let nextDeployableId = 100000;
 
 export class DeployableSystem {
@@ -71,7 +75,7 @@ export class DeployableSystem {
 
   // ---------------------------------------------------------------- per-kind behaviour
   tick_turret(d, dt) {
-    const p = _v.copy(d.movement.state.position).setY(d.movement.state.position.y + 1.1);
+    const p = _muzzle.copy(d.movement.state.position).setY(d.movement.state.position.y + 1.1);
     // Re-acquire the nearest visible enemy, preferring to keep the current one.
     if (!d.target || d.target.health.dead || !this.#visible(p, d.target, d.range)) d.target = this.#nearestVisibleEnemy(d, p);
     if (!d.target) return;
@@ -187,11 +191,14 @@ export class DeployableSystem {
     return p;
   }
 
-  /** Ray vs. deployable hit volumes. Walls are oriented boxes; everything else is a sphere. */
-  raycast(o, dir, max, team = null) {
+  /**
+   * Ray vs. deployable hit volumes, nearest hit. Walls are oriented boxes; everything else is a
+   * sphere. `kind` limits the test to one kind (line of sight only cares about walls).
+   */
+  raycast(o, dir, max, team = null, kind = null) {
     let best = null;
     for (const d of this.list) {
-      if (!d.health || d.health.dead || d.removed) continue;
+      if (!d.health || d.health.dead || d.removed || (kind && d.kind !== kind)) continue;
       const t = d.kind === 'wall' ? this.#rayWall(d, o, dir, max) : this.#raySphere(d, o, dir, max);
       if (t && (!best || t.distance < best.distance)) best = t;
     }
@@ -254,7 +261,7 @@ export class DeployableSystem {
 
   #raySphere(d, o, dir, max) {
     const r = d.kind === 'turret' || d.kind === 'engine' || d.kind === 'beacon' ? 0.6 : 0.25;
-    const c = _v.copy(d.movement.state.position); c.y += d.kind === 'turret' ? 1.0 : d.kind === 'engine' ? 1.2 : d.kind === 'decoy' ? 1.1 : 0.15;
+    const c = _c.copy(d.movement.state.position); c.y += d.kind === 'turret' ? 1.0 : d.kind === 'engine' ? 1.2 : d.kind === 'decoy' ? 1.1 : 0.15;
     const oc = c.sub(o);
     const t = oc.dot(dir);
     if (t < 0 || t > max || oc.lengthSq() - t * t > r * r) return null;

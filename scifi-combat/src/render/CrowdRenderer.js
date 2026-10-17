@@ -29,8 +29,8 @@ const _pv = new THREE.Matrix4();
 const UP = new THREE.Vector3(0, 1, 0);
 
 export const TEAM_LOOKS = [
-  { armor: '#c9a24a', suit: '#3b3428', accent: '#eadcb0', cape: '#8f2a1c', visor: '#ffcf6b', gear: '#2a2925' },
-  { armor: '#55437a', suit: '#1e1a29', accent: '#9a7fe0', cape: '#2c1f4d', visor: '#b994ff', gear: '#25232b' },
+  { armor: '#c9a24a', suit: '#4a4234', accent: '#eadcb0', cape: '#8f2a1c', visor: '#ffcf6b', gear: '#5a5448' },
+  { armor: '#55437a', suit: '#2e2a3d', accent: '#9a7fe0', cape: '#2c1f4d', visor: '#b994ff', gear: '#4a4658' },
 ];
 
 /** Adds `attribute vec3 instanceEmissive` to a standard material (status glow per instance). */

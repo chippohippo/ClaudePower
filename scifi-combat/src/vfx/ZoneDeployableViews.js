@@ -32,9 +32,9 @@ export class ZoneDeployableViews {
     bus.on('zone:end', (e) => this.#remove(this.zones, e.id));
     bus.on('zone:blocked', (e) => this.#flash(new THREE.Vector3().fromArray(e.point), 0.3, '#ffffff', 0.15));
     bus.on('deployable:spawn', (e) => this.#addDeployable(e));
-    bus.on('deployable:removed', (e) => { const v = this.deps.get(e.id); if (v && e.reason !== 'replaced' && e.reason !== 'expired') this.#flash(v.root.position.clone().setY(0.6), 1, '#ffaa55', 0.25); this.#remove(this.deps, e.id); });
+    bus.on('deployable:removed', (e) => { const v = this.deps.get(e.id); if (v && e.reason !== 'replaced' && e.reason !== 'expired') this.#flash(v.root.position.clone().setY(v.root.position.y + 0.6), 1, '#ffaa55', 0.25); this.#remove(this.deps, e.id); });
     bus.on('deployable:triggered', (e) => this.#flash(new THREE.Vector3().fromArray(e.point), e.radius ?? 2, this.#color(e.team), 0.35));
-    bus.on('deployable:pulse', (e) => this.#flash(new THREE.Vector3().fromArray(e.center).setY(0.5), e.radius, this.#color(e.team), 0.4, true));
+    bus.on('deployable:pulse', (e) => this.#flash(new THREE.Vector3().fromArray(e.center).setY(e.center[1] + 0.5), e.radius, this.#color(e.team), 0.4, true));
     bus.on('deployable:fire', (e) => this.#tracer(e.from, e.to, this.#color(e.team)));
     bus.on('world:coverDestroyed', (e) => {
       const m = this.coverMeshes.get(e.cover);
@@ -50,7 +50,7 @@ export class ZoneDeployableViews {
     const enemy = e.team !== this.localTeam;
     const color = this.#color(e.team);
     const root = new THREE.Group();
-    root.position.fromArray(e.center).setY(0.03);
+    root.position.fromArray(e.center).setY(e.center[1] + 0.03); // on terrain the center carries the ground height
     const mat = (opacity, side = THREE.DoubleSide) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side, depthWrite: false });
     const v = { e, root, arming, born: this.time, parts: {} };
 
@@ -95,7 +95,7 @@ export class ZoneDeployableViews {
   #goLive(v) {
     v.arming = false;
     v.parts.fill?.scale.setScalar(1);
-    this.#flash(v.root.position.clone().setY(0.5), v.e.radius ?? 2, this.#color(v.e.team), 0.3);
+    this.#flash(v.root.position.clone().setY(v.root.position.y + 0.5), v.e.radius ?? 2, this.#color(v.e.team), 0.3);
   }
 
   // ---------------------------------------------------------------- deployables

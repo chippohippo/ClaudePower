@@ -48,8 +48,9 @@ the client for prediction, and lets bots drive the same controllers with synthet
 
 ```
 scifi-combat/
-├─ docs/ARCHITECTURE.md          ← this file
-├─ index.html
+├─ docs/ARCHITECTURE.md          ← this file (+ MOVEMENT, ANIMATION, ABILITIES, AI, VEHICLES, FRONTLINE)
+├─ index.html                     Frontline battle, 64–128 fighters (src/frontline.js)
+├─ arena.html  rig-lab.html       4v4 feel lab (src/arena.js) · animation lab
 ├─ data/                          ← ALL tuning lives here (hot-reloadable JSON)
 │  ├─ movement.json               base locomotion tuning
 │  ├─ weapons/                    one file per category, ~80 weapons total
@@ -60,7 +61,7 @@ scifi-combat/
 │  ├─ damage-matrix.json          ammo type × armor type multipliers
 │  └─ ai/personalities.json
 ├─ src/
-│  ├─ main.js                     bootstrap, fixed-step loop
+│  ├─ frontline.js  arena.js      client bootstraps: input → fixed-step sim → anim → render → HUD
 │  ├─ core/   EventBus.js  FixedLoop.js  Registry.js  math.js
 │  ├─ input/  InputManager.js  bindings.json (rebindable)
 │  ├─ camera/ CameraRig.js        1P/3P blend, shoulder swap, shake, FOV kick
@@ -71,13 +72,18 @@ scifi-combat/
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
+│  │      FrontlineCommander.js  squads of 4, attack/defend orders per team
+│  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, bot LOD, waves)
+│  │        frontline/ FrontlineMap.js (seeded 1 km map)  FrontlineMode.js (rules) → docs/FRONTLINE.md
+│  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js   spatial indexes, heightfield, flow fields
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
 │  ├─ render/ CrowdRenderer.js    instanced crowd (5 draw calls, team colors, status glow, impostors)
+│  │          BattlefieldRenderer.js  TracerPool.js   terrain, instanced cover, objectives; pooled tracers
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
-│  └─ ui/   HUD.js  store.js (zustand/vanilla)  menus/
+│  └─ ui/   FrontlineHud.js  HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js
 ```
@@ -288,9 +294,16 @@ Mirror roles but **asymmetric mechanics** (Solari shields regenerate, Void armor
 ---
 
 ## 9. Modes
-TDM, Domination, Objective Control (Battlefront-style 32v32 with bots filling), Payload/Escort,
-Extraction/Survival, Horde (waves from data), Campaign (scripted `MissionScript` with triggers,
-AI spawn groups, dialogue cues). Mode = `GameMode` class with `onTick, onKill, scoring, spawnRules`.
+
+> Implemented: **Frontline** ([FRONTLINE.md](FRONTLINE.md)), the flagship 64–128 fighter mode.
+> It has 5 line sectors and 13 points between two HQs. Taking every point of the sector in front of
+> your line moves the front, and the match ends on a breakthrough, on tickets, or at the time limit.
+> Bots fill the armies in squads under a commander per team. `FrontlineMode` is simulation-only
+> (`update`, `onDeath`, `spawnPosition`, `snapshot`) and is the template for the other modes.
+
+Planned: TDM, Domination, Payload/Escort, Extraction/Survival, Horde (waves from data), and Campaign
+(scripted `MissionScript` with triggers, AI spawn groups and dialogue cues). A mode is a class with
+`update, onDeath, spawnPosition, snapshot` emitting `mode:*` events.
 
 ---
 
@@ -324,6 +337,10 @@ AI spawn groups, dialogue cues). Mode = `GameMode` class with `onTick, onKill, s
   half rate < 220 m, single instanced capsule impostor beyond. The whole crowd is five instanced draw calls.
 - Animation LOD: the followed fighter always solves every frame; mid rigs every 2nd frame; far fighters
   don't solve at all.
+- Simulation at 128 (implemented, [FRONTLINE.md](FRONTLINE.md)): grid-indexed cover raycasts, a per-tick
+  entity hash, shared flow fields per objective with time-sliced rebuilds, and bot think LOD (every
+  tick, 2nd or 3rd by distance to a human). Measured: 2.3 ms per 60 Hz tick for 128 fighters, 1.1 ms
+  for 64.
 - Pools for everything (tracers, decals, particles, audio voices). Zero allocations in hot loops
   (reuse `Vector3` scratch objects — see code).
 - KTX2/Basis textures, atlases per faction, shared materials, `frustumCulled`, BVH (three-mesh-bvh)

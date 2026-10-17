@@ -166,8 +166,10 @@ export class CombatWorld {
     if (this.cover.raycast) {
       best = this.cover.raycast(o, d, max);
       if (includeWalls) {
-        const w = this.deployables.raycast(o, d, max);
-        if (w?.entity.kind === 'wall' && (!best || w.distance < best.distance)) best = w;
+        // Walls only: a turret's ray starts inside its own sphere, which would otherwise be the
+        // nearest hit and mask a wall behind it.
+        const w = this.deployables.raycast(o, d, max, null, 'wall');
+        if (w && (!best || w.distance < best.distance)) best = w;
       }
       return best;
     }
@@ -179,8 +181,8 @@ export class CombatWorld {
       best = { entity: null, distance: h.t, point: o.clone().addScaledVector(d, h.t), normal, surface: b.surface ?? 'metal', cover: b };
     }
     if (includeWalls) {
-      const w = this.deployables.raycast(o, d, max);
-      if (w?.entity.kind === 'wall' && (!best || w.distance < best.distance)) best = w;
+      const w = this.deployables.raycast(o, d, max, null, 'wall');
+      if (w && (!best || w.distance < best.distance)) best = w;
     }
     return best;
   }

@@ -13,8 +13,9 @@ export class MeleeDuelistBrain {
    * @param {object} self    { movement, melee }
    * @param {object} personality { aggression, patience, feintRate, reactionTime, parrySkill }
    */
-  constructor(self, personality) {
+  constructor(self, personality, rand = Math.random) {
     this.self = self;
+    this.rand = rand;   // the owning bot's seeded stream keeps the sim deterministic
     this.p = { aggression: 0.6, patience: 0.5, feintRate: 0.2, reactionTime: 0.3, parrySkill: 0.5, ...personality };
     this.target = null;
     this.reactTimer = 0;
@@ -22,13 +23,13 @@ export class MeleeDuelistBrain {
     this.playerParryRate = 0;  // learned: how often the target parries our lights
     this.decisionCooldown = 0;
     this.prevButtons = {};
-    this.circleDir = Math.random() < 0.5 ? -1 : 1;
+    this.circleDir = this.rand() < 0.5 ? -1 : 1;
   }
 
   /** Called from bus listeners. Reacting is delayed by reactionTime → difficulty knob. */
   observeWindup(e) {
     if (e.id !== this.target?.id) return;
-    const roll = Math.random();
+    const roll = this.rand();
     let action = 'none';
     if (e.unblockable) action = 'dodge';
     else if (roll < this.p.parrySkill) action = 'parry';
@@ -120,12 +121,12 @@ export class MeleeDuelistBrain {
       cmd.moveY = (threat.x * fx + threat.z * fz) / len;
       cmd.moveX = (threat.x * rx + threat.z * rz) / len;
       want.light = false; want.heavyHold = false;
-      if (this.self.movement.state.stamina > 40 && Math.random() < 0.05) want.dodge = true;
+      if (this.self.movement.state.stamina > 40 && this.rand() < 0.05) want.dodge = true;
     }
     // Abilities: the bot uses its gap-closer from mid range, the same way a player would.
     // Like a Deadlock bot, it only commits a long cooldown when the target is not guarding.
     const ab = this.self.abilities?.slots?.ability1;
-    if (ab?.ready && dist > 4 && dist < 8 && !tm.guarding && Math.random() < 0.03 * (0.5 + this.p.aggression)) want.ability1 = true;
+    if (ab?.ready && dist > 4 && dist < 8 && !tm.guarding && this.rand() < 0.03 * (0.5 + this.p.aggression)) want.ability1 = true;
     // Super: commit when the target is close and not already transformed (don't trade supers blindly).
     const ab2 = this.self.abilities;
     if (ab2?.slots?.super && ab2.superEnergy >= ab2.superCost && !this.self.transform && dist < 7 && !t.transform && !this.self.status?.silenced) want.super = true;
