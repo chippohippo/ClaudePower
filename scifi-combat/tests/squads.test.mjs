@@ -87,22 +87,29 @@ test('over the top: both sides man their jump-off trench, the whistle blows, eve
   const s = new FrontlineSession(sessionData, { size: '4v4', seed: 5 });
   const whistles = [];
   const off = bus.on('squad:whistle', (e) => whistles.push({ ...e, t: s.time }));
-  const manned = [0, 0];
-  run(s, 30, (i) => {
+  const manned = [0, 0], out = [0, 0], infantry = [4, 4];
+  run(s, 32, (i) => {
     if (i % 30) return;
     for (const team of [0, 1]) {
-      const sq = s.squads[team][0];
-      if (sq.tactics.phase === 'jumpoff') manned[team] = Math.max(manned[team], up(sq).filter((m) => m.brain?.order?.kind === 'man' && m.brain.order.spot && P(m).distanceTo(new Vector3(m.brain.order.spot.x, P(m).y, m.brain.order.spot.z)) < 1.6).length);
+      const sq = s.squads[team][0], foot = up(sq);
+      if (sq.tactics.phase === 'jumpoff') {
+        infantry[team] = Math.min(infantry[team], foot.length);
+        manned[team] = Math.max(manned[team], foot.filter((m) => m.brain?.order?.kind === 'man' && m.brain.order.spot && P(m).distanceTo(new Vector3(m.brain.order.spot.x, P(m).y, m.brain.order.spot.z)) < 1.6).length);
+      }
+      // Within 10 s of the whistle: how many are out past the trench, in no-man's-land?
+      const w = whistles.find((x) => x.team === team);
+      if (w && s.time - w.t < 10) {
+        const T = s.map.trenches.find((q) => q.id === w.trench), dir = team === 0 ? 1 : -1;
+        out[team] = Math.max(out[team], foot.filter((m) => (P(m).x - T.cx) * dir > 8).length);
+      }
     }
   });
   off();
   for (const team of [0, 1]) {
-    assert.ok(manned[team] >= 3, `team ${team}: ${manned[team]} soldiers manned firing positions`);
+    assert.ok(manned[team] >= Math.min(3, infantry[team]), `team ${team}: ${manned[team]} soldiers manned firing positions`);
     const w = whistles.find((x) => x.team === team);
     assert.ok(w && w.t < 25, `team ${team} went over the top (whistle at ${w?.t.toFixed(1)} s)`);
-    const T = s.map.trenches.find((q) => q.id === w.trench), dir = team === 0 ? 1 : -1;
-    const out = up(s.squads[team][0]).filter((m) => (P(m).x - T.cx) * dir > 8).length;
-    assert.ok(out >= Math.min(3, up(s.squads[team][0]).length), `team ${team}: out in no-man's-land (${out})`);
+    assert.ok(out[team] >= Math.min(3, infantry[team]), `team ${team}: out in no-man's-land (${out[team]})`);
   }
   s.dispose();
 });
@@ -312,5 +319,37 @@ test('a squad holding a line with no cover on it digs in', () => {
   run(s, 45);
   off();
   assert.ok(built.includes('foxhole'), `dug in (${built.join(', ') || 'nothing'})`);
+  s.dispose();
+});
+
+test('armor on the Western Front: tanks cross trenches crushing sandbags, flatten wire; the motor pool moves up', () => {
+  const s = new FrontlineSession(sessionData, { size: '32v32', seed: 7, humans: [{ id: 1, team: 0, classId: 'lancer' }] });
+  const me = s.fighters.find((f) => f.id === 1), t = s.map.terrain;
+  const pad = s.world.vehicles.pads.find((p) => p.team === 0 && p.vehicle.includes('tank')), tank = pad.current;
+  const crushed = [], cut = [];
+  const offs = [bus.on('world:coverDestroyed', (e) => { if (e.crushed) crushed.push(e); }), bus.on('world:wireCut', (e) => cut.push(e))];
+  // Across a trench: the tank starts 10 m short of a bay and drives straight at it.
+  const T = s.map.trenches[1], B = T.bays[Math.floor(T.bays.length / 2)], z = (B.z0 + B.z1) / 2;
+  const drive = (x0, zz, seconds) => {
+    tank.movement.state.position.set(x0, t.height(x0, zz), zz); tank.movement.state.velocity.set(0, 0, 0); tank.yaw = -Math.PI / 2;
+    if (!me.vehicle) s.world.vehicles.enter(me, tank, tank.seats.findIndex((q) => q.def.role === 'driver'));
+    const cmd = emptyCommand(); cmd.moveY = 1; cmd.yaw = -Math.PI / 2;
+    run(s, seconds, () => s.setCommand(1, cmd));
+  };
+  drive(B.x - 10, z, 7);
+  assert.ok(crushed.length >= 1, `sandbags crushed (${crushed.length})`);
+  assert.ok(tank.movement.state.position.x > B.x + 4, `across the trench (x ${tank.movement.state.position.x.toFixed(1)} vs bay ${B.x})`);
+  // Through a wire belt.
+  const w = s.map.wire.find((q) => q.min.x > B.x + 5) ?? s.map.wire[0];
+  drive(w.min.x - 8, (w.min.z + w.max.z) / 2, 5);
+  assert.ok(cut.length >= 1, 'wire flattened under the tracks');
+  // The front moves up a sector: the pads follow it to that sector's motor pool.
+  s.world.vehicles.exit(me);
+  const before = pad.at.x;
+  s.mode.front[0] += 1;
+  bus.emit('mode:front', { front: [...s.mode.front] });
+  const pool = s.map.sectors[s.mode.front[0]].pool[0];
+  assert.ok(pad.at.x > before + 50 && Math.abs(pad.at.x - pool.x) < 1, `pad moved up (${before.toFixed(0)} -> ${pad.at.x.toFixed(0)})`);
+  offs.forEach((f) => f());
   s.dispose();
 });

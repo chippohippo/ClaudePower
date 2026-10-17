@@ -229,11 +229,23 @@ export class CombatWorld {
     });
     this.damageDeployables(point, radius, base, owner, weapon.ammoType, projectile?.team);
     // Shells cut barbed wire: the gap opens for everyone (and for the bots' routes).
-    const cut = this.wire?.cut(point, radius * 0.6);
-    if (cut?.length) {
-      for (const w of cut) this.nav?.removeZones(w.min.x, w.min.z, w.max.x, w.max.z);
-      bus.emit('world:wireCut', { belts: cut.map((w) => w.id), center: point.toArray() });
-    }
+    this.cutWire(point, radius * 0.6);
+  }
+
+  /** Cut the barbed wire within r of a point (shells, tank tracks): routes open through the gap. */
+  cutWire(point, r) {
+    const cut = this.wire?.cut(point, r);
+    if (!cut?.length) return 0;
+    for (const w of cut) this.nav?.removeZones(w.min.x, w.min.z, w.max.x, w.max.z);
+    bus.emit('world:wireCut', { belts: cut.map((w) => w.id), center: [point.x, point.y ?? 0, point.z] });
+    return cut.length;
+  }
+
+  /** Remove one piece of destructible cover (crushed under a tank's tracks). */
+  removeCover(b, by = null) {
+    if (this.cover.remove) this.cover.remove(b); else this.cover.splice(this.cover.indexOf(b), 1);
+    this.nav?.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z);
+    bus.emit('world:coverDestroyed', { cover: b, by: by?.id, center: [(b.min.x + b.max.x) / 2, b.max.y, (b.min.z + b.max.z) / 2], crushed: true });
   }
 
   /**

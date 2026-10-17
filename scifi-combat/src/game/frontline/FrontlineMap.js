@@ -10,7 +10,8 @@
 //    and wire belts in front of them (slow to cross, bots path around them).
 //  * Fortified points: a strongpoint and a broken ring of walls around every capture point.
 //  * Villages (Ruins.js): ruined buildings with rooms and doorways around chosen sectors' points.
-//  * Blockhouses, scatter (rocks, crates), HQ walls and vehicle pads per size.
+//  * Blockhouses, scatter (rocks, crates), HQ walls, and a motor pool per line sector and team
+//    where that team's vehicle pads stand while the sector is its front.
 // All terrain changes come first, then every box is placed on the finished ground.
 
 import { Vector3 } from 'three';
@@ -36,7 +37,7 @@ function doorways(ruins) {
 
 /**
  * @param {object} o { seed, size: '4v4' | '12v12' | '32v32' | '64v64', layout (a MapSizes-style profile) }
- * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors, points, hq, pads, trenches, ruins, wire, craters, structures, bounds }}
+ * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors (with .pool[team]), points, hq, pads, padGap, trenches, ruins, wire, craters, structures, bounds }}
  */
 export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null } = {}) {
   const P = layout ?? mapSizeFor(size);
@@ -98,17 +99,35 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   const hq = [v((hqSec[0].x0 + hqSec[0].x1) / 2, 0, 0), v((hqSec[1].x0 + hqSec[1].x1) / 2, 0, 0)];
   const hqR = Math.min(40, (hqSec[0].x1 - hqSec[0].x0) * 0.6);
 
-  // ---- terrain: readable ground at points, spawns and HQs
+  // Motor pools: each line sector has, per team, a cleared and levelled patch toward that team's
+  // side where its vehicle pads stand while the sector is its front (the pool moves up with the
+  // line, so tanks and bikes respawn where the fighting is, not at a far-off HQ).
+  const nPads = P.pads.reduce((a, [, c]) => a + c, 0), padGap = 9;
+  for (const s of sectors) {
+    s.pool = [null, null];
+    if (s.kind !== 'line' || !nPads) continue;
+    const w = s.x1 - s.x0, inset = Math.max(12, Math.min(30, w * 0.2));
+    for (const team of [0, 1]) s.pool[team] = v(team === 0 ? s.x0 + inset : s.x1 - inset, 0, 0);
+  }
+
+  // ---- terrain: readable ground at points, spawns, HQs and motor pools
   const allSpawns = (s, team) => [...s.spawns[team], ...s.rearSpawns[team]];
   for (const p of points) terrain.flatten(p.pos.x, p.pos.z, P.pointRadius * 2.4);
   for (const s of sectors) for (const team of [0, 1]) for (const sp of allSpawns(s, team)) terrain.flatten(sp.x, sp.z, 8);
   for (const h of hq) terrain.flatten(h.x, h.z, hqR, null, 0.75);
+  const poolHalf = ((nPads - 1) / 2) * padGap + 7;
+  for (const s of sectors) for (const team of [0, 1]) {
+    const c = s.pool?.[team];
+    if (!c) continue;
+    for (let z = -poolHalf; z <= poolHalf; z += 6) terrain.flatten(c.x, c.z + z, 10, terrain.height(c.x, c.z), 0.7);
+  }
 
   // Trench lines sit on every boundary between two line sectors.
   const trenchX = [];
   for (let i = 1; i < sectors.length - 2; i++) if (sectors[i].kind === 'line' && sectors[i + 1].kind === 'line') trenchX.push(sectors[i].x1);
   const spawnPts = sectors.flatMap((s) => [0, 1].flatMap((t) => allSpawns(s, t)));
-  const ruinsAt = [];
+  const ruinsAt = [];   // occupied ground nothing else is built on (ruins, motor pools, trench works)
+  for (const s of sectors) for (const c of s.pool ?? []) if (c) ruinsAt.push({ x0: c.x - 9, z0: c.z - poolHalf, x1: c.x + 9, z1: c.z + poolHalf });
   // Is a square of half-size r at (x, z) clear of points, HQs, spawns, trench lines and ruins?
   const clearOf = (x, z, r, { trench = 0 } = {}) => points.every((p) => Math.hypot(p.pos.x - x, p.pos.z - z) > r + p.radius)
     && hq.every((h) => Math.hypot(h.x - x, h.z - z) > hqR + 4) && spawnPts.every((p) => Math.hypot(p.x - x, p.z - z) > r + 4)
@@ -202,6 +221,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
     for (let k = 0; k < 3; k++) {
       const a = R(0, Math.PI * 2), r = R(rr * 0.5, rr + 10), cx = x + Math.cos(a) * r, cz = z + Math.sin(a) * r;
       if (spawnPts.some((q) => Math.hypot(q.x - cx, q.z - cz) < 3.5)) continue;
+      if (ruinsAt.some((q) => cx > q.x0 - 1 && cx < q.x1 + 1 && cz > q.z0 - 1 && cz < q.z1 + 1)) continue;
       boxC(cx, cz, 1.4, 1.4, 1.3, { kind: 'crate', surface: 'wood', destructible: true });
     }
   }
@@ -244,14 +264,15 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
     portals: doorways(ruins),
   });
 
-  // ---- vehicle pads by the HQs
+  // ---- vehicle pads, in the motor pool of each team's starting front sector
   const pads = [];
-  for (const [team, h] of hq.entries()) {
-    const f = team === 0 ? 1 : -1, yaw = team === 0 ? -Math.PI / 2 : Math.PI / 2;
+  const startFront = [Math.floor((sectors.length - 1) / 2) - 1, Math.floor((sectors.length - 1) / 2) + 1];
+  for (const team of [0, 1]) {
+    const yaw = team === 0 ? -Math.PI / 2 : Math.PI / 2;
+    const c = sectors[startFront[team]]?.pool?.[team] ?? hq[team];
     let slot = 0;
     for (const [kind, n] of P.pads) for (let k = 0; k < n; k++, slot++) {
-      const z = h.z + (slot - (P.pads.reduce((a, [, c]) => a + c, 0) - 1) / 2) * Math.min(14, P.depth * 0.08);
-      pads.push({ vehicle: VEHICLES[kind][team], team, at: v(h.x + f * hqR * 0.35, 0, z), yaw, respawn: kind === 'tank' ? 45 : 20 });
+      pads.push({ vehicle: VEHICLES[kind][team], team, slot, at: v(c.x, 0, c.z + (slot - (nPads - 1) / 2) * padGap), yaw, respawn: kind === 'tank' ? 45 : 20 });
     }
   }
 
@@ -260,10 +281,11 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   for (const s of sectors) for (const team of [0, 1]) for (const sp of allSpawns(s, team)) sp.y = terrain.height(sp.x, sp.z);
   for (const h of hq) h.y = terrain.height(h.x, h.z);
   for (const pad of pads) pad.at.y = terrain.height(pad.at.x, pad.at.z);
+  for (const s of sectors) for (const c of s.pool ?? []) if (c) c.y = terrain.height(c.x, c.z);
   terrain.takeDirty(); // the renderer builds the finished ground; only later changes are news
 
   return {
-    seed, size: P.id ?? size, name: P.name, terrain, cover, nav, sectors, points, hq, pads,
+    seed, size: P.id ?? size, name: P.name, terrain, cover, nav, sectors, points, hq, pads, padGap,
     trenches, ruins, wire, craters, structures,
     bounds: { minX: P.minX, minZ: P.minZ, maxX, maxZ },
   };

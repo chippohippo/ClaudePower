@@ -83,7 +83,7 @@ export class NavGrid {
       const bz0 = Math.max(z0, Math.floor((b.min.z - g - this.minZ) / c)), bz1 = Math.min(z1, Math.floor((b.max.z + g - this.minZ) / c));
       for (let iz = bz0; iz <= bz1; iz++) for (let ix = bx0; ix <= bx1; ix++) {
         const i = iz * this.nx + ix;
-        this.cost[i] = h > this.vaultHeight && !parapet ? Infinity : Math.max(this.cost[i], parapet ? 6 : 4);
+        this.cost[i] = h > this.vaultHeight && !parapet ? Infinity : Math.max(this.cost[i], parapet ? 10 : 4);
       }
     };
     if (this.cover?.queryAABB) this.cover.queryAABB(minX - r, minZ - r, maxX + r, maxZ + r, visit);
@@ -201,8 +201,8 @@ export class NavGrid {
         if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
         const j = jz * nx + jx;
         if (cost[j] === Infinity) continue;
-        // No diagonal corner cutting past blocked cells.
-        if (k >= 4 && (cost[iz * nx + jx] === Infinity || cost[jz * nx + ix] === Infinity)) continue;
+        // No diagonal corner cutting past blocked (or costlier) cells.
+        if (k >= 4) { const top = Math.max(cost[i], cost[j]); if (cost[iz * nx + jx] > top || cost[jz * nx + ix] > top) continue; }
         const nd = di + LEN[k] * 0.5 * (cost[i] + cost[j]);
         if (nd < dist[j]) { dist[j] = nd; dir[j] = k ^ 1 ^ (k >= 4 ? 2 : 0); heap.push(j, nd); }
       }
@@ -295,7 +295,8 @@ export class NavGrid {
         if (jx < 0 || jz < 0 || jx >= nx || jz >= nz) continue;
         const j = jz * nx + jx;
         if (cost[j] === Infinity || A.closed[j] === gen) continue;
-        if (k >= 4 && (cost[iz * nx + jx] === Infinity || cost[jz * nx + ix] === Infinity)) continue;
+        // Diagonals never cut a corner past a costlier cell (a parapet's end, a wall's corner).
+        if (k >= 4) { const top = Math.max(cost[i], cost[j]); if (cost[iz * nx + jx] > top || cost[jz * nx + ix] > top) continue; }
         const ng = gi + LEN[k] * 0.5 * (cost[i] + cost[j]);
         if (A.seen[j] !== gen || ng < A.g[j]) { A.seen[j] = gen; A.g[j] = ng; A.from[j] = i; heap.push(j, ng + h(j)); }
       }

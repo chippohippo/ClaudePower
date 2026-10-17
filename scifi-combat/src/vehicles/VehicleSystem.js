@@ -74,11 +74,25 @@ export class VehicleSystem {
     return v;
   }
 
-  addPad({ vehicle, team, at, yaw = 0, respawn = 20 }) {
-    const pad = { vehicle, team, at: at.clone(), yaw, respawn, timer: 0, current: null };
+  addPad({ vehicle, team, at, yaw = 0, respawn = 20, slot = 0 }) {
+    const pad = { vehicle, team, at: at.clone(), yaw, respawn, slot, timer: 0, current: null };
     pad.current = this.spawn(vehicle, team, at, yaw, { pad });
     this.pads.push(pad);
     return pad;
+  }
+
+  /**
+   * The motor pool moves up with the front: the pad moves, and its vehicle, if nobody's in it,
+   * is taken away and turns up at the new spot a few seconds later.
+   */
+  movePad(pad, at, yaw = pad.yaw) {
+    pad.at.copy(at); pad.yaw = yaw;
+    const v = pad.current;
+    if (v && !v.removed && !v.seats.some((s) => s.occupant) && v.movement.state.position.distanceTo(at) > 15) {
+      this.#remove(v, 'relocated');
+      pad.current = null;
+      pad.timer = Math.max(0, pad.respawn - 5);
+    }
   }
 
   #seatWeapons(v, sd) {
@@ -221,9 +235,29 @@ export class VehicleSystem {
     this.#gripAndDrag(v, dt, throttle === 0);
     this.#clampSpeed(s.velocity, top);
     s.position.addScaledVector(s.velocity, dt);
-    // Float at hover height over whatever is below, including low cover (you can skim over crates).
-    const target = this.world.groundHeight(s.position) + d.hoverHeight;
+    // Float at hover height over whatever is below, including low cover (you can skim over crates)
+    // and across trenches (the highest ground under the hull carries it).
+    const target = this.#support(v, 0.75) + d.hoverHeight;
     s.position.y += (target - s.position.y) * Math.min(1, dt * 12);
+  }
+
+  /**
+   * The ground a hull rests on: the highest point under its footprint (centre, nose, tail and
+   * both sides at `k` of its half-size). A tank spans a trench instead of nosing into it, a
+   * hover bike lifts over the parapet on the far side.
+   */
+  #support(v, k) {
+    const s = v.movement.state, d = v.def, hl = (d.size?.z ?? 2) * 0.5 * k, hw = (d.size?.x ?? 1) * 0.5 * k;
+    // Box tops the hull can get onto count as ground: what a hover skims (1.5 m), what tracks
+    // climb (0.5 m; anything taller stops them, or is crushed).
+    const base = s.position.y - (d.hoverHeight ?? 0), probeY = d.model === 'tracked' ? base - 1 : base;
+    let best = -Infinity;
+    for (const [lx, lz] of [[0, 0], [0, -hl], [0, hl], [-hw, 0], [hw, 0]]) {
+      localToWorld(_p, s.position, v.yaw, [lx, 0, lz]);
+      _p.y = probeY;
+      best = Math.max(best, this.world.groundHeight(_p));
+    }
+    return best;
   }
 
   #tracked(v, cmd, dt, stalled) {
@@ -238,7 +272,11 @@ export class VehicleSystem {
     this.#gripAndDrag(v, dt, throttle === 0);
     this.#clampSpeed(s.velocity, top);
     s.position.addScaledVector(s.velocity, dt);
-    s.position.y = this.world.groundHeight(s.position);
+    // Tracks bridge a trench (the hull rests on its edges) and settle smoothly after a crossing.
+    const ground = this.#support(v, 0.85);
+    s.position.y = ground > s.position.y ? ground : s.position.y + (ground - s.position.y) * Math.min(1, dt * 10);
+    // What tanks were built for: wire flattened under the tracks.
+    if (Math.hypot(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, d.radius * 0.8);
   }
 
   #flyer(v, cmd, dt, stalled) {
@@ -293,7 +331,18 @@ export class VehicleSystem {
     const near = this._near ??= [];
     near.length = 0;
     this.world.coverIn(s.position.x - d.radius, s.position.z - d.radius, s.position.x + d.radius, s.position.z + d.radius, (b) => near.push(b));
+    const speed = Math.hypot(s.velocity.x, s.velocity.z);
     for (const b of near) {
+      // Tanks crush what's destructible and not too tall under their tracks (sandbags, crates,
+      // broken walls): a tank crossing a trench line leaves a gap in the parapet behind it.
+      if (d.model === 'tracked' && b.destructible && b.max.y - base < 2 && b.max.y > base - 0.3 && speed > 0.8) {
+        const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
+        if (Math.hypot(s.position.x - cx, s.position.z - cz) < d.radius * 0.8) {
+          this.world.removeCover?.(b, v.seats.find((q) => q.def.role === 'driver')?.occupant ?? v);
+          s.velocity.multiplyScalar(0.93);
+          continue;
+        }
+      }
       if (b.max.y <= base + (d.model === 'tracked' ? 0.5 : 1.2)) continue;
       if (d.model === 'flyer' && base > b.max.y) continue;
       const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));

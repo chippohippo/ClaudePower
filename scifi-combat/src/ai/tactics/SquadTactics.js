@@ -63,6 +63,7 @@ export class SquadTactics {
     this.bound = null;                    // { moving, started, targets: Map(member -> {x, z, spot}) }
     this.clear = null;                    // { R, door, stage, t, started }
     this.jump = null;                     // { T, ready, gone, since, at }
+    this.rush = null;                     // { until, targets } the first rush after the whistle
     this.charge = null;                   // { why, until }
     this.holdSpots = new Map();           // member -> spot
     this.lastObjective = null;
@@ -77,8 +78,12 @@ export class SquadTactics {
     this.plan();
   }
 
-  /** The whistle: the commander sends this squad over the top. */
-  overTheTop() { if (this.jump) { this.jump.gone = true; this.jump.at = this.time; } }
+  /** The whistle: the commander sends this squad over the top (the rush starts at once). */
+  overTheTop() {
+    if (!this.jump) return;
+    this.jump.gone = true; this.jump.at = this.time;
+    this.rushDue = true; this.next = 0;
+  }
 
   // ---------------------------------------------------------------- planning
   plan() {
@@ -96,6 +101,12 @@ export class SquadTactics {
     this.#defaultThreat(obj);
     const phase = this.#choose(up, obj);
     this.#setPhase(phase, this.why);
+    if (this.rushDue) {
+      // The whistle just went: the whole squad goes over together, each man to cover 15-25 m out.
+      this.rushDue = false;
+      if (phase !== 'charge') { this.rush = { until: this.time + 9, targets: this.#boundTargets(up, obj, up) }; this.#setPhase('contact', 'over the top'); this.#rushOrders(up); return; }
+    }
+    if (this.rush && phase !== 'contact' && phase !== 'charge' && this.time < this.rush.until) { this.#rushOrders(up); return; }
     switch (phase) {
       case 'charge': this.#chargeOrders(up, obj); break;
       case 'hold': this.#hold(up, obj); break;
@@ -310,9 +321,21 @@ export class SquadTactics {
     });
   }
 
+  /** The first rush over the top: the whole wave goes, each man to his first cover. */
+  #rushOrders(up) {
+    for (const m of up) {
+      const t = this.rush.targets.get(m);
+      if (t) this.#order(m, { kind: 'bound', pos: t, spot: t.spot, sprint: true, fire: 'move', face: this.threat, arrive: 1.2, overTop: true, why: 'over the top' });
+    }
+  }
+
   /** Bounding overwatch: one team covers while the other moves cover to cover. */
   #contact(up, obj) {
     const now = this.time;
+    // Still in the rush over the top: everyone keeps going until they reach their first cover.
+    const R = this.rush;
+    if (R && now < R.until && up.some((m) => { const t = R.targets.get(m); return t && d2(pos(m), t) > 1.6; })) { this.#rushOrders(up); return; }
+    if (R) { this.rush = null; this.bound = { moving: 0, started: now, targets: R.targets }; }
     const teams = up.length >= 2 ? [up.filter((_, i) => i % 2 === 0), up.filter((_, i) => i % 2 === 1)] : [up];
     let b = this.bound;
     if (!b) b = this.bound = { moving: 0, started: now - 10, targets: new Map() };
@@ -394,8 +417,9 @@ export class SquadTactics {
     const behind = (this.center.x - T.cx) * dir < (waiting ? 8 : 4);
     const beyond = (obj.pos.x - T.cx) * dir > 15;
     if (!behind || !beyond) return null;
-    // Overrun (enemies in it): fight for it instead of lining up in it.
-    for (const c of this.contacts.values()) if (this.time - c.t < 4 && Math.abs(c.pos.x - T.cx) < 6 && Math.abs(c.pos.z - this.center.z) < 40) return null;
+    // Overrun (enemies down in it, near our stretch): fight for it instead of lining up in it.
+    // Enemies coming at it are what manning it is for.
+    for (const c of this.contacts.values()) if (this.time - c.t < 3 && Math.abs(c.pos.x - T.cx) < 3.5 && Math.abs(c.pos.z - this.center.z) < 30) return null;
     return T;
   }
 
@@ -423,12 +447,7 @@ export class SquadTactics {
     // Ready when most of us are in place: tell the commander, who blows the whistle for the line.
     if (!J.ready && (inPlace >= Math.ceil(up.length * 0.75) || now - J.since > 25)) { J.ready = true; J.readyAt = now; this.cmdr?.readyAtTrench?.(this, T); }
     if (J.ready && !J.gone && now - J.readyAt > 30) this.overTheTop();   // nobody blew it: go anyway
-    if (J.gone) {
-      // Over the top: everyone at once, to cover 15-25 m out.
-      const targets = this.#boundTargets(up, obj, up);
-      for (const m of up) { const t = targets.get(m); this.#order(m, { kind: 'bound', pos: t, spot: t.spot, sprint: true, fire: 'move', face: this.threat, arrive: 1.2, overTop: true, why: 'over the top' }); }
-      this.bound = { moving: 0, started: now, targets };
-    }
+
   }
 
   #assault(up, obj) {

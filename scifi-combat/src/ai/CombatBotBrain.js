@@ -35,6 +35,7 @@ import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch 
 import { VehiclePilot } from './VehiclePilot.js';
 
 const SLOTS = ['ability1', 'ability2', 'grenade', 'super'];
+const POSITIONAL = new Set(['man', 'hold', 'overwatch', 'stack', 'enter', 'grenade']);
 const _a = new Vector3();
 const _b = new Vector3();
 const _d = new Vector3();
@@ -424,12 +425,16 @@ export class CombatBotBrain {
     }
 
     if (this.abilityLock > 0 && !ctx.targetCasting) return;
+    // Holding a position for the squad (a trench, cover, a doorway): no launch pads or dashes that
+    // would throw us out of it; those are for moving.
+    const holding = this.order && POSITIONAL.has(this.order.kind);
     let best = null, bs = 0.55;
     for (const key of SLOTS) {
       const slot = ab.slots[key];
       if (!slot || slot.recast) continue;
       if (key === 'super' ? ab.superEnergy < ab.superCost || slot.phase !== 'ready' : !slot.ready) continue;
       const p = this.#profile(key, slot);
+      if (holding && (p.tags.has('mobility') || (p.tags.has('gapCloser') && ctx.dist > 8))) continue;
       const s = scoreAbility(p, ctx, this.persona) * this.diff.abilityMul * (0.85 + this.rand() * 0.3);
       if (s > bs) { bs = s; best = { key, p }; }
     }
@@ -649,7 +654,9 @@ export class CombatBotBrain {
       }
     }
     let arrived = true;
-    if (dest) arrived = this.#goTo(cmd, dest, dt, { sprint: o.sprint && sup < 0.6, radius: o.arrive ?? 1, field: o.field, follow: o.follow });
+    // Going over the top is a climb straight out of the trench, not a walk to the nearest exit.
+    const climbOut = o.overTop && this.#inTrench();
+    if (dest) arrived = this.#goTo(cmd, dest, dt, { sprint: o.sprint && sup < 0.6, radius: o.arrive ?? 1, field: o.field, follow: o.follow, direct: climbOut });
     if (o.kind === 'grenade') { if (arrived) this.#throwGrenade(o, cmd); this.#stance('crouch'); return; }
     // Holding where there's no cover (or improving a dug position): dig in, unless an enemy is
     // close enough to matter or the fire is heavy (long-range fire is what the hole is for).
@@ -686,7 +693,13 @@ export class CombatBotBrain {
    * Walk to a point: A* waypoints between cover (string-pulled), the objective's flow field when
    * far, straight at it when there's no nav. Returns true once within `radius`.
    */
-  #goTo(cmd, p, dt, { sprint = false, radius = 1, field = null, follow = false } = {}) {
+  /** Standing in a dug trench (the ground here is well below the ground it was cut from)? */
+  #inTrench() {
+    const t = this.world.terrain, me = this.self.movement.state.position;
+    return !!t?.undug && t.undug(me.x, me.z) - t.height(me.x, me.z) > 0.45;
+  }
+
+  #goTo(cmd, p, dt, { sprint = false, radius = 1, field = null, follow = false, direct = false } = {}) {
     const me = this.self.movement.state.position, nav = this.world.nav, dir = this.moveDir;
     const dx = p.x - me.x, dz = p.z - me.z, d = Math.hypot(dx, dz);
     // Arrived (and at the right level: on the trench floor, not on the sandbags above the spot).
@@ -695,7 +708,8 @@ export class CombatBotBrain {
     if (d <= radius) { this.moveDir.set(dx / Math.max(d, 0.05), 0, dz / Math.max(d, 0.05)); this.hasMoveDir = true; this.arriving = true; return false; }   // step down to it
     this.arriving = d < 2.6;
     let steered = false;
-    if (nav && field && d > 60) {
+    if (direct) { /* straight at it: the feelers climb what's in the way */ }
+    else if (nav && field && d > 60) {
       steered = nav.sample(nav.field(field, p.x, p.z, 4), me.x, me.z, dir);
     } else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
       let R = this.route;
@@ -862,7 +876,11 @@ export class CombatBotBrain {
     this.#avoidObstacles(cmd);
   }
 
-  /** Two feelers: sidestep tall cover; sprint-vault low cover (the movement system auto-vaults). */
+  /**
+   * A feeler along the way we're actually going (in the world, whatever we're aiming at): climb
+   * what can be climbed (low cover, trench parapets, crates and rocks) by holding the climb key;
+   * slide along anything taller, following the wall toward where we wanted to go.
+   */
   #avoidObstacles(cmd) {
     const me = this.self.movement.state.position;
     const y = cmd.yaw;
@@ -874,12 +892,17 @@ export class CombatBotBrain {
     const hit = this.world.raycastStatic(_a.set(me.x, me.y + 0.5, me.z), _d, 2.2, { includeWalls: true });
     if (!hit) return;
     const top = hit.cover ? hit.cover.max.y - me.y : 3;
-    // Low cover: hold climb and the movement system vaults it when we reach it (HD2 hold-to-climb).
-    // A trench parapet is climbed from the floor (going over the top), and so is anything else
-    // up to chest-and-a-half height that the route runs into.
-    if ((top < 1.1 || (top < 2 && (hit.cover?.kind === 'parapet' || hit.cover?.kind === 'crate' || hit.cover?.kind === 'rock'))) && cmd.moveY > 0.5) { this.btn.hold('jump'); return; }
-    cmd.moveX = this.strafeSign; // slide along it
-    if (cmd.moveY > 0) cmd.moveY = 0.2;
+    const kind = hit.cover?.kind;
+    if (top < 1.1 || (top < 2 && (kind === 'parapet' || kind === 'crate' || kind === 'rock' || kind === 'fort'))) { this.btn.hold('jump'); return; }
+    // Slide: along the wall's face, on the side nearer the way we wanted to go.
+    const n = hit.normal;
+    if (!n) { cmd.moveX = this.strafeSign; if (cmd.moveY > 0) cmd.moveY = 0.2; return; }
+    let tx = -n.z, tz = n.x;
+    const along = tx * _d.x + tz * _d.z;
+    if (Math.abs(along) < 0.15) { tx *= this.strafeSign; tz *= this.strafeSign; } else if (along < 0) { tx = -tx; tz = -tz; }
+    _b.set(tx * 0.9 + n.x * 0.1, 0, tz * 0.9 + n.z * 0.1).normalize().multiplyScalar(len);
+    cmd.moveY = _b.x * fx + _b.z * fz;
+    cmd.moveX = _b.x * rx + _b.z * rz;
   }
 
   // ---------------------------------------------------------------- safety

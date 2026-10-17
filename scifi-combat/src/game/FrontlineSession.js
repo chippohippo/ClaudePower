@@ -84,7 +84,7 @@ export class FrontlineSession {
     for (const pad of this.map.pads) this.world.vehicles.addPad(pad);
     // Flow fields for every point up front (~25 ms each), so orders never hitch mid-battle.
     for (const p of this.map.points) this.map.nav.field(`pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
-    this.off = [bus.on('entity:death', (e) => this.#onDeath(e))];
+    this.off = [bus.on('entity:death', (e) => this.#onDeath(e)), bus.on('mode:front', () => this.#motorPools())];
     // Everyone deploys at the start of the match, each squad together at one spawn.
     for (const team of [0, 1]) for (const sq of this.squads[team]) {
       const at = this.mode.spawnPosition(team, () => false, new Vector3());
@@ -224,6 +224,19 @@ export class FrontlineSession {
     return out.set(best.x + (this.mode.rand() - 0.5) * 6, best.y, best.z + (this.mode.rand() - 0.5) * 6);
   }
 
+  /** Each team's vehicle pads follow its front: they stand in that sector's motor pool. */
+  #motorPools() {
+    for (const team of [0, 1]) {
+      const sec = this.map.sectors[this.mode.front[team]], c = sec?.pool?.[team] ?? this.map.hq[team];
+      for (const pad of this.world.vehicles.pads) {
+        if (pad.team !== team) continue;
+        const at = new Vector3(c.x, 0, c.z + (pad.slot - (this.world.vehicles.pads.filter((q) => q.team === team).length - 1) / 2) * (this.map.padGap ?? 9));
+        at.y = this.map.terrain.height(at.x, at.z);
+        if (at.distanceTo(pad.at) > 1) this.world.vehicles.movePad(pad, at);
+      }
+    }
+  }
+
   /** Human respawn request (the client decides when). */
   respawn(id) { const f = this.fighters.find((x) => x.id === id); if (f?.health.dead && this.time >= f.respawnAt) this.#deploy(f); }
 
@@ -240,12 +253,32 @@ export class FrontlineSession {
       const lp = lead.movement.state.position;
       pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);
     } else this.#squadSpawn(f, enemiesNear, pos);
+    // Deploy in a vehicle (Battlefront): a reinforcement who likes vehicles may take the wheel of
+    // an empty one waiting in the motor pool instead of walking up.
+    const ride = !initial && f.brain ? this.#vehicleFor(f) : null;
+    if (ride) pos.copy(ride.movement.state.position).add(new Vector3(ride.def.radius + 0.6, 0, 0));
     pos.y = w.groundHeight(new Vector3(pos.x, pos.y + 50, pos.z));
     f.movement.reset(pos, team === 0 ? -Math.PI / 2 : Math.PI / 2);
     if (f.health.dead) f.health.revive(1);
     f.health.shield = f.health.maxShield;
     f.status.cleanse();
-    bus.emit('fighter:deploy', { id: f.id, team, pos: pos.toArray() });
+    if (ride) w.vehicles.enter(f, ride, ride.seats.findIndex((q) => q.def.role === 'driver'));
+    bus.emit('fighter:deploy', { id: f.id, team, pos: pos.toArray(), vehicle: ride?.id ?? null });
+  }
+
+  /** An empty pad vehicle in this soldier's motor pool, if he's the kind to take it. */
+  #vehicleFor(f) {
+    const likes = f.brain.persona.usesVehicles;
+    if (likes === 'never' || f.transform) return null;
+    const odds = likes === 'always' ? 1 : 0.3;
+    if (this.mode.rand() > odds) return null;
+    for (const pad of this.world.vehicles.pads) {
+      const v = pad.current;
+      if (pad.team !== f.team || !v || v.removed || v.health.hp < v.health.max * 0.5) continue;
+      const seat = v.seats.findIndex((q) => q.def.role === 'driver' && !q.occupant);
+      if (seat >= 0 && !v.seats.some((q) => q.occupant) && v.movement.state.position.distanceTo(pad.at) < 12) return v;
+    }
+    return null;
   }
 }
 

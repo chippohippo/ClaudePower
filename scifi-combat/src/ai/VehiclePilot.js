@@ -92,6 +92,9 @@ export class VehiclePilot {
 
     // ---- driver
     const d = v.def;
+    // Nothing to fight: roll up to the squad's objective along its route (armor supports the
+    // push), and back out of anything we've got stuck on.
+    if (!t && d.model !== 'flyer') { this.#advance(dt, v, cmd); return; }
     if (d.model === 'tracked') {
       if (t) {
         const a = aimAt(t.pos, w?.s.velocity ?? 0, w?.s.drop ?? 0);
@@ -126,6 +129,34 @@ export class VehiclePilot {
       cmd.moveY = 1;
       if (v.boostCd <= 0 && (ctx.dist > 35 || (rammer && ctx.dist < 18 && ctx.dist > 6))) btn.press('sprint');
       if (Math.abs(angleDelta(v.yaw, a.yaw)) < 0.4 && ctx.vehicleLos && heatOk && ctx.dist < 60) btn.hold('light');
+    }
+  }
+
+  #advance(dt, v, cmd) {
+    const { world, objective } = this.brain;
+    const vs = v.movement.state, nav = world.nav;
+    if (!objective) return;
+    const left = Math.hypot(objective.pos.x - vs.position.x, objective.pos.z - vs.position.z);
+    const hold = v.def.model === 'tracked' ? 30 : 10;   // tanks stop short and cover the point
+    if (left < hold) { cmd.moveY = 0; cmd.moveX = 0; cmd.yaw = v.yaw; return; }
+    if (!(nav && nav.sample(nav.field(objective.field, objective.pos.x, objective.pos.z, objective.radius * 0.6), vs.position.x, vs.position.z, _m))) _m.set(objective.pos.x - vs.position.x, 0, objective.pos.z - vs.position.z).normalize();
+    const want = Math.atan2(-_m.x, -_m.z);
+    // Stuck (on a wall, a wreck, a building): reverse and turn away for a moment.
+    this.stuckT = (this.stuckT ?? 0) + dt;
+    if (this.stuckT > 2.5) {
+      const moved = this.stuckAt ? Math.hypot(vs.position.x - this.stuckAt.x, vs.position.z - this.stuckAt.z) : 99;
+      this.reverseUntil = moved < 1.5 ? this.brain.time + 1.6 : this.reverseUntil ?? 0;
+      this.stuckAt = vs.position.clone(); this.stuckT = 0;
+    }
+    const reversing = this.brain.time < (this.reverseUntil ?? 0);
+    if (v.def.model === 'tracked') {
+      const turn = angleDelta(v.yaw, want);
+      cmd.moveX = reversing ? this.flankSign : Math.max(-1, Math.min(1, -turn * 2));
+      cmd.moveY = reversing ? -1 : Math.abs(turn) < 0.6 ? 1 : 0.25;
+      cmd.yaw = want; cmd.pitch = 0;
+    } else {
+      cmd.yaw = reversing ? want + 1.6 * this.flankSign : want; cmd.pitch = 0;
+      cmd.moveY = reversing ? -1 : 1;
     }
   }
 
