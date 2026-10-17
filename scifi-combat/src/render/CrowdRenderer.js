@@ -27,7 +27,7 @@ const _c = new THREE.Vector3();
 const _t = new THREE.Vector3();
 const _X = new THREE.Vector3(1, 0, 0);
 const _col = new THREE.Color();
-const _black = new THREE.Color(0, 0, 0);
+const _black = new THREE.Color(0, 0, 0), _noRim = { r: 0, g: 0, b: 0, w: 3 };
 const _sphere = new THREE.Sphere();
 const _pv = new THREE.Matrix4();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -53,7 +53,8 @@ class Part {
     for (const k of ['position', 'normal', 'aUv', 'aMat']) g.setAttribute(k, geometry.attributes[k]);
     this.iA = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 4), 4).setUsage(THREE.DynamicDrawUsage);
     this.iE = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3).setUsage(THREE.DynamicDrawUsage);
-    g.setAttribute('iA', this.iA); g.setAttribute('iE', this.iE);
+    this.iR = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 4), 4).setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('iA', this.iA); g.setAttribute('iE', this.iE); g.setAttribute('iR', this.iR);
     g.instanceCount = 0;
     this.mesh = new THREE.Mesh(g, materials.material);
     this.mesh.customDepthMaterial = materials.depth;
@@ -63,11 +64,12 @@ class Part {
     this.capacity = capacity; this.count = 0;
     scene.add(this.mesh);
   }
-  put(slot, team, number, tint, em) {
+  put(slot, team, number, tint, em, rim = _noRim) {
     if (this.count >= this.capacity) return;
     const i = this.count++;
     this.iA.setXYZW(i, slot, team, number, tint);
     this.iE.setXYZ(i, em.r, em.g, em.b);
+    this.iR.setXYZW(i, rim.r, rim.g, rim.b, rim.w ?? 3);
   }
   end() {
     const g = this.mesh.geometry;
@@ -76,6 +78,7 @@ class Part {
     if (this.count) {
       this.iA.clearUpdateRanges(); this.iA.addUpdateRange(0, this.count * 4); this.iA.needsUpdate = true;
       this.iE.clearUpdateRanges(); this.iE.addUpdateRange(0, this.count * 3); this.iE.needsUpdate = true;
+      this.iR.clearUpdateRanges(); this.iR.addUpdateRange(0, this.count * 4); this.iR.needsUpdate = true;
     }
     this.count = 0;
   }
@@ -108,6 +111,9 @@ export class CrowdRenderer {
     this.bones = new THREE.DataTexture(new Float32Array(NBONES * 4 * max * 4), NBONES * 4, max, THREE.RGBAFormat, THREE.FloatType);
     this.bones.magFilter = this.bones.minFilter = THREE.NearestFilter;
     this.mats = trooperMaterials(palette, this.bones);
+    // Rim light by faction (palette factions.*.rim, ui.rim: strength and sharpness); a look's `rim` overrides it.
+    const R = palette.ui?.rim ?? {}, k = R.strength ?? 1.6;
+    this.rims = ['solari', 'void'].map((f, i) => Object.assign(new THREE.Color(palette.factions?.[f]?.rim ?? ['#ffb43a', '#b07cff'][i]).multiplyScalar(k), { w: R.power ?? 3 }));
     // The kit's meshes, each at both levels: parts[group][name][level].
     this.parts = {};
     const part = (geo) => new Part(scene, geo, this.mats, max, shadows);
@@ -190,7 +196,7 @@ export class CrowdRenderer {
     const kit = look.kit ?? DEFAULT_KIT;
     return {
       kit, team: look.team === 1 ? 1 : 0, number: look.number ?? 0,
-      tint: look.highlight ? 1.12 : 1, em: look.status ?? _black,
+      tint: look.highlight ? 1.12 : 1, em: look.status ?? _black, rim: look.rim ?? this.rims[look.team === 1 ? 1 : 0],
     };
   }
 
@@ -229,7 +235,7 @@ export class CrowdRenderer {
     }
 
     const pal = this.parts;
-    const put = (p) => p.put(slot, st.team, st.number, st.tint, st.em);
+    const put = (p) => p.put(slot, st.team, st.number, st.tint, st.em, st.rim);
     put(pal.body[st.kit.body]?.[near] ?? pal.body.medium[near]);
     put(pal.helmet[st.kit.helmet]?.[near] ?? pal.helmet.medium[near]);
     if (st.kit.gear && pal.gear[st.kit.gear]) put(pal.gear[st.kit.gear][near]);
@@ -309,6 +315,6 @@ export class CrowdRenderer {
       _c.copy(root);
     }
     this.#bone(slot, 0, _x, _y, _z, _c);
-    this.impostor.put(slot, st.team, st.number, st.tint, st.em);
+    this.impostor.put(slot, st.team, st.number, st.tint, st.em, st.rim);
   }
 }

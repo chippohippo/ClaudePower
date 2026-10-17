@@ -135,6 +135,11 @@ and no pack, a tech's antenna pack, a demolitionist's grenade bandolier, a flame
 **Wear:** paint chipped to bare metal on every edge, scratches on the plates, ochre dust climbing
 the boots and shins, scorch on the cape hem, a stencilled squad number on the chest and helmet.
 
+**Rim light.** Every fighter has a fresnel glow round its silhouette in its army's colour,
+gold (`#ffb43a`) for Solari and violet (`#b07cff`) for the Void Legion, so you read who is who at a
+glance in any light (`factions.*.rim`; `ui.rim`: strength 1.1, power 5, tight to the edge).
+Civilians have a neutral one (`#e6e2da`) that turns red (`#ff3a2a`) while they fight you.
+
 ## How the troopers are built
 
 `src/render/ModelKit.js` models in code: superellipsoids (`rbox`: rounded box to pebble),

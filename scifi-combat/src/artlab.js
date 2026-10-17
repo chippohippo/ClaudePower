@@ -75,7 +75,7 @@ function paletteSheet() {
     <h2>Void Legion</h2><div class="row">${Object.entries(palette.factions.void).filter(([, v]) => v.startsWith?.('#')).map(([k, v]) => sw(k, v)).join('')}</div>
     ${group('Materials', palette.materials)}
     ${group('Effects', palette.vfx)}
-    <h2>Interface</h2><div class="row">${Object.entries(palette.ui).map(([k, v]) => sw(k, v)).join('')}</div>`;
+    <h2>Interface</h2><div class="row">${Object.entries(palette.ui).filter(([, v]) => typeof v === 'string').map(([k, v]) => sw(k, v)).join('')}</div>`;
   window.__art.ready = true;
 }
 

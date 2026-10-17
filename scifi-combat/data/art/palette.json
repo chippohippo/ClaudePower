@@ -546,7 +546,8 @@
       "visor": "#ffba3f",
       "visorGlass": "#1d1712",
       "lamp": "#ffe4a6",
-      "metal": "#3d3f44"
+      "metal": "#3d3f44",
+      "rim": "#ffb43a"
     },
     "void": {
       "name": "Void Legion",
@@ -563,7 +564,8 @@
       "visor": "#b98cff",
       "visorGlass": "#140f1d",
       "lamp": "#e3d4ff",
-      "metal": "#37353d"
+      "metal": "#37353d",
+      "rim": "#b07cff"
     }
   },
   "materials": {
@@ -612,6 +614,13 @@
     "line": "rgba(255,225,77,0.35)",
     "alert": "#ff4d40",
     "friendly": "#7fd1ff",
-    "enemy": "#ff5a4f"
+    "enemy": "#ff5a4f",
+    "rim": {
+      "_note": "Rim light on every fighter (CrowdRenderer, TrooperMaterial): a fresnel glow round the silhouette in its faction's colour (factions.*.rim); civilians a neutral one that turns red while they fight you. strength: how bright, power: how tight to the edge.",
+      "strength": 1.1,
+      "power": 5,
+      "civilian": "#e6e2da",
+      "hostile": "#ff3a2a"
+    }
   }
 }

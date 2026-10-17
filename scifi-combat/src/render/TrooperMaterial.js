@@ -13,6 +13,8 @@
 //  * Decals: a stencilled two-digit number (iA.z) and each faction's cape emblem, drawn from
 //    aUv and cut out (discard) round the strokes.
 //  * Hazard channel: diagonal stripes, armor color and black.
+//  * Rim light (iR): a fresnel glow round the silhouette, per fighter: its faction's colour, or a
+//    civilian's (CrowdRenderer picks it).
 // The same bone and decal patches go into the shadow (depth) material. paintMaterial() is the
 // same paint without the bones, for static models (vehicles, guns): faction, number, tint and
 // glow are per-material uniforms.
@@ -46,19 +48,21 @@ attribute vec4 aMat;
 attribute vec2 aUv;
 attribute vec4 iA;      // slot, faction, number, tint
 attribute vec3 iE;      // status glow
+attribute vec4 iR;      // rim light: colour (times strength), sharpness
 uniform highp sampler2D uBones;
 varying vec4 vMat;
 varying vec3 vLocal;
 varying vec2 vDecal;
 varying vec4 vI;
 varying vec3 vE;
+varying vec4 vR;
 mat4 tkBone() {
   int x = int(aMat.w + 0.5) * 4, y = int(iA.x + 0.5);
   return mat4(texelFetch(uBones, ivec2(x, y), 0), texelFetch(uBones, ivec2(x + 1, y), 0),
               texelFetch(uBones, ivec2(x + 2, y), 0), texelFetch(uBones, ivec2(x + 3, y), 0));
 }`;
 
-const VARYINGS = `vMat = aMat; vLocal = position + vec3(iA.z * 0.731, iA.z * 0.377, 0.0); vDecal = aUv; vI = iA; vE = iE;`;
+const VARYINGS = `vMat = aMat; vLocal = position + vec3(iA.z * 0.731, iA.z * 0.377, 0.0); vDecal = aUv; vI = iA; vE = iE; vR = iR;`;
 
 const FRAG_COMMON = `
 uniform vec3 uPal[${NCH * 2}];
@@ -69,6 +73,7 @@ varying vec3 vLocal;
 varying vec2 vDecal;
 varying vec4 vI;
 varying vec3 vE;
+varying vec4 vR;
 float tkH(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
 float tkN(vec3 p) {
   vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -169,7 +174,8 @@ export function trooperMaterials(palette, bones, factionKeys = ['solari', 'void'
       .replace('#include <color_fragment>', COLOR)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = tkRough;')
       .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = tkMetal;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += tkGlow + vE;');
+      // The rim: a fresnel glow round the silhouette in the fighter's colour (faction, or a civilian's).
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += tkGlow + vE + vR.rgb * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), vR.w);');
   };
   material.customProgramCacheKey = () => 'trooper';
   const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
@@ -195,7 +201,8 @@ varying vec4 vMat;
 varying vec3 vLocal;
 varying vec2 vDecal;
 varying vec4 vI;
-varying vec3 vE;`;
+varying vec3 vE;
+varying vec4 vR;`;
 
 /**
  * The trooper paint for a static model (a vehicle): one material per model, so its own damage
@@ -219,7 +226,7 @@ export function paintMaterial(palette, { team = 0, number = 0, factionKeys = ['s
     Object.assign(shader.uniforms, shared.get(key), paint);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${STATIC_VERT_COMMON}`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMat = aMat; vLocal = position + vec3(uNumber * 0.731, uNumber * 0.377, 0.0); vDecal = aUv; vI = vec4(0.0, uTeam, uNumber, uTint); vE = uGlow;');
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMat = aMat; vLocal = position + vec3(uNumber * 0.731, uNumber * 0.377, 0.0); vDecal = aUv; vI = vec4(0.0, uTeam, uNumber, uTint); vE = uGlow; vR = vec4(0.0);');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${FRAG_COMMON}`)
       .replace('#include <color_fragment>', COLOR)
