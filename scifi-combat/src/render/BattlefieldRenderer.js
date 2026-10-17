@@ -37,6 +37,7 @@ export class BattlefieldRenderer {
    */
   constructor(scene, map, { localTeam = 0, anisotropy = 4, fortCapacity = 900, art = null } = {}) {
     this.scene = scene; this.map = map; this.localTeam = localTeam; this.anisotropy = anisotropy; this.art = art;
+    this.glow = art?.planet.markerGlow ?? 1;   // the point beacons and the line's curtain: fainter on a night map, where they're all that glows
     this.off = [];
     this.#terrain();
     this.#cover(fortCapacity);
@@ -73,7 +74,8 @@ export class BattlefieldRenderer {
       this.scorch.stamp(c.x, c.z, c.r * 1.25, k < 0.15 ? 0.9 : 0.28 + k * 0.2);
     }
     this.groundMat = groundMaterial(groundDetailTexture());
-    this.chunks = new TerrainChunks(this.scene, t, { material: this.groundMat, ground: this.art.planet.ground, scorch: (x, z) => this.scorch.at(x, z) });
+    this.chunks = new TerrainChunks(this.scene, t, { material: this.groundMat, ground: this.art.planet.ground, scorch: (x, z) => this.scorch.at(x, z), paint: this.map.city?.paint ?? null });
+    if (this.map.city) this.chunks.group.renderOrder = -2;   // the ground first: the city's lamp pools add their light over it and nothing else (CityRenderer)
     const burn = (p, r, k) => { if (r > 0.2) this.chunks.invalidate(this.scorch.stamp(p.x ?? p[0], p.z ?? p[2], r, k)); };
     this.off.push(
       bus.on('artillery:impact', (e) => burn(e.point, Math.max(1.6, e.crater || e.radius * 0.45) * 1.35, 1)),
@@ -95,7 +97,8 @@ export class BattlefieldRenderer {
       metal: triplanar(new THREE.MeshStandardMaterial({ color: M?.steel ?? '#5a6170', roughness: 0.6, metalness: 0.4 }), aniso(metalTexture()), 0.25, 0.5 * b),
     };
     const groups = new Map(Object.keys(this.kinds).map((k) => [k, []]));
-    for (const b of this.map.cover) groups.get(this.#kindOf(b)).push(b);
+    // (a city's buildings, sidewalks, lamps, wrecks and street furniture are CityRenderer's)
+    for (const b of this.map.cover) if (b.render !== 'city') groups.get(this.#kindOf(b)).push(b);
     this.coverMeshes = new Map();
     this.coverSlot = new Map();
     const geo = new THREE.BoxGeometry(1, 1, 1);
@@ -250,7 +253,11 @@ export class BattlefieldRenderer {
       const arc = new THREE.Mesh(new THREE.RingGeometry(p.radius + 0.2, p.radius + 1.1, 64, 1, 0, Math.PI * 2), new THREE.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
       arc.rotation.x = -Math.PI / 2; arc.position.y = 0.16;
       // Normal blending: additive washes out to white against a bright sky and loses the team color.
-      const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, 60, 12, 1, true).translate(0, 30, 0), new THREE.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.3, depthWrite: false }));
+      // Fading up its height: strong where the point is, a quarter of that 60 m up in the sky.
+      const bg = new THREE.CylinderGeometry(0.35, 0.9, 60, 12, 1, true).translate(0, 30, 0), bp = bg.attributes.position, fade = new Float32Array(bp.count * 4);
+      for (let i = 0; i < bp.count; i++) fade.set([1, 1, 1, 1 - 0.75 * bp.getY(i) / 60], i * 4);
+      bg.setAttribute('color', new THREE.BufferAttribute(fade, 4));
+      const beacon = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.3, depthWrite: false, vertexColors: true }));
       g.add(fill, ring, arc, beacon);
       this.scene.add(g);
       return { g, ring, fill, arc, beacon, lastProgress: null };
@@ -283,7 +290,7 @@ export class BattlefieldRenderer {
       v.fill.material.opacity = live ? (p.contested ? 0.18 + 0.1 * Math.sin(time * 10) : 0.1) : 0.04;
       v.beacon.visible = live;
       v.beacon.material.color.copy(col);
-      v.beacon.material.opacity = 0.28 + (p.capturing >= 0 ? 0.2 * (0.5 + 0.5 * Math.sin(time * 8)) : 0);
+      v.beacon.material.opacity = (0.28 + (p.capturing >= 0 ? 0.2 * (0.5 + 0.5 * Math.sin(time * 8)) : 0)) * this.glow;
       // Progress arc: how far the point is toward the side currently capturing it.
       const prog = Math.abs(p.progress);
       if (v.lastProgress === null || Math.abs(v.lastProgress - p.progress) > 0.01) {
@@ -309,7 +316,7 @@ export class BattlefieldRenderer {
       }
       pos.needsUpdate = true;
       c.position.y = 0;
-      c.material.opacity = 0.06 + 0.025 * Math.sin(time * 2 + team);
+      c.material.opacity = (0.06 + 0.025 * Math.sin(time * 2 + team)) * this.glow;
     }
   }
 }

@@ -12,6 +12,9 @@
 //    it); a hemisphere fill (warm sky above, dark earth below) and a soft bounce from the camera
 //    side so shaded faces never go black.
 //  * Ash: flakes (and a few embers) falling and drifting around the camera, wrapped in a box.
+//  * Night presets (`stars`, `aurora`): a star field, and aurora curtains folding and drifting
+//    round the sky, brightest and highest on one side (their colour is baked into the
+//    environment light too); the "sun" is then the moon, its disk dimmed by `sun.gain`.
 
 import * as THREE from 'three';
 
@@ -95,6 +98,8 @@ uniform float moonSize, moonHaze;
 uniform vec3 fogColor, fogSunColor;
 uniform float fogSunPower, time, sunGain, gain;
 uniform vec4 columns[6];
+uniform float stars, aurora, aurAz, aurSpan, aurEl, aurH, aurSpeed, aurFloor, aurTilt;
+uniform vec3 aurLow, aurMid, aurHigh;
 varying vec3 vDir;
 ${NOISE}
 vec3 fogTint(vec3 d) { return mix(fogColor, fogSunColor, pow(max(dot(d, sunDir), 0.0), fogSunPower)); }
@@ -131,6 +136,45 @@ void main() {
     vec3 sc = mix(smokeCol, streakCol, 0.25 + 0.5 * pow(max(cs, 0.0), 3.0)) * (0.8 + 0.4 * bill);
     col = mix(col, sc, body * 0.85);
     col += fireCol * body * exp(-e / max(c.y * 0.12, 0.001)) * 0.9;   // the fire under it
+  }
+
+  // Stars (a night sky): a fixed field of cells on the sphere, twinkling, lost toward the horizon.
+  if (stars > 0.0 && e > 0.0) {
+    vec3 sc = d * 260.0, ci = floor(sc);
+    float h = hash12(ci.xy + vec2(ci.z * 7.31, ci.z * 3.17));
+    if (h > 0.9962) {
+      float r = length(fract(sc) - 0.5);
+      float tw = 0.6 + 0.4 * sin(time * (1.3 + h * 7.0) + h * 91.0);
+      float k = (h - 0.9962) / 0.0038;
+      col += mix(vec3(1.0, 0.86, 0.75), vec3(0.75, 0.85, 1.0), fract(h * 113.0)) * smoothstep(0.34, 0.0, r) * (0.35 + 1.9 * k * k) * tw * stars * smoothstep(0.03, 0.3, e);
+    }
+  }
+
+  // The aurora: curtains hanging all round the sky, brightest and highest toward aurAz (an arc
+  // climbing over that side), patchy along their length, their lower edges folding and drifting,
+  // rays streaming up them, hot at the edge and fading up through the colours.
+  if (aurora > 0.0 && e > 0.0) {
+    float az = atan(d.x, -d.z);
+    float da = mod(az - aurAz + 3.14159265, 6.2831853) - 3.14159265;
+    float t = time * 0.02 * aurSpeed;
+    float toward = exp(-pow(da / aurSpan, 2.0) * 2.2);
+    float where = mix(aurFloor, 1.0, toward) * mix(0.3, 1.0, smoothstep(0.28, 0.62, fbm(vec2(az * 1.2 + 4.0, t * 0.9))));
+    float lift = aurTilt * (0.5 + 0.5 * cos(da));
+    vec3 acc = vec3(0.0);
+    for (int k = 0; k < 3; k++) {
+      float fk = float(k);
+      float base = aurEl * (1.0 + 0.55 * fk) + lift * (1.0 - 0.3 * fk) + 0.045 * sin(az * (2.0 + fk) + t * 3.0 + fk * 2.1) + 0.07 * (fbm(vec2(az * 1.4 + fk * 5.3, t * 1.5 + fk)) - 0.5);
+      float h = (e - base) / (aurH * (1.0 - 0.25 * fk));
+      if (h < -0.08 || h > 2.2) continue;
+      float rays = fbm(vec2(az * (34.0 + fk * 9.0) + fk * 13.0 + t * 5.0, t * 0.7 + fk));
+      rays = pow(rays, 2.4) * 3.2;
+      float folds = smoothstep(0.25, 0.75, fbm(vec2(az * 2.6 + t * 2.4 + fk * 9.0, fk * 3.0 + t)));
+      float edge = smoothstep(-0.06, 0.03, h) * exp(-max(h, 0.0) * 2.2);
+      vec3 c = mix(aurLow, aurMid, smoothstep(0.0, 0.3, h));
+      c = mix(c, aurHigh, smoothstep(0.4, 1.4, h));
+      acc += c * edge * rays * folds * (1.0 - 0.3 * fk);
+    }
+    col += acc * aurora * where * smoothstep(0.0, 0.07, e);
   }
 
   // The moon: a big ringed world, sun-lit, half lost in the haze.
@@ -236,7 +280,13 @@ export class Atmosphere {
         moonDir: { value: this.moonDir }, moonRight: { value: mr }, moonUp: { value: mu }, moonColor: { value: C(P.moon.color) }, moonShade: { value: C(P.moon.shade) },
         ringColor: { value: C(P.moon.ring) }, moonSize: { value: P.moon.size }, moonHaze: { value: P.moon.haze },
         fogColor: { value: C(P.fog.color) }, fogSunColor: { value: C(P.fog.sunColor) }, fogSunPower: { value: P.fog.sunPower },
-        time: { value: 0 }, columns: { value: cols }, sunGain: { value: 1 }, gain: { value: 1 },
+        time: { value: 0 }, columns: { value: cols }, sunGain: { value: P.sun.gain ?? 1 }, gain: { value: 1 },
+        // A night sky's stars and aurora (presets without them leave both at 0).
+        stars: { value: P.stars ?? 0 }, aurora: { value: P.aurora?.strength ?? 0 },
+        aurAz: { value: (P.aurora?.azimuth ?? 0) * DEG }, aurSpan: { value: (P.aurora?.span ?? 120) * DEG * 0.5 },
+        aurEl: { value: (P.aurora?.elevation ?? 15) * DEG }, aurH: { value: (P.aurora?.height ?? 30) * DEG }, aurSpeed: { value: P.aurora?.speed ?? 1 },
+        aurFloor: { value: P.aurora?.floor ?? 0 }, aurTilt: { value: (P.aurora?.tilt ?? 0) * DEG },
+        aurLow: { value: C(P.aurora?.low ?? '#ff4fd8') }, aurMid: { value: C(P.aurora?.mid ?? '#9b4dff') }, aurHigh: { value: C(P.aurora?.high ?? '#3a2ad0') },
       },
     });
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 32), this.skyMat);
@@ -286,7 +336,7 @@ export class Atmosphere {
   bakeEnvironment(renderer) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     const mat = this.skyMat.clone();
-    mat.uniforms.sunGain.value = 0.15;
+    mat.uniforms.sunGain.value = 0.15 * (this.planet.sun.gain ?? 1);
     mat.uniforms.gain.value = this.planet.fill.env ?? 1;
     const envScene = new THREE.Scene();
     envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 48, 24), mat));

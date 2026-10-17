@@ -1,16 +1,16 @@
 # Frontline: 4v4 to 200v200 trench battles
 
-Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, Fortify, FrontlineMode,
+Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, City, Fortify, FrontlineMode,
 Logistics) · `src/combat/Stratagems.js` · `src/game/BattlePoints.js` · `src/combat/SupportItems.js`, `Passives.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
 (squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
 `src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
 EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
-`src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `StratagemKit.js`, `src/ui/FrontlineHud.js`,
+`src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `CityRenderer.js`, `CityKit.js`, `StratagemKit.js`, `src/ui/FrontlineHud.js`,
 `FireControl.js`, `StratagemPanel.js`, `BattlePointsHud.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
 `tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`,
-`tests/support-roles.test.mjs`, `tests/melee-front.test.mjs`.
+`tests/support-roles.test.mjs`, `tests/melee-front.test.mjs`, `tests/city-map.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -34,6 +34,7 @@ Serve the folder statically and open `index.html`:
 | `size` | 32v32 | `4v4`, `12v12`, `32v32`, `64v64` or `200v200`: the match size and the map built for it |
 | `players` | (from size) | 8–400 fighters in total; picks the size built for that count if `size` isn't given |
 | `seed` | 7 | map and match seed (deterministic map) |
+| `map` | trench | `city`: the same front fought through a city at night (below) |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
@@ -108,6 +109,53 @@ build the same map.
   cover costs 4×; trench parapets 10× (climbable, but routes inside a trench network use the floor);
   wire 8×. Doorways are portals (routes thread through the door's centre). Flow fields per
   objective, A* with string pulling for squad moves.
+
+## The night city (`map=city`, `City.js`, `CityRenderer`)
+
+The second warfront: the same front (sectors, points, spawns, motor pools, depots, guns, HQs, the
+same rules) fought through a futuristic city at night under a purple aurora instead of across
+trench country. `index.html?map=city` (any size) picks the **Neon Night** sky by default.
+
+| Size | City | | Size | City |
+|---|---|---|---|---|
+| 4v4 | Overpass | | 64v64 | Aurora City |
+| 12v12 | Midtown | | 200v200 | The Sprawl |
+| 32v32 | Neon District | | | |
+
+- **Streets** run with the front: avenues 14 m wide along X (one down the middle of the map, then
+  every 40–72 m across the depth), cross streets 11 m wide every 42–58 m. The ground is flat.
+- **Blocks** stand between the streets on a sidewalk slab 0.16 m high, a kerb soldiers step up and
+  a sliding car trips on. Lots along their faces hold one of four things:
+  - a building: a solid box (cover nobody gets through), 3–8 storeys, a few towers of 12–22; the
+    map's edge is a wall of them;
+  - a shelled shell with rooms and doorways (`Ruins.js`), which squads clear;
+  - a collapsed lot: a rubble heap with slabs lying about;
+  - an empty lot.
+
+  Points, spawns, motor pools, depots and HQs stay open as plazas.
+- **The park** covers the middle sector's blocks, out to the cross streets nearest its edges and
+  the avenues nearest 60% of the depth, so streets run round it. The streets that crossed it
+  become its paths; two more cut across it diagonally. It also has:
+  - grass, trees and hedges, benches along the paths, and lamps;
+  - low walls round it, with gates where the paths come in;
+  - the fountain and statue on its point.
+- **What the war left:**
+  - damaged vehicles in every street (sedans, hover cars, vans, trucks, buses). Some are burned
+    out, a few still burning, some on their roofs. A few lie slewed across the lanes, but never
+    so as to close a street;
+  - shell craters in the asphalt, rubble and debris, dumpsters, planters and crates.
+- **Barricade lines** stand where the trench lines would be (every boundary between line sectors)
+  and cross every avenue. Each line sits at the boundary, or as near it as the stretch between two
+  intersections allows. A line is made of:
+  - jersey barriers with gaps, or now and then a container roadblock;
+  - sandbag nests either side;
+  - tank traps;
+  - concertina wire 8–11 m out on both sides.
+- **Street lights** stand every 24–30 m along every street on alternating sidewalks. Poles are
+  cover. About one in seven is out and one in sixteen flickers.
+- **The look** (`CityRenderer`, [ART_DIRECTION.md](ART_DIRECTION.md)): window grids lit warm and
+  cool, neon signs, lamp pools and a few real lights near the action, red roof beacons, searchlights
+  behind both lines, a skyline beyond the edges, and the aurora.
 
 ## Rules (`FrontlineMode`, simulation only)
 
@@ -512,3 +560,10 @@ dropships are arena-only).
   moving up with the front.
 - `tests/warfront.test.mjs`: a 200v200 battle (400 soldiers, crewed batteries and convoys) within a
   tick budget.
+- `tests/city-map.test.mjs`: a city per size, with more of it the bigger the match and the same
+  seed building the same city. Plazas stay open: no building on a point, a spawn or an HQ. Streets
+  stay open: every point and street is reachable from both HQs, and the way across is never a
+  maze. Lamps stand on the sidewalks and wrecks in the streets. The park sits in the middle with
+  no block or street in it and the fountain on its point. Barricade lines cross every avenue,
+  never in an intersection. The renderer dresses it all, with real lights on the lamps and fires
+  nearest the action. A city match runs with nobody ending up inside a building.

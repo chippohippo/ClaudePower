@@ -41,6 +41,29 @@ The Automaton-front mood: a world already on fire. Every value lives in
 | Air | Ash falling all the time (small grey flakes, never in your face), a few glowing embers, dust kicked up by every blast |
 | Post | God rays toward the sun (depth-masked: soldiers and ridges cut dark shafts), bloom on fire, visors and muzzle flashes, ACES filmic, cool lifted shadows against warm highlights, saturation 0.88, contrast 1.12, a strong vignette, film grain, a touch of chromatic aberration at the edges |
 
+## Planet preset: Neon Night (the night city)
+
+`palette.json` `planets.nightcity`: the city warfront (`index.html?map=city`, [FRONTLINE.md](FRONTLINE.md)). It
+is a futuristic city at night, still lit in the windows that aren't blown out, under a purple
+aurora. The rule is the same as by day: light is drama. Most of the light comes from the city
+itself, in pools.
+
+| Element | Spec |
+|---|---|
+| Sky | Near-black blue zenith (`#04050d`) to a violet horizon (`#3a2650`) under a violet haze (`#6a4890`); a twinkling star field; the ringed planet small and low (8°, 15° up) and half in haze |
+| Aurora | Curtains all round the sky, brightest and highest to the north (azimuth 350°, raised 16° there). Their lower edge sits about 10° up so it shows down the avenues over the skyline. It folds and drifts, with rays streaming up it, magenta at the hot lower edge (`#ff4ad6`) through violet (`#9a46ff`) to deep blue (`#2f22c4`). It is patchy along its length and baked into the environment light, so the city is tinted by it |
+| Moon | The "sun" of the preset: cool (`#a9b6ff`, intensity 1.25), high (52°) so the streets aren't all in building shadow. Its disk is dimmed (`gain` 0.32) |
+| Fill | A blue night sky fill (`#3a4676`, intensity 2.0) over a dark ground, so shade reads |
+| Fog | Thin violet (`#221b3a`, density 0.0029): the skyline melts into it |
+| Ground | Asphalt (`#37383f`) with paving on the sidewalk slabs, park grass (`#243322`), paths (`#4c4940`), rubble (`#4a443d`). The city's `paint(x, z)` picks the colour per ground sample |
+| Street lights | Cool LED (`#cfe2ff`) and some warm sodium (`#ffb35c`) heads on dark posts. Each casts a soft pool on the ground, drawn right after the ground and the sidewalks (and before everything else), so it lights those and never a boot under it. The eight lamps nearest the action get real spot lights shining down, so soldiers under a lamp are lit by it (and a facade beside one isn't lit above it), and the fires nearest it real point lights. Some lamps are out, some flicker |
+| Windows | A grid worked out in the facade shader from each building's own size: bays from the corners, storeys from the foot. The glass is dark; 8–45% of windows are lit warm (`#ffcf8a`) or cool (`#9ac8ff`). Shelled buildings have blown-out holes. Some ground floors have lit shopfronts |
+| Neon | Signs on the facades (horizontal and vertical boards: a noodle bar, a hotel, a cross, 24/7, arrows, chevrons, glyphs), in cyan, magenta, amber, violet and green. Some are dead, some flicker |
+| Landmarks | Red beacons blinking on the tall roofs and the skyline beyond the map's edge; searchlights sweeping the sky behind both lines |
+| War | Wrecks in old paint or burned out, a few still on fire (particles and a real light); rubble heaps; jersey barriers, containers and tank traps |
+| Markers | The point beacons and the line's curtain at 40% (`markerGlow`): at night they'd be all that glows |
+| Post | Exposure 1.3; bloom at a low threshold (0.72), so the lamps, windows and neon glow; faint cool god rays; lifted blue shadows; a strong vignette |
+
 Further presets (same data shape): a fog-and-mud creek, a frozen front.
 
 ## The two trooper armies
@@ -167,8 +190,11 @@ sky and light, to model against and to screenshot:
 | `sky` | `sun` (halo, god rays through posts), `away`, `moon`, `wide` (craters and fog to 900 m), `trench`, `ground`, `up` |
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
+| `cars` | the recon cars (the real sim run to each moment): `parked`, `kestrel`, `jackal`, `rear`, `drift`, `roll`, `over`, `thrown`, `burning` |
+| `city` | the night city (a 32v32 city map, `nightcity` sky): `street` (down an avenue), `squad` (under a street lamp), `fire` (a burning wreck), `barricade`, `crossing`, `park` (the fountain), `aurora`, `above` |
 | `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
 | `gunfx` | `impacts` (rounds landing on sandbags, timber, metal, concrete and dirt), `muzzle` (a trooper firing) |
+| `melee` | `blades`, `duel`, `spear`, `bash`, `finisher` |
 | `stratagems` | the real sim run to each moment: `callin` (typing on the wrist pad, the panel up, a beacon cocked), `strike` (the red beam and danger fence on the enemy line), `inbound` (the round streaking down), `boom`, `strafe` (the jet), `supply` (the pod open on its crates), `sentry`, `smoke`, `barrage`, `beams` (every kind at once) |
 
 `node scripts/art-shots.mjs <outdir> station:view[:query] ...` captures them headless (serve the folder on :8765 first).
@@ -177,4 +203,5 @@ sky and light, to model against and to screenshot:
 
 `screenshots/` (index in its README): `art/` holds the lab captures from building this pass
 (palette, sky, troopers, vehicles); `game/` the same look in a match, next to `before-art/` from
-before it; `stratagems/` the call-ins; `feedback/` hit feedback and reloads.
+before it; `stratagems/` the call-ins; `feedback/` hit feedback and reloads; `cars/` the recon
+cars; `city/` the night city.

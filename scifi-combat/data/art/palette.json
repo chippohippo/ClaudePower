@@ -135,6 +135,165 @@
         "aberration": 0.0015
       },
       "_axes": "Azimuth in degrees clockwise from north (-Z) seen from above: 90 = east (+X, where Solari attack). Elevation in degrees above the horizon."
+    },
+    "nightcity": {
+      "name": "Neon Night",
+      "sky": {
+        "zenith": "#04050d",
+        "upper": "#0a0a1e",
+        "horizon": "#3a2650",
+        "below": "#08070c",
+        "haze": "#6a4890",
+        "streaks": "#15122a"
+      },
+      "sun": {
+        "color": "#a9b6ff",
+        "intensity": 1.25,
+        "elevation": 52,
+        "azimuth": 212,
+        "disk": "#eef0ff",
+        "halo": "#5a64b0",
+        "size": 2.4,
+        "gain": 0.32
+      },
+      "moon": {
+        "elevation": 15,
+        "azimuth": 140,
+        "size": 8,
+        "color": "#a296c4",
+        "shade": "#231d38",
+        "ring": "#c2b2e6",
+        "haze": 0.5
+      },
+      "fill": {
+        "sky": "#3a4676",
+        "ground": "#16131c",
+        "intensity": 2.0,
+        "bounce": "#4c4274",
+        "bounceIntensity": 0.32,
+        "env": 0.85
+      },
+      "fog": {
+        "color": "#221b3a",
+        "sunColor": "#3a3c74",
+        "density": 0.0029,
+        "heightFalloff": 0.03,
+        "base": -2,
+        "sunPower": 8
+      },
+      "ground": {
+        "dust": "#2a2b30",
+        "earth": "#33302c",
+        "rock": "#3a393e",
+        "scorch": "#111012",
+        "ash": "#36343a",
+        "mud": "#1d1b1c",
+        "grass": "#2b3c27",
+        "asphalt": "#37383f",
+        "path": "#4c4940",
+        "rubble": "#4a443d"
+      },
+      "ash": {
+        "count": 800,
+        "color": "#8c8498",
+        "ember": "#ff8a3a",
+        "embers": 0.1,
+        "fall": 0.35,
+        "drift": [
+          0.6,
+          0.2
+        ]
+      },
+      "smokeColumns": [
+        {
+          "azimuth": 64,
+          "distance": 1300,
+          "height": 300,
+          "width": 60
+        },
+        {
+          "azimuth": 244,
+          "distance": 1500,
+          "height": 360,
+          "width": 80
+        },
+        {
+          "azimuth": 300,
+          "distance": 1700,
+          "height": 260,
+          "width": 55
+        }
+      ],
+      "aurora": {
+        "strength": 0.62,
+        "low": "#ff4ad6",
+        "mid": "#9a46ff",
+        "high": "#2f22c4",
+        "azimuth": 350,
+        "span": 120,
+        "floor": 0.45,
+        "tilt": 16,
+        "elevation": 10,
+        "height": 24,
+        "speed": 1
+      },
+      "stars": 1.0,
+      "city": {
+        "_note": "The night city's lights (CityRenderer): street lamps cool and warm (sodium), their pools of light on the ground, neon sign colours, windows warm and cool, searchlights, the real lights near the camera.",
+        "lampCool": "#cfe2ff",
+        "lampWarm": "#ffb35c",
+        "pool": 1.0,
+        "neon": [
+          "#2ef2ff",
+          "#ff3fb4",
+          "#ffb030",
+          "#a65cff",
+          "#5cff9a"
+        ],
+        "windowWarm": "#ffcf8a",
+        "windowCool": "#9ac8ff",
+        "searchlight": "#c8d6ff",
+        "lights": 8
+      },
+      "post": {
+        "exposure": 1.3,
+        "bloom": {
+          "strength": 0.9,
+          "radius": 0.62,
+          "threshold": 0.72
+        },
+        "godRays": {
+          "strength": 0.22,
+          "decay": 0.95,
+          "density": 0.8,
+          "samples": 32,
+          "color": "#8a96d8"
+        },
+        "grade": {
+          "lift": [
+            0.02,
+            0.018,
+            0.04
+          ],
+          "gamma": [
+            1.0,
+            1.0,
+            0.97
+          ],
+          "gain": [
+            1.0,
+            0.97,
+            1.06
+          ],
+          "saturation": 1.08,
+          "contrast": 1.14
+        },
+        "vignette": 0.5,
+        "grain": 0.05,
+        "aberration": 0.0018
+      },
+      "_axes": "Azimuth in degrees clockwise from north (-Z) seen from above: 90 = east (+X, where Solari attack). Elevation in degrees above the horizon.",
+      "markerGlow": 0.4
     }
   },
   "factions": {

@@ -200,7 +200,7 @@ export class VehicleViews {
       const t = this.time, k = Math.min(1, 0.3 + v.wreck.t * 0.8);
       parts.glow.intensity = (14 + 6 * Math.sin(t * 23) + 4 * Math.sin(t * 37)) * k;
       // Fire over the engine and the cockpit (where they are now: a wreck can lie on its side).
-      if (this.fx) for (const [x, y, z, r] of FIRES) this.fx.fire(C.point(_fp.set(x, y, z * v.def.size.z), _fw), dt * 0.5, r, k);
+      if (this.fx) FIRES.forEach(([x, y, z, r], i) => this.fx.fire(C.point(_fp.set(x, y, z * v.def.size.z), _fw), dt * 0.5, r, k, (parts.fires ??= [{}, {}])[i]));
     }
   }
 

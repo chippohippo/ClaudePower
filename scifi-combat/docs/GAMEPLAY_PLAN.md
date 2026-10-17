@@ -266,5 +266,17 @@ values).
     - **Bots** drive, circle, run people down, gun in bursts and right their cars.
     - **Docs:** `docs/VEHICLES.md` ("Recon cars").
 
-Next, by the priority order: the camera, the director and audio (P2). Outside the plan, from
-the same request: the night city warfront.
+11. **The night city** (from the same request). A second warfront map, `index.html?map=city`,
+    at every size from Overpass (4v4) to The Sprawl (200v200). It is the same front fought
+    through a futuristic city at night:
+    - **Layout:** avenues running with the front and cross streets; blocks of buildings on raised
+      sidewalks; shelled buildings to clear; rubble lots; a park in no-man's-land with the
+      fountain on its point.
+    - **The war in the streets:** wrecked, burned and overturned vehicles (a few still burning),
+      craters and debris, and barricade lines where the trench lines would be.
+    - **The night:** street lights, lit windows and neon under a purple aurora.
+    - **Docs:** `docs/FRONTLINE.md` ("The night city") and `docs/ART_DIRECTION.md` ("Neon Night").
+
+Next: ragdolls and injuries in the Euphoria style (the user's next request): shot reactions,
+stagger and knockdowns, real falls, crawling and scooting while down, and revives into an injured
+state. Then, by the priority order: the camera, the director and audio (P2).

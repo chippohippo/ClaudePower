@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|cars|scene|stratagems|gunfx|melee &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|cars|city|scene|stratagems|gunfx|melee &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -24,6 +24,10 @@ import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
 import { GunFx } from './vfx/GunFx.js';
 import { VehicleViews } from './vfx/VehicleViews.js';
+import { generateFrontlineMap } from './game/frontline/FrontlineMap.js';
+import { BattlefieldRenderer } from './render/BattlefieldRenderer.js';
+import { CityRenderer } from './render/CityRenderer.js';
+import { FrontlineMode } from './game/frontline/FrontlineMode.js';
 import { BASH } from './combat/melee/MeleeSystem.js';
 import { meleeWeapon } from './combat/melee/MeleeWeapons.js';
 import { bus } from './core/EventBus.js';
@@ -31,8 +35,8 @@ import { bus } from './core/EventBus.js';
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
-const planet = palette.planets[params.get('planet') ?? 'scorched'];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'scene', 'stratagems', 'gunfx', 'melee'];
+const planet = palette.planets[params.get('planet') ?? (station === 'city' ? 'nightcity' : 'scorched')];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'city', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -96,6 +100,7 @@ async function scene3d() {
   if (station === 'troopers') await troopersStation(scene, views, atmo);
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   if (station === 'cars') await carsStation(scene, views, atmo);
+  if (station === 'city') await cityStation(scene, views, atmo);
   if (station === 'scene') await sceneStation(scene, views, atmo);
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
   if (station === 'gunfx') await gunfxStation(scene, views, atmo);
@@ -414,6 +419,61 @@ async function carsStation(scene, views, atmo) {
     },
   };
   window.__art.sim = W; window.__art.run = run;
+}
+
+// The night city (`?map=city`): the real map (32v32, seed 7) under the Neon Night sky, drawn by
+// the game's own renderers: down an avenue under the lamps, a crossing, a barricade line across
+// the street, the park and its fountain under the aurora, a squad by a burning wreck, and from
+// above: the grid of lit streets, the skyline beyond.
+async function cityStation(scene, views, atmo) {
+  const map = generateFrontlineMap({ seed: +(params.get('seed') ?? 7), size: params.get('size') ?? '32v32', theme: 'city' });
+  const mode = new FrontlineMode(map, { tickets: 100, timeLimit: 600, captureTime: 10, secureTime: 3, seed: 7 });
+  const bf = new BattlefieldRenderer(scene, map, { localTeam: 0, anisotropy: 4, art: { planet, palette } });
+  const fx = new BattleFx(scene, { fog: scene.fog });
+  const C = map.city, t = map.terrain;
+  const city = new CityRenderer(scene, map, { planet, palette, fx });
+  // Soldiers (the art lab's real rigs) where the views want them.
+  const F = await fighters(scene, t, { max: 40 });
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  const V = (x, z) => new THREE.Vector3(x, 0, z);
+  // An avenue segment near the middle: the camera down it toward the front.
+  const avZ = C.avenues.find((z) => Math.abs(z) > 1) ?? C.avenues[0];
+  const seg = C.segs.filter((q) => q.axis === 'x' && q.at === avZ).sort((a, b) => Math.abs((a.from + a.to) / 2 + 60) - Math.abs((b.from + b.to) / 2 + 60))[0];
+  const sx = seg ? seg.from + 2 : -60;
+  const lamp = C.lamps.reduce((best, l) => (Math.hypot(l.x - (sx + 14), l.z - avZ) < Math.hypot(best.x - (sx + 14), best.z - avZ) ? l : best), C.lamps[0]);
+  const lx = lamp.x + lamp.nx * 1.6, lz = lamp.z + lamp.nz * 1.6;
+  ['lancer', 'bastion', 'lumen', 'seraph'].forEach((c, i) => F.add(c, 0, V(lx - 1.5 + i * 1.3, lz + (i % 2 ? 1.2 : -0.8)), -Math.PI / 2 + (i - 1.5) * 0.2, i === 2 ? 'crouch' : 'aim'));
+  // A burning wreck, and two of ours by it.
+  const burning = C.wrecks.find((w) => w.burning) ?? C.wrecks[0];
+  const bw = V((burning.box.min.x + burning.box.max.x) / 2, (burning.box.min.z + burning.box.max.z) / 2);
+  F.add('breacher', 0, bw.clone().add(V(-3, 2.2)), -Math.PI / 2, 'aim');
+  F.add('artificer', 0, bw.clone().add(V(-3.2, -2.4)), -Math.PI / 2 - 0.3, 'crouch');
+  // The park, its fountain.
+  const P = C.park, fo = C.fountain;
+  F.add('wraith', 1, V(fo.x + 6, fo.z + 3), Math.PI / 2, 'aim');
+  F.add('reaver', 1, V(fo.x + 7, fo.z - 4), Math.PI / 2 + 0.3, 'aim');
+  F.start();
+  tickers.push((dt) => {
+    const cam = window.__art.camera;
+    bf.update(mode, 0, cam.position);
+    city.update(dt, cam, window.__art.focus ?? cam.position);
+    fx.update(dt);
+  });
+  // The barricade nearest the middle on our avenue (the line between two sectors).
+  const bar = C.barricades.filter((b) => b.kind === 'jersey').sort((a, b) => Math.abs(a.box.min.z - avZ) - Math.abs(b.box.min.z - avZ))[0];
+  const bx = bar ? (bar.box.min.x + bar.box.max.x) / 2 : 0, bz = bar ? (bar.box.min.z + bar.box.max.z) / 2 : avZ;
+  const cx = C.cross.reduce((a, b) => (Math.abs(b - sx - 20) < Math.abs(a - sx - 20) ? b : a), C.cross[0]);
+  views.street = { pos: y(V(sx, avZ - 3.5), 1.7), look: y(V(sx + 60, avZ + 1), 3), fov: 62, note: 'down an avenue at night: lamps and their pools of light, wrecks, lit windows, neon', focus: y(V(lx, lz), 0) };
+  views.squad = { pos: y(V(lx + 7, lz + 5), 1.6), look: y(V(lx, lz), 1.2), fov: 55, note: 'a squad under a street lamp, lit by it', focus: y(V(lx, lz), 0) };
+  views.fire = { pos: y(bw.clone().add(V(-9, 6)), 1.8), look: y(bw, 1.0), fov: 55, note: 'a burned-out car still burning, two of ours using it for cover', focus: y(bw, 0) };
+  views.barricade = { pos: y(V(bx - 16, bz + 5), 2.2), look: y(V(bx, bz), 1), fov: 58, note: 'a barricade line across an avenue: jersey barriers, a sandbag nest, tank traps, wire', focus: y(V(bx, bz), 0) };
+  views.crossing = { pos: y(V(cx - 24, avZ + 1.5), 3.4), look: y(V(cx + 4, avZ - 2), 0.4), fov: 62, note: 'a crossing: crosswalks, kerbs, wrecks slewed across the lanes', focus: y(V(cx, avZ), 0) };
+  views.park = { pos: y(V(fo.x - 12, fo.z + 22), 2.2), look: y(V(fo.x, fo.z), 5), fov: 62, note: 'the park: the fountain on its point, trees, hedges, the aurora over the city', focus: y(V(fo.x, fo.z), 0) };
+  views.aurora = { pos: y(V(fo.x + 4, fo.z + 26), 2), look: y(V(fo.x - 30, fo.z - 200), 95), fov: 70, note: 'the purple aurora over the skyline, searchlights', focus: y(V(fo.x, fo.z), 0) };
+  views.above = { pos: y(V(sx - 40, avZ - 120), 140), look: y(V(sx + 60, avZ + 20), 0), fov: 60, note: 'from above: the grid of lit streets, the park, the skyline beyond the edge', focus: y(V(sx, avZ), 0) };
+  const enterAll = (v) => () => { window.__art.focus = v.focus; };
+  for (const v of Object.values(views)) v.enter = enterAll(v);
+  window.__art.map = map; window.__art.city = city;
 }
 
 /** A vehicle from the kit, posed for a still: turret turned, gun set up and laid, cargo loaded. */

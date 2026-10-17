@@ -48,9 +48,10 @@ export class FrontlineSession {
    *                         battlePoints, passives, support, humanoid (animation/humanoid.json: the swords' sweeps),
    *                         barks (ai/barks.json: names and callouts) }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
-   *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
+   *                         seed, map: 'trench' (the trench war) | 'city' (the night city), humans: [{ id, team, classId }],
+   *                         tickets, waveInterval, timeLimit, lod }
    */
-  constructor(data, { size = null, players = null, seed = 1, humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
+  constructor(data, { size = null, players = null, seed = 1, map = 'trench', humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
     const profile = mapSizeFor(size, players), M = profile.match;
     players = players ?? profile.players;
     this.data = data;
@@ -60,7 +61,7 @@ export class FrontlineSession {
     this.lodCfg = lod;
     this.waveInterval = waveInterval ?? M.waveInterval;
     this.squadSize = M.squadSize;
-    this.map = generateFrontlineMap({ seed, size: profile.id });
+    this.map = generateFrontlineMap({ seed, size: profile.id, theme: map });   // map: 'trench' | 'city'
     this.world = new CombatWorld({
       damageMatrix: data.damageMatrix, cover: this.map.cover, terrain: this.map.terrain, nav: this.map.nav,
       supers: data.supers, meleeWeapons: data.meleeWeapons, recoilDefs: data.recoil, vehicleDefs: data.vehicleDefs, statusDefs: data.statuses,

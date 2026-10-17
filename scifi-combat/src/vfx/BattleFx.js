@@ -248,17 +248,18 @@ export class BattleFx {
   /**
    * One frame of something burning (a killed car before it blows): tongues of flame licking up
    * off `at`, spread over `r`, and the black smoke rolling off them. `k` 0..1 grows the fire.
+   * `src` keeps the fire's own emission clock (one per fire: fires burning together don't share it).
    */
-  fire(at, dt, r = 1, k = 1) {
+  fire(at, dt, r = 1, k = 1, src = this) {
     const [x, y, z] = this.#at(at), R = this.rand;
-    this.fireT = (this.fireT ?? 0) + dt;
-    for (let n = 0; this.fireT > 0.035 && n < 4; n++) {
-      this.fireT -= 0.035;
+    src.fireT = (src.fireT ?? 0) + dt;
+    for (let n = 0; src.fireT > 0.035 && n < 4; n++) {
+      src.fireT -= 0.035;
       const a = R() * Math.PI * 2, d = Math.sqrt(R()) * r;
       this.glow.add(x + Math.cos(a) * d, y + R() * 0.3, z + Math.sin(a) * d, (R() - 0.5) * 0.6, 1.8 + R() * 2, (R() - 0.5) * 0.6, 0.3 + R() * 0.25, (0.3 + R() * 0.3) * k, (0.8 + R() * 0.6) * k, BURN, FIRE_END, 1.5, -1.5);
       if (R() < 0.5) this.matter.add(x + Math.cos(a) * d * 0.6, y + 1 + R() * 0.5, z + Math.sin(a) * d * 0.6, (R() - 0.5) * 0.6, 1.5 + R() * 1.2, (R() - 0.5) * 0.6, 2.8 + R() * 1.8, 0.8 * k, (3 + R() * 2.5) * k, SOOT, SOOT_END, 0.35, -0.1);
     }
-    this.fireT = Math.min(this.fireT, 0.06);
+    src.fireT = Math.min(src.fireT, 0.06);
   }
 
   /** A tyre sliding (a drift, a skid, wheelspin): dust kicked up behind it, more the harder it slides. */

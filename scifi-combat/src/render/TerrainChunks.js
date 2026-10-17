@@ -17,12 +17,14 @@ export class TerrainChunks {
   /**
    * @param {THREE.Scene} scene
    * @param {Terrain} terrain
-   * @param {object} o { material, chunk (m), lods: [{ step, dist }], skirt, budget, colorScale, ground: palette colors, scorch: (x, z) -> 0..1 }
+   * @param {object} o { material, chunk (m), lods: [{ step, dist }], skirt, budget, colorScale, ground: palette colors, scorch: (x, z) -> 0..1,
+   *   paint: (x, z) -> a ground palette key the ground there is instead (a city's asphalt, its park's grass) }
    */
-  constructor(scene, terrain, { material, chunk = 128, lods = [{ step: 1, dist: 140 }, { step: 2, dist: 340 }, { step: 8, dist: Infinity }], skirt = 2, budget = 2, colorScale = 1, ground = DEFAULT_GROUND, scorch = null } = {}) {
+  constructor(scene, terrain, { material, chunk = 128, lods = [{ step: 1, dist: 140 }, { step: 2, dist: 340 }, { step: 8, dist: Infinity }], skirt = 2, budget = 2, colorScale = 1, ground = DEFAULT_GROUND, scorch = null, paint = null } = {}) {
     this.t = terrain; this.material = material; this.lods = lods; this.skirt = skirt; this.budget = budget; this.colorScale = colorScale;
     this.pal = Object.fromEntries(Object.entries({ ...DEFAULT_GROUND, ...ground }).map(([k, v]) => [k, new THREE.Color(v)]));
     this.scorch = scorch;
+    this.paint = paint;
     this.size = chunk;
     const per = Math.round(chunk / terrain.res);
     this.per = per;
@@ -90,6 +92,9 @@ export class TerrainChunks {
       // Broad patches: dust drifts in the hollows, earth shows on the rises.
       const patch = Math.sin(x * 0.031 + Math.sin(z * 0.017) * 2.0) * Math.sin(z * 0.027 + Math.sin(x * 0.021) * 1.7);
       cc.lerp(G.earth, Math.max(0, patch) * 0.35);
+      // Painted ground (a city's streets, its park): that colour, with the same broad patches.
+      const key = this.paint?.(x, z);
+      if (key && G[key]) cc.copy(G[key]).multiplyScalar(1 + patch * 0.12);
       const dug = t.dug[iz * t.nx + ix];
       if (dug > 0.05) cc.lerp(G.mud, Math.min(1, dug / 0.45));
       if (this.scorch) {

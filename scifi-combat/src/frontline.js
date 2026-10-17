@@ -1,6 +1,7 @@
 // Frontline: a Battlefront-style battle against bots, on a map built for the match size.
 // URL: ?size=4v4|12v12|32v32|64v64|200v200 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
-//      &planet=scorched (data/art/palette.json) &fx=low|off (post-processing quality)
+//      &map=trench|city (the trench war, or the night city) &planet=scorched|nightcity (data/art/palette.json)
+//      &fx=low|off (post-processing quality)
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
 // (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers, stratagems → post-processing
@@ -16,6 +17,7 @@ import { FrontlineSession } from './game/FrontlineSession.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { BattlefieldRenderer } from './render/BattlefieldRenderer.js';
+import { CityRenderer } from './render/CityRenderer.js';
 import { TracerPool } from './render/TracerPool.js';
 import { VehicleViews } from './vfx/VehicleViews.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
@@ -40,6 +42,7 @@ const sizeParam = params.get('size'), playersParam = params.get('players');
 const requestedPlayers = playersParam ? Math.max(8, Math.min(400, +playersParam)) : null;
 const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
+const mapTheme = params.get('map') === 'city' ? 'city' : 'trench';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
 const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down, palette, trooperKits, rules, stratagems, battlePoints, passives, support, barks] = await Promise.all([
@@ -50,7 +53,7 @@ const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses
   load('art/palette.json'), load('art/troopers.json'), load('rules.json'), load('stratagems.json'), load('battle-points.json'),
   load('passives.json'), load('support.json'), load('ai/barks.json'),
 ]);
-const planet = palette.planets[params.get('planet') ?? 'scorched'] ?? palette.planets.scorched;
+const planet = palette.planets[params.get('planet') ?? (mapTheme === 'city' ? 'nightcity' : 'scorched')] ?? palette.planets.scorched;
 installFog(planet);   // before any material compiles
 const classes = [solari, voidC];
 const myClass = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
@@ -64,7 +67,7 @@ const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
 
 const PLAYER_ID = 1;
-const session = new FrontlineSession(data, { size: sizeParam ?? (requestedPlayers ? null : '32v32'), players: requestedPlayers, seed, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
+const session = new FrontlineSession(data, { size: sizeParam ?? (requestedPlayers ? null : '32v32'), players: requestedPlayers, seed, map: mapTheme, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
 const { world, map, mode } = session;
 const players = session.players;
 document.title = `Emberfall Frontline · ${map.name} (${session.size})`;
@@ -101,6 +104,8 @@ const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, pal
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id) });
 const fx = new BattleFx(scene, { fog: scene.fog });
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
+// The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
+const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
 // A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
@@ -202,6 +207,7 @@ const loop = new FixedLoop({
     const root = anim.record(PLAYER_ID).root;
     atmo.update(dt, cam, fireControl.active ? cam.position : root);
     battlefield.update(mode, session.time, cam.position);
+    city?.update(dt, cam, root);
     tracers.update(dt);
     fx.update(dt);
     zoneViews.update(dt);
@@ -218,6 +224,6 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

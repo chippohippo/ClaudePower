@@ -18,6 +18,8 @@
 //    starting front sector (howitzers and rockets in the front row, AT guns behind), trucks at
 //    the HQ dump.
 // All terrain changes come first, then every box is placed on the finished ground.
+// theme 'city' (City.js): the same front fought through a city at night: streets and blocks of
+// buildings, a park, wrecks and barricades instead of trenches, villages and craters.
 
 import { Vector3 } from 'three';
 import { Terrain, mulberry32 } from '../../world/Terrain.js';
@@ -26,6 +28,7 @@ import { NavGrid } from '../../world/NavGrid.js';
 import { mapSizeFor } from './MapSizes.js';
 import { buildTrenchLine } from './Trenches.js';
 import { buildRuin } from './Ruins.js';
+import { buildCity, CITY_NAMES } from './City.js';
 
 const v = (x, y, z) => new Vector3(x, y, z);
 const alignOdd = (x, origin) => { const r = Math.round(x); return (r - origin) % 2 === 0 ? r + 1 : r; };
@@ -58,17 +61,19 @@ function doorways(ruins) {
 }
 
 /**
- * @param {object} o { seed, size: '4v4' | '12v12' | '32v32' | '64v64', layout (a MapSizes-style profile) }
- * @returns {{ size, name, terrain, cover: CoverIndex, nav: NavGrid, sectors (with .pool[team], .depot[team], .park[team]), points, hq, hqDepot, pads, padGap, trenches, ruins, wire, craters, structures, support, bounds }}
+ * @param {object} o { seed, size: '4v4' | '12v12' | '32v32' | '64v64', layout (a MapSizes-style profile), theme: 'trench' | 'city' }
+ * @returns {{ size, name, theme, terrain, cover: CoverIndex, nav: NavGrid, sectors (with .pool[team], .depot[team], .park[team]), points, hq, hqDepot, pads, padGap, trenches, ruins, wire, craters, structures, support, bounds, city? }}
  */
-export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null } = {}) {
+export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null, theme = 'trench' } = {}) {
   const P = layout ?? mapSizeFor(size);
+  const CITY = theme === 'city';
   const rand = mulberry32(seed * 7919 + 13);
   const R = (a, b) => a + (b - a) * rand();
   const maxX = P.minX + P.width, maxZ = P.minZ + P.depth;
-  // Berms rise along the map edges (narrower on small maps, so the fight still has room).
-  const berm = Math.min(30, P.depth * 0.12);
-  const terrain = Terrain.generate({ seed, minX: P.minX, minZ: P.minZ, width: P.width, depth: P.depth, res: 1, amp: P.terrainAmp, berm });
+  // Berms rise along the map edges (narrower on small maps, so the fight still has room). A city
+  // is flat, and walled in by its own buildings.
+  const berm = CITY ? 0 : Math.min(30, P.depth * 0.12);
+  const terrain = Terrain.generate({ seed, minX: P.minX, minZ: P.minZ, width: P.width, depth: P.depth, res: 1, amp: CITY ? Math.min(1.2, P.terrainAmp * 0.2) : P.terrainAmp, berm });
   const boxes = [];
   const b = {
     terrain, rand, R, boxes,
@@ -81,6 +86,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
         surface: opts.surface ?? 'concrete', destructible: !!opts.destructible, kind: opts.kind ?? 'wall',
       };
       if (opts.trench !== undefined) box.trench = opts.trench;
+      if (opts.render) box.render = opts.render;     // drawn by its own renderer (CityRenderer), not as a plain box
       boxes.push(box);
       return box;
     },
@@ -214,9 +220,13 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
     }
   }
 
+  // The city: streets, blocks, the park, wrecks, barricades (City.js), on everything above.
+  const mid = Math.floor((sectors.length - 1) / 2);
+  const city = CITY ? buildCity(b, { P, sectors, points, hq, hqR, spawnPts, ruinsAt, maxX, maxZ, mid }) : null;
+
   // Villages are laid out first (their footprints keep craters and scatter away).
-  const villagePlans = [];
-  for (const si of P.villages) {
+  const villagePlans = CITY ? city.ruinPlans : [];
+  for (const si of CITY ? [] : P.villages) {
     const sec = sectors[si];
     if (!sec || sec.kind !== 'line') continue;
     for (const pid of sec.points) {
@@ -234,10 +244,9 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   }
 
   // Shell craters across the line sectors, twice as dense in the neutral middle (no-man's-land).
-  const craters = [];
-  const mid = Math.floor((sectors.length - 1) / 2);
+  const craters = CITY ? city.craters : [];
   for (const s of sectors) {
-    if (s.kind !== 'line') continue;
+    if (s.kind !== 'line' || CITY) continue;
     const ha = ((s.x1 - s.x0) * P.depth) / 10000, n = Math.round(ha * P.craters * (s.index === mid ? 2 : 1));
     for (let k = 0; k < n; k++) {
       const x = R(s.x0 + 4, s.x1 - 4), z = R(P.minZ + 14, maxZ - 14), r = R(1.4, 3.4);
@@ -251,7 +260,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   // Lines sit on the 2 m nav grid: the 2 m floor is one column of nav cells (x - minX odd, so
   // x ± 1 are cell edges) and every traverse one row (z0 - minZ odd).
   const tz0 = P.minZ + Math.ceil(berm) + 3, trenchZ0 = (tz0 - P.minZ) % 2 === 0 ? tz0 + 1 : tz0;
-  const trenches = trenchX.map((tx, i) => buildTrenchLine(b, {
+  const trenches = (CITY ? [] : trenchX).map((tx, i) => buildTrenchLine(b, {
     id: i, x: alignOdd(tx - P.trenches.jog / 2, P.minX), z0: trenchZ0, z1: maxZ - Math.ceil(berm) - 3, clear: workClear,
     bay: P.trenches.bay, jog: P.trenches.jog, comms: P.trenches.comms, dugouts: P.trenches.dugouts, exits: P.trenches.exits,
   }));
@@ -264,8 +273,9 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   }
   ruinsAt.push(...works);
   const onWorks = (x0, z0, x1, z1) => works.some((q) => !(x1 < q.x0 || x0 > q.x1 || z1 < q.z0 || z0 > q.z1));
-  // Wire belts in front of both sides of every trench line, with gaps to cross through.
-  const wire = [];
+  // Wire belts in front of both sides of every trench line, with gaps to cross through (the
+  // city's are strung in front of its barricades).
+  const wire = CITY ? city.wire : [];
   for (const T of trenches) {
     for (const side of [-1, 1]) {
       const wx = T.x + P.trenches.jog / 2 + side * R(11, 14);
@@ -280,7 +290,12 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   // ---- fortified positions at points
   for (const p of points) {
     const { x, z } = p.pos, rr = p.radius;
-    boxC(x + R(-1.5, 1.5), z + R(-1.5, 1.5), 3, 3, 2.6, { kind: 'strongpoint' });   // cover on the point itself
+    // Cover on the point itself (the park's point has its fountain: a low basin round a column).
+    if (CITY && Math.hypot(city.fountain.x - x, city.fountain.z - z) < 1) {
+      const f = city.fountain;
+      boxC(f.x, f.z, f.r * 1.5, f.r * 1.5, 0.75, { kind: 'fountain', surface: 'concrete', render: 'city' });
+      boxC(f.x, f.z, 1.2, 1.2, 3.2, { kind: 'statue', surface: 'concrete', render: 'city' });
+    } else boxC(x + R(-1.5, 1.5), z + R(-1.5, 1.5), 3, 3, 2.6, { kind: 'strongpoint' });
     const n = 7 + Math.floor(rand() * 3);
     for (let k = 0; k < n; k++) {
       const a = (k / n) * Math.PI * 2 + R(-0.2, 0.2), r = rr + R(3, 8);
@@ -305,7 +320,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   // ---- blockhouses (sightline breakers and flanking routes)
   const structures = [];
   for (const s of sectors) {
-    if (s.kind !== 'line') continue;
+    if (s.kind !== 'line' || CITY) continue;
     for (let k = 0, tries = 0; k < P.structures && tries < 20; tries++) {
       const x = R(s.x0 + 20, s.x1 - 20), z = R(P.minZ + 40, maxZ - 40), w = R(9, 15), d = R(7, 12);
       if (!clearOf(x, z, Math.max(w, d) * 0.5 + 8, { trench: Math.max(w, d) / 2 + 12 })) continue;
@@ -316,7 +331,7 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   }
 
   // ---- scatter: rocks and crates
-  const scatter = Math.round(((P.width - 2 * hqR) * P.depth / 10000) * P.scatterPerHa);
+  const scatter = CITY ? 0 : Math.round(((P.width - 2 * hqR) * P.depth / 10000) * P.scatterPerHa);
   for (let k = 0; k < scatter; k++) {
     const x = R(P.minX + hqR * 1.6, maxX - hqR * 1.6), z = R(P.minZ + 14, maxZ - 14);
     if (!clearOf(x, z, 10, { trench: 10 }) || wire.some((w) => x > w.min.x - 2 && x < w.max.x + 2 && z > w.min.z - 2 && z < w.max.z + 2)) continue;
@@ -385,9 +400,10 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null }
   terrain.takeDirty(); // the renderer builds the finished ground; only later changes are news
 
   return {
-    seed, size: P.id ?? size, name: P.name, terrain, cover, nav, sectors, points, hq, hqDepot, pads, padGap, gunGap: GUN_GAP,
+    seed, size: P.id ?? size, name: CITY ? CITY_NAMES[P.id ?? size] ?? 'City' : P.name, theme: CITY ? 'city' : 'trench',
+    terrain, cover, nav, sectors, points, hq, hqDepot, pads, padGap, gunGap: GUN_GAP,
     parkCounts: [parkGuns, parkAT],
-    trenches, ruins, wire, craters, structures, support: S,
+    trenches, ruins, wire, craters, structures, support: S, city,
     bounds: { minX: P.minX, minZ: P.minZ, maxX, maxZ },
   };
 }
