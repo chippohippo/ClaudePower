@@ -88,6 +88,7 @@ All the knobs are in the `CONFIG` block at the top of `make_reel.py`:
 - **Length and pacing**: `duration`, `crossfade`, `hard_cut_every`, `bpm_fallback`.
 - **Style intensity**: `contrast`, `saturation`, `warmth`, `exposure`, `vignette`, `grain`, `push_in`.
 - **Log footage**: `log_footage: false` for normal phone or Rec.709 footage. It's on for Sony S-Log, which is flat and grey straight out of the camera.
+- **Unified look**: `match_luma` and `match_wb` exposure- and white-balance-match every shot before grading, and a soft highlight shoulder stops vibrant shots from blowing out.
 - **Safe zones**: `safe_top`, `safe_bottom`, `safe_side`.
 
 ## Big 4K source files
@@ -100,4 +101,4 @@ for f in *.MP4; do ffmpeg -i "$f" -an -vf "scale=-2:1920,fps=30" -c:v libx264 -c
 
 ## Music
 
-`make_music.py` synthesises an original, royalty-free piano + pad bed at 76 BPM, so the reel has a soundtrack out of the box. To use a trending sound, you can either pass `--music yoursong.mp3`, or post the reel with the music muted and add the sound inside Instagram. The cuts follow a 76 BPM grid, which lines up with most ballads.
+`make_music.py` synthesises an original, royalty-free calm, sweet felt-piano + music-box + strings track (F major, 66 BPM, no drums), so the reel has a soundtrack out of the box. To use a trending sound, you can either pass `--music yoursong.mp3`, or post the reel with the music muted and add the sound inside Instagram. Cuts snap to the beats of whatever music you use.

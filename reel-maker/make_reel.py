@@ -53,22 +53,24 @@ CONFIG = {
     "preset": "medium",
 
     # Editing
-    "crossfade": 0.45,           # dissolve length between shots (s)
+    "crossfade": 0.8,            # dissolve length between shots (s)
     "hard_cut_every": 0,         # >0: every Nth transition is a hard cut (punchier)
-    "bpm_fallback": 76,          # rhythmic grid used when no music/beat tracking
+    "bpm_fallback": 66,          # rhythmic grid used when no music/beat tracking
     "snap_to_beats": True,
-    "push_in": 0.07,             # default Ken Burns zoom amount (0.07 = 7 %)
+    "push_in": 0.06,             # default Ken Burns zoom amount (0.07 = 7 %)
     "end_card_seconds": 3.0,     # final held title card
     "fade_out_seconds": 1.2,     # fade to black at very end
 
     # Look
-    "log_footage": True,         # True for S-Log/flat footage (Sony FX3 etc.)
+    "log_footage": True,
+    "match_luma": 0.40,          # every shot is exposure-matched to this median
+    "match_wb": 0.6,             # 0..1 strength of white-balance matching         # True for S-Log/flat footage (Sony FX3 etc.)
     "contrast": 1.0,             # style intensity multipliers (0 = off, 1 = default)
     "saturation": 1.0,
     "warmth": 1.0,
     "exposure": 0.0,             # stops
-    "vignette": 0.35,            # 0..1
-    "grain": 0.035,              # 0..~0.1
+    "vignette": 0.25,            # 0..1
+    "grain": 0.025,              # 0..~0.1
     "grain_size": 2,             # px (1 = fine)
 
     # Text
@@ -263,29 +265,64 @@ def reframe(img: np.ndarray, shot: Shot, p: float) -> np.ndarray:
     return np.asarray(out, dtype=np.float32) / 255.0
 
 
-def grade(img: np.ndarray) -> np.ndarray:
-    """Cinematic grade. For log footage first expand to display contrast."""
-    c, s, w = CONFIG["contrast"], CONFIG["saturation"], CONFIG["warmth"]
+LUMA = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+
+
+def develop(img: np.ndarray) -> np.ndarray:
+    """Log -> display-referred base (before per-shot matching)."""
     x = img * (2.0 ** CONFIG["exposure"])
     if CONFIG["log_footage"]:
-        # S-Log3-ish flat footage sits ~0.1-0.65. Stretch, then filmic S-curve.
-        x = (x - 0.06) / 0.62
-        x = np.clip(x, 0, 1.2) ** 1.25
-    # filmic S-curve (contrast) — blend of identity and smoothstep
+        # S-Log3-ish flat footage sits ~0.06-0.68: stretch and add gamma
+        x = np.clip((x - 0.06) / 0.62, 0, 1.3) ** 1.2
+    return x
+
+
+def measure(img: np.ndarray) -> tuple[float, np.ndarray]:
+    """Per-shot exposure gain + white-balance gains that pull every shot to a
+    common target, so the reel reads as one unified palette."""
+    x = develop(img[::8, ::8])
+    luma = x @ LUMA
+    gain = CONFIG["match_luma"] / max(float(np.median(luma)), 0.05)
+    gain = float(np.clip(gain, 0.7, 1.6))
+    # grey-world on mid-tones only (ignores foliage-saturated / clipped pixels)
+    m = (luma > 0.15) & (luma < 0.8)
+    mean = x[m].mean(axis=0) if m.sum() > 100 else x.reshape(-1, 3).mean(axis=0)
+    wb = mean.mean() / np.maximum(mean, 1e-3)
+    wb = 1 + (wb - 1) * CONFIG["match_wb"]       # partial: keep some character
+    wb = wb / (wb @ LUMA)                        # don't change brightness
+    return gain, wb.astype(np.float32)
+
+
+def grade(img: np.ndarray, match=(1.0, np.ones(3, np.float32))) -> np.ndarray:
+    """Bright, warm, vibrant-but-natural grade with highlight protection."""
+    c, s, w = CONFIG["contrast"], CONFIG["saturation"], CONFIG["warmth"]
+    gain, wb = match
+    x = develop(img) * wb * gain
+    # gentle S-curve for depth (mostly in the shadows / mids)
     sc = x * x * (3 - 2 * np.clip(x, 0, 1))
-    x = x + (sc - x) * (0.55 * c)
-    # lifted blacks (soft, filmic)
-    x = 0.025 + x * 0.955
-    # saturation
-    luma = (x @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32))[..., None]
-    x = luma + (x - luma) * (1.0 + 0.32 * s)
-    # warm highlights / teal-ish shadows split-tone
-    shadows = np.clip(1 - luma * 2, 0, 1)
-    highs = np.clip(luma * 2 - 1, 0, 1)
-    tone = (np.array([0.035, 0.012, -0.03], np.float32) * highs
-            + np.array([-0.012, 0.004, 0.018], np.float32) * shadows
-            + np.array([0.018, 0.006, -0.012], np.float32))
+    x = x + (sc - x) * (0.35 * c)
+    # soft highlight shoulder: everything above 0.72 rolls off smoothly -> no blowouts
+    k = 0.72
+    over = np.maximum(x - k, 0)
+    x = np.minimum(x, k) + (1 - k) * (1 - np.exp(-over / (1 - k) * 1.15))
+    # gently lifted blacks: airy, romantic
+    x = 0.03 + x * 0.955
+    luma = (x @ LUMA)[..., None]
+    chroma = x - luma
+    sat = np.abs(chroma).max(axis=2, keepdims=True)
+    # vibrance: boost muted colours most, saturated ones least (skin stays natural)
+    x = luma + chroma * (1.0 + 0.55 * s * np.clip(1 - sat * 2.2, 0.25, 1))
+    # foliage: nudge greens toward a warm, soft olive-emerald so they don't dominate
+    r, g, b = x[..., 0:1], x[..., 1:2], x[..., 2:3]
+    green = np.clip((g - np.maximum(r, b)) * 4, 0, 1)
+    x = x + green * np.concatenate([0.03 * g, -0.025 * g, -0.01 * g], axis=2) * w
+    # warm golden tone everywhere, creamier in the highlights
+    highs = np.clip(luma * 1.6 - 0.6, 0, 1)
+    tone = (np.array([0.028, 0.016, -0.018], np.float32) * highs
+            + np.array([0.016, 0.006, -0.012], np.float32))
     x = x + tone * w
+    # final safety: compress any channel that still tries to clip
+    x = np.where(x > 0.96, 0.96 + (x - 0.96) * 0.25, x)
     return np.clip(x, 0, 1)
 
 
@@ -474,18 +511,23 @@ class Reel:
         local = s.start + (t - s.t0) * s.speed
         return reframe(src.frame(local), s, p)
 
+    def match_for(self, s: Shot):
+        if not hasattr(s, "_match"):
+            mid = s.start + (s.t1 - s.t0) / 2 * s.speed
+            s._match = measure(self.source(s.path).frame(mid))
+        return s._match
+
     def make_frame(self, t: float) -> np.ndarray:
         shots, xf = self.p.shots, CONFIG["crossfade"]
         total = CONFIG["duration"]
         idx = next(i for i, s in enumerate(shots) if s.t0 <= t < s.t1 or i == len(shots) - 1)
         cur = shots[idx]
-        img = self.shot_frame(cur, t)
+        img = grade(self.shot_frame(cur, t), self.match_for(cur))
         # dissolve: the outgoing shot keeps playing for `xf` seconds into this one
         if idx > 0 and cur.cut == "dissolve" and t - cur.t0 < xf:
             prev = shots[idx - 1]
             a = ease((t - cur.t0) / xf)
-            img = self.shot_frame(prev, t) * (1 - a) + img * a
-        img = grade(img)
+            img = grade(self.shot_frame(prev, t), self.match_for(prev)) * (1 - a) + img * a
         if cur.cut == "flash" and t - cur.t0 < 0.25:   # soft white flash
             img = img + (1 - img) * (1 - (t - cur.t0) / 0.25) * 0.85
         if t < 0.6:                                     # open from black fast (hook)
