@@ -177,3 +177,17 @@ test('frontline: downs don’t cost tickets, deaths do; the downed don’t hold 
   assert.equal(s.mode.points[p.id].counts[0], 0);
   s.dispose();
 });
+
+test('a reviving zone (Sunwell) gets the downed up and leaves the dead dead', () => {
+  const { fighter, world, seconds } = makeWorld([], { down: true });
+  const C = fighter(1, 0, v(0, 0, 0), 'lancer');
+  const D = fighter(2, 0, v(1.5, 0, 0), 'lancer');
+  const K = fighter(3, 0, v(-1.5, 0, 0), 'lancer');
+  D.health.damage(D.health.hp + D.health.shield + 1, { kind: 'test' }, null);
+  K.health.damage(K.health.hp + K.health.shield + 1, { kind: 'test', noDown: true }, null);
+  assert.ok(D.health.downed && K.health.dead);
+  world.spawnZone({ kind: 'well', ability: 'sunwell', ownerId: C.id, team: 0, center: v(0, 0, 0), radius: 6, lifetime: 2, tick: 0.25, allyHeal: 10, revive: true });
+  seconds(1);
+  assert.ok(!D.health.downed && !D.health.dead, 'the downed one is up');
+  assert.ok(K.health.dead, 'the dead stay dead (they redeploy)');
+});

@@ -171,12 +171,13 @@ export class AudioDirector {
     on('status:burst', (e) => this.play(`status.${e.cause}.burst`, { tier: Tier.COMBAT, pos: e.center }));
 
     // Weapons
-    on('weapon:fire', (e) => this.play(`${e.audio ?? 'gun'}.fire${this.relation(e.id) === 'self' ? '_1p' : ''}`, { tier: Tier.WEAPON, pos: e.id === this.listenerId ? null : this.posOf(e.id), radius: e.suppressed ? 15 : 90, gainDb: e.lowAmmo && e.id === this.listenerId ? 0 : -1 }));
+    on('weapon:fire', (e) => this.play(`${e.audio ?? 'gun'}.fire${this.relation(e.id) === 'self' ? '_1p' : ''}`, { tier: Tier.WEAPON, pos: e.id === this.listenerId ? null : this.posOf(e.id), radius: 90 * (e.audioRadius ?? 1), gainDb: e.lowAmmo && e.id === this.listenerId ? 0 : -1 }));   // a suppressor carries a third as far
     on('weapon:empty', (e) => e.id === this.listenerId && this.play('ui.mag_empty_click', { tier: Tier.COMBAT, gainDb: -4 }));
     on('weapon:overheat', (e) => this.play('weapon.overheat_vent', { tier: Tier.COMBAT, pos: e.id === this.listenerId ? null : this.posOf(e.id) }));
     on('weapon:perfectVent', (e) => e.id === this.listenerId && this.play('ui.perfect_vent', { tier: Tier.COMBAT }));
     on('weapon:hit', (e) => {
-      if (e.attacker === this.listenerId) this.play(e.zone === 'head' ? 'ui.hit_head' : e.shieldBroke ? 'ui.hit_shieldbreak' : `ui.hit_${e.armor}`, { tier: Tier.COMBAT, gainDb: -2 });
+      // Your hits, by what they did: a kill, a headshot, a round the armor shrugs off (a dull plink: switch or aim elsewhere), a shield broken, a hit.
+      if (e.attacker === this.listenerId) this.play(e.friendly ? 'ui.hit_friendly' : e.killed ? 'ui.hit_kill' : e.zone === 'head' ? 'ui.hit_head' : (e.armorMul ?? 1) < 0.5 ? 'ui.hit_plink' : e.shieldBroke ? 'ui.hit_shieldbreak' : `ui.hit_${e.armor}`, { tier: Tier.COMBAT, gainDb: -2 });
       if (e.victim === this.listenerId && e.shieldBroke) this.play('ui.my_shield_broke', { tier: Tier.THREAT });
     });
     on('weapon:beamStart', (e) => this.play('beam.loop', { tier: Tier.WEAPON, pos: this.posOf(e.id), loopKey: `beam:${e.id}` }));
@@ -343,6 +344,7 @@ export class SynthBackend {
     if (cue.startsWith('squad.whistle')) return this.#whistle({ pos, gainDb, radius, threat: cue.endsWith('_threat') });
     if (kind === 'artillery') return this.#artillery(cue.slice(10), { pos, gainDb, radius, intensity, duration });
     if (kind === 'callin') return this.#callin(cue.slice(7), { pos, gainDb, radius, intensity, duration });
+    if (cue.startsWith('ui.hit_')) return this.#hitConfirm(cue.slice(7), gainDb);
     const ctx = this.ctx, t = ctx.currentTime;
     const threat = cue.includes('_threat') || tier === 0;
     const freq = noteHz(sig?.root) * (threat ? 1 : 2);   // threats sit an octave lower, so they're heavier
@@ -510,6 +512,41 @@ export class SynthBackend {
     const h = { osc: null, ended: false };
     setTimeout(() => { h.ended = true; try { out.disconnect(); } catch { /* gone */ } }, (end + 0.2) * 1000);
     h.osc = { stop: () => { try { out.disconnect(); } catch { /* gone */ } } };
+    return h;
+  }
+
+  /**
+   * Hit confirms, each its own shape so you can tell them apart without looking: a hit is a
+   * crisp tick, a headshot a bright double ping, a kill a thump under a ring, armor that shrugs a
+   * round off a dull low plink, a shield breaking a glassy crack, a teammate a sour two-tone.
+   */
+  #hitConfirm(kind, gainDb) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    this.noise ??= (() => { const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })();
+    const out = ctx.createGain();
+    out.gain.value = 10 ** ((gainDb - 12) / 20);
+    out.connect(this.buses.sfx);
+    const tone = (type, f0, f1, at, len, peak) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t + at); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + at + len);
+      g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(peak, t + at + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + at + len);
+      o.connect(g); g.connect(out); o.start(t + at); o.stop(t + at + len + 0.02);
+    };
+    const click = (type, f, at, len, peak) => {
+      const n = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+      n.buffer = this.noise; fl.type = type; fl.frequency.value = f;
+      g.gain.setValueAtTime(peak, t + at); g.gain.exponentialRampToValueAtTime(0.0001, t + at + len);
+      n.connect(fl); fl.connect(g); g.connect(out); n.start(t + at, Math.random() * 0.5, len + 0.02);
+    };
+    let end = 0.12;
+    if (kind === 'kill') { tone('sine', 170, 90, 0, 0.16, 1); tone('triangle', 1320, 1320, 0.01, 0.22, 0.4); click('highpass', 2500, 0, 0.03, 0.8); end = 0.26; }
+    else if (kind === 'head') { tone('sine', 2400, 2400, 0, 0.06, 0.6); tone('sine', 3200, 3200, 0.05, 0.08, 0.5); end = 0.15; }
+    else if (kind === 'plink') { tone('triangle', 420, 300, 0, 0.07, 0.6); click('lowpass', 600, 0, 0.04, 0.6); end = 0.1; }
+    else if (kind === 'shieldbreak') { click('bandpass', 3800, 0, 0.12, 1); tone('sine', 1900, 950, 0, 0.14, 0.4); end = 0.18; }
+    else if (kind === 'friendly') { tone('square', 520, 520, 0, 0.07, 0.35); tone('square', 390, 390, 0.08, 0.1, 0.35); end = 0.2; }
+    else { click('highpass', 3200, 0, 0.025, 1); tone('sine', 1500, 1300, 0, 0.03, 0.35); end = 0.06; }
+    const h = { osc: { stop: () => { try { out.disconnect(); } catch { /* gone */ } } }, ended: false };
+    setTimeout(() => { h.ended = true; try { out.disconnect(); } catch { /* gone */ } }, (end + 0.15) * 1000);
     return h;
   }
 

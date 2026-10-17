@@ -268,7 +268,9 @@ export class CombatWorld {
       const fall = 1 - 0.7 * Math.min(1, dist / radius);
       const armor = e.health.armorFor?.('body') ?? 'flesh';
       const mul = this.damageMatrix[weapon.ammoType]?.[armor] ?? 1;
-      e.health.damage(base * fall * mul * share * (projectile?.spec?.damageMul ?? 1), { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType, friendly: !isOwner && e.team === projectile?.team }, owner);
+      const dealt = base * fall * mul * share * (projectile?.spec?.damageMul ?? 1);
+      e.health.damage(dealt, { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType, friendly: !isOwner && e.team === projectile?.team, from: [point.x, point.y, point.z] }, owner);
+      e.weapons?.flinch?.(dealt, point);
       if (!e.isVehicle) { this.#blast(e, point, radius, dist, weapon); thrown.add(e); }
     }
     // Bodies already on the ground get thrown too.

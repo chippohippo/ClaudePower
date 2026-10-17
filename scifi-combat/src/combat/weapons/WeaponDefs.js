@@ -11,7 +11,10 @@ export function deepMerge(base, over) {
 function applyOp(obj, path, op, value) {
   const keys = path.split('.');
   let o = obj;
-  for (let i = 0; i < keys.length - 1; i++) o = o[keys[i]] ??= {};
+  for (let i = 0; i < keys.length - 1; i++) {
+    o = o[keys[i]] ??= {};
+    if (typeof o !== 'object') return;          // a path through a plain value (an audio id): nothing to change
+  }
   const k = keys[keys.length - 1];
   if (op === 'set') o[k] = value;
   else if (op === 'mul') o[k] = (o[k] ?? 1) * value;

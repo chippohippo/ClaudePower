@@ -57,6 +57,7 @@ export class CameraRig {
     this.fovKick = 0;
     this.collisionDist = 2.35;
     this.trauma = 0;
+    this.flinchP = 0; this.flinchY = 0;   // a hit's kick (rad), recovering
     this.time = 0;
     this.initialized = false;
     this.lastFoot = 0;
@@ -67,9 +68,9 @@ export class CameraRig {
     bus.on('move:diveLand', (e) => { if (e.id !== this.targetId) return; this.bobY.v -= 1.4; this.addTrauma(0.12); });
     bus.on('move:knockdown', (e) => { if (e.id !== this.targetId) return; this.addTrauma(0.4); this.fovKick += 6; });
     bus.on('move:slide', (e) => e.id === this.targetId && (this.bobY.v -= 0.8));
-    bus.on('melee:parry', () => this.addTrauma(0.3));
+    bus.on('melee:parry', (e) => (e.defender === this.targetId || e.attacker === this.targetId) && this.addTrauma(0.3));   // yours, not every parry on the map
     bus.on('melee:hit', (e) => (e.defender === this.targetId || e.attacker === this.targetId) && this.addTrauma(e.crit ? 0.3 : 0.16));
-    bus.on('melee:guardBreak', () => this.addTrauma(0.4));
+    bus.on('melee:guardBreak', (e) => (e.defender === this.targetId || e.attacker === this.targetId) && this.addTrauma(0.4));
     bus.on('weapon:fire', (e) => e.id === this.targetId && this.addTrauma(e.shake ?? 0.05));
     bus.on('projectile:explode', (e) => this.#explosion(e));
     bus.on('stratagem:land', (e) => this.#explosion({ point: { x: e.at[0], y: e.at[1], z: e.at[2] }, radius: 3.5 }));   // a pod slamming in
@@ -86,6 +87,16 @@ export class CameraRig {
     this.bobY.v -= e.intensity * 0.55 * k;
     this.bobPitch.v += e.intensity * 0.04 * k;
     if (!this.settings.reducedMotion) this.bobRoll.v += (e.foot === 0 ? 1 : -1) * e.intensity * 0.06 * k;
+  }
+
+  /**
+   * Hit: kick the view up `deg` and toward the hit (side: 1 = from the left, -1 = from the right).
+   * At most 3° up; it recovers in ~120 ms.
+   */
+  flinch(deg, side = 0) {
+    const r = (deg * Math.PI) / 180 * (this.settings.reducedMotion ? 0.4 : 1);
+    this.flinchP = Math.min(0.0524, (this.flinchP ?? 0) + r);
+    this.flinchY = Math.max(-0.03, Math.min(0.03, (this.flinchY ?? 0) + side * r * 0.5));
   }
 
   #explosion(e) {
@@ -143,7 +154,9 @@ export class CameraRig {
     this.sway.step(swayTarget, dt);
 
     // ---- orientation (zero-latency look) + bob pitch/roll
-    _e.set(o.pitch + this.bobPitch.x, o.yaw, this.bobRoll.x + this.sway.x);
+    const fk = Math.exp(-dt / 0.04);                    // a hit's flinch recovers in ~120 ms
+    this.flinchP *= fk; this.flinchY *= fk;
+    _e.set(o.pitch + this.bobPitch.x + this.flinchP, o.yaw + this.flinchY, this.bobRoll.x + this.sway.x);
     _q.setFromEuler(_e);
 
     // ---- desired camera position: pivot + shoulder offset + back, with collision pull-in

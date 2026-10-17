@@ -338,6 +338,9 @@ and 360k triangles, and the 400-fighter Extreme Warfront takes 160–180 draw ca
 triangles. Most of that is the near terrain. Vehicles past 160 m are drawn as one block, and nothing
 is drawn past the fog.
 
+Your melee hits, parries and blocks, and your kills with a shotgun or a sniper rifle, hold the battle
+for a few ticks (hit-stop, offline only). Nobody else's hits stop your game.
+
 **Known gaps:** the nav grid is 2 m, so trench corners and doorways need the special handling above;
 netcode needs sector-based interest management; there are no aircraft on the Western Front yet (the
 dropships are arena-only).
@@ -357,6 +360,8 @@ dropships are arena-only).
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
 | Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
 | Suppression | The screen edges darken while rounds crack past you |
+| Hit markers (`HitFeedback`) | At the gun's reticle, on each hit of yours: four white ticks (90 ms); a kill: bigger and red (180 ms); a headshot: gold; a round the armor shrugs off: small and grey, with a dull plink (switch weapons or aim elsewhere); a teammate: a blue X. Each kind has its own confirm sound |
+| Damage direction | A red wedge on a ring round the crosshair pointing at whoever hit you (a blast: where it burst), as strong as the hit, fading over 1.2 s and turning with you. The hit also kicks your view up and toward it (0.6° per 20 damage, at most 3°, back in 120 ms) and knocks your gun's aim by half that |
 | Also | Point markers, minimap with spotted enemies, HD2 gun reticle, status, ammo, killfeed, reinforcement countdown |
 
 ## Tests

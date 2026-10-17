@@ -156,7 +156,8 @@ export class ZoneSystem {
       if (z.allyHeal) a.health.heal(z.allyHeal);
       if (z.allyStatus) a.status?.apply(z.allyStatus.id, { duration: z.allyStatus.duration, source: src });
       if (z.allyWeaponStatus) a.weapons?.applyBuff({ onHitStatus: z.allyWeaponStatus }, (z.tick ?? 0.5) + 0.1);
-      if (z.revive && a.health.dead) a.health.revive(0.5);
+      // Revive: the downed get up (Sunwell). Only where nobody goes down (the arena) are the dead raised.
+      if (z.revive) { if (a.health.downed && !a.health.dead) a.health.reviveFromDown(0.5, src); else if (a.health.dead && !a.health.down) a.health.revive(0.5); }
       if (share > 0 && !a.health.dead && !a.movement.state.invulnerable && this.#patternHits(z, a)) {
         a.health.damage(z.damage * (a === src ? Math.min(share, this.world.ff?.self ?? share) : share), { kind: 'ability', ability: z.ability, friendly: true }, src);
       }

@@ -21,6 +21,8 @@ import { VehicleViews } from './vfx/VehicleViews.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
 import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
+import { HitFeedback } from './ui/HitFeedback.js';
+import { GunFx } from './vfx/GunFx.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
@@ -98,6 +100,7 @@ const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Ma
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const fx = new BattleFx(scene, { fog: scene.fog });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
+const gunFx = new GunFx(scene, { fx, anim, world, player, palette });          // muzzles, impacts, bullet holes
 
 const input = new InputManager(renderer.domElement);
 input.yaw = myTeam === 0 ? -Math.PI / 2 : Math.PI / 2; // face the enemy's side of the map
@@ -120,6 +123,14 @@ renderer.domElement.addEventListener('mousedown', () => {
 
 const hud = new FrontlineHud(document.getElementById('hud'), session, player);
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
+const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
+// Hit-stop: your melee, and your kills with a shotgun or a sniper rifle, freeze the battle for a
+// few ticks (offline only; nobody else's hits stop your game).
+let hitStop = 0;
+for (const ev of ['melee:parry', 'melee:hit', 'melee:perfectBlock', 'melee:block']) {
+  bus.on(ev, (e) => { if (e.defender === PLAYER_ID || e.attacker === PLAYER_ID) hitStop = Math.max(hitStop, Math.min(5 / 60, e.hitStop ?? 1 / 60)); });
+}
+bus.on('weapon:hit', (e) => { if (e.attacker === PLAYER_ID && e.killed && /^(shotgun|sniper)$/.test(player.weapons.current?.s.archetype ?? '')) hitStop = Math.max(hitStop, 2 / 60); });
 const gunPanel = Object.assign(document.createElement('div'), { id: 'fl-gunpanel' });
 document.getElementById('hud').appendChild(gunPanel);
 const fireControl = new FireControl(scene, { world, map, el: gunPanel, aspect: innerWidth / innerHeight });
@@ -134,6 +145,7 @@ const _yaw = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
 const loop = new FixedLoop({
   hz: 60,
   sim(dt, tick) {
+    if (hitStop > 0) { hitStop -= dt; return; }        // input waits too: no press is lost
     const cmd = fireControl.command(input.sample(tick, dt), input, player);   // at a gun: the mouse moves the fire mission's mark
     if (cmd.buttons.togglePOV?.pressed) rig.togglePOV();
     if (cmd.buttons.swapShoulder?.pressed) rig.swapShoulder();
@@ -185,13 +197,15 @@ const loop = new FixedLoop({
     fx.update(dt);
     zoneViews.update(dt);
     stratViews.update(dt, cam, alpha);
+    gunFx.update(dt, cam);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio?.update(dt, rig.camera.position, player.movement.state.yaw);
     hud.update(dt, cam);
     callIn.update(dt, cam);
+    hitFx.update(dt, cam);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

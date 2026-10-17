@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|scene|stratagems &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|vehicles|scene|stratagems|gunfx &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -22,12 +22,14 @@ import { vehicleModel } from './render/VehicleKit.js';
 import { paintMaterial } from './render/TrooperMaterial.js';
 import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
+import { GunFx } from './vfx/GunFx.js';
+import { bus } from './core/EventBus.js';
 
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
 const planet = palette.planets[params.get('planet') ?? 'scorched'];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems'];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems', 'gunfx'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -92,6 +94,7 @@ async function scene3d() {
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   if (station === 'scene') await sceneStation(scene, views, atmo);
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
+  if (station === 'gunfx') await gunfxStation(scene, views, atmo);
   const viewNames = Object.keys(views);
   let view = params.get('view') ?? viewNames[0];
   const setView = (name) => {
@@ -486,5 +489,57 @@ async function stratagemsStation(scene, views, atmo) {
     enter: () => { call('orbital_barrage', at(-12, 44)); call('precision_strike', at(10, 38)); call('supply_drop', at(-5, 9)); call('sentry', at(7, 10)); call('smoke_screen', at(1, 20)); run(1.2); },
   };
   window.__art.call = call; window.__art.run = run; window.__art.sim = F.world; window.__art.anim = F.anim;
+}
+
+// Small arms up close (docs/GAMEPLAY_PLAN.md §1, GunFx): rounds landing on each material side by
+// side (dirt, sandbags, timber, metal, concrete) and a trooper firing, the flash and puff at the
+// rig's barrel. The events are the sim's (weapon:impact, weapon:fire), sent at a steady rate.
+async function gunfxStation(scene, views, atmo) {
+  const sd = atmo.sunDir, sa = Math.atan2(sd.x, sd.z) + Math.PI - 0.5, fwd = new THREE.Vector3(Math.sin(sa), 0, Math.cos(sa)), side = new THREE.Vector3(-fwd.z, 0, fwd.x);   // the sun behind us: the targets lit
+  const at = (a, f) => new THREE.Vector3().addScaledVector(side, a).addScaledVector(fwd, f);
+  const { t } = scorchedGround(scene, { seed: 31, amp: 0.3, size: 300, z0: -150, flat: [[0, 0, 30]], craters: 6, spread: [100, 80] });
+  const M = palette.materials;
+  const mats = {
+    sandbag: triplanar(new THREE.MeshStandardMaterial({ color: M.sandbag, roughness: 1 }), sandbagTexture(), 1, 1.2),
+    wood: triplanar(new THREE.MeshStandardMaterial({ color: M.timber, roughness: 0.9 }), woodTexture(), 0.6, 0.8),
+    metal: triplanar(new THREE.MeshStandardMaterial({ color: '#4a4a4c', roughness: 0.5, metalness: 0.7 }), metalTexture(), 0.8, 0.6),
+    concrete: triplanar(new THREE.MeshStandardMaterial({ color: M.concrete, roughness: 0.95 }), concreteTexture(), 0.8, 1),
+  };
+  // The targets in a row, 7 m out; the dirt patch in front of them.
+  const faceYaw = Math.atan2(-fwd.x, -fwd.z) + Math.PI;
+  const targets = [['sandbag', -3.3, [1.5, 0.9, 0.9]], ['wood', -1.2, [0.5, 1.6, 0.5]], ['metal', 0.6, [1.3, 1.3, 0.12]], ['concrete', 2.6, [1.4, 1.2, 0.8]]].map(([kind, a, [w, h, d]]) => {
+    const c = at(a, 7), g = t.height(c.x, c.z), m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats[kind]);
+    m.position.set(c.x, g + h / 2, c.z); m.rotation.y = faceYaw; m.castShadow = m.receiveShadow = true; scene.add(m);
+    return { kind, c, g, w, h, d };
+  });
+  const F = await fighters(scene, t, { max: 8 });
+  const shooter = F.add('lancer', 0, at(5.5, 3.2), Math.atan2(-(at(0.6, 7).x - at(5.5, 3.2).x), -(at(0.6, 7).z - at(5.5, 3.2).z)), 'aim');
+  F.start();
+  const fx = new BattleFx(scene, { fog: scene.fog });
+  const gfx = new GunFx(scene, { fx, anim: F.anim, world: F.world, player: shooter, palette });
+  let sr = 5, time = 0, nextHit = 0, nextShot = 0;
+  const rnd = () => { sr = (Math.imul(sr, 1664525) + 1013904223) >>> 0; return sr / 4294967296; };
+  const n = new THREE.Vector3().copy(fwd).negate();
+  tickers.push((dt) => {
+    time += 1 / 60;
+    if (time > nextHit) {
+      nextHit = time + 0.05;
+      // Into one target's face (toward the camera), or the dirt in front of them.
+      const k = Math.floor(rnd() * 5);
+      if (k < 4) {
+        const T = targets[k], p = T.c.clone().addScaledVector(side, (rnd() - 0.5) * T.w * 0.8).addScaledVector(n, T.d / 2 + 0.01);
+        p.y = T.g + 0.1 + rnd() * (T.h - 0.2);
+        bus.emit('weapon:impact', { point: p, normal: n, surface: T.kind });
+      } else {
+        const p = at((rnd() - 0.5) * 7, 4.5 + rnd() * 1.5); p.y = t.height(p.x, p.z);
+        bus.emit('weapon:impact', { point: p, normal: new THREE.Vector3(0, 1, 0), surface: 'dirt' });
+      }
+    }
+    if (time > nextShot) { nextShot = time + 0.09; bus.emit('weapon:fire', { id: shooter.id, weaponId: 'sol_ar_halcyon' }); }
+    gfx.update(1 / 60, window.__art.camera); fx.update(1 / 60);
+  });
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  views.impacts = { pos: y(at(-0.3, 3.4), 1.25), look: y(at(-0.3, 7), 0.6), fov: 52, note: 'rounds landing on sandbags, timber, metal, concrete and dirt: spray, splinters, sparks, chips, dust, holes', enter: () => { for (let i = 0; i < 240; i++) tickers.forEach((f) => f(1 / 60)); } };
+  views.muzzle = { pos: y(at(7.6, 2.4), 1.55), look: y(at(5.4, 3.4), 1.35), fov: 40, note: 'the flash and the puff at the barrel', enter: () => { for (let i = 0; i < 30; i++) tickers.forEach((f) => f(1 / 60)); } };
 }
 

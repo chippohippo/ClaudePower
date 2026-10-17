@@ -99,8 +99,10 @@ scifi-combat/
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
 │  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
+│  │        GunFx.js (muzzle flashes at the rig's barrel, impacts by surface, bullet holes)
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
+│           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

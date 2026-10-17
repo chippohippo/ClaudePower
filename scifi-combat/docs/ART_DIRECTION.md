@@ -139,9 +139,9 @@ from their normal maps.
 
 | Effect | Look |
 |---|---|
-| Muzzle blast | A white-gold flash (`#ffe0a0`) for one or two frames, a smoke puff that lingers |
+| Muzzle blast | A white-gold flash (`#ffe0a0`) for two frames at the animated gun's barrel, a small puff that hangs 0.6 s; your own shots light the scene for those frames (`src/vfx/GunFx.js`) |
 | Shell burst | A flash brighter than the sun, a fireball (`#fff2c8` → `#ff8a2a` → `#d9440f`), a column of dirt (`#6b5236`) thrown up and falling back, a dark plume (`#2a2420`) that drifts for ten seconds, a scorch mark left on the ground |
-| Bullet impacts | Dust puffs (`#b9976a`) on dirt, sparks (`#ffc56b`) on metal, splinters on wood |
+| Bullet impacts | A flash where each round lands, then by surface: dirt clods and a soft spray of dust (`#b9976a`), sand off sandbags, splinters off timber, grey chips off concrete, sparks (`#ffc56b`) off metal, vehicles and armor plate, a flash of blue off a shield, a dark mist (`#5e1410`) off flesh. 256 bullet holes, dark-centred with a scorched edge, on whatever was hit (never people) |
 | Tracers | Faction-tinted: gold for Solari, violet for Void |
 | Call-in beams | A pillar of light from the beacon up into the sky in the payload's color (palette `stratagem`: strike `#ff5a3c`, supply `#4db3ff`, sentry `#5dff8f`, smoke `#ece7db`). It has a hot center and saturated edges, gets wider with distance so it reads across the map, and its pulses run up faster as the payload nears. Drawn opaque-ish, never additive: added to the scorched sky it would only turn white |
 | Danger outline | A strike's blast area draped over the ground: a band, and a low fence of light fading upward so it reads from eye height |
@@ -168,6 +168,7 @@ sky and light, to model against and to screenshot:
 | `troopers` | `lineup` and `void` (every role), `weights`, `helmets` and `helmets2`, `close`, `back` (capes into the sun), `squad` (combat poses), `mid` (`&lod=mid` forces the mid kit) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
 | `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
+| `gunfx` | `impacts` (rounds landing on sandbags, timber, metal, concrete and dirt), `muzzle` (a trooper firing) |
 | `stratagems` | the real sim run to each moment: `callin` (typing on the wrist pad, the panel up, a beacon cocked), `strike` (the red beam and danger fence on the enemy line), `inbound` (the round streaking down), `boom`, `strafe` (the jet), `supply` (the pod open on its crates), `sentry`, `smoke`, `barrage`, `beams` (every kind at once) |
 
 `node scripts/art-shots.mjs <outdir> station:view[:query] ...` captures them headless (serve the folder on :8765 first).

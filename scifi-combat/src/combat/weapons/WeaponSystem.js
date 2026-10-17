@@ -297,7 +297,7 @@ export class WeaponComponent {
       id: this.owner.id, weaponId: s.id, audio: s.audio, muzzle: s.vfx?.muzzle,
       ads: this.ads, heat: w.usesHeat ? w.heat / s.ammo.max : 0, lowAmmo: !w.usesHeat && w.mag <= Math.ceil((s.mag ?? 1) * 0.2),
       shake: (w.recoil.visualKick ?? 0.5) * 0.06 * (1 - this.ads * 0.5),
-      suppressed: s.minimapOnFire === false,
+      suppressed: s.minimapOnFire === false, audioRadius: s.audioRadius ?? 1,
     });
     // Point-blank flinch on melee wind-ups (shotguns are the counter to flame knights).
     for (const h of hits) if (h.entity?.melee && h.distance < 6 && s.damage?.poise) h.entity.melee.interruptByGun(s.damage.poise / pellets);
@@ -316,11 +316,12 @@ export class WeaponComponent {
     const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul * share;
     const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone, friendly }, this.owner);
     e.weapons?.interrupt?.('flinch');
+    e.weapons?.flinch?.(dmg, this.owner.movement.state.position);
     // Buffs like Devour or Well of Night make rounds apply a status.
     if (this.buffs.onHitStatus) e.status?.apply(this.buffs.onHitStatus, { source: this.owner });
     if (w.s.onHit?.status) e.status?.apply(w.s.onHit.status.id, { stacks: w.s.onHit.status.stacks ?? 1, source: this.owner });
     bus.emit('weapon:hit', {
-      attacker: this.owner.id, victim: e.id, damage: dmg, zone: hit.zone, armor,
+      attacker: this.owner.id, victim: e.id, damage: dmg, zone: hit.zone, armor, armorMul: this.world.damageMatrix?.[w.s.ammoType]?.[armor] ?? 1,
       shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly,
     });
   }
@@ -475,6 +476,21 @@ export class WeaponComponent {
     this.#endBeam();
   }
 
+  /**
+   * A hit knocks the gun's aim up, and a little toward where it came from, by half of what the
+   * camera takes (0.6° per 20 damage, at most 3°): the ergonomics chase brings it back.
+   */
+  flinch(damage, from = null) {
+    if (this.weaponYaw === null || !(damage > 0)) return;
+    const k = (Math.min(3, 0.6 * (damage / 20)) * 0.5 * Math.PI) / 180;
+    this.weaponPitch = Math.min(1.5, this.weaponPitch + k);
+    if (from) {
+      const p = this.owner.movement.state.position;
+      const side = angleDelta(this.weaponYaw, Math.atan2(-(from.x - p.x), -(from.z - p.z)));
+      this.weaponYaw += Math.sign(side) * Math.min(1, Math.abs(side)) * k * 0.5;
+    }
+  }
+
   /** Abilities can grant timed weapon buffs (e.g. "Overclock": +20% rpm for 6 s). */
   applyBuff(mods, duration) { this.buffs = { ...this.buffs, ...mods, until: this.time + duration }; }
 
@@ -617,8 +633,11 @@ export class ProjectileSystem {
       const share = this.world.harm ? this.world.harm(p.team, e, 'projectile') : 1, friendly = e.team === p.team;
       const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';
       const dmg = computeDamage(s, p.traveled, hit.zone, armor, this.world.damageMatrix ?? {}) * p.spec.damageMul * share;
-      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone, friendly }, { id: p.ownerId, team: p.team });
-      bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly });
+      // Where it came from: the shooter (for the hit's flinch and the damage indicator).
+      const src = this.world.entity?.(p.ownerId)?.movement?.state.position ?? p.prev;
+      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone, friendly, from: [src.x, src.y, src.z] }, { id: p.ownerId, team: p.team });
+      e.weapons?.flinch?.(dmg, src);
+      bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, armorMul: this.world.damageMatrix?.[s.ammoType]?.[armor] ?? 1, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly });
     } else {
       bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: s.vfx?.impact, ownerId: p.ownerId, team: p.team, damage: s.damage?.base ?? 0 });
     }

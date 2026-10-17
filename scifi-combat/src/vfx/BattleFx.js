@@ -143,10 +143,12 @@ export class BattleFx {
    * @param {THREE.Scene} scene
    * @param {object} o { fog: THREE.Fog or THREE.FogExp2 }
    */
-  constructor(scene, { fog = null, maxGlow = 1600, maxMatter = 5000 } = {}) {
+  constructor(scene, { fog = null, maxGlow = 1600, maxMatter = 5000, maxDust = 2500 } = {}) {
     this.glow = new Pool(scene, maxGlow, true);
     this.matter = new Pool(scene, maxMatter, false);
-    if (fog) for (const p of [this.glow, this.matter]) {
+    this.dust = new Pool(scene, maxDust, false);       // soft-edged: small-arms dust and spray (GunFx)
+    this.dust.mat.uniforms.soft.value = 1.8;
+    if (fog) for (const p of [this.glow, this.matter, this.dust]) {
       const u = p.mat.uniforms;
       u.fogColor.value.copy(fog.color);
       if (fog.isFogExp2) u.fogDensity.value = fog.density; else { u.fogNear.value = fog.near; u.fogFar.value = fog.far; }
@@ -297,7 +299,8 @@ export class BattleFx {
     }
     this.glow.update(dt);
     this.matter.update(dt);
+    this.dust.update(dt);
   }
 
-  get count() { return this.glow.n + this.matter.n; }
+  get count() { return this.glow.n + this.matter.n + this.dust.n; }
 }
