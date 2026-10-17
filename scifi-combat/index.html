@@ -50,6 +50,13 @@
     #fl-squad .m em { font-style: normal; opacity: .75; text-align: right; }
     #fl-squad .m.down { color: #ff8a8a; } #fl-squad .m.dead { opacity: .4; }
     #fl-suppress { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, #0b0c0ecc 100%); opacity: 0; transition: opacity .15s; }
+    #fl-gunpanel { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); min-width: 380px; max-width: 640px; background: #000b; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.5; text-align: center; display: none; }
+    #fl-gunpanel small { font-size: 11px; opacity: .85; }
+    #fl-gunpanel .pbar { width: 110px; }
+    .fc-barrel { position: fixed; left: 0; top: 0; width: 26px; height: 26px; margin: -13px; border: 2px solid #ffd166; border-radius: 3px; transform-origin: center; box-shadow: 0 0 0 1px #0009; pointer-events: none; }
+    #fl-supply { position: absolute; right: 12px; bottom: 140px; background: #0009; padding: 5px 9px; border-radius: 5px; font-size: 12px; line-height: 1.5; text-align: right; }
+    #fl-supply:empty { display: none; }
+    #fl-supply .pbar { width: 90px; }
     #help { position: fixed; left: 12px; top: 12px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
     @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
   </style>
@@ -60,7 +67,8 @@
 <body>
   <div id="hud"></div>
   <div id="help">
-    <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.<br>
+    <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.
+    Guns (12v12 and up): <b>X</b> to crew one, <b>H</b> to set it up or pack it up; at a howitzer or rocket battery the mouse moves the fire mission's mark, hold LMB to fire. Supply trucks: drive into the HQ dump and stop to load, into the forward depot to unload; <b>H</b> hitches a gun behind you.<br>
     Click to lock the mouse · WASD · Shift sprint · C crouch (hold: prone, sprinting: slide) · Alt dive · Space climb/hop ·
     LMB fire · RMB aim · R reload · 1 sword/gun · Q E G Z abilities · X vehicles / hold X by a downed teammate to revive · when downed: crawl, hold Space to give up · Space to deploy when dead.<br>
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=4v4">4v4</a> ·

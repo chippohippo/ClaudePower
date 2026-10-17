@@ -72,7 +72,7 @@ export class TracerPool {
     for (const ref of this.bolts) {
       if (!ref.alive) { this.bolts.delete(ref); continue; }
       if (b >= 256) continue;
-      const r = ref.spec?.splash ? 0.16 : 0.09;
+      const r = ref.spec?.highFly ? 0.32 : ref.spec?.splash ? 0.16 : 0.09;   // shells and rockets read across the sky
       _m.makeScale(r, r, r).setPosition(ref.pos);
       this.boltMesh.setMatrixAt(b, _m);
       this.boltMesh.setColorAt(b, TEAM[ref.team] ?? TEAM[0]);

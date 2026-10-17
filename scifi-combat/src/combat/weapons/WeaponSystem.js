@@ -604,7 +604,7 @@ export class ProjectileSystem {
       for (const v of victims) if (v.team !== p.team) v.status?.apply(onHit.status.id, { stacks: onHit.status.stacks ?? 1, duration: onHit.status.duration, source: this.world.entity?.(p.ownerId) });
     }
     if (p.spec.splash > 0) {
-      bus.emit('projectile:explode', { point: hit.point, radius: p.spec.splash, ownerId: p.ownerId });
+      bus.emit('projectile:explode', { point: hit.point, radius: p.spec.splash, ownerId: p.ownerId, artillery: !!s.artillery });
       this.world.explode?.(hit.point, p.spec.splash, s, p);
     } else if (e && e.team !== p.team) {
       const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';

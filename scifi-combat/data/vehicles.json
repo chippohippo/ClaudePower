@@ -484,8 +484,8 @@
     }
    ],
    "camera": {
-    "distance": 8,
-    "height": 2.8
+    "distance": 9.5,
+    "height": 5.2
    },
    "counterplay": "Set up, it can't move: counter-battery fire, raiders and tanks. Its crew kneels behind a small shield, open from the sides and rear. Every shell is heard coming: get prone or into a trench at the whistle. Range about 1.6 km."
   },
@@ -573,8 +573,8 @@
     }
    ],
    "camera": {
-    "distance": 8,
-    "height": 2.8
+    "distance": 9.5,
+    "height": 5.2
    },
    "counterplay": "Set up, it can't move: counter-battery fire, raiders and tanks. Its crew kneels behind a small shield, open from the sides and rear. Every shell is heard coming: get prone or into a trench at the whistle. Heavier, slower shells with a wider burst."
   },
@@ -658,8 +658,8 @@
     }
    ],
    "camera": {
-    "distance": 5.5,
-    "height": 1.9
+    "distance": 7,
+    "height": 3.4
    },
    "counterplay": "Low and hard to spot, but it only covers 30 degrees either side of where it was set up: come at it from the flank. Its crew is exposed and the gun can't move once it's dug in. HE and artillery shred the crew."
   },
@@ -743,8 +743,8 @@
     }
    ],
    "camera": {
-    "distance": 5.5,
-    "height": 1.9
+    "distance": 7,
+    "height": 3.4
    },
    "counterplay": "Low and hard to spot, but it only covers 30 degrees either side of where it was set up: come at it from the flank. Its crew is exposed and the gun can't move once it's dug in. HE and artillery shred the crew."
   },

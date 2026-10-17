@@ -12,6 +12,10 @@
 //  * Your squad: each squadmate's state and what they're doing (covering you, bounding, stacking
 //    on a door...), the whistle when a wave goes over the top, digging progress, and the screen
 //    edges darkening while you're under heavy fire (suppression).
+//  * The supply war (12v12 and up): the forward depot's stock and the HQ dump's, trucks on the
+//    road, shortages and depot moves as banners, the preparation barrage before a whistle;
+//    on the minimap our depots, guns and trucks, enemy guns we've located, and where shells land.
+//    Prompts to crew a gun or drive a vehicle (FireControl draws the gun panel itself).
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -20,6 +24,7 @@ const TEAM_COL = ['#ffcf6b', '#b994ff'];
 const NEUTRAL_COL = '#d8dde6';
 const TEAM_NAME = ['SOLARI', 'VOID'];
 const _v = new THREE.Vector3();
+const SHORT = { ammo: 'AMMO', shells: 'SHELLS', sandbags: 'SANDBAGS', tank: 'TANKS', hoverbike: 'BIKES', howitzer: 'GUNS', rockets: 'ROCKETS', at: 'AT GUNS' };
 const bar = (k, col) => `<span class="pbar"><i style="width:${(Math.min(1, Math.max(0, k)) * 100).toFixed(0)}%;background:${col}"></i></span>`;
 
 export class FrontlineHud {
@@ -39,6 +44,7 @@ export class FrontlineHud {
       <div id="fl-prompt"></div>
       <div id="fl-downs"></div>
       <div id="fl-squad"></div>
+      <div id="fl-supply"></div>
       <div id="fl-suppress"></div>`;
     this.el = Object.fromEntries([...root.querySelectorAll('[id^="fl-"]')].map((e) => [e.id.slice(3), e]));
     this.ctx = this.el.map.getContext('2d');
@@ -54,6 +60,8 @@ export class FrontlineHud {
       return d;
     });
     this.spotted = new Map();   // enemy id -> time (fired recently: shows on the minimap)
+    this.impacts = [];          // { x, z, t } artillery rounds landing (minimap flashes)
+    this.saidAt = new Map();    // banner kind -> time (shortage banners don't spam)
     this.downMarks = [];        // pooled red crosses over downed teammates
     this.feed = [];
     this.bannerUntil = 0;
@@ -101,11 +109,22 @@ export class FrontlineHud {
       }),
       bus.on('fort:dig', (e) => { if (e.id === player.id) this.dig = { stage: e.stage, k: e.progress, t: this.time }; }),
       bus.on('fort:built', (e) => { const p = player.movement.state.position; if (e.team === this.team && Math.hypot(e.x - p.x, e.z - p.z) < 3) this.dig = { stage: -1, kind: e.kind, t: this.time }; }),
+      bus.on('artillery:impact', (e) => { this.impacts.push({ x: e.point[0], z: e.point[2], t: this.time }); if (this.impacts.length > 60) this.impacts.shift(); }),
+      bus.on('support:prep', (e) => { if (e.team === this.team) this.#say('prep', 'ARTILLERY PREPARATION · STAND BY FOR THE WHISTLE', TEAM_COL[this.team], 2.5, 25); }),
+      bus.on('logistics:short', (e) => { if (e.team === this.team) this.#say(`short:${e.what}`, `FRONT SHORT OF ${SHORT[e.what] ?? 'SUPPLIES'} · RUN THE TRUCKS`, '#ffb36b', 2, 30); }),
+      bus.on('logistics:moved', (e) => { if (e.team === this.team) this.banner(e.advanced ? 'FORWARD DEPOT MOVED UP' : 'FORWARD DEPOT OVERRUN · FALL BACK', e.advanced ? TEAM_COL[this.team] : '#ff6b81', 2.2); }),
       bus.on('mode:victory', (e) => this.banner(e.team === this.team ? `VICTORY · ${e.reason.toUpperCase()}` : `DEFEAT · ${e.reason.toUpperCase()}`, e.team === this.team ? TEAM_COL[this.team] : '#ff6b81', 999)),
     ];
   }
 
   dispose() { this.off.forEach((f) => f()); }
+
+  /** A banner at most once every `every` seconds per kind. */
+  #say(kind, text, color, seconds, every) {
+    if (this.time - (this.saidAt.get(kind) ?? -1e9) < every) return;
+    this.saidAt.set(kind, this.time);
+    this.banner(text, color, seconds);
+  }
 
   banner(text, color, seconds = 2) {
     this.el.banner.textContent = text; this.el.banner.style.color = color; this.el.banner.style.opacity = 1;
@@ -189,11 +208,32 @@ export class FrontlineHud {
     const D = this.dig && this.time - this.dig.t < 0.25 ? this.dig : this.dig?.stage === -1 && this.time - this.dig.t < 1.5 ? this.dig : null;
     this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
       : D ? (D.stage === -1 ? `${D.kind === 'foxhole' ? 'FOXHOLE DUG' : D.kind === 'sandbags' ? 'SANDBAGS UP' : 'TRENCH CUT'}` : `${['DIGGING A FOXHOLE', 'FILLING SANDBAGS', 'DIGGING A TRENCH'][D.stage]} ${bar(D.k, '#d9b77a')}`)
-      : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : '';
+      : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : this.#boardPrompt(me);
     this.#squad(me);
+    this.#supply();
     this.el.suppress.style.opacity = Math.min(1, (me.suppression ?? 0) * 1.1).toFixed(2);
     this.#downMarkers(camera, w, h);
     if (this.time > this.bannerUntil) this.el.banner.style.opacity = 0;
+  }
+
+  /** "X: crew the Sunhammer Field Gun" beside a vehicle you could take. */
+  #boardPrompt(me) {
+    if (me.vehicle || me.health.dead || me.health.downed) return '';
+    const v = this.s.world.vehicles.nearestEnterable(me);
+    if (!v) return '';
+    const crew = !!v.def.gun && v.def.model === 'gun';
+    return `<b>X</b> ${crew ? 'CREW' : 'TAKE'} THE ${v.def.name.toUpperCase()}`;
+  }
+
+  /** Supply: the forward depot's stock (and the HQ dump's), and the trucks on the road. */
+  #supply() {
+    const L = this.s.logistics;
+    if (!L) { this.el.supply.innerHTML = ''; return; }
+    if (this.supplyT && this.time - this.supplyT < 0.25) return;
+    this.supplyT = this.time;
+    const snap = L.snapshot(this.team), k = snap.front / snap.frontCap;
+    const loaded = snap.trucks.filter((t) => t.cargo > 0).length;
+    this.el.supply.innerHTML = `SUPPLY <b style="color:${k < 0.1 ? '#ff6b6b' : '#d9b77a'}">${snap.front}</b>${bar(k, k < 0.1 ? '#ff6b6b' : '#d9b77a')}<br><small>HQ dump ${snap.hq} · ${snap.trucks.length} trucks (${loaded} loaded)</small>`;
   }
 
   /** Your squad: what the squad is doing and what each squadmate is up to. */
@@ -266,6 +306,37 @@ export class FrontlineHud {
       }
       c.fillStyle = ally ? '#9fd3ff' : '#ff4d6d';
       c.fillRect(X(p.x) - 1, Z(p.z) - 1, 2, 2);
+    }
+    // The supply war: our depots, guns and trucks; enemy guns we've located; rounds landing.
+    const L = s.logistics;
+    if (L) {
+      for (const d of L.depots) {
+        if (d.team !== this.team) continue;
+        c.strokeStyle = '#d9b77a'; c.fillStyle = '#d9b77a';
+        if (d.kind === 'front') c.fillRect(X(d.pos.x) - 3, Z(d.pos.z) - 3, 6, 6); else c.strokeRect(X(d.pos.x) - 3.5, Z(d.pos.z) - 3.5, 7, 7);
+      }
+      for (const v of s.world.vehicles.list) {
+        if (v.removed || v.team !== this.team || !(v.def.gun || v.def.cargo)) continue;
+        const q = v.movement.state.position;
+        c.fillStyle = v.def.cargo ? '#d9b77a' : TEAM_COL[this.team];
+        if (v.def.cargo) c.fillRect(X(q.x) - 2, Z(q.z) - 1, 4, 2);
+        else { c.beginPath(); c.moveTo(X(q.x), Z(q.z) - 3); c.lineTo(X(q.x) + 2.5, Z(q.z) + 2); c.lineTo(X(q.x) - 2.5, Z(q.z) + 2); c.closePath(); c.fill(); }
+      }
+      const located = s.support?.[this.team]?.enemyGuns;
+      c.strokeStyle = '#ff4d6d'; c.lineWidth = 1.5;
+      for (const [id, g] of located ?? []) {
+        const v = s.world.entity(id);
+        if (!v || v.removed || g.shots < 2) continue;
+        const q = v.movement.state.position;
+        c.beginPath(); c.moveTo(X(q.x) - 3, Z(q.z) - 3); c.lineTo(X(q.x) + 3, Z(q.z) + 3); c.moveTo(X(q.x) + 3, Z(q.z) - 3); c.lineTo(X(q.x) - 3, Z(q.z) + 3); c.stroke();
+      }
+      c.lineWidth = 1;
+    }
+    for (const im of this.impacts) {
+      const age = this.time - im.t;
+      if (age > 1.5) continue;
+      c.strokeStyle = `rgba(255,150,70,${(1 - age / 1.5).toFixed(2)})`;
+      c.beginPath(); c.arc(X(im.x), Z(im.z), 2 + age * 6, 0, Math.PI * 2); c.stroke();
     }
     const p = this.player.movement.state.position, yaw = this.player.movement.state.yaw;
     c.save(); c.translate(X(p.x), Z(p.z)); c.rotate(-yaw);

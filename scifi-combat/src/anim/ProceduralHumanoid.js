@@ -879,6 +879,12 @@ export class ProceduralHumanoid {
   #seatedPose(out) {
     const e = this.e, v = e.vehicle;
     const yaw = v?.veh?.yaw ?? this.yaw;
+    // Gun crews kneel at the gun, facing along the barrel, rifle slung; nobody sits on a field piece.
+    if (v?.veh?.seats?.[v.seat]?.def?.pose === 'crew') {
+      this.#keyPose('kneel', out, this.root, v.veh.gun?.yaw ?? yaw);
+      out.aimW = 0.15; out.gunUp = 0; out.handW[0] = 0; out.handW[1] = 0;
+      return out;
+    }
     this.#keyPose('seated', out, this.root, yaw);
     const driver = v?.veh?.seats?.[v.seat]?.def?.role === 'driver';
     if (!driver) { out.handW[0] = 0; out.handW[1] = 0; out.gunUp = 1; }

@@ -35,8 +35,10 @@ export class AudioDirector {
    * @param {object} backend   { play(cue, opts) -> handle, stop(handle), setBusGain(bus, db, rampSec), setListener(pos, yaw) }
    * @param {object} opts      { listenerId, getEntity(id) -> { team, position }, abilityIndex: Map(abilityId -> def), uiArrow(fn) }
    */
-  constructor(backend, { listenerId, getEntity, abilityIndex = new Map(), onSuperWarning = () => {} } = {}) {
+  constructor(backend, { listenerId, getEntity, abilityIndex = new Map(), onSuperWarning = () => {}, guns = null } = {}) {
     this.backend = backend;
+    this.guns = guns;                // FieldGuns: rounds in the air (incoming whistles)
+    this.whistled = new WeakSet();
     this.listenerId = listenerId;
     this.getEntity = getEntity;
     this.abilityIndex = abilityIndex;
@@ -61,7 +63,7 @@ export class AudioDirector {
    * Plays a cue. Missing assets fall back to the ability signature synth.
    * @param {string} cue    e.g. "solar_charge.cast_threat"
    */
-  play(cue, { tier = Tier.COMBAT, pos = null, gainDb = 0, sig = null, loopKey = null, radius = 45, family, intensity } = {}) {
+  play(cue, { tier = Tier.COMBAT, pos = null, gainDb = 0, sig = null, loopKey = null, radius = 45, family, intensity, duration } = {}) {
     // Distance cull before allocating anything (positional cues past their radius are inaudible).
     const L = this.listenerPos;
     if (pos && L && !loopKey && (pos.x - L.x) ** 2 + (pos.y - L.y) ** 2 + (pos.z - L.z) ** 2 > radius * radius) return null;
@@ -72,7 +74,7 @@ export class AudioDirector {
       if (tier === Tier.THREAT) return null;
       this.backend.stop(list.shift());
     }
-    const h = this.backend.play(cue, { pos, gainDb, sig, loop: !!loopKey, radius, family, tier, intensity });
+    const h = this.backend.play(cue, { pos, gainDb, sig, loop: !!loopKey, radius, family, tier, intensity, duration });
     if (!h) return null;
     list.push(h);
     if (loopKey) this.loops.set(loopKey, h);
@@ -96,6 +98,18 @@ export class AudioDirector {
       this.duckUntil = 0;
     }
     for (const t of Object.keys(this.voices)) this.voices[t] = this.voices[t].filter((h) => !h.ended);
+    // Incoming: a round about to land within earshot whistles down to its impact. Near you, that
+    // whistle is the cue to get down (the bots react to the same thing).
+    const G = this.guns, L = this.listenerPos;
+    if (G?.incoming.length && L) {
+      for (const r of G.incoming) {
+        const left = r.at - G.time;
+        if (left > 2.6 || left < 0.3 || this.whistled.has(r)) continue;
+        if (Math.hypot(r.x - L.x, r.z - L.z) > 70) continue;
+        this.whistled.add(r);
+        this.play('artillery.whistle', { tier: Tier.THREAT, pos: { x: r.x, y: r.y + 6, z: r.z }, radius: 120, duration: left, gainDb: r.team === this.getEntity(this.listenerId)?.team ? -4 : 0 });
+      }
+    }
   }
 
   // ---------------------------------------------------------------- event wiring
@@ -241,6 +255,16 @@ export class AudioDirector {
     });
     on('fort:built', (e) => e.kind === 'sandbags' && this.play('impact.body', { tier: Tier.FOLEY, pos: { x: e.x, y: 0, z: e.z }, radius: 26, intensity: 1, gainDb: -3 }));
 
+    // Artillery: a gun's report carries across the map (a field gun's deep thump, an AT gun's
+    // crack, a rocket salvo's ripple of whooshes); impacts rumble from far away, duller the
+    // further off they are.
+    on('gun:fire', (e) => {
+      const pos = { x: e.from[0], y: e.from[1], z: e.from[2] };
+      const cue = e.kind === 'at' ? 'artillery.at' : e.kind === 'rockets' ? 'artillery.rocket' : 'artillery.boom';
+      this.play(cue, { tier: Tier.WEAPON, pos, radius: e.kind === 'at' ? 420 : 1500, gainDb: e.kind === 'rockets' ? -4 : 0 });
+    });
+    on('artillery:impact', (e) => this.play('artillery.impact', { tier: Tier.COMBAT, pos: { x: e.point[0], y: e.point[1], z: e.point[2] }, radius: 1500, intensity: Math.min(1.4, (e.radius || 4) / 9) }));
+
     // Melee: parries are the loudest and most satisfying sound in the game. Don't let anything mask them.
     on('melee:parry', (e) => this.play('melee.parry_burst', { tier: Tier.THREAT, pos: this.posOf(e.defender), gainDb: 2 }));
     on('melee:windup', (e) => this.relation(e.id) === 'enemy' && this.play(e.unblockable ? 'melee.windup_unblockable' : 'melee.windup', { tier: Tier.THREAT, pos: this.posOf(e.id) }));
@@ -275,14 +299,16 @@ export class SynthBackend {
   setBusGain(bus, db, ramp) { const g = this.buses[bus]?.gain; g?.setTargetAtTime(10 ** (db / 20), this.ctx.currentTime, ramp / 3); }
   setListener(pos, yaw) {
     const l = this.ctx.listener;
+    if (pos) this.lp = { x: pos.x, y: pos.y, z: pos.z };
     if (!pos || !l.positionX) return;
     l.positionX.value = pos.x; l.positionY.value = pos.y; l.positionZ.value = pos.z;
     l.forwardX.value = -Math.sin(yaw); l.forwardZ.value = -Math.cos(yaw);
   }
-  play(cue, { pos, gainDb = 0, sig, loop, radius = 45, tier, intensity = 1 }) {
+  play(cue, { pos, gainDb = 0, sig, loop, radius = 45, tier, intensity = 1, duration }) {
     const kind = cue.slice(0, cue.indexOf('.'));
     if (kind === 'foot' || kind === 'impact' || kind === 'cloth' || kind === 'gear' || kind === 'dig') return this.#foley(kind, cue, { pos, gainDb, radius, intensity });
     if (cue.startsWith('squad.whistle')) return this.#whistle({ pos, gainDb, radius, threat: cue.endsWith('_threat') });
+    if (kind === 'artillery') return this.#artillery(cue.slice(10), { pos, gainDb, radius, intensity, duration });
     const ctx = this.ctx, t = ctx.currentTime;
     const threat = cue.includes('_threat') || tier === 0;
     const freq = noteHz(sig?.root) * (threat ? 1 : 2);   // threats sit an octave lower, so they're heavier
@@ -312,6 +338,72 @@ export class SynthBackend {
     return h;
   }
   stop(h) { try { h.osc.stop(); } catch { /* already stopped */ } h.ended = true; }
+
+  /**
+   * Artillery from noise and oscillators:
+   *  * boom: a field gun's report, a low-passed noise burst and a sub thump, long tail;
+   *  * at: an AT gun's sharp crack over a short boom;
+   *  * rocket: a band-passed whoosh rising as the rocket leaves;
+   *  * whistle: an incoming round, falling from 1.7 kHz to 600 Hz over the time to impact, louder
+   *    as it comes;
+   *  * impact: the burst and its rumble. Far away it's only a dull thud (the high end is filtered
+   *    off with distance).
+   */
+  #artillery(kind, { pos, gainDb = 0, radius = 1500, intensity = 1, duration = 2 }) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    this.noise ??= (() => {
+      const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return b;
+    })();
+    const dist = pos && this.lp ? Math.hypot(pos.x - this.lp.x, pos.y - this.lp.y, pos.z - this.lp.z) : 0;
+    const near = Math.max(0, 1 - dist / radius);
+    const out = ctx.createGain();
+    out.gain.value = 10 ** ((gainDb - 8) / 20) * (0.25 + 0.75 * near) * intensity;
+    let node = out;
+    if (pos) {
+      const p = ctx.createPanner();
+      Object.assign(p, { panningModel: 'equalpower', distanceModel: 'inverse', refDistance: 12, maxDistance: radius, rolloffFactor: 0.6 });
+      p.positionX.value = pos.x; p.positionY.value = pos.y; p.positionZ.value = pos.z;
+      out.connect(p); node = p;
+    }
+    node.connect(this.buses.sfx);
+    const src = (len) => { const n = ctx.createBufferSource(); n.buffer = this.noise; n.loop = true; n.start(t, Math.random()); n.stop(t + len); return n; };
+    const env = (g, a, peak, len) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + len); };
+    let end = 1;
+    if (kind === 'whistle') {
+      end = Math.max(0.4, duration);
+      const o = ctx.createOscillator(), lfo = ctx.createOscillator(), depth = ctx.createGain(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(1700, t); o.frequency.exponentialRampToValueAtTime(600, t + end);
+      lfo.frequency.value = 7; depth.gain.value = 18; lfo.connect(depth); depth.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + end * 0.95); g.gain.linearRampToValueAtTime(0, t + end);
+      o.connect(g); g.connect(out); o.start(t); lfo.start(t); o.stop(t + end); lfo.stop(t + end);
+    } else if (kind === 'rocket') {
+      end = 0.8;
+      const n = src(end), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+      bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(2600, t + end);
+      env(g, 0.04, 0.9, end);
+      n.connect(bp); bp.connect(g); g.connect(out);
+    } else {
+      // boom / at / impact: a filtered noise burst plus a falling sub thump.
+      const crack = kind === 'at', burst = kind === 'impact';
+      end = burst ? 2.2 : crack ? 0.8 : 1.6;
+      const n = src(end), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+      lp.type = 'lowpass';
+      const top = (burst ? 1400 : crack ? 3200 : 700) * (0.3 + 0.7 * near) + 120;
+      lp.frequency.setValueAtTime(top, t); lp.frequency.exponentialRampToValueAtTime(burst ? 140 : 180, t + end);
+      env(g, crack ? 0.002 : 0.006, crack ? 1 : 0.9, end);
+      n.connect(lp); lp.connect(g); g.connect(out);
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(burst ? 62 : 55, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+      env(og, 0.004, burst ? 1 : 0.8, 0.6);
+      o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.65);
+    }
+    const h = { osc: null, ended: false };
+    setTimeout(() => { h.ended = true; out.disconnect(); }, (end + 0.2) * 1000);
+    h.osc = { stop: () => { try { out.disconnect(); } catch { /* gone */ } } };
+    return h;
+  }
 
   /**
    * A pea whistle: a shrill tone around 2.8 kHz warbled ~28 times a second by the pea, two long
