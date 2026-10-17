@@ -5,8 +5,10 @@
 //  * A street grid: avenues along X (the way the front advances), cross streets along Z, blocks
 //    between them raised on a sidewalk slab (a kerb you drive up, and trip a sliding car on).
 //  * Blocks of buildings: solid towers (cover you can't get through; the windows are the
-//    renderer's), shelled shells with rooms and doorways (squads clear them), collapsed lots of
-//    rubble, and empty lots. Points, spawns, motor pools, depots and HQs stay open: plazas.
+//    renderer's), houses you can go into (Houses.js: rooms behind real doors and windows, stairs
+//    up to the roof, balconies), shelled shells with rooms and doorways (squads clear them),
+//    collapsed lots of rubble, and empty lots. Points, spawns, motor pools, depots and HQs stay
+//    open: plazas.
 //  * The park: the middle sector is a city park of grass and paths, trees, hedges, benches,
 //    low walls and a fountain on the point.
 //  * The war: damaged vehicles left in the streets (cars, vans, buses, trucks; some burned out,
@@ -19,6 +21,9 @@
 
 /** Each size's city. */
 export const CITY_NAMES = { '4v4': 'Overpass', '12v12': 'Midtown', '32v32': 'Neon District', '64v64': 'Aurora City', '200v200': 'The Sprawl' };
+
+import { buildHouse, houseFits, STOREY } from './Houses.js';
+import { buildScaffold, buildBridge, buildMarket, buildDebris } from './CityExtras.js';
 
 const AV = 14;          // an avenue, kerb to kerb (along X)
 const ST = 11;          // a cross street (along Z)
@@ -104,7 +109,7 @@ export function buildCity(b, ctx) {
   }
 
   // ---- buildings: lots along each block's street faces, a court in the middle of deep blocks
-  const buildings = [], ruinPlans = [], rubble = [];
+  const buildings = [], ruinPlans = [], rubble = [], houses = [], housePlans = [], marketLots = [];
   const tall = P.players >= 64 ? 1 : 0.8;
   for (const blk of blocks) {
     const w = blk.x1 - blk.x0 - WALK * 2, d = blk.z1 - blk.z0 - WALK * 2;
@@ -133,17 +138,89 @@ export function buildCity(b, ctx) {
         rubble.push({ x: cx, z: cz, hw, hd });                                    // a collapsed lot
         takeLot(lx0, lz0, lx1, lz1);
       } else if (!blk.edge && roll < 0.36) {
-        // An empty lot: a fence line along the street, maybe a wreck parked inside.
+        // An empty lot: a market (stalls in rows either side of an aisle).
+        marketLots.push({ x0: lx0, z0: lz0, x1: lx1, z1: lz1, base: blk.top });
+        takeLot(lx0, lz0, lx1, lz1);
       } else {
         // A building: mostly 3-8 storeys, a few towers; the map's edge is a wall of them.
         const storeys = blk.edge ? Math.round(R(6, 14)) : rand() < 0.12 * tall ? Math.round(R(12, 22)) : Math.round(R(3, 8));
+        // The faces that look out on a street (not on the map's edge).
+        const street = [ix === 0 && blk.x0 > P.minX + 0.5 && 0, ix === nx - 1 && blk.x1 < maxX - 0.5 && 1, iz === 0 && blk.z0 > P.minZ + 0.5 && 2, iz === nz - 1 && blk.z1 < maxZ - 0.5 && 3].filter((f) => f !== false);
+        if ((blk.edge ? storeys <= 9 : storeys <= 8) && rand() < 0.38 && houseFits(lx1 - lx0, lz1 - lz0)) {
+          // A house you can go into: two to five storeys of rooms, stairs to the roof (Houses.js),
+          // built once the skybridges between them are planned (they need doorways).
+          housePlans.push({ id: housePlans.length, x0: lx0, z0: lz0, x1: lx1, z1: lz1, base: blk.top, storeys: Math.min(5, Math.max(2, storeys - 1)), street, style: Math.floor(rand() * 4), seed: Math.floor(rand() * 1e6), doorsAt: [] });
+          takeLot(lx0, lz0, lx1, lz1);
+          continue;
+        }
         const h = storeys * 3.6 + R(0.5, 2.5);
         const box = b.boxRect(lx0, lz0, lx1, lz1, h, { kind: 'tower', surface: 'concrete', render: 'city', top: blk.top + h });
-        buildings.push({ box, storeys, style: Math.floor(rand() * 4), seed: Math.floor(rand() * 1e6), damaged: rand() < 0.35, lit: R(0.08, 0.45) });
+        buildings.push({ box, storeys, style: Math.floor(rand() * 4), seed: Math.floor(rand() * 1e6), damaged: rand() < 0.35, lit: R(0.08, 0.45), street, base: blk.top });
         takeLot(lx0, lz0, lx1, lz1);
       }
     }
   }
+
+  // ---- skybridges: between two houses facing each other across a street, at a floor both have.
+  // Some are whole (door to door), some broken: the far half fell into the street and its end is a
+  // ramp of rubble steps (walk up it into the near house). Never over a barricade line.
+  const lines = [];
+  for (let i = 1; i < sectors.length - 2; i++) if (sectors[i].kind === 'line' && sectors[i + 1].kind === 'line') lines.push(sectors[i].x1);
+  const facing = (A, B) => {
+    // A's face toward B across one street: [axis the bridge runs along, A's facade, B's facade, overlap from, to, A's face, B's face].
+    if (B.z0 - A.z1 > 6 && B.z0 - A.z1 < 24 && A.street.includes(3) && B.street.includes(2)) return ['z', A.z1, B.z0, Math.max(A.x0, B.x0), Math.min(A.x1, B.x1), 3, 2];
+    if (B.x0 - A.x1 > 6 && B.x0 - A.x1 < 24 && A.street.includes(1) && B.street.includes(0)) return ['x', A.x1, B.x0, Math.max(A.z0, B.z0), Math.min(A.z1, B.z1), 1, 0];
+    return null;
+  };
+  const bridgePlans = [], bridged = new Set();
+  const maxBridges = Math.max(1, Math.round(P.players / 7));
+  for (const A of housePlans) for (const B of housePlans) {
+    if (A === B || bridged.has(A) || bridged.has(B) || bridgePlans.length >= maxBridges) continue;
+    const f = facing(A, B);
+    if (!f || f[4] - f[3] < 5) continue;
+    const u = (f[3] + f[4]) / 2;
+    if (f[0] === 'z' && lines.some((x) => Math.abs(x - u) < 14)) continue;          // a barricade line runs across the avenue there
+    const k = Math.min(A.storeys, B.storeys) >= 3 && rand() < 0.35 ? 2 : 1;
+    if (k >= Math.min(A.storeys, B.storeys)) continue;
+    const broken = rand() < 0.45, [near, far] = rand() < 0.5 ? [A, B] : [B, A];
+    const nearFace = near === A ? f[5] : f[6], farFace = near === A ? f[6] : f[5];
+    const dn = { face: nearFace, u, k }, df = { face: farFace, u, k };
+    near.doorsAt.push(dn); if (!broken) far.doorsAt.push(df);
+    bridgePlans.push({ A, B, f, u, k, broken, near, far, dn, df });
+    bridged.add(A); bridged.add(B);
+  }
+  for (const pl of housePlans) houses.push(buildHouse(b, pl));
+  // Where each bridge goes (built at the end, on the finished ground); the street things keep out from under it.
+  const bridgeSites = [];
+  for (const bp of bridgePlans) {
+    const { f, broken, near, dn, df } = bp;
+    if (!dn.at || (!broken && !df.at)) continue;                                      // no bay open for it
+    const nearLine = near === bp.A ? f[1] : f[2], farLine = near === bp.A ? f[2] : f[1];
+    const uu = broken ? dn.at.u : (dn.at.u + df.at.u) / 2, width = broken ? 2.6 : Math.max(2.6, Math.abs(dn.at.u - df.at.u) + 1.9);
+    bridgeSites.push({ bp, nearLine, farLine, uu, width });
+    const s0 = Math.min(nearLine, farLine), s1 = Math.max(nearLine, farLine);
+    reserved.push(f[0] === 'z' ? { x0: uu - width / 2 - 0.5, z0: s0, x1: uu + width / 2 + 0.5, z1: s1 } : { x0: s0, z0: uu - width / 2 - 0.5, x1: s1, z1: uu + width / 2 + 0.5 });
+  }
+  const bridges = [];
+
+  // ---- scaffolding up the fronts of some towers (over the sidewalk; climb it level by level)
+  const scaffolds = [];
+  for (const bd of buildings) {
+    if (bd.damaged || bd.storeys < 3 || !bd.street.length || rand() > 0.16) continue;
+    const B = bd.box, face = bd.street[Math.floor(rand() * bd.street.length)];
+    const axis = face < 2 ? 'z' : 'x', at = [B.min.x, B.max.x, B.min.z, B.max.z][face], out = face % 2 ? 1 : -1;
+    const lo = axis === 'x' ? B.min.x : B.min.z, hi = axis === 'x' ? B.max.x : B.max.z;
+    const len = Math.min(hi - lo - 1, R(10, 16));
+    if (len < 9.5) continue;
+    const u0 = R(lo + 0.5, hi - 0.5 - len), u1 = u0 + len;
+    const sc = buildScaffold(b, { axis, at, out, u0, u1, base: bd.base, levels: Math.min(bd.storeys - 1, rand() < 0.5 ? 2 : 3) });
+    sc.building = bd;
+    scaffolds.push(sc);
+    reserved.push(axis === 'x' ? { x0: u0 - 0.5, z0: Math.min(at, at + out * 2), x1: u1 + 0.5, z1: Math.max(at, at + out * 2) } : { x0: Math.min(at, at + out * 2), z0: u0 - 0.5, x1: Math.max(at, at + out * 2), z1: u1 + 0.5 });
+  }
+
+  // ---- markets in the empty lots
+  const markets = marketLots.filter((q) => q.x1 - q.x0 > 6 && q.z1 - q.z0 > 4).map((q) => buildMarket(b, q));
 
   // ---- streets: what the war left in them
   const onStreet = (x, z) => blocks.every((k) => x < k.x0 - 0.5 || x > k.x1 + 0.5 || z < k.z0 - 0.5 || z > k.z1 + 0.5) && !inPark(x, z, 2);
@@ -258,11 +335,13 @@ export function buildCity(b, ctx) {
         const box = b.boxRect(bx - 1.25, a, bx + 1.25, c, 2.6, { kind: 'container', surface: 'metal', render: 'city' });
         barricades.push({ box, kind: 'container', color: Math.floor(rand() * 5) });
       } else {
+        let laid = 0;
         for (let z = z0; z < z1 - 1;) {
           const len = Math.min(z1 - z, R(2.2, 3.4));
-          if (rand() < 0.72) { const box = b.boxRect(bx - 0.35, z, bx + 0.35, z + len, 1.05, { kind: 'barrier', surface: 'concrete', render: 'city' }); barricades.push({ box, kind: 'jersey' }); }
+          if (rand() < 0.72) { const box = b.boxRect(bx - 0.35, z, bx + 0.35, z + len, 1.05, { kind: 'barrier', surface: 'concrete', render: 'city' }); barricades.push({ box, kind: 'jersey' }); laid++; }
           z += len + (rand() < 0.3 ? R(1.6, 2.4) : 0.15);
         }
+        if (!laid) { const box = b.boxRect(bx - 0.35, s.at - 1.5, bx + 0.35, s.at + 1.5, 1.05, { kind: 'barrier', surface: 'concrete', render: 'city' }); barricades.push({ box, kind: 'jersey' }); }   // never a line with nothing on it
       }
       // Sandbag nests either side of the line, facing each way.
       for (const side of [-1, 1]) if (rand() < 0.6) {
@@ -335,6 +414,34 @@ export function buildCity(b, ctx) {
   const fountain = { x: pp.pos.x, z: pp.pos.z, r: Math.max(3.5, (pp.radius ?? 6) * 0.5) };
   props.push({ kind: 'fountain', x: fountain.x, z: fountain.z, r: fountain.r });
 
+  // ---- the skybridges, on the finished ground (the sidewalk slabs count: a ramp lands on them)
+  const slabTop = (x, z) => { const k = blocks.find((q) => x > q.x0 && x < q.x1 && z > q.z0 && z < q.z1); return k ? k.top : -Infinity; };
+  const walkTop = (x, z) => Math.max(terrain.height(x, z), slabTop(x, z));
+  for (const { bp, nearLine, farLine, uu, width } of bridgeSites) {
+    const { f, k, broken, near, dn, df } = bp, farHouse = near === bp.A ? bp.B : bp.A;
+    const br = buildBridge(b, { axis: f[0] === 'z' ? 'z' : 'x', a: nearLine, c: farLine, u: uu, width, y: near.base + k * STOREY, yFar: farHouse.base + k * STOREY, ground: walkTop, broken });
+    br.houses = [houses[near.id], houses[farHouse.id]];
+    br.k = k;
+    br.doors = [dn.at, broken ? null : df.at];        // where it meets each house: { x, z, u }
+    bridges.push(br);
+  }
+
+  // ---- debris in the streets: chunks of concrete to crouch behind, and piles you climb in steps
+  const debris = [];
+  const taken = [...wrecks.map((w) => w.box), ...barricades.map((q) => q.box)];
+  for (const sg of segs) {
+    const n = Math.floor(R(0, 2.2));
+    for (let k = 0; k < n; k++) {
+      const t = R(sg.from + 4, sg.to - 4), lane = R(-sg.w / 2 + 1.5, sg.w / 2 - 1.5);
+      const x = sg.axis === 'x' ? t : sg.at + lane, z = sg.axis === 'x' ? sg.at + lane : t;
+      const pile = rand() < 0.2, rr = pile ? 3.5 : 1.2;
+      if (!clearOf(x, z, rr + 1) || taken.some((q) => x + rr > q.min.x - 0.8 && x - rr < q.max.x + 0.8 && z + rr > q.min.z - 0.8 && z - rr < q.max.z + 0.8)) continue;
+      const d = buildDebris(b, { x, z, ground: (px, pz) => terrain.height(px, pz), pile, yaw: R(0, Math.PI * 2) });
+      debris.push(d);
+      taken.push(...d.parts);
+    }
+  }
+
   // ---- neon: signs on the street faces of the buildings (renderer only)
   const signs = [];
   for (const bd of buildings) {
@@ -357,5 +464,5 @@ export function buildCity(b, ctx) {
     return 'asphalt';
   };
 
-  return { streets, segs, avenues, cross, blocks, park, buildings, ruinPlans, rubble, lamps, wrecks, signs, trees, props, crossings, barricades, wire, craters, fountain, paint, kerb: KERB };
+  return { streets, segs, avenues, cross, blocks, park, buildings, houses, bridges, scaffolds, markets, debris, ruinPlans, rubble, lamps, wrecks, signs, trees, props, crossings, barricades, wire, craters, fountain, paint, kerb: KERB };
 }

@@ -127,12 +127,31 @@ stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `
 - **Streets** run with the front: avenues 14 m wide along X (one down the middle of the map, then
   every 40–72 m across the depth), cross streets 11 m wide every 42–58 m. The ground is flat.
 - **Blocks** stand between the streets on a sidewalk slab 0.16 m high, a kerb soldiers step up and
-  a sliding car trips on. Lots along their faces hold one of four things:
+  a sliding car trips on. Lots along their faces hold one of five things:
   - a building: a solid box (cover nobody gets through), 3–8 storeys, a few towers of 12–22; the
     map's edge is a wall of them;
+  - a house you can go into (`Houses.js`, about four in ten of the lots that fit one): two to five
+    storeys of rooms behind real doors and windows (you see, shoot and vault through them), floor
+    slabs you walk on and under, stairs switching back from floor to floor (0.3 m steps) up through
+    a hatch onto the roof behind a 1 m parapet, balconies on the street side. Its ground floor's
+    rooms and doorways are in the ruins' shape, so squads clear them and the nav grid threads the
+    doorways;
   - a shelled shell with rooms and doorways (`Ruins.js`), which squads clear;
   - a collapsed lot: a rubble heap with slabs lying about;
-  - an empty lot.
+  - an empty lot: a night market (stalls in rows either side of an aisle: counter, shelf, canopy,
+    crates).
+- **Up off the street** (`CityExtras.js`), all of it walked or climbed with the movement rules
+  (step up 0.35 m, climb a 2.3 m ledge with a face to climb, stand on any top, walk under anything
+  above your head):
+  - **skybridges** between houses facing each other across a street, into doorways planned at a
+    floor both have (in steps where the floors aren't level). Some are broken: the far half fell
+    into the street and its end is a ramp of rubble steps down to the far sidewalk, so you walk
+    up into the near house. Never over a barricade line;
+  - **scaffolding** up the fronts of some towers, over the sidewalk: a deck every 2.4 m, flights
+    of stairs climbing along it from one deck to the next;
+  - **debris** in the streets: chunks of concrete to crouch behind or vault, and piles of three
+    blocks a climb apart (hold to climb, up onto the top);
+  - the market's counters (climb onto them) under canopies (and from them onto the canopies).
 
   Points, spawns, motor pools, depots and HQs stay open as plazas.
 - **The park** covers the middle sector's blocks, out to the cross streets nearest its edges and
@@ -155,9 +174,12 @@ stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `
   - concertina wire 8–11 m out on both sides.
 - **Street lights** stand every 24–30 m along every street on alternating sidewalks. Poles are
   cover. About one in seven is out and one in sixteen flickers.
-- **The look** (`CityRenderer`, [ART_DIRECTION.md](ART_DIRECTION.md)): window grids lit warm and
-  cool, neon signs, lamp pools and a few real lights near the action, red roof beacons, searchlights
-  behind both lines, a skyline beyond the edges, and the aurora.
+- **The look** (`CityRenderer`, `CityFuture`, [ART_DIRECTION.md](ART_DIRECTION.md)): window grids
+  lit warm and cool, neon signs, lamp pools and a few real lights near the action (and in the
+  rooms nearest it), red roof beacons, searchlights behind both lines, a skyline of megatowers in
+  neon trim with giant ad screens beyond the edges, flying traffic, cables over the streets.
+- **The cover index** holds a house's (a scaffold's, a bridge's) hundred-odd boxes as one group
+  under its bounds (`CoverIndex`): a ray or a query that misses the bounds skips every box in it.
 
 ## Rules (`FrontlineMode`, simulation only)
 

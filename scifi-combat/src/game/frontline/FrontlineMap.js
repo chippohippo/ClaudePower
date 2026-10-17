@@ -316,6 +316,8 @@ export function generateFrontlineMap({ seed = 1, size = '32v32', layout = null, 
 
   // ---- villages: ruined buildings with rooms
   const ruins = villagePlans.map((r, i) => buildRuin(b, { id: i, ...r }));
+  // A city's houses clear like ruins (their ground floor's rooms and doorways), after them in the list.
+  for (const h of city?.houses ?? []) { h.ruinId = ruins.length; ruins.push(h); }
 
   // ---- blockhouses (sightline breakers and flanking routes)
   const structures = [];

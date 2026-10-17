@@ -7,7 +7,10 @@
 //    bodies, vehicles, splash, cover destruction).
 //  * raycast(o, d, max): a DDA walk over the cells along the ray, testing each box once
 //    (stamp dedup), stopping as soon as the nearest hit is closer than the next cell boundary.
-// Boxes are { min: Vector3, max: Vector3, destructible?, surface? }.
+// Boxes are { min: Vector3, max: Vector3, destructible?, surface?, group? }.
+//  * Groups: boxes built together as one thing (a house's walls, floors and stairs: a hundred
+//    boxes in a few cells) share a `group` object. The grid holds the group once, under its
+//    bounds: a ray or a query that misses the bounds skips every box in it.
 
 import { Vector3 } from 'three';
 
@@ -21,7 +24,26 @@ export class CoverIndex {
     this.cells = new Map();
     this.list = [];
     this.stamp = 0;
-    for (const b of boxes) this.add(b);
+    const groups = this.groups = new Map();
+    for (const b of boxes) {
+      if (!b.group) { this.add(b); continue; }
+      b._stamp = 0;
+      this.list.push(b);
+      let g = groups.get(b.group);
+      if (!g) groups.set(b.group, (g = { compound: true, min: b.min.clone(), max: b.max.clone(), boxes: [], _stamp: 0 }));
+      g.boxes.push(b); g.min.min(b.min); g.max.max(b.max);
+    }
+    for (const g of groups.values()) this.#place(g);
+  }
+
+  #place(e) {
+    const [x0, z0, x1, z1] = this.#range(e.min.x, e.min.z, e.max.x, e.max.z);
+    for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) {
+      const k = KEY(ix, iz);
+      let cell = this.cells.get(k);
+      if (!cell) this.cells.set(k, (cell = []));
+      cell.push(e);
+    }
   }
 
   get length() { return this.list.length; }
@@ -42,13 +64,7 @@ export class CoverIndex {
   add(b) {
     b._stamp = 0;
     this.list.push(b);
-    const [x0, z0, x1, z1] = this.#range(b.min.x, b.min.z, b.max.x, b.max.z);
-    for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) {
-      const k = KEY(ix, iz);
-      let cell = this.cells.get(k);
-      if (!cell) this.cells.set(k, (cell = []));
-      cell.push(b);
-    }
+    this.#place(b);
     return b;
   }
 
@@ -56,6 +72,8 @@ export class CoverIndex {
     const i = this.list.indexOf(b);
     if (i < 0) return false;
     this.list.splice(i, 1);
+    const g = b.group && this.groups.get(b.group);
+    if (g) { const j = g.boxes.indexOf(b); if (j >= 0) g.boxes.splice(j, 1); return true; }
     const [x0, z0, x1, z1] = this.#range(b.min.x, b.min.z, b.max.x, b.max.z);
     for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) {
       const cell = this.cells.get(KEY(ix, iz));
@@ -75,7 +93,9 @@ export class CoverIndex {
       for (const b of cell) {
         if (b._stamp === s) continue;
         b._stamp = s;
-        if (b.max.x >= minX && b.min.x <= maxX && b.max.z >= minZ && b.min.z <= maxZ) cb(b);
+        if (!(b.max.x >= minX && b.min.x <= maxX && b.max.z >= minZ && b.min.z <= maxZ)) continue;
+        if (!b.compound) { cb(b); continue; }
+        for (const c of b.boxes) if (c.max.x >= minX && c.min.x <= maxX && c.max.z >= minZ && c.min.z <= maxZ) cb(c);
       }
     }
   }
@@ -86,7 +106,9 @@ export class CoverIndex {
     let top = -Infinity;
     if (cell) for (let i = 0; i < cell.length; i++) {
       const b = cell[i];
-      if (x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z && b.max.y <= below && b.max.y > top) top = b.max.y;
+      if (!(x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z)) continue;
+      if (!b.compound) { if (b.max.y <= below && b.max.y > top) top = b.max.y; continue; }
+      for (const c of b.boxes) if (x >= c.min.x && x <= c.max.x && z >= c.min.z && z <= c.max.z && c.max.y <= below && c.max.y > top) top = c.max.y;
     }
     return top;
   }
@@ -110,6 +132,16 @@ export class CoverIndex {
         const b = cell[i];
         if (b._stamp === s) continue;
         b._stamp = s;
+        if (b.compound) {
+          // Inside the group's bounds, or its bounds hit before the best so far: test its boxes.
+          if (slab(o, d, b, bestT) < 0) continue;
+          for (const c of b.boxes) {
+            if (filter && !filter(c)) continue;
+            const h = slab(o, d, c, bestT);
+            if (h >= 0) { bestT = h; best = c; axis = _hit.axis; sign = _hit.sign; }
+          }
+          continue;
+        }
         if (filter && !filter(b)) continue;
         const h = slab(o, d, b, bestT);
         if (h >= 0) { bestT = h; best = b; axis = _hit.axis; sign = _hit.sign; }

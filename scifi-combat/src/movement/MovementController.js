@@ -1311,13 +1311,13 @@ export class FlatGroundBody {
     const ox = p.x, oz = p.z;
     this.#depenetrate(near);
     this._out.push.set(p.x - ox, 0, p.z - oz); // moved out of a wall: position only, not velocity
-    let x = p.x, z = p.z, y = p.y + d.y;
+    let x = p.x, z = p.z, y = p.y + d.y, stepped = -Infinity;
     // Horizontal, one axis at a time (slide along walls), stepping up low edges.
     for (const axis of ['x', 'z']) {
       const nx = axis === 'x' ? x + d.x : x, nz = axis === 'z' ? z + d.z : z;
       const hit = this.#blocking(nx, nz, Math.max(y, p.y), near);
       if (!hit) { x = nx; z = nz; continue; }
-      if (hit.max.y - Math.max(y, p.y) <= this.step && !this.#blocking(nx, nz, hit.max.y + 0.01, near)) { x = nx; z = nz; y = Math.max(y, hit.max.y); }
+      if (hit.max.y - Math.max(y, p.y) <= this.step && !this.#blocking(nx, nz, hit.max.y + 0.01, near)) { x = nx; z = nz; y = Math.max(y, hit.max.y); stepped = Math.max(stepped, hit.max.y); }
     }
     // Vertical: terrain or box tops under us.
     let floor = this.groundAt(x, z);
@@ -1325,6 +1325,10 @@ export class FlatGroundBody {
     for (const b of near) {
       if (x > b.min.x - r && x < b.max.x + r && z > b.min.z - r && z < b.max.z + r && b.max.y <= Math.max(p.y, y) + 0.05) floor = Math.max(floor, b.max.y);
     }
+    // A step climbed this move holds us up while we're only on its edge (walking slowly onto a
+    // stair, the body reaches the step's edge before its middle is over it: snapped back down,
+    // it was pushed out again, and stuck at the foot of the stairs for good).
+    floor = Math.max(floor, stepped);
     // Ceiling: rising into the underside of a box stops the rise.
     if (d.y > 0) for (const b of near) {
       if (x > b.min.x - this.r && x < b.max.x + this.r && z > b.min.z - this.r && z < b.max.z + this.r && p.y + this.h <= b.min.y && y + this.h > b.min.y) y = b.min.y - this.h;

@@ -47,6 +47,8 @@ export class CityRenderer {
     this.anisotropy = anisotropy;
     this.ground = (x, z) => map.terrain.height(x, z);
     this.#buildings();
+    this.#houses();
+    this.#extras();
     this.#sidewalks();
     this.#lamps();
     this.#wrecks();
@@ -62,7 +64,7 @@ export class CityRenderer {
     if (this.L.future) this.future = new CityFuture(this.group, map, { F: this.L.future, neon: this.L.neon, towers: this.megatowers, buildings: this.city.buildings, ground: this.ground });
   }
 
-  dispose() { this.group.removeFromParent(); for (const l of [...this.lights, ...this.fireLights]) { l.removeFromParent(); l.target?.removeFromParent(); } }
+  dispose() { this.group.removeFromParent(); for (const l of [...this.lights, ...this.fireLights, ...(this.roomPoints ?? [])]) { l.removeFromParent(); l.target?.removeFromParent(); } }
 
   /** Ground beyond the map's edge for the skyline to stand on (seen from above, or down a long avenue). */
   #outskirts() {
@@ -222,6 +224,164 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     this.megatowers = [...new Set(mega.map((t) => t.whole))];
   }
 
+  /**
+   * The houses you can go into (Houses.js): their walls in the facade's colour, snow on the roof,
+   * the parapets and the balconies (never on the floors inside), bare concrete stairs, metal rails,
+   * and a lit panel in each room's ceiling, so the windows show who's home.
+   */
+  #houses() {
+    const H = this.city.houses ?? [];
+    if (!H.length) return;
+    const tex = concreteTexture(); tex.anisotropy = this.anisotropy;
+    const walls = [], roofs = [], floors = [], stairs = [], rails = [], lights = [];
+    for (const h of H) {
+      const col = STYLE[h.style % STYLE.length];
+      // The ground floor's own floor over the sidewalk slab (so no snow lies indoors): drawn only.
+      floors.push([{ min: { x: h.min.x + 0.3, y: h.base - 0.05, z: h.min.z + 0.3 }, max: { x: h.max.x - 0.3, y: h.base + 0.015, z: h.max.z - 0.3 } }, '#8e8a82']);
+      for (const b of h.parts.wall) walls.push([b, col]);
+      for (const b of h.parts.floor) (b.kind === 'hfloor' ? floors : roofs).push([b, '#8e8a82']);
+      for (const b of h.parts.stair) stairs.push([b, '#5e5c58']);
+      for (const b of h.parts.rail) rails.push([b, '#2a2c31']);
+      for (const L of h.lights) lights.push(L);
+    }
+    const batch = (list, mat, shadows = true) => {
+      if (!list.length) return null;
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length);
+      list.forEach(([b, col], i) => {
+        _m.compose(_p.set((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), _q.identity(), _s.set(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z));
+        mesh.setMatrixAt(i, _m); mesh.setColorAt(i, _c.set(col));
+      });
+      mesh.castShadow = shadows; mesh.receiveShadow = true; mesh.frustumCulled = false;
+      this.group.add(mesh);
+      return mesh;
+    };
+    const concrete = (snow, scale = 0.45) => {
+      const m = triplanar(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.92 }), tex, scale, 0.5);
+      return snow ? snowCover(m, this.snow) : m;
+    };
+    this.houseMeshes = {
+      walls: batch(walls, concrete(true, 0.3)),
+      roofs: batch(roofs, concrete(true)),
+      floors: batch(floors, concrete(false)),
+      stairs: batch(stairs, concrete(false)),
+      rails: batch(rails, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.5, metalness: 0.6 }), this.snow), false),
+    };
+    // Ceiling panels: a glowing slab under each room's ceiling, warm or cool, some rooms dark.
+    if (lights.length) {
+      const warm = new THREE.Color(this.L.windowWarm ?? '#ffcf8a'), cool = new THREE.Color(this.L.windowCool ?? '#9ac8ff');
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), lights.length);
+      lights.forEach((L, i) => {
+        const hsh = Math.abs(Math.sin(L.x * 12.9898 + L.z * 78.233 + L.k * 37.7) * 43758.5453) % 1;
+        _m.compose(_p.set(L.x, L.y - 0.03, L.z), _q.identity(), _s.set(Math.max(0.5, L.w * 0.55), 0.04, Math.max(0.5, L.d * 0.55)));
+        mesh.setMatrixAt(i, _m);
+        L.on = hsh >= 0.2; L.col = (hsh < 0.6 ? warm : cool);
+        mesh.setColorAt(i, _c.copy(L.col).multiplyScalar(L.on ? 1.1 + hsh * 0.6 : 0.03));
+      });
+      mesh.frustumCulled = false;
+      this.group.add(mesh);
+      this.houseMeshes.lights = mesh;
+      this.roomLights = lights.filter((L) => L.on);
+    }
+  }
+
+  /**
+   * Scaffolding (steel poles, plank decks, rails), skybridges (concrete decks with a neon strip
+   * along each edge, rails; a broken one's fallen half a tilted slab over its rubble steps),
+   * market stalls (counters, shelves, canopies in bright cloth trimmed in neon, crates) and
+   * debris (concrete chunks lying askew). Instanced boxes, a few draw calls.
+   */
+  #extras() {
+    const C = this.city, tex = concreteTexture(); tex.anisotropy = this.anisotropy;
+    const neon = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).map((c) => new THREE.Color(c));
+    const sets = { steel: [], plank: [], concrete: [], rubble: [], wood: [], cloth: [], glow: [] };
+    const tread = (b, col) => [new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y - 0.03, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, 0.06, b.max.z - b.min.z), col, 0, 0];
+    // An axis-aligned box, or one turned (yaw about y, tilt about the box's x): [center, size, color, yaw, tilt].
+    const ab = (b, col) => [new THREE.Vector3((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z), col, 0, 0];
+    const rnd = (k) => { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+    for (const sc of C.scaffolds ?? []) {
+      for (const d of sc.parts.deck) sets.plank.push(ab(d, '#7a6448'));
+      // Open steel treads (the sim's steps are solid to the deck below; drawn, they're grating).
+      for (const st of sc.parts.stair) sets.steel.push(tread(st, '#5f646c'));
+      // Poles up both edges every 2 m, rails at each level on the street side (drawn only).
+      const span = sc.u1 - sc.u0, n = Math.max(2, Math.round(span / 2));
+      for (let i = 0; i <= n; i++) for (const off of [0.15, sc.depth + 0.05]) {
+        const u = sc.u0 + (span * i) / n, v = sc.at + sc.out * off, h = sc.top + 1.1 - sc.base;
+        const [x, z] = sc.axis === 'x' ? [u, v] : [v, u];
+        sets.steel.push([new THREE.Vector3(x, sc.base + h / 2, z), new THREE.Vector3(0.07, h, 0.07), '#9aa0a8', 0, 0]);
+      }
+      for (let l = 1; l <= sc.levels; l++) for (const dy of [0.5, 1.05]) {
+        const y = sc.base + l * 2.4 + dy, v = sc.at + sc.out * (sc.depth + 0.05), u = (sc.u0 + sc.u1) / 2;
+        const [x, z] = sc.axis === 'x' ? [u, v] : [v, u];
+        sets.steel.push([new THREE.Vector3(x, y, z), sc.axis === 'x' ? new THREE.Vector3(span, 0.05, 0.05) : new THREE.Vector3(0.05, 0.05, span), '#9aa0a8', 0, 0]);
+      }
+    }
+    for (const br of C.bridges ?? []) {
+      for (const d of br.parts.deck) sets.concrete.push(ab(d, '#77736c'));
+      for (const r of br.parts.rail) sets.steel.push(ab(r, '#3a3d44'));
+      for (const r of br.parts.ramp) sets.rubble.push(ab(r, '#5d5850'));
+      // Neon along both edges under the deck, in one of the city's colours.
+      const d = br.parts.deck[0], col = neon[Math.floor(rnd(br.u) * neon.length)];
+      for (const side of [0, 1]) {
+        const g = br.axis === 'z'
+          ? { min: { x: side ? d.max.x - 0.05 : d.min.x, y: d.min.y - 0.06, z: d.min.z }, max: { x: side ? d.max.x : d.min.x + 0.05, y: d.min.y, z: d.max.z } }
+          : { min: { x: d.min.x, y: d.min.y - 0.06, z: side ? d.max.z - 0.05 : d.min.z }, max: { x: d.max.x, y: d.min.y, z: side ? d.max.z : d.min.z + 0.05 } };
+        sets.glow.push(ab(g, col.clone().multiplyScalar(2.6)));
+      }
+      // A broken one's fallen half: a slab lying on the ramp, from the deck's end to the ground.
+      if (br.ramp) {
+        const [fx, fz] = br.ramp.from, [tx, tz] = br.ramp.to, run = Math.hypot(tx - fx, tz - fz), drop = br.ramp.y0 - br.ramp.y1;
+        const len = Math.hypot(run, drop), tilt = Math.atan2(drop, run), yaw = Math.atan2(tx - fx, tz - fz);
+        sets.concrete.push([new THREE.Vector3((fx + tx) / 2, (br.ramp.y0 + br.ramp.y1) / 2 - 0.05, (fz + tz) / 2), new THREE.Vector3(br.width - 0.3, 0.3, len), '#77736c', yaw, tilt]);
+      }
+    }
+    const cloths = ['#c8322c', '#1f8c8c', '#e0b030', '#b03a8a', '#2f5fb0', '#e06a2a'];
+    for (const mk of C.markets ?? []) {
+      mk.parts.counter.forEach((c, i) => sets.wood.push(ab(c, ['#7a5a3a', '#3f6f6a', '#8a3a34', '#5a5a66'][Math.floor(rnd(c.min.x + c.min.z) * 4)])));
+      for (const c of mk.parts.crate) sets.wood.push(ab(c, '#9a7a4a'));
+      mk.stalls.forEach((st) => {
+        const cb = st.canopy;
+        sets.cloth.push(ab(cb, cloths[st.color % cloths.length]));
+        // A warm lantern under the canopy, over the counter.
+        sets.glow.push([new THREE.Vector3(st.x, cb.min.y - 0.25, st.z), new THREE.Vector3(0.22, 0.3, 0.22), new THREE.Color('#ffb060').multiplyScalar(3.2), 0, 0]);
+        // Neon along the canopy's front edge.
+        const [fx, fz] = st.face, g = fx
+          ? { min: { x: fx > 0 ? cb.max.x - 0.05 : cb.min.x, y: cb.min.y - 0.05, z: cb.min.z }, max: { x: fx > 0 ? cb.max.x : cb.min.x + 0.05, y: cb.min.y, z: cb.max.z } }
+          : { min: { x: cb.min.x, y: cb.min.y - 0.05, z: fz > 0 ? cb.max.z - 0.05 : cb.min.z }, max: { x: cb.max.x, y: cb.min.y, z: fz > 0 ? cb.max.z : cb.min.z + 0.05 } };
+        sets.glow.push(ab(g, neon[st.sign % neon.length].clone().multiplyScalar(2.4)));
+      });
+    }
+    for (const d of C.debris ?? []) for (const [i, b] of d.parts.entries()) {
+      const e = ab(b, ['#6e6a62', '#5d5a54', '#7a756b'][i % 3]);
+      e[3] = (rnd(b.min.x * 3.1 + b.min.z) - 0.5) * 0.5;      // lying a little askew
+      sets.rubble.push(e);
+    }
+    const make = (list, mat, shadows = true) => {
+      if (!list.length) return null;
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length);
+      list.forEach(([c, sz, col, yaw, tilt], i) => {
+        _e.set(tilt, yaw, 0, 'YXZ');
+        mesh.setMatrixAt(i, _m.compose(c, _q.setFromEuler(_e), sz));
+        mesh.setColorAt(i, col instanceof THREE.Color ? col : _c.set(col));
+      });
+      mesh.castShadow = shadows; mesh.receiveShadow = true; mesh.frustumCulled = false;
+      this.group.add(mesh);
+      return mesh;
+    };
+    const tri = (rough, metal = 0, scale = 0.45, snow = true) => {
+      const m = triplanar(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: rough, metalness: metal }), tex, scale, 0.4);
+      return snow ? snowCover(m, this.snow) : m;
+    };
+    this.extraMeshes = {
+      steel: make(sets.steel, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.45, metalness: 0.7 }), this.snow)),
+      plank: make(sets.plank, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }), this.snow)),
+      concrete: make(sets.concrete, tri(0.9)),
+      rubble: make(sets.rubble, tri(1, 0, 0.6)),
+      wood: make(sets.wood, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85 }), this.snow)),
+      cloth: make(sets.cloth, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, side: THREE.DoubleSide }), this.snow, 0.3)),   // (a dusting: the cloth's colour shows)
+      glow: make(sets.glow, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), false),
+    };
+  }
+
   /** The blocks' sidewalk slabs: paving, a kerb you can see. */
   #sidewalks() {
     const blocks = this.city.blocks;
@@ -286,6 +446,13 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       const l = new THREE.PointLight(FIRE, 0, 24, 1.6);
       this.scene.add(l);
       this.fireLights.push(l);
+    }
+    // The rooms nearest the action are lit by their ceiling panels (inside a house you can see).
+    this.roomPoints = [];
+    if (this.roomLights?.length) for (let k = 0; k < 3; k++) {
+      const l = new THREE.PointLight('#ffd9a8', 0, 11, 1.6);
+      this.scene.add(l);
+      this.roomPoints.push(l);
     }
     this.lightT = 0;
   }
@@ -503,6 +670,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       const away = (x, z) => Math.abs(x - focus.x) + Math.abs(z - focus.z);
       this.lit = this.lampInfo.filter((L) => L.on).sort((a, b) => away(a.light.x, a.light.z) - away(b.light.x, b.light.z)).slice(0, this.lights.length);
       this.litFires = this.burning.slice().sort((a, b) => away(a.x, a.z) - away(b.x, b.z)).slice(0, this.fireLights.length);
+      if (this.roomPoints.length) this.litRooms = this.roomLights.filter((L) => away(L.x, L.z) < 40 && Math.abs(L.y - focus.y) < 6).sort((a, b) => away(a.x, a.z) - away(b.x, b.z)).slice(0, this.roomPoints.length);
     }
     this.lights.forEach((l, k) => {
       const L = this.lit?.[k];
@@ -515,6 +683,12 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       if (!f) { l.intensity = 0; return; }
       l.position.set(f.x, f.y + 1.2, f.z);
       l.intensity = 26 * (0.75 + 0.25 * Math.sin(t * 19 + k) * Math.sin(t * 7.3 + k * 2));
+    });
+    this.roomPoints.forEach((l, k) => {
+      const L = this.litRooms?.[k];
+      if (!L) { l.intensity = 0; return; }
+      l.position.set(L.x, L.y - 0.5, L.z); l.color.copy(L.col);
+      l.intensity = 22;
     });
   }
 }
