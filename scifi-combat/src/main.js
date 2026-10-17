@@ -1,4 +1,5 @@
-// Graybox duel: player (Solari Dawnblade) vs. one Void Ashsworn bot on flat ground with vault boxes.
+// Graybox skirmish: you (Solari Dawnblade) + 3 Solari bots vs. 4 Void bots, with vehicles on pads.
+// Bots use CombatBotBrain: full class kits, guns, swords and vehicles (?difficulty=recruit|veteran|elite).
 // Demonstrates the full loop: Input → fixed-step sim (movement + melee + guns + abilities + statuses)
 // → events → camera/juice/audio/HUD.
 // Run: `npx serve scifi-combat` (or any static server) and open index.html.
@@ -19,14 +20,17 @@ import { AbilityComponent } from './combat/AbilitySystem.js';
 import { StatusComponent } from './combat/StatusSystem.js';
 import { Health } from './combat/Health.js';
 import { CameraRig } from './camera/CameraRig.js';
-import { MeleeDuelistBrain } from './ai/MeleeDuelistBrain.js';
+import { CombatBotBrain } from './ai/CombatBotBrain.js';
+import { buildFighter } from './game/FighterFactory.js';
+import { routeCommand } from './core/routing.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs] = await Promise.all([
+const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'),
   load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
+  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'),
 ]);
 const sword = meleeData.weapons[0];
 const abilityIndex = new Map();
@@ -94,8 +98,14 @@ function makeFighter(id, team, color, pos, kit, guns) {
   ent.melee = new MeleeComponent(sword, ent, world);
   ent.weapons = new WeaponComponent(ent, guns.map((g) => new WeaponInstance(g, recoil.patterns)), world);
   ent.abilities = new AbilityComponent(ent, kit, world);
+  attachView(ent, color);
+  world.add(ent);
+  return ent;
+}
 
-  // Graybox visual: capsule plus an emissive "blade" that glows with heat.
+/** Graybox visual: capsule plus an emissive "blade" that glows with heat, and a gun box. */
+function attachView(ent, color) {
+  const team = ent.team, pos = ent.movement.state.position;
   const mesh = new THREE.Group();
   const capsule = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.1, 4, 12), new THREE.MeshStandardMaterial({ color }));
   capsule.position.y = 0.9; capsule.castShadow = true;
@@ -106,8 +116,6 @@ function makeFighter(id, team, color, pos, kit, guns) {
   mesh.add(capsule, blade, gun);
   scene.add(mesh);
   ent.view = { mesh, capsule, blade, gun, prev: pos.clone() };
-  world.add(ent);
-  return ent;
 }
 
 const playerGuns = [
@@ -115,10 +123,30 @@ const playerGuns = [
   buildWeapon(energy, 'sol_pr_aurora', attachments.attachments, []),
 ];
 const player = makeFighter(1, 0, '#d9a441', new THREE.Vector3(0, 0, 0), solariKits.kits.dawnblade, playerGuns);
-const bot = makeFighter(2, 1, '#6b3fa0', new THREE.Vector3(0, 0, -5), voidKits.kits.ashsworn, [buildWeapon(ballistic, 'void_sg_maw', attachments.attachments, [])]);
+player.name = 'You';
 const melee = new MeleeSystem();
-melee.add(player.melee); melee.add(bot.melee);
-bot.abilities.superEnergy = 60; // the bot's Abyssal Blade comes online within the first minute or two
+melee.add(player.melee);
+
+// ---------------------------------------------------------------- bots (4v4 skirmish)
+const factoryData = {
+  movement: movementTuning, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns,
+  statuses: statuses.statuses, meleeWeapons: meleeData.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes: [solariClasses, voidClasses],
+};
+const difficultyName = new URLSearchParams(location.search).get('difficulty') ?? 'veteran';
+const difficulty = aiDefs.difficulty[difficultyName] ?? aiDefs.difficulty.veteran;
+const SPAWNS = [new THREE.Vector3(0, 0, 6), new THREE.Vector3(0, 0, -58)];
+const spawnPoint = (team, i) => SPAWNS[team].clone().add(new THREE.Vector3(((i % 4) - 1.5) * 3.5, 0, 0));
+const ROSTER = [[0, 'lancer'], [0, 'skyrider'], [0, 'lumen'], [1, 'ashsworn'], [1, 'monolith'], [1, 'driftcaller'], [1, 'hollow_eye']];
+const bots = ROSTER.map(([team, classId], i) => {
+  const e = buildFighter(world, factoryData, { id: 10 + i, team, classId, pos: spawnPoint(team, i) });
+  e.name = classId.replace('_', '-').replace(/^./, (c) => c.toUpperCase());
+  attachView(e, team === 0 ? '#c9a24a' : '#5b3a8f');
+  melee.add(e.melee);
+  e.brain = new CombatBotBrain(e, world, aiDefs.personalities[e.ai], difficulty, { seed: 10 + i });
+  e.abilities.superEnergy = 40; // supers come online within the first couple of minutes
+  return e;
+});
+const fighterName = (id) => { const x = world.entity(id); return x?.name ?? x?.def?.name ?? (x?.isDeployable ? x.kind : '?'); };
 
 // Demo: K cycles the player through all 20 class kits so every ability can be tried.
 const kitOrder = [...Object.entries(solariKits.kits).map(([k, v]) => ['Solari', k, v]), ...Object.entries(voidKits.kits).map(([k, v]) => ['Void', k, v])];
@@ -143,13 +171,23 @@ world.vehicles.addPad({ vehicle: 'solari_dawnship', team: 0, at: new THREE.Vecto
 world.vehicles.addPad({ vehicle: 'void_crawler_tank', team: 1, at: new THREE.Vector3(4, 0, -50), yaw: Math.PI, respawn: 20 });
 world.vehicles.addPad({ vehicle: 'void_skiff', team: 1, at: new THREE.Vector3(-10, 0, -45), yaw: Math.PI, respawn: 10 });
 
-const brain = new MeleeDuelistBrain(bot, { aggression: 0.65, parrySkill: 0.45, reactionTime: 0.28, feintRate: 0.3 });
-brain.target = player;
-brain.world = world; // lets the bot read zone threats and step out of them
-bus.on('melee:windup', (e) => brain.observeWindup(e));
-bus.on('melee:parry', (e) => brain.observeParried(e));
-// Respawn for the demo.
-bus.on('entity:death', (e) => setTimeout(() => { const x = world.entity(e.id); if (!x || x.isVehicle || x.isDeployable) return; x.health.revive(1); x.status.cleanse(); }, 1500));
+// Respawn at the team spawn after 3 s; score and killfeed.
+const score = [0, 0];
+bus.on('entity:death', (e) => {
+  const x = world.entity(e.id);
+  if (!x || x.isVehicle || x.isDeployable) return;
+  const killer = world.entity(e.by);
+  const killerTeam = killer?.team ?? -1;
+  if (killerTeam >= 0 && killerTeam !== x.team) score[killerTeam]++;
+  pushKill(killer ? fighterName(e.by) : 'World', killerTeam, x.name, x.team);
+  setTimeout(() => {
+    if (x.vehicle) world.vehicles.exit(x);
+    revertTransform(x, 'respawn');
+    const p = spawnPoint(x.team, x.id);
+    x.movement.state.position.copy(p); x.movement.body.teleport(p); x.movement.state.velocity.set(0, 0, 0);
+    x.health.revive(1); x.health.shield = x.health.maxShield; x.status.cleanse();
+  }, 3000);
+});
 
 // ---------------------------------------------------------------- systems
 const input = new InputManager(renderer.domElement);
@@ -173,7 +211,7 @@ renderer.domElement.addEventListener('mousedown', () => {
 // Hit-stop: freeze the sim for a few ticks on impactful events (offline only; see ARCHITECTURE §2).
 let hitStop = 0;
 for (const ev of ['melee:parry', 'melee:hit', 'melee:perfectBlock', 'melee:block']) {
-  bus.on(ev, (e) => { hitStop = Math.max(hitStop, e.hitStop ?? 0); if (e.defender === 2 || e.attacker === 2) input.rumble(0.6, 0.4, 90); });
+  bus.on(ev, (e) => { hitStop = Math.max(hitStop, e.hitStop ?? 0); if (e.defender === 1 || e.attacker === 1) input.rumble(0.6, 0.4, 90); });
 }
 
 // ---------------------------------------------------------------- presentation: tracers and telegraphs
@@ -228,10 +266,23 @@ bus.on('melee:parry', (e) => log(e.defender === 1 ? 'PERFECT PARRY' : 'PARRIED!'
 bus.on('melee:perfectBlock', (e) => e.defender === 1 && log('PERFECT BLOCK', '#9fd3ff'));
 bus.on('melee:guardBreak', (e) => log(e.defender === 1 ? 'GUARD BROKEN' : 'GUARD BREAK!', '#ff5050'));
 bus.on('melee:parryWhiff', (e) => e.id === 1 && log('whiff', '#888'));
-bus.on('melee:windup', (e) => { if (e.id === 2) document.getElementById('tell').style.background = e.unblockable ? '#ff3030' : '#ffb347'; });
-bus.on('melee:feint', (e) => e.id === 2 && log('feint!', '#c9a0ff'));
-bus.on('ability:cast', (e) => e.id === 2 && log(abilityIndex.get(e.ability)?.name.toUpperCase(), '#ff5c7a'));
-bus.on('ability:interrupted', (e) => log(e.id === 2 ? 'INTERRUPTED THEM' : 'INTERRUPTED', '#9fd3ff'));
+// "Near enemy" = an enemy within `r` metres of you: only their tells reach the centre of the screen.
+const nearEnemy = (id, r) => { const x = world.entity(id); return x && x.team !== player.team && x.movement.state.position.distanceTo(player.movement.state.position) < r; };
+let tellUntil = 0;
+bus.on('melee:windup', (e) => { if (nearEnemy(e.id, 6)) { document.getElementById('tell').style.background = e.unblockable ? '#ff3030' : '#ffb347'; tellUntil = performance.now() + e.windup * 1000; } });
+bus.on('melee:feint', (e) => nearEnemy(e.id, 8) && log('feint!', '#c9a0ff'));
+bus.on('ability:cast', (e) => nearEnemy(e.id, 30) && log(`${fighterName(e.id)}: ${abilityIndex.get(e.ability)?.name.toUpperCase()}`, '#ff5c7a'));
+bus.on('ability:interrupted', (e) => (e.id === 1 || nearEnemy(e.id, 40)) && log(e.id === 1 ? 'INTERRUPTED' : 'INTERRUPTED THEM', '#9fd3ff'));
+
+// Killfeed (top right under help) and team score.
+const killfeed = document.getElementById('killfeed');
+const kills = [];
+function pushKill(killer, kTeam, victim, vTeam) {
+  const col = (t) => (t === 0 ? '#ffcf6b' : t === 1 ? '#c9a0ff' : '#aaa');
+  kills.unshift(`<span style="color:${col(kTeam)}">${killer}</span> ▸ <span style="color:${col(vTeam)}">${victim}</span>`);
+  kills.length = Math.min(kills.length, 5);
+  killfeed.innerHTML = `<b style="color:#ffcf6b">SOLARI ${score[0]}</b> — <b style="color:#c9a0ff">${score[1]} VOID</b><br>${kills.join('<br>')}`;
+}
 bus.on('status:applied', (e) => e.id === 1 && log(e.status.toUpperCase(), '#c9a0ff'));
 bus.on('status:threshold', (e) => e.to === 'ignite' && log('IGNITE', '#ff7a1a'));
 bus.on('weapon:perfectVent', (e) => e.id === 1 && log('PERFECT VENT +15%', '#9fd3ff'));
@@ -267,7 +318,6 @@ const loop = new FixedLoop({
     if (hitStop > 0) { hitStop -= dt; return; }
 
     for (const e of entities) e.view.prev.copy(e.movement.state.position);
-    const botCmd = brain.think(dt, tick);
     const pc = player.status.rooted ? strip(cmd, []) : cmd;
     const meleeCmd = player.mode === 'sword' ? pc : strip(pc, ['light', 'heavy', 'guard']);
     const gunCmd = player.mode === 'gun' && !player.status.disarmed ? pc : strip(pc, ['light', 'guard', 'reload', 'swapWeapon']);
@@ -283,8 +333,13 @@ const loop = new FixedLoop({
     // Vehicles first: if the fighter is driving or riding, the vehicle consumes the whole command.
     if (world.vehicles.handleInput(player, pc)) player.movement.update(pc, dt);
     else tickEntity(player, pc, pc, meleeCmd, gunCmd);
-    if (world.vehicles.handleInput(bot, botCmd)) bot.movement.update(botCmd, dt);
-    else tickEntity(bot, botCmd, botCmd, botCmd, null);
+    // Bots: same pipeline as the player, with the command split between sword and gun by mode.
+    for (const b of bots) {
+      const bc = b.brain.think(dt, tick);
+      if (world.vehicles.handleInput(b, bc)) { b.movement.update(bc, dt); continue; }
+      const r = routeCommand(b, b.status.rooted ? strip(bc, []) : bc);
+      tickEntity(b, bc, bc, r.meleeCmd, r.gunCmd);
+    }
     world.update(dt);
     melee.resolve();
   },
@@ -315,7 +370,7 @@ const loop = new FixedLoop({
       const st = e.status;
       e.view.capsule.material.emissive?.set(s.invulnerable ? '#3355ff' : m.vulnerable ? '#ff2222' : tf ? (tf.def.aura === 'void' ? '#5b21b6' : tf.def.aura === 'mech' ? '#555555' : '#b7791f') : st.has('scorch') ? '#7a2a00' : st.has('volatile') || st.has('weaken') ? '#3a1466' : st.silenced ? '#444' : '#000000');
     }
-    if (bot.melee.phase !== 'windup') document.getElementById('tell').style.background = 'transparent';
+    if (performance.now() > tellUntil) document.getElementById('tell').style.background = 'transparent';
     for (const [p, m] of bolts) { if (!p.alive) { scene.remove(m); bolts.delete(p); } else m.position.copy(p.pos); }
     for (let i = fx.length - 1; i >= 0; i--) {
       const f = fx[i]; f.life -= dt;
@@ -343,6 +398,16 @@ const loop = new FixedLoop({
     renderer.render(scene, rig.camera);
     audio?.update(dt, rig.camera.position, ps.yaw);
 
+    // Focused enemy: the living enemy closest to the centre of the screen within 60 m.
+    const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(rig.camera.quaternion);
+    let focus = null, bestDot = 0.9;
+    for (const b of bots) {
+      if (b.team === player.team || b.health.dead) continue;
+      const to = b.movement.state.position.clone().setY(b.movement.state.position.y + 1).sub(rig.camera.position);
+      const dist = to.length();
+      const dot = to.divideScalar(dist).dot(camFwd);
+      if (dist < 60 && dot > bestDot) { bestDot = dot; focus = b; }
+    }
     const cw = w.current;
     const ammo = cw.usesHeat ? `HEAT ${cw.heat.toFixed(0)}%${w.phase === 'overheated' ? ' OVERHEATED' : w.phase === 'venting' ? ' VENTING (R in window = perfect)' : ''}` : `${cw.mag}/${cw.reserve}${w.phase === 'reloading' ? ' RELOADING' : ''}`;
     const near = !player.vehicle && world.vehicles.nearestEnterable(player);
@@ -362,12 +427,13 @@ const loop = new FixedLoop({
       HP ${player.health.hp.toFixed(0)} · SH ${player.health.shield.toFixed(0)} · STA ${ps.stamina.toFixed(0)} · statuses: ${[...player.status.active.keys()].join(', ') || '-'}<br>
       ${player.mode === 'gun' ? `<b>${cw.s.name}</b> ${ammo}` : `SWORD heat ${player.melee.heat.toFixed(0)}${player.melee.overheated > 0 ? ' OVERHEAT' : ''} · guard ${player.melee.guardMeter.toFixed(0)} · ${player.melee.phase} ${player.melee.counterWindow > 0 ? '<span style="color:#ffb347">COUNTER!</span>' : ''}`}<br>
       ${player.transform ? `<span style="color:#ffcf6b"><b>SUPER: ${abilityIndex.get(player.transform.ability)?.name}</b> ${Math.max(0, (player.abilities.slots.super.stats.duration ?? 0) - player.abilities.slots.super.phaseTime).toFixed(1)}s${player.weapons.current.s.id.startsWith('super_') ? ` · ammo ${player.weapons.current.usesBattery ? player.weapons.current.battery.toFixed(0) + '%' : player.weapons.current.mag}` : ''}${player.transform.def.frameHp ? ` · frame ${player.health.overshield.toFixed(0)}` : ''}</span><br>` : ''}
-      Bot HP ${bot.health.hp.toFixed(0)}${bot.transform ? ' <b style="color:#ff5c7a">SUPER ACTIVE</b>' : ''} SH ${bot.health.shield.toFixed(0)} · ${bot.melee.phase} · ${[...bot.status.active.keys()].join(', ')}`;
+      ${focus ? `<span style="color:#ff8fa3">${focus.name}${focus.vehicle ? ` (in ${focus.vehicle.veh.def.name})` : ''} HP ${focus.health.hp.toFixed(0)}${focus.transform ? ' <b>SUPER ACTIVE</b>' : ''} · ${[...focus.status.active.keys()].join(', ')}</span>` : ''}`;
     renderAbilityBar(abilityBar, player, true);
-    renderAbilityBar(enemyBar, bot, false); // Deadlock-style: enemy cooldowns are visible
+    // Deadlock-style: the cooldowns of the enemy under your crosshair are visible.
+    if (focus) renderAbilityBar(enemyBar, focus, false); else enemyBar.innerHTML = '';
     document.getElementById('crosshair').style.display = player.mode === 'gun' ? 'block' : 'none';
   },
 });
 kitIndex = (kitIndex - 1 + kitOrder.length) % kitOrder.length; nextKit(); // show the starting kit
-window.__emberfall = { world, player, bot, rig }; // dev console handle (and for automated smoke tests)
+window.__emberfall = { world, player, bots, rig }; // dev console handle (and for automated smoke tests)
 loop.start();

@@ -1,0 +1,19 @@
+{
+  "_comment": "Bot personalities, keyed by the class 'ai' field. Ranges in metres. melee: never | close | prefer. usesVehicles: never | opportunistic | always. abilityEagerness scales every ability score. retreatHp = HP fraction below which the bot breaks off to heal or escape.",
+  "personalities": {
+    "balanced":          { "preferredRange": 16, "rangeBand": 6, "aggression": 0.55, "strafe": 0.7, "melee": "close", "usesVehicles": "opportunistic", "abilityEagerness": 1.0, "retreatHp": 0.3, "flank": false },
+    "anchor":            { "preferredRange": 14, "rangeBand": 8, "aggression": 0.4, "strafe": 0.3, "melee": "close", "usesVehicles": "opportunistic", "abilityEagerness": 1.0, "retreatHp": 0.2, "flank": false },
+    "flanker":           { "preferredRange": 7, "rangeBand": 4, "aggression": 0.8, "strafe": 0.9, "melee": "close", "usesVehicles": "never", "abilityEagerness": 1.1, "retreatHp": 0.35, "flank": true },
+    "support":           { "preferredRange": 18, "rangeBand": 6, "aggression": 0.35, "strafe": 0.6, "melee": "close", "usesVehicles": "opportunistic", "abilityEagerness": 1.2, "retreatHp": 0.4, "flank": false },
+    "cautious":          { "preferredRange": 32, "rangeBand": 10, "aggression": 0.25, "strafe": 0.4, "melee": "close", "usesVehicles": "never", "abilityEagerness": 0.9, "retreatHp": 0.45, "flank": false },
+    "aggressiveDuelist": { "preferredRange": 2.2, "rangeBand": 1.5, "aggression": 0.85, "strafe": 0.5, "melee": "prefer", "usesVehicles": "never", "abilityEagerness": 1.1, "retreatHp": 0.2, "flank": false },
+    "vehicle":           { "preferredRange": 20, "rangeBand": 8, "aggression": 0.6, "strafe": 0.7, "melee": "close", "usesVehicles": "always", "abilityEagerness": 1.0, "retreatHp": 0.3, "flank": false },
+    "aggressive":        { "preferredRange": 10, "rangeBand": 5, "aggression": 0.75, "strafe": 0.8, "melee": "close", "usesVehicles": "opportunistic", "abilityEagerness": 1.15, "retreatHp": 0.25, "flank": false }
+  },
+  "difficulty": {
+    "_comment": "reactionTime: seconds before reacting to a new target/cast. aimSpeed: rad/s turn rate. aimError: degrees of wandering error. recoilComp: 0-1 share of recoil pulled down. interruptChance: odds of using a stun/silence on an enemy cast when able.",
+    "recruit": { "reactionTime": 0.55, "aimSpeed": 3.0, "aimError": 3.5, "recoilComp": 0.3, "interruptChance": 0.25, "decisionInterval": 0.6, "abilityMul": 0.7, "parrySkill": 0.2 },
+    "veteran": { "reactionTime": 0.32, "aimSpeed": 5.0, "aimError": 1.8, "recoilComp": 0.6, "interruptChance": 0.6, "decisionInterval": 0.35, "abilityMul": 1.0, "parrySkill": 0.45 },
+    "elite":   { "reactionTime": 0.18, "aimSpeed": 8.0, "aimError": 0.9, "recoilComp": 0.85, "interruptChance": 0.9, "decisionInterval": 0.2, "abilityMul": 1.2, "parrySkill": 0.7 }
+  }
+}

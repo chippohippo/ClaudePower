@@ -10,6 +10,9 @@ import { Health } from '../src/combat/Health.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { emptyCommand } from '../src/input/InputManager.js';
 import { MeleeComponent, MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
+import { buildFighter } from '../src/game/FighterFactory.js';
+import { CombatBotBrain } from '../src/ai/CombatBotBrain.js';
+import { routeCommand } from '../src/core/routing.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
 export const data = {
@@ -17,6 +20,8 @@ export const data = {
   statuses: J('abilities/statuses.json').statuses, matrix: J('damage-matrix.json').matrix,
   kits: { ...J('abilities/solari.json').kits, ...J('abilities/void.json').kits },
   supers: J('supers.json'), melee: J('weapons/melee.json').weapons, vehicles: J('vehicles.json'),
+  energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
+  classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
 };
 export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
@@ -46,19 +51,40 @@ export function makeWorld(cover = []) {
   const aim = (e, yaw, pitch = 0) => Object.assign(fighters.get(e), { yaw, pitch });
   const aimAt = (e, p) => { const o = e.movement.state.position; aim(e, Math.atan2(-(p.x - o.x), -(p.z - o.z)), Math.atan2(p.y - (o.y + 1.6), Math.hypot(p.x - o.x, p.z - o.z))); };
 
+  /** A full-kit bot of any class, driven by CombatBotBrain. */
+  const factoryData = {
+    movement: data.movement, weaponFiles: [data.ballistic, data.energy], attachments: data.attachments, recoil: data.recoil,
+    statuses: data.statuses, meleeWeapons: data.melee, kits: data.kits, classes: data.classes,
+  };
+  function bot(id, team, pos, classId, { difficulty = 'veteran', seed = 7, persona = null } = {}) {
+    const e = buildFighter(world, factoryData, { id, team, classId, pos, cover });
+    melee.add(e.melee);
+    const diff = typeof difficulty === 'string' ? data.ai.difficulty[difficulty] : { ...data.ai.difficulty.veteran, ...difficulty };
+    const brain = new CombatBotBrain(e, world, persona ?? data.ai.personalities[e.ai], diff, { seed });
+    fighters.set(e, { brain, prev: new Set(), press: new Set(), hold: new Set() });
+    return e;
+  }
+
+  let tick = 0;
   function step(n = 1) {
     for (let i = 0; i < n; i++) {
+      tick++;
       for (const [e, s] of fighters) {
-        const c = emptyCommand();
-        c.yaw = s.yaw; c.pitch = s.pitch; c.moveX = s.moveX; c.moveY = s.moveY;
-        const down = new Set([...s.press, ...s.hold]);
-        for (const k of new Set([...down, ...s.prev])) c.buttons[k] = { down: down.has(k), pressed: down.has(k) && !s.prev.has(k), released: !down.has(k) && s.prev.has(k) };
-        s.prev = down; s.press.clear();
+        let c;
+        if (s.brain) c = s.brain.think(DT, tick);
+        else {
+          c = emptyCommand();
+          c.yaw = s.yaw; c.pitch = s.pitch; c.moveX = s.moveX; c.moveY = s.moveY;
+          const down = new Set([...s.press, ...s.hold]);
+          for (const k of new Set([...down, ...s.prev])) c.buttons[k] = { down: down.has(k), pressed: down.has(k) && !s.prev.has(k), released: !down.has(k) && s.prev.has(k) };
+          s.prev = down; s.press.clear();
+        }
         e.status.update(DT); e.health.update(DT);
         if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;
-        e.abilities.update(c, DT); e.melee.update(c, DT); e.weapons.update(c, DT);
+        if (s.brain) { const r = routeCommand(e, c); e.abilities.update(c, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT); }
+        else { e.abilities.update(c, DT); e.melee.update(c, DT); e.weapons.update(c, DT); }
       }
       world.update(DT);
       melee.resolve();
@@ -68,5 +94,6 @@ export function makeWorld(cover = []) {
   const hold = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.add(k));
   const release = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.delete(k));
   const move = (e, x, y) => Object.assign(fighters.get(e), { moveX: x, moveY: y });
-  return { world, fighter, press, hold, release, aim, aimAt, move, step, seconds };
+  const brainOf = (e) => fighters.get(e)?.brain;
+  return { world, fighter, bot, brainOf, press, hold, release, aim, aimAt, move, step, seconds };
 }
