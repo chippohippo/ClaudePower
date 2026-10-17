@@ -12,5 +12,7 @@
  "reviveRange": 1.6,
  "giveUpHold": 1.2,
  "medicRoles": ["medic"],
- "finisherTime": 1.1
+ "finisherTime": 1.1,
+ "mangle": 1.0,
+ "_mangle": "Horribly hurt: a killing hit is mangling when it was a blast (or blew more than mangle x max HP past zero). The body goes limp at once (no stumble, no hands), and the death reads how: mangled. Nobody gets up from those: only overkill kills outright, everything else downs, and the downed get revived back up injured (data/abilities/statuses.json injured) until a stim treats it."
 }

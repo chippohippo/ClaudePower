@@ -17,6 +17,8 @@
 // Poses (data/movement.json ragdoll.poses) are body-local [right, up, forward] joint positions
 // taken from the rig in each stance (tests keep them in sync), so a body starts limp in exactly
 // the shape it was animated in.
+// `drive` (optional, physics/RagdollDrive.js): muscles. They pull the joints each tick before the
+// constraint passes, so the falling body folds, reaches for the ground, clutches its wound.
 
 export const J = Object.freeze({
   PELVIS: 0, NECK: 1, HEAD: 2, HIP_L: 3, HIP_R: 4, KNEE_L: 5, KNEE_R: 6, ANKLE_L: 7, ANKLE_R: 8,
@@ -166,6 +168,7 @@ export class Ragdoll {
       if (lo < minX) minX = lo; if (hi > maxX) maxX = hi; if (lz < minZ) minZ = lz; if (hz > maxZ) maxZ = hz;
     }
     const boxes = collider?.nearBoxes ? collider.nearBoxes(minX - 0.3, minZ - 0.3, maxX + 0.3, maxZ + 0.3) : [];
+    this.drive?.apply(this, dt, collider);   // muscles (RagdollDrive): before the bones settle it all
     this.contact.fill(0);
     for (let it = 0; it < cfg.iterations; it++) {
       this.#links();
@@ -353,6 +356,7 @@ export class Ragdoll {
       x: [...this.x], y: [...this.y], z: [...this.z], px: [...this.px], py: [...this.py], pz: [...this.pz],
       scale: this.scale, rest: [...this.rest], minD: [...this.minD], lims: { ...this.lims },
       time: this.time, restT: this.restT, asleep: this.asleep, grounded: this.grounded,
+      drive: this.drive?.serialize() ?? null,
     };
   }
   restore(o) {
@@ -361,11 +365,12 @@ export class Ragdoll {
     this.scale = o.scale; this.lims = { ...o.lims };
     for (let i = 0; i < N; i++) this.r[i] = RADIUS[i] * o.scale;
     this.time = o.time; this.restT = o.restT; this.asleep = o.asleep; this.grounded = o.grounded;
+    if (o.drive && this.drive) this.drive.restore(o.drive);
   }
 }
 
 /** Template rows [right, up, forward] for J order; the chest (not in the rig's joint list) sits 68% up the spine. */
-function local(tpl) {
+export function local(tpl) {
   if (tpl.length > C) return tpl;
   const p = tpl[P], n = tpl[NK];
   return [...tpl, [p[0] + (n[0] - p[0]) * 0.68, p[1] + (n[1] - p[1]) * 0.68, p[2] + (n[2] - p[2]) * 0.68]];

@@ -26,6 +26,7 @@ export class StatusComponent {
     if (this.has('slow')) m *= 1 - this.defs.slow.amount * Math.min(1, this.stacks('slow') / (this.defs.slow.maxStacks ?? 1));
     if (this.has('haste')) m *= 1 + this.defs.haste.amount;
     if (this.has('momentum')) m *= 1 + (this.defs.momentum?.amount ?? 0);
+    if (this.has('injured')) m *= 1 - (this.defs.injured?.slow ?? 0.25);   // limping (and so no sprint)
     return this.rooted ? 0 : m;
   }
 

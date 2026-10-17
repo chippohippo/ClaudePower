@@ -78,14 +78,19 @@ measured fact. The procedure for locking them to the real game is in the next se
  └────────────────────┘                                                    │ downed crawl, or corpse       │
                                                                            └───────────────────────────────┘
    MANTLE (vault keeps momentum / climb ends standing) · DODGE (class evades) · VEHICLE
+   STAGGER (rocked by a hit or a 2.5–6 m/s shove: stumble along it; a leg hit buckles you onto
+   that knee; rocked again while stumbling → RAGDOLL; a dying or downed stumble ends in the RAGDOLL)
 ```
 
 Other systems read per-tick flags the controller sets first in every tick:
 - **`diveStarted` / `knockStarted`:** these cancel melee swings and guards, ability casts (half the
   cooldown refunded) and ADS. "Dive interrupts most other actions."
-- **`weaponReady`:** false while mantling, knocked down, limp, downed, getting up or down from prone, or sprinting.
+- **`weaponReady`:** false while mantling, knocked down, limp, downed, getting up or down from prone,
+  sprinting, or in the first 60% of a stumble (all of one that ends in a fall).
   The gun is lowered and comes back up after `sprintToFire`.
-- **`busy`:** no ability casts mid-dive, mid-climb, while down or during prone transitions.
+- **`busy`:** no ability casts mid-dive, mid-climb, while stumbling, while down or during prone transitions.
+- **Downed:** push toward where you look and you roll onto your belly and crawl; pull back and you
+  roll onto your back and scoot away, facing it (`downed.rollTime` to roll over).
 - **`aimYaw`:** the look yaw, except prone and belly slides clamp the gun to ±40° around the body.
 
 ## Facing model (the core of the weight)

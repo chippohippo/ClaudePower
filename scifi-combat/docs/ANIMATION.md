@@ -165,13 +165,32 @@ throw the same body the same way. The rig only draws it.
   for each stance (stand, crouch, prone, supine) are stored body-local in
   `data/movement.json` `ragdoll.poses`, and a test keeps them in sync with the rig.
 
+**Muscles** (`src/physics/RagdollDrive.js`, tuning `ragdoll.drive`; NaturalMotion's Euphoria and
+Red Dead Redemption 2 are the model): a body that goes limp isn't a sack. Each tick, before the
+constraint passes, muscles pull joints toward targets set in the body's own frames. Every pull
+acts between a joint and the joint it hangs from, so muscles bend the body but never fly it.
+- **Dying** (Euphoria's shotRelax): the body keeps its shape for a moment and lets go legs first
+  (`relax.lower` 0.3 s, `relax.upper` 0.75 s), one knee before the other. A shot man folds at the
+  knees, drops and topples instead of falling like a plank. A killing head shot or a mangling hit
+  is lights-out: no muscle at all, limp at once.
+- **Going down alive** (catchFall): both hands reach for the ground ahead of the fall with the
+  elbows braced, so the arms take the chest's weight, and the chin comes up. Going over backward,
+  the hands go down low and wide beside the hips.
+- **Thrown alive:** the arms windmill and the legs pedal while it's in the air.
+- **On the ground, alive** (writhe): on the back, the knees draw up in turn. Then the muscles let go
+  (`settle`) so the downed crawl or the get-up can take over.
+- **Clutch:** the hand on the wound's side (the other hand for a wounded arm) goes to the wound at
+  the hit, and back to it on the ground. A wound in the back, or one the body is lying on, is out
+  of reach, so the hand doesn't try.
+- The drive is plain deterministic arithmetic and serializes with the body.
+
 **What throws a body** (all tuning in `data/movement.json` `ragdoll`):
 
 | Trigger | Rule | Throw |
 |---|---|---|
 | Blast | Inside `blastRadiusFrac` (75%) of the radius; outside it you're only shoved. Prone soldiers resist. Mines too. | Away from the blast, with lift. |
 | Critical hit | One hit taking `criticalFraction` (45%) of the pool (shield included), a headshot taking `headFraction` (40%), a clean heavy melee blow, or a vehicle ram. | Along the shot at `criticalSpeed` (3.5–8 m/s), harder the more of the pool it took. |
-| Down or death | Any hit that downs or kills. | A collapse, pushed gently along the shot (`collapseSpeed` 0.8–2.2 m/s). Burns, falls and crashes collapse the body without a push. |
+| Down or death | Any hit that downs or kills without a throw. | First a stumble along the shot (`stagger.die`: 0.3–0.6 s), then the knees go: the stumble carries into the fall, and the muscles fold a dying body or catch a downed one on its hands. A killing head shot or a mangling hit skips the stumble: limp at once, pushed along the shot (`collapseSpeed` 0.8–2.2 m/s). Burns, falls and crashes collapse the body without a push. |
 
 **At rest** the movement controller (ragdoll mode: no control, the root rides the pelvis) reads
 how the body lies:
@@ -189,13 +208,32 @@ The hitboxes sit on the particles the whole time, so you shoot the body where it
   `blend.ragdollOut` (0.35 s). Nothing pops in either direction.
 - **Thuds:** a body hitting the ground hard emits `anim:impact` `ragdoll`, scaled by speed.
 
+**Hit reactions** (`src/combat/HitReactions.js`, the movement controller's `stagger` mode, tuning
+`data/movement.json` `stagger`):
+- **Where it landed:** every hit is booked to a wound site: head, chest, gut, an arm or a leg, by
+  side. It comes from the hit sphere and how far across the body the shot went in.
+- **Rocked:** a hit taking a fifth of your pool, or a shove that doesn't throw you, stumbles you
+  along it. The trunk is thrown with the push and the arms are flung out for balance, while the
+  feet step after it. The gun is off target for the first 60%, and steering comes back over the
+  last third. Rocked again before you've found your feet, you go over as a ragdoll.
+- **Buckled:** a leg hit taking 15% drops you onto that knee for a moment. The hitboxes drop with
+  you.
+- **Injured** (revived, until a stim):
+  - hunched, with the free hand pressed to a trunk wound while the gun's down;
+  - a limp: the hips dip and the trunk swings off the wounded leg while it carries the weight.
+
 **Downed** (`data/down.json`; rules in [FRONTLINE.md](FRONTLINE.md)):
 - The soldier lies where the body came to rest, one hand pressed to the wound and the rifle slung.
-- The other arm pulls the body along in a slow wounded crawl (0.45 m/s). On the back it's a scoot
-  on the heels.
+- **Crawl or scoot:**
+  - push toward where you look and you roll onto your belly and crawl that way, head first (0.45 m/s);
+  - pull back and you roll onto your back and scoot away on your heels, feet still toward the
+    threat (60% as fast).
+
+  Rolling over takes `downed.rollTime` (0.6 s). The head stays where it lay while the body swings
+  round.
 - Breathing is heavy. No aim, no gun.
 - A **reviver** kneels over the patient with both hands on their chest. The revive ends in the
-  normal get-up.
+  normal get-up, injured.
 
 **Corpses** stay where they fell after the soldier redeploys: up to 96 bodies, for 90 s each.
 

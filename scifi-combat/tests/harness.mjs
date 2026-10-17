@@ -7,7 +7,7 @@ import { buildWeapon } from '../src/combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from '../src/combat/AbilitySystem.js';
 import { StatusComponent } from '../src/combat/StatusSystem.js';
 import { Health } from '../src/combat/Health.js';
-import { reactToHit } from '../src/combat/HitReactions.js';
+import { reactToHit, woundSite } from '../src/combat/HitReactions.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { emptyCommand } from '../src/input/InputManager.js';
 import { MeleeComponent, MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
@@ -56,6 +56,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
     movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
     movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
     e.onHit = (res, info, by) => reactToHit(e, res, info, by);
+    e.woundSite = (info) => woundSite(e, info);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);
     e.abilities = new AbilityComponent(e, data.kits[kitId], world);
     e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(role ?? 'assault'));

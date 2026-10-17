@@ -9,7 +9,7 @@ import { StatusComponent } from '../combat/StatusSystem.js';
 import { MeleeComponent } from '../combat/melee/MeleeSystem.js';
 import { meleeFor } from '../combat/melee/MeleeWeapons.js';
 import { Health } from '../combat/Health.js';
-import { reactToHit } from '../combat/HitReactions.js';
+import { reactToHit, woundSite } from '../combat/HitReactions.js';
 import { silhouetteScale } from '../movement/Hitboxes.js';
 import { StratagemComponent } from '../combat/Stratagems.js';
 
@@ -54,6 +54,7 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
   movement.hooks.scale = () => silhouetteScale(e);
   e.onHit = (res, info, by) => reactToHit(e, res, info, by);
+  e.woundSite = (info) => woundSite(e, info);   // Health books each hit to where it landed
   // Downed or killed on an exposed seat: you come off the vehicle (and the ragdoll takes over).
   e.onDowned = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };
   e.onDied = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };

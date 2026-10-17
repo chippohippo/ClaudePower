@@ -345,12 +345,29 @@ shield, a hook's pull.
 
 - **Down but not out** (`data/down.json`, `Health`, `ReviveSystem`): at 0 HP you're downed, not dead,
   unless the hit was overkill (60% of max HP past zero, or a headshot dealing half your max HP).
-  Downed soldiers crawl, bleed out over 25 s (paused while being revived), and die after 60 more
-  damage. A teammate holding interact for 3 s (medics 1.5 s) gets you up with 30% HP (medics 60%).
-  Hold jump to give up. The soldier who downed you gets the kill if you bleed out.
-- **Ragdolls** (`src/physics/Ragdoll.js`, see [ANIMATION.md](ANIMATION.md)): a blast within 75% of
-  its radius, a critical hit (one hit taking 45% of your health pool, or a headshot taking 40%), a
-  heavy melee blow, a vehicle ram, and every down or death throw the body as a full physics ragdoll.
+  - **Mangled:** overkill by a blast, or a hit going your whole max HP past zero, is mangling. The
+    body goes limp at once and the death reads `mangled`. Nobody gets up from that.
+  - **Downed** soldiers crawl on their bellies toward help, or roll onto their backs and scoot away
+    from a threat while facing it (bots do both). They bleed out over 25 s (paused while being
+    revived) and die after 60 more damage.
+  - **Revives:** a teammate holding interact for 3 s (medics 1.5 s) gets you up with 30% HP
+    (medics 60%), but **injured** on the wound that put you down. Injured, you limp at 75% speed,
+    can't sprint, and your aim sways 1.5× until a stim treats it. A medic's stim that gets you up
+    treats it on the spot.
+  - Hold jump to give up. The soldier who downed you gets the kill if you bleed out.
+- **Hit reactions** (`HitReactions`, see [ANIMATION.md](ANIMATION.md)): each hit is booked to where it
+  landed, and a big one rocks you even when it doesn't put you down:
+  - a fifth of your pool in one hit stumbles you along it, with the gun off target;
+  - a leg hit drops you onto that knee;
+  - a second big hit before you've found your feet knocks you over;
+  - a hit that kills or downs you without a throw stumbles you a step or two before the knees go.
+- **Ragdolls** (`src/physics/Ragdoll.js`, `RagdollDrive.js`, see [ANIMATION.md](ANIMATION.md)): a
+  blast within 75% of its radius, a critical hit (one hit taking 45% of your health pool, or a
+  headshot taking 40%), a heavy melee blow, a vehicle ram, and every down or death throw the body
+  as a full physics ragdoll. It has muscles:
+  - a dying body folds at the knees and drops;
+  - a living one flails in the air, breaks its fall with its hands and clutches the wound.
+
   Where it lands is where you are, and a soldier who survived the blast at 0 HP lies there downed,
   body intact (no dismemberment).
 - **Reinforcements** come in waves after at least 4 s down. A soldier deploys next to the squad

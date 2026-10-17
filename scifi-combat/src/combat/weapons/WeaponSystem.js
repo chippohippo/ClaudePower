@@ -271,6 +271,7 @@ export class WeaponComponent {
     if (mv.stance === 'crouch') spread *= 0.8;
     if (mv.stance === 'prone') spread *= 0.6;
     if (w.usesHeat) spread *= 1 + ((sp.heatMul ?? 1) - 1) * (w.heat / s.ammo.max);
+    if (this.owner.status?.has('injured')) spread *= this.owner.status.defs.injured?.sway ?? 1.5;   // hurt: the aim wanders
     spread = (spread + this.bloom) * this.buffs.spreadMul;
     this.bloom = Math.min(sp.hip, this.bloom + (sp.bloomPerShot ?? 0.12));
 
@@ -322,7 +323,7 @@ export class WeaponComponent {
     if (e.movement?.state.invulnerable) { bus.emit('weapon:iframeWhiff', { victim: e.id }); return; }
     const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';
     const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul * this.passiveMul * share;
-    const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone, friendly }, this.owner);
+    const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone, part: hit.part, point: hit.point, friendly }, this.owner);
     e.weapons?.interrupt?.('flinch');
     e.weapons?.flinch?.(dmg, this.owner.movement.state.position);
     // Buffs like Devour or Well of Night make rounds apply a status.
@@ -692,7 +693,7 @@ export class ProjectileSystem {
       const dmg = computeDamage(s, p.traveled, hit.zone, armor, this.world.damageMatrix ?? {}) * p.spec.damageMul * share;
       // Where it came from: the shooter (for the hit's flinch and the damage indicator).
       const src = this.world.entity?.(p.ownerId)?.movement?.state.position ?? p.prev;
-      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone, friendly, from: [src.x, src.y, src.z] }, { id: p.ownerId, team: p.team });
+      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone, part: hit.part, point: hit.point, friendly, from: [src.x, src.y, src.z] }, { id: p.ownerId, team: p.team });
       e.weapons?.flinch?.(dmg, src);
       bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, armorMul: this.world.damageMatrix?.[s.ammoType]?.[armor] ?? 1, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly });
     } else {

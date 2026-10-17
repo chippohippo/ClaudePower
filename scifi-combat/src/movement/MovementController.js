@@ -26,12 +26,13 @@
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
-import { Ragdoll, J } from '../physics/Ragdoll.js';
+import { Ragdoll, J, local } from '../physics/Ragdoll.js';
+import { RagdollDrive } from '../physics/RagdollDrive.js';
 import { hyp } from '../core/geom.js';
 
 export const MoveState = Object.freeze({
   GROUND: 'ground', AIR: 'air', SLIDE: 'slide', DIVE: 'dive', DODGE: 'dodge', MANTLE: 'mantle',
-  LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle', RAGDOLL: 'ragdoll',
+  LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle', RAGDOLL: 'ragdoll', STAGGER: 'stagger',
 });
 export const Stance = Object.freeze({ STAND: 'stand', CROUCH: 'crouch', PRONE: 'prone' });
 export const Gait = Object.freeze({ IDLE: 'idle', WALK: 'walk', JOG: 'jog', SPRINT: 'sprint' });
@@ -40,6 +41,7 @@ const DEG = Math.PI / 180;
 const UP = new Vector3(0, 1, 0);
 const DOWN = new Vector3(0, -1, 0);
 const NO_BOXES = Object.freeze([]);
+const NO_BUTTONS = Object.freeze({});
 const _wish = new Vector3();
 const _fwd = new Vector3();
 const _right = new Vector3();
@@ -113,6 +115,8 @@ export class MovementController {
       dodgeStyle: null,
       mantle: null,
       knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest, supine }
+      stagger: null,            // { t, dur, dx, dz, speed, kind: 'stagger' | 'buckle', side, fall }: rocked by a hit
+      roll: null,               // { t, to: supine? }: downed, rolling onto the back or the belly
       downed: false,            // at 0 HP but not dead: the wounded crawl (Health drives this)
       lastDiveLand: -99,
       wallRunsLeft: tuning.wallRun.perAirtime,
@@ -139,11 +143,18 @@ export class MovementController {
   impulse(x, y, z, opts = {}) {
     const s = this.state;
     if (s.mode === MoveState.VEHICLE) return;
-    if (s.mode === MoveState.RAGDOLL) { this.ragdoll.applyImpulse(x, y, z, opts.at ?? this.#pushPoint(x, z), opts.focus ?? this.t.ragdoll.blastFocus); return; }
-    const k = this.t.knockdown;
+    if (s.mode === MoveState.RAGDOLL) { this.startRagdoll(x, y, z, opts); return; }   // already limp: just the push (and any wound)
+    const k = this.t.knockdown, S = this.t.stagger;
     const mag = hyp(x, y, z);
     const threshold = k.threshold * (s.stance === Stance.PRONE ? k.proneResist : 1);
     if (opts.ragdoll || (opts.knockdown !== false && mag >= threshold)) { this.startRagdoll(x, y, z, opts); return; }
+    // A shove that doesn't throw you, on your feet: you stumble with it (a blast's edge, a ram's graze).
+    const flat = hyp(x, z);
+    if (S && opts.knockdown !== false && flat >= S.impulse && s.stance !== Stance.PRONE && (s.mode === MoveState.GROUND || s.mode === MoveState.LAND || s.mode === MoveState.STAGGER)) {
+      const k2 = clamp((flat - S.impulse) / (threshold - S.impulse), 0, 1);
+      this.stagger(x, z, flat * S.shove, { dur: lerp(S.time[0], S.time[1], k2) });
+      return;
+    }
     s.velocity.x += x; s.velocity.y += y; s.velocity.z += z;
     if (y > 0.5) {
       s.velocity.y = Math.max(s.velocity.y, y);
@@ -159,9 +170,12 @@ export class MovementController {
   /**
    * Go limp: the body becomes a ragdoll in the shape it was in, moving as it was, plus the push
    * (m/s). Casts and swings are interrupted (knockStarted); no control until it comes to rest.
+   * Its muscles (RagdollDrive) take it from there: a dying body folds and drops, a living one
+   * flails, reaches for the ground and clutches `wound` ({ x, y, z, site }: where it was hit);
+   * `limp` is lights-out (a head shot, a mangling hit): no muscle at all.
    * @returns {boolean} false in a vehicle
    */
-  startRagdoll(x = 0, y = 0, z = 0, { at = null, focus = null, cause = 'impulse' } = {}) {
+  startRagdoll(x = 0, y = 0, z = 0, { at = null, focus = null, cause = 'impulse', wound = null, limp = false } = {}) {
     const s = this.state, R = this.t.ragdoll;
     if (s.mode === MoveState.VEHICLE) return false;
     if (s.mode !== MoveState.RAGDOLL) {
@@ -169,7 +183,9 @@ export class MovementController {
         || (s.mode === MoveState.KNOCKDOWN && s.knock?.phase !== 'getup');
       const supine = s.mode === MoveState.KNOCKDOWN ? !!s.knock?.supine : s.supine || (s.mode === MoveState.SLIDE && s.slide?.from === 'back') || s.dive?.kind === 'back';
       const pose = lying ? (supine ? 'supine' : 'prone') : s.stance === Stance.CROUCH || s.mode === MoveState.SLIDE ? 'crouch' : 'stand';
-      (this.ragdoll ??= new Ragdoll(R)).init(pose, s.position, s.bodyYaw, this.hooks.scale?.() ?? 1, s.velocity, this.body);
+      const rd = this.#rag();
+      rd.init(pose, s.position, s.bodyYaw, this.hooks.scale?.() ?? 1, s.velocity, this.body);
+      rd.drive?.start(rd, { pose: local(R.poses[pose] ?? R.poses.stand), vital: this.hooks.vital?.() ?? 'alive', limp, wound });
       s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null;
       s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null;
       this.#setInvulnerable(false);
@@ -180,9 +196,93 @@ export class MovementController {
       const mag = hyp(x, y, z);
       bus.emit('move:ragdoll', { id: this.id, cause, impulse: mag });
       bus.emit('move:knockdown', { id: this.id, cause, impulse: mag }); // camera, audio and AI listen for this
+    } else {
+      // Hit again while limp: a new wound to clutch; a killing head shot puts the lights out.
+      if (wound) this.ragdoll.drive?.setWound(this.ragdoll, wound);
+      if (limp && this.ragdoll.drive) this.ragdoll.drive.limp = true;
     }
     this.ragdoll.applyImpulse(x, y, z, at ?? this.#pushPoint(x, z), focus ?? R.blastFocus);
     return true;
+  }
+
+  /**
+   * Rocked by a hit (data: stagger): you stumble along (dx, dz) at `speed` m/s, easing off over
+   * `dur` s, the gun off target and no steering for most of it. Rocked again before you find your
+   * feet, over you go (a full ragdoll). kind 'buckle': the leg on `side` gives way and you drop
+   * onto that knee for a moment. `fall`: startRagdoll options; the stumble ends in that fall (a
+   * dying or downed soldier: a step or two, then the knees go).
+   * @returns {boolean} false when it can't stumble (airborne, limp, in a vehicle): `fall` still falls
+   */
+  stagger(dx, dz, speed, { dur = 0.5, kind = 'stagger', side = 0, fall = null } = {}) {
+    const s = this.state, S = this.t.stagger;
+    const l = hyp(dx, dz);
+    if (l > 1e-6) { dx /= l; dz /= l; } else { forwardOf(s.bodyYaw, _dir); dx = -_dir.x; dz = -_dir.z; }
+    const onFeet = s.mode === MoveState.GROUND || s.mode === MoveState.LAND || s.mode === MoveState.STAGGER;
+    if (!S || !onFeet || (s.stance === Stance.PRONE && !s.stanceT)) {
+      if (fall) this.startRagdoll(dx * speed, 0.2, dz * speed, fall);
+      return false;
+    }
+    if (s.mode === MoveState.STAGGER && s.stagger && !s.stagger.fall) {
+      // Still stumbling from the last one: this one puts you down.
+      const left = s.stagger.speed * Math.max(0, 1 - s.stagger.t / s.stagger.dur);
+      if (fall || left + speed >= S.knockOver) {
+        const v = speed + left;
+        this.startRagdoll(dx * v, 0.5, dz * v, fall ?? { cause: 'stagger' });
+        return true;
+      }
+    }
+    // The wound rides with the body while it stumbles: kept in body space, back to the world at the fall.
+    if (fall?.wound) {
+      const w = fall.wound, y = s.bodyYaw, ox = w.x - s.position.x, oz = w.z - s.position.z;
+      fall = { ...fall, wound: null, woundLocal: [ox * Math.cos(y) - oz * Math.sin(y), w.y - s.position.y, -ox * Math.sin(y) - oz * Math.cos(y), w.site ?? null] };
+    }
+    s.stagger = { t: 0, dur, dx, dz, speed, kind, side, fall, from: s.stance };
+    s.sprinting = false; s.slide = null; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.forced = null;
+    if (kind === 'buckle') this.body.setHeight(this.t.heights.crouch);
+    this.#setMode(MoveState.STAGGER);
+    bus.emit('move:stagger', { id: this.id, kind, dir: [dx, dz], power: speed, falling: !!fall, side });
+    return true;
+  }
+
+  /** Stumbling: carried along the push, easing off; steering returns over the last part. True once it's become a fall. */
+  #staggerTick(cmd, dt, wishMag) {
+    const s = this.state, g = s.stagger, S = this.t.stagger;
+    g.t += dt;
+    const k = Math.max(0, 1 - g.t / g.dur);
+    const free = g.fall ? 0 : clamp((g.t / g.dur - S.control) / (1 - S.control), 0, 1);
+    const push = g.speed * Math.pow(k, 0.7) * (g.kind === 'buckle' ? 0.3 : 1);
+    const walk = this.t.speeds.walk * this.mods.speedMul * (s.speedScale ?? 1) * free * wishMag;
+    const tx = g.dx * push + _wish.x * walk, tz = g.dz * push + _wish.z * walk;
+    const dvx = tx - s.velocity.x, dvz = tz - s.velocity.z, dvl = hyp(dvx, dvz), step = S.accel * dt;
+    if (dvl > step) { s.velocity.x += (dvx / dvl) * step; s.velocity.z += (dvz / dvl) * step; } else { s.velocity.x = tx; s.velocity.z = tz; }
+    if (s.grounded) { const n = s.groundNormal, vn = s.velocity.dot(n); s.velocity.addScaledVector(n, -vn); s.velocity.y -= 2 * dt; }
+    else s.velocity.y -= this.t.gravity * dt;
+    if (g.t < g.dur) return false;
+    // Over: down you go (dying, downed), or back on your feet.
+    const fall = g.fall;
+    s.stagger = null;
+    if (fall) {
+      if (fall.woundLocal) {
+        const [a, u, f, site] = fall.woundLocal, y = s.bodyYaw;
+        fall.wound = { x: s.position.x + a * Math.cos(y) - f * Math.sin(y), y: s.position.y + u, z: s.position.z - a * Math.sin(y) - f * Math.cos(y), site };
+      }
+      this.startRagdoll(s.velocity.x * 0.6 + g.dx * 0.4, 0.1, s.velocity.z * 0.6 + g.dz * 0.4, fall);
+      return true;
+    }
+    if (g.kind === 'buckle') this.body.setHeight(this.t.heights[s.stance]);
+    this.#setMode(MoveState.GROUND);
+    bus.emit('move:staggerEnd', { id: this.id });
+    return false;
+  }
+
+  /** The ragdoll (made on the first throw and reused), with its muscles. */
+  #rag() {
+    if (!this.ragdoll) {
+      const R = this.t.ragdoll;
+      this.ragdoll = new Ragdoll(R);
+      if (R.drive) this.ragdoll.drive = new RagdollDrive(R.drive);
+    }
+    return this.ragdoll;
   }
 
   /**
@@ -197,7 +297,9 @@ export class MovementController {
 
   /** Dead bodies keep falling until they rest (no command; called instead of update()). */
   simulateCorpse(dt) {
-    if (this.state.mode === MoveState.RAGDOLL && !this.ragdoll.asleep) { this.#ragdollTick(dt); this.#post(dt, this.state.velocity.x, this.state.velocity.z, this.state.bodyYaw); }
+    const s = this.state;
+    if (s.mode === MoveState.STAGGER) { this.update({ yaw: s.yaw, moveX: 0, moveY: 0, buttons: NO_BUTTONS }, dt); return; }   // the death stumble, then the fall
+    if (s.mode === MoveState.RAGDOLL && !this.ragdoll.asleep) { this.#ragdollTick(dt); this.#post(dt, s.velocity.x, s.velocity.z, s.bodyYaw); }
   }
 
   /** Respawn or teleport: standing still at `pos`, every transient state cleared. */
@@ -205,7 +307,7 @@ export class MovementController {
     const s = this.state;
     s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0);
     s.mode = MoveState.GROUND; s.modeTime = 0; s.stance = Stance.STAND;
-    s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null;
+    s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.stagger = null; s.roll = null;
     s.supine = false; s.downed = false; s.sprinting = false; s.pivoting = false;
     s.yaw = s.bodyYaw = s.aimYaw = yaw;
     s.stamina = this.t.stamina.max; s.exhausted = false; s.staminaRegenTimer = 0;
@@ -238,7 +340,7 @@ export class MovementController {
     if (s.stance !== Stance.STAND) { s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); }
   }
 
-  canAct() { const m = this.state.mode; return m !== MoveState.MANTLE && m !== MoveState.VEHICLE && m !== MoveState.KNOCKDOWN && m !== MoveState.RAGDOLL && !this.state.downed; }
+  canAct() { const m = this.state.mode; return m !== MoveState.MANTLE && m !== MoveState.VEHICLE && m !== MoveState.KNOCKDOWN && m !== MoveState.RAGDOLL && m !== MoveState.STAGGER && !this.state.downed; }
   isSliding() { return this.state.mode === MoveState.SLIDE; }
   spendStamina(amount) {
     const s = this.state;
@@ -289,6 +391,7 @@ export class MovementController {
         case MoveState.DIVE:      this.#dive(cmd, dt, wishMag); break;
         case MoveState.DODGE:     this.#dodge(cmd, dt); break;
         case MoveState.KNOCKDOWN: this.#knockdown(cmd, dt); break;
+        case MoveState.STAGGER:   if (this.#staggerTick(cmd, dt, wishMag)) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } break;   // (true: it ended in a fall)
         case MoveState.WALLRUN:   this.#wallRun(cmd, dt); break;
         case MoveState.MANTLE:    this.#mantle(dt); this.#post(dt, prevVx, prevVz, prevBodyYaw); return; // root motion
         case MoveState.RAGDOLL:   this.#ragdollTick(dt); this.#post(dt, prevVx, prevVz, prevBodyYaw); return; // the body moves the root
@@ -367,18 +470,43 @@ export class MovementController {
   }
 
   /**
-   * Downed: a slow wounded crawl (data: downed), nothing else. On the belly it crawls where you
-   * steer; on the back it scoots, slower. The body turns slowly toward the way it's going.
+   * Downed: a slow wounded crawl (data: downed), nothing else. Push toward where you look and you
+   * roll onto your belly and drag yourself that way, head first; pull back and you roll onto your
+   * back and scoot away from it, still facing it (feet toward it, slower). Sideways keeps you on
+   * whichever you're on. Rolling over takes rollTime, not moving.
    */
   #downedCrawl(dt, wishMag) {
     const s = this.state, d = this.t.downed;
     s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.stance = Stance.PRONE;
-    const target = d.crawlSpeed * (s.supine ? d.supineMul : 1) * wishMag * Math.min(1, s.speedScale ?? 1);
+    if (s.roll) {
+      // Rolling over: the head turns from where it lay to where it'll lie (on the back, feet
+      // toward where you look), the body flipping over half way (supine bodies lie head-behind
+      // bodyYaw, so bodyYaw flips with it and the head never jumps).
+      const R = s.roll;
+      R.t += dt;
+      const u = Math.min(1, R.t / d.rollTime), head = R.head0 + angleDelta(R.head0, R.head1) * (u * u * (3 - 2 * u));
+      if (u >= 0.5 && s.supine !== R.to) s.supine = R.to;
+      s.bodyYaw = head + (s.supine ? Math.PI : 0);
+      if (u >= 1) { s.roll = null; bus.emit('move:rolled', { id: this.id, supine: s.supine }); }
+    } else if (wishMag > 0.3) {
+      forwardOf(s.yaw, _fwd);
+      const along = _wish.x * _fwd.x + _wish.z * _fwd.z;
+      const want = along < -0.35 ? true : along > 0.35 ? false : s.supine;
+      if (want !== s.supine) {
+        // Onto the back: feet toward where you look (the head away from it). Onto the belly: head
+        // toward where you're crawling.
+        const head1 = want ? s.yaw + Math.PI : yawOf(_wish.x, _wish.z);
+        s.roll = { t: 0, to: want, head0: s.bodyYaw + (s.supine ? Math.PI : 0), head1 };
+        bus.emit('move:roll', { id: this.id, supine: want });
+      }
+    }
+    const target = s.roll ? 0 : d.crawlSpeed * (s.supine ? d.supineMul : 1) * wishMag * Math.min(1, s.speedScale ?? 1);
     const dvx = _wish.x * target - s.velocity.x, dvz = _wish.z * target - s.velocity.z, dvl = hyp(dvx, dvz);
     if (dvl > 1e-5) { const step = Math.min(dvl, d.accel * dt); s.velocity.x += (dvx / dvl) * step; s.velocity.z += (dvz / dvl) * step; }
-    if (wishMag > 0.1) {
-      // Belly: head first toward the wish. Back: the head leads too, and it lies behind bodyYaw.
-      const want = yawOf(_wish.x, _wish.z) + (s.supine ? Math.PI : 0);
+    if (wishMag > 0.1 && !s.roll) {
+      // Belly: head first toward the wish. Back: the feet toward where you look (the head, which
+      // leads, lies behind bodyYaw).
+      const want = s.supine ? s.yaw : yawOf(_wish.x, _wish.z);
       s.bodyYaw = turnToward(s.bodyYaw, want, d.turnRate * DEG * dt);
     }
     const n = s.groundNormal, vn = s.velocity.dot(n);
@@ -392,7 +520,7 @@ export class MovementController {
   /** Revived (Health): the HD2 get-up from wherever you lie (a body still falling gets up when it rests). */
   getUpFromDown() {
     const s = this.state;
-    s.downed = false;
+    s.downed = false; s.roll = null;
     if (s.mode === MoveState.RAGDOLL) return;
     s.knock = { phase: 'getup', t: 0, rest: 0, supine: s.supine };
     s.stanceT = null; s.stance = Stance.PRONE; s.velocity.set(0, 0, 0);
@@ -830,6 +958,7 @@ export class MovementController {
   /** The root rides the body: under the pelvis, at the lowest point of the body. */
   #ragdollTick(dt) {
     const s = this.state, rd = this.ragdoll;
+    if (rd.drive) rd.drive.vital = this.hooks.vital?.() ?? 'alive';
     rd.step(dt, this.body);
     rd.get(J.PELVIS, _tmp);
     s.position.set(_tmp.x, rd.lowest(), _tmp.z);
@@ -992,8 +1121,10 @@ export class MovementController {
     s.aimYaw = prone ? s.bodyYaw + clamp(angleDelta(s.bodyYaw, s.yaw), -arc, arc) : s.yaw;
     const proneTransition = s.stanceT && (s.stanceT.from === Stance.PRONE || s.stanceT.to === Stance.PRONE);
     const limp = s.mode === MoveState.RAGDOLL || s.mode === MoveState.KNOCKDOWN;
-    s.weaponReady = !(limp || s.mode === MoveState.MANTLE || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
-    s.busy = limp || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
+    // Stumbling: the gun's off target for the first part of it (and for all of a fall).
+    const rocked = s.mode === MoveState.STAGGER && s.stagger && (s.stagger.fall || s.stagger.t < s.stagger.dur * t.stagger.gunOff);
+    s.weaponReady = !(limp || rocked || s.mode === MoveState.MANTLE || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
+    s.busy = limp || s.mode === MoveState.STAGGER || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
     const low = s.stamina < t.stamina.lowAt;
     if (low !== s.lowStamina) { s.lowStamina = low; bus.emit('move:lowStamina', { id: this.id, on: low }); }
   }
@@ -1038,7 +1169,7 @@ export class MovementController {
       stamina: s.stamina, regen: s.staminaRegenTimer, exhausted: s.exhausted,
       tsg: s.timeSinceGrounded, grounded: s.grounded, wr: s.wallRunsLeft,
       stanceT: s.stanceT && { ...s.stanceT }, stanceQueued: s.stanceQueued, crouchPress: s.crouchPress && { ...s.crouchPress },
-      slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock },
+      slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock }, stagger: s.stagger && { ...s.stagger }, roll: s.roll && { ...s.roll },
       dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand, supine: s.supine,
       mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), edge: v3(s.mantle.edge), exitVelocity: v3(s.mantle.exitVelocity) },
       invulnerable: s.invulnerable, sprinting: s.sprinting, downed: s.downed,
@@ -1054,13 +1185,13 @@ export class MovementController {
       stamina: snap.stamina, staminaRegenTimer: snap.regen, exhausted: snap.exhausted,
       timeSinceGrounded: snap.tsg, grounded: snap.grounded, wallRunsLeft: snap.wr,
       stanceT: snap.stanceT && { ...snap.stanceT }, stanceQueued: snap.stanceQueued, crouchPress: snap.crouchPress && { ...snap.crouchPress },
-      slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock },
+      slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock }, stagger: snap.stagger ? { ...snap.stagger } : null, roll: snap.roll ? { ...snap.roll } : null,
       dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine, downed: !!snap.downed,
       mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), edge: v3(snap.mantle.edge), exitVelocity: v3(snap.mantle.exitVelocity) },
     });
     s.position.fromArray(snap.p); s.velocity.fromArray(snap.v); s.dodgeDir.fromArray(snap.dodgeDir);
     const h = this.t.heights;
-    if (snap.rag) (this.ragdoll ??= new Ragdoll(this.t.ragdoll)).restore(snap.rag);
+    if (snap.rag) this.#rag().restore(snap.rag);
     this.body.setHeight(s.mode === MoveState.DIVE ? h.dive : s.mode === MoveState.SLIDE ? (s.slide?.kind === 'feet' ? h.slide : h.prone) : s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.RAGDOLL ? h.prone : h[s.stance]);
     this.body.teleport?.(s.position);
   }

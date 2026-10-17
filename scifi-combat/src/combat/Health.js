@@ -5,10 +5,17 @@
 // Down but not out (data/down.json): at 0 HP a soldier is downed, not dead, unless the hit was
 // overkill (far past zero, or a big headshot). Downed soldiers bleed out (paused while being
 // revived), and further damage eats a small downed pool before they die. A teammate's revive
-// puts them back up with part of their HP. Kill credit for a bleed-out goes to whoever downed
-// them. Events: entity:downed, entity:revived, entity:death { how: killed | finished | bledOut | gaveUp }.
+// puts them back up with part of their HP, injured (limping, aim swaying) until a stim treats it.
+// Kill credit for a bleed-out goes to whoever downed them.
+// Wounds: every hit is booked to where it landed (owner.woundSite: head, chest, gut, an arm or a
+// leg), so the falling body clutches it and the revived soldier limps on it. Overkill by a blast
+// (or far past zero) is mangling: dead, and the body limp at once.
+// Events: entity:downed, entity:revived, entity:death { how: killed | mangled | finished | bledOut | gaveUp }.
 
 import { bus } from '../core/EventBus.js';
+
+/** Damage kinds that tear a body apart when they kill it outright. */
+const BLASTS = new Set(['explosion', 'splash', 'vehicleExplosion', 'deployable']);
 
 export class Health {
   /**
@@ -32,6 +39,9 @@ export class Health {
     this.reviving = 0;         // revivers working on us (pauses the bleed)
     this.clock = 0;            // seconds this body has existed (the assist window counts on it)
     this.recent = null;        // attacker id -> clock of their last hit (battle point assists)
+    this.wounds = null;        // site -> share of max HP taken there since last treated
+    this.lastSite = null;      // where the last hit landed
+    this.injury = null;        // { site }: got back up from a down with this wound (until treated)
   }
 
   /** Armor type for the damage matrix. Shields count as 'shield' while they're up. */
@@ -65,15 +75,19 @@ export class Health {
     }
     this.hp -= amount;
     this.owner.status?.onDamaged(info);
-    let killed = false, downed = false;
+    // Where it landed (HitReactions.woundSite via the owner): the wound the body clutches.
+    const site = info.site ?? this.owner.woundSite?.(info) ?? null;
+    if (site) { info.site = site; this.lastSite = site; if (amount > 0) (this.wounds ??= {})[site] = (this.wounds[site] ?? 0) + amount / this.max; }
+    let killed = false, downed = false, mangled = false;
     if (this.hp <= 0) {
       const over = -this.hp, d = this.down;
       this.hp = 0;
       const overkill = !d || info.noDown || over >= this.max * d.overkill || (info.zone === 'head' && start >= this.max * d.headshotKill);
-      if (overkill) { this.#die(info, by, 'killed'); killed = true; } else { this.#goDown(info, by); downed = true; }
+      mangled = !!d && overkill && !info.noDown && (BLASTS.has(info.kind) || over >= this.max * (d.mangle ?? 1));
+      if (overkill) { this.#die(info, by, mangled ? 'mangled' : 'killed'); killed = true; } else { this.#goDown(info, by); downed = true; }
     } else if (this.hp < this.max * 0.3) bus.emit('health:low', { id: this.owner.id });
     if (by?.team !== this.owner.team) by?.abilities?.gainSuper?.(start * 0.02);   // hurting your own side earns nothing
-    const res = { dealt: start, shieldBroke, killed, downed };
+    const res = { dealt: start, shieldBroke, killed, downed, mangled };
     this.owner.onHit?.(res, info, by); // HitReactions: critical hits and collapses throw the body
     return res;
   }
@@ -104,15 +118,26 @@ export class Health {
   /** Respawn (or a full revive from death): back up at a fraction of max HP. */
   revive(fraction = 0.5) {
     this.dead = false; this.downed = false; this.reviving = 0; this.hp = this.max * fraction; this.recent?.clear();
+    this.treat();
     bus.emit('entity:revived', { id: this.owner.id });
   }
-  /** A teammate got you up: back on your feet with part of your HP. */
-  reviveFromDown(fraction, by = null) {
+  /**
+   * A teammate got you up: back on your feet with part of your HP, injured on the wound that put
+   * you down (a limp, a swaying aim) unless `treated` (a medic's stim got you up).
+   */
+  reviveFromDown(fraction, by = null, { treated = false } = {}) {
     if (!this.downed || this.dead) return false;
     this.downed = false; this.reviving = 0; this.hp = Math.max(1, this.max * fraction); this.sinceDamage = 0;
+    if (treated) this.treat();
+    else { this.injury = { site: this.lastSite ?? 'gut' }; this.owner.status?.apply('injured'); }
     this.owner.onRevived?.();
-    bus.emit('entity:revived', { id: this.owner.id, by: by?.id, fromDown: true });
+    bus.emit('entity:revived', { id: this.owner.id, by: by?.id, fromDown: true, injured: !treated });
     return true;
+  }
+  /** Patched up (a stim, a respawn): the wounds and the injury are gone. */
+  treat() {
+    this.wounds = null; this.injury = null;
+    if (this.owner.status?.has('injured')) this.owner.status.remove('injured');
   }
   /** Downed and done waiting: die now (respawn sooner). */
   giveUp() { if (this.downed && !this.dead) this.#die({ kind: 'giveUp' }, null, 'gaveUp'); }

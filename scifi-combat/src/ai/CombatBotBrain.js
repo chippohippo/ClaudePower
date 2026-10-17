@@ -19,7 +19,7 @@
 //                 Without orders (arena, no squad): the frontline objective, or free fighting.
 //   Objective   - frontline orders (FrontlineCommander): follow the flow field to the point,
 //                 fight on the way, spread over the point and hold it
-//   Downs       - downed: crawl toward help, lie still while being revived, give up when alone;
+//   Downs       - downed: crawl toward help (or scoot back from a foe, facing him), lie still while being revived, give up when alone;
 //                 up: revive downed teammates nearby (medics go further), one reviver per patient
 //   Call-ins    - CallInPlanner: strikes on clusters it can see with none of ours near, supply
 //                 drops when short of ammo (and fetching from our pods), smoke to cross open
@@ -365,7 +365,8 @@ export class CombatBotBrain {
     const coming = (ally && ad < 30) || medic;
     if (this.downT > (coming ? 14 : 3)) { this.btn.hold('jump'); return; }
     if (ally && ad > 2.5) { const p = ally.movement.state.position; cmd.yaw = Math.atan2(-(p.x - me.x), -(p.z - me.z)); cmd.moveY = 1; }
-    else if (foe && fd < 25) { const p = foe.movement.state.position; cmd.yaw = Math.atan2(p.x - me.x, p.z - me.z); cmd.moveY = 1; }
+    // A foe close: face him and scoot back away on your back (MovementController rolls you over).
+    else if (foe && fd < 25) { const p = foe.movement.state.position; cmd.yaw = Math.atan2(-(p.x - me.x), -(p.z - me.z)); cmd.moveY = -1; }
   }
 
   /**

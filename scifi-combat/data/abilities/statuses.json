@@ -155,6 +155,15 @@
    "icon": "chevrons-up",
    "_note": "The Momentum passive (data/passives.json): a takedown's burst of speed."
   },
+  "injured": {
+   "negative": true,
+   "duration": 99999,
+   "slow": 0.25,
+   "sway": 1.5,
+   "cleansable": false,
+   "icon": "bandage",
+   "_note": "Back up after being downed (Health.reviveFromDown): you limp on the wound, slower and never sprinting, and your aim sways, until a stim treats it (SupportItems). A medic's stim that gets you up treats it on the spot."
+  },
   "stim": {
    "negative": false,
    "duration": 2,

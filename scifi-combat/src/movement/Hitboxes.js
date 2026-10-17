@@ -59,6 +59,8 @@ function layoutFor(e) {
     case 'dive': return lay(s.dive?.kind === 'back' ? LAYOUTS.diveBack : LAYOUTS.dive);
     case 'slide': return lay(s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide);
     case 'knockdown': return lay(s.knock?.phase === 'air' ? LAYOUTS.dive : s.knock?.phase === 'getup' ? LAYOUTS.crouch : LAYOUTS.prone);
+    case 'stagger': if (s.stagger?.kind === 'buckle') return lay(LAYOUTS.crouch);   // down on one knee
+    // falls through: a stumble keeps the stance's layout
     default:
       if (s.stanceT) return lay(layoutOf(s.stanceT.from, s), layoutOf(s.stanceT.to, s), Math.min(1, s.stanceT.t / s.stanceT.dur));
       return lay(layoutOf(s.stance, s));

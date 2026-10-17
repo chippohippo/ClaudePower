@@ -27,7 +27,7 @@ import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
-import { reactToHit } from './combat/HitReactions.js';
+import { reactToHit, woundSite } from './combat/HitReactions.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
 const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs, humanoid, down] = await Promise.all([
@@ -115,6 +115,7 @@ function makeFighter(id, team, color, pos, kit, guns) {
   movement.hooks.vital = () => (ent.health.dead ? 'dead' : ent.health.downed ? 'downed' : 'alive');
   movement.hooks.scale = () => silhouetteScale(ent);
   ent.onHit = (res, info, by) => reactToHit(ent, res, info, by);
+  ent.woundSite = (info) => woundSite(ent, info);
   ent.onDowned = ent.onDied = () => { if (ent.vehicle) world.vehicles.exit(ent, { eject: true }); };
   ent.onRevived = () => ent.movement.getUpFromDown();
   ent.melee = new MeleeComponent(sword, ent, world);

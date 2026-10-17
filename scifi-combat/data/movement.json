@@ -184,9 +184,23 @@
   "restTime": 0.35,
   "getUpTime": 0.85
  },
+ "stagger": {
+  "_note": "Rocked by a hit (MovementController.stagger, HitReactions; Euphoria's stagger, without the physics). One hit taking `fraction` of your health pool, a leg hit taking `buckle` of it (the leg gives way: down on that knee for a moment), or a shove of `impulse` m/s or more that doesn't throw you: you stumble along it at `speed` m/s (by how much it took; a shove's own speed times `shove`) for `time` s, `accel` m/s2 to get going. The gun is off target for the first `gunOff` of it, and you steer again after `control` of it. Rocked again while still stumbling, with `knockOver` m/s between the two, you go over. Killed or downed by a hit that doesn't throw you, you stumble `die.time` s at `die.speed` m/s along it before the knees go.",
+  "fraction": 0.2,
+  "buckle": 0.15,
+  "speed": [1.4, 2.8],
+  "time": [0.35, 0.7],
+  "accel": 14,
+  "gunOff": 0.6,
+  "control": 0.65,
+  "knockOver": 3.2,
+  "impulse": 2.5,
+  "shove": 0.55,
+  "die": { "time": [0.3, 0.6], "speed": [0.9, 1.9] }
+ },
  "ragdoll": {
   "_note": "Full ragdoll (src/physics/Ragdoll.js): blasts within blastRadiusFrac of their radius, critical hits (one hit taking criticalFraction of your health pool, or headFraction to the head), and every down or death throw the body as particles and constraints. Where it lands is where you are. Poses are the rig's joints in body space [right, up, forward] per stance (pelvis, neck, head, hips, knees, ankles, shoulders, elbows, hands; tests keep them in sync with the rig).",
-  "gravity": 16,
+  "gravity": 13,
   "iterations": 12,
   "damping": 0.003,
   "friction": 0.4,
@@ -202,6 +216,18 @@
   "collapseSpeed": [0.8, 2.2],
   "hitLift": 1.2,
   "hitFocus": 0.6,
+  "drive": {
+   "_note": "Muscles (src/physics/RagdollDrive.js; Euphoria / RDR2 the model). gain: how far a full-strength muscle pulls its joint toward the target per tick. tone: starting strength, dead or alive. relax: seconds for a dying body's legs (lower) and trunk (upper) to let go, so it folds at the knees and topples. shock: seconds the hit snaps the body before anything else. clutch: a hand pressed to the wound. catch: going down alive, both hands reach the ground `reach` ahead of the chest, `spread` apart, once the chest is under `height`, the elbows braced (`brace`) so the arms take the weight, until the chest is `down` (m) and still. air: thrown alive, arms windmill and legs pedal (rad/s). writhe: alive on the ground, knees draw up in turn for `time` s (`rate` rad/s); settle: then the muscles let go over this long so the body can rest.",
+   "gain": 0.32,
+   "tone": { "dead": 0.6, "alive": 0.75 },
+   "relax": { "upper": 0.75, "lower": 0.3 },
+   "shock": 0.12,
+   "clutch": 0.45,
+   "catch": { "strength": 0.9, "brace": 1.6, "reach": 0.38, "spread": 0.2, "height": 1.15, "down": 0.42 },
+   "air": { "strength": 0.45, "windmill": 9, "pedal": 7 },
+   "writhe": { "time": 1.1, "strength": 0.35, "rate": 2.6 },
+   "settle": 0.35
+  },
   "poses": {
    "stand": [
     [0, 0.94, 0],
@@ -274,9 +300,10 @@
   }
  },
  "downed": {
-  "_note": "Downed (data/down.json): a slow wounded crawl on the belly (or a scoot on the back), turning slowly. No stance changes, sprint, dive, climb, shooting or abilities.",
+  "_note": "Downed (data/down.json): a slow wounded crawl. Push toward where you look: you roll onto your belly (rollTime) and crawl that way, head first; pull back: you roll onto your back and scoot away (supineMul as fast), still facing it. Turning is slow. No stance changes, sprint, dive, climb, shooting or abilities.",
   "crawlSpeed": 0.45,
   "supineMul": 0.6,
+  "rollTime": 0.6,
   "turnRate": 60,
   "accel": 6
  },

@@ -277,6 +277,21 @@ values).
     - **The night:** street lights, lit windows and neon under a purple aurora.
     - **Docs:** `docs/FRONTLINE.md` ("The night city") and `docs/ART_DIRECTION.md` ("Neon Night").
 
-Next: ragdolls and injuries in the Euphoria style (the user's next request): shot reactions,
-stagger and knockdowns, real falls, crawling and scooting while down, and revives into an injured
-state. Then, by the priority order: the camera, the director and audio (P2).
+12. **Falls and wounds** (Red Dead Redemption 2 / NaturalMotion Euphoria the model).
+    - **Muscles:** the ragdoll has them. A dying body folds at the knees and drops. A living one
+      flails in the air, breaks its fall with braced arms and grabs its wound. A killing head shot
+      or a mangling blast is lights-out.
+    - **Rocked:** big hits that don't put you down stumble you along the shot with the gun off
+      target; a second one puts you over. Leg hits buckle you onto that knee.
+    - **Stumble before the fall:** a killing or downing hit that doesn't throw you stumbles you a
+      step or two first.
+    - **Downed:** you crawl on your belly, or roll onto your back and scoot away still facing the
+      threat (bots too).
+    - **Revives** get you up injured (a limp, no sprint, a swaying aim) until a stim. A mangled
+      soldier doesn't get up at all.
+    - **Docs:** `docs/ANIMATION.md` ("Ragdolls and downs"), `docs/FRONTLINE.md` ("Downs, ragdolls
+      and reinforcements").
+
+Next: the look and feel of the user's reference clips (a stylized, flat-shaded dusk city under
+snow, a HUD of points, compass, squad orders and radio chatter, chunky smoke and laser bolts),
+then the graphics options.

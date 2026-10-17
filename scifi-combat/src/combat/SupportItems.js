@@ -60,7 +60,7 @@ export class SupportItems {
     let best = null, bd = S.reach;
     this.world.fightersNear(me, S.reach + 1, (f) => {
       if (f === e || f.team !== e.team || f.isVehicle || f.isDeployable || !f.health || f.health.dead || f.vehicle) return;
-      if (!(f.health.downed ? !this.stimming(f) : f.health.hp < f.health.max)) return;
+      if (!(f.health.downed ? !this.stimming(f) : f.health.hp < f.health.max || f.health.injury)) return;
       const q = f.movement.state.position, d = Math.hypot(q.x - me.x, q.z - me.z);
       if (d > bd) return;
       let off = Math.atan2(-(q.x - me.x), -(q.z - me.z)) - yaw;
@@ -72,7 +72,7 @@ export class SupportItems {
 
   #stim(e, yaw) {
     const S = this.data.stim, h = e.health;
-    const p = this.stimTarget(e, yaw) ?? (h.hp < h.max ? e : null);
+    const p = this.stimTarget(e, yaw) ?? (h.hp < h.max || h.injury ? e : null);
     if (!p) return false;
     if (p.health.downed) {
       this.stims.push({ patient: p, by: e, t: S.reviveTime });
@@ -82,6 +82,7 @@ export class SupportItems {
     }
     const amount = Math.min(S.heal, p.health.max - p.health.hp);
     p.status?.apply('stim', { duration: S.over, source: e });
+    p.health.treat();                            // and the wounds patched: no more limp
     bus.emit('support:stim', { id: e.id, patient: p.id, revive: false });
     if (p !== e) bus.emit('support:heal', { id: e.id, patient: p.id, amount: Math.round(amount) });
     return true;
@@ -139,7 +140,7 @@ export class SupportItems {
       if ((s.t -= dt) > 0) continue;
       this.stims.splice(i, 1);
       h.reviving = Math.max(0, h.reviving - 1);
-      h.reviveFromDown(this.data.stim.reviveHp, s.by);
+      h.reviveFromDown(this.data.stim.reviveHp, s.by, { treated: true });
     }
     // Ammo packs: teammates short of a mag help themselves as they pass.
     const A = this.data?.ammo;

@@ -36,7 +36,7 @@ const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
 const planet = palette.planets[params.get('planet') ?? (station === 'city' ? 'nightcity' : 'scorched')];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'city', 'scene', 'stratagems', 'gunfx', 'melee'];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'cars', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -105,6 +105,7 @@ async function scene3d() {
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
   if (station === 'gunfx') await gunfxStation(scene, views, atmo);
   if (station === 'melee') await meleeStation(scene, views, atmo);
+  if (station === 'falls') await fallsStation(scene, views, atmo);
   const viewNames = Object.keys(views);
   let view = params.get('view') ?? viewNames[0];
   const setView = (name) => {
@@ -230,7 +231,7 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
     e.health.damage = () => ({});
     e.look = { team, status: null, flame: new THREE.Color(team ? '#8b5cf6' : '#ff7a1a'), highlight: false, kit: kitFor(table, e.role), number: (e.id * 37 + 11) % 100, ...extra };
     anim.add(e);
-    people.push({ e, yaw, act, t: 0, pitch: extra.pitch ?? 0 });
+    people.push({ e, yaw, act, t: 0, pitch: extra.pitch ?? 0, steer: extra.steer ?? null });
     return e;
   };
   const DT = 1 / 60;
@@ -241,7 +242,7 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
       if (p.act === 'aim') held.add('guard');
       if (p.act === 'crouch' && p.t < 0.05) pressed.add('crouch');
       if (p.act === 'prone' && p.t < 0.7) held.add('crouch');
-      const cmd = { moveX: 0, moveY: 0, yaw: p.yaw, pitch: p.act === 'aim' ? 0.04 + p.pitch : p.pitch, buttons: {} };
+      const cmd = { moveX: 0, moveY: 0, yaw: p.yaw, pitch: p.act === 'aim' ? 0.04 + p.pitch : p.pitch, buttons: {}, ...(p.steer?.(p) ?? {}) };
       for (const k of new Set([...held, ...pressed])) cmd.buttons[k] = { down: true, pressed: pressed.has(k) || (held.has(k) && p.t < DT * 1.5), released: false };
       p.t += DT;
       e.status.update(DT); e.health.update(DT);
@@ -474,6 +475,76 @@ async function cityStation(scene, views, atmo) {
   const enterAll = (v) => () => { window.__art.focus = v.focus; };
   for (const v of Object.values(views)) v.enter = enterAll(v);
   window.__art.map = map; window.__art.city = city;
+}
+
+// Hit reactions and falls (HitReactions, RagdollDrive, MovementController.stagger): the real
+// sim run to each moment on the real rigs. Rocked by a hit, down on a knee, folding as he dies,
+// catching himself going down, flailing in the air, writhing, scooting back on his back facing
+// the threat, crawling, limping injured; and a line of them shot one after another.
+async function fallsStation(scene, views, atmo) {
+  const camAz = (planet.sun.azimuth - 55) * Math.PI / 180;
+  const fwd = new THREE.Vector3(Math.sin(camAz), 0, -Math.cos(camAz)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const at = (a, f = 0) => new THREE.Vector3().addScaledVector(right, a).addScaledVector(fwd, f);
+  const { t } = scorchedGround(scene, { seed: 23, amp: 0.2, size: 300, z0: -150, flat: [[0, 0, 60]], craters: 5, spread: [160, 80] });
+  const F = await fighters(scene, t, { max: 30 });
+  const DT = 1 / 60;
+  const across = Math.atan2(right.x, right.z) + Math.PI;     // facing along -right: side-on to the camera
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  const real = (e) => { e.health.damage = Object.getPrototypeOf(e.health).damage.bind(e.health); e.health.shield = e.health.maxShield = 0; return e; };   // (no shield: the hit lands on him)
+  const shooter = F.add('reaver', 1, at(-14, 0), across + Math.PI, 'aim');
+  F.start();
+  const run = (sec) => { for (let i = 0; i < Math.round(sec * 60); i++) { F.tick(); F.anim.update(DT, 1, window.__art.camera.position); } };
+  const hold = () => { F.ctl.paused = true; };
+  /** A shot from the left of frame (the shooter's side) at a body part of `e`. */
+  const shoot = (e, dmg, part, { up = 1.25, side = 0, noDown = false } = {}) => {
+    const p = e.movement.state.position, r = new THREE.Vector3(Math.cos(e.movement.state.bodyYaw), 0, -Math.sin(e.movement.state.bodyYaw));
+    const point = p.clone().addScaledVector(r, side); point.y += up;
+    e.health.damage(dmg, { kind: 'gun', zone: part === 0 ? 'head' : part === 3 ? 'limb' : 'body', part, point, noDown }, shooter);
+  };
+  const frame = (e, { dist = 5.5, h = 1.4, look = 0.9, off = 0 } = {}) => {
+    const p = e.movement.state.mode === 'ragdoll' ? e.movement.ragdoll.get(0, new THREE.Vector3()) : e.movement.state.position;
+    const c = window.__art.camera;
+    c.position.copy(p).addScaledVector(fwd, -dist).addScaledVector(right, off); c.position.y = t.height(c.position.x, c.position.z) + h;
+    c.lookAt(p.x, t.height(p.x, p.z) + look, p.z);
+    window.__art.focus = p.clone();
+  };
+  const one = (cls = 'lancer', yaw = across, extra = {}) => real(F.add(cls, 0, at(0, 0), yaw, extra.act ?? 'stand', extra));
+  views.stagger = { pos: y(at(0, -6), 1.5), look: y(at(0, 0), 1), fov: 50, note: 'rocked by a hit (30% of his health in one): stumbling along it, arms flung out, the gun off target',
+    enter: () => { const e = one('lancer', across, { act: 'aim' }); run(0.3); e.health.hp = 100; shoot(e, 30, 1, { side: 0.05 }); run(0.2); hold(); frame(e); } };
+  views.buckle = { pos: y(at(0, -6), 1.5), look: y(at(0, 0), 1), fov: 50, note: 'shot in the leg: it gives way, down on that knee for a moment',
+    enter: () => { const e = one('bastion', across, { act: 'aim' }); run(0.3); shoot(e, e.health.max * 0.22, 3, { up: 0.5, side: -0.1 }); run(0.26); hold(); frame(e, { look: 0.7 }); } };
+  views.dying = { pos: y(at(0, -6), 1.5), look: y(at(0, 0), 1), fov: 50, note: 'killed by a chest shot: a step along it, then the knees go and he folds',
+    enter: () => { const e = one('lumen', across, { act: 'aim' }); run(0.3); e.health.hp = 30; shoot(e, 40, 1, { side: 0.06, noDown: true }); run(0.75); hold(); frame(e, { look: 0.6 }); } };
+  views.catch = { pos: y(at(0, -6), 1.5), look: y(at(0, 0), 1), fov: 50, note: 'downed going away from the shot: the hands go out and break the fall',
+    enter: () => { const e = one('artificer', across + Math.PI, { act: 'aim' }); run(0.3); e.health.hp = 15; shoot(e, 25, 2, { up: 1.0, side: 0.08 }); run(0.62); hold(); frame(e, { look: 0.5 }); } };
+  views.thrown = { pos: y(at(0, -7), 1.6), look: y(at(0, 0), 1.6), fov: 52, note: 'thrown by a blast, still alive: arms windmilling, legs pedalling',
+    enter: () => { const e = one('seraph', across, { act: 'aim' }); run(0.3); const p = e.movement.state.position; e.movement.startRagdoll(-right.x * 6, 5.5, -right.z * 6, { cause: 'explosion', at: { x: p.x + right.x * 0.8, y: p.y + 0.1, z: p.z + right.z * 0.8 } }); run(0.42); hold(); frame(e, { dist: 6.5, h: 1.6, look: 1.4 }); } };
+  views.writhe = { pos: y(at(0, -5), 1.6), look: y(at(0, 0), 0.3), fov: 50, note: 'down on his back: a hand on the wound, knees drawing up',
+    enter: () => { const e = one('breacher', across + Math.PI, { act: 'aim' }); run(0.3); e.health.hp = 10; e.health.damage(20, { kind: 'gun', zone: 'body', part: 1, point: e.movement.state.position.clone().add(new THREE.Vector3(0, 1.28, 0)), dir: { x: -right.x, z: -right.z } }, null); e.movement.startRagdoll(-right.x * 2.6, 0.6, -right.z * 2.6, { cause: 'downed', wound: { ...e.movement.state.position.clone().add(new THREE.Vector3(0.1, 1.28, 0)), site: 'chest' } }); run(1.4); hold(); frame(e, { dist: 4.5, h: 1.8, look: 0.2 }); } };
+  const downed = (cls, yaw, steer, secs, supine) => {
+    const e = one(cls, yaw, { steer });
+    e.health.hp = 10; e.health.damage(20, { kind: 'test', noDown: false }, null);
+    const s = e.movement.state; s.mode = 'ground'; s.downed = true; s.stance = 'prone'; s.supine = supine; e.movement.body.setHeight?.(0.5);
+    run(secs); hold(); return e;
+  };
+  views.scoot = { pos: y(at(0, -5), 1.4), look: y(at(0, 0), 0.4), fov: 50, note: 'downed, a foe ahead: rolled onto his back, scooting away from him, facing him',
+    enter: () => { const e = downed('lancer', across, () => ({ moveY: -1, yaw: across }), 2.2, false); frame(e, { dist: 4.2, h: 1.5, look: 0.2 }); } };
+  views.crawl = { pos: y(at(0, -5), 1.4), look: y(at(0, 0), 0.4), fov: 50, note: 'downed: crawling on his belly toward help, a hand pressed to the wound',
+    enter: () => { const e = downed('monolith', across, () => ({ moveY: 1, yaw: across }), 1.6, false); frame(e, { dist: 4.2, h: 1.5, look: 0.2 }); } };
+  views.injured = { pos: y(at(0, -6), 1.5), look: y(at(0, 0), 1), fov: 50, note: 'revived but injured: limping on the wound, a hand pressed to it, until a stim',
+    enter: () => { const e = one('lancer', across, { steer: () => ({ moveY: 0.7, yaw: across }) }); e.health.injury = { site: 'gut' }; e.status.apply('injured'); run(1.35); hold(); frame(e, { dist: 5, off: 1.5 }); } };
+  views.line = { pos: y(at(0, -9), 1.7), look: y(at(0, 0), 0.9), fov: 55, note: 'a line of them shot one after another: rocked, folding, catching a fall, down',
+    enter: () => {
+      const L = ['lancer', 'bastion', 'lumen', 'artificer', 'seraph'].map((c, i) => real(F.add(c, 0, at((i - 2) * 1.9, 0.4 * (i % 2)), across, 'aim')));
+      run(0.3);
+      L[4].health.hp = 15; shoot(L[4], 25, 2, { up: 1.0 });   run(0.55);
+      L[3].health.hp = 30; shoot(L[3], 40, 1, { noDown: true }); run(0.3);
+      L[2].health.hp = 15; shoot(L[2], 25, 1, { side: 0.06 });  run(0.25);
+      shoot(L[1], 22, 3, { up: 0.5, side: -0.1 });              run(0.12);
+      shoot(L[0], 30, 1, { side: 0.05 });                       run(0.18);
+      hold();
+    } };
+  window.__art.sim = F.world; window.__art.run = run;
 }
 
 /** A vehicle from the kit, posed for a still: turret turned, gun set up and laid, cargo loaded. */

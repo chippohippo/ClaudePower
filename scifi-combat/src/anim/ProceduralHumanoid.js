@@ -319,6 +319,8 @@ export class ProceduralHumanoid {
     }
 
     this.#reviveLean(P);
+    this.#staggerLayer(P);
+    this.#injuredLayer(P);
     this.#callIn(P);
     this.#layersAndFrames(P, dt);
     this.#upperBody(P, dt);
@@ -421,6 +423,77 @@ export class ProceduralHumanoid {
   }
 
   // ---------------------------------------------------------------- reviving
+  /**
+   * Rocked by a hit (s.stagger): the trunk thrown along the push and the arms flung out for
+   * balance, the gun off target, easing back as the feet catch up (the planter steps after the
+   * root). A buckle drops the hips onto the wounded knee; a stumble that ends in a fall (dying,
+   * downed) hunches over, a hand to the gut.
+   */
+  #staggerLayer(P) {
+    const s = this.e.movement.state, g = s.mode === 'stagger' ? s.stagger : null, dt = this.dt ?? 1 / 60;
+    this.stagW = (this.stagW ?? 0) + ((g ? 1 : 0) - (this.stagW ?? 0)) * approach(g ? 20 : 6, dt);
+    if (g) this.stag = { dx: g.dx, dz: g.dz, kind: g.kind, side: g.side, fall: !!g.fall, u: g.t / g.dur };
+    const k = this.stagW, G = this.stag;
+    if (k < 1e-3 || !G) return;
+    const sc = this.scale;
+    forwardOf(P.yawC, _f); rightOf(P.yawC, _r);
+    const along = G.dx * _f.x + G.dz * _f.z, across = G.dx * _r.x + G.dz * _r.z;
+    const jolt = Math.sin(Math.PI * Math.min(1, G.u * 1.25 + 0.2)) * k;   // thrown at once, easing back
+    if (G.kind === 'buckle') {
+      // The leg gives: hips down onto that knee, the trunk leaning off it.
+      P.pelvis.y -= 0.34 * sc * jolt;
+      P.leanP += G.side * 0.3 * jolt; P.leanC -= G.side * 0.22 * jolt; P.pitchC += 0.22 * jolt;
+      P.aimW *= 1 - 0.5 * jolt;
+      return;
+    }
+    // The chest goes with the push (back for a shot from the front), the hips after it.
+    P.pitchC += along * 0.6 * jolt; P.pitchP += along * 0.22 * jolt;
+    P.leanC += across * 0.45 * jolt; P.leanP += across * 0.15 * jolt;
+    P.aimW *= 1 - 0.85 * jolt; P.gunUp *= 1 - 0.75 * jolt;
+    // Arms flung out wide (against the push) to catch the balance.
+    for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? -1 : 1;
+      _b.copy(P.pelvis).addScaledVector(_r, side * 0.46 * sc);
+      _b.x -= G.dx * 0.18 * sc; _b.z -= G.dz * 0.18 * sc; _b.y += (0.78 + 0.12 * side * across) * sc;
+      P.hand[i].lerp(_b, jolt * 0.85); P.handW[i] = Math.max(P.handW[i], jolt * 0.85);
+    }
+    if (G.fall) {
+      // Going down: hunched over, the knees starting to go, a hand pressed to the gut.
+      P.pitchC += 0.4 * k; P.pitchP += 0.15 * k; P.pelvis.y -= 0.14 * sc * G.u * k;
+      _b.copy(P.pelvis).addScaledVector(_f, 0.17 * sc); _b.y += 0.12 * sc;
+      P.hand[1].lerp(_b, k); P.handW[1] = Math.max(P.handW[1], k);
+    }
+  }
+
+  /**
+   * Back up injured (Health.injury, until a stim): hunched, a limp (the hips dip and the trunk
+   * swings off the wounded leg while it carries the weight), and the free hand pressed to a trunk
+   * wound while the gun's down.
+   */
+  #injuredLayer(P) {
+    const e = this.e, s = e.movement.state, inj = e.health?.injury, dt = this.dt ?? 1 / 60;
+    const on = inj && !s.downed && !e.vehicle && s.mode !== 'ragdoll' ? 1 : 0;
+    this.injW = (this.injW ?? 0) + (on - (this.injW ?? 0)) * approach(3, dt);
+    if (inj) this.injSite = inj.site;
+    const k = this.injW;
+    if (k < 1e-3) return;
+    const sc = this.scale, site = this.injSite ?? 'gut';
+    const side = site.endsWith('L') ? -1 : 1, leg = site === 'legL' || site === 'legR';
+    P.pitchC += 0.16 * k;
+    if (this.planterLive) {
+      const f = this.planter.feet[side < 0 ? 0 : 1];
+      this.limpLoad = (this.limpLoad ?? 0) + ((f.planted ? 1 : 0) - (this.limpLoad ?? 0)) * approach(14, dt);
+      const dip = this.limpLoad * smoothstep(0.2, 1.2, s.speed) * k * (leg ? 1 : 0.6);
+      P.pelvis.y -= 0.05 * sc * dip; P.leanC -= side * 0.14 * dip; P.leanP += side * 0.06 * dip;
+    }
+    const free = (1 - clamp(this.raise, 0, 1)) * k;
+    if (free > 0.02 && (site === 'gut' || site === 'chest')) {
+      forwardOf(P.yawC, _f);
+      _b.copy(P.pelvis).addScaledVector(_f, 0.17 * sc); _b.y += (site === 'chest' ? 0.42 : 0.14) * sc;
+      P.hand[0].lerp(_b, free); P.handW[0] = Math.max(P.handW[0], free);
+    }
+  }
+
   /** Kneeling over a downed teammate: bent forward, both hands on their chest, pressing. */
   #reviveLean(P) {
     const job = this.e.reviveJob;
@@ -492,7 +565,7 @@ export class ProceduralHumanoid {
   #activeKey(s) {
     const e = this.e;
     if (s.mode !== 'knockdown') this.knockPhase = null;
-    if (this.dead || e.health?.dead) return 'dead';
+    if ((this.dead || e.health?.dead) && s.mode !== 'stagger') return 'dead';   // (a dying stumble is still on its feet)
     if (e.vehicle) return 'seated';
     if (s.downed) return 'downed';
     switch (s.mode) {
@@ -715,6 +788,12 @@ export class ProceduralHumanoid {
     const breath = Math.sin(this.time * 9) * 0.015 * sc;
     out.pelvis.y += breath * 0.5;
     out.spinC += 0.12 * head; out.leanC += 0.06 * Math.sin(this.time * 1.3);
+    // Rolling over (onto the back to face what's coming, or onto the belly to crawl): the body
+    // turns over its long axis, lifting off the ground half way.
+    if (s.roll) {
+      const u = clamp(s.roll.t / this.e.movement.t.downed.rollTime, 0, 1), turn = Math.sin(u * Math.PI);
+      out.leanP += turn * 1.25; out.leanC += turn * 1.35; out.pelvis.y += turn * 0.1 * sc;
+    }
     return out;
   }
 

@@ -183,10 +183,13 @@ export class CombatWorld {
         const t = _oc.dot(d);
         if (t < -R || t > reach() + R || _oc.lengthSq() - t * t > R * R) return;
       }
-      for (const h of hitSpheres(e)) {
+      const hs = hitSpheres(e);
+      for (let i = 0; i < hs.length; i++) {
+        const h = hs[i];
         _oc.set(h.x - o.x, h.y - o.y, h.z - o.z);
         const t = _oc.dot(d);
-        if (t >= 0 && t <= reach() && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone });
+        // part: which sphere (head, chest, lower torso, legs): where the wound is (HitReactions)
+        if (t >= 0 && t <= reach() && _oc.lengthSq() - t * t < h.r * h.r) consider({ entity: e, distance: t, point: o.clone().addScaledVector(d, t), zone: h.zone, part: i });
       }
     };
     // The pad covers a soldier's spheres and moves since the grid was built, and a hull's size
