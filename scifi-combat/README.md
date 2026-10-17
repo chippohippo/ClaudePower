@@ -1,8 +1,12 @@
 # Emberfall: sci-fi flame-sword combat starter (Three.js)
 
+**Play it on your PC:** double-click `play.bat` (Windows) or `play.command` (Mac), or run `./play.sh` /
+`npm start`. Your browser opens the start menu (`start.html`). It runs offline: three.js is in `vendor/`.
+See [PLAY.md](PLAY.md).
+
 - **Abilities, firing and sound clarity:** [`docs/ABILITIES.md`](docs/ABILITIES.md) has all 80 abilities for both factions, with counterplay.
 - **Design and plan:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) covers the architecture diagram, folder layout, module contracts, movement and melee deep dives, weapon and class data model, AI, netcode, performance and roadmap.
-- **Frontline battle:** serve this folder statically (`npx serve .`) and open `index.html`. It's Battlefront Supremacy crossed with the Western Front, in five sizes (`?size=4v4|12v12|32v32|64v64|200v200`, default 32v32). The biggest, **Extreme Warfront**, puts 400 soldiers on a 2.6 km front with ten trench lines.
+- **Frontline battle:** start a launcher (above) and deploy from the start menu, or serve this folder statically and open `index.html`. It's Battlefront Supremacy crossed with the Western Front, in five sizes (`?size=4v4|12v12|32v32|64v64|200v200`, default 32v32). The biggest, **Extreme Warfront**, puts 400 soldiers on a 2.6 km front with ten trench lines.
   - **Maps:** each size gets a seeded map built for it. WW1 trench lines (fire bays, traverses, firing steps, dugouts, communication trenches, wire) separate the sectors, with ruined villages and shell craters between them. The front line moves when a sector falls.
   - **Bot squads:** they man the trench, go over the top together on the whistle, bound from cover to cover, clear buildings room by room, hold the line and dig in.
   - **Artillery** (12v12 and up): towed howitzers, self-propelled rocket batteries and AT guns, crewed by bots or by you.

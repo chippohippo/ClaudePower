@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npx serve .",
+    "start": "node tools/serve.mjs",
     "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {

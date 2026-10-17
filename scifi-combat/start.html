@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-5 0-7z' fill='%23ffb43a'/%3E%3C/svg%3E" />
+  <title>Emberfall Frontline</title>
+  <!-- The start menu: pick the battlefield, the size, your side and class, then deploy
+       (index.html with those as URL parameters). The launchers (play.bat, play.command,
+       play.sh) open this page. Choices are remembered in this browser. -->
+  <style>
+    :root {
+      --bg: #120f1c; --bg2: #1d1730; --panel: #0d0b16cc; --line: #ffffff1f; --text: #f1edf8; --dim: #a59fb8;
+      --accent: #ffe14d; --accent2: #f2b632; --sol: #ffcf6b; --void: #b994ff; --cold: #7fd1ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: radial-gradient(ellipse at 70% -10%, #4b3a6b 0%, transparent 55%), radial-gradient(ellipse at 10% 110%, #3a2140 0%, transparent 50%), linear-gradient(180deg, var(--bg2), var(--bg));
+      color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden;
+    }
+    #snow { position: fixed; inset: 0; pointer-events: none; }
+    main { position: relative; max-width: 1080px; margin: 0 auto; padding: 28px 16px 48px; }
+    header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(30px, 6vw, 54px); letter-spacing: 6px; font-weight: 900; text-transform: uppercase; text-shadow: 0 0 24px #ff9d4d55; }
+    h1 span { color: var(--accent); }
+    header p { margin: 0; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; backdrop-filter: blur(4px); }
+    h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); }
+    .row { margin-bottom: 14px; }
+    .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+    .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .opt { cursor: pointer; border: 1px solid var(--line); background: #ffffff08; color: var(--text); padding: 7px 11px; border-radius: 4px; font: inherit; font-size: 13px; text-align: left; }
+    .opt:hover { border-color: #ffffff55; }
+    .opt[aria-pressed="true"] { border-color: var(--accent); background: #ffe14d1c; box-shadow: inset 0 0 0 1px var(--accent); }
+    .opt small { display: block; color: var(--dim); font-size: 11px; margin-top: 2px; }
+    .maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 560px) { .maps { grid-template-columns: 1fr; } }
+    .maps .opt { padding: 10px; min-height: 88px; }
+    .maps .opt b { display: block; font-size: 14px; letter-spacing: 1px; }
+    .side-0[aria-pressed="true"] { border-color: var(--sol); box-shadow: inset 0 0 0 1px var(--sol); background: #ffcf6b18; }
+    .side-1[aria-pressed="true"] { border-color: var(--void); box-shadow: inset 0 0 0 1px var(--void); background: #b994ff18; }
+    .classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+    #deploy { width: 100%; margin-top: 4px; padding: 14px; border: 0; border-radius: 4px; cursor: pointer; background: linear-gradient(90deg, var(--accent2), var(--accent)); color: #1a1408; font: 900 18px/1 system-ui, sans-serif; letter-spacing: 6px; text-transform: uppercase; box-shadow: 0 0 22px #ffcf4d44; }
+    #deploy:hover { filter: brightness(1.08); }
+    #summary { margin-top: 8px; color: var(--dim); font-size: 12px; word-break: break-all; }
+    .seed { display: flex; gap: 6px; align-items: center; }
+    .seed input { width: 110px; padding: 7px 8px; border-radius: 4px; border: 1px solid var(--line); background: #ffffff0d; color: var(--text); font: inherit; }
+    kbd { display: inline-block; min-width: 20px; padding: 1px 5px; border: 1px solid #ffffff40; border-bottom-width: 2px; border-radius: 3px; font: 600 11px/1.4 ui-monospace, monospace; text-align: center; background: #ffffff0a; }
+    .keys { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; font-size: 13px; }
+    .keys div:nth-child(odd) { white-space: nowrap; }
+    .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .links a { color: var(--cold); text-decoration: none; border: 1px solid var(--line); padding: 6px 10px; border-radius: 4px; font-size: 13px; }
+    .links a:hover { border-color: var(--cold); }
+    .note { color: var(--dim); font-size: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <canvas id="snow"></canvas>
+  <main>
+    <header>
+      <h1>Ember<span>fall</span></h1>
+      <p>Frontline · a war across the city</p>
+    </header>
+    <div class="grid">
+      <section>
+        <h2>Deployment</h2>
+        <div class="row">
+          <div class="label">Battlefield</div>
+          <div class="maps" id="map"></div>
+        </div>
+        <div class="row">
+          <div class="label">Battle size</div>
+          <div class="opts" id="size"></div>
+        </div>
+        <div class="row">
+          <div class="label">Your side</div>
+          <div class="opts" id="team"></div>
+        </div>
+        <div class="row">
+          <div class="label">Class</div>
+          <div class="classes" id="cls"></div>
+        </div>
+        <div class="row" style="display:flex;gap:18px;flex-wrap:wrap">
+          <div><div class="label">Bots</div><div class="opts" id="difficulty"></div></div>
+          <div><div class="label">Effects</div><div class="opts" id="fx"></div></div>
+          <div><div class="label">Map seed</div><div class="seed"><input id="seed" type="number" min="1" max="99999" /><button class="opt" id="dice" title="A new map">New</button></div></div>
+        </div>
+        <button id="deploy">Deploy</button>
+        <div id="summary"></div>
+      </section>
+      <section>
+        <h2>Controls</h2>
+        <div class="keys">
+          <div><kbd>Click</kbd></div><div>capture the mouse (<kbd>Esc</kbd> frees it)</div>
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>move · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> climb / hop / vault</div>
+          <div><kbd>C</kbd></div><div>crouch · hold: prone · while sprinting: slide · <kbd>Alt</kbd> dive</div>
+          <div><kbd>LMB</kbd> <kbd>RMB</kbd></div><div>fire · aim down sights · <kbd>R</kbd> reload</div>
+          <div><kbd>1</kbd></div><div>sword or gun · <kbd>V</kbd> rifle-butt melee</div>
+          <div><kbd>Q</kbd><kbd>E</kbd><kbd>G</kbd><kbd>Z</kbd></div><div>abilities, grenade, super</div>
+          <div><kbd>Tab</kbd></div><div>hold, then type a stratagem code with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>; <kbd>LMB</kbd> throws the beacon</div>
+          <div><kbd>X</kbd></div><div>vehicles and guns · hold by a downed teammate to revive · hold over a downed enemy to finish him</div>
+          <div><kbd>H</kbd></div><div>dig in (foxhole, sandbags, trench) · set a gun up · repair (engineers)</div>
+          <div><kbd>3</kbd></div><div>your item (stims, ammo packs)</div>
+          <div><kbd>Space</kbd></div><div>when dead: deploy again · when downed: hold to give up</div>
+        </div>
+        <p class="note">The city's civilians hide from the fighting: shooting one who isn't shooting at you costs you. Gangs hold their turf against both sides; you'll see a warning as you walk in.</p>
+        <h2 style="margin-top:16px">Labs</h2>
+        <div class="links">
+          <a href="arena.html">Arena · 4v4 feel lab</a>
+          <a href="art-lab.html?station=people">Art lab</a>
+          <a href="rig-lab.html">Rig lab</a>
+        </div>
+        <p class="note">Runs offline in Chrome, Edge or Firefox (WebGL 2). Bigger battles want a stronger PC: start at 32v32, Effects: Low if it stutters.</p>
+      </section>
+    </div>
+  </main>
+  <script type="module">
+    const MAPS = [
+      { id: 'dusk', name: 'Dusk City', note: 'Snowfall at dusk: neon megatowers, houses to clear, civilians and gangs', q: { map: 'city', planet: 'duskcity' } },
+      { id: 'night', name: 'Night City', note: 'The same city under the aurora, lit windows and searchlights', q: { map: 'city', planet: 'nightcity' } },
+      { id: 'trench', name: 'The Trenches', note: 'A scorched front: trench lines, wire, guns and the supply war', q: { map: 'trench' } },
+    ];
+    const SIZES = [['4v4', 'Skirmish'], ['12v12', 'Squads'], ['32v32', 'Battle'], ['64v64', 'Front'], ['200v200', 'Extreme Warfront']];
+    const TEAMS = [['Solari Directorate', 'hard-light shields'], ['Void Legion', 'leech armor']];
+    const ROLE = { assault: 'Assault', juggernaut: 'Juggernaut', infiltrator: 'Infiltrator', engineer: 'Engineer', medic: 'Medic', marksman: 'Marksman', flameKnight: 'Flame Knight', pilot: 'Pilot', tech: 'Tech', demolitionist: 'Demolitionist' };
+    const DIFF = [['recruit', 'Recruit'], ['veteran', 'Veteran'], ['elite', 'Elite']];
+    const FX = [['high', 'High'], ['low', 'Low'], ['off', 'Off']];
+    const title = (id) => id.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('emberfall.start') ?? '{}') ?? {}; } catch { saved = {}; }
+    const st = { map: 'dusk', size: '32v32', team: 0, cls: { 0: 'lancer', 1: 'reaver' }, difficulty: 'veteran', fx: 'high', seed: 7, ...saved };
+    st.cls = { 0: 'lancer', 1: 'reaver', ...(saved.cls ?? {}) };
+    const factions = await Promise.all(['solari', 'void'].map((f) => fetch(`./data/classes/${f}.json`).then((r) => r.json()).catch(() => ({ classes: [] }))));
+
+    const $ = (id) => document.getElementById(id);
+    const button = (label, sub, pressed, onClick, cls = '') => {
+      const b = document.createElement('button');
+      b.className = `opt ${cls}`; b.setAttribute('aria-pressed', pressed);
+      b.innerHTML = `<b>${label}</b>${sub ? `<small>${sub}</small>` : ''}`;
+      b.onclick = onClick;
+      return b;
+    };
+    function render() {
+      $('map').replaceChildren(...MAPS.map((m) => button(m.name, m.note, st.map === m.id, () => { st.map = m.id; render(); })));
+      $('size').replaceChildren(...SIZES.map(([s, n]) => button(s, n, st.size === s, () => { st.size = s; render(); })));
+      $('team').replaceChildren(...TEAMS.map(([n, t], i) => button(n, t, st.team === i, () => { st.team = i; render(); }, `side-${i}`)));
+      $('cls').replaceChildren(...(factions[st.team].classes ?? []).map((c) => button(title(c.id), ROLE[c.role] ?? c.role, st.cls[st.team] === c.id, () => { st.cls[st.team] = c.id; render(); }, `side-${st.team}`)));
+      $('difficulty').replaceChildren(...DIFF.map(([k, n]) => button(n, '', st.difficulty === k, () => { st.difficulty = k; render(); })));
+      $('fx').replaceChildren(...FX.map(([k, n]) => button(n, '', st.fx === k, () => { st.fx = k; render(); })));
+      $('seed').value = st.seed;
+      $('summary').textContent = url();
+      try { localStorage.setItem('emberfall.start', JSON.stringify(st)); } catch { /* private window: not remembered */ }
+    }
+    function url() {
+      const m = MAPS.find((x) => x.id === st.map) ?? MAPS[0];
+      const q = new URLSearchParams({ ...m.q, size: st.size, team: st.team, class: st.cls[st.team], difficulty: st.difficulty, fx: st.fx, seed: st.seed });
+      return `index.html?${q}`;
+    }
+    $('seed').onchange = () => { st.seed = Math.max(1, Math.min(99999, Math.round(+$('seed').value) || 7)); render(); };
+    $('dice').onclick = () => { st.seed = 1 + Math.floor(Math.random() * 9999); render(); };
+    $('deploy').onclick = () => { location.href = url(); };
+    addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName !== 'INPUT') location.href = url(); });
+    render();
+
+    // Snow drifting past, as in the city.
+    const cv = $('snow'), cx = cv.getContext('2d');
+    const flakes = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.8, v: 0.02 + Math.random() * 0.05, w: Math.random() * 6 }));
+    let last = performance.now();
+    (function frame(t) {
+      const dt = Math.min(0.05, (t - last) / 1000); last = t;
+      if (cv.width !== innerWidth || cv.height !== innerHeight) { cv.width = innerWidth; cv.height = innerHeight; }
+      cx.clearRect(0, 0, cv.width, cv.height);
+      cx.fillStyle = '#f4efff';
+      for (const f of flakes) {
+        f.y += f.v * dt; f.w += dt;
+        if (f.y > 1.02) { f.y = -0.02; f.x = Math.random(); }
+        cx.globalAlpha = 0.25 + f.r / 3.5;
+        cx.beginPath(); cx.arc((f.x + Math.sin(f.w) * 0.01) * cv.width, f.y * cv.height, f.r, 0, Math.PI * 2); cx.fill();
+      }
+      requestAnimationFrame(frame);
+    })(last);
+  </script>
+</body>
+</html>

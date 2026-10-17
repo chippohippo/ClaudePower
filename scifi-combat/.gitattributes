@@ -1,0 +1,2 @@
+# The Windows launcher keeps its CRLF line endings, whatever checks it out.
+play.bat -text
