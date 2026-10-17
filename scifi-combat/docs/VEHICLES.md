@@ -56,8 +56,10 @@ bot drivers: `src/ai/VehiclePilot.js` · data: `data/vehicles.json` · tests: `t
 - **Pads:** Battlefront pickups respawn their vehicle `respawn` seconds after it's destroyed, or
   after it sits empty and far from its pad for `pads.abandonTime` (40 s).
 - **Called vehicles:** Skyrider's Call Hoverbike and Driftcaller's Call Wraith-Skiff drop at the
-  marker, and the caster hops straight in if they're still close. Calling again scraps your
-  previous called vehicle if it's empty.
+  marker, and the caster hops straight in if they're still close. An enemy standing on the
+  marker denies the drop. If a teammate or another vehicle is standing there, it lands at the
+  nearest clear spot beside them, on the caster's side. Calling again scraps your previous
+  called vehicle if it's empty.
 
 ## The trench war (Frontline)
 

@@ -27,6 +27,7 @@ const _f = new Vector3();
 // line-of-sight rays, which run through raycast() -> #raySphere(), so neither may share _v.
 const _muzzle = new Vector3();
 const _c = new Vector3();
+const _drop = new Vector3();   // vehicle drop spot probes
 let nextDeployableId = 100000;
 
 export class DeployableSystem {
@@ -156,11 +157,46 @@ export class DeployableSystem {
     // Standing on the marker denies the drop (stated counterplay). The cooldown is not refunded.
     const blocker = this.#enemies(d).find((e) => e.movement.state.position.distanceTo(d.movement.state.position) < 2);
     if (blocker) { bus.emit('deployable:vehicleDenied', { id: d.id, by: blocker.id, owner: d.ownerId }); this.destroy(d, 'denied'); return; }
-    bus.emit('deployable:vehicleArrived', { id: d.id, vehicle: d.vehicle, at: d.movement.state.position.toArray(), owner: d.ownerId, team: d.team });
-    const v = this.world.vehicles?.spawn(d.vehicle, d.team, d.movement.state.position, d.yaw ?? 0, { ownerId: d.ownerId });
+    const at = this.#dropSpot(d);
+    bus.emit('deployable:vehicleArrived', { id: d.id, vehicle: d.vehicle, at: at.toArray(), owner: d.ownerId, team: d.team });
+    const v = this.world.vehicles?.spawn(d.vehicle, d.team, at, d.yaw ?? 0, { ownerId: d.ownerId });
     // Called vehicles drop at the caster's feet: hop straight in if the caster is still close and on foot.
     if (v && d.owner && !d.owner.vehicle && d.owner.movement.state.position.distanceTo(v.movement.state.position) < 4) this.world.vehicles.enter(d.owner, v);
     this.destroy(d, 'delivered');
+  }
+
+  /**
+   * Where a called vehicle lands: on the marker, unless a teammate or another vehicle is standing
+   * there (squads deploy together, and a bike dropped on someone's head reads as a bug). Then it
+   * lands at the nearest spot around the marker that is clear of them and of anything too tall to
+   * sit on. The caster doesn't count, because they hop straight in.
+   */
+  #dropSpot(d) {
+    const p = d.movement.state.position, w = this.world;
+    const r = (w.vehicles?.defs?.vehicles?.[d.vehicle]?.radius ?? 1.5) + 0.5;
+    const clear = (x, z) => {
+      let ok = true;
+      w.fightersNear(_drop.set(x, p.y, z), r + 4, (e) => {
+        if (!ok || e === d.owner || e.health?.dead) return;
+        const q = e.movement.state.position, reach = r + (e.isVehicle ? e.def.radius : 0.4);
+        if (Math.hypot(q.x - x, q.z - z) < reach) ok = false;
+      });
+      if (!ok) return false;
+      const ground = w.groundHeight(_drop.set(x, p.y + 2, z)), k = r - 0.5;
+      w.coverIn(x - k, z - k, x + k, z + k, (b) => { if (b.max.y > ground + 1.2 && b.min.y < ground + 2) ok = false; });
+      return ok;
+    };
+    if (clear(p.x, p.z)) return p;
+    // Rings around the marker, each tried from the caster's side outward, so the caster can still
+    // hop in.
+    const o = d.owner?.movement.state.position, a0 = o ? Math.atan2(o.z - p.z, o.x - p.x) : 0;
+    for (let ring = 1; ring <= 3; ring++) {
+      for (let k = 0; k < 8; k++) {
+        const a = a0 + Math.ceil(k / 2) * (k % 2 ? 1 : -1) * (Math.PI / 4), x = p.x + Math.cos(a) * r * ring, z = p.z + Math.sin(a) * r * ring;
+        if (clear(x, z)) return new Vector3(x, p.y, z);
+      }
+    }
+    return p;
   }
 
   tick_engine(d, dt) {

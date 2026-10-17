@@ -166,3 +166,22 @@ test('Call Hoverbike drops a bike at the marker and seats the caster', () => {
   w.press(A, 'ability2'); w.seconds(3);
   assert.ok(A.vehicle?.veh?.type === 'solari_hoverbike', 'caster riding the called bike');
 });
+
+test("a called bike doesn't land on a teammate standing on the marker", () => {
+  const w = makeWorld();
+  const A = w.fighter(1, 0, v(0, 0, 0), 'skyrider');
+  const B = w.fighter(2, 0, v(10, 0, 10), 'lancer');
+  w.aim(A, 0, -0.7);
+  w.press(A, 'ability2');
+  let drop = null;
+  for (let i = 0; i < 60 && !drop; i++) { w.step(1); drop = w.world.deployables.list.find((d) => d.kind === 'vehicle'); }
+  assert.ok(drop, 'marker down');
+  const m = drop.movement.state.position;
+  B.movement.reset(v(m.x, 0, m.z), 0);           // a squadmate wanders onto it
+  w.seconds(3);
+  const bike = A.vehicle?.veh;
+  assert.ok(bike?.type === 'solari_hoverbike', 'the caster still hops in');
+  const pB = B.movement.state.position, pV = bike.movement.state.position;
+  assert.ok(Math.hypot(pB.x - pV.x, pB.z - pV.z) > bike.def.radius + 0.3, 'it lands beside them, not on top of them');
+  assert.equal(B.vehicle ?? null, null);
+});
