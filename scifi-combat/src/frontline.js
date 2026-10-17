@@ -23,6 +23,7 @@ import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
 import { HitFeedback } from './ui/HitFeedback.js';
 import { BattlePointsHud } from './ui/BattlePointsHud.js';
+import { MeleeTells } from './ui/MeleeTells.js';
 import { GunFx } from './vfx/GunFx.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
@@ -56,7 +57,7 @@ const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
   personalities: ai.personalities, difficulty: ai.difficulty[params.get('difficulty') ?? 'veteran'] ?? ai.difficulty.veteran,
-  down, rules, stratagems, battlePoints, passives, support,
+  down, rules, stratagems, battlePoints, passives, support, humanoid,
 };
 const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
@@ -126,7 +127,8 @@ renderer.domElement.addEventListener('mousedown', () => {
 const hud = new FrontlineHud(document.getElementById('hud'), session, player);
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
-const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN" 
+const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
+const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
 // Hit-stop: your melee, and your kills with a shotgun or a sniper rifle, freeze the battle for a
 // few ticks (offline only; nobody else's hits stop your game).
 let hitStop = 0;
@@ -210,8 +212,9 @@ const loop = new FixedLoop({
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
     bpHud.update(dt);
+    tells.update(dt, cam);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop, fx, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

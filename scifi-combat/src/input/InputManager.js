@@ -7,14 +7,15 @@ const DEFAULT_BINDINGS = {
   jump:     { keys: ['Space'],                 pad: [0] },  // A / Cross
   crouch:   { keys: ['KeyC'],                  pad: [1] },  // B / Circle: tap = crouch, hold = prone (HD2 pad layout); while sprinting = slide
   sprint:   { keys: ['ShiftLeft'],             pad: [10] }, // L3
-  dodge:    { keys: ['AltLeft', 'KeyV'],       pad: [2] },  // X / Square: HD2 dive (class evade for melee classes)
+  dodge:    { keys: ['AltLeft'],               pad: [2] },  // X / Square: HD2 dive (class evade for melee classes)
+  bash:     { keys: ['KeyV'],                  pad: [11] }, // R3: quick melee with a gun out (a rifle-butt shove)
   light:    { mouse: [0],                      pad: [7] },  // RT  (fire when gun out)
   heavy:    { keys: ['KeyF'],                  pad: [5] },  // RB
   guard:    { mouse: [2],                      pad: [6] },  // LT  (ADS when gun out)
   interact: { keys: ['KeyX'],                  pad: [3] },  // Y / Triangle (hold)
   dig:      { keys: ['KeyH'],                  pad: [] },   // hold: dig in (foxhole, sandbags, then trench to the next position)
   reload:   { keys: ['KeyR'],                  pad: [3] },  // Y / Triangle (tap)
-  swapShoulder: { keys: ['KeyB'],              pad: [11] }, // R3
+  swapShoulder: { keys: ['KeyB'],              pad: [] },   // (R3 is the quick melee)
   togglePOV:{ keys: ['KeyT'],                  pad: [8] },  // View/Share
   toggleMelee:{ keys: ['Digit1'],              pad: [15] }, // D-pad right: sword <-> guns
   swapWeapon:{ keys: ['Digit2'],               pad: [] },   // next gun (pad: hold D-pad right, TBD)

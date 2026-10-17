@@ -69,7 +69,7 @@ scifi-combat/
 │  ├─ camera/ CameraRig.js        1P/3P blend, shoulder swap, shake, FOV kick
 │  ├─ movement/ MovementController.js  states/  GroundProbe.js  Mantle.js
 │  ├─ combat/
-│  │  ├─ melee/ MeleeSystem.js  MeleeStates.js  HitboxSweep.js  FlameSwordFx.js
+│  │  ├─ melee/ MeleeSystem.js (swept blades, the rifle butt)  MeleeWeapons.js (the arsenal: base + overrides)
 │  │  ├─ weapons/ WeaponSystem.js  RecoilPattern.js  Ballistics.js  Attachments.js
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
 │  │  ├─ Stratagems.js          call-ins: codes on the wrist pad, beacons, strikes, jets, pods, smoke
@@ -106,7 +106,7 @@ scifi-combat/
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)
-│           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)
+│           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)  MeleeTells.js (windup chevrons)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

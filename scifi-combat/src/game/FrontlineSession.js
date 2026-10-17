@@ -44,7 +44,7 @@ export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
    *                         damageMatrix, supers, vehicleDefs, personalities, difficulty, down, rules, stratagems,
-   *                         battlePoints, passives, support }
+   *                         battlePoints, passives, support, humanoid (animation/humanoid.json: the swords' sweeps) }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
    *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
@@ -71,7 +71,7 @@ export class FrontlineSession {
     this.world.mode = this.mode;
     this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
     this.world.wire = new WireField(this.map.wire);
-    this.melee = new MeleeSystem();
+    this.melee = new MeleeSystem({ blades: data.humanoid?.sword ?? null });   // swept hits along the rig's swings
     this.fighters = [];
     this.bots = [];
     this.humans = new Map();          // id -> latest command

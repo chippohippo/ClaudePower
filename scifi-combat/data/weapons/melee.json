@@ -1,33 +1,658 @@
 {
-  "_comment": "Times in seconds. windup = readable tell; active = hitbox sweeps; recovery = punish window. cancelAt = fraction of recovery after which dodge/guard can cancel.",
-  "weapons": [
-    {
-      "id": "solari_dawnblade",
-      "name": "Dawnblade",
-      "faction": "solari",
-      "class": "flameSword",
-      "ammoType": "flame",
-      "visual": { "model": "weapons/dawnblade.glb", "socketBase": "socket_flame_base", "socketTip": "socket_flame_tip", "flameColor": "#ffb347" },
-      "guard": { "parryWindow": 0.15, "perfectBlockWindow": 0.11, "blockReduction": 0.8, "guardMax": 100, "parryWhiff": 0.35, "deflectEnergy": true, "deflectHeat": 6 },
-      "heat": { "max": 100, "ventPerSec": 14, "ventDelay": 0.9, "hotThreshold": 70, "hotBurnBonus": 0.25, "overheatDuration": 2.0, "parryVent": 20 },
-      "attacks": {
-        "light1": { "anim": "Sword_Slash_L1", "windup": 0.18, "active": 0.12, "recovery": 0.28, "damage": 28, "poise": 18, "guardDmg": 14, "heat": 6,  "stamina": 6,  "arc": 110, "range": 2.1, "next": { "light": "light2", "heavy": "heavy1" }, "chainWindow": 0.3 },
-        "light2": { "anim": "Sword_Slash_R1", "windup": 0.16, "active": 0.12, "recovery": 0.30, "damage": 30, "poise": 18, "guardDmg": 14, "heat": 6,  "stamina": 6,  "arc": 110, "range": 2.1, "next": { "light": "light3", "heavy": "thrust" }, "chainWindow": 0.3 },
-        "light3": { "anim": "Sword_Slash_Finisher", "windup": 0.24, "active": 0.14, "recovery": 0.45, "damage": 42, "poise": 35, "guardDmg": 26, "heat": 9, "stamina": 10, "arc": 160, "range": 2.3, "next": {} },
-        "heavy1": { "anim": "Sword_Heavy_Overhead", "windup": 0.48, "active": 0.14, "recovery": 0.55, "damage": 70, "poise": 60, "guardDmg": 45, "heat": 14, "stamina": 18, "arc": 60, "range": 2.4, "hyperArmor": [0.2, 0.62], "next": { "light": "light2" }, "chainWindow": 0.25 },
-        "thrust": { "anim": "Sword_Thrust", "windup": 0.30, "active": 0.10, "recovery": 0.40, "damage": 48, "poise": 30, "guardDmg": 60, "heat": 8, "stamina": 12, "arc": 25, "range": 3.0, "lunge": 4.5, "next": {} },
-        "slideSlash": { "anim": "Sword_Slide_Slash", "windup": 0.08, "active": 0.16, "recovery": 0.35, "damage": 36, "poise": 40, "guardDmg": 20, "heat": 8, "stamina": 8, "arc": 140, "range": 2.2, "next": {} },
-        "counter": { "anim": "Sword_Riposte", "windup": 0.06, "active": 0.12, "recovery": 0.30, "damage": 95, "poise": 100, "guardDmg": 0, "heat": -10, "stamina": 0, "arc": 90, "range": 2.4, "unblockable": true, "next": { "light": "light2" }, "chainWindow": 0.35 },
-        "flameWave": { "anim": "Sword_Flame_Wave", "windup": 0.6, "active": 0.1, "recovery": 0.5, "damage": 55, "poise": 45, "guardDmg": 30, "heat": 35, "stamina": 20, "projectile": { "speed": 22, "width": 3.2, "range": 18, "reflectOnParry": true }, "next": {} },
-        "sweepArc": { "anim": "Sword_Sweep_270", "windup": 0.35, "active": 0.2, "recovery": 0.6, "damage": 45, "poise": 50, "guardDmg": 35, "heat": 30, "stamina": 20, "arc": 270, "range": 2.6, "next": {} },
-        "guardBreak": { "anim": "Sword_Kick", "windup": 0.4, "active": 0.1, "recovery": 0.5, "damage": 10, "poise": 80, "guardDmg": 999, "heat": 0, "stamina": 15, "arc": 70, "range": 1.6, "unblockable": true, "parryable": false, "next": {} }
-      },
-      "chargeTime": 0.6
+ "_comment": "Times in seconds. windup = readable tell; active = hitbox sweeps; recovery = punish window. cancelAt = fraction of recovery after which dodge/guard can cancel. A weapon with `base` is that weapon's moveset with its own numbers merged over it (src/combat/melee/MeleeWeapons.js). visual.scale: blade length; visual.twoHanded: both hands on it for every attack. Attack extras: onHitStatus (a status on a clean hit), shieldMul (x damage while the target's shield is up), pull (m/s toward the attacker on a clean hit), lunge.",
+ "weapons": [
+  {
+   "id": "solari_dawnblade",
+   "name": "Dawnblade",
+   "faction": "solari",
+   "class": "flameSword",
+   "ammoType": "flame",
+   "visual": {
+    "model": "weapons/dawnblade.glb",
+    "socketBase": "socket_flame_base",
+    "socketTip": "socket_flame_tip",
+    "flameColor": "#ffb347"
+   },
+   "guard": {
+    "parryWindow": 0.15,
+    "perfectBlockWindow": 0.11,
+    "blockReduction": 0.8,
+    "guardMax": 100,
+    "parryWhiff": 0.35,
+    "deflectEnergy": true,
+    "deflectHeat": 6
+   },
+   "heat": {
+    "max": 100,
+    "ventPerSec": 14,
+    "ventDelay": 0.9,
+    "hotThreshold": 70,
+    "hotBurnBonus": 0.25,
+    "overheatDuration": 2.0,
+    "parryVent": 20
+   },
+   "attacks": {
+    "light1": {
+     "anim": "Sword_Slash_L1",
+     "windup": 0.18,
+     "active": 0.12,
+     "recovery": 0.28,
+     "damage": 28,
+     "poise": 18,
+     "guardDmg": 14,
+     "heat": 6,
+     "stamina": 6,
+     "arc": 110,
+     "range": 2.1,
+     "next": {
+      "light": "light2",
+      "heavy": "heavy1"
+     },
+     "chainWindow": 0.3
+    },
+    "light2": {
+     "anim": "Sword_Slash_R1",
+     "windup": 0.16,
+     "active": 0.12,
+     "recovery": 0.3,
+     "damage": 30,
+     "poise": 18,
+     "guardDmg": 14,
+     "heat": 6,
+     "stamina": 6,
+     "arc": 110,
+     "range": 2.1,
+     "next": {
+      "light": "light3",
+      "heavy": "thrust"
+     },
+     "chainWindow": 0.3
+    },
+    "light3": {
+     "anim": "Sword_Slash_Finisher",
+     "windup": 0.24,
+     "active": 0.14,
+     "recovery": 0.45,
+     "damage": 42,
+     "poise": 35,
+     "guardDmg": 26,
+     "heat": 9,
+     "stamina": 10,
+     "arc": 160,
+     "range": 2.3,
+     "next": {}
+    },
+    "heavy1": {
+     "anim": "Sword_Heavy_Overhead",
+     "windup": 0.48,
+     "active": 0.14,
+     "recovery": 0.55,
+     "damage": 70,
+     "poise": 60,
+     "guardDmg": 45,
+     "heat": 14,
+     "stamina": 18,
+     "arc": 60,
+     "range": 2.4,
+     "hyperArmor": [
+      0.2,
+      0.62
+     ],
+     "next": {
+      "light": "light2"
+     },
+     "chainWindow": 0.25
+    },
+    "thrust": {
+     "anim": "Sword_Thrust",
+     "windup": 0.3,
+     "active": 0.1,
+     "recovery": 0.4,
+     "damage": 48,
+     "poise": 30,
+     "guardDmg": 60,
+     "heat": 8,
+     "stamina": 12,
+     "arc": 25,
+     "range": 3.0,
+     "lunge": 4.5,
+     "next": {}
+    },
+    "slideSlash": {
+     "anim": "Sword_Slide_Slash",
+     "windup": 0.08,
+     "active": 0.16,
+     "recovery": 0.35,
+     "damage": 36,
+     "poise": 40,
+     "guardDmg": 20,
+     "heat": 8,
+     "stamina": 8,
+     "arc": 140,
+     "range": 2.2,
+     "next": {}
+    },
+    "counter": {
+     "anim": "Sword_Riposte",
+     "windup": 0.06,
+     "active": 0.12,
+     "recovery": 0.3,
+     "damage": 95,
+     "poise": 100,
+     "guardDmg": 0,
+     "heat": -10,
+     "stamina": 0,
+     "arc": 90,
+     "range": 2.4,
+     "unblockable": true,
+     "next": {
+      "light": "light2"
+     },
+     "chainWindow": 0.35
+    },
+    "flameWave": {
+     "anim": "Sword_Flame_Wave",
+     "windup": 0.6,
+     "active": 0.1,
+     "recovery": 0.5,
+     "damage": 55,
+     "poise": 45,
+     "guardDmg": 30,
+     "heat": 35,
+     "stamina": 20,
+     "projectile": {
+      "speed": 22,
+      "width": 3.2,
+      "range": 18,
+      "reflectOnParry": true
+     },
+     "next": {}
+    },
+    "sweepArc": {
+     "anim": "Sword_Sweep_270",
+     "windup": 0.35,
+     "active": 0.2,
+     "recovery": 0.6,
+     "damage": 45,
+     "poise": 50,
+     "guardDmg": 35,
+     "heat": 30,
+     "stamina": 20,
+     "arc": 270,
+     "range": 2.6,
+     "next": {}
+    },
+    "guardBreak": {
+     "anim": "Sword_Kick",
+     "windup": 0.4,
+     "active": 0.1,
+     "recovery": 0.5,
+     "damage": 10,
+     "poise": 80,
+     "guardDmg": 999,
+     "heat": 0,
+     "stamina": 15,
+     "arc": 70,
+     "range": 1.6,
+     "unblockable": true,
+     "parryable": false,
+     "next": {}
     }
-  ],
-  "_roster": [
-    "solari_dawnblade (balanced flame sword)", "solari_sunlance (energy spear, long thrusts)", "solari_aegis_saber (wide parry window, low damage)",
-    "void_ashsworn_blade (black flame, burn DoT, narrow parry)", "void_rift_cleaver (two-hand, hyper armor heavies)", "void_twin_embers (dual flame daggers, fast chains)",
-    "cinder_edge (degrades with use, huge burn)", "vibroblade (no heat, fast, low guard)", "power_fist (guard breaks, no parry; grapple)", "ion_halberd (shield damage x2)"
-  ]
+   },
+   "chargeTime": 0.6
+  },
+  {
+   "id": "solari_sunlance",
+   "base": "solari_dawnblade",
+   "name": "Sunlance",
+   "faction": "solari",
+   "class": "spear",
+   "ammoType": "plasma",
+   "_desc": "An energy spear: long thrusts that out-reach every sword, a narrow arc that a sidestep beats.",
+   "visual": {
+    "flameColor": "#ffe08a",
+    "scale": 1.55,
+    "twoHanded": true
+   },
+   "attacks": {
+    "light1": {
+     "anim": "Spear_Thrust_1",
+     "windup": 0.2,
+     "damage": 26,
+     "arc": 40,
+     "range": 3.0,
+     "lunge": 1.5
+    },
+    "light2": {
+     "anim": "Spear_Thrust_2",
+     "windup": 0.18,
+     "damage": 28,
+     "arc": 40,
+     "range": 3.0,
+     "lunge": 1.5
+    },
+    "light3": {
+     "anim": "Spear_Sweep",
+     "windup": 0.28,
+     "damage": 40,
+     "arc": 140,
+     "range": 2.8
+    },
+    "heavy1": {
+     "anim": "Spear_Lunge",
+     "windup": 0.5,
+     "damage": 72,
+     "arc": 30,
+     "range": 3.6,
+     "lunge": 6
+    },
+    "thrust": {
+     "range": 3.8,
+     "lunge": 6
+    }
+   }
+  },
+  {
+   "id": "solari_aegis_saber",
+   "base": "solari_dawnblade",
+   "name": "Aegis Saber",
+   "faction": "solari",
+   "class": "saber",
+   "_desc": "A defender's blade: the widest parry window and the best block, at the cost of damage.",
+   "visual": {
+    "flameColor": "#fff1c2",
+    "scale": 0.95
+   },
+   "guard": {
+    "parryWindow": 0.22,
+    "perfectBlockWindow": 0.15,
+    "blockReduction": 0.9
+   },
+   "attacks": {
+    "light1": {
+     "damage": 22
+    },
+    "light2": {
+     "damage": 24
+    },
+    "light3": {
+     "damage": 34
+    },
+    "heavy1": {
+     "damage": 56
+    },
+    "counter": {
+     "damage": 110
+    }
+   }
+  },
+  {
+   "id": "void_ashsworn_blade",
+   "base": "solari_dawnblade",
+   "name": "Ashsworn Blade",
+   "faction": "void",
+   "class": "flameSword",
+   "_desc": "Black flame: every cut scorches (a burn that builds), but the parry window is narrow.",
+   "visual": {
+    "flameColor": "#8b5cf6",
+    "scale": 1.0
+   },
+   "guard": {
+    "parryWindow": 0.11
+   },
+   "attacks": {
+    "light1": {
+     "onHitStatus": "scorch"
+    },
+    "light2": {
+     "onHitStatus": "scorch"
+    },
+    "light3": {
+     "onHitStatus": "scorch"
+    },
+    "heavy1": {
+     "onHitStatus": "scorch"
+    },
+    "sweepArc": {
+     "onHitStatus": "scorch"
+    }
+   }
+  },
+  {
+   "id": "void_rift_cleaver",
+   "base": "solari_dawnblade",
+   "name": "Rift Cleaver",
+   "faction": "void",
+   "class": "greatsword",
+   "_desc": "Two hands, slow and heavy: hyper armor through its big swings, so it trades instead of flinching.",
+   "visual": {
+    "flameColor": "#a970ff",
+    "scale": 1.3,
+    "twoHanded": true
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.24,
+     "damage": 36,
+     "poise": 30,
+     "range": 2.4
+    },
+    "light2": {
+     "windup": 0.24,
+     "damage": 38,
+     "poise": 30,
+     "range": 2.4
+    },
+    "light3": {
+     "windup": 0.34,
+     "damage": 58,
+     "poise": 60,
+     "range": 2.6,
+     "hyperArmor": [
+      0.1,
+      0.4
+     ]
+    },
+    "heavy1": {
+     "windup": 0.62,
+     "damage": 95,
+     "poise": 90,
+     "guardDmg": 70,
+     "range": 2.7,
+     "hyperArmor": [
+      0.1,
+      0.76
+     ]
+    }
+   }
+  },
+  {
+   "id": "void_twin_embers",
+   "base": "solari_dawnblade",
+   "name": "Twin Embers",
+   "faction": "void",
+   "class": "daggers",
+   "_desc": "Two flame daggers: the fastest chains in the game, short reach, little poise damage.",
+   "visual": {
+    "flameColor": "#c084fc",
+    "scale": 0.55
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.1,
+     "recovery": 0.2,
+     "damage": 18,
+     "poise": 8,
+     "range": 1.7,
+     "chainWindow": 0.38
+    },
+    "light2": {
+     "windup": 0.09,
+     "recovery": 0.2,
+     "damage": 18,
+     "poise": 8,
+     "range": 1.7,
+     "chainWindow": 0.38
+    },
+    "light3": {
+     "windup": 0.14,
+     "recovery": 0.32,
+     "damage": 30,
+     "poise": 20,
+     "range": 1.8
+    },
+    "heavy1": {
+     "windup": 0.3,
+     "damage": 50,
+     "range": 1.9,
+     "lunge": 5
+    }
+   }
+  },
+  {
+   "id": "cinder_edge",
+   "base": "solari_dawnblade",
+   "name": "Cinder Edge",
+   "faction": "any",
+   "class": "flameSword",
+   "_desc": "Runs hot: heat builds half again as fast, and once it's hot the burn is huge.",
+   "visual": {
+    "flameColor": "#ff5a1f",
+    "scale": 1.05
+   },
+   "heat": {
+    "hotThreshold": 55,
+    "hotBurnBonus": 0.6,
+    "ventPerSec": 10
+   },
+   "attacks": {
+    "light1": {
+     "heat": 9
+    },
+    "light2": {
+     "heat": 9
+    },
+    "light3": {
+     "heat": 14
+    },
+    "heavy1": {
+     "heat": 21
+    }
+   }
+  },
+  {
+   "id": "vibroblade",
+   "base": "solari_dawnblade",
+   "name": "Vibroblade",
+   "faction": "any",
+   "class": "blade",
+   "_desc": "No heat at all and quick, but its guard soaks little: a duelist's knife, not a wall.",
+   "visual": {
+    "flameColor": "#9fe8ff",
+    "scale": 0.8
+   },
+   "guard": {
+    "blockReduction": 0.5
+   },
+   "heat": {
+    "max": 9999,
+    "ventPerSec": 9999,
+    "hotThreshold": 99999
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.12,
+     "damage": 24
+    },
+    "light2": {
+     "windup": 0.12,
+     "damage": 24
+    },
+    "light3": {
+     "windup": 0.18,
+     "damage": 34
+    },
+    "heavy1": {
+     "windup": 0.4,
+     "damage": 60
+    }
+   }
+  },
+  {
+   "id": "power_fist",
+   "base": "solari_dawnblade",
+   "name": "Power Fist",
+   "faction": "any",
+   "class": "fist",
+   "_desc": "Breaks guards, can't parry: blows that crush a block, and a slam nobody can block.",
+   "visual": {
+    "flameColor": "#ffb347",
+    "scale": 0.25
+   },
+   "guard": {
+    "parryWindow": 0,
+    "perfectBlockWindow": 0,
+    "blockReduction": 0.6
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.16,
+     "damage": 26,
+     "guardDmg": 30,
+     "range": 1.6,
+     "arc": 70
+    },
+    "light2": {
+     "windup": 0.16,
+     "damage": 28,
+     "guardDmg": 30,
+     "range": 1.6,
+     "arc": 70
+    },
+    "light3": {
+     "windup": 0.22,
+     "damage": 40,
+     "guardDmg": 50,
+     "range": 1.7,
+     "arc": 80
+    },
+    "heavy1": {
+     "anim": "Fist_Slam",
+     "windup": 0.5,
+     "damage": 75,
+     "guardDmg": 120,
+     "poise": 100,
+     "range": 1.9,
+     "arc": 120,
+     "unblockable": true,
+     "parryable": false
+    }
+   }
+  },
+  {
+   "id": "ion_halberd",
+   "base": "solari_dawnblade",
+   "name": "Ion Halberd",
+   "faction": "any",
+   "class": "polearm",
+   "_desc": "A polearm with an ion edge: reach, and double damage to a raised shield.",
+   "visual": {
+    "flameColor": "#7fd6ff",
+    "scale": 1.6,
+    "twoHanded": true
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.22,
+     "damage": 28,
+     "range": 2.8,
+     "shieldMul": 2
+    },
+    "light2": {
+     "windup": 0.22,
+     "damage": 30,
+     "range": 2.8,
+     "shieldMul": 2
+    },
+    "light3": {
+     "windup": 0.3,
+     "damage": 42,
+     "range": 3.0,
+     "arc": 180,
+     "shieldMul": 2
+    },
+    "heavy1": {
+     "windup": 0.52,
+     "damage": 70,
+     "range": 3.1,
+     "shieldMul": 2
+    }
+   }
+  },
+  {
+   "id": "sol_combat_knife",
+   "base": "solari_dawnblade",
+   "name": "Combat Knife",
+   "faction": "solari",
+   "class": "knife",
+   "_desc": "A gunner's knife: quick, short, enough to finish a fight the rifle started.",
+   "visual": {
+    "flameColor": "#ffd27a",
+    "scale": 0.45
+   },
+   "attacks": {
+    "light1": {
+     "windup": 0.11,
+     "damage": 20,
+     "range": 1.6
+    },
+    "light2": {
+     "windup": 0.11,
+     "damage": 20,
+     "range": 1.6
+    },
+    "light3": {
+     "windup": 0.16,
+     "damage": 30,
+     "range": 1.7
+    },
+    "heavy1": {
+     "anim": "Knife_Stab",
+     "windup": 0.32,
+     "damage": 55,
+     "arc": 30,
+     "range": 1.8,
+     "lunge": 3
+    }
+   }
+  },
+  {
+   "id": "void_combat_hook",
+   "base": "solari_dawnblade",
+   "name": "Combat Hook",
+   "faction": "void",
+   "class": "hook",
+   "_desc": "A hooked blade: its cuts drag the victim in, into the next one.",
+   "visual": {
+    "flameColor": "#b994ff",
+    "scale": 0.7
+   },
+   "attacks": {
+    "light1": {
+     "damage": 22,
+     "range": 1.9,
+     "pull": 2.5
+    },
+    "light2": {
+     "damage": 24,
+     "range": 1.9,
+     "pull": 2.5
+    },
+    "light3": {
+     "damage": 34,
+     "range": 2.0,
+     "pull": 4
+    },
+    "heavy1": {
+     "damage": 58,
+     "range": 2.2,
+     "pull": 4
+    }
+   }
+  }
+ ],
+ "_roster": [
+  "solari_dawnblade (balanced flame sword)",
+  "solari_sunlance (An energy spear)",
+  "solari_aegis_saber (A defender's blade)",
+  "void_ashsworn_blade (Black flame)",
+  "void_rift_cleaver (Two hands, slow and heavy)",
+  "void_twin_embers (Two flame daggers)",
+  "cinder_edge (Runs hot)",
+  "vibroblade (No heat at all and quick, but its guard soaks little)",
+  "power_fist (Breaks guards, can't parry)",
+  "ion_halberd (A polearm with an ion edge)",
+  "sol_combat_knife (A gunner's knife)",
+  "void_combat_hook (A hooked blade)"
+ ]
 }

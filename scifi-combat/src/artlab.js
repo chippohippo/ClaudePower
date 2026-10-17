@@ -24,13 +24,15 @@ import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
 import { GunFx } from './vfx/GunFx.js';
 import { VehicleViews } from './vfx/VehicleViews.js';
+import { BASH } from './combat/melee/MeleeSystem.js';
+import { meleeWeapon } from './combat/melee/MeleeWeapons.js';
 import { bus } from './core/EventBus.js';
 
 const params = new URLSearchParams(location.search);
 const station = params.get('station') ?? 'sky';
 const palette = await fetch('./data/art/palette.json').then((r) => r.json());
 const planet = palette.planets[params.get('planet') ?? 'scorched'];
-const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems', 'gunfx'];
+const STATIONS = ['palette', 'sky', 'troopers', 'vehicles', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -96,6 +98,7 @@ async function scene3d() {
   if (station === 'scene') await sceneStation(scene, views, atmo);
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
   if (station === 'gunfx') await gunfxStation(scene, views, atmo);
+  if (station === 'melee') await meleeStation(scene, views, atmo);
   const viewNames = Object.keys(views);
   let view = params.get('view') ?? viewNames[0];
   const setView = (name) => {
@@ -255,7 +258,7 @@ async function fighters(scene, t, { max = 64, stratagems = null } = {}) {
     tickers.push(() => { tick(); draw(); });
     window.__art.people = people;
   };
-  return { add, start, world, people, tick, anim };
+  return { add, start, world, people, tick, anim, meleeWeapons: melee.weapons };
 }
 
 async function troopersStation(scene, views, atmo) {
@@ -495,6 +498,52 @@ async function stratagemsStation(scene, views, atmo) {
     enter: () => { call('orbital_barrage', at(-12, 44)); call('precision_strike', at(10, 38)); call('supply_drop', at(-5, 9)); call('sentry', at(7, 10)); call('smoke_screen', at(1, 20)); run(1.2); },
   };
   window.__art.call = call; window.__art.run = run; window.__art.sim = F.world; window.__art.anim = F.anim;
+}
+
+// Melee on the front (docs/GAMEPLAY_PLAN.md §4): every class's blade held in guard, a duel frozen
+// mid-swing (the sweep the sim tests is the arc the rig draws), a spear's thrust, the rifle-butt
+// shove and a finisher over a downed enemy. Poses are the sim's melee phases, held still.
+async function meleeStation(scene, views, atmo) {
+  const sd = atmo.sunDir, sa = Math.atan2(sd.x, sd.z) - 0.6, fwd = new THREE.Vector3(Math.sin(sa), 0, Math.cos(sa)), side = new THREE.Vector3(-fwd.z, 0, fwd.x);   // the sun behind the cameras
+  const at = (a, f) => new THREE.Vector3().addScaledVector(side, a).addScaledVector(fwd, f);
+  const { t } = scorchedGround(scene, { seed: 41, amp: 0.4, size: 300, z0: -150, flat: [[0, 0, 40]], craters: 4, spread: [100, 80] });
+  const F = await fighters(scene, t, { max: 32 });
+  const toward = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
+  /** Freeze a soldier's melee in a phase of an attack (or a guard). */
+  const hold = (e, phase, attackId = null, u = 0.5, def = null) => {
+    const m = e.melee;
+    m.update = () => {};
+    m.phase = phase; m.attackId = attackId; m.attack = def ?? (attackId ? m.w.attacks[attackId] : null);
+    m.phaseTime = m.attack ? (m.attack[phase === 'active' ? 'active' : phase === 'recovery' ? 'recovery' : 'windup'] ?? 0.2) * u : u;
+  };
+  // The blades: each class's own, both armies, in guard, facing the camera's side.
+  const row = ['dawnblade', 'veil', 'bastion', 'prism_adept', 'lancer', 'ashsworn', 'wraith', 'monolith', 'reaver', 'psion'];
+  const lineFace = toward(at(0, 0), at(0, 6));
+  const line = row.map((c, i) => F.add(c, i < 5 ? 0 : 1, at((i - 4.5) * 1.5, 0), lineFace, 'blade'));
+  // A duel mid-swing, a spear thrust beside it.
+  const A = F.add('dawnblade', 0, at(-4, -9), 0, 'blade'), B = F.add('ashsworn', 1, at(-4, -11), 0, 'blade');
+  const S = F.add('lancer', 0, at(2, -9), 0, 'blade'), T = F.add('reaver', 1, at(2, -11.6), 0, 'blade');
+  // The rifle butt, and a finisher.
+  const G = F.add('lancer', 0, at(-4, -18), 0, 'stand'), H = F.add('wraith', 1, at(-4, -19.4), 0, 'stand');
+  const K = F.add('bastion', 0, at(3, -18), 0, 'stand'), D = F.add('reaver', 1, at(3, -19.1), 0, 'stand');
+  for (const [p, q] of [[A, B], [S, T], [G, H], [K, D]]) {
+    const pp = p.movement.state.position, qq = q.movement.state.position;
+    F.people.find((x) => x.e === p).yaw = toward(pp, qq); F.people.find((x) => x.e === q).yaw = toward(qq, pp);
+  }
+  F.start();
+  for (const e of line) hold(e, 'guard', null, 0.5);
+  hold(A, 'active', 'light1', 0.55); hold(B, 'guard', null, 0.5);
+  S.melee.setMoveset(meleeWeapon(F.meleeWeapons, 'solari_sunlance')); hold(S, 'active', 'light1', 0.7); hold(T, 'stagger', null, 0.1);
+  hold(G, 'active', 'bash', 0.8, BASH); hold(H, 'stagger', null, 0.1);
+  Object.assign(D.movement.state, { downed: true, stance: 'prone' });
+  K.reviveJob = { patient: D, t: 0.55, need: 1.1, finish: true };
+  for (let i = 0; i < 40; i++) F.tick();
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  views.blades = { pos: y(at(0, 6.5), 1.45), look: y(at(0, 0), 1.15), fov: 48, note: 'every class its own blade: flame swords, a vibroblade, a power fist, an ion halberd, a knife, twin embers, a rift cleaver, a hook' };
+  views.duel = { pos: y(at(-0.2, -9.6), 1.5), look: y(at(-4, -10), 1.2), fov: 50, note: 'mid-swing: the arc the rig draws is the sweep the sim tests' };
+  views.spear = { pos: y(at(5.8, -10.1), 1.5), look: y(at(2, -10.3), 1.2), fov: 50, note: 'a spear\'s thrust: the longest reach on the front' };
+  views.bash = { pos: y(at(-1.6, -16.6), 1.4), look: y(at(-4, -18.7), 1.15), fov: 46, note: 'the rifle butt: a gunner\'s quick shove' };
+  views.finisher = { pos: y(at(5.4, -16.8), 1.5), look: y(at(3, -18.6), 0.6), fov: 46, note: 'a finisher over a downed enemy' };
 }
 
 // Small arms up close (docs/GAMEPLAY_PLAN.md §1, GunFx): rounds landing on each material side by

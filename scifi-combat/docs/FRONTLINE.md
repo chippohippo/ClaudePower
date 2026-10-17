@@ -10,7 +10,7 @@ EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
 `tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`,
-`tests/support-roles.test.mjs`.
+`tests/support-roles.test.mjs`, `tests/melee-front.test.mjs`.
 
 Battlefront Supremacy crossed with the Western Front. Two armies fight over a line of sectors
 separated by WW1 trench lines. Taking every point of the sector in front of your line moves the
@@ -257,6 +257,41 @@ shown on your status panel. Bots carry theirs too.
 | Psion | Mindread | hold your sights on an enemy for 0.5 s and see his ability cooldowns and super over his head |
 | Riftbreaker | Rift-Proof | half the damage from your own blasts; pulls don't move you |
 
+## Melee on the front (`MeleeSystem`, `MeleeWeapons`, `MeleeTells`)
+
+Every class carries its own blade (`data/weapons/melee.json`, by the class's `loadout.melee`; the
+flame knights carry their army's flame sword). A blade with a `base` is that moveset with its own
+numbers: reach, speed, guard, and extras like a status on a clean hit, double damage to a raised
+shield, a hook's pull.
+
+| Blade | Who | Its character |
+|---|---|---|
+| Dawnblade, Ashsworn Blade | flame knights | the balanced flame swords; the Ashsworn's cuts scorch, its parry is narrow |
+| Sunlance | no class by default | an energy spear: long thrusts, a narrow arc |
+| Aegis Saber | no class by default | the widest parry window and the best block, low damage |
+| Rift Cleaver | Monolith | two hands, slow, hyper armor through its big swings |
+| Twin Embers | Wraith | two flame daggers: the fastest chains, short reach |
+| Vibroblade | Veil | no heat at all, quick, a weak guard |
+| Power Fist | Bastion, Breacher, Riftbreaker | breaks guards, can't parry; an unblockable slam |
+| Ion Halberd | Prism Adept, Psion | reach, and double damage to a raised shield |
+| Combat Knife / Combat Hook | the Solari / Void gunners | quick and short; the hook drags its victim in |
+| Cinder Edge | no class by default | runs hot, and hot it burns hard |
+
+- **Swept hits.** The sim sweeps the blade along the rig's own keyframes (hand and blade in the
+  chest frame, the chest turned by the swing's twist, the strike accelerating through its arc),
+  four steps a tick, against the hit spheres: a slash passes over a man lying prone, misses one
+  behind you, and reaches as far as the blade you see (a knife about 1.3 m, a sword 1.9 m, a
+  spear 2.5 m). Bots close to their blade's reach before they swing.
+- **The rifle butt (V, pad R3)** for anyone with a gun out: 0.12 s up, 35 damage, a 0.4 s stagger
+  and a shove that can put a man off a parapet or back out of a doorway. Bots use it on an enemy
+  in their face.
+- **Finishers.** Hold **X** over a downed enemy (none of yours to revive there): you kneel over
+  him and he dies 1.1 s later (the finish's battle points are yours); the camera pulls out to
+  frame you both. Bots finish the downed close by when nothing else is standing.
+- **Windup chevrons.** Every enemy within 6 m winding up a swing at you shows as a chevron on a
+  ring round the crosshair, pointing at him: amber if you can block it, red if you can't,
+  flashing white in the last tenth of the windup.
+
 ## Downs, ragdolls and reinforcements
 
 - **Down but not out** (`data/down.json`, `Health`, `ReviveSystem`): at 0 HP you're downed, not dead,
@@ -439,6 +474,7 @@ dropships are arena-only).
 | Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
 | Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms, your battle points and every price (BUY 400 on one that's cooling down, lit when you can pay); with a beacon in hand, which one, how to throw it and what it will cost; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
 | Battle points (`BattlePointsHud`) | The total on the status panel; a line under the crosshair per thing you did, repeats adding up on one line, and what you spend or lose on death |
+| Melee (`MeleeTells`) | Chevrons round the crosshair for swings coming at you (amber blockable, red not, white: now); HOLD X TO FINISH over a downed enemy, FINISHING with its progress |
 | Support | Your passive and items on the status panel; **3 STIM** facing a hurt or downed teammate, **HOLD H TO REPAIR** beside a damaged vehicle of ours, REPAIRING with the hull's health; enemies a spotter revealed glow red and show on the minimap; Mindread's line over the enemy in your sights |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
 | Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |

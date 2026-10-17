@@ -130,6 +130,14 @@ drops itself the tank if it can keep its reserve, else the recon vehicle, 8 m to
 teammate within reach of the cradle; its pilot (`VehiclePilot`) then boards it like any other.
 Since dying halves a bot's points, most never save up; the best ones spend a few times a match.
 
+### Melee
+
+Duelists close to their blade's real reach (`MeleeComponent.reach`: the hand, the blade, a body's
+half-width), since a swing lands only where the blade sweeps. A gunner with an enemy within 1.7 m
+in front of him drives the rifle butt into him (at most every second or so). A bot with a downed
+enemy within 6 m, nobody else standing within 15 m, not under fire and above half health walks
+over and finishes him.
+
 ### Items (`ItemPlanner`)
 
 Support items (see [FRONTLINE.md](FRONTLINE.md)) with the same key a player presses. A medic with

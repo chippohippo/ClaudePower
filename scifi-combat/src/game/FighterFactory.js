@@ -7,6 +7,7 @@ import { buildWeapon } from '../combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from '../combat/AbilitySystem.js';
 import { StatusComponent } from '../combat/StatusSystem.js';
 import { MeleeComponent } from '../combat/melee/MeleeSystem.js';
+import { meleeFor } from '../combat/melee/MeleeWeapons.js';
 import { Health } from '../combat/Health.js';
 import { reactToHit } from '../combat/HitReactions.js';
 import { silhouetteScale } from '../movement/Hitboxes.js';
@@ -57,7 +58,7 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   e.onDowned = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };
   e.onDied = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };
   e.onRevived = () => e.movement.getUpFromDown();
-  e.melee = new MeleeComponent(data.meleeWeapons[0], e, world);
+  e.melee = new MeleeComponent(meleeFor(data.meleeWeapons, cls, faction), e, world);   // the class's own blade (data/weapons/melee.json)
   e.weapons = new WeaponComponent(e, resolveGuns(data, cls, faction).map((s) => new WeaponInstance(s, data.recoil)), world);
   e.abilities = new AbilityComponent(e, data.kits[classId], world);
   // Call-ins: the common pair and the role's (data/stratagems.json), if the world has any.

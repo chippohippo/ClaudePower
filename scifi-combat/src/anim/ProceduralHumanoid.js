@@ -1052,6 +1052,17 @@ export class ProceduralHumanoid {
       dir.addScaledVector(F.r, Math.sin(ph * 2) * 0.07 * (1 - raise)).normalize();
       butt.addScaledVector(F.d, Math.abs(Math.sin(ph * 2)) * 0.02 * sc * (1 - raise));
     }
+    // The quick melee: the gun comes back and up, then the butt drives forward and returns.
+    const m = e.melee;
+    if (m?.attackId === 'bash' && (m.phase === 'windup' || m.phase === 'active' || m.phase === 'recovery')) {
+      const a = m.attack, t = Math.max(0, m.phaseTime - this.lag);
+      const ub = m.phase === 'windup' ? ease(clamp(t / a.windup, 0, 1)) : 1;
+      const thrust = m.phase === 'windup' ? -0.16 * ub : m.phase === 'active' ? lerp(-0.16, 0.5, easeOut(clamp(t / a.active, 0, 1))) : lerp(0.5, 0, ease(clamp(t / a.recovery, 0, 1)));
+      const tilt = m.phase === 'recovery' ? lerp(0.95, 0, ease(clamp(t / a.recovery, 0, 1))) : 0.95 * ub;
+      _d.set(-Math.sin(s.yaw), 0, -Math.cos(s.yaw));
+      butt.addScaledVector(_d, thrust * sc).addScaledVector(UP, 0.08 * ub * sc);
+      dir.addScaledVector(UP, tilt).normalize();
+    }
     // Gun frame.
     _r.crossVectors(dir, UP);
     if (_r.lengthSq() < 1e-6) _r.copy(F.r);
@@ -1187,7 +1198,7 @@ export class ProceduralHumanoid {
     _r.crossVectors(pr.dir, F.d); if (_r.lengthSq() < 1e-6) _r.copy(F.r);
     pr.up.crossVectors(_r.normalize(), pr.dir).normalize();
     pr.glow = (m.heat ?? 0) / 100 + (m.phase === 'active' ? 0.8 : 0);
-    const two = sw.twoHanded.includes(m.attackId) && (m.phase === 'windup' || m.phase === 'active' || m.phase === 'recovery');
+    const two = (m.w?.visual?.twoHanded || sw.twoHanded.includes(m.attackId)) && (m.phase === 'windup' || m.phase === 'active' || m.phase === 'recovery');   // spears and cleavers: both hands
     pr.twoHanded = two || m.phase === 'guard';
     if (pr.twoHanded) this.handT[0].copy(this.handT[1]).addScaledVector(pr.dir, -0.1 * sc);
     else frameToWorld(F, neck, (-0.24 - out.tw * 0.12) * sc, -0.36 * sc, (0.22 + out.tw * 0.05) * sc, this.handT[0]);

@@ -7,9 +7,16 @@
 //
 // Everything is time-based and data-driven (data/weapons/melee.json). Presentation listens
 // to `melee:*` events for hit-stop, VFX (flame burst), audio, camera kick, HUD indicators.
+//
+// Hits (docs/GAMEPLAY_PLAN.md §4): with the rig's sword keyframes (data/animation/humanoid.json
+// `sword`, given to the MeleeSystem), the blade is swept between ticks the way the rig swings it
+// (hand and blade direction in the chest frame, the chest turned by the swing's twist) and tested
+// against the hit spheres: what you see is what hits. Without them, a cone in front.
+// Every gunner also has a quick melee (`bash`, V): a rifle-butt shove that staggers and pushes.
 
 import { Vector3 } from 'three';
 import { bus } from '../../core/EventBus.js';
+import { hitSpheres } from '../../movement/Hitboxes.js';
 
 export const MeleePhase = Object.freeze({
   IDLE: 'idle', WINDUP: 'windup', ACTIVE: 'active', RECOVERY: 'recovery',
@@ -23,6 +30,13 @@ export const HitResult = Object.freeze({
 });
 
 const _toTarget = new Vector3();
+const _hand = new Vector3(), _dir = new Vector3(), _a = new Vector3(), _b = new Vector3(), _seg = new Vector3(), _q = new Vector3();
+
+/**
+ * The quick melee every gunner carries (the bash key): a rifle-butt shove, 0.12 s up, 35 damage,
+ * a 0.4 s stagger and a push that can put a man off a parapet or back out of a doorway.
+ */
+export const BASH = Object.freeze({ anim: 'Rifle_Bash', windup: 0.12, active: 0.08, recovery: 0.25, damage: 35, poise: 0, guardDmg: 25, heat: 0, stamina: 8, arc: 70, range: 1.8, stagger: 0.4, shove: 5.5, next: {} });
 
 export class MeleeComponent {
   /**
@@ -72,6 +86,8 @@ export class MeleeComponent {
   }
 
   get busy() { return this.phase === MeleePhase.WINDUP || this.phase === MeleePhase.ACTIVE || this.phase === MeleePhase.RECOVERY; }
+  /** How far from you a swing lands on a body (m): the hand's reach, the blade, a target's half-width. */
+  get reach() { return (0.82 + 1.05 * (this.w.visual?.scale ?? 1)) * (this.owner.movement.hooks?.scale?.() ?? 1); }
   get guarding() { return this.phase === MeleePhase.GUARD; }
   get vulnerable() { return this.phase === MeleePhase.STAGGER || this.phase === MeleePhase.GUARD_BROKEN; }
 
@@ -93,6 +109,11 @@ export class MeleeComponent {
     }
     if (ms.mode === 'knockdown' || ms.mode === 'ragdoll' || ms.downed || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'vehicle') { this.queued = null; return; }
 
+    // The gunner's quick melee: from rest with a gun out (the sword has its own attacks).
+    if (b.bash?.pressed && this.owner.mode === 'gun' && this.phase === MeleePhase.IDLE) {
+      this.owner.weapons?.interrupt?.('melee');
+      return this.#startAttack('bash', BASH);
+    }
     // Input buffering: a press during an attack is remembered and fired at the earliest legal frame.
     if (b.light?.pressed) this.queued = 'light';
     if (b.heavy?.pressed) { this.queued = 'heavy'; this.chargeTime = 0; }
@@ -116,6 +137,7 @@ export class MeleeComponent {
         }
         if (this.phaseTime >= this.attack.windup) {
           this.hitThisSwing.clear();
+          this.sweptT = 0; this.swept = this.attack;          // the blade is swept from here (MeleeSystem)
           this.#setPhase(MeleePhase.ACTIVE);
           if (this.attack.lunge) mv.state.velocity.addScaledVector(this.#forward(), this.attack.lunge);
           if (this.attack.projectile) this.#launchProjectile(this.attack);
@@ -234,7 +256,8 @@ export class MeleeComponent {
     const vulnerableBonus = this.vulnerable ? 1.5 : 1;
     // A backstab (the class passive: Ghoststep doubles it, From Nowhere suppresses).
     const stab = attacker.owner.perks?.backstab && this.#forward().dot(hitDir) > 0.5 ? attacker.owner.perks.backstab : null;
-    const dmg = attack.damage * (hot ? 1 + attacker.w.heat.hotBurnBonus : 1) * vulnerableBonus * (stab?.mul ?? 1);
+    const shieldUp = (this.owner.health.shield ?? 0) > 0 || (this.owner.health.overshield ?? 0) > 0;
+    const dmg = attack.damage * (hot ? 1 + attacker.w.heat.hotBurnBonus : 1) * vulnerableBonus * (stab?.mul ?? 1) * (shieldUp ? attack.shieldMul ?? 1 : 1);
     this.owner.health.damage(dmg, attack, attacker.owner);
     if (attack.onHitStatus) this.owner.status?.apply(attack.onHitStatus, { source: attacker.owner });
     if (stab?.status) this.owner.status?.apply(stab.status, { duration: stab.duration, source: attacker.owner });
@@ -243,8 +266,12 @@ export class MeleeComponent {
     const inHyper = this.attack?.hyperArmor && this.phase !== MeleePhase.IDLE &&
       this.phaseTime >= this.attack.hyperArmor[0] && this.phaseTime <= this.attack.hyperArmor[1];
     this.poise -= attack.poise;
-    if (!inHyper && (this.poise <= 0 || this.busy)) this.#stagger(this.poise <= 0 ? 0.8 : 0.35, 'flinch');
+    if (attack.stagger && !inHyper) this.#stagger(attack.stagger, 'bash');
+    else if (!inHyper && (this.poise <= 0 || this.busy)) this.#stagger(this.poise <= 0 ? 0.8 : 0.35, 'flinch');
     if (this.poise <= 0) this.poise = 60;
+    // A shove puts him back (off a parapet, out of a doorway); a hook drags him in.
+    if (attack.shove && !inHyper) mv.state.velocity.addScaledVector(hitDir, attack.shove * (this.owner.perks?.knockback ?? 1));   // (Mass: not at all)
+    if (attack.pull) mv.state.velocity.addScaledVector(hitDir, -attack.pull);
 
     bus.emit('melee:hit', {
       attacker: attacker.owner.id, defender: this.owner.id, damage: dmg, crit: this.vulnerable || hot || !!stab, backstab: !!stab,
@@ -262,15 +289,15 @@ export class MeleeComponent {
   }
 
   // ----------------------------------------------------------------- internals
-  #startAttack(id) {
-    const a = this.w.attacks[id];
+  #startAttack(id, def = this.w.attacks[id]) {
+    const a = def;
     if (!a) { this.queued = null; if (this.phase === MeleePhase.CHARGING) this.#setPhase(MeleePhase.IDLE); return; }
     if (this.projectileAmmo.has(id) && this.projectileAmmo.get(id) <= 0) { bus.emit('melee:noAmmo', { id: this.owner.id, attack: id }); this.queued = null; return; }
     const mv = this.owner.movement;
     if (a.stamina > 0 && !mv.spendStamina(a.stamina)) { bus.emit('melee:noStamina', { id: this.owner.id }); this.queued = null; return; }
     if (this.overheated > 0 && (id === 'flameWave' || id === 'sweepArc')) id = 'heavy1';
     this.attackId = id;
-    this.attack = this.w.attacks[id];
+    this.attack = a;
     this.queued = null;
     this.#addHeat(this.attack.heat);
     mv.state.locks.sprint = this.attack.windup + this.attack.active + this.attack.recovery;
@@ -346,34 +373,121 @@ const _fwdScratch = new Vector3();
 
 /** Resolves overlaps between active attacks and targets. Server-authoritative online. */
 export class MeleeSystem {
-  constructor() { this.components = []; }
+  /** @param {object} o { blades: data/animation/humanoid.json `sword` (the rig's keyframes: swept hits) } */
+  constructor({ blades = null } = {}) { this.components = []; this.blades = blades; }
   add(c) { this.components.push(c); return c; }
   remove(c) { this.components = this.components.filter((x) => x !== c); }
 
   resolve() {
     for (const atk of this.components) {
-      if (atk.phase !== MeleePhase.ACTIVE || !atk.attack || atk.attack.projectile) continue;
-      const a = atk.attack;
-      const origin = atk.owner.movement.state.position;
-      const fwd = atk._forward();
-      const cosHalfArc = Math.cos(((a.arc ?? 90) * Math.PI) / 360);
+      // An attack's active window, and the tick it ended in (the rest of its sweep is still tested).
+      const a = atk.phase === MeleePhase.ACTIVE ? atk.attack : atk.phase === MeleePhase.RECOVERY && atk.swept === atk.attack && atk.sweptT < (atk.attack?.active ?? 0) ? atk.attack : null;
+      if (!a || a.projectile) continue;
+      const keys = this.blades && keysFor(this.blades, atk.attackId, a);
+      if (keys) this.#sweep(atk, a, keys);
+      else if (atk.phase === MeleePhase.ACTIVE) this.#cone(atk, a);
+    }
+  }
 
-      const world = atk.world;
-      for (const def of this.components) {
-        if (def === atk || atk.hitThisSwing.has(def.owner.id)) continue;
-        // Friendly fire: a swing lands on whoever is in its arc, teammates too (rules: melee 0 or 1).
-        if (def.owner.team === atk.owner.team && !(world?.harm ? world.harm(atk.owner.team, def.owner, 'melee') : 0)) continue;
-        if ((def.owner.vehicle && !def.owner.vehicle.exposed) || atk.owner.vehicle) continue; // swords can't reach inside hulls
-        _toTarget.subVectors(def.owner.movement.state.position, origin);
-        _toTarget.y = 0;
-        const dist = _toTarget.length();
-        if (dist > a.range || dist < 1e-3) continue;
-        _toTarget.divideScalar(dist);
-        if (_toTarget.dot(fwd) < cosHalfArc) continue;
-        // TODO: replace cone test with swept capsule (socket_flame_base→tip between ticks) vs hitbox capsules.
-        atk.hitThisSwing.add(def.owner.id);
-        def.receiveHit(atk, a, _toTarget.clone());
+  /** May this swing land on def at all (friendly fire rules, hulls)? */
+  #eligible(atk, def) {
+    if (def === atk || atk.hitThisSwing.has(def.owner.id) || def.owner.health?.dead) return false;
+    // Friendly fire: a swing lands on whoever it meets, teammates too (rules: melee 0 or 1).
+    if (def.owner.team === atk.owner.team && !(atk.world?.harm ? atk.world.harm(atk.owner.team, def.owner, 'melee') : 0)) return false;
+    return !((def.owner.vehicle && !def.owner.vehicle.exposed) || atk.owner.vehicle);   // swords can't reach inside hulls
+  }
+
+  #land(atk, def, a) {
+    const origin = atk.owner.movement.state.position;
+    _toTarget.subVectors(def.owner.movement.state.position, origin); _toTarget.y = 0;
+    const d = _toTarget.length();
+    if (d > 1e-3) _toTarget.divideScalar(d); else _toTarget.copy(atk._forward());
+    atk.hitThisSwing.add(def.owner.id);
+    def.receiveHit(atk, a, _toTarget.clone());
+  }
+
+  /** No blade to sweep (the bash, or no keyframes): whoever is within reach in the arc in front. */
+  #cone(atk, a) {
+    const origin = atk.owner.movement.state.position, fwd = atk._forward();
+    const cosHalfArc = Math.cos(((a.arc ?? 90) * Math.PI) / 360);
+    for (const def of this.components) {
+      if (!this.#eligible(atk, def)) continue;
+      _toTarget.subVectors(def.owner.movement.state.position, origin);
+      _toTarget.y = 0;
+      const dist = _toTarget.length();
+      if (dist > a.range || dist < 1e-3) continue;
+      if (_toTarget.dot(fwd) / dist < cosHalfArc) continue;
+      this.#land(atk, def, a);
+    }
+  }
+
+  /**
+   * The blade swept from where it was at the last resolve to where it is now, in four steps a
+   * tick (the tip of a fast swing covers ~0.7 m a tick), each step's base-to-tip segment tested
+   * against the hit spheres of everyone within reach.
+   */
+  #sweep(atk, a, keys) {
+    const t0 = atk.sweptT ?? 0, t1 = Math.min(a.active, atk.phase === MeleePhase.ACTIVE ? atk.phaseTime : a.active);
+    atk.sweptT = t1;
+    const origin = atk.owner.movement.state.position;
+    const scale = atk.owner.movement.hooks?.scale?.() ?? 1;
+    const len = (this.blades.length ?? 1.05) * (atk.w.visual?.scale ?? 1) * scale;
+    const reach = Math.max(a.range ?? 2, len + 0.7 * scale) + 0.6;
+    const near = [];
+    for (const def of this.components) {
+      if (!this.#eligible(atk, def)) continue;
+      const q = def.owner.movement.state.position;
+      if (Math.hypot(q.x - origin.x, q.z - origin.z) <= reach) near.push(def);
+    }
+    if (!near.length) return;
+    const steps = t1 > t0 ? 4 : 1;
+    for (let k = 0; k <= steps; k++) {
+      if (k === 0 && t0 > 0) continue;                       // tested at the end of the last sweep
+      bladeAt(atk, keys, a, t0 + ((t1 - t0) * k) / steps, len, scale, _a, _b);
+      for (const def of near) {
+        if (atk.hitThisSwing.has(def.owner.id)) continue;
+        for (const s of hitSpheres(def.owner)) {
+          if (segDist2(_a, _b, s) <= (s.r + 0.06) ** 2) { this.#land(atk, def, a); break; }
+        }
       }
     }
   }
+}
+
+/** The rig's keyframes for an attack (the same lookup as ProceduralHumanoid): by id, by a fragment of it, else the light pair. */
+function keysFor(sw, id, a) {
+  if (!id || id === 'bash' || !sw?.attacks) return null;
+  if (sw.attacks[id]) return sw.attacks[id];
+  for (const [frag, k] of Object.entries(sw.fallbacks ?? {})) if (id.toLowerCase().includes(frag)) return sw.attacks[k];
+  return id.endsWith('2') ? sw.attacks.light2 : sw.attacks.light1;
+}
+
+const lerp = (a, b, t) => a + (b - a) * t;
+/** Where the blade is `t` s into the active window: base and tip, world space (as the rig swings it). */
+function bladeAt(atk, kf, a, t, len, scale, base, tip) {
+  const arc = [kf.wind, ...kf.arc], n = arc.length - 1;
+  const u = Math.max(0, Math.min(1, t / Math.max(0.01, a.active)));
+  const ua = u * u * n, i = Math.min(n - 1, Math.floor(ua)), f = ua - i;      // easeIn, as the rig
+  const h0 = arc[i].h, h1 = arc[i + 1].h, b0 = arc[i].b, b1 = arc[i + 1].b;
+  const tw = lerp(kf.wind.tw ?? 0, kf.follow?.tw ?? 0, ua / n), p = lerp(kf.wind.pitch ?? 0, kf.follow?.pitch ?? 0, ua / n);
+  const s = atk.owner.movement.state, yaw = s.yaw + tw;
+  const sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(p), cp = Math.cos(p);
+  // The chest frame (bodyFrame): right, up along the spine, front.
+  const rx = cy, rz = -sy, dx = -sy * sp, dy = cp, dz = -cy * sp, nx = -sy * cp, ny = -sp, nz = -cy * cp;
+  const neckY = s.position.y + (s.stance === 'crouch' ? 1.06 : s.stance === 'prone' ? 0.4 : 1.44) * scale;
+  const hx = lerp(h0[0], h1[0], f) * scale, hy = lerp(h0[1], h1[1], f) * scale, hz = lerp(h0[2], h1[2], f) * scale;
+  _hand.set(s.position.x + rx * hx + dx * hy + nx * hz, neckY + dy * hy + ny * hz, s.position.z + rz * hx + dz * hy + nz * hz);
+  const bx = lerp(b0[0], b1[0], f), by = lerp(b0[1], b1[1], f), bz = lerp(b0[2], b1[2], f);
+  _dir.set(rx * bx + dx * by + nx * bz, dy * by + ny * bz, rz * bx + dz * by + nz * bz).normalize();
+  base.copy(_hand).addScaledVector(_dir, 0.08 * scale);
+  tip.copy(_hand).addScaledVector(_dir, len);
+}
+
+/** Squared distance from a sphere's centre { x, y, z } to the segment a-b. */
+function segDist2(a, b, c) {
+  _seg.subVectors(b, a);
+  const L2 = _seg.lengthSq();
+  const t = L2 > 1e-9 ? Math.max(0, Math.min(1, ((c.x - a.x) * _seg.x + (c.y - a.y) * _seg.y + (c.z - a.z) * _seg.z) / L2)) : 0;
+  _q.copy(a).addScaledVector(_seg, t);
+  return (c.x - _q.x) ** 2 + (c.y - _q.y) ** 2 + (c.z - _q.z) ** 2;
 }

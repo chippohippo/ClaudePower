@@ -4,9 +4,13 @@
 //    health. Medics are twice as fast and bring them back healthier. Letting go, going down
 //    yourself, or the patient dying cancels it.
 //  * Downed soldiers hold jump for giveUpHold to die now and respawn sooner.
+//  * Finishers: the same hold beside a downed ENEMY (none of ours to revive there) kneels you over
+//    him for finisherTime (1.1 s) and kills him; he keeps bleeding meanwhile, and letting go,
+//    going down or his being revived first stops it. Credit and battle points as any finish.
 // The session calls handleInput(fighter, cmd, dt) for everyone before vehicles; it returns true
 // while the fighter is busy reviving (the session then strips their movement and actions).
-// Events: revive:start { id, patient, duration }, revive:cancel, revive:done, revive:giveUp.
+// Events: revive:start { id, patient, duration }, revive:cancel, revive:done, revive:giveUp,
+// finisher:start { id, victim, duration }, finisher:done { id, victim }, finisher:cancel { id, victim }.
 
 import { bus } from '../core/EventBus.js';
 
@@ -25,6 +29,19 @@ export class ReviveSystem {
   reviverOf(patientId) { for (const [id, j] of this.jobs) if (j.patient.id === patientId) return this.world.entity(id); return null; }
 
   isMedic(f) { return !!f.role && (this.cfg?.medicRoles ?? []).includes(f.role); }
+
+  /** A downed enemy the fighter could finish right now (nearest in range, not already being finished). */
+  victimFor(f) {
+    const c = this.cfg, me = f.movement.state.position;
+    if (!c) return null;
+    let best = null, bd = c.reviveRange;
+    this.world.fightersNear(me, c.reviveRange + 1, (e) => {
+      if (e.team === f.team || !e.health?.downed || e.health.dead || e.isVehicle || e.isDeployable || e.finishedBy) return;
+      const d = e.movement.state.position.distanceTo(me);
+      if (d <= bd) { bd = d; best = e; }
+    });
+    return best;
+  }
 
   /** Downed teammate the fighter could revive right now (nearest in range). */
   patientFor(f) {
@@ -59,7 +76,7 @@ export class ReviveSystem {
     if (!hold || h.dead || f.vehicle || f.movement.state.mode === 'ragdoll' || f.movement.state.mode === 'knockdown') { this.#cancel(f.id, 'released'); return false; }
     if (!job) {
       const p = this.patientFor(f);
-      if (!p) return false;
+      if (!p) return this.#finisher(f, dt);
       const medic = this.isMedic(f);
       job = { patient: p, t: 0, need: (medic ? c.medicReviveTime : c.reviveTime) / (f.perks?.reviveRate ?? 1), hp: medic ? c.medicReviveHp : c.reviveHp };   // Triage: faster still
       this.jobs.set(f.id, job);
@@ -80,7 +97,41 @@ export class ReviveSystem {
     return true;
   }
 
+  /** Holding interact over a downed enemy: kneel and finish him. True while at it. */
+  #finisher(f, dt) {
+    const c = this.cfg;
+    let job = this.finishing?.get(f.id);
+    if (!job) {
+      const v = this.victimFor(f);
+      if (!v) return false;
+      job = { victim: v, t: 0, need: c.finisherTime ?? 1.1, finish: true };
+      (this.finishing ??= new Map()).set(f.id, job);
+      v.finishedBy = f.id;
+      f.reviveJob = { patient: v, t: 0, need: job.need, finish: true };       // the rig kneels him over the victim
+      bus.emit('finisher:start', { id: f.id, victim: v.id, duration: job.need });
+    }
+    const v = job.victim;
+    if (!v.health.downed || v.health.dead || v.movement.state.position.distanceTo(f.movement.state.position) > c.reviveRange + 0.6) { this.#endFinisher(f, 'lost'); return false; }
+    job.t += dt; f.reviveJob.t = job.t;
+    if (job.t < job.need) return true;
+    this.#endFinisher(f, null);
+    v.health.damage(v.health.downHp + 1, { kind: 'finisher', melee: true, noDown: true }, f);
+    bus.emit('finisher:done', { id: f.id, victim: v.id });
+    return false;
+  }
+
+  #endFinisher(f, why) {
+    const job = this.finishing?.get(f.id);
+    if (!job) return;
+    this.finishing.delete(f.id);
+    if (job.victim.finishedBy === f.id) job.victim.finishedBy = null;
+    f.reviveJob = null;
+    if (why) bus.emit('finisher:cancel', { id: f.id, victim: job.victim.id, why });
+  }
+
   #cancel(id, why) {
+    const f0 = this.finishing?.has(id) ? this.world.entity(id) : null;
+    if (f0) this.#endFinisher(f0, why);
     const job = this.jobs.get(id);
     if (!job) return;
     this.jobs.delete(id);

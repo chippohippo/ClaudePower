@@ -229,6 +229,8 @@ export class CombatBotBrain {
 
     // ---- revive a downed teammate (the ReviveSystem kneels us once we hold interact beside them)
     if (this.#revive(dt, ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
+    // ---- finish a downed enemy close by when nothing else is standing near (a finisher: hold interact over him)
+    if (this.#finisher(ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
 
     // ---- abilities (may set an aim override for their cast)
     if (!self.transform || self.abilities.casting?.key !== 'super') this.#abilities(ctx);
@@ -399,6 +401,33 @@ export class CombatBotBrain {
       cmd.yaw = Math.atan2(-(pp.x - me.x), -(pp.z - me.z)); cmd.pitch = -0.6; this.aimYaw = cmd.yaw;
       this.btn.hold('interact');
     }
+    return true;
+  }
+
+  /** A downed enemy within 6 m and no fight on: walk over and finish him. True while this owns the command. */
+  #finisher(ctx, cmd) {
+    const self = this.self, rv = this.world.revives;
+    if (!rv?.cfg || self.vehicle || self.duty || ctx.underFire || ctx.selfHp < 0.5) { this.finishGoal = null; return false; }
+    if (self.reviveJob?.finish) { this.btn.hold('interact'); return true; }        // at it: keep holding
+    let v = this.finishGoal;
+    if (v && (!v.health.downed || v.health.dead || (v.finishedBy && v.finishedBy !== self.id))) v = this.finishGoal = null;
+    if (!v) {
+      if (this.time < (this.finishLook ?? 0)) return false;
+      this.finishLook = this.time + 0.8;
+      if (ctx.target && ctx.los && !ctx.target.e.health?.downed && ctx.dist < 15) return false;   // someone's still standing
+      const me = self.movement.state.position;
+      let bd = 6;
+      this.world.fightersNear(me, 6, (e) => {
+        if (e.team === self.team || !e.health?.downed || e.health.dead || e.isVehicle || e.finishedBy) return;
+        const d = e.movement.state.position.distanceTo(me);
+        if (d < bd) { bd = d; v = e; }
+      });
+      if (!v) return false;
+      this.finishGoal = v;
+    }
+    const me = self.movement.state.position, p = v.movement.state.position, d = p.distanceTo(me);
+    if (d > rv.cfg.reviveRange * 0.75) { this.#moveToward(cmd, p, false); this.moveDir.set(p.x - me.x, 0, p.z - me.z).normalize(); this.hasMoveDir = true; this.#worldMove(cmd, this.moveDir); }
+    else { cmd.yaw = this.aimYaw = Math.atan2(-(p.x - me.x), -(p.z - me.z)); cmd.pitch = -0.6; this.btn.hold('interact'); }
     return true;
   }
 
@@ -655,6 +684,11 @@ export class CombatBotBrain {
     const comp = this.diff.recoilComp;
     cmd.yaw = this.aimYaw + ey - wc.recoilYaw * comp;
     cmd.pitch = this.aimPitch + ep - wc.recoilPitch * comp;
+    // In his face: the rifle butt (quicker than a reload, and it shoves him back off you).
+    if (self.mode === 'gun' && !t.isVehicle && !t.isObject && ctx.los && ctx.dist < 1.7 && !t.e.health?.downed && self.melee?.phase === 'idle' && this.time > (this.bashNext ?? 0)) {
+      this.btn.press('bash');
+      this.bashNext = this.time + 1 + this.rand() * 0.8;
+    }
 
     // Positioning: hold the personality's range band, strafe, flank, sprint to close.
     if (!moving) {

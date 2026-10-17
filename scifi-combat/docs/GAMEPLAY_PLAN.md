@@ -241,6 +241,11 @@ values).
    All twenty class passives are live, each with its numbers in `data/passives.json`. Bots use
    items with the same key and repair before boarding a damaged vehicle. The HUD shows your
    passive, items and prompts; a spotter's marks glow red; Mindread reads cooldowns.
+8. **Melee on the front** (P1). Eleven new blades, one per class (spear, saber, cleaver, twin
+   daggers, vibroblade, power fist, halberd, knife, hook, cinder edge, the Ashsworn's), built as
+   overrides of a base moveset. Hits are the blade swept along the rig's arc against the hit
+   spheres. A rifle-butt shove (V) for every gunner, finishers on the downed (hold X), windup
+   chevrons round the crosshair; bots use all three.
 
-Next, by the priority order: melee readability on the front (P1), bot callouts and flanking
-(P1), then the camera, the director and audio (P2).
+Next, by the priority order: bot callouts and flanking (P1), then the camera, the director and
+audio (P2).

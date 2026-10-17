@@ -78,14 +78,16 @@ export class MeleeDuelistBrain {
 
     // 2) Punish: target staggered or whiffed a parry → go in.
     const tm = t.melee;
+    // How far the blade really reaches (the swing is swept along the rig's arc): close to that.
+    const reach = this.self.melee.reach ?? 2.1;
     if (tm.vulnerable || tm.phase === MeleePhase.PARRY_WHIFF || tm.phase === MeleePhase.RECOVERY) {
-      if (dist > 2) cmd.moveY = 1; else want.light = true;
+      if (dist > reach - 0.2) cmd.moveY = 1; else want.light = true;
     } else if (this.self.melee.counterWindow > 0) {
       want.light = true; // riposte
     } else if (!want.guard && !want.dodge) {
       // 3) Spacing + offense via utility scores.
       this.decisionCooldown -= dt;
-      const inRange = dist < 2.2;
+      const inRange = dist < reach;
       if (!inRange) {
         cmd.moveY = dist > 4 ? 1 : 0.5;
         cmd.moveX = this.circleDir * 0.4;

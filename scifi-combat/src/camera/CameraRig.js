@@ -32,6 +32,7 @@ const FRAMING = {
   slide:  { right: 0.50, up: 0.30, dist: 2.40 },
   dive:   { right: 0.50, up: 0.35, dist: 2.60 },
   ads:    { right: 0.42, up: 0.12, dist: 1.20 },
+  finisher: { right: 1.05, up: 0.55, dist: 3.3 },   // out and to the side: both of you in the frame
 };
 const EYE = { stand: 1.62, crouch: 1.12, prone: 0.45, slide: 0.9, dive: 0.85, knockdown: 0.5, seated: 1.6 };
 
@@ -127,6 +128,7 @@ export class CameraRig {
     else if (mode === 'dive') { f = FRAMING.dive; eye = EYE.dive; }
     else if (mode === 'slide') { f = st.slide?.kind === 'belly' ? FRAMING.prone : FRAMING.slide; eye = st.slide?.kind === 'belly' ? EYE.prone : EYE.slide; }
     else if (mode === 'knockdown' || mode === 'ragdoll') { f = FRAMING.dive; eye = EYE.knockdown; }
+    else if (o.target.reviveJob?.finish) { f = FRAMING.finisher; eye = EYE.crouch; }
     else {
       const stance = st.stanceT ? (st.stanceT.t / st.stanceT.dur > 0.5 ? st.stanceT.to : st.stanceT.from) : st.stance;
       f = FRAMING[stance] ?? FRAMING.stand; eye = EYE[stance] ?? EYE.stand;

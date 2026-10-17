@@ -225,7 +225,10 @@ export class FrontlineHud {
     const myJob = rv.jobOf(me.id), patient = !hp.downed && !me.health.dead && !myJob ? rv.patientFor?.(me) : null;
     const D = this.dig && this.time - this.dig.t < 0.25 ? this.dig : this.dig?.stage === -1 && this.time - this.dig.t < 1.5 ? this.dig : null;
     const sup = s.world.support, fixing = me.repairing?.target;
+    const fin = me.reviveJob?.finish ? me.reviveJob : null, victim = !fin && !patient && !myJob && !hp.downed && !me.health.dead ? rv.victimFor?.(me) : null;
     this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
+      : fin ? `<span style="color:#ff6b5c">FINISHING</span> ${bar(fin.t / fin.need, '#ff6b5c')}`
+      : victim ? `HOLD <b>X</b> TO FINISH ${(victim.name ?? '').toUpperCase()}`
       : fixing ? `REPAIRING ${bar(fixing.health.hp / fixing.health.max, '#9fd3ff')}`
       : D ? (D.stage === -1 ? `${D.kind === 'foxhole' ? 'FOXHOLE DUG' : D.kind === 'sandbags' ? 'SANDBAGS UP' : 'TRENCH CUT'}` : `${['DIGGING A FOXHOLE', 'FILLING SANDBAGS', 'DIGGING A TRENCH'][D.stage]} ${bar(D.k, '#d9b77a')}`)
       : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}${this.#stimPrompt(me, sup) ? ` · <b>3</b> STIM` : ''}`

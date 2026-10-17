@@ -26,7 +26,7 @@ export const data = {
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
   down: J('down.json'), stratagems: J('stratagems.json'), rules: J('rules.json'), battlePoints: J('battle-points.json'),
-  passives: J('passives.json'), support: J('support.json'),
+  passives: J('passives.json'), support: J('support.json'), humanoid: J('animation/humanoid.json'),
 };
 export const DT = 1 / 60;
 let lastBp = null;
@@ -37,7 +37,7 @@ export const v = (x, y, z) => new Vector3(x, y, z);
  *                    (data/battle-points.json; mode: a FrontlineMode-like { points } for captures) }
  */
 export function makeWorld(cover = [], { down = false, terrain = null, bp = false, mode = null } = {}) {
-  const melee = new MeleeSystem();
+  const melee = new MeleeSystem({ blades: data.humanoid.sword });
   const downCfg = down ? data.down : null;
   const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems, passives: data.passives, support: data.support });
   if (bp) { lastBp?.dispose(); lastBp = world.bp = new BattlePoints(world, data.battlePoints, { mode }); }   // one listening at a time (fighter ids repeat between tests)

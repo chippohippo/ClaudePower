@@ -137,7 +137,7 @@ const playerGuns = [
 ];
 const player = makeFighter(1, 0, '#d9a441', new THREE.Vector3(0, 0, 0), solariKits.kits.dawnblade, playerGuns);
 player.name = 'You';
-const melee = new MeleeSystem();
+const melee = new MeleeSystem({ blades: humanoid.sword });
 melee.add(player.melee);
 
 // ---------------------------------------------------------------- bots (4v4 skirmish)
