@@ -614,7 +614,9 @@ export class CombatBotBrain {
     if (!hit) return;
     const top = hit.cover ? hit.cover.max.y - me.y : 3;
     // Low cover: hold climb and the movement system vaults it when we reach it (HD2 hold-to-climb).
-    if (top < 1.1 && cmd.moveY > 0.5) { this.btn.hold('jump'); return; }
+    // A trench parapet is climbed from the floor (going over the top), and so is anything else
+    // up to chest-and-a-half height that the route runs into.
+    if ((top < 1.1 || (top < 2 && (hit.cover?.kind === 'parapet' || hit.cover?.kind === 'crate' || hit.cover?.kind === 'rock'))) && cmd.moveY > 0.5) { this.btn.hold('jump'); return; }
     cmd.moveX = this.strafeSign; // slide along it
     if (cmd.moveY > 0) cmd.moveY = 0.2;
   }

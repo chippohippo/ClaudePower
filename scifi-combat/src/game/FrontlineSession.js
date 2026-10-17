@@ -21,6 +21,8 @@ import { FrontlineCommander, Squad } from '../ai/FrontlineCommander.js';
 import { routeCommand, stripButtons } from '../core/routing.js';
 import { buildFighter } from './FighterFactory.js';
 import { generateFrontlineMap } from './frontline/FrontlineMap.js';
+import { mapSizeFor } from './frontline/MapSizes.js';
+import { WireField } from '../world/WireField.js';
 import { FrontlineMode } from './frontline/FrontlineMode.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
@@ -29,21 +31,31 @@ export class FrontlineSession {
   /**
    * @param {object} data  { movement, weaponFiles, attachments, recoil, statuses, meleeWeapons, kits, classes,
    *                         damageMatrix, supers, vehicleDefs, personalities, difficulty }
-   * @param {object} o     { players, seed, humans: [{ id, team, classId }], tickets, waveInterval, lod }
+   * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' (or players: the size built for that count),
+   *                         seed, humans: [{ id, team, classId }], tickets, waveInterval, timeLimit, lod }
    */
-  constructor(data, { players = 64, seed = 1, humans = [], tickets = null, waveInterval = 6, timeLimit = 1500, lod = { near: 60, mid: 160 } } = {}) {
+  constructor(data, { size = null, players = null, seed = 1, humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160 } } = {}) {
+    const profile = mapSizeFor(size, players), M = profile.match;
+    players = players ?? profile.players;
     this.data = data;
     this.seed = seed;
+    this.size = profile.id;
+    this.players = players;
     this.lodCfg = lod;
-    this.waveInterval = waveInterval;
-    this.map = generateFrontlineMap({ seed });
+    this.waveInterval = waveInterval ?? M.waveInterval;
+    this.squadSize = M.squadSize;
+    this.map = generateFrontlineMap({ seed, size: profile.id });
     this.world = new CombatWorld({
       damageMatrix: data.damageMatrix, cover: this.map.cover, terrain: this.map.terrain, nav: this.map.nav,
       supers: data.supers, meleeWeapons: data.meleeWeapons, recoilDefs: data.recoil, vehicleDefs: data.vehicleDefs, statusDefs: data.statuses,
       down: data.down,
     });
-    this.mode = new FrontlineMode(this.map, { tickets: tickets ?? Math.round(players * 6), timeLimit, seed });
+    this.mode = new FrontlineMode(this.map, {
+      tickets: tickets ?? Math.round(players * M.ticketsPerPlayer), timeLimit: timeLimit ?? M.timeLimit,
+      captureTime: M.captureTime, secureTime: M.secureTime, seed,
+    });
     this.world.mode = this.mode;
+    this.world.wire = new WireField(this.map.wire);
     this.melee = new MeleeSystem();
     this.fighters = [];
     this.bots = [];
@@ -51,7 +63,7 @@ export class FrontlineSession {
     this.lastCmd = new Map();         // bot id -> last command (held between LOD thinks)
     this.squads = [[], []];
     this.time = 0; this.tick = 0;
-    this.waveTimer = [waveInterval, waveInterval];
+    this.waveTimer = [this.waveInterval, this.waveInterval];
     this.focus = [];                  // positions that keep bots at full think rate (human cameras)
     this.stats = { thinks: 0, simMs: 0 };
     this.#roster(players, humans);
@@ -95,10 +107,10 @@ export class FrontlineSession {
           this.bots.push(f);
         }
       }
-      // Squads of 4 in roster order (humans lead their squad).
-      const members = this.fighters.filter((f) => f.team === team);
-      for (let i = 0; i < members.length; i += 4) {
-        const sq = new Squad(team, this.squads[team].length, members.slice(i, i + 4));
+      // Squads in roster order (humans lead their squad).
+      const members = this.fighters.filter((f) => f.team === team), n = this.squadSize;
+      for (let i = 0; i < members.length; i += n) {
+        const sq = new Squad(team, this.squads[team].length, members.slice(i, i + n));
         for (const m of sq.members) m.squad = sq;
         this.squads[team].push(sq);
       }
@@ -125,7 +137,8 @@ export class FrontlineSession {
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);
       f.movement.update(c, dt);
-      f.movement.state.speedScale = f.status.speedMul;
+      const p = f.movement.state.position;
+      f.movement.state.speedScale = f.status.speedMul * (w.wire ? w.wire.slowAt(p.x, p.z) : 1); // wire: slow, no sprint
       f.abilities.update(c, dt); f.melee.update(r.meleeCmd, dt); f.weapons.update(r.gunCmd, dt);
     }
     w.update(dt);

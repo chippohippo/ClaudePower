@@ -8,7 +8,8 @@
 // answers "which way is the objective from here, around the walls".
 //
 // Cells: steep terrain (> maxSlope) and cover taller than vaultHeight are blocked; vaultable
-// cover is passable at extra cost (bots vault it with the hold-to-climb input).
+// cover is passable at extra cost (bots vault it with the hold-to-climb input), and cost zones
+// (barbed wire) are passable but expensive, so routes go through the gaps.
 
 import { Vector3 } from 'three';
 
@@ -19,13 +20,14 @@ const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
 export class NavGrid {
   /**
    * @param {object} bounds { minX, minZ, width, depth, cell }
-   * @param {object} opts   { cover (array | CoverIndex), terrain, maxSlope, vaultHeight, agentRadius }
+   * @param {object} opts   { cover (array | CoverIndex), terrain, maxSlope, vaultHeight, agentRadius, zones: [{ minX, minZ, maxX, maxZ, cost }] }
    */
-  constructor({ minX, minZ, width, depth, cell = 2 }, { cover = [], terrain = null, maxSlope = 38, vaultHeight = 1.0, agentRadius = 0.45 } = {}) {
+  constructor({ minX, minZ, width, depth, cell = 2 }, { cover = [], terrain = null, maxSlope = 38, vaultHeight = 1.0, agentRadius = 0.45, zones = [] } = {}) {
     this.minX = minX; this.minZ = minZ; this.cell = cell;
     this.nx = Math.ceil(width / cell); this.nz = Math.ceil(depth / cell);
     this.cover = cover; this.terrain = terrain;
     this.maxSlope = maxSlope; this.vaultHeight = vaultHeight; this.agentRadius = agentRadius;
+    this.zones = zones;
     this.cost = new Float32Array(this.nx * this.nz);
     this.version = 0;
     this.fields = new Map();
@@ -69,15 +71,36 @@ export class NavGrid {
       const ground = t ? t.height((b.min.x + b.max.x) / 2, (b.min.z + b.max.z) / 2) : 0;
       const h = b.max.y - Math.max(ground, b.min.y);
       if (h <= 0.35) return;
-      const bx0 = Math.max(x0, Math.floor((b.min.x - r - this.minX) / c)), bx1 = Math.min(x1, Math.floor((b.max.x + r - this.minX) / c));
-      const bz0 = Math.max(z0, Math.floor((b.min.z - r - this.minZ) / c)), bz1 = Math.min(z1, Math.floor((b.max.z + r - this.minZ) / c));
+      // Trench parapets are climbable (going over the top) and aren't grown: the trench floor
+      // beside them stays its own open column of cells.
+      const parapet = b.kind === 'parapet', g = parapet ? -0.01 : r;
+      const bx0 = Math.max(x0, Math.floor((b.min.x - g - this.minX) / c)), bx1 = Math.min(x1, Math.floor((b.max.x + g - this.minX) / c));
+      const bz0 = Math.max(z0, Math.floor((b.min.z - g - this.minZ) / c)), bz1 = Math.min(z1, Math.floor((b.max.z + g - this.minZ) / c));
       for (let iz = bz0; iz <= bz1; iz++) for (let ix = bx0; ix <= bx1; ix++) {
         const i = iz * this.nx + ix;
-        this.cost[i] = h > this.vaultHeight ? Infinity : Math.max(this.cost[i], 4);
+        this.cost[i] = h > this.vaultHeight && !parapet ? Infinity : Math.max(this.cost[i], 4);
       }
     };
     if (this.cover?.queryAABB) this.cover.queryAABB(minX - r, minZ - r, maxX + r, maxZ + r, visit);
     else for (const b of this.cover ?? []) if (b.max.x >= minX - r && b.min.x <= maxX + r && b.max.z >= minZ - r && b.min.z <= maxZ + r) visit(b);
+    for (const z of this.zones) {
+      if (z.maxX < minX || z.minX > maxX || z.maxZ < minZ || z.minZ > maxZ) continue;
+      const zx0 = Math.max(x0, Math.floor((z.minX - this.minX) / c)), zx1 = Math.min(x1, Math.floor((z.maxX - this.minX) / c));
+      const zz0 = Math.max(z0, Math.floor((z.minZ - this.minZ) / c)), zz1 = Math.min(z1, Math.floor((z.maxZ - this.minZ) / c));
+      for (let iz = zz0; iz <= zz1; iz++) for (let ix = zx0; ix <= zx1; ix++) {
+        const i = iz * this.nx + ix;
+        if (this.cost[i] !== Infinity) this.cost[i] = Math.max(this.cost[i], z.cost);
+      }
+    }
+  }
+
+  /** Remove the cost zones overlapping a rectangle (wire cut by a blast) and rebuild there. */
+  removeZones(minX, minZ, maxX, maxZ) {
+    const hit = this.zones.filter((z) => !(z.maxX < minX || z.minX > maxX || z.maxZ < minZ || z.minZ > maxZ));
+    if (!hit.length) return [];
+    this.zones = this.zones.filter((z) => !hit.includes(z));
+    for (const z of hit) this.updateRegion(z.minX, z.minZ, z.maxX, z.maxZ);
+    return hit;
   }
 
   /**

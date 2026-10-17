@@ -228,6 +228,12 @@ export class CombatWorld {
       if (dist <= radius) this.#blast(e, point, radius, dist, weapon);
     });
     this.damageDeployables(point, radius, base, owner, weapon.ammoType, projectile?.team);
+    // Shells cut barbed wire: the gap opens for everyone (and for the bots' routes).
+    const cut = this.wire?.cut(point, radius * 0.6);
+    if (cut?.length) {
+      for (const w of cut) this.nav?.removeZones(w.min.x, w.min.z, w.max.x, w.max.z);
+      bus.emit('world:wireCut', { belts: cut.map((w) => w.id), center: point.toArray() });
+    }
   }
 
   /**

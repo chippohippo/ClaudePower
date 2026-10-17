@@ -4,7 +4,9 @@
 //
 // generate() makes rolling, readable battlefield ground from seeded value noise: broad hills
 // for long sightlines, a little mid-frequency roughness, and flattened pads where the map puts
-// capture points and spawns (fights happen on readable, walkable ground).
+// capture points and spawns (fights happen on readable, walkable ground). carveRect() and
+// carveDisc() dig trenches, shell craters and foxholes (at map build and at runtime); every
+// change is recorded in `dirty` so the renderer and nav can update just that region.
 
 import { Vector3 } from 'three';
 
@@ -28,7 +30,10 @@ export class Terrain {
     this.nx = Math.round(width / res) + 1;
     this.nz = Math.round(depth / res) + 1;
     this.h = new Float32Array(this.nx * this.nz);
+    this.dug = new Float32Array(this.nx * this.nz);   // how deep each sample was dug (trench floors and craters read as mud)
     this.surface = 'dirt';
+    this.maxHeight = 0;
+    this.dirty = [];                                  // [minX, minZ, maxX, maxZ] regions changed since the last takeDirty()
   }
 
   #at(ix, iz) {
@@ -59,7 +64,7 @@ export class Terrain {
    * @returns {{ hit: true, distance, point, normal, surface }} | null
    */
   raycast(o, d, maxDist) {
-    const step = this.res * 0.5;
+    const step = Math.max(this.res * 0.5, 0.75);
     let t0 = 0, prev = o.y - this.height(o.x, o.z);
     if (prev < 0) return { hit: true, distance: 0, point: o.clone(), normal: this.normal(o.x, o.z), surface: this.surface };
     for (let t = step; t <= maxDist + step; t += step) {
@@ -96,20 +101,112 @@ export class Terrain {
       const s = k * k * (3 - 2 * k);
       const i = iz * this.nx + ix;
       this.h[i] += (target - this.h[i]) * s;
+      if (this.h[i] > this.maxHeight) this.maxHeight = this.h[i];
     }
-    this.#bounds();
+    this.dirty.push([x - r, z - r, x + r, z + r]);
     return target;
   }
+
+  /**
+   * Dig a rectangle `depth` metres into the ground as it lies (the floor follows the terrain),
+   * with walls that slope out over `edge` metres: trench floors and their exits.
+   * Digging the same place twice doesn't dig deeper than `depth`.
+   */
+  carveRect(minX, minZ, maxX, maxZ, depth, edge = 0.5) {
+    this.#carve(minX - edge, minZ - edge, maxX + edge, maxZ + edge, (px, pz) => {
+      const dx = Math.max(minX - px, 0, px - maxX), dz = Math.max(minZ - pz, 0, pz - maxZ);
+      const d = Math.hypot(dx, dz);
+      if (d >= edge) return 0;
+      const k = d <= 0 ? 1 : 1 - d / edge;
+      return depth * k * k * (3 - 2 * k);
+    });
+  }
+
+  /**
+   * A bowl `depth` deep and `r` wide, with a thrown-up lip of `rim` metres around it: shell
+   * craters and foxholes.
+   */
+  carveDisc(x, z, r, depth, rim = 0) {
+    this.#carve(x - r * 1.35, z - r * 1.35, x + r * 1.35, z + r * 1.35, (px, pz) => {
+      const d = Math.hypot(px - x, pz - z) / r;
+      if (d < 1) return depth * (1 - d * d) - rim * d * d * d;
+      if (d < 1.35) { const u = (d - 1) / 0.35; return -rim * (1 - u) * (1 - u); }
+      return 0;
+    });
+  }
+
+  /**
+   * Dig a corridor `depth` below the lowest ground across its width, so its floor is level from
+   * wall to wall while still following the ground along its length (`axis`, 'x' or 'z': the long
+   * direction). Trench bays and saps on a hillside get a level floor instead of a tilted one.
+   * Samples on the rectangle's edges are dug too (corridor edges sit on samples).
+   */
+  carveLevel(minX, minZ, maxX, maxZ, depth, axis = maxX - minX >= maxZ - minZ ? 'x' : 'z') {
+    const r = this.res, e = 1e-6;
+    const x0 = Math.max(0, Math.ceil((minX - this.minX) / r - e)), x1 = Math.min(this.nx - 1, Math.floor((maxX - this.minX) / r + e));
+    const z0 = Math.max(0, Math.ceil((minZ - this.minZ) / r - e)), z1 = Math.min(this.nz - 1, Math.floor((maxZ - this.minZ) / r + e));
+    if (x0 > x1 || z0 > z1) return;
+    const orig = (i) => this.h[i] + this.dug[i];   // ground before any digging
+    const along = axis === 'x' ? [x0, x1] : [z0, z1], across = axis === 'x' ? [z0, z1] : [x0, x1];
+    const at = (a, c) => (axis === 'x' ? c * this.nx + a : a * this.nx + c);
+    for (let a = along[0]; a <= along[1]; a++) {
+      let low = Infinity;
+      for (let c = across[0]; c <= across[1]; c++) low = Math.min(low, orig(at(a, c)));
+      const floor = low - depth;
+      for (let c = across[0]; c <= across[1]; c++) {
+        const i = at(a, c), cut = orig(i) - floor;
+        if (cut <= this.dug[i]) continue;
+        this.h[i] = floor; this.dug[i] = cut;
+      }
+    }
+    this.dirty.push([minX, minZ, maxX, maxZ]);
+  }
+
+  /** Dig the sample nearest (x, z) down to height y (never raises it, never undoes a deeper cut). */
+  digTo(x, z, y) {
+    const ix = Math.round((x - this.minX) / this.res), iz = Math.round((z - this.minZ) / this.res);
+    if (ix < 0 || iz < 0 || ix >= this.nx || iz >= this.nz) return;
+    const i = iz * this.nx + ix, cut = this.h[i] + this.dug[i] - y;
+    if (cut <= this.dug[i]) return;
+    this.h[i] = y; this.dug[i] = cut;
+    this.dirty.push([x - this.res, z - this.res, x + this.res, z + this.res]);
+  }
+
+  /** Ground height at the sample nearest (x, z) before any digging. */
+  undug(x, z) {
+    const ix = Math.max(0, Math.min(this.nx - 1, Math.round((x - this.minX) / this.res))), iz = Math.max(0, Math.min(this.nz - 1, Math.round((z - this.minZ) / this.res)));
+    const i = iz * this.nx + ix;
+    return this.h[i] + this.dug[i];
+  }
+
+  /** cut(px, pz) -> metres to remove (negative raises). Keeps the deepest cut per sample. */
+  #carve(x0w, z0w, x1w, z1w, cut) {
+    const r = this.res;
+    const x0 = Math.max(0, Math.floor((x0w - this.minX) / r)), x1 = Math.min(this.nx - 1, Math.ceil((x1w - this.minX) / r));
+    const z0 = Math.max(0, Math.floor((z0w - this.minZ) / r)), z1 = Math.min(this.nz - 1, Math.ceil((z1w - this.minZ) / r));
+    for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) {
+      const c = cut(this.minX + ix * r, this.minZ + iz * r);
+      if (c === 0) continue;
+      const i = iz * this.nx + ix, had = this.dug[i];
+      if (c > 0) { if (c <= had) continue; this.h[i] -= c - Math.max(0, had); this.dug[i] = c; }
+      else { if (had !== 0) continue; this.h[i] -= c; this.dug[i] = c; if (this.h[i] > this.maxHeight) this.maxHeight = this.h[i]; }
+    }
+    this.dirty.push([x0w, z0w, x1w, z1w]);
+  }
+
+  /** Regions changed since the last call (renderer and nav rebuild just these). */
+  takeDirty() { const d = this.dirty; this.dirty = []; return d; }
 
   #bounds() { let m = -Infinity; for (let i = 0; i < this.h.length; i++) if (this.h[i] > m) m = this.h[i]; this.maxHeight = m; }
 
   /**
-   * Seeded rolling ground. amp = hill height (m); the map edges rise into berms.
+   * Seeded rolling ground. amp = hill height (m); the map edges rise into berms `berm` metres wide.
    */
-  static generate({ seed = 1, amp = 9, rough = 0.8, ...dims } = {}) {
+  static generate({ seed = 1, amp = 9, rough = 0.8, berm = 30, ...dims } = {}) {
     const t = new Terrain(dims);
     const rand = mulberry32(seed);
     const octaves = [[220, amp], [90, amp * 0.35], [28, rough], [9, rough * 0.25]].map(([wl, a]) => ({ wl, a, ox: rand() * 1000, oz: rand() * 1000 }));
+    const O0 = octaves[0], O1 = octaves[1], O2 = octaves[2], O3 = octaves[3];
     // Integer lattice hash → [0, 1): deterministic per seed, no allocation.
     const hash = (i, j, o) => {
       let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(o + 1, 1442695041) + Math.imul(seed, 1274126177)) | 0;
@@ -125,11 +222,11 @@ export class Terrain {
     };
     for (let iz = 0; iz < t.nz; iz++) for (let ix = 0; ix < t.nx; ix++) {
       const x = t.minX + ix * t.res, z = t.minZ + iz * t.res;
-      let h = 0;
-      octaves.forEach((oc, k) => { h += noise((x + oc.ox) / oc.wl, (z + oc.oz) / oc.wl, k) * oc.a; });
+      let h = noise((x + O0.ox) / O0.wl, (z + O0.oz) / O0.wl, 0) * O0.a + noise((x + O1.ox) / O1.wl, (z + O1.oz) / O1.wl, 1) * O1.a
+        + noise((x + O2.ox) / O2.wl, (z + O2.oz) / O2.wl, 2) * O2.a + noise((x + O3.ox) / O3.wl, (z + O3.oz) / O3.wl, 3) * O3.a;
       // Berms along the long edges keep the fight inside the map.
       const edge = Math.min(z - t.minZ, t.minZ + t.depth - z, (x - t.minX) * 0.5, (t.minX + t.width - x) * 0.5);
-      if (edge < 30) h += (1 - edge / 30) ** 2 * 14;
+      if (edge < berm) h += (1 - edge / berm) ** 2 * 14;
       t.h[iz * t.nx + ix] = h;
     }
     t.#bounds();

@@ -1,10 +1,13 @@
 // BattlefieldRenderer: the static and semi-static world of a frontline map, cheap enough for
-// 1 km maps and 128 fighters.
-//  * Terrain: one mesh from the heightfield samples, vertex-colored by slope and height, with a
+// 1.4 km maps and 128 fighters.
+//  * Terrain: TerrainChunks (128 m chunks, distance LOD, mud where the ground was dug), with a
 //    tiling detail texture so speed reads from the ground rushing past (motion perception needs
-//    ground texture; a flat color makes a sprint feel like floating).
-//  * Cover: one InstancedMesh per material (concrete, wood, rock, buildings); destroyed cover
-//    is hidden by zeroing its instance (no rebuilds, no garbage).
+//    ground texture; a flat color makes a sprint feel like floating). Runtime digging rebuilds
+//    just the chunks it touched.
+//  * Cover: one InstancedMesh per material (sandbags, concrete, timber, rock, blockhouses), with
+//    room for the fortifications squads build during the match; destroyed cover is hidden by
+//    zeroing its instance (no rebuilds, no garbage).
+//  * Barbed wire: instanced posts plus one line set for every strand; cut wire disappears.
 //  * Objectives: a ground ring per point in the owner's color, a progress arc while it's being
 //    taken, and a light beacon over capturable points so the fight is visible from afar.
 //  * The line of battle: a glowing curtain along each team's front, so you can see where the
@@ -12,6 +15,7 @@
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
+import { TerrainChunks } from './TerrainChunks.js';
 
 const TEAM = [new THREE.Color('#ffcf6b'), new THREE.Color('#b994ff')];
 const NEUTRAL = new THREE.Color('#d8dde6');
@@ -22,72 +26,114 @@ const _s = new THREE.Vector3();
 const _p = new THREE.Vector3();
 
 export class BattlefieldRenderer {
-  constructor(scene, map, { localTeam = 0, anisotropy = 4 } = {}) {
+  constructor(scene, map, { localTeam = 0, anisotropy = 4, fortCapacity = 900 } = {}) {
     this.scene = scene; this.map = map; this.localTeam = localTeam; this.anisotropy = anisotropy;
     this.#terrain();
-    this.#cover();
+    this.#cover(fortCapacity);
+    this.#wire();
     this.#objectives();
     this.#lines();
-    this.off = [bus.on('world:coverDestroyed', (e) => this.#hide(e.cover))];
+    this.off = [
+      bus.on('world:coverDestroyed', (e) => this.#hide(e.cover)),
+      bus.on('world:coverAdded', (e) => this.#add(e.cover)),
+      bus.on('world:wireCut', (e) => this.#cutWire(e.belts)),
+    ];
   }
 
-  dispose() { this.off.forEach((f) => f()); }
+  dispose() { this.off.forEach((f) => f()); this.chunks.dispose(); }
 
   #terrain() {
-    // Rendered at 4 m (a quarter of the sim's samples): 50k triangles for a 1 km map.
-    const t = this.map.terrain, step = 2;
-    const geo = new THREE.PlaneGeometry(t.width, t.depth, Math.round((t.nx - 1) / step), Math.round((t.nz - 1) / step));
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position, colors = new Float32Array(pos.count * 3);
-    const grass = new THREE.Color('#4a5a3a'), dirt = new THREE.Color('#6b5a44'), rock = new THREE.Color('#6d6f73'), c = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i) + t.minX + t.width / 2, z = pos.getZ(i) + t.minZ + t.depth / 2;
-      const h = t.height(x, z);
-      pos.setXYZ(i, x, h, z);
-      const slope = t.slopeDeg(x, z);
-      c.copy(grass).lerp(dirt, Math.min(1, Math.max(0, (slope - 6) / 14))).lerp(rock, Math.min(1, Math.max(0, (slope - 22) / 12)));
-      c.multiplyScalar((0.9 + Math.sin(x * 0.13) * Math.sin(z * 0.11) * 0.06 + (h / 40)) / DETAIL_MEAN);
-      colors.set([c.r, c.g, c.b], i * 3);
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.computeVertexNormals();
     const detail = groundDetail();
-    detail.repeat.set(t.width / 6, t.depth / 6); // one tile per 6 m
     detail.anisotropy = this.anisotropy;
-    this.ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.95 }));
-    this.ground.receiveShadow = true;
-    this.scene.add(this.ground);
+    this.groundMat = new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.95 });
+    this.chunks = new TerrainChunks(this.scene, this.map.terrain, { material: this.groundMat, colorScale: 1 / DETAIL_MEAN });
   }
 
-  #cover() {
-    const kinds = {
+  #cover(fortCapacity) {
+    this.kinds = {
       concrete: new THREE.MeshStandardMaterial({ color: '#7d828c', roughness: 0.9 }),
-      wood: new THREE.MeshStandardMaterial({ color: '#8a6a3f', roughness: 0.85 }),
+      sandbag: new THREE.MeshStandardMaterial({ color: '#8f8061', roughness: 1 }),
+      wood: new THREE.MeshStandardMaterial({ color: '#6e5233', roughness: 0.9 }),
       rock: new THREE.MeshStandardMaterial({ color: '#5e5b57', roughness: 1 }),
       metal: new THREE.MeshStandardMaterial({ color: '#5a6170', roughness: 0.6, metalness: 0.4 }),
     };
-    const groups = new Map();
-    for (const b of this.map.cover) {
-      const k = b.kind === 'building' ? 'metal' : kinds[b.surface] ? b.surface : 'concrete';
-      if (!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(b);
-    }
-    this.coverMeshes = [];
+    const groups = new Map(Object.keys(this.kinds).map((k) => [k, []]));
+    for (const b of this.map.cover) groups.get(this.#kindOf(b)).push(b);
+    this.coverMeshes = new Map();
     this.coverSlot = new Map();
     const geo = new THREE.BoxGeometry(1, 1, 1);
     for (const [k, list] of groups) {
-      const mesh = new THREE.InstancedMesh(geo, kinds[k], list.length);
-      list.forEach((b, i) => {
-        _s.subVectors(b.max, b.min);
-        _p.copy(b.min).addScaledVector(_s, 0.5);
-        mesh.setMatrixAt(i, _m.compose(_p, _q.identity(), _s));
-        this.coverSlot.set(b, { mesh, i });
-      });
+      // Sandbags get headroom for the fortifications squads dig during the match.
+      const cap = list.length + (k === 'sandbag' ? fortCapacity : 16);
+      const mesh = new THREE.InstancedMesh(geo, this.kinds[k], cap);
+      mesh.count = 0;
+      this.coverMeshes.set(k, mesh);
+      for (const b of list) this.#place(mesh, b);
       mesh.castShadow = mesh.receiveShadow = true;
-      mesh.computeBoundingSphere();
+      mesh.frustumCulled = false; // instances span the whole map
       this.scene.add(mesh);
-      this.coverMeshes.push(mesh);
     }
+  }
+
+  #kindOf(b) { return b.kind === 'building' ? 'metal' : this.kinds[b.surface] ? b.surface : 'concrete'; }
+
+  #place(mesh, b) {
+    if (mesh.count >= mesh.instanceMatrix.count) return false;
+    const i = mesh.count++;
+    _s.subVectors(b.max, b.min);
+    _p.copy(b.min).addScaledVector(_s, 0.5);
+    mesh.setMatrixAt(i, _m.compose(_p, _q.identity(), _s));
+    this.coverSlot.set(b, { mesh, i });
+    mesh.instanceMatrix.needsUpdate = true;
+    return true;
+  }
+
+  /** Cover added during the match (fortifications). */
+  #add(box) { this.#place(this.coverMeshes.get(this.#kindOf(box)), box); }
+
+  // ---------------------------------------------------------------- wire
+  #wire() {
+    const belts = this.map.wire ?? [];
+    const t = this.map.terrain;
+    const postGeo = new THREE.BoxGeometry(0.07, 1.25, 0.07).translate(0, 0.5, 0);
+    const posts = [];
+    const strand = [];
+    this.wireRanges = [];       // per belt: [first post, post count, first strand vertex, strand vertex count]
+    for (const w of belts) {
+      const p0 = posts.length, s0 = strand.length / 3;
+      const pts = [];
+      for (let z = w.min.z; z <= w.max.z + 0.01; z += 2.5) for (const x of [w.min.x, w.max.x]) pts.push([x, t.height(x, z), z]);
+      for (const p of pts) posts.push(p);
+      // Strands at three heights along both rows, plus the criss-cross between them.
+      for (let k = 0; k + 2 < pts.length; k += 2) {
+        const a = pts[k], b = pts[k + 1], c = pts[k + 2], d = pts[k + 3] ?? c;
+        for (const hgt of [0.25, 0.6, 0.95]) {
+          strand.push(a[0], a[1] + hgt, a[2], c[0], c[1] + hgt, c[2], b[0], b[1] + hgt, b[2], d[0], d[1] + hgt, d[2]);
+        }
+        strand.push(a[0], a[1] + 0.9, a[2], d[0], d[1] + 0.2, d[2], b[0], b[1] + 0.9, b[2], c[0], c[1] + 0.2, c[2]);
+      }
+      this.wireRanges.push([p0, posts.length - p0, s0, strand.length / 3 - s0]);
+    }
+    this.posts = new THREE.InstancedMesh(postGeo, new THREE.MeshStandardMaterial({ color: '#4b3d2c', roughness: 1 }), Math.max(1, posts.length));
+    posts.forEach(([x, y, z], i) => this.posts.setMatrixAt(i, _m.makeTranslation(x, y, z)));
+    this.posts.count = posts.length;
+    this.posts.castShadow = true; this.posts.frustumCulled = false;
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(strand), 3));
+    this.strands = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: '#2f2f2f', transparent: true, opacity: 0.85 }));
+    this.scene.add(this.posts, this.strands);
+  }
+
+  #cutWire(ids) {
+    const pos = this.strands.geometry.attributes.position;
+    for (const id of ids) {
+      const r = this.wireRanges[id];
+      if (!r) continue;
+      for (let k = 0; k < r[1]; k++) this.posts.setMatrixAt(r[0] + k, _m.makeScale(0, 0, 0));
+      for (let k = 0; k < r[3]; k++) pos.setY(r[2] + k, -1000);   // strands drop out of the world
+    }
+    this.posts.instanceMatrix.needsUpdate = true;
+    pos.needsUpdate = true;
   }
 
   #hide(box) {
@@ -126,8 +172,12 @@ export class BattlefieldRenderer {
     });
   }
 
-  /** @param {FrontlineMode} mode */
-  update(mode, time) {
+  /** @param {FrontlineMode} mode  @param {THREE.Vector3} camPos */
+  update(mode, time, camPos = null) {
+    // Ground: LOD around the camera, and chunks the sim dug since the last frame.
+    for (const r of this.map.terrain.takeDirty()) this.chunks.invalidate(r);
+    if (camPos) this.chunks.update(camPos, { all: !this.chunksReady });
+    this.chunksReady = true;
     for (const [i, v] of this.pointViews.entries()) {
       const p = mode.points[i];
       const col = p.owner >= 0 ? TEAM[p.owner] : NEUTRAL;

@@ -1,5 +1,5 @@
-// Frontline: a 64-128 player Battlefront-style battle against bots on a seeded 1 km map.
-// URL: ?players=64|128 &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
+// Frontline: a Battlefront-style battle against bots, on a map built for the match size.
+// URL: ?size=4v4|12v12|32v32|64v64 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
 //
 // Client loop: input → FrontlineSession (fixed 60 Hz, the same sim the tests run) → animation
 // (rigs, LOD) → HD2 camera → instanced crowd, battlefield, tracers → HUD and audio.
@@ -21,7 +21,8 @@ import { FrontlineHud } from './ui/FrontlineHud.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 
 const params = new URLSearchParams(location.search);
-const players = Math.max(8, Math.min(128, +(params.get('players') ?? 64)));
+const sizeParam = params.get('size'), playersParam = params.get('players');
+const requestedPlayers = playersParam ? Math.max(8, Math.min(128, +playersParam)) : null;
 const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
@@ -44,8 +45,10 @@ const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
 
 const PLAYER_ID = 1;
-const session = new FrontlineSession(data, { players, seed, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
+const session = new FrontlineSession(data, { size: sizeParam ?? (requestedPlayers ? null : '32v32'), players: requestedPlayers, seed, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
 const { world, map, mode } = session;
+const players = session.players;
+document.title = `Emberfall Frontline · ${map.name} (${session.size})`;
 const player = session.fighters.find((f) => f.id === PLAYER_ID);
 player.name = 'You';
 
@@ -160,7 +163,7 @@ const loop = new FixedLoop({
     const root = anim.record(PLAYER_ID).root;
     sun.position.copy(root).add(SUN_OFFSET); sun.target.position.copy(root);
     fill.position.copy(rig.camera.position).addScaledVector(rig.camera.up, 4); fill.target.position.copy(root);
-    battlefield.update(mode, session.time);
+    battlefield.update(mode, session.time, rig.camera.position);
     tracers.update(dt);
     zoneViews.update(dt);
     vehicleViews.update(dt, rig.camera);
@@ -169,6 +172,6 @@ const loop = new FixedLoop({
     hud.update(dt, rig.camera);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, loop };
 loop.start();
 bus.emit('frontline:ready', { players, seed });

@@ -302,6 +302,7 @@ export class MovementController {
     // already cleared `grounded`, so it leaves the ground normally.
     const res = this.body.move(_delta, s.grounded && s.mode !== MoveState.AIR && s.mode !== MoveState.DIVE);
     s.position.add(res.delta);
+    if (res.push) s.position.add(res.push);
     if (dt > 0) {
       // Velocity into surfaces we hit is removed: no sticky walls, no ceiling hang.
       const rx = res.delta.x / dt, rz = res.delta.z / dt, ry = res.delta.y / dt;
@@ -1113,7 +1114,7 @@ export class FlatGroundBody {
     this.r = radius;
     this.step = stepHeight;
     this.h = 1.8;
-    this._out = { delta: new Vector3(), grounded: false, groundNormal: new Vector3(0, 1, 0) };
+    this._out = { delta: new Vector3(), push: new Vector3(), grounded: false, groundNormal: new Vector3(0, 1, 0) };
     this._near = [];
   }
 
@@ -1142,9 +1143,33 @@ export class FlatGroundBody {
     return null;
   }
 
+  /**
+   * Push out of any box we already overlap (a vault landing against the far wall of a trench,
+   * cover built on top of us), along the shallowest axis. Without this every step from inside a
+   * box is "blocked" and the soldier is stuck for good.
+   */
+  #depenetrate(near) {
+    const p = this.p, r = this.r;
+    for (let pass = 0; pass < 2; pass++) {
+      let moved = false;
+      for (const b of near) {
+        if (p.y >= b.max.y - 0.02 || p.y + this.h <= b.min.y) continue;
+        const ox0 = p.x - (b.min.x - r), ox1 = b.max.x + r - p.x, oz0 = p.z - (b.min.z - r), oz1 = b.max.z + r - p.z;
+        if (ox0 <= 0 || ox1 <= 0 || oz0 <= 0 || oz1 <= 0) continue;
+        const m = Math.min(ox0, ox1, oz0, oz1) + 0.001;
+        if (m === ox0 + 0.001) p.x -= m; else if (m === ox1 + 0.001) p.x += m; else if (m === oz0 + 0.001) p.z -= m; else p.z += m;
+        moved = true;
+      }
+      if (!moved) return;
+    }
+  }
+
   /** @param {boolean} snapGround keep contact within step height (walking over crests and down steps) */
   move(d, snapGround = false) {
     const p = this.p, near = this.#gather(p.x, p.z, p.x + d.x, p.z + d.z);
+    const ox = p.x, oz = p.z;
+    this.#depenetrate(near);
+    this._out.push.set(p.x - ox, 0, p.z - oz); // moved out of a wall: position only, not velocity
     let x = p.x, z = p.z, y = p.y + d.y;
     // Horizontal, one axis at a time (slide along walls), stepping up low edges.
     for (const axis of ['x', 'z']) {

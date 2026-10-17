@@ -37,6 +37,10 @@ export class FrontlineHud {
       <div id="fl-downs"></div>`;
     this.el = Object.fromEntries([...root.querySelectorAll('[id^="fl-"]')].map((e) => [e.id.slice(3), e]));
     this.ctx = this.el.map.getContext('2d');
+    // The minimap keeps the map's proportions (a 4v4 outpost is squarer than a 64v64 front).
+    const B = session.map.bounds, aspect = (B.maxZ - B.minZ) / (B.maxX - B.minX);
+    this.el.map.height = Math.round(this.el.map.width * aspect);
+    this.el.map.style.height = `${Math.round(300 * aspect)}px`;
     this.markers = session.map.points.map((p) => {
       const d = document.createElement('div');
       d.className = 'mk';
