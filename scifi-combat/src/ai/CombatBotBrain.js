@@ -32,6 +32,7 @@ import { rng } from '../combat/weapons/WeaponSystem.js';
 import { angleDelta, hyp } from '../core/geom.js';
 import { MeleeDuelistBrain } from './MeleeDuelistBrain.js';
 import { profileAbility, scoreAbility, aimAbility, abilityReach, ballisticPitch } from './AbilityPlanner.js';
+import { lineClearOfFriends } from './FireDiscipline.js';
 import { VehiclePilot } from './VehiclePilot.js';
 import { CrewPilot } from './CrewPilot.js';
 
@@ -41,6 +42,7 @@ const NBR = 0.2;   // s between neighbourhood scans (see #context)
 const _a = new Vector3();
 const _b = new Vector3();
 const _d = new Vector3();
+const _lc = new Vector3();
 
 /** Edge-correct button state: press() always produces a clean pressed edge, even on held keys. */
 class Buttons {
@@ -529,6 +531,11 @@ export class CombatBotBrain {
       if (s > bs) { bs = s; best = { key, p }; }
     }
     if (!best) return;
+    // Danger close: no area ability on a target with teammates round it (or round us, for a shockwave).
+    const harmful = !['heal', 'buffZone', 'dome', 'defensive', 'tetherAlly'].some((k) => best.p.tags.has(k)) ? best.p.radius : 0;
+    const selfCentred = best.p.tags.has('pointBlank');
+    const at = selfCentred ? this.self.movement.state.position : ctx.target?.pos;
+    if (harmful > 0 && at && !this.#blastClear(at, harmful, selfCentred)) return;
     const aim = aimAbility(best.p, ctx);
     this.aimOverride = { ...aim, p: best.p, until: this.time + best.p.cast + 0.12 };
     this.btn.press(best.key);
@@ -631,7 +638,7 @@ export class CombatBotBrain {
     const hot = w.usesHeat && w.heat > w.s.ammo.max * 0.85;
     // Crouched or prone behind cover: the muzzle may be under the parapet (posture stands us up first).
     const low = self.movement.state.stance !== 'stand' && !this.#muzzleClear(t.pos, ctx.dist);
-    const canFire = ctx.los && reacted && aimed && ctx.dist < range && !hot && wc.phase === 'ready' && !this.self.status.disarmed && !low;
+    const canFire = ctx.los && reacted && aimed && ctx.dist < range && !hot && wc.phase === 'ready' && !this.self.status.disarmed && !low && this.#lineClear(t.pos, s);
     if (wc.shotIndex !== this.lastShotIndex) { this.burstShots += wc.shotIndex - this.lastShotIndex; this.lastShotIndex = wc.shotIndex; }
     this.burstPause -= dt;
     const burstLen = ctx.dist < 10 ? 30 : ctx.dist < 25 ? 9 : 4;
@@ -876,6 +883,36 @@ export class CombatBotBrain {
     this.btn.press('crouch');                                   // stand <-> crouch tap
   }
 
+  /**
+   * Friendly fire (rules: everything hurts everyone): is the line from our eye to the target's
+   * chest clear of teammates (a body's width either side), and the burst radius round the target
+   * too for weapons that explode? Re-checked every 0.15 s; when it isn't clear we hold fire and
+   * pick a new strafe direction, stepping aside for a clean line like a person would.
+   */
+  #lineClear(tp, s) {
+    const w = this.world;
+    if (!w.harm || !(w.ff?.gun > 0 || w.ff?.projectile > 0)) return true;
+    if (this.time - (this.lineT ?? -9) < 0.15 && this.lineAt?.distanceToSquared(tp) < 1) return this.lineOk;
+    this.lineT = this.time; (this.lineAt ??= new Vector3()).copy(tp);
+    const from = this.#eye(_a);
+    this.lineOk = lineClearOfFriends(w, this.self.team, from, _lc.set(tp.x, tp.y + 1.0, tp.z), { splash: s?.damage?.splash ?? 0, exclude: this.self });
+    if (!this.lineOk) this.strafeTimer = 0;
+    return this.lineOk;
+  }
+
+  /** No teammate within `r` (+ a margin) of a point we're about to put a blast on. */
+  #blastClear(p, r, selfCentred = false) {
+    const w = this.world, self = this.self;
+    if (!w.harm || !(r > 0) || !(w.ff?.explosion > 0 || w.ff?.zone > 0)) return true;
+    let ok = true;
+    w.fightersNear(p, r + 2, (e) => {
+      if (ok && e !== self && e.team === self.team && !e.health.dead && hyp(e.movement.state.position.x - p.x, e.movement.state.position.z - p.z) < r + 1.5) ok = false;
+    });
+    // Our own blast radius matters too: no point-blank frags.
+    if (!selfCentred && hyp(self.movement.state.position.x - p.x, self.movement.state.position.z - p.z) < r * 0.8) ok = false;
+    return ok;
+  }
+
   /** Can rounds fired from the muzzle (at this stance) reach the target's chest? */
   #muzzleClear(tp, dist) {
     const me = this.self.movement.state.position, st = this.self.movement.state.stance;
@@ -914,7 +951,7 @@ export class CombatBotBrain {
     if (this.burstShots >= 5) { this.burstShots = 0; this.burstPause = 0.5 + this.rand() * 0.7; }
     const aimed = Math.abs(angleDelta(wc.aimYaw, wantYaw)) < 0.08;
     const lowAmmo = !w.usesHeat && !w.usesBattery && w.mag + w.reserve < (s.mag ?? 30) * 0.6;   // keep some for real targets
-    if (aimed && this.burstPause <= 0 && wc.phase === 'ready' && !lowAmmo && this.self.movement.state.stance === 'stand') {
+    if (aimed && this.burstPause <= 0 && wc.phase === 'ready' && !lowAmmo && this.self.movement.state.stance === 'stand' && this.#lineClear(_b.set(ax, ay - 1, az), s)) {
       if (s.fireMode === 'auto' || s.fireMode === 'beam' || s.fireMode === 'spool') this.btn.hold('light');
       else if (s.fireMode !== 'charge') this.btn.pressIfReady('light', wc);
     }
@@ -949,6 +986,7 @@ export class CombatBotBrain {
   #throwGrenade(o, cmd) {
     const key = this.grenadeReady(), me = this.self.movement.state.position;
     if (!key || !o.at || !Number.isFinite(o.at.x + o.at.y + o.at.z)) return;
+    if (!this.#blastClear(o.at, 6)) return;                    // a teammate is in the room: no frag
     const p = this.#profile(key, this.self.abilities.slots[key]);
     const dist = hyp(o.at.x - me.x, o.at.z - me.z);
     const yaw = Math.atan2(-(o.at.x - me.x), -(o.at.z - me.z));

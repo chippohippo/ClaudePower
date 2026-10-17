@@ -131,6 +131,14 @@ build the same map.
 - **Events:** `mode:point`, `mode:contested`, `mode:sector`, `mode:front`, `mode:tickets`,
   `mode:victory`. `mode.snapshot()` is the compact state for HUDs and network snapshots.
 
+**Friendly fire** is on, as in Helldivers 2 (`data/rules.json`, read by `CombatWorld.harm`): a rifle
+round hits the teammate who steps in front of you, a shell or grenade takes everyone in its blast,
+a sword lands on whoever is in its arc, a vehicle at speed runs down whoever is in its way, a
+sentry shoots through the soldier who walks into its line, and burning ground burns friends. Each
+kind of harm has a share (1 = all of it; `self` is your own blasts, 0.5). Friendly damage earns no
+super energy, teamkills are marked in the kill feed, and the HUD tells you when you hit a teammate
+or one hits you. Bots keep their fire discipline (docs/AI.md: Fire discipline).
+
 ## Downs, ragdolls and reinforcements
 
 - **Down but not out** (`data/down.json`, `Health`, `ReviveSystem`): at 0 HP you're downed, not dead,

@@ -108,13 +108,21 @@ export class DeployableSystem {
     d.aimYaw += Math.max(-maxTurn, Math.min(maxTurn, diff));
     diff = Math.abs(((want - d.aimYaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
     // Fire only when roughly on target (within 5°): strafing perpendicular beats a slow turret.
+    // The rounds hit whoever is first along the line: a teammate who steps in front takes them.
     if (diff < 0.09) {
-      const dmg = d.dps * dt;
-      d.target.health.damage(dmg, { kind: 'deployable', ability: d.ability, ammoType: 'kinetic' }, d.owner);
-      if (d.lifesteal) d.owner?.health.heal(dmg * d.lifesteal);
-      if (d.status) d.target.status?.apply(d.status.id, { stacks: (d.status.stacks ?? 1) * dt * 2, source: d.owner });
+      _v.copy(tp); _v.y += 1.1; _v.sub(p);
+      const len = _v.length() || 1;
+      const ray = this.world.raycast?.(p, _v.divideScalar(len), len + 0.5, d.id, { ignoreCover: true });
+      const victim = ray?.entity && !ray.entity.isVehicle ? ray.entity : d.target;
+      const share = this.world.harm ? this.world.harm(d.team, victim, 'deployable') : victim.team === d.team ? 0 : 1;
+      const dmg = d.dps * dt * share;
+      if (dmg > 0) {
+        victim.health.damage(dmg, { kind: 'deployable', ability: d.ability, ammoType: 'kinetic', friendly: victim.team === d.team }, d.owner);
+        if (d.lifesteal && victim.team !== d.team) d.owner?.health.heal(dmg * d.lifesteal);
+        if (d.status && victim.team !== d.team) victim.status?.apply(d.status.id, { stacks: (d.status.stacks ?? 1) * dt * 2, source: d.owner });
+      }
       d.fireT = (d.fireT ?? 0) + dt;
-      if (d.fireT >= 0.125) { d.fireT = 0; bus.emit('deployable:fire', { id: d.id, from: p.toArray(), to: tp.toArray(), team: d.team }); }
+      if (d.fireT >= 0.125) { d.fireT = 0; bus.emit('deployable:fire', { id: d.id, from: p.toArray(), to: (ray?.point ?? tp).toArray(), team: d.team }); }
     }
   }
 
@@ -290,12 +298,18 @@ export class DeployableSystem {
   // ---------------------------------------------------------------- internals
   #trigger(d, t, at) {
     const hit = [];
-    this.#enemiesNear(d, at, t.radius ?? d.trigger, (e) => hit.push(e));
+    // Statuses and reveals are smart (enemies only); a blast is not: friendly fire takes everyone in it.
+    const r = t.radius ?? d.trigger;
+    this.world.fightersNear(at, r, (e) => {
+      if (e.health.dead || e.movement.state.invulnerable || e.movement.state.position.distanceTo(at) > r) return;
+      if (e.team !== d.team || (t.damage && (this.world.harm?.(d.team, e, 'deployable') ?? 0) > 0)) hit.push(e);
+    });
     for (const e of hit) {
-      if (t.status) e.status?.apply(t.status.id, { stacks: t.status.stacks ?? 1, duration: t.status.duration, source: d.owner });
-      if (t.reveal) e.status?.apply('revealed', { duration: t.reveal, source: d.owner });
+      const enemy = e.team !== d.team;
+      if (t.status && enemy) e.status?.apply(t.status.id, { stacks: t.status.stacks ?? 1, duration: t.status.duration, source: d.owner });
+      if (t.reveal && enemy) e.status?.apply('revealed', { duration: t.reveal, source: d.owner });
       if (t.damage) {
-        e.health.damage(t.damage, { kind: 'deployable', ability: d.ability }, d.owner);
+        e.health.damage(t.damage * (enemy ? 1 : this.world.harm(d.team, e, 'deployable')), { kind: 'deployable', ability: d.ability, friendly: !enemy }, d.owner);
         // A mine or charge going off under you is a blast: you're thrown limp, away from it.
         const q = e.movement.state.position, dx = q.x - at.x, dz = q.z - at.z, l = Math.hypot(dx, dz) || 1;
         e.movement.impulse?.((dx / l) * 5, 3.5, (dz / l) * 5, { cause: 'explosion', at, ragdoll: true });

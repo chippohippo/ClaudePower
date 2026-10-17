@@ -21,6 +21,9 @@ import { hitSpheres, silhouetteScale, BOUND } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
 
+/** Friendly fire by default (data/rules.json can change any share): everything hurts everyone. */
+const FRIENDLY_FIRE = { gun: 1, beam: 1, projectile: 1, explosion: 1, status: 1, melee: 1, ram: 1, deployable: 1, zone: 1, self: 0.5 };
+
 const _oc = new Vector3();
 const _pt = new Vector3();
 const _box = new Box3();
@@ -34,8 +37,10 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null, rules = null } = {}) {
     this.damageMatrix = damageMatrix;
+    // Friendly fire (data/rules.json): on everywhere unless the rules say otherwise.
+    this.ff = { ...FRIENDLY_FIRE, ...(rules?.friendlyFire ?? {}) };
     this.terrain = terrain;
     this.nav = nav;
     this.spatial = spatial;
@@ -97,6 +102,16 @@ export class CombatWorld {
   spawnProjectile(spec) { return this.projectiles.spawn(spec); }
   spawnZone(spec) { return this.zones.spawn(spec); }
   spawnDeployable(spec) { return this.deployables.spawn(spec); }
+
+  /**
+   * Friendly fire: the share of a hit by `team` of kind `kind` (gun, beam, projectile, explosion,
+   * status, melee, ram, deployable, zone) that lands on `victim`. Enemies (and the teamless) take
+   * all of it; teammates the rules' share (data/rules.json, 1 by default: Helldivers rules).
+   */
+  harm(team, victim, kind) {
+    if (team == null || team < 0 || victim?.team !== team) return 1;
+    return this.ff[kind] ?? 1;
+  }
 
   // ---------------------------------------------------------------- spatial queries
   /** Surface under a point, for footstep and impact sounds: cover tops report their material. */
@@ -244,12 +259,13 @@ export class CombatWorld {
     for (const e of this.entitiesInRadius(point, radius)) {
       const isOwner = e.id === projectile?.ownerId;
       if (isOwner && e.isVehicle) continue; // a tank is never hurt by its own shell's splash
-      if (!isOwner && e.team === projectile?.team) continue;
+      const share = isOwner ? this.ff.self : this.harm(projectile?.team, e, 'explosion');   // blasts hurt everyone (friendly fire)
+      if (!share) continue;
       const dist = e.movement.state.position.distanceTo(point);
       const fall = 1 - 0.7 * Math.min(1, dist / radius);
       const armor = e.health.armorFor?.('body') ?? 'flesh';
       const mul = this.damageMatrix[weapon.ammoType]?.[armor] ?? 1;
-      e.health.damage(base * fall * mul * (isOwner ? 0.5 : 1) * (projectile?.spec?.damageMul ?? 1), { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType }, owner);
+      e.health.damage(base * fall * mul * share * (projectile?.spec?.damageMul ?? 1), { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType, friendly: !isOwner && e.team === projectile?.team }, owner);
       if (!e.isVehicle) { this.#blast(e, point, radius, dist, weapon); thrown.add(e); }
     }
     // Bodies already on the ground get thrown too.
@@ -295,8 +311,9 @@ export class CombatWorld {
 
   damageDeployables(center, radius, amount, by, ammoType = 'explosive', team = by?.team) {
     for (const d of this.deployables.inRadius(center, radius)) {
-      if (d.team === team) continue;
-      d.health.damage(amount * (this.damageMatrix[ammoType]?.barrier ?? 1), { kind: 'splash' }, by);
+      const share = this.harm(team, d, 'explosion');
+      if (!share) continue;
+      d.health.damage(amount * share * (this.damageMatrix[ammoType]?.barrier ?? 1), { kind: 'splash' }, by);
     }
   }
 

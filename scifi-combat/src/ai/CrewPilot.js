@@ -16,6 +16,7 @@
 import { Vector3 } from 'three';
 import { angleDelta } from '../core/geom.js';
 import { barrelDir } from '../vehicles/FieldGuns.js';
+import { lineClearOfFriends } from './FireDiscipline.js';
 
 const _m = new Vector3(), _a = new Vector3(), _d = new Vector3();
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -82,7 +83,8 @@ export class CrewPilot {
     const h = Math.hypot(_a.x - muzzle.x, _a.z - muzzle.z), drop = 0.5 * d.gravity * tof * tof;
     cmd.yaw = Math.atan2(-(_a.x - muzzle.x), -(_a.z - muzzle.z));
     cmd.pitch = Math.atan2(_a.y + drop - muzzle.y, h);
-    this.brain.btn.hold('light');
+    // Friendly fire: hold the slug while one of ours is between the gun and the target.
+    if (lineClearOfFriends(w, v.team, muzzle, _a, { width: 1.2, exclude: this.brain.self })) this.brain.btn.hold('light');
     unit.engaged = t.id;
   }
 

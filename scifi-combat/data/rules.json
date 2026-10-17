@@ -1,0 +1,15 @@
+{
+  "_note": "Match rules (CombatWorld). friendlyFire: the share of damage that would hurt an enemy that hurts a teammate instead, per kind of harm: 1 = all of it, as in Helldivers 2 (the default everywhere); 0 = teammates are safe. self: your own blasts. melee hits allies fully or not at all (0 or 1). Bots check their line of fire and blast radius before they shoot, throw or call a strike (docs/GAMEPLAY_PLAN.md).",
+  "friendlyFire": {
+    "gun": 1,
+    "beam": 1,
+    "projectile": 1,
+    "explosion": 1,
+    "status": 1,
+    "melee": 1,
+    "ram": 1,
+    "deployable": 1,
+    "zone": 1,
+    "self": 0.5
+  }
+}

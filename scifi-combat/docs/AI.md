@@ -89,6 +89,18 @@ suppression (0–1); it bleeds off a moment after the fire stops. Suppressed bot
 wanders up to 2.6× wider; pinned ones (over 0.8) hug the dirt. Squads use it on purpose: the overwatch
 team's job is to suppress so the other team can move. The player sees the screen edges darken.
 
+### Fire discipline (`FireDiscipline`)
+
+Friendly fire is on (data/rules.json, Helldivers rules): rounds, blasts, swords, rams, sentries
+and burning ground hurt teammates as they hurt enemies. So no bot pulls a trigger through its own
+side: before each burst it checks the line from its eye to the target's chest for teammates within
+0.9 m of it (re-checked every 0.15 s), and for weapons that burst, the blast radius round the target
+too. When the line isn't clean it holds fire and picks a new strafe, stepping aside for a clean shot
+like a person would. Grenades aren't thrown into a room with a teammate in it, area abilities aren't
+put on a target with teammates round it (or used as a shockwave with teammates round the bot), AT
+crews hold the slug while one of ours is between the gun and its target, and fire missions are never
+called within 32 m of our own soldiers (`SupportCommand`).
+
 ### The whistle (`FrontlineCommander`)
 
 Squads ready in a trench report to the commander, who blows one whistle per trench line: 6 s after the

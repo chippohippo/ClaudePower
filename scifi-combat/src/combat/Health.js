@@ -70,7 +70,7 @@ export class Health {
       const overkill = !d || info.noDown || over >= this.max * d.overkill || (info.zone === 'head' && start >= this.max * d.headshotKill);
       if (overkill) { this.#die(info, by, 'killed'); killed = true; } else { this.#goDown(info, by); downed = true; }
     } else if (this.hp < this.max * 0.3) bus.emit('health:low', { id: this.owner.id });
-    by?.abilities?.gainSuper?.(start * 0.02);
+    if (by?.team !== this.owner.team) by?.abilities?.gainSuper?.(start * 0.02);   // hurting your own side earns nothing
     const res = { dealt: start, shieldBroke, killed, downed };
     this.owner.onHit?.(res, info, by); // HitReactions: critical hits and collapses throw the body
     return res;

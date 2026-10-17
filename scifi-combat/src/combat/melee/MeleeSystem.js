@@ -355,8 +355,11 @@ export class MeleeSystem {
       const fwd = atk._forward();
       const cosHalfArc = Math.cos(((a.arc ?? 90) * Math.PI) / 360);
 
+      const world = atk.world;
       for (const def of this.components) {
-        if (def === atk || def.owner.team === atk.owner.team || atk.hitThisSwing.has(def.owner.id)) continue;
+        if (def === atk || atk.hitThisSwing.has(def.owner.id)) continue;
+        // Friendly fire: a swing lands on whoever is in its arc, teammates too (rules: melee 0 or 1).
+        if (def.owner.team === atk.owner.team && !(world?.harm ? world.harm(atk.owner.team, def.owner, 'melee') : 0)) continue;
         if ((def.owner.vehicle && !def.owner.vehicle.exposed) || atk.owner.vehicle) continue; // swords can't reach inside hulls
         _toTarget.subVectors(def.owner.movement.state.position, origin);
         _toTarget.y = 0;

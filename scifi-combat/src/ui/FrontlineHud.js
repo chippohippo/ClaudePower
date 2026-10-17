@@ -82,9 +82,16 @@ export class FrontlineHud {
       bus.on('entity:death', (e) => {
         const vt = teamOf(e.id);
         if (vt < 0) return;
-        const kt = teamOf(e.by);
-        this.feed.unshift({ html: `<span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▸ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span>`, t: this.time });
+        const kt = teamOf(e.by), tk = kt === vt && e.by && e.by !== e.id;   // friendly fire: a teamkill
+        this.feed.unshift({ html: `<span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▸ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span>${tk ? ' <b style="color:#ff4d40">TEAMKILL</b>' : ''}`, t: this.time });
         this.feed.length = Math.min(this.feed.length, 6);
+        if (tk && e.by === player.id) this.#say('tk', 'TEAMKILL · CHECK YOUR FIRE', '#ff4d40', 2, 4);
+      }),
+      // Friendly fire: your rounds in a teammate, or a teammate's in you.
+      bus.on('weapon:hit', (e) => {
+        if (!e.friendly) return;
+        if (e.attacker === player.id) this.#say('ff', 'FRIENDLY FIRE', '#ff4d40', 1.1, 2.5);
+        else if (e.victim === player.id) this.#say('ffIn', `${name(e.attacker).toUpperCase()} · WATCH YOUR FIRE`, '#ffb36b', 1.2, 4);
       }),
       bus.on('entity:downed', (e) => {
         const vt = teamOf(e.id);

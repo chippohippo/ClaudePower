@@ -307,18 +307,21 @@ export class WeaponComponent {
   #applyHit(w, hit, chargeMul) {
     const e = hit.entity;
     if (!e) { bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: w.s.vfx?.impact }); return; }
-    if (e.team === this.owner.team) return;
+    // Friendly fire: a teammate in the way takes the round (data/rules.json says how much of it).
+    const share = this.world.harm ? this.world.harm(this.owner.team, e, 'gun') : e.team === this.owner.team ? 0 : 1;
+    if (!share) return;
+    const friendly = e.team === this.owner.team;
     if (e.movement?.state.invulnerable) { bus.emit('weapon:iframeWhiff', { victim: e.id }); return; }
     const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';
-    const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul;
-    const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone }, this.owner);
+    const dmg = computeDamage(w.s, hit.distance, hit.zone, armor, this.world.damageMatrix ?? {}) * chargeMul * this.buffs.damageMul * share;
+    const res = e.health.damage(dmg, { kind: 'gun', weapon: w.s.id, ammoType: w.s.ammoType, zone: hit.zone, friendly }, this.owner);
     e.weapons?.interrupt?.('flinch');
     // Buffs like Devour or Well of Night make rounds apply a status.
     if (this.buffs.onHitStatus) e.status?.apply(this.buffs.onHitStatus, { source: this.owner });
     if (w.s.onHit?.status) e.status?.apply(w.s.onHit.status.id, { stacks: w.s.onHit.status.stacks ?? 1, source: this.owner });
     bus.emit('weapon:hit', {
       attacker: this.owner.id, victim: e.id, damage: dmg, zone: hit.zone, armor,
-      shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point,
+      shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly,
     });
   }
 
@@ -334,11 +337,12 @@ export class WeaponComponent {
     this.beamTime = target && target === this.beamTarget ? this.beamTime + dt : 0;
     if (!this.beamTarget && !this._beamOn) { this._beamOn = true; bus.emit('weapon:beamStart', { id: this.owner.id }); }
     this.beamTarget = target;
-    if (target && target.team !== this.owner.team) {
+    const beamShare = target ? (this.world.harm ? this.world.harm(this.owner.team, target, 'beam') : target.team !== this.owner.team ? 1 : 0) : 0;
+    if (target && beamShare > 0) {
       const ramp = 1 + ((s.damage.rampMul ?? 1) - 1) * Math.min(1, this.beamTime / (s.damage.rampUp ?? 1));
       const armor = target.health.armorFor?.(hit.zone) ?? 'flesh';
       const mul = this.world.damageMatrix?.[s.ammoType]?.[armor] ?? 1;
-      target.health.damage(s.damage.dps * ramp * mul * dt * this.buffs.damageMul, { kind: 'beam', weapon: s.id, ammoType: s.ammoType }, this.owner);
+      target.health.damage(s.damage.dps * ramp * mul * dt * this.buffs.damageMul * beamShare, { kind: 'beam', weapon: s.id, ammoType: s.ammoType, friendly: target.team === this.owner.team }, this.owner);
       if (s.onHit?.status) target.status?.apply(s.onHit.status.id, { source: this.owner });
     }
     this.recoilPitch += (w.recoil.pattern[0][0] * DEG) * dt * 10;
@@ -601,16 +605,20 @@ export class ProjectileSystem {
     if (p.spec.cluster && !p.isChild) this.#cluster(p, hit.point);
     if (onHit?.status) {
       const victims = p.spec.splash > 0 ? this.world.entitiesInRadius(hit.point, p.spec.splash) : e ? [e] : [];
-      for (const v of victims) if (v.team !== p.team) v.status?.apply(onHit.status.id, { stacks: onHit.status.stacks ?? 1, duration: onHit.status.duration, source: this.world.entity?.(p.ownerId) });
+      for (const v of victims) {
+        if (!(this.world.harm ? this.world.harm(p.team, v, 'status') > 0 && v.id !== p.ownerId : v.team !== p.team)) continue;
+        v.status?.apply(onHit.status.id, { stacks: onHit.status.stacks ?? 1, duration: onHit.status.duration, source: this.world.entity?.(p.ownerId) });
+      }
     }
     if (p.spec.splash > 0) {
       bus.emit('projectile:explode', { point: hit.point, radius: p.spec.splash, ownerId: p.ownerId, artillery: !!s.artillery });
       this.world.explode?.(hit.point, p.spec.splash, s, p);
-    } else if (e && e.team !== p.team) {
+    } else if (e && (this.world.harm ? this.world.harm(p.team, e, 'projectile') : e.team !== p.team ? 1 : 0) > 0) {
+      const share = this.world.harm ? this.world.harm(p.team, e, 'projectile') : 1, friendly = e.team === p.team;
       const armor = e.health.armorFor?.(hit.zone) ?? 'flesh';
-      const dmg = computeDamage(s, p.traveled, hit.zone, armor, this.world.damageMatrix ?? {}) * p.spec.damageMul;
-      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone }, { id: p.ownerId });
-      bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point });
+      const dmg = computeDamage(s, p.traveled, hit.zone, armor, this.world.damageMatrix ?? {}) * p.spec.damageMul * share;
+      const res = e.health.damage(dmg, { kind: 'projectile', weapon: s.id, ammoType: s.ammoType, zone: hit.zone, friendly }, { id: p.ownerId, team: p.team });
+      bus.emit('weapon:hit', { attacker: p.ownerId, victim: e.id, damage: dmg, zone: hit.zone, armor, shieldBroke: !!res?.shieldBroke, killed: !!res?.killed, point: hit.point, friendly });
     } else {
       bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: s.vfx?.impact, ownerId: p.ownerId, team: p.team, damage: s.damage?.base ?? 0 });
     }

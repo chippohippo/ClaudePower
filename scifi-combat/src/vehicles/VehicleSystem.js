@@ -437,9 +437,11 @@ export class VehicleSystem {
       if (dist > v.def.radius + 0.4 || Math.abs(e.movement.state.position.y - (s.position.y - (v.def.hoverHeight ?? 0))) > 2) continue;
       _v.divideScalar(dist || 1);
       v.ramCd.set(e.id, 0.6);
-      if (e.team === v.team || speed < r.minSpeed) { e.movement.impulse?.(_v.x * 3, 0, _v.z * 3); continue; } // nudge, no damage
-      const dmg = speed * r.damagePerMs;
-      e.health.damage(dmg, { kind: 'ram', vehicle: v.type }, driver ?? v);
+      // Friendly fire: a vehicle at speed runs down whoever is in its way (rules: `ram`).
+      const share = this.world.harm ? this.world.harm(v.team, e, 'ram') : e.team === v.team ? 0 : 1;
+      if (!share || speed < r.minSpeed) { e.movement.impulse?.(_v.x * 3, 0, _v.z * 3); continue; } // nudge, no damage
+      const dmg = speed * r.damagePerMs * share;
+      e.health.damage(dmg, { kind: 'ram', vehicle: v.type, friendly: e.team === v.team }, driver ?? v);
       e.movement.impulse?.(_v.x * r.knock, 4, _v.z * r.knock);
       const phased = v.boostTime > 0 && v.def.boost?.phase;
       if (r.selfDamageMul && !phased) v.health.damage(dmg * r.selfDamageMul, { kind: 'ramSelf' }, null);

@@ -138,11 +138,17 @@ export class ZoneSystem {
         e.status?.apply(z.core.status.id, { duration: z.core.status.duration, source: src });
       }
     }
+    // Friendly fire: a purely harmful field (fire, arcs, a strafing run; nothing in it helps
+    // allies) burns teammates standing in it too, the caster included.
+    const share = z.damage && !z.allyHeal && !z.allyStatus && !z.allyWeaponStatus && !z.revive ? this.world.harm?.(z.team, allies[0] ?? null, 'zone') ?? 0 : 0;
     for (const a of allies) {
       if (z.allyHeal) a.health.heal(z.allyHeal);
       if (z.allyStatus) a.status?.apply(z.allyStatus.id, { duration: z.allyStatus.duration, source: src });
       if (z.allyWeaponStatus) a.weapons?.applyBuff({ onHitStatus: z.allyWeaponStatus }, (z.tick ?? 0.5) + 0.1);
       if (z.revive && a.health.dead) a.health.revive(0.5);
+      if (share > 0 && !a.health.dead && !a.movement.state.invulnerable && this.#patternHits(z, a)) {
+        a.health.damage(z.damage * (a === src ? Math.min(share, this.world.ff?.self ?? share) : share), { kind: 'ability', ability: z.ability, friendly: true }, src);
+      }
     }
     if (z.damage) this.world.damageDeployables?.(z.center, z.radius, z.damage, src, null, z.team);
   }
