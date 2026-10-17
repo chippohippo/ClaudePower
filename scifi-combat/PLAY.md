@@ -9,6 +9,7 @@ Download the project as a zip and extract it anywhere. Use the branch the game i
 <https://github.com/chippohippo/ClaudePower/archive/refs/heads/ccr-ba969e79-we5sd8.zip>
 
 The game is in the `scifi-combat` folder inside the zip. You only need that folder.
+If you were sent `Emberfall-PC.zip`, it holds just that folder (as `Emberfall`): extract it and go on.
 
 ## 2. Start it
 
