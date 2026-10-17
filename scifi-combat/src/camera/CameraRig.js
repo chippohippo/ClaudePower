@@ -15,6 +15,7 @@
 
 import { MathUtils, PerspectiveCamera, Vector3, Quaternion, Euler } from 'three';
 import { bus } from '../core/EventBus.js';
+import { Spring } from '../core/Spring.js';
 
 const _target = new Vector3();
 const _off = new Vector3();
@@ -22,22 +23,6 @@ const _dir = new Vector3();
 const _q = new Quaternion();
 const _e = new Euler(0, 0, 0, 'YXZ');
 const noise = (t, seed) => Math.sin(t * 17.3 + seed) * 0.5 + Math.sin(t * 31.7 + seed * 2.1) * 0.3 + Math.sin(t * 7.1 + seed * 3.3) * 0.2;
-
-/** Critically damped (or tuned) spring, integrated semi-implicitly. */
-class Spring {
-  constructor(omega, zeta = 1, value = 0) { this.w = omega; this.z = zeta; this.x = value; this.v = 0; }
-  step(target, dt) {
-    // Sub-step so stiff springs stay stable through frame-rate hitches.
-    const n = Math.max(1, Math.ceil(dt / (1 / 240)));
-    const h = dt / n;
-    for (let i = 0; i < n; i++) {
-      const a = this.w * this.w * (target - this.x) - 2 * this.z * this.w * this.v;
-      this.v += a * h;
-      this.x += this.v * h;
-    }
-    return this.x;
-  }
-}
 
 // Framing per state: right (shoulder) offset, height above the eye, distance behind.
 const FRAMING = {

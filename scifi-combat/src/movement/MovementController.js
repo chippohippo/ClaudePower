@@ -97,11 +97,12 @@ export class MovementController {
       bodyTurnRate: 0,          // rad/s (animation bank)
       crouchPress: null,        // { t, from, promoted } while the crouch key is held
       slide: null,              // { kind: 'feet' | 'belly', t }
-      dive: null,               // { dirYaw, t }
+      dive: null,               // { dirYaw, t, kind: 'forward' | 'left' | 'right' | 'back' }
+      supine: false,            // lying on the back (after a back dive or a backward knockdown)
       dodgeDir: new Vector3(),
       dodgeStyle: null,
       mantle: null,
-      knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest }
+      knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest, supine }
       lastDiveLand: -99,
       wallRunsLeft: tuning.wallRun.perAirtime,
       wallNormal: new Vector3(),
@@ -147,7 +148,9 @@ export class MovementController {
     s.sprinting = false; s.stanceT = null; s.slide = null; s.dive = null; s.mantle = null; s.forced = null;
     this.#setInvulnerable(false);
     if (s.mode !== MoveState.KNOCKDOWN) {
-      s.knock = { phase: 'air', t: 0, rest: 0 };
+      // Thrown backward (against your facing) = you land on your back.
+      const fx = -Math.sin(s.bodyYaw), fz = -Math.cos(s.bodyYaw);
+      s.knock = { phase: 'air', t: 0, rest: 0, supine: x * fx + z * fz < -0.5 };
       this.#setMode(MoveState.KNOCKDOWN);
       s.knockStarted = true;
       this.body.setHeight(this.t.heights.prone);
@@ -450,6 +453,7 @@ export class MovementController {
     if (tr.t < tr.dur) return;
     s.stance = tr.to;
     s.stanceT = null;
+    if (s.stance !== Stance.PRONE) s.supine = false;
     this.body.setHeight(this.t.heights[s.stance]);
     bus.emit('move:stanceDone', { id: this.id, stance: s.stance });
     if (s.stanceQueued) { const q = s.stanceQueued; s.stanceQueued = null; if (q !== s.stance) this.#requestStance(q); }
@@ -472,7 +476,15 @@ export class MovementController {
     const along = s.velocity.x * dir.x + s.velocity.z * dir.z;
     const hs = Math.min(d.maxSpeed * this.mods.speedMul, Math.max(along, d.minSpeed) + d.boost);
     s.velocity.set(dir.x * hs, d.upVelocity, dir.z * hs);
-    s.dive = { dirYaw: yawOf(dir.x, dir.z), t: 0 };
+    // Directional dive: out of a sprint (or with no input) you dive the way you face. Otherwise
+    // the body stays on your aim and you dive sideways or backward (you land on your back after
+    // a back dive and can keep shooting).
+    const dirYaw = yawOf(dir.x, dir.z);
+    const rel = angleDelta(s.yaw, dirYaw);
+    const kind = s.sprinting || wishMag <= 0.15 || Math.abs(rel) < d.sideAngle * DEG ? 'forward'
+      : Math.abs(rel) < d.backAngle * DEG ? (rel > 0 ? 'left' : 'right') : 'back';
+    s.dive = { dirYaw, t: 0, kind };
+    s.supine = false;
     s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null;
     s.grounded = false;
     this.body.setHeight(this.t.heights.dive);
@@ -488,7 +500,8 @@ export class MovementController {
     // Committed arc with only a little directional influence.
     if (wishMag > 0) { s.velocity.x += _wish.x * d.airControl * dt; s.velocity.z += _wish.z * d.airControl * dt; }
     this.#setInvulnerable(s.dive.t >= d.iframeStart && s.dive.t <= d.iframeEnd);
-    s.bodyYaw = turnToward(s.bodyYaw, s.dive.dirYaw, this.t.turnRates.dive * DEG * dt);
+    if (s.dive.kind === 'forward') s.bodyYaw = turnToward(s.bodyYaw, s.dive.dirYaw, this.t.turnRates.dive * DEG * dt);
+    else s.bodyYaw = turnToward(s.bodyYaw, s.yaw, this.t.turnRates.jog * DEG * dt);
   }
 
   /** Ground evades for melee classes (flameStep, ashStep) and the heavy shoulder bash. */
@@ -554,7 +567,9 @@ export class MovementController {
       forwardOf(ny, _dir);
       s.velocity.x = _dir.x * newSp; s.velocity.z = _dir.z * newSp;
     }
-    if (newSp > 0.3) s.bodyYaw = turnToward(s.bodyYaw, yawOf(s.velocity.x, s.velocity.z), (kind === 'feet' ? t.turnRates.slide : t.turnRates.belly) * DEG * dt);
+    const keepAim = kind === 'belly' && s.slide.from && s.slide.from !== 'forward';
+    if (keepAim) s.bodyYaw = turnToward(s.bodyYaw, s.yaw, t.turnRates.prone * DEG * dt);
+    else if (newSp > 0.3) s.bodyYaw = turnToward(s.bodyYaw, yawOf(s.velocity.x, s.velocity.z), (kind === 'feet' ? t.turnRates.slide : t.turnRates.belly) * DEG * dt);
     s.velocity.y -= 2 * dt; // stay glued to the ground
 
     if (kind === 'feet') {
@@ -629,7 +644,7 @@ export class MovementController {
       if (s.mode === MoveState.GROUND || s.mode === MoveState.LAND) this.#setMode(MoveState.AIR);
       else if (s.mode === MoveState.SLIDE && s.timeSinceGrounded > 0.08) {
         // Off a ledge mid-slide: feet slides become a fall, belly slides become a dive.
-        if (s.slide.kind === 'belly') { s.dive = { dirYaw: s.bodyYaw, t: this.t.dive.iframeEnd }; s.slide = null; this.#setMode(MoveState.DIVE); }
+        if (s.slide.kind === 'belly') { s.dive = { dirYaw: s.slide.dirYaw ?? s.bodyYaw, t: this.t.dive.iframeEnd, kind: s.slide.from ?? 'forward' }; s.slide = null; this.#setMode(MoveState.DIVE); }
         else { s.slide = null; s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); this.#setMode(MoveState.AIR); }
       }
     }
@@ -640,9 +655,12 @@ export class MovementController {
     switch (s.mode) {
       case MoveState.DIVE:
         this.#setInvulnerable(false);
+        const dv = s.dive;
         s.stance = Stance.PRONE; s.dive = null; s.lastDiveLand = s.time;
-        bus.emit('move:diveLand', { id: this.id, impact, speed: this.#hspeed() });
+        s.supine = dv.kind === 'back';
+        bus.emit('move:diveLand', { id: this.id, impact, speed: this.#hspeed(), kind: dv.kind });
         this.#startSlide('belly', this.t.dive.landSpeedKeep);
+        s.slide.from = dv.kind; s.slide.dirYaw = dv.dirYaw;
         return;
       case MoveState.KNOCKDOWN:
         if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
@@ -656,7 +674,7 @@ export class MovementController {
       default:
         if (impact >= L.knockdownAt) {
           this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
-          s.knock = { phase: 'ground', t: 0, rest: 0 };
+          s.knock = { phase: 'ground', t: 0, rest: 0, supine: false };
           s.sprinting = false;
           this.body.setHeight(this.t.heights.prone);
           this.#setMode(MoveState.KNOCKDOWN);
@@ -694,6 +712,7 @@ export class MovementController {
       s.velocity.x = 0; s.velocity.z = 0; s.velocity.y -= 2 * dt;
       if (k.t >= cfg.getUpTime) {
         s.knock = null;
+        s.supine = false;
         s.stance = Stance.STAND;
         this.body.setHeight(this.t.heights.stand);
         this.#setMode(MoveState.GROUND);
@@ -736,7 +755,7 @@ export class MovementController {
       : new Vector3(top.point.x + fwd.x * 0.35, top.point.y, top.point.z + fwd.z * 0.35);
     const keep = Math.max(this.#hspeed() * m.vaultMomentumKeep, m.vaultMinExitSpeed);
     return {
-      kind, from: base.clone(), to, height,
+      kind, from: base.clone(), to, height, edge: top.point.clone(),
       duration: kind === 'vault' ? m.vaultDuration : m.climbDuration,
       exitVelocity: new Vector3(fwd.x * keep, 0, fwd.z * keep),
     };
@@ -877,8 +896,8 @@ export class MovementController {
       tsg: s.timeSinceGrounded, grounded: s.grounded, wr: s.wallRunsLeft,
       stanceT: s.stanceT && { ...s.stanceT }, stanceQueued: s.stanceQueued, crouchPress: s.crouchPress && { ...s.crouchPress },
       slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock },
-      dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand,
-      mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), exitVelocity: v3(s.mantle.exitVelocity) },
+      dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand, supine: s.supine,
+      mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), edge: v3(s.mantle.edge), exitVelocity: v3(s.mantle.exitVelocity) },
       invulnerable: s.invulnerable, sprinting: s.sprinting,
     };
   }
@@ -892,8 +911,8 @@ export class MovementController {
       timeSinceGrounded: snap.tsg, grounded: snap.grounded, wallRunsLeft: snap.wr,
       stanceT: snap.stanceT && { ...snap.stanceT }, stanceQueued: snap.stanceQueued, crouchPress: snap.crouchPress && { ...snap.crouchPress },
       slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock },
-      dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting,
-      mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), exitVelocity: v3(snap.mantle.exitVelocity) },
+      dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine,
+      mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), edge: v3(snap.mantle.edge), exitVelocity: v3(snap.mantle.exitVelocity) },
     });
     s.position.fromArray(snap.p); s.velocity.fromArray(snap.v); s.dodgeDir.fromArray(snap.dodgeDir);
     const h = this.t.heights;

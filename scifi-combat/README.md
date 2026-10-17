@@ -6,11 +6,14 @@
 
 | Path | What |
 |---|---|
-| `src/movement/MovementController.js` | Locomotion FSM: walk/sprint/crouch/prone, slide, dodge with i-frames, vault/climb, wall-run, coyote time and jump buffer. Includes Rapier and flat-ground physics adapters |
+| `src/movement/MovementController.js`, `Hitboxes.js` | Helldivers 2 locomotion: instant response with weight from curves, carved sprint and plant-and-pivot, timed stances, committed slide and directional dive (belly, side and back/supine landings), hold-to-climb, heavy landings, ragdoll-lite knockdowns. Hit spheres fitted to the animation rig ([docs/MOVEMENT.md](docs/MOVEMENT.md)) |
+| `src/anim/` | HD2-style procedural rig: world-space foot planting (no sliding), sim-timed stance/dive/slide/mantle/knockdown poses, rifle and flame-sword upper body, recoil/flinch layers, animation-synced footstep/impact/cloth events, LOD scheduling for 128 fighters; `ClipAnimationController` for GLB clips with the same contract ([docs/ANIMATION.md](docs/ANIMATION.md)) |
+| `src/render/CrowdRenderer.js` | The whole crowd in five instanced draw calls: team colors, status glow, far impostors, per-fighter culling |
+| `rig-lab.html` | Every move side by side in slow motion with planted-foot and hit-sphere overlays and an event log (`?station=dive&view=side&speed=0.25&at=1.7`) |
 | `src/combat/melee/MeleeSystem.js` | Attack FSM (windup/active/recovery), chains, charge specials, guard/perfect block/parry/whiff, counters, heat, poise, guard break, feints |
 | `src/ai/CombatBotBrain.js`, `AbilityPlanner.js`, `VehiclePilot.js` | Full-kit bots: data-inferred ability use for all 80 abilities, interrupts and dodges, gunplay with recoil comp, sword duels, vehicle boarding, driving, gunning and bailing out ([docs/AI.md](docs/AI.md)) |
 | `src/ai/MeleeDuelistBrain.js` | Utility AI that sends commands the way a player would, reacts to windups, and learns how often you parry |
-| `src/camera/CameraRig.js` | First/third-person blend, shoulder swap, collision, FOV kicks, motion-safe head bob, trauma shake |
+| `src/camera/CameraRig.js` | HD2 third-person camera: zero-latency look, stiff spring follow, footfall-driven bob, carve sway, sprint/slide/dive FOV, collision, trauma shake |
 | `src/input/InputManager.js` | Keyboard/mouse plus gamepad mapped into one per-tick command, with response curves and rumble |
 | `src/net/Prediction.js` | Client prediction and reconciliation with visual error smoothing, and snapshot interpolation |
 | `src/combat/weapons/WeaponDefs.js` | Archetype → weapon → attachment stat composition, and damage-matrix math |
@@ -23,5 +26,5 @@
 | `src/vfx/VehicleViews.js` | Vehicle graybox views: team trim, lagging turrets, glowing weak-spot vents, enemy HP bars, boost flames, damage smoke |
 | `src/vfx/ZoneDeployableViews.js` | Readable graybox visuals: team-relative colors, arming fill countdowns, dome shells, rotating spokes, tether beams, turret laser sights, blinking mines |
 | `tests/` | Headless `node --test` suite (`npm install && npm test`) |
-| `src/audio/AudioDirector.js` | Clarity-first audio: friend/foe cue variants, faction sound families, threat priority and ducking, super warnings, WebAudio synth fallback |
+| `src/audio/AudioDirector.js` | Clarity-first audio: friend/foe cue variants, faction sound families, threat priority and ducking, super warnings, animation-synced foley (footsteps, gear, cloth, body impacts) with distance culling, WebAudio synth fallback |
 | `data/` | All tuning: movement, melee, ballistic and energy weapons, attachments, damage matrix, classes |

@@ -24,13 +24,16 @@ import { CombatBotBrain } from './ai/CombatBotBrain.js';
 import { buildFighter } from './game/FighterFactory.js';
 import { routeCommand } from './core/routing.js';
 import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
+import { AnimationSystem } from './anim/AnimationSystem.js';
+import { CrowdRenderer } from './render/CrowdRenderer.js';
+import { silhouetteScale } from './movement/Hitboxes.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs] = await Promise.all([
+const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs, humanoid] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'),
   load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
-  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'),
+  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'),
 ]);
 const sword = meleeData.weapons[0];
 const abilityIndex = new Map();
@@ -53,7 +56,8 @@ const sun = new THREE.DirectionalLight('#ffe2b8', 2.2);
 sun.position.set(20, 30, 10); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30 });
-scene.add(sun);
+scene.add(sun, sun.target);
+const SUN_OFFSET = new THREE.Vector3(20, 30, 10);
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#3b3f4a' }));
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
@@ -87,6 +91,16 @@ const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, super
 const entities = world.entities;
 bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); const i = collidables.indexOf(m); if (i >= 0) collidables.splice(i, 1); });
 
+// Characters: a procedural Helldivers 2-style rig per fighter (foot planting, sim-timed
+// transitions, animation-synced foley), drawn by one instanced crowd renderer.
+const animSys = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z) });
+const crowd = new CrowdRenderer(scene, { max: 64 });
+const STATUS_GLOW = {
+  iframes: new THREE.Color(0.15, 0.25, 1.1), vulnerable: new THREE.Color(1.0, 0.1, 0.1), radiant: new THREE.Color(0.7, 0.45, 0.1),
+  void: new THREE.Color(0.35, 0.1, 0.7), mech: new THREE.Color(0.25, 0.25, 0.25), scorch: new THREE.Color(0.5, 0.16, 0), weaken: new THREE.Color(0.22, 0.07, 0.4), silenced: new THREE.Color(0.2, 0.2, 0.2),
+};
+const LYING = new Set(['dive', 'knockdown']);
+
 // ---------------------------------------------------------------- entities
 function makeFighter(id, team, color, pos, kit, guns) {
   const body = new FlatGroundBody(pos, boxes);
@@ -104,19 +118,10 @@ function makeFighter(id, team, color, pos, kit, guns) {
   return ent;
 }
 
-/** Graybox visual: capsule plus an emissive "blade" that glows with heat, and a gun box. */
-function attachView(ent, color) {
-  const team = ent.team, pos = ent.movement.state.position;
-  const mesh = new THREE.Group();
-  const capsule = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.1, 4, 12), new THREE.MeshStandardMaterial({ color }));
-  capsule.position.y = 0.9; capsule.castShadow = true;
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1.2), new THREE.MeshStandardMaterial({ color: '#ff8a3d', emissive: team === 0 ? '#ff5a00' : '#7a2cff', emissiveIntensity: 1.5 }));
-  blade.position.set(0.45, 1.1, -0.6);
-  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.7), new THREE.MeshStandardMaterial({ color: '#222' }));
-  gun.position.set(0.35, 1.3, -0.4); gun.visible = false;
-  mesh.add(capsule, blade, gun);
-  scene.add(mesh);
-  ent.view = { mesh, capsule, blade, gun, prev: pos.clone() };
+/** Registers the fighter's rig and its per-frame look (team palette, status glow, flame color). */
+function attachView(ent) {
+  animSys.add(ent);
+  ent.look = { team: ent.team, status: null, flame: new THREE.Color(), highlight: false };
 }
 
 const playerGuns = [
@@ -318,7 +323,7 @@ const loop = new FixedLoop({
     lastPlayerCmd = cmd;
     if (hitStop > 0) { hitStop -= dt; return; }
 
-    for (const e of entities) e.view.prev.copy(e.movement.state.position);
+    animSys.snapshot();
     const pc = player.status.rooted ? strip(cmd, []) : cmd;
     const meleeCmd = player.mode === 'sword' ? pc : strip(pc, ['light', 'heavy', 'guard']);
     const gunCmd = player.mode === 'gun' && !player.status.disarmed ? pc : strip(pc, ['light', 'guard', 'reload', 'swapWeapon']);
@@ -346,31 +351,16 @@ const loop = new FixedLoop({
   },
   render(alpha, now) {
     const dt = 1 / 60;
+    // Per-fighter look: status readability on the body (blue = i-frames, red = vulnerable,
+    // orange = Scorch, violet = Volatile/Weaken, transform auras), flame color with heat.
     for (const e of entities) {
-      const s = e.movement.state;
-      // Occupants of enclosed seats are hidden inside the hull; bike riders stay visible on top.
-      e.view.mesh.visible = !e.health.dead && (!e.vehicle || e.vehicle.exposed);
-      e.view.mesh.position.lerpVectors(e.view.prev, s.position, alpha);
-      e.view.mesh.rotation.y = s.yaw;
-      // Stance squash as a stand-in for animation.
-      const h = s.mode === 'slide' ? 0.5 : s.stance === 'crouch' ? 0.65 : s.stance === 'prone' ? 0.3 : 1;
-      e.view.capsule.scale.y = THREE.MathUtils.damp(e.view.capsule.scale.y, h, 18, dt);
-      const m = e.melee;
-      e.view.blade.visible = e.mode !== 'gun';
-      // Transform supers: a bigger silhouette and a faction glow, readable from across the map.
-      const tf = e.transform;
-      const scale = tf ? (tf.def.movement?.scale ?? 1.15) : 1;
-      e.view.mesh.scale.setScalar(THREE.MathUtils.damp(e.view.mesh.scale.x, scale, 8, dt));
-      const bladeScale = e.melee.w.visual?.scale ?? 1;
-      e.view.blade.scale.set(bladeScale, bladeScale, bladeScale);
-      e.view.blade.material.emissive.set(e.melee.w.visual?.flameColor ?? (e.team === 0 ? '#ff5a00' : '#7a2cff'));
-      e.view.gun.visible = e.mode === 'gun';
-      e.view.blade.material.emissiveIntensity = 1 + (m.heat / 100) * 4 + (m.phase === 'active' ? 3 : 0);
-      e.view.blade.rotation.x = m.phase === 'guard' ? -1.2 : m.phase === 'windup' ? 0.8 : m.phase === 'active' ? -0.6 : 0;
-      // Status readability on the body: blue = i-frames, red = vulnerable, orange = Scorch, violet = Volatile/Weaken.
-      const st = e.status;
-      e.view.capsule.material.emissive?.set(s.invulnerable ? '#3355ff' : m.vulnerable ? '#ff2222' : tf ? (tf.def.aura === 'void' ? '#5b21b6' : tf.def.aura === 'mech' ? '#555555' : '#b7791f') : st.has('scorch') ? '#7a2a00' : st.has('volatile') || st.has('weaken') ? '#3a1466' : st.silenced ? '#444' : '#000000');
+      const s = e.movement.state, st = e.status, tf = e.transform, look = e.look;
+      look.status = s.invulnerable ? STATUS_GLOW.iframes : e.melee.vulnerable ? STATUS_GLOW.vulnerable : tf ? STATUS_GLOW[tf.def.aura] ?? null
+        : st.has('scorch') ? STATUS_GLOW.scorch : st.has('volatile') || st.has('weaken') ? STATUS_GLOW.weaken : st.silenced ? STATUS_GLOW.silenced : null;
+      look.flame.set(e.melee.w.visual?.flameColor ?? (e.team === 0 ? '#ff7a1a' : '#8b5cf6'));
+      look.highlight = e === player;
     }
+    animSys.update(dt, alpha, rig.camera.position);
     if (performance.now() > tellUntil) document.getElementById('tell').style.background = 'transparent';
     for (const [p, m] of bolts) { if (!p.alive) { scene.remove(m); bolts.delete(p); } else m.position.copy(p.pos); }
     for (let i = fx.length - 1; i >= 0; i--) {
@@ -386,10 +376,22 @@ const loop = new FixedLoop({
     const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
     const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
     rig.update(dt, {
-      target: player, pos: player.view.mesh.position, yaw: lookYaw, pitch: lookPitch,
+      target: player, pos: animSys.record(player.id).root, yaw: lookYaw, pitch: lookPitch,
       ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current.s.ads?.fov,
-      vehicle: pv ? pv.def.camera : null, scale: player.view.mesh.scale.x,
+      vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
     });
+    // Draw the crowd: full rigs near, reduced mid, capsule impostors far (frustum-culled per fighter).
+    crowd.begin(rig.camera);
+    for (const r of animSys.list) {
+      const e = r.e, s = e.movement.state;
+      if (e.vehicle && !e.vehicle.exposed) continue;
+      if (r.lod < 2) crowd.drawRig(r.h, e.look, r.lod);
+      else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(e), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.slide?.kind === 'belly' || e.health.dead }, e.look);
+    }
+    crowd.end();
+    // Shadows follow the player (the shadow camera covers +-30 m).
+    const pr = animSys.record(player.id).root;
+    sun.position.copy(pr).add(SUN_OFFSET); sun.target.position.copy(pr);
     views.update(dt);
     vehicleViews.update(dt, rig.camera);
     renderer.render(scene, rig.camera);
@@ -432,5 +434,5 @@ const loop = new FixedLoop({
   },
 });
 kitIndex = (kitIndex - 1 + kitOrder.length) % kitOrder.length; nextKit(); // show the starting kit
-window.__emberfall = { world, player, bots, rig }; // dev console handle (and for automated smoke tests)
+window.__emberfall = { world, player, bots, rig, animSys, crowd }; // dev console handle (and for automated smoke tests)
 loop.start();

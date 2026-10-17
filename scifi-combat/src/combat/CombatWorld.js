@@ -65,6 +65,14 @@ export class CombatWorld {
   spawnDeployable(spec) { return this.deployables.spawn(spec); }
 
   // ---------------------------------------------------------------- spatial queries
+  /** Surface under a point, for footstep and impact sounds: cover tops report their material. */
+  surfaceAt(x, y, z) {
+    for (const b of this.cover) {
+      if (Math.abs(y - b.max.y) < 0.12 && x >= b.min.x - 0.05 && x <= b.max.x + 0.05 && z >= b.min.z - 0.05 && z <= b.max.z + 0.05) return b.surface ?? 'metal';
+    }
+    return this.groundSurface ?? 'dirt';
+  }
+
   entitiesInRadius(p, r) { return this.fighters().filter((e) => !e.health.dead && e.movement.state.position.distanceTo(p) <= r); }
 
   entitiesInShape(s, o, d) {

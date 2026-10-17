@@ -107,7 +107,7 @@
   "jumpAfter": 0.15
  },
  "dive": {
-  "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part.",
+  "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Out of a sprint you dive the way you face; otherwise the body stays on your aim: inputs past sideAngle dive sideways (land on the side, roll to the belly), past backAngle dive backward (land on your back and keep shooting). Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part.",
   "minSpeed": 4.8,
   "boost": 1.4,
   "maxSpeed": 8.6,
@@ -118,11 +118,14 @@
   "iframeEnd": 0.32,
   "staminaCost": 0,
   "landSpeedKeep": 0.75,
+  "sideAngle": 55,
+  "backAngle": 125,
   "belly": {
    "friction": 9.0,
    "steerRate": 35,
    "exitSpeed": 0.9,
-   "slopeGravity": 0.9
+   "slopeGravity": 0.9,
+   "rollTime": 0.35
   }
  },
  "evade": {

@@ -71,7 +71,9 @@ scifi-combat/
 │  │  ├─ Damage.js  StaminaHeat.js  Armor.js
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
-│  ├─ anim/ AnimationController.js  CharacterFactory.js  AssetLoader.js  IKFootPlant.js
+│  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
+│  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
+│  ├─ render/ CrowdRenderer.js    instanced crowd (5 draw calls, team colors, status glow, impostors)
 │  ├─ audio/ AudioManager.js  MusicDirector.js
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
@@ -91,7 +93,7 @@ scifi-combat/
 | ClassSystem | loadout, passives, ability cooldowns | class data | `ability:*` |
 | AIController | produces **Commands** like a player | Perception, Squad, blackboard | — |
 | NetworkManager | prediction, reconciliation, interpolation | sim snapshots | — |
-| AnimationController | layered mixer, additive aim/recoil | sim state + events | anim notifies → sim (optional) |
+| AnimationSystem + rigs | pose solve per fighter (procedural or clip), foot planting, LOD | sim state (read-only), combat events | `anim:footstep`, `anim:impact`, `anim:cloth` |
 | CameraRig | 1P/3P blend, collision, shake, FOV | movement state, events | — |
 | AudioManager / Juice | spatial SFX, hit-stop, rumble | events | — |
 
@@ -294,6 +296,11 @@ AI spawn groups, dialogue cues). Mode = `GameMode` class with `onTick, onKill, s
 
 ## 10. Asset pipeline & animation
 
+> Implemented: [ANIMATION.md](ANIMATION.md). Every fighter currently uses the procedural HD2-style rig
+> (world-space foot planting, sim-timed transitions, additive layers) drawn by the instanced
+> CrowdRenderer. `ClipAnimationController` takes over per fighter when GLB art exists, with the same
+> inputs and events. The plan below is the GLB pipeline it implements.
+
 - Mixamo-compatible skeleton (`mixamorig:` names stripped to canonical) shared by all humanoids.
 - `CharacterFactory`: loads GLB once (GLTFLoader + DRACOLoader + KTX2Loader + Meshopt),
   `SkeletonUtils.clone` per instance, attaches weapons to sockets defined in data
@@ -313,9 +320,10 @@ AI spawn groups, dialogue cues). Mode = `GameMode` class with `onTick, onKill, s
 
 ## 11. Performance guidelines
 - Budget: ≤ 100k tris characters on screen, ≤ 300 draw calls, ≤ 2 shadow cascades (CSM), 1 shadowed light.
-- LOD: LOD0 < 15 m, LOD1 < 40 m, LOD2 < 90 m, beyond → **impostor/instanced crowd** (vertex-animated
-  texture soldiers via InstancedMesh for Battlefront scale).
-- Animation LOD: mixer update every frame < 20 m, every 2nd < 50 m, every 4th beyond; skip offscreen.
+- LOD (implemented, `data/animation/humanoid.json` `lod`): full rig with events < 70 m, reduced rig at
+  half rate < 220 m, single instanced capsule impostor beyond. The whole crowd is five instanced draw calls.
+- Animation LOD: the followed fighter always solves every frame; mid rigs every 2nd frame; far fighters
+  don't solve at all.
 - Pools for everything (tracers, decals, particles, audio voices). Zero allocations in hot loops
   (reuse `Vector3` scratch objects — see code).
 - KTX2/Basis textures, atlases per faction, shared materials, `frustumCulled`, BVH (three-mesh-bvh)

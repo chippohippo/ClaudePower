@@ -44,6 +44,7 @@ measured fact. The procedure for locking them to the real game is in the next se
 | Dive airtime | ~0.41 s from sprint | 0.3–0.55 s | Takeoff to belly impact |
 | Dive travel (from sprint) | ~5.8 m incl. belly slide | 4–6.5 m | Takeoff point to rest |
 | Dive i-frames | 0.04–0.32 s | ≥ 0.2 s | *Unverified*: HD2 may rely on its low profile rather than true i-frames (see deviations) |
+| Dive direction | forward out of a sprint; side past 55°, back past 125° from the aim | — | Dive sideways/backward while aiming: body orientation and landing side (we land on the back after a back dive and keep aiming) |
 | Drop to prone | 0.50 s | ±0.05 s | Frames of the drop |
 | Prone → stand | 0.62 s (0.45 s within 1.5 s of a dive) | fast < normal | Frames of the get-up |
 | Crawl speed | 0.95 m/s | ±0.1 | As jog, prone |
@@ -94,6 +95,9 @@ Other systems read per-tick flags the controller sets first in every tick:
 - **Prone:** the body turns at **110°/s**, and the gun is clamped to an arc around it (`aimYaw`). Turning while
   prone is slow and deliberate. The ergonomics reticle shows where the gun really points.
 - **Dive and slide:** the body snaps (dive, 1440°/s) or turns (slide, 90°/s) toward the motion.
+  Side and back dives are the exception: the body stays on the aim. A side dive lands on the side and
+  rolls to the belly over `dive.belly.rollTime`. A back dive lands **supine** (`state.supine`), still
+  aiming over the feet, until you stand up.
 
 ## Speed curve
 
@@ -126,8 +130,12 @@ Ground steeper than 48° makes you lose footing.
 
 ## Hitboxes
 
-Hit spheres come from the movement state (`Hitboxes.js`):
-- **Profiles:** stand head 1.65 m, crouch 1.10 m, prone 0.30 m, dive 0.85 m. Feet-first slide leans back; bike riders use a seated layout.
+Hit spheres come from the movement state (`Hitboxes.js`) and are fitted to the animation rig in every
+pose (tested), so what you see is what you hit:
+- **Profiles:** stand head 1.65 m, crouch 1.15 m, prone 0.40 m (raised to aim), supine 0.46 m, dive
+  0.72 m above the airborne root. Feet-first slide leans back; bike riders use a seated layout.
+- **Body axis:** the head leads in the dive direction; supine bodies and backward knockdowns have the
+  head behind; side landings roll toward the facing on the same timer as the animation.
 - **Transitions:** stance changes blend between layouts.
 - **Scale:** transform supers scale the spheres with their silhouette.
 
@@ -158,8 +166,13 @@ Hit spheres come from the movement state (`Hitboxes.js`):
 
 ## Animation sync contract
 
-Movement emits state; the animation rig (see the animation layer) plants feet in world space and
-emits `anim:footstep {id, foot, gait, intensity, surface}` on every heel strike, plus body-impact
-events (dive landing, slide start, knockdown, get-up). Camera bob and footstep, gear and cloth
-audio are driven only by those events, so they are frame-synced to the visible foot plant by
-construction.
+Movement emits state; the animation rig ([ANIMATION.md](ANIMATION.md)) reads it and never writes
+back. It plants feet in world space and emits:
+- `anim:footstep {id, foot, gait, stance, intensity, surface, x, y, z}` on every heel strike;
+- `anim:impact {kind}` when the body or hands hit (dive landing, slide, prone drop, knockdown slam,
+  heavy landing, ledge hands);
+- `anim:cloth {kind}` at the start of big motions.
+
+Camera bob and footstep, gear, cloth and impact audio are driven only by those events. They're
+frame-synced to the visible contact by construction. Timed animations (stance transitions, dive,
+slide, mantle, get-ups, sprint-to-fire, reloads) read the sim's own timers.

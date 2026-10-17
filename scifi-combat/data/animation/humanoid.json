@@ -1,0 +1,2347 @@
+{
+ "_comment": "Humanoid animation: the procedural rig (src/anim/ProceduralHumanoid.js) and the clip mapping for skinned GLB characters (src/anim/ClipAnimationController.js). Lengths in m, angles in rad, times in s. Body-local points are [right, up, forward] from the root (the ground point under the capsule). Chest-frame points are [right, along-spine, front] from the neck base. Target feel is Helldivers 2: readable, slightly exaggerated, heavy, never floaty. Every timing that matters comes from the simulation (stance transitions, dive, slide, mantle, knockdown, reload, sprint-to-fire), so animation and gameplay can't drift apart.",
+ "dims": {
+  "ankleH": 0.08,
+  "heel": 0.06,
+  "toe": 0.17,
+  "shin": 0.45,
+  "thigh": 0.45,
+  "hipW": 0.1,
+  "spine": 0.5,
+  "neck": 0.1,
+  "headR": 0.13,
+  "shoulderW": 0.19,
+  "shoulderDrop": 0.05,
+  "upperArm": 0.29,
+  "foreArm": 0.28
+ },
+ "gait": {
+  "_note": "Tables are [[speed m/s, value], ...]. stride = metres per full cycle (two steps). duty = fraction of the cycle a foot is planted (below 0.5 gives a flight phase). Cadence = speed / stride, so feet never slide at any speed.",
+  "stand": {
+   "stride": [
+    [
+     0.4,
+     0.9
+    ],
+    [
+     1.9,
+     1.7
+    ],
+    [
+     4.5,
+     2.9
+    ],
+    [
+     7.2,
+     4.2
+    ],
+    [
+     9.0,
+     4.9
+    ]
+   ],
+   "duty": [
+    [
+     0.4,
+     0.66
+    ],
+    [
+     1.9,
+     0.6
+    ],
+    [
+     4.5,
+     0.37
+    ],
+    [
+     7.2,
+     0.25
+    ],
+    [
+     9.0,
+     0.23
+    ]
+   ],
+   "bob": [
+    [
+     0.4,
+     0.008
+    ],
+    [
+     1.9,
+     0.02
+    ],
+    [
+     4.5,
+     0.036
+    ],
+    [
+     7.2,
+     0.045
+    ]
+   ],
+   "lift": [
+    [
+     0.4,
+     0.05
+    ],
+    [
+     1.9,
+     0.09
+    ],
+    [
+     4.5,
+     0.18
+    ],
+    [
+     7.2,
+     0.27
+    ]
+   ],
+   "intensity": [
+    [
+     0.4,
+     0.15
+    ],
+    [
+     1.9,
+     0.35
+    ],
+    [
+     4.5,
+     0.62
+    ],
+    [
+     7.2,
+     1.0
+    ]
+   ],
+   "pelvisDrop": [
+    [
+     0,
+     0
+    ],
+    [
+     1.9,
+     0.01
+    ],
+    [
+     4.5,
+     0.06
+    ],
+    [
+     7.2,
+     0.085
+    ]
+   ],
+   "lean": [
+    [
+     0,
+     0.02
+    ],
+    [
+     1.9,
+     0.04
+    ],
+    [
+     4.5,
+     0.09
+    ],
+    [
+     7.2,
+     0.27
+    ]
+   ],
+   "width": 0.1,
+   "stagger": 0.05,
+   "toeOut": 0.14,
+   "land": 0.38,
+   "heelRise": 0.9
+  },
+  "crouch": {
+   "stride": [
+    [
+     0.4,
+     0.7
+    ],
+    [
+     2.4,
+     1.55
+    ],
+    [
+     3.2,
+     1.8
+    ]
+   ],
+   "duty": [
+    [
+     0.4,
+     0.68
+    ],
+    [
+     2.4,
+     0.58
+    ],
+    [
+     3.2,
+     0.55
+    ]
+   ],
+   "bob": [
+    [
+     0.4,
+     0.006
+    ],
+    [
+     2.4,
+     0.018
+    ]
+   ],
+   "lift": [
+    [
+     0.4,
+     0.04
+    ],
+    [
+     2.4,
+     0.1
+    ]
+   ],
+   "intensity": [
+    [
+     0.4,
+     0.1
+    ],
+    [
+     2.4,
+     0.28
+    ]
+   ],
+   "pelvisDrop": [
+    [
+     0,
+     0
+    ],
+    [
+     2.4,
+     0.02
+    ]
+   ],
+   "lean": [
+    [
+     0,
+     0
+    ],
+    [
+     2.4,
+     0.06
+    ]
+   ],
+   "width": 0.15,
+   "stagger": 0.1,
+   "toeOut": 0.25,
+   "land": 0.42,
+   "heelRise": 0.6
+  },
+  "prone": {
+   "_note": "Crawl: elbows and knees alternate. Limb push speed matches ground speed during contact, so the contact points stay put.",
+   "stride": [
+    [
+     0.2,
+     0.6
+    ],
+    [
+     0.95,
+     0.9
+    ],
+    [
+     1.5,
+     1.1
+    ]
+   ],
+   "intensity": [
+    [
+     0,
+     0.15
+    ],
+    [
+     0.95,
+     0.3
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "_note": "Key poses. pelvisH/pelvisF: pelvis height/forward offset from the root. pitchP/pitchC: pelvis/chest pitch (0 upright, +1.57 face down, -1.57 face up). Body-local feet/hands are [right, up, forward]. hands with handsW 1 override the weapon grip (hands on the ground, ledge, handlebars).",
+  "stand": {
+   "pelvisH": 0.94,
+   "pitchP": 0.05,
+   "pitchC": 0.04
+  },
+  "crouch": {
+   "pelvisH": 0.52,
+   "pitchP": 0.35,
+   "pitchC": 0.62
+  },
+  "kneel": {
+   "pelvisH": 0.5,
+   "pelvisF": 0.0,
+   "pitchP": 0.2,
+   "pitchC": 0.28,
+   "feet": [
+    [
+     -0.13,
+     0.08,
+     0.32
+    ],
+    [
+     0.14,
+     0.09,
+     -0.4
+    ]
+   ],
+   "footPitch": [
+    0,
+    -1.2
+   ],
+   "knees": [
+    [
+     0.25,
+     0.2,
+     1
+    ],
+    [
+     0.15,
+     -0.6,
+     1
+    ]
+   ]
+  },
+  "pushup": {
+   "pelvisH": 0.32,
+   "pelvisF": -0.18,
+   "pitchP": 1.05,
+   "pitchC": 0.85,
+   "feet": [
+    [
+     -0.13,
+     0.07,
+     -0.85
+    ],
+    [
+     0.13,
+     0.07,
+     -0.85
+    ]
+   ],
+   "footPitch": [
+    -1.3,
+    -1.3
+   ],
+   "knees": [
+    [
+     0,
+     -1,
+     0.2
+    ],
+    [
+     0,
+     -1,
+     0.2
+    ]
+   ],
+   "hands": [
+    [
+     -0.24,
+     0.02,
+     0.42
+    ],
+    [
+     0.24,
+     0.02,
+     0.42
+    ]
+   ],
+   "handsW": 1
+  },
+  "prone": {
+   "pelvisH": 0.15,
+   "pelvisF": -0.08,
+   "pitchP": 1.45,
+   "pitchC": 1.32,
+   "feet": [
+    [
+     -0.16,
+     0.08,
+     -0.98
+    ],
+    [
+     0.16,
+     0.08,
+     -0.98
+    ]
+   ],
+   "footPitch": [
+    -1.35,
+    -1.35
+   ],
+   "knees": [
+    [
+     -0.2,
+     -1,
+     -0.1
+    ],
+    [
+     0.2,
+     -1,
+     -0.1
+    ]
+   ]
+  },
+  "supine": {
+   "pelvisH": 0.14,
+   "pelvisF": 0.1,
+   "pitchP": -1.45,
+   "pitchC": -1.18,
+   "feet": [
+    [
+     -0.18,
+     0.08,
+     0.98
+    ],
+    [
+     0.18,
+     0.08,
+     0.98
+    ]
+   ],
+   "footPitch": [
+    1.1,
+    1.1
+   ],
+   "knees": [
+    [
+     -0.2,
+     1,
+     0.1
+    ],
+    [
+     0.2,
+     1,
+     0.1
+    ]
+   ]
+  },
+  "situp": {
+   "pelvisH": 0.13,
+   "pelvisF": -0.05,
+   "pitchP": -0.45,
+   "pitchC": -0.12,
+   "feet": [
+    [
+     -0.16,
+     0.08,
+     0.72
+    ],
+    [
+     0.16,
+     0.08,
+     0.72
+    ]
+   ],
+   "footPitch": [
+    0.6,
+    0.6
+   ],
+   "knees": [
+    [
+     -0.1,
+     1,
+     0.4
+    ],
+    [
+     0.1,
+     1,
+     0.4
+    ]
+   ],
+   "hands": [
+    [
+     -0.26,
+     0.02,
+     -0.18
+    ],
+    [
+     0.26,
+     0.02,
+     -0.18
+    ]
+   ],
+   "handsW": 1
+  },
+  "slide": {
+   "_note": "Feet-first combat slide: hip skims the ground, torso leans back, the lead (left) leg extends forward, the right leg folds under. Weapon stays up: you can shoot through the whole slide.",
+   "pelvisH": 0.3,
+   "pelvisF": -0.1,
+   "pitchP": -0.55,
+   "pitchC": -0.5,
+   "feet": [
+    [
+     -0.06,
+     0.1,
+     0.82
+    ],
+    [
+     0.24,
+     0.06,
+     0.1
+    ]
+   ],
+   "footPitch": [
+    0.45,
+    -0.9
+   ],
+   "knees": [
+    [
+     0,
+     1,
+     0.2
+    ],
+    [
+     0.8,
+     0.3,
+     0.4
+    ]
+   ]
+  },
+  "belly": {
+   "pelvisH": 0.15,
+   "pelvisF": -0.12,
+   "pitchP": 1.5,
+   "pitchC": 1.35,
+   "feet": [
+    [
+     -0.17,
+     0.2,
+     -0.92
+    ],
+    [
+     0.17,
+     0.2,
+     -0.92
+    ]
+   ],
+   "footPitch": [
+    -1.2,
+    -1.2
+   ],
+   "knees": [
+    [
+     -0.2,
+     -1,
+     -0.2
+    ],
+    [
+     0.2,
+     -1,
+     -0.2
+    ]
+   ]
+  },
+  "bellyBack": {
+   "pelvisH": 0.14,
+   "pelvisF": 0.12,
+   "pitchP": -1.5,
+   "pitchC": -1.25,
+   "feet": [
+    [
+     -0.18,
+     0.22,
+     0.92
+    ],
+    [
+     0.18,
+     0.22,
+     0.92
+    ]
+   ],
+   "footPitch": [
+    1.0,
+    1.0
+   ],
+   "knees": [
+    [
+     -0.2,
+     1,
+     0.2
+    ],
+    [
+     0.2,
+     1,
+     0.2
+    ]
+   ]
+  },
+  "bellySide": {
+   "pelvisH": 0.2,
+   "pelvisF": 0,
+   "pitchP": 0.1,
+   "pitchC": 0.1,
+   "lean": 1.42,
+   "feet": [
+    [
+     -0.9,
+     0.12,
+     -0.05
+    ],
+    [
+     -0.92,
+     0.2,
+     0.12
+    ]
+   ],
+   "footPitch": [
+    0,
+    0
+   ],
+   "knees": [
+    [
+     0,
+     0.3,
+     1
+    ],
+    [
+     0,
+     0.6,
+     1
+    ]
+   ]
+  },
+  "diveLaunch": {
+   "pelvisH": 0.62,
+   "pitchP": 0.75,
+   "pitchC": 0.9,
+   "feet": [
+    [
+     -0.13,
+     0.08,
+     -0.3
+    ],
+    [
+     0.13,
+     0.25,
+     -0.55
+    ]
+   ],
+   "footPitch": [
+    -0.9,
+    -0.9
+   ],
+   "knees": [
+    [
+     0,
+     -0.2,
+     1
+    ],
+    [
+     0,
+     -0.2,
+     1
+    ]
+   ]
+  },
+  "diveBackLaunch": {
+   "pelvisH": 0.72,
+   "pelvisF": 0.05,
+   "pitchP": -0.2,
+   "pitchC": -0.3,
+   "feet": [
+    [
+     -0.13,
+     0.08,
+     0.18
+    ],
+    [
+     0.13,
+     0.12,
+     -0.08
+    ]
+   ],
+   "footPitch": [
+    0.3,
+    0.1
+   ],
+   "knees": [
+    [
+     0,
+     0.2,
+     1
+    ],
+    [
+     0,
+     0.2,
+     1
+    ]
+   ]
+  },
+  "diveSideLaunch": {
+   "pelvisH": 0.7,
+   "pitchP": 0.2,
+   "pitchC": 0.25,
+   "lean": 0.45,
+   "feet": [
+    [
+     -0.3,
+     0.08,
+     0
+    ],
+    [
+     0.05,
+     0.15,
+     0.05
+    ]
+   ],
+   "footPitch": [
+    0,
+    -0.3
+   ],
+   "knees": [
+    [
+     -0.3,
+     0,
+     1
+    ],
+    [
+     0.2,
+     0,
+     1
+    ]
+   ]
+  },
+  "dive": {
+   "_note": "Superman: horizontal, gun forward (hip fire stays live), legs trailing. pelvisH is above the airborne root.",
+   "pelvisH": 0.45,
+   "pelvisF": -0.15,
+   "pitchP": 1.38,
+   "pitchC": 1.32,
+   "feet": [
+    [
+     -0.14,
+     0.38,
+     -1.05
+    ],
+    [
+     0.14,
+     0.5,
+     -1.0
+    ]
+   ],
+   "footPitch": [
+    -1.3,
+    -1.3
+   ],
+   "knees": [
+    [
+     0,
+     -1,
+     -0.3
+    ],
+    [
+     0,
+     -1,
+     -0.3
+    ]
+   ]
+  },
+  "diveSide": {
+   "pelvisH": 0.5,
+   "pitchP": 0.15,
+   "pitchC": 0.2,
+   "lean": 1.3,
+   "feet": [
+    [
+     0.85,
+     0.4,
+     -0.1
+    ],
+    [
+     0.82,
+     0.55,
+     0.12
+    ]
+   ],
+   "footPitch": [
+    0,
+    0
+   ],
+   "knees": [
+    [
+     0,
+     0.2,
+     1
+    ],
+    [
+     0,
+     0.2,
+     1
+    ]
+   ]
+  },
+  "diveBack": {
+   "pelvisH": 0.5,
+   "pelvisF": 0.15,
+   "pitchP": -1.25,
+   "pitchC": -1.1,
+   "feet": [
+    [
+     -0.15,
+     0.75,
+     0.85
+    ],
+    [
+     0.15,
+     0.62,
+     0.9
+    ]
+   ],
+   "footPitch": [
+    0.8,
+    0.8
+   ],
+   "knees": [
+    [
+     0,
+     1,
+     0.3
+    ],
+    [
+     0,
+     1,
+     0.3
+    ]
+   ]
+  },
+  "airUp": {
+   "pelvisH": 0.95,
+   "pitchP": 0.08,
+   "pitchC": 0.1,
+   "feet": [
+    [
+     -0.12,
+     0.12,
+     0.12
+    ],
+    [
+     0.12,
+     0.25,
+     -0.3
+    ]
+   ],
+   "footPitch": [
+    -0.4,
+    -0.7
+   ],
+   "knees": [
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     0,
+     1
+    ]
+   ]
+  },
+  "airTuck": {
+   "pelvisH": 0.95,
+   "pitchP": 0.12,
+   "pitchC": 0.16,
+   "feet": [
+    [
+     -0.13,
+     0.38,
+     0.1
+    ],
+    [
+     0.13,
+     0.32,
+     -0.12
+    ]
+   ],
+   "footPitch": [
+    0,
+    -0.2
+   ],
+   "knees": [
+    [
+     0,
+     0.2,
+     1
+    ],
+    [
+     0,
+     0.2,
+     1
+    ]
+   ]
+  },
+  "airFall": {
+   "pelvisH": 0.95,
+   "pitchP": 0.02,
+   "pitchC": 0.05,
+   "feet": [
+    [
+     -0.15,
+     0.08,
+     0.12
+    ],
+    [
+     0.15,
+     0.14,
+     -0.08
+    ]
+   ],
+   "footPitch": [
+    0.1,
+    0
+   ],
+   "knees": [
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     0,
+     1
+    ]
+   ]
+  },
+  "seated": {
+   "_note": "Bike rider (exposed seat). The root is the seat point.",
+   "pelvisH": 0.1,
+   "pelvisF": -0.05,
+   "pitchP": 0.15,
+   "pitchC": 0.5,
+   "feet": [
+    [
+     -0.24,
+     -0.42,
+     0.32
+    ],
+    [
+     0.24,
+     -0.42,
+     0.32
+    ]
+   ],
+   "footPitch": [
+    0,
+    0
+   ],
+   "knees": [
+    [
+     0.3,
+     0.3,
+     1
+    ],
+    [
+     -0.3,
+     0.3,
+     1
+    ]
+   ],
+   "hands": [
+    [
+     -0.26,
+     0.45,
+     0.55
+    ],
+    [
+     0.26,
+     0.45,
+     0.55
+    ]
+   ],
+   "handsW": 1
+  },
+  "lying": {
+   "_note": "Knocked down, face down. 'lyingBack' is the supine version.",
+   "pelvisH": 0.13,
+   "pelvisF": -0.1,
+   "pitchP": 1.5,
+   "pitchC": 1.45,
+   "feet": [
+    [
+     -0.32,
+     0.08,
+     -0.9
+    ],
+    [
+     0.24,
+     0.08,
+     -0.95
+    ]
+   ],
+   "footPitch": [
+    -1.4,
+    -1.4
+   ],
+   "knees": [
+    [
+     -0.5,
+     -1,
+     0
+    ],
+    [
+     0.5,
+     -1,
+     0
+    ]
+   ],
+   "hands": [
+    [
+     -0.6,
+     0.06,
+     0.45
+    ],
+    [
+     0.55,
+     0.06,
+     0.15
+    ]
+   ],
+   "handsW": 1
+  },
+  "lyingBack": {
+   "pelvisH": 0.13,
+   "pelvisF": 0.1,
+   "pitchP": -1.5,
+   "pitchC": -1.48,
+   "feet": [
+    [
+     -0.3,
+     0.08,
+     0.9
+    ],
+    [
+     0.26,
+     0.08,
+     0.92
+    ]
+   ],
+   "footPitch": [
+    1.3,
+    1.3
+   ],
+   "knees": [
+    [
+     -0.5,
+     1,
+     0
+    ],
+    [
+     0.5,
+     1,
+     0
+    ]
+   ],
+   "hands": [
+    [
+     -0.62,
+     0.06,
+     -0.4
+    ],
+    [
+     0.58,
+     0.06,
+     -0.2
+    ]
+   ],
+   "handsW": 1
+  },
+  "dash": {
+   "_note": "Melee-class evades (flameStep/ashStep): a low leap along the dash.",
+   "pelvisH": 0.72,
+   "pitchP": 0.2,
+   "pitchC": 0.3,
+   "feet": [
+    [
+     -0.14,
+     0.2,
+     0.45
+    ],
+    [
+     0.14,
+     0.3,
+     -0.45
+    ]
+   ],
+   "footPitch": [
+    0.2,
+    -0.6
+   ],
+   "knees": [
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     0,
+     1
+    ]
+   ]
+  }
+ },
+ "transitions": {
+  "_note": "Stance transitions follow the simulation's stanceT progress exactly. Each row: [progress, key pose]. 'impact' fires anim:impact at that progress (the body hitting the ground) and 'cloth' a gear rustle. Prone get-ups raise the chest before the hips.",
+  "standToCrouch": {
+   "keys": [
+    [
+     0,
+     "stand"
+    ],
+    [
+     1,
+     "crouch"
+    ]
+   ],
+   "cloth": 0
+  },
+  "crouchToStand": {
+   "keys": [
+    [
+     0,
+     "crouch"
+    ],
+    [
+     1,
+     "stand"
+    ]
+   ],
+   "cloth": 0
+  },
+  "standToProne": {
+   "keys": [
+    [
+     0,
+     "stand"
+    ],
+    [
+     0.32,
+     "kneel"
+    ],
+    [
+     0.72,
+     "pushup"
+    ],
+    [
+     1,
+     "prone"
+    ]
+   ],
+   "impact": 0.78,
+   "cloth": 0
+  },
+  "crouchToProne": {
+   "keys": [
+    [
+     0,
+     "crouch"
+    ],
+    [
+     0.55,
+     "pushup"
+    ],
+    [
+     1,
+     "prone"
+    ]
+   ],
+   "impact": 0.7,
+   "cloth": 0
+  },
+  "proneToStand": {
+   "keys": [
+    [
+     0,
+     "prone"
+    ],
+    [
+     0.38,
+     "pushup"
+    ],
+    [
+     0.7,
+     "kneel"
+    ],
+    [
+     1,
+     "stand"
+    ]
+   ],
+   "cloth": 0,
+   "plant": 0.95
+  },
+  "proneToCrouch": {
+   "keys": [
+    [
+     0,
+     "prone"
+    ],
+    [
+     0.5,
+     "pushup"
+    ],
+    [
+     1,
+     "crouch"
+    ]
+   ],
+   "cloth": 0,
+   "plant": 0.92
+  },
+  "supineToStand": {
+   "keys": [
+    [
+     0,
+     "supine"
+    ],
+    [
+     0.35,
+     "situp"
+    ],
+    [
+     0.7,
+     "kneel"
+    ],
+    [
+     1,
+     "stand"
+    ]
+   ],
+   "cloth": 0,
+   "plant": 0.95
+  },
+  "supineToCrouch": {
+   "keys": [
+    [
+     0,
+     "supine"
+    ],
+    [
+     0.5,
+     "situp"
+    ],
+    [
+     1,
+     "crouch"
+    ]
+   ],
+   "cloth": 0,
+   "plant": 0.92
+  },
+  "getupFront": {
+   "keys": [
+    [
+     0,
+     "lying"
+    ],
+    [
+     0.35,
+     "pushup"
+    ],
+    [
+     0.7,
+     "kneel"
+    ],
+    [
+     1,
+     "stand"
+    ]
+   ],
+   "cloth": 0.05,
+   "plant": 0.95
+  },
+  "getupBack": {
+   "keys": [
+    [
+     0,
+     "lyingBack"
+    ],
+    [
+     0.35,
+     "situp"
+    ],
+    [
+     0.7,
+     "kneel"
+    ],
+    [
+     1,
+     "stand"
+    ]
+   ],
+   "cloth": 0.05,
+   "plant": 0.95
+  }
+ },
+ "blend": {
+  "_note": "Crossfade into each state: [seconds, curve]. 'out' (ease-out) for commits that must read instantly (dive, mantle, knockdown, evades), 'smooth' for drops and recoveries (no front-loaded pop), 'in' for collapses. A state that is fading out keeps its last pose and moves rigidly with the body, so it can't snap when its sim data disappears.",
+  "fade": {
+   "loco": [
+    0.16,
+    "smooth"
+   ],
+   "slide": [
+    0.14,
+    "smooth"
+   ],
+   "belly": [
+    0.12,
+    "smooth"
+   ],
+   "dive": [
+    0.08,
+    "out"
+   ],
+   "air": [
+    0.12,
+    "smooth"
+   ],
+   "mantle": [
+    0.08,
+    "out"
+   ],
+   "knock": [
+    0.1,
+    "smooth"
+   ],
+   "seated": [
+    0.2,
+    "smooth"
+   ],
+   "dodge": [
+    0.06,
+    "out"
+   ],
+   "dead": [
+    0.3,
+    "in"
+   ]
+  },
+  "knockPhase": 0.12,
+  "diveLaunch": 0.09,
+  "slideImpact": 0.11
+ },
+ "body": {
+  "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim.",
+  "accelLean": 0.5,
+  "maxLean": 0.36,
+  "hipFollow": 0.4,
+  "maxHipYaw": 0.65,
+  "headYawMax": 1.25,
+  "headPitchMax": 1.1
+ },
+ "footstep": {
+  "stanceMul": {
+   "stand": 1,
+   "crouch": 0.45,
+   "prone": 0.3
+  },
+  "armorMul": {
+   "light": 0.85,
+   "medium": 1,
+   "heavy": 1.25
+  },
+  "settle": 0.16,
+  "kick": 3.0,
+  "landKick": 1.4,
+  "heavyLandKick": 3.0
+ },
+ "layers": {
+  "recoil": {
+   "omega": 34,
+   "zeta": 0.5,
+   "kick": 7,
+   "pitch": 0.09,
+   "back": 0.06,
+   "chest": 0.035
+  },
+  "flinch": {
+   "omega": 16,
+   "zeta": 0.42,
+   "kick": 4.5,
+   "chest": 0.28,
+   "head": 0.42
+  },
+  "comp": {
+   "omega": 18,
+   "zeta": 0.55,
+   "pelvis": 0.35,
+   "chest": 0.45
+  },
+  "breath": {
+   "rate": 0.27,
+   "rateLow": 0.8,
+   "amp": 0.006,
+   "ampLow": 0.02
+  }
+ },
+ "gun": {
+  "_note": "Chest-frame [right, along-spine, front] from the neck base. pocket = shouldered (HD2 holds the rifle up whenever it can fire), ads = cheek weld, low = port arms (sprint, climbing). Direction comes from the weapon's own aim (ergonomics drag + recoil), so the gun visibly trails a fast camera turn.",
+  "pocket": [
+   0.13,
+   -0.08,
+   0.1
+  ],
+  "adsPocket": [
+   0.055,
+   -0.03,
+   0.12
+  ],
+  "lowPocket": [
+   0.14,
+   -0.36,
+   0.17
+  ],
+  "lowDir": [
+   -0.45,
+   0.62,
+   0.64
+  ],
+  "grip": 0.2,
+  "gripDrop": 0.07,
+  "fore": 0.58,
+  "foreDrop": 0.035,
+  "lengths": {
+   "smg": 0.55,
+   "assaultRifle": 0.82,
+   "shotgun": 0.86,
+   "sniper": 1.12,
+   "pulseRifle": 0.78,
+   "beam": 0.9,
+   "super": 1.05,
+   "default": 0.8
+  },
+  "magWell": 0.32,
+  "pouch": [
+   -0.14,
+   -0.4,
+   0.1
+  ]
+ },
+ "sword": {
+  "_note": "Chest-frame keyframes: h = hand, b = blade direction, tw = chest twist (+ turns left). Windup eases out into a held tell (readable), the strike accelerates through 'arc', follow-through shows commitment, recovery eases home.",
+  "length": 1.05,
+  "idle": {
+   "h": [
+    0.22,
+    -0.4,
+    0.28
+   ],
+   "b": [
+    0.15,
+    0.55,
+    0.8
+   ]
+  },
+  "sprint": {
+   "h": [
+    0.24,
+    -0.46,
+    -0.08
+   ],
+   "b": [
+    0.12,
+    -0.45,
+    -0.88
+   ]
+  },
+  "guard": {
+   "h": [
+    0.04,
+    -0.12,
+    0.4
+   ],
+   "b": [
+    -0.55,
+    0.8,
+    0.22
+   ]
+  },
+  "stagger": {
+   "h": [
+    0.42,
+    -0.1,
+    -0.15
+   ],
+   "b": [
+    0.6,
+    0.25,
+    -0.75
+   ]
+  },
+  "broken": {
+   "h": [
+    0.5,
+    -0.05,
+    0.05
+   ],
+   "b": [
+    0.7,
+    0.4,
+    -0.55
+   ]
+  },
+  "twoHanded": [
+   "heavy1",
+   "flameWave",
+   "guardBreak"
+  ],
+  "attacks": {
+   "light1": {
+    "wind": {
+     "h": [
+      0.42,
+      -0.14,
+      0.04
+     ],
+     "b": [
+      0.85,
+      0.15,
+      -0.5
+     ],
+     "tw": -0.45
+    },
+    "arc": [
+     {
+      "h": [
+       0.34,
+       -0.18,
+       0.36
+      ],
+      "b": [
+       0.75,
+       0.05,
+       0.65
+      ]
+     },
+     {
+      "h": [
+       0,
+       -0.2,
+       0.52
+      ],
+      "b": [
+       0,
+       0,
+       1
+      ]
+     },
+     {
+      "h": [
+       -0.3,
+       -0.22,
+       0.36
+      ],
+      "b": [
+       -0.8,
+       -0.05,
+       0.6
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      -0.38,
+      -0.3,
+      0.12
+     ],
+     "b": [
+      -0.85,
+      -0.15,
+      -0.5
+     ],
+     "tw": 0.4
+    }
+   },
+   "light2": {
+    "wind": {
+     "h": [
+      -0.36,
+      -0.12,
+      0.08
+     ],
+     "b": [
+      -0.85,
+      0.2,
+      -0.45
+     ],
+     "tw": 0.42
+    },
+    "arc": [
+     {
+      "h": [
+       -0.3,
+       -0.16,
+       0.36
+      ],
+      "b": [
+       -0.75,
+       0.08,
+       0.65
+      ]
+     },
+     {
+      "h": [
+       0,
+       -0.18,
+       0.52
+      ],
+      "b": [
+       0,
+       0.02,
+       1
+      ]
+     },
+     {
+      "h": [
+       0.32,
+       -0.2,
+       0.36
+      ],
+      "b": [
+       0.8,
+       -0.04,
+       0.6
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      0.4,
+      -0.3,
+      0.12
+     ],
+     "b": [
+      0.85,
+      -0.12,
+      -0.5
+     ],
+     "tw": -0.42
+    }
+   },
+   "light3": {
+    "wind": {
+     "h": [
+      0.4,
+      0.15,
+      -0.05
+     ],
+     "b": [
+      0.5,
+      0.75,
+      -0.4
+     ],
+     "tw": -0.55
+    },
+    "arc": [
+     {
+      "h": [
+       0.2,
+       0,
+       0.45
+      ],
+      "b": [
+       0.4,
+       0.5,
+       0.75
+      ]
+     },
+     {
+      "h": [
+       -0.15,
+       -0.25,
+       0.45
+      ],
+      "b": [
+       -0.3,
+       -0.4,
+       0.85
+      ]
+     },
+     {
+      "h": [
+       -0.35,
+       -0.45,
+       0.2
+      ],
+      "b": [
+       -0.6,
+       -0.7,
+       0.3
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      -0.35,
+      -0.5,
+      0
+     ],
+     "b": [
+      -0.5,
+      -0.8,
+      -0.3
+     ],
+     "tw": 0.5
+    }
+   },
+   "heavy1": {
+    "wind": {
+     "h": [
+      0.05,
+      0.36,
+      -0.1
+     ],
+     "b": [
+      0,
+      0.5,
+      -0.85
+     ],
+     "tw": -0.2,
+     "pitch": -0.2
+    },
+    "arc": [
+     {
+      "h": [
+       0.05,
+       0.3,
+       0.3
+      ],
+      "b": [
+       0,
+       0.95,
+       0.3
+      ]
+     },
+     {
+      "h": [
+       0,
+       0,
+       0.55
+      ],
+      "b": [
+       0,
+       0,
+       1
+      ]
+     },
+     {
+      "h": [
+       0,
+       -0.35,
+       0.45
+      ],
+      "b": [
+       0,
+       -0.75,
+       0.65
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      0,
+      -0.42,
+      0.35
+     ],
+     "b": [
+      0,
+      -0.9,
+      0.4
+     ],
+     "tw": 0.1,
+     "pitch": 0.35
+    }
+   },
+   "thrust": {
+    "wind": {
+     "h": [
+      0.25,
+      -0.2,
+      -0.15
+     ],
+     "b": [
+      0.05,
+      0.05,
+      1
+     ],
+     "tw": -0.35
+    },
+    "arc": [
+     {
+      "h": [
+       0.2,
+       -0.15,
+       0.2
+      ],
+      "b": [
+       0.03,
+       0.04,
+       1
+      ]
+     },
+     {
+      "h": [
+       0.1,
+       -0.1,
+       0.62
+      ],
+      "b": [
+       0,
+       0.02,
+       1
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      0.1,
+      -0.12,
+      0.62
+     ],
+     "b": [
+      0,
+      0,
+      1
+     ],
+     "tw": 0.3,
+     "pitch": 0.15
+    }
+   },
+   "slideSlash": {
+    "wind": {
+     "h": [
+      0.4,
+      -0.35,
+      0
+     ],
+     "b": [
+      0.9,
+      -0.3,
+      -0.3
+     ],
+     "tw": -0.5
+    },
+    "arc": [
+     {
+      "h": [
+       0.3,
+       -0.4,
+       0.35
+      ],
+      "b": [
+       0.7,
+       -0.35,
+       0.6
+      ]
+     },
+     {
+      "h": [
+       -0.1,
+       -0.4,
+       0.45
+      ],
+      "b": [
+       0,
+       -0.3,
+       1
+      ]
+     },
+     {
+      "h": [
+       -0.4,
+       -0.4,
+       0.25
+      ],
+      "b": [
+       -0.85,
+       -0.3,
+       0.4
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      -0.42,
+      -0.4,
+      0.05
+     ],
+     "b": [
+      -0.9,
+      -0.3,
+      -0.3
+     ],
+     "tw": 0.5
+    }
+   },
+   "counter": {
+    "wind": {
+     "h": [
+      0.3,
+      -0.45,
+      0.15
+     ],
+     "b": [
+      0.5,
+      -0.75,
+      0.4
+     ],
+     "tw": -0.35
+    },
+    "arc": [
+     {
+      "h": [
+       0.15,
+       -0.25,
+       0.4
+      ],
+      "b": [
+       0.3,
+       -0.2,
+       0.93
+      ]
+     },
+     {
+      "h": [
+       -0.1,
+       0.05,
+       0.45
+      ],
+      "b": [
+       -0.3,
+       0.55,
+       0.78
+      ]
+     },
+     {
+      "h": [
+       -0.25,
+       0.25,
+       0.3
+      ],
+      "b": [
+       -0.45,
+       0.85,
+       0.25
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      -0.25,
+      0.3,
+      0.2
+     ],
+     "b": [
+      -0.4,
+      0.9,
+      0
+     ],
+     "tw": 0.45
+    }
+   },
+   "flameWave": {
+    "wind": {
+     "h": [
+      0.05,
+      0.4,
+      -0.15
+     ],
+     "b": [
+      0,
+      0.6,
+      -0.8
+     ],
+     "tw": -0.15,
+     "pitch": -0.25
+    },
+    "arc": [
+     {
+      "h": [
+       0,
+       0.25,
+       0.45
+      ],
+      "b": [
+       0,
+       0.6,
+       0.8
+      ]
+     },
+     {
+      "h": [
+       0,
+       -0.15,
+       0.6
+      ],
+      "b": [
+       0,
+       -0.2,
+       1
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      0,
+      -0.25,
+      0.55
+     ],
+     "b": [
+      0,
+      -0.4,
+      0.9
+     ],
+     "tw": 0,
+     "pitch": 0.3
+    }
+   },
+   "sweepArc": {
+    "wind": {
+     "h": [
+      0.45,
+      -0.2,
+      -0.2
+     ],
+     "b": [
+      0.85,
+      -0.1,
+      -0.5
+     ],
+     "tw": -0.9
+    },
+    "arc": [
+     {
+      "h": [
+       0.45,
+       -0.2,
+       0.3
+      ],
+      "b": [
+       0.9,
+       -0.05,
+       0.4
+      ]
+     },
+     {
+      "h": [
+       0,
+       -0.2,
+       0.5
+      ],
+      "b": [
+       0,
+       0,
+       1
+      ]
+     },
+     {
+      "h": [
+       -0.45,
+       -0.2,
+       0.3
+      ],
+      "b": [
+       -0.9,
+       -0.05,
+       0.4
+      ]
+     },
+     {
+      "h": [
+       -0.45,
+       -0.2,
+       -0.2
+      ],
+      "b": [
+       -0.85,
+       -0.1,
+       -0.5
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      -0.4,
+      -0.3,
+      -0.25
+     ],
+     "b": [
+      -0.7,
+      -0.3,
+      -0.6
+     ],
+     "tw": 1.3
+    }
+   },
+   "guardBreak": {
+    "wind": {
+     "h": [
+      0.2,
+      -0.15,
+      -0.05
+     ],
+     "b": [
+      0.1,
+      0.9,
+      0.3
+     ],
+     "tw": -0.3
+    },
+    "arc": [
+     {
+      "h": [
+       0.1,
+       -0.05,
+       0.45
+      ],
+      "b": [
+       0.05,
+       0.95,
+       0.25
+      ]
+     },
+     {
+      "h": [
+       0.05,
+       0,
+       0.62
+      ],
+      "b": [
+       0,
+       0.95,
+       0.3
+      ]
+     }
+    ],
+    "follow": {
+     "h": [
+      0.05,
+      -0.05,
+      0.6
+     ],
+     "b": [
+      0,
+      0.95,
+      0.3
+     ],
+     "tw": 0.25,
+     "pitch": 0.2
+    }
+   }
+  },
+  "fallbacks": {
+   "heavy": "heavy1",
+   "slam": "heavy1",
+   "thrust": "thrust",
+   "stab": "thrust",
+   "lunge": "thrust",
+   "sweep": "sweepArc",
+   "spin": "sweepArc",
+   "wave": "flameWave",
+   "throw": "thrust",
+   "counter": "counter",
+   "slide": "slideSlash"
+  }
+ },
+ "cape": {
+  "enabled": true,
+  "links": 3,
+  "linkLen": 0.2,
+  "width": 0.34,
+  "damping": 0.93,
+  "gravity": 9.8
+ },
+ "lod": {
+  "_note": "near: full rig every frame with footstep events; mid: reduced rig at a lower rate; far: capsule impostor. Distances in m.",
+  "near": 70,
+  "mid": 220,
+  "far": 700,
+  "midInterval": 2
+ },
+ "clips": {
+  "_note": "ClipAnimationController mapping for skinned GLB characters (Mixamo-style names). speed = in-place locomotion speed the clip was authored for (m/s); steps = normalized times of left/right heel strikes. Locomotion clips are phase-synced and their time is driven from distance travelled, so playback always matches ground speed. Clips that follow a sim timer (stance transitions, mantles, get-ups, reloads) are scrubbed by that timer instead of playing freely.",
+  "upperBodyRoot": "Spine",
+  "locomotion": {
+   "stand": [
+    {
+     "clip": "Rifle_Idle",
+     "speed": 0
+    },
+    {
+     "clip": "Rifle_Walk",
+     "speed": 1.9,
+     "steps": [
+      0.0,
+      0.5
+     ]
+    },
+    {
+     "clip": "Rifle_Jog",
+     "speed": 4.5,
+     "steps": [
+      0.0,
+      0.5
+     ]
+    },
+    {
+     "clip": "Rifle_Sprint",
+     "speed": 7.2,
+     "steps": [
+      0.0,
+      0.5
+     ]
+    }
+   ],
+   "crouch": [
+    {
+     "clip": "Crouch_Idle",
+     "speed": 0
+    },
+    {
+     "clip": "Crouch_Walk",
+     "speed": 2.4,
+     "steps": [
+      0.0,
+      0.5
+     ]
+    }
+   ],
+   "prone": [
+    {
+     "clip": "Prone_Idle",
+     "speed": 0
+    },
+    {
+     "clip": "Prone_Crawl",
+     "speed": 0.95,
+     "steps": [
+      0.0,
+      0.5
+     ]
+    }
+   ]
+  },
+  "states": {
+   "slide": {
+    "enter": "Slide_Start",
+    "loop": "Slide_Loop",
+    "exit": "Slide_End",
+    "fade": 0.06
+   },
+   "dive": {
+    "forward": "Dive_Forward",
+    "left": "Dive_Left",
+    "right": "Dive_Right",
+    "back": "Dive_Back",
+    "fade": 0.05
+   },
+   "belly": {
+    "forward": "Belly_Slide",
+    "back": "Back_Slide",
+    "left": "Belly_Slide",
+    "right": "Belly_Slide",
+    "fade": 0.08
+   },
+   "air": {
+    "up": "Jump_Up",
+    "fall": "Fall_Loop",
+    "fade": 0.1
+   },
+   "land": {
+    "clip": "Land_Heavy",
+    "fade": 0.04
+   },
+   "vault": {
+    "clip": "Vault",
+    "fade": 0.06,
+    "scrub": true
+   },
+   "climb": {
+    "clip": "Climb",
+    "fade": 0.06,
+    "scrub": true
+   },
+   "knockAir": {
+    "clip": "Knock_Air",
+    "fade": 0.06
+   },
+   "knockFront": {
+    "clip": "Knock_Lying_Front",
+    "fade": 0.12
+   },
+   "knockBack": {
+    "clip": "Knock_Lying_Back",
+    "fade": 0.12
+   },
+   "getupFront": {
+    "clip": "Getup_Front",
+    "fade": 0.1,
+    "scrub": true
+   },
+   "getupBack": {
+    "clip": "Getup_Back",
+    "fade": 0.1,
+    "scrub": true
+   },
+   "standToProne": {
+    "clip": "Stand_To_Prone",
+    "fade": 0.05,
+    "scrub": true
+   },
+   "proneToStand": {
+    "clip": "Prone_To_Stand",
+    "fade": 0.05,
+    "scrub": true
+   },
+   "seated": {
+    "clip": "Bike_Ride",
+    "fade": 0.15
+   },
+   "dash": {
+    "clip": "Dash",
+    "fade": 0.04
+   }
+  },
+  "upper": {
+   "raised": "Rifle_Aim",
+   "ads": "Rifle_ADS",
+   "lowered": "Rifle_Low",
+   "reload": "Rifle_Reload",
+   "sword": "Sword_Ready",
+   "guard": "Sword_Guard"
+  },
+  "additive": {
+   "aimUp": "Aim_Up",
+   "aimDown": "Aim_Down",
+   "recoil": "Recoil",
+   "hitFront": "Hit_Front",
+   "hitBack": "Hit_Back",
+   "hitLeft": "Hit_Left",
+   "hitRight": "Hit_Right"
+  },
+  "fades": {
+   "locomotion": 0.12,
+   "stance": 0.18,
+   "upper": 0.12
+  }
+ }
+}
