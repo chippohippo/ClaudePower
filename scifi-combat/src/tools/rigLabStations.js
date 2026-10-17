@@ -2,11 +2,14 @@
 // side by side in slow motion (for calibrating against HD2 footage), and the animation tests run
 // every station headless to check the contract (no foot sliding, IK always reaches).
 //
-// script(t, c) runs every sim tick with the loop time t. c.move(x, y), c.look(yaw, pitch),
+// script(t, c, e, buddy) runs every sim tick with the loop time t. c.move(x, y), c.look(yaw, pitch),
 // c.hold(key, on) and c.press(key) build the command. `boxes` are in station-local coordinates
-// (x right, z forward = -z world), `start` is where the fighter spawns.
+// (x right, z forward = -z world), `start` is where the fighter spawns. A station can bring a
+// `buddy` (a second fighter with its own start and script), e.g. the patient for the revive.
 
 const between = (t, a, b) => t >= a && t < b;
+/** The lab stubs damage out, so a scripted down sets Health's downed state directly (with time to show it). */
+const labDown = (e) => Object.assign(e.health, { downed: true, hp: 0, bleed: 999, downHp: 999 });
 
 export const STATIONS = [
   { id: 'idle', name: 'Idle, turn in place', length: 6, script(t, c) { c.look(t > 1.5 ? Math.sin((t - 1.5) * 1.1) * 1.7 : 0); } },
@@ -100,10 +103,56 @@ export const STATIONS = [
     },
   },
   {
-    id: 'knock', name: 'Explosion knockdowns: back, then front', length: 7,
+    id: 'knock', name: 'Explosions: thrown as a ragdoll from behind, then from the front', length: 7,
     script(t, c, e) {
       if (between(t, 0.8, 0.82) && !e._k1) { e._k1 = true; e.movement.impulse(0, 3.5, 9, { cause: 'explosion' }); }
       if (between(t, 4.0, 4.02) && !e._k2) { e._k2 = true; e.movement.impulse(0, 3.5, -9, { cause: 'explosion' }); }
+    },
+  },
+  {
+    id: 'critical', name: 'Critical hit: a heavy round from the side throws you, you get up', length: 5.5, mode: 'gun',
+    script(t, c, e) {
+      if (between(t, 0.8, 0.82) && !e._k1) {
+        e._k1 = true;
+        const p = e.movement.state.position;
+        e.movement.startRagdoll(-6.5, 1.2, 0, { at: { x: p.x + 0.2, y: p.y + 1.35, z: p.z }, focus: 0.6, cause: 'critical' });
+      }
+    },
+  },
+  {
+    id: 'downed', name: 'Downed: collapse, wounded crawl, revived, get up', length: 9, mode: 'gun',
+    script(t, c, e) {
+      if (between(t, 0.6, 0.62) && !e._k1) { e._k1 = true; labDown(e); e.movement.startRagdoll(0, 0.3, 1.8, { cause: 'downed' }); }
+      if (between(t, 3.4, 6.2)) { c.move(0, 1); c.look(0.5 * Math.sin(t * 0.8)); }
+      if (between(t, 7.0, 7.02) && !e._k2) { e._k2 = true; e.health.downed = false; e.movement.getUpFromDown(); }
+    },
+  },
+  {
+    id: 'revive', name: 'Revive: kneel over a downed squadmate until they get up', length: 8.5, mode: 'gun',
+    buddy: {
+      start: [0.4, 0, -3.4],
+      script(t, c, b) { if (between(t, 0.3, 0.32) && !b._k1) { b._k1 = true; labDown(b); b.movement.startRagdoll(0.4, 0.2, -1.4, { cause: 'downed' }); } },
+    },
+    script(t, c, e, buddy) {
+      const bp = buddy.movement.state.position, p = e.movement.state.position;
+      const d = Math.hypot(bp.x - p.x, bp.z - p.z);
+      if (t > 1.6) c.look(Math.atan2(-(bp.x - p.x), -(bp.z - p.z)));
+      if (!between(t, 1.8, 8)) return;
+      if (d > 1.15 && !e.reviveJob) { c.move(0, 1); return; }
+      if (!buddy.health.downed) return;
+      e.reviveJob ??= { patient: buddy, t: 0, need: 3 };
+      e.movement.kneel();
+      if ((e.reviveJob.t += 1 / 60) >= e.reviveJob.need) { e.reviveJob = null; buddy.health.downed = false; buddy.movement.getUpFromDown(); }
+    },
+  },
+  {
+    id: 'corpse', name: 'Killed by a blast: the body stays where it fell', length: 5,
+    script(t, c, e) {
+      if (between(t, 0.8, 0.82) && !e._k1) {
+        e._k1 = true; e.health.dead = true;
+        const p = e.movement.state.position;
+        e.movement.impulse(-7, 4, 3, { cause: 'explosion', ragdoll: true, at: { x: p.x + 1, y: p.y, z: p.z - 0.5 } });
+      }
     },
   },
   {
@@ -129,7 +178,7 @@ export const STATIONS = [
 /** Builds commands for a station from its script, with clean button edges. */
 export class StationDriver {
   constructor(station) { this.station = station; this.t = 0; this.prev = new Set(); }
-  command(e, dt) {
+  command(e, dt, buddy = null) {
     const held = new Set(), pressed = new Set();
     const cmd = { moveX: 0, moveY: 0, yaw: 0, pitch: 0, buttons: {} };
     const c = {
@@ -138,7 +187,7 @@ export class StationDriver {
       hold: (k, on = true) => { if (on) held.add(k); },
       press: (k) => pressed.add(k),
     };
-    this.station.script(this.t, c, e);
+    this.station.script(this.t, c, e, buddy);
     this.t += dt;
     const down = new Set([...held, ...pressed]);
     for (const k of new Set([...down, ...this.prev])) cmd.buttons[k] = { down: down.has(k), pressed: down.has(k) && !this.prev.has(k), released: !down.has(k) && this.prev.has(k) };
@@ -147,3 +196,6 @@ export class StationDriver {
   }
   get done() { return this.t >= this.station.length; }
 }
+
+/** The buddy's own driver (same loop length as its station). */
+export function buddyDriver(station) { return station.buddy ? new StationDriver({ length: station.length, script: station.buddy.script }) : null; }

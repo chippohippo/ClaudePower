@@ -26,11 +26,11 @@ const seed = +(params.get('seed') ?? 7);
 const myTeam = +(params.get('team') ?? 0) === 1 ? 1 : 0;
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid] = await Promise.all([
+const [movement, melee, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicles, solari, voidC, ai, humanoid, down] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'), load('abilities/statuses.json'),
   load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
-  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'),
+  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
 ]);
 const classes = [solari, voidC];
 const myClass = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
@@ -38,6 +38,7 @@ const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
   personalities: ai.personalities, difficulty: ai.difficulty[params.get('difficulty') ?? 'veteran'] ?? ai.difficulty.veteran,
+  down,
 };
 const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
@@ -108,7 +109,8 @@ const STATUS_GLOW = {
   iframes: new THREE.Color(0.15, 0.25, 1.1), vulnerable: new THREE.Color(1.0, 0.1, 0.1), radiant: new THREE.Color(0.7, 0.45, 0.1),
   void: new THREE.Color(0.35, 0.1, 0.7), mech: new THREE.Color(0.25, 0.25, 0.25), scorch: new THREE.Color(0.5, 0.16, 0), weaken: new THREE.Color(0.22, 0.07, 0.4),
 };
-const LYING = new Set(['dive', 'knockdown']);
+const LYING = new Set(['dive', 'knockdown', 'ragdoll']);
+const _yaw = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
 
 // ---------------------------------------------------------------- loop
 const loop = new FixedLoop({
@@ -145,9 +147,14 @@ const loop = new FixedLoop({
     for (const r of anim.list) {
       const f = r.e, s = f.movement.state;
       if (f.vehicle && !f.vehicle.exposed) continue;
-      if (f.health.dead && f.health.sinceDamage > 6) continue;
       if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod);
-      else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.slide?.kind === 'belly' || f.health.dead }, f.look);
+      else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || f.health.dead }, f.look);
+    }
+    // The fallen stay where they fell after their soldier redeploys.
+    for (const c of anim.corpses) {
+      const d = c.root.distanceTo(rig.camera.position);
+      if (d < 220) crowd.drawRig(c, c.look, d < 70 ? 0 : 1);
+      else crowd.drawImpostor(c.root, { yaw: _yaw(c.j.pelvis, c.j.neck), scale: c.scale, height: 1.8, lying: true }, c.look);
     }
     crowd.end();
     const root = anim.record(PLAYER_ID).root;

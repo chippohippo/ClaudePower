@@ -40,6 +40,7 @@ export class FrontlineSession {
     this.world = new CombatWorld({
       damageMatrix: data.damageMatrix, cover: this.map.cover, terrain: this.map.terrain, nav: this.map.nav,
       supers: data.supers, meleeWeapons: data.meleeWeapons, recoilDefs: data.recoil, vehicleDefs: data.vehicleDefs, statusDefs: data.statuses,
+      down: data.down,
     });
     this.mode = new FrontlineMode(this.map, { tickets: tickets ?? Math.round(players * 6), timeLimit, seed });
     this.world.mode = this.mode;
@@ -114,10 +115,12 @@ export class FrontlineSession {
     const w = this.world;
     for (const f of this.fighters) { f.status.update(dt); f.health.update(dt); }
     for (const f of this.fighters) {
-      if (f.health.dead) continue;
+      if (f.health.dead) { f.movement.simulateCorpse(dt); continue; } // bodies keep falling until they rest
       let cmd;
       if (f.brain) cmd = this.#think(f, dt);
       else cmd = this.humans.get(f.id) ?? EMPTY;
+      // Reviving a teammate owns the tick: kneel, no moving, shooting or casting.
+      if (w.revives.handleInput(f, cmd, dt)) { cmd = kneeling(cmd); f.movement.kneel(); }
       if (w.vehicles.handleInput(f, cmd)) { f.movement.update(cmd, dt); continue; }
       const c = f.status.rooted ? stripButtons(cmd, []) : cmd;
       const r = routeCommand(f, c);
@@ -183,9 +186,7 @@ export class FrontlineSession {
       pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);
     } else this.mode.spawnPosition(team, enemiesNear, pos);
     pos.y = w.groundHeight(new Vector3(pos.x, pos.y + 50, pos.z));
-    const m = f.movement;
-    m.state.position.copy(pos); m.body.teleport(pos); m.state.velocity.set(0, 0, 0);
-    m.state.bodyYaw = m.state.yaw = team === 0 ? -Math.PI / 2 : Math.PI / 2;
+    f.movement.reset(pos, team === 0 ? -Math.PI / 2 : Math.PI / 2);
     if (f.health.dead) f.health.revive(1);
     f.health.shield = f.health.maxShield;
     f.status.cleanse();
@@ -194,6 +195,8 @@ export class FrontlineSession {
 }
 
 const EMPTY = Object.freeze({ moveX: 0, moveY: 0, yaw: 0, pitch: 0, buttons: {} });
+/** A reviver's command: keep looking where they look, nothing else (interact stays held for the job). */
+function kneeling(cmd) { return { ...cmd, moveX: 0, moveY: 0, buttons: { interact: cmd.buttons.interact ?? NONE } }; }
 /** The last command with its edges removed: held buttons stay held, nothing is pressed twice. */
 function hold(cmd) {
   const b = {};

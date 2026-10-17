@@ -408,7 +408,7 @@ import { buildFighter } from '../src/game/FighterFactory.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
 import { routeCommand } from '../src/core/routing.js';
-import { STATIONS, StationDriver } from '../src/tools/rigLabStations.js';
+import { STATIONS, StationDriver, buddyDriver } from '../src/tools/rigLabStations.js';
 
 test('every rig-lab move: finite pose, planted feet always reached, no body pops in crossfades', () => {
   const factory = {
@@ -426,13 +426,17 @@ test('every rig-lab move: finite pose, planted feet always reached, no body pops
     const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id) });
     const h = sys.add(e); sys.focusId = 1;
     const drv = new StationDriver(st);
+    const buddy = st.buddy ? buildFighter(world, factory, { id: 2, team: 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
+    if (buddy) { buddy.mode = 'gun'; buddy.health.damage = () => ({}); sys.add(buddy); }
+    const bdrv = buddyDriver(st);
     const rec = sys.record(1);
     let worstReach = 0, worstPop = 0;
     const lastPelvis = new Vector3(), lastRoot = new Vector3();
     let frames = 0;
     while (!drv.done) {
       sys.snapshot();
-      const cmd = drv.command(e, DT);
+      const cmd = drv.command(e, DT, buddy);
+      if (buddy) { const bc = bdrv.command(buddy, DT, e); buddy.health.update(DT); buddy.movement.update(bc, DT); }
       e.status.update(DT); e.health.update(DT);
       e.movement.update(cmd, DT);
       e.movement.state.speedScale = e.status.speedMul;

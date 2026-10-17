@@ -8,6 +8,8 @@ import { AbilityComponent } from '../combat/AbilitySystem.js';
 import { StatusComponent } from '../combat/StatusSystem.js';
 import { MeleeComponent } from '../combat/melee/MeleeSystem.js';
 import { Health } from '../combat/Health.js';
+import { reactToHit } from '../combat/HitReactions.js';
+import { silhouetteScale } from '../movement/Hitboxes.js';
 
 const FALLBACK_GUN = { solari: 'sol_ar_halcyon', void: 'void_ar_gnaw' };
 
@@ -43,9 +45,17 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover, { terrain: world.terrain }), cls.movement ?? {}, id);
   movement.state.position.copy(pos);
   const e = { id, team, classId, faction, mode: 'gun', movement };
-  e.health = new Health(e, { health: cls.health ?? 100, shield: cls.shield ?? cls.leechArmor ?? 0, armor: cls.armor ?? 'flesh' });
+  e.health = new Health(e, { health: cls.health ?? 100, shield: cls.shield ?? cls.leechArmor ?? 0, armor: cls.armor ?? 'flesh', down: data.down ?? null });
+  e.role = cls.role ?? null;
   e.status = new StatusComponent(e, data.statuses, world);
   movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
+  movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
+  movement.hooks.scale = () => silhouetteScale(e);
+  e.onHit = (res, info, by) => reactToHit(e, res, info, by);
+  // Downed or killed on an exposed seat: you come off the vehicle (and the ragdoll takes over).
+  e.onDowned = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };
+  e.onDied = () => { if (e.vehicle) world.vehicles.exit(e, { eject: true }); };
+  e.onRevived = () => e.movement.getUpFromDown();
   e.melee = new MeleeComponent(data.meleeWeapons[0], e, world);
   e.weapons = new WeaponComponent(e, resolveGuns(data, cls, faction).map((s) => new WeaponInstance(s, data.recoil)), world);
   e.abilities = new AbilityComponent(e, data.kits[classId], world);

@@ -7,6 +7,7 @@ import { buildWeapon } from '../src/combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from '../src/combat/AbilitySystem.js';
 import { StatusComponent } from '../src/combat/StatusSystem.js';
 import { Health } from '../src/combat/Health.js';
+import { reactToHit } from '../src/combat/HitReactions.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { emptyCommand } from '../src/input/InputManager.js';
 import { MeleeComponent, MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
@@ -22,22 +23,29 @@ export const data = {
   supers: J('supers.json'), melee: J('weapons/melee.json').weapons, vehicles: J('vehicles.json'),
   energy: J('weapons/energy.json'), attachments: J('weapons/attachments.json').attachments,
   classes: [J('classes/solari.json'), J('classes/void.json')], ai: J('ai/personalities.json'),
+  down: J('down.json'),
 };
 export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
-export function makeWorld(cover = []) {
+/** @param {object} o { down: true for the down-but-not-out rules (data/down.json) } */
+export function makeWorld(cover = [], { down = false } = {}) {
   const melee = new MeleeSystem();
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses });
+  const downCfg = down ? data.down : null;
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg });
   const fighters = new Map(); // entity -> scripted command source
 
-  function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200 } = {}) {
+  function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
     const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover), {}, id);
     movement.state.position.copy(pos);
     const e = { id, team, movement };
-    e.health = new Health(e, { health: hp });
+    e.health = new Health(e, { health: hp, down: downCfg });
+    e.role = role;
+    e.onRevived = () => e.movement.getUpFromDown();
     e.status = new StatusComponent(e, data.statuses, world);
     movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
+    movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
+    e.onHit = (res, info, by) => reactToHit(e, res, info, by);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);
     e.abilities = new AbilityComponent(e, data.kits[kitId], world);
     e.melee = new MeleeComponent(data.melee[0], e, world);
@@ -55,7 +63,7 @@ export function makeWorld(cover = []) {
   /** A full-kit bot of any class, driven by CombatBotBrain. */
   const factoryData = {
     movement: data.movement, weaponFiles: [data.ballistic, data.energy], attachments: data.attachments, recoil: data.recoil,
-    statuses: data.statuses, meleeWeapons: data.melee, kits: data.kits, classes: data.classes,
+    statuses: data.statuses, meleeWeapons: data.melee, kits: data.kits, classes: data.classes, down: downCfg,
   };
   function bot(id, team, pos, classId, { difficulty = 'veteran', seed = 7, persona = null } = {}) {
     const e = buildFighter(world, factoryData, { id, team, classId, pos, cover });
@@ -81,6 +89,7 @@ export function makeWorld(cover = []) {
           s.prev = down; s.press.clear();
         }
         e.status.update(DT); e.health.update(DT);
+        if (world.revives.handleInput(e, c, DT)) { e.movement.kneel(); c = { ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } }; }
         if (world.vehicles.handleInput(e, c)) { e.movement.update(c, DT); continue; } // driving or riding
         e.movement.update(c, DT);
         e.movement.state.speedScale = e.status.speedMul;

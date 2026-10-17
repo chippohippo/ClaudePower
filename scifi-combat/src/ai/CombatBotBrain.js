@@ -12,6 +12,8 @@
 //   Safety      - steps out of telegraphed zones and line casts, retreats at low HP
 //   Objective   - frontline orders (FrontlineCommander): follow the flow field to the point,
 //                 fight on the way, spread over the point and hold it
+//   Downs       - downed: crawl toward help, lie still while being revived, give up when alone;
+//                 up: revive downed teammates nearby (medics go further), one reviver per patient
 //
 // Tells (fairness): bots react after `reactionTime`, aim with wandering error, and their casts
 // go through the same telegraphs as yours.
@@ -79,6 +81,7 @@ export class CombatBotBrain {
     this.profiles = new Map();
     this.log = [];                      // recent decisions, handy in tests and debug overlays
     this.objective = null;              // { id, pos, radius, field, role, slot, of } from a commander
+    this.reviveGoal = null; this.downT = 0;
     this.moveDir = new Vector3(); this.hasMoveDir = false;
     this._cand = [];
     this.#listen();
@@ -132,7 +135,9 @@ export class CombatBotBrain {
     cmd.tick = tick;
     const self = this.self;
     this.hasMoveDir = false;
-    if (self.health.dead) { this.target = null; this.vehicleGoal = null; this.pilot.lifeRoll = undefined; this.btn.finalize(cmd); return cmd; }
+    if (self.health.dead) { this.target = null; this.vehicleGoal = null; this.pilot.lifeRoll = undefined; this.#dropRevive(); this.downT = 0; this.btn.finalize(cmd); return cmd; }
+    if (self.health.downed) { this.#dropRevive(); this.#downed(dt, cmd); this.btn.finalize(cmd); return cmd; }
+    this.downT = 0;
     this.decideIn -= dt; this.abilityLock -= dt; this.modeTimer += dt; this.swapTimer -= dt; this.vehicleCooldown -= dt;
 
     // Incoming damage rate (EMA), the "am I under fire" signal.
@@ -142,7 +147,7 @@ export class CombatBotBrain {
     if (this.lastHp !== null) this.dmgRate = this.dmgRate * Math.exp(-dt / 1.2) + Math.max(0, this.lastHp - hp) / 1.2;
     this.lastHp = hp;
 
-    if (this.decideIn <= 0 || !this.#valid(this.target)) { this.#pickTarget(); }
+    if (this.decideIn <= 0 || !this.#valid(this.target) || this.target.health?.downed) { this.#pickTarget(); } // a target that went down: look for one still standing
     const ctx = this.#context();
     if (this.decideIn <= 0) this.decideIn = this.diff.decisionInterval * (0.8 + this.rand() * 0.4);
 
@@ -179,6 +184,9 @@ export class CombatBotBrain {
       }
     }
 
+    // ---- revive a downed teammate (the ReviveSystem kneels us once we hold interact beside them)
+    if (this.#revive(dt, ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
+
     // ---- abilities (may set an aim override for their cast)
     if (!self.transform || self.abilities.casting?.key !== 'super') this.#abilities(ctx);
 
@@ -209,6 +217,79 @@ export class CombatBotBrain {
     return cmd;
   }
 
+  // ---------------------------------------------------------------- downs and revives
+  /**
+   * Downed: lie still while someone revives us; otherwise crawl toward the nearest teammate (or
+   * away from the nearest enemy), and give up (hold jump) when nobody is coming: quickly when no
+   * teammate is within 30 m, eventually anyway.
+   */
+  #downed(dt, cmd) {
+    const self = this.self, me = self.movement.state.position;
+    this.downT = (this.downT ?? 0) + dt;
+    this.target = null; this.vehicleGoal = null;
+    cmd.yaw = self.movement.state.yaw;
+    if (self.health.reviving > 0) return;
+    let ally = null, ad = Infinity, medic = false, foe = null, fd = Infinity;
+    this.world.fightersNear(me, 45, (e) => {
+      if (e === self || e.isVehicle || e.isDeployable || !e.health || !e.health.up) return;
+      const d = e.movement.state.position.distanceTo(me);
+      if (e.team === self.team) { if (d < ad) { ad = d; ally = e; } if (d < 40 && this.world.revives.isMedic(e)) medic = true; }
+      else if (d < fd) { fd = d; foe = e; }
+    });
+    const coming = (ally && ad < 30) || medic;
+    if (this.downT > (coming ? 14 : 3)) { this.btn.hold('jump'); return; }
+    if (ally && ad > 2.5) { const p = ally.movement.state.position; cmd.yaw = Math.atan2(-(p.x - me.x), -(p.z - me.z)); cmd.moveY = 1; }
+    else if (foe && fd < 25) { const p = foe.movement.state.position; cmd.yaw = Math.atan2(p.x - me.x, p.z - me.z); cmd.moveY = 1; }
+  }
+
+  /**
+   * Go get a downed teammate up: the nearest one nobody else has claimed, within 18 m (medics:
+   * 40 m), unless we're in a close fight (medics only care about being shot). Returns true while
+   * this owns the command.
+   */
+  #revive(dt, ctx, cmd) {
+    const self = this.self, me = self.movement.state.position, rv = this.world.revives;
+    if (!rv?.cfg || self.vehicle) return false;
+    const medic = rv.isMedic(self);
+    // Once a revive is well under way, finish it unless we're about to go down ourselves.
+    const job = rv.jobOf(self.id), committed = job && job.t / job.need > 0.35 && ctx.selfHp > 0.4;
+    const busy = !committed && ((medic ? ctx.underFire && ctx.selfHp < 0.5 : ctx.underFire) || (ctx.target && ctx.los && ctx.dist < (medic ? 8 : 15)));
+    let p = this.reviveGoal;
+    if (p && (!p.health.downed || busy)) { this.#dropRevive(); p = null; }
+    if (!p && !busy) {
+      const reach = medic ? 40 : 18;
+      let bd = reach;
+      this.world.fightersNear(me, reach, (e) => {
+        if (e === self || e.team !== self.team || !e.health?.downed || e.isVehicle) return;
+        const c = e.health.reviveClaim;
+        if (c && c !== this && c.reviveGoal === e && c.self.health.up) return; // someone's on it
+        const d = e.movement.state.position.distanceTo(me);
+        if (d < bd) { bd = d; p = e; }
+      });
+      if (p) { this.reviveGoal = p; p.health.reviveClaim = this; }
+    }
+    if (!p) return false;
+    const pp = p.movement.state.position, d = pp.distanceTo(me);
+    // Walk in to 75% of the range; once kneeling, stay put while within the system's full reach
+    // (a few centimetres of drift must not restart the revive).
+    if (d > rv.cfg.reviveRange * (rv.jobOf(self.id) ? 1.2 : 0.75)) {
+      this.#moveToward(cmd, pp, d > 6 && !ctx.underFire);
+      this.moveDir.set(pp.x - me.x, 0, pp.z - me.z).normalize(); this.hasMoveDir = true;
+      if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); // cover ourselves on the way
+      if (this.hasMoveDir) this.#worldMove(cmd, this.moveDir);
+    } else {
+      cmd.yaw = Math.atan2(-(pp.x - me.x), -(pp.z - me.z)); cmd.pitch = -0.6; this.aimYaw = cmd.yaw;
+      this.btn.hold('interact');
+    }
+    return true;
+  }
+
+  #dropRevive() {
+    const p = this.reviveGoal;
+    if (p && p.health.reviveClaim === this) p.health.reviveClaim = null;
+    this.reviveGoal = null;
+  }
+
   // ---------------------------------------------------------------- perception
   /** Same membership as world.fighters() without scanning it: alive, targetable, not inside a hull. */
   #valid(t) { return !!t && !t.removed && !t.health?.dead && !t.isDeployable && (t.isVehicle || !t.vehicle || t.vehicle.exposed); }
@@ -235,6 +316,7 @@ export class CombatBotBrain {
       if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
       else if (e.isVehicle) s += 8;
       if (e === this.target) s -= 6;                                     // hysteresis
+      if (e.health?.downed) s += 40;                                     // finish the downed only when nothing's standing
       if (s < bs) { bs = s; best = e; }
     }
     if (best !== this.target) { this.target = best; this.targetSince = this.time; }
@@ -275,6 +357,7 @@ export class CombatBotBrain {
     this.world.fightersNear(me, 30, (e) => {
       if (e === self || e.health.dead || e.isDeployable) return;
       const d = e.movement.state.position.distanceTo(me);
+      if (e.health.downed) return;
       if (e.team !== self.team) { if (d < 8) ctx.enemiesNear++; return; }
       if (d < 12) ctx.alliesNear++;
       if (!e.isVehicle && e.health.hp / e.health.max < ctx.hurtAllyHp) { ctx.hurtAlly = { e, pos: e.movement.state.position }; ctx.hurtAllyHp = e.health.hp / e.health.max; ctx.hurtAllyDist = d; }

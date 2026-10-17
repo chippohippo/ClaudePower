@@ -114,7 +114,7 @@ export class CameraRig {
     if (o.vehicle) { f = { right: 0, up: o.vehicle.height * 0.3, dist: o.vehicle.distance }; eye = EYE.seated; }
     else if (mode === 'dive') { f = FRAMING.dive; eye = EYE.dive; }
     else if (mode === 'slide') { f = st.slide?.kind === 'belly' ? FRAMING.prone : FRAMING.slide; eye = st.slide?.kind === 'belly' ? EYE.prone : EYE.slide; }
-    else if (mode === 'knockdown') { f = FRAMING.dive; eye = EYE.knockdown; }
+    else if (mode === 'knockdown' || mode === 'ragdoll') { f = FRAMING.dive; eye = EYE.knockdown; }
     else {
       const stance = st.stanceT ? (st.stanceT.t / st.stanceT.dur > 0.5 ? st.stanceT.to : st.stanceT.from) : st.stance;
       f = FRAMING[stance] ?? FRAMING.stand; eye = EYE[stance] ?? EYE.stand;

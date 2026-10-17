@@ -28,7 +28,7 @@ export const Tier = Object.freeze({ THREAT: 0, COMBAT: 1, WEAPON: 2, AMBIENT: 3,
 const VOICE_LIMITS = { 0: 16, 1: 24, 2: 24, 3: 12, 4: 20 };
 // Audible radius of other soldiers' foley by gait (m). Sprinting armor is heard well before it's seen.
 const FOOT_RADIUS = { sprint: 32, jog: 24, walk: 14, land: 30, crouch: 9, shuffle: 6, crawl: 6 };
-const IMPACT_RADIUS = { diveLand: 30, slide: 24, proneDrop: 16, body: 30, land: 28, hands: 14 };
+const IMPACT_RADIUS = { diveLand: 30, slide: 24, proneDrop: 16, body: 30, land: 28, hands: 14, ragdoll: 34 };
 
 export class AudioDirector {
   /**
@@ -189,6 +189,21 @@ export class AudioDirector {
     on('vehicle:ram', (e) => this.play('vehicle.ram_impact', { tier: e.victim === this.listenerId ? Tier.THREAT : Tier.COMBAT, pos: this.posOf(e.victim), gainDb: 3 }));
     on('vehicle:crash', (e) => this.play('vehicle.crash', { tier: Tier.COMBAT, pos: at(e.at), gainDb: 2 }));
     on('vehicle:destroyed', (e) => this.play('vehicle.explode', { tier: Tier.THREAT, pos: at(e.at), radius: 150, gainDb: 4 }));
+
+    // Downs and revives: going down is a heavy, low hit (your own a THREAT cue with a heartbeat
+    // loop until you're up or dead); a revive starting and landing are bright, rising pings, so a
+    // downed player hears help arrive and a medic hears the job finish.
+    const DOWN_SIG = { root: 'A2', timbre: 'sub thud' }, REVIVE_SIG = { root: 'E5', timbre: 'chime' }, UP_SIG = { root: 'A5', timbre: 'bell' };
+    on('entity:downed', (e) => {
+      const self = e.id === this.listenerId;
+      this.play('down.hit', { tier: self ? Tier.THREAT : Tier.COMBAT, pos: self ? null : this.posOf(e.id), sig: DOWN_SIG, gainDb: self ? 2 : -2 });
+      if (self) this.play('down.heartbeat', { tier: Tier.THREAT, sig: { root: 'A1', timbre: 'sub drone' }, loopKey: 'down:self', gainDb: -8 });
+    });
+    const up = (e) => { if (e.id === this.listenerId) this.stopLoop('down:self'); };
+    on('entity:revived', up);
+    on('entity:death', up);
+    on('revive:start', (e) => (e.id === this.listenerId || e.patient === this.listenerId) && this.play('revive.start', { tier: Tier.COMBAT, sig: REVIVE_SIG, gainDb: -4 }));
+    on('revive:done', (e) => (e.id === this.listenerId || e.patient === this.listenerId) && this.play('revive.done', { tier: Tier.COMBAT, sig: UP_SIG, gainDb: -2 }));
 
     // Foley, driven by the animation rig (rule 8). Your own steps are 2D; heavy sprint steps add
     // a gear clank. Others are positional, with an audible radius that grows with gait.

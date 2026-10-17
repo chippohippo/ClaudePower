@@ -91,7 +91,7 @@ export class MeleeComponent {
     if (ms.diveStarted || ms.knockStarted) {
       if (this.busy || this.phase === MeleePhase.GUARD || this.phase === MeleePhase.CHARGING) { this.attack = null; this.queued = null; this.#setPhase(MeleePhase.IDLE); }
     }
-    if (ms.mode === 'knockdown' || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'vehicle') { this.queued = null; return; }
+    if (ms.mode === 'knockdown' || ms.mode === 'ragdoll' || ms.downed || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'vehicle') { this.queued = null; return; }
 
     // Input buffering: a press during an attack is remembered and fired at the earliest legal frame.
     if (b.light?.pressed) this.queued = 'light';

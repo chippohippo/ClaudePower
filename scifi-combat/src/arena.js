@@ -27,13 +27,14 @@ import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
+import { reactToHit } from './combat/HitReactions.js';
 
 const load = (p) => fetch(`./data/${p}`).then((r) => r.json());
-const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs, humanoid] = await Promise.all([
+const [movementTuning, meleeData, ballistic, energy, attachments, recoil, damage, statuses, solariKits, voidKits, supers, vehicleDefs, solariClasses, voidClasses, aiDefs, humanoid, down] = await Promise.all([
   load('movement.json'), load('weapons/melee.json'), load('weapons/ballistic.json'), load('weapons/energy.json'),
   load('weapons/attachments.json'), load('weapons/recoil.json'), load('damage-matrix.json'),
   load('abilities/statuses.json'), load('abilities/solari.json'), load('abilities/void.json'), load('supers.json'), load('vehicles.json'),
-  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'),
+  load('classes/solari.json'), load('classes/void.json'), load('ai/personalities.json'), load('animation/humanoid.json'), load('down.json'),
 ]);
 const sword = meleeData.weapons[0];
 const abilityIndex = new Map();
@@ -87,7 +88,7 @@ for (const b of boxes) {
 // ---------------------------------------------------------------- world (sim queries)
 // CombatWorld owns projectiles, zones, deployables and cover. `boxes` is shared by reference with
 // the movement bodies, so destroyed cover stops colliding at the same moment it disappears.
-const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, supers, meleeWeapons: meleeData.weapons, recoilDefs: recoil.patterns, vehicleDefs, statusDefs: statuses.statuses });
+const world = new CombatWorld({ damageMatrix: damage.matrix, cover: boxes, supers, meleeWeapons: meleeData.weapons, recoilDefs: recoil.patterns, vehicleDefs, statusDefs: statuses.statuses, down });
 const entities = world.entities;
 bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); const i = collidables.indexOf(m); if (i >= 0) collidables.splice(i, 1); });
 
@@ -99,7 +100,7 @@ const STATUS_GLOW = {
   iframes: new THREE.Color(0.15, 0.25, 1.1), vulnerable: new THREE.Color(1.0, 0.1, 0.1), radiant: new THREE.Color(0.7, 0.45, 0.1),
   void: new THREE.Color(0.35, 0.1, 0.7), mech: new THREE.Color(0.25, 0.25, 0.25), scorch: new THREE.Color(0.5, 0.16, 0), weaken: new THREE.Color(0.22, 0.07, 0.4), silenced: new THREE.Color(0.2, 0.2, 0.2),
 };
-const LYING = new Set(['dive', 'knockdown']);
+const LYING = new Set(['dive', 'knockdown', 'ragdoll']);
 
 // ---------------------------------------------------------------- entities
 function makeFighter(id, team, color, pos, kit, guns) {
@@ -107,9 +108,15 @@ function makeFighter(id, team, color, pos, kit, guns) {
   const movement = new MovementController(movementTuning, body, {}, id);
   movement.state.position.copy(pos);
   const ent = { id, team, movement, mode: 'sword' };
-  ent.health = new Health(ent, { health: 140, shield: 60, armor: 'plate' });
+  ent.health = new Health(ent, { health: 140, shield: 60, armor: 'plate', down });
   ent.status = new StatusComponent(ent, statuses.statuses, world);
   movement.hooks.fallDamage = (amount) => ent.health.damage(amount, { kind: 'fall' }, null);
+  // Same body rules as FighterFactory fighters: ragdolls on big hits, downed at 0, revivable.
+  movement.hooks.vital = () => (ent.health.dead ? 'dead' : ent.health.downed ? 'downed' : 'alive');
+  movement.hooks.scale = () => silhouetteScale(ent);
+  ent.onHit = (res, info, by) => reactToHit(ent, res, info, by);
+  ent.onDowned = ent.onDied = () => { if (ent.vehicle) world.vehicles.exit(ent, { eject: true }); };
+  ent.onRevived = () => ent.movement.getUpFromDown();
   ent.melee = new MeleeComponent(sword, ent, world);
   ent.weapons = new WeaponComponent(ent, guns.map((g) => new WeaponInstance(g, recoil.patterns)), world);
   ent.abilities = new AbilityComponent(ent, kit, world);
@@ -135,6 +142,7 @@ melee.add(player.melee);
 
 // ---------------------------------------------------------------- bots (4v4 skirmish)
 const factoryData = {
+  down,
   movement: movementTuning, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns,
   statuses: statuses.statuses, meleeWeapons: meleeData.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes: [solariClasses, voidClasses],
 };
@@ -190,7 +198,7 @@ bus.on('entity:death', (e) => {
     if (x.vehicle) world.vehicles.exit(x);
     revertTransform(x, 'respawn');
     const p = spawnPoint(x.team, x.id);
-    x.movement.state.position.copy(p); x.movement.body.teleport(p); x.movement.state.velocity.set(0, 0, 0);
+    x.movement.reset(p);
     x.health.revive(1); x.health.shield = x.health.maxShield; x.status.cleanse();
   }, 3000);
 });
@@ -336,12 +344,15 @@ const loop = new FixedLoop({
       e.movement.state.speedScale = e.status.speedMul;
       e.abilities.update(abCmd, dt); e.melee.update(mCmd, dt); if (gCmd) e.weapons.update(gCmd, dt);
     };
-    // Vehicles first: if the fighter is driving or riding, the vehicle consumes the whole command.
-    if (world.vehicles.handleInput(player, pc)) player.movement.update(pc, dt);
+    // Revives first (kneel, nothing else), then vehicles: a driver or rider's vehicle consumes the command.
+    const kneel = (e, c) => ({ ...c, moveX: 0, moveY: 0, buttons: { interact: c.buttons.interact } });
+    if (world.revives.handleInput(player, pc, dt)) { player.movement.kneel(); tickEntity(player, kneel(player, pc), kneel(player, pc), kneel(player, pc), null); }
+    else if (world.vehicles.handleInput(player, pc)) player.movement.update(pc, dt);
     else tickEntity(player, pc, pc, meleeCmd, gunCmd);
     // Bots: same pipeline as the player, with the command split between sword and gun by mode.
     for (const b of bots) {
       const bc = b.brain.think(dt, tick);
+      if (world.revives.handleInput(b, bc, dt)) { b.movement.kneel(); const k = kneel(b, bc); tickEntity(b, k, k, k, null); continue; }
       if (world.vehicles.handleInput(b, bc)) { b.movement.update(bc, dt); continue; }
       const r = routeCommand(b, b.status.rooted ? strip(bc, []) : bc);
       tickEntity(b, bc, bc, r.meleeCmd, r.gunCmd);
@@ -386,7 +397,7 @@ const loop = new FixedLoop({
       const e = r.e, s = e.movement.state;
       if (e.vehicle && !e.vehicle.exposed) continue;
       if (r.lod < 2) crowd.drawRig(r.h, e.look, r.lod);
-      else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(e), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.slide?.kind === 'belly' || e.health.dead }, e.look);
+      else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(e), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || e.health.dead }, e.look);
     }
     crowd.end();
     // Shadows follow the player (the shadow camera covers +-30 m).

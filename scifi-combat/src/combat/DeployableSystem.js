@@ -226,7 +226,12 @@ export class DeployableSystem {
       if (e.movement.state.position.distanceTo(at) > (t.radius ?? d.trigger)) continue;
       if (t.status) e.status?.apply(t.status.id, { stacks: t.status.stacks ?? 1, duration: t.status.duration, source: d.owner });
       if (t.reveal) e.status?.apply('revealed', { duration: t.reveal, source: d.owner });
-      if (t.damage) e.health.damage(t.damage, { kind: 'deployable', ability: d.ability }, d.owner);
+      if (t.damage) {
+        e.health.damage(t.damage, { kind: 'deployable', ability: d.ability }, d.owner);
+        // A mine or charge going off under you is a blast: you're thrown limp, away from it.
+        const q = e.movement.state.position, dx = q.x - at.x, dz = q.z - at.z, l = Math.hypot(dx, dz) || 1;
+        e.movement.impulse?.((dx / l) * 5, 3.5, (dz / l) * 5, { cause: 'explosion', at, ragdoll: true });
+      }
     }
     bus.emit('deployable:triggered', { id: d.id, kind: d.kind, point: at.toArray(), radius: t.radius ?? d.trigger, team: d.team });
     this.destroy(d, 'triggered');

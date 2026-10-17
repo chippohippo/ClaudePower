@@ -1333,11 +1333,17 @@
    "dead": [
     0.3,
     "in"
+   ],
+   "downed": [
+    0.3,
+    "smooth"
    ]
   },
   "knockPhase": 0.12,
   "diveLaunch": 0.09,
-  "slideImpact": 0.11
+  "slideImpact": 0.11,
+  "ragdollIn": 0.1,
+  "ragdollOut": 0.35
  },
  "body": {
   "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim.",

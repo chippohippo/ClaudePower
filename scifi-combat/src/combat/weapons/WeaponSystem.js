@@ -111,7 +111,7 @@ export class WeaponComponent {
     // HD2: aiming or firing out of a sprint cancels the sprint (the gun comes up after sprintToFire).
     if (mv.sprinting && (b.light?.down || b.guard?.down)) mv.locks.sprint = Math.max(mv.locks.sprint, 0.35);
     if (mv.diveStarted) this.ads = 0; // diving drops ADS; hip fire stays available through the dive
-    const wantAds = !!b.guard?.down && !mv.sprinting && mv.mode !== 'dive' && mv.mode !== 'knockdown' && this.phase !== WeaponPhase.SWAPPING;
+    const wantAds = !!b.guard?.down && !mv.sprinting && mv.mode !== 'dive' && mv.mode !== 'knockdown' && mv.mode !== 'ragdoll' && !mv.downed && this.phase !== WeaponPhase.SWAPPING;
     const adsRate = 1 / Math.max(0.05, s.ads?.time ?? 0.25);
     this.ads = Math.max(0, Math.min(1, this.ads + (wantAds ? adsRate : -adsRate * 1.3) * dt));
     mv.speedScale = Math.min(mv.speedScale, 1 - (1 - (s.ads?.moveMul ?? 0.7)) * this.ads);

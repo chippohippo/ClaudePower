@@ -132,7 +132,7 @@ test('headless battle: 64 bots fight over the line, capture points, die and rein
   const data = {
     movement: H.movement, weaponFiles: [H.ballistic, H.energy], attachments: H.attachments, recoil: H.recoil, statuses: H.statuses,
     meleeWeapons: H.melee, kits: H.kits, classes: H.classes, damageMatrix: H.matrix, supers: H.supers, vehicleDefs: H.vehicles,
-    personalities: H.ai.personalities, difficulty: H.ai.difficulty.veteran,
+    personalities: H.ai.personalities, difficulty: H.ai.difficulty.veteran, down: H.down,
   };
   const s = new FrontlineSession(data, { players: 64, seed: 3 });
   const ev = { point: 0, deploy: 0, hit: 0 };

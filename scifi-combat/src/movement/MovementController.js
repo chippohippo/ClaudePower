@@ -17,23 +17,28 @@
 //  * The slide (sprint + crouch) is committed for 0.45 s, carries far on a friction curve that
 //    ramps up, and can be steered at 80 deg/s.
 //  * No coyote time and no jump buffer: HD2 has no such leniency.
-//  * Heavy landings stumble you; big falls and explosions knock you down (ragdoll-lite) with a real get-up.
+//  * Heavy landings stumble you and big falls knock you down with a real get-up. Blasts, critical
+//    hits, downs and deaths throw you as a full ragdoll (physics/Ragdoll.js): no control until the
+//    body comes to rest where it landed, then a get-up (or the downed crawl, or a corpse).
 //
 // Physics adapter (`body`): move(delta) -> { delta, grounded, groundNormal }, setHeight(h),
 // teleport(p), probe(origin, dir, dist) -> { distance, point, normal } | null.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
+import { Ragdoll, J } from '../physics/Ragdoll.js';
 
 export const MoveState = Object.freeze({
   GROUND: 'ground', AIR: 'air', SLIDE: 'slide', DIVE: 'dive', DODGE: 'dodge', MANTLE: 'mantle',
-  LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle',
+  LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle', RAGDOLL: 'ragdoll',
 });
 export const Stance = Object.freeze({ STAND: 'stand', CROUCH: 'crouch', PRONE: 'prone' });
 export const Gait = Object.freeze({ IDLE: 'idle', WALK: 'walk', JOG: 'jog', SPRINT: 'sprint' });
 
 const DEG = Math.PI / 180;
 const UP = new Vector3(0, 1, 0);
+const DOWN = new Vector3(0, -1, 0);
+const NO_BOXES = Object.freeze([]);
 const _wish = new Vector3();
 const _fwd = new Vector3();
 const _right = new Vector3();
@@ -66,8 +71,12 @@ export class MovementController {
     const armor = this.mods.armor ?? (this.mods.speedMul >= 1.08 ? 'light' : this.mods.speedMul <= 0.86 ? 'heavy' : 'medium');
     this.armor = armor;
     this.staminaRegenMul = this.mods.staminaRegenMul ?? tuning.armor?.[armor]?.staminaRegenMul ?? 1;
-    /** Optional callbacks wired by the entity factory: fallDamage(amount). */
-    this.hooks = { fallDamage: null };
+    /**
+     * Optional callbacks wired by the entity factory: fallDamage(amount), vital() -> 'alive' |
+     * 'downed' | 'dead' (what a ragdoll becomes when it comes to rest), scale() -> silhouette scale.
+     */
+    this.hooks = { fallDamage: null, vital: null, scale: null };
+    this.ragdoll = null;          // physics/Ragdoll, created on the first throw and reused
 
     this.state = {
       mode: MoveState.GROUND,
@@ -103,6 +112,7 @@ export class MovementController {
       dodgeStyle: null,
       mantle: null,
       knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest, supine }
+      downed: false,            // at 0 HP but not dead: the wounded crawl (Health drives this)
       lastDiveLand: -99,
       wallRunsLeft: tuning.wallRun.perAirtime,
       wallNormal: new Vector3(),
@@ -120,16 +130,19 @@ export class MovementController {
 
   // ---------------------------------------------------------------- public API
   /**
-   * External impulse (launch pads, knock-backs, explosions). Anything at or above the knockdown
-   * threshold throws the soldier (HD2 ragdoll), unless opts.knockdown === false (e.g. launch pads).
+   * External impulse (launch pads, knock-backs, explosions, hits), a velocity change in m/s.
+   * At or above the knockdown threshold (or with opts.ragdoll) it throws the soldier as a full
+   * ragdoll, unless opts.knockdown === false (launch pads). A body that is already limp just
+   * takes the push. opts: { at (world point it comes from), focus (0 uniform .. 1 local), cause }.
    */
   impulse(x, y, z, opts = {}) {
     const s = this.state;
     if (s.mode === MoveState.VEHICLE) return;
+    if (s.mode === MoveState.RAGDOLL) { this.ragdoll.applyImpulse(x, y, z, opts.at ?? this.#pushPoint(x, z), opts.focus ?? this.t.ragdoll.blastFocus); return; }
     const k = this.t.knockdown;
     const mag = Math.hypot(x, y, z);
     const threshold = k.threshold * (s.stance === Stance.PRONE ? k.proneResist : 1);
-    if (opts.knockdown !== false && mag >= threshold) return this.knockdown(x, y, z, opts.cause ?? 'impulse');
+    if (opts.ragdoll || (opts.knockdown !== false && mag >= threshold)) { this.startRagdoll(x, y, z, opts); return; }
     s.velocity.x += x; s.velocity.y += y; s.velocity.z += z;
     if (y > 0.5) {
       s.velocity.y = Math.max(s.velocity.y, y);
@@ -139,25 +152,66 @@ export class MovementController {
   }
 
   /** Ragdoll-lite: thrown, tumble, slide, rest, get up. Re-knocking while down adds to the throw. */
-  knockdown(x, y, z, cause = 'impulse') {
-    const s = this.state;
-    if (s.mode === MoveState.VEHICLE) return;
-    s.velocity.x += x; s.velocity.z += z;
-    s.velocity.y = Math.max(s.velocity.y + y, y, 2.5);
-    s.grounded = false; s.timeSinceGrounded = 99;
-    s.sprinting = false; s.stanceT = null; s.slide = null; s.dive = null; s.mantle = null; s.forced = null;
-    this.#setInvulnerable(false);
-    if (s.mode !== MoveState.KNOCKDOWN) {
-      // Thrown backward (against your facing) = you land on your back.
-      const fx = -Math.sin(s.bodyYaw), fz = -Math.cos(s.bodyYaw);
-      s.knock = { phase: 'air', t: 0, rest: 0, supine: x * fx + z * fz < -0.5 };
-      this.#setMode(MoveState.KNOCKDOWN);
+  /** Old name for a throw: every knockdown by force is a full ragdoll now. */
+  knockdown(x, y, z, cause = 'impulse') { return this.startRagdoll(x, y, z, { cause }); }
+
+  /**
+   * Go limp: the body becomes a ragdoll in the shape it was in, moving as it was, plus the push
+   * (m/s). Casts and swings are interrupted (knockStarted); no control until it comes to rest.
+   * @returns {boolean} false in a vehicle
+   */
+  startRagdoll(x = 0, y = 0, z = 0, { at = null, focus = null, cause = 'impulse' } = {}) {
+    const s = this.state, R = this.t.ragdoll;
+    if (s.mode === MoveState.VEHICLE) return false;
+    if (s.mode !== MoveState.RAGDOLL) {
+      const lying = s.stance === Stance.PRONE || s.mode === MoveState.DIVE || (s.mode === MoveState.SLIDE && s.slide?.kind === 'belly')
+        || (s.mode === MoveState.KNOCKDOWN && s.knock?.phase !== 'getup');
+      const supine = s.mode === MoveState.KNOCKDOWN ? !!s.knock?.supine : s.supine || (s.mode === MoveState.SLIDE && s.slide?.from === 'back') || s.dive?.kind === 'back';
+      const pose = lying ? (supine ? 'supine' : 'prone') : s.stance === Stance.CROUCH || s.mode === MoveState.SLIDE ? 'crouch' : 'stand';
+      (this.ragdoll ??= new Ragdoll(R)).init(pose, s.position, s.bodyYaw, this.hooks.scale?.() ?? 1, s.velocity, this.body);
+      s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null;
+      s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null;
+      this.#setInvulnerable(false);
+      this.#setMode(MoveState.RAGDOLL);
       s.knockStarted = true;
+      s.grounded = false; s.timeSinceGrounded = 99;
       this.body.setHeight(this.t.heights.prone);
-      bus.emit('move:knockdown', { id: this.id, cause, impulse: Math.hypot(x, y, z) });
-    } else {
-      s.knock.phase = 'air';
+      const mag = Math.hypot(x, y, z);
+      bus.emit('move:ragdoll', { id: this.id, cause, impulse: mag });
+      bus.emit('move:knockdown', { id: this.id, cause, impulse: mag }); // camera, audio and AI listen for this
     }
+    this.ragdoll.applyImpulse(x, y, z, at ?? this.#pushPoint(x, z), focus ?? R.blastFocus);
+    return true;
+  }
+
+  /**
+   * Where a push with no stated origin comes from: low and behind (blasts, rams and shoves come
+   * up from the ground), so the legs go first and the body tumbles instead of sliding upright.
+   */
+  #pushPoint(x, z) {
+    const l = Math.hypot(x, z), p = this.state.position;
+    if (l < 0.5) return null;
+    return { x: p.x - (x / l) * 0.8, y: p.y + 0.1, z: p.z - (z / l) * 0.8 };
+  }
+
+  /** Dead bodies keep falling until they rest (no command; called instead of update()). */
+  simulateCorpse(dt) {
+    if (this.state.mode === MoveState.RAGDOLL && !this.ragdoll.asleep) { this.#ragdollTick(dt); this.#post(dt, this.state.velocity.x, this.state.velocity.z, this.state.bodyYaw); }
+  }
+
+  /** Respawn or teleport: standing still at `pos`, every transient state cleared. */
+  reset(pos, yaw = this.state.bodyYaw) {
+    const s = this.state;
+    s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0);
+    s.mode = MoveState.GROUND; s.modeTime = 0; s.stance = Stance.STAND;
+    s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null;
+    s.supine = false; s.downed = false; s.sprinting = false; s.pivoting = false;
+    s.yaw = s.bodyYaw = s.aimYaw = yaw;
+    s.stamina = this.t.stamina.max; s.exhausted = false; s.staminaRegenTimer = 0;
+    s.grounded = true; s.timeSinceGrounded = 0;
+    for (const k in s.locks) s.locks[k] = 0;
+    this.#setInvulnerable(false);
+    this.body.setHeight(this.t.heights.stand);
   }
 
   /** Called by VehicleSystem: the body is now carried by a vehicle seat. */
@@ -183,7 +237,7 @@ export class MovementController {
     if (s.stance !== Stance.STAND) { s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); }
   }
 
-  canAct() { const m = this.state.mode; return m !== MoveState.MANTLE && m !== MoveState.VEHICLE && m !== MoveState.KNOCKDOWN; }
+  canAct() { const m = this.state.mode; return m !== MoveState.MANTLE && m !== MoveState.VEHICLE && m !== MoveState.KNOCKDOWN && m !== MoveState.RAGDOLL && !this.state.downed; }
   isSliding() { return this.state.mode === MoveState.SLIDE; }
   spendStamina(amount) {
     const s = this.state;
@@ -236,6 +290,7 @@ export class MovementController {
         case MoveState.KNOCKDOWN: this.#knockdown(cmd, dt); break;
         case MoveState.WALLRUN:   this.#wallRun(cmd, dt); break;
         case MoveState.MANTLE:    this.#mantle(dt); this.#post(dt, prevVx, prevVz, prevBodyYaw); return; // root motion
+        case MoveState.RAGDOLL:   this.#ragdollTick(dt); this.#post(dt, prevVx, prevVz, prevBodyYaw); return; // the body moves the root
       }
     }
     if (s.mode === MoveState.MANTLE) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } // a mantle just started
@@ -261,6 +316,7 @@ export class MovementController {
   // ---------------------------------------------------------------- ground: idle / walk / jog / sprint / crouch / prone
   #ground(cmd, dt, wishMag) {
     const s = this.state, t = this.t, b = cmd.buttons;
+    if (s.downed) return this.#downedCrawl(dt, wishMag);
     const landing = s.mode === MoveState.LAND;
     if (landing && s.modeTime >= t.landing.heavyRecovery) this.#setMode(MoveState.GROUND);
     this.#tickStance(dt);
@@ -306,6 +362,41 @@ export class MovementController {
       _tmp.set(0, -t.gravity, 0).addScaledVector(n, t.gravity * n.y);
       s.velocity.addScaledVector(_tmp, dt);
     }
+  }
+
+  /**
+   * Downed: a slow wounded crawl (data: downed), nothing else. On the belly it crawls where you
+   * steer; on the back it scoots, slower. The body turns slowly toward the way it's going.
+   */
+  #downedCrawl(dt, wishMag) {
+    const s = this.state, d = this.t.downed;
+    s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.stance = Stance.PRONE;
+    const target = d.crawlSpeed * (s.supine ? d.supineMul : 1) * wishMag * Math.min(1, s.speedScale ?? 1);
+    const dvx = _wish.x * target - s.velocity.x, dvz = _wish.z * target - s.velocity.z, dvl = Math.hypot(dvx, dvz);
+    if (dvl > 1e-5) { const step = Math.min(dvl, d.accel * dt); s.velocity.x += (dvx / dvl) * step; s.velocity.z += (dvz / dvl) * step; }
+    if (wishMag > 0.1) {
+      // Belly: head first toward the wish. Back: the head leads too, and it lies behind bodyYaw.
+      const want = yawOf(_wish.x, _wish.z) + (s.supine ? Math.PI : 0);
+      s.bodyYaw = turnToward(s.bodyYaw, want, d.turnRate * DEG * dt);
+    }
+    const n = s.groundNormal, vn = s.velocity.dot(n);
+    s.velocity.addScaledVector(n, -vn);
+    s.velocity.y -= 2 * dt;
+  }
+
+  /** Reviving someone: get down to a crouch (no-op if already low or mid-transition). */
+  kneel() { const s = this.state; if (s.mode === MoveState.GROUND && s.stance === Stance.STAND && !s.stanceT && !s.downed) this.#requestStance(Stance.CROUCH); }
+
+  /** Revived (Health): the HD2 get-up from wherever you lie (a body still falling gets up when it rests). */
+  getUpFromDown() {
+    const s = this.state;
+    s.downed = false;
+    if (s.mode === MoveState.RAGDOLL) return;
+    s.knock = { phase: 'getup', t: 0, rest: 0, supine: s.supine };
+    s.stanceT = null; s.stance = Stance.PRONE; s.velocity.set(0, 0, 0);
+    this.body.setHeight(this.t.heights.prone);
+    this.#setMode(MoveState.KNOCKDOWN);
+    bus.emit('move:getup', { id: this.id, duration: this.t.knockdown.getUpTime });
   }
 
   /** Sprint: the velocity follows the body, and the body turns at the sprint turn rate (carving). */
@@ -724,6 +815,43 @@ export class MovementController {
     }
   }
 
+  // ---------------------------------------------------------------- ragdoll
+  /** The root rides the body: under the pelvis, at the lowest point of the body. */
+  #ragdollTick(dt) {
+    const s = this.state, rd = this.ragdoll;
+    rd.step(dt, this.body);
+    rd.get(J.PELVIS, _tmp);
+    s.position.set(_tmp.x, rd.lowest(), _tmp.z);
+    this.body.teleport(s.position);
+    rd.velocity(J.PELVIS, s.velocity, dt);
+    s.grounded = rd.grounded;
+    s.timeSinceGrounded = rd.grounded ? 0 : s.timeSinceGrounded + dt;
+    s.bodyYaw = rd.headYaw();
+    if (rd.asleep) this.#ragdollRest();
+  }
+
+  /** Came to rest: a corpse stays limp; the downed start crawling; the living get up (HD2). */
+  #ragdollRest() {
+    const s = this.state, rd = this.ragdoll, vital = this.hooks.vital?.() ?? 'alive';
+    const up = rd.faceUp();
+    s.supine = up;
+    s.bodyYaw = rd.headYaw() + (up ? Math.PI : 0);   // supine bodies lie head-behind (the rig's convention)
+    s.velocity.set(0, 0, 0);
+    if (vital === 'dead') return;
+    s.stance = Stance.PRONE;
+    this.body.setHeight(this.t.heights.prone);
+    if (vital === 'downed') {
+      s.downed = true;
+      this.#setMode(MoveState.GROUND);
+      bus.emit('move:ragdollRest', { id: this.id, downed: true, supine: up });
+      return;
+    }
+    s.knock = { phase: 'getup', t: 0, rest: 0, supine: up };
+    this.#setMode(MoveState.KNOCKDOWN);
+    bus.emit('move:ragdollRest', { id: this.id, downed: false, supine: up });
+    bus.emit('move:getup', { id: this.id, duration: this.t.knockdown.getUpTime });
+  }
+
   // ---------------------------------------------------------------- mantle / vault
   #tryMantle(wishMag, explicit) {
     const ledge = this.#findLedge(wishMag, explicit, this.t.mantle.probeDistance);
@@ -852,8 +980,9 @@ export class MovementController {
     const arc = t.stance.proneAimArc * DEG;
     s.aimYaw = prone ? s.bodyYaw + clamp(angleDelta(s.bodyYaw, s.yaw), -arc, arc) : s.yaw;
     const proneTransition = s.stanceT && (s.stanceT.from === Stance.PRONE || s.stanceT.to === Stance.PRONE);
-    s.weaponReady = !(s.mode === MoveState.MANTLE || s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.VEHICLE || proneTransition || s.sprinting);
-    s.busy = s.mode === MoveState.MANTLE || s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition;
+    const limp = s.mode === MoveState.RAGDOLL || s.mode === MoveState.KNOCKDOWN;
+    s.weaponReady = !(limp || s.mode === MoveState.MANTLE || s.mode === MoveState.VEHICLE || proneTransition || s.sprinting || s.downed);
+    s.busy = limp || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
     const low = s.stamina < t.stamina.lowAt;
     if (low !== s.lowStamina) { s.lowStamina = low; bus.emit('move:lowStamina', { id: this.id, on: low }); }
   }
@@ -901,7 +1030,8 @@ export class MovementController {
       slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock },
       dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand, supine: s.supine,
       mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), edge: v3(s.mantle.edge), exitVelocity: v3(s.mantle.exitVelocity) },
-      invulnerable: s.invulnerable, sprinting: s.sprinting,
+      invulnerable: s.invulnerable, sprinting: s.sprinting, downed: s.downed,
+      rag: s.mode === MoveState.RAGDOLL ? this.ragdoll.serialize() : null,
     };
   }
 
@@ -914,12 +1044,13 @@ export class MovementController {
       timeSinceGrounded: snap.tsg, grounded: snap.grounded, wallRunsLeft: snap.wr,
       stanceT: snap.stanceT && { ...snap.stanceT }, stanceQueued: snap.stanceQueued, crouchPress: snap.crouchPress && { ...snap.crouchPress },
       slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock },
-      dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine,
+      dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine, downed: !!snap.downed,
       mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), edge: v3(snap.mantle.edge), exitVelocity: v3(snap.mantle.exitVelocity) },
     });
     s.position.fromArray(snap.p); s.velocity.fromArray(snap.v); s.dodgeDir.fromArray(snap.dodgeDir);
     const h = this.t.heights;
-    this.body.setHeight(s.mode === MoveState.DIVE ? h.dive : s.mode === MoveState.SLIDE ? (s.slide?.kind === 'feet' ? h.slide : h.prone) : s.mode === MoveState.KNOCKDOWN ? h.prone : h[s.stance]);
+    if (snap.rag) (this.ragdoll ??= new Ragdoll(this.t.ragdoll)).restore(snap.rag);
+    this.body.setHeight(s.mode === MoveState.DIVE ? h.dive : s.mode === MoveState.SLIDE ? (s.slide?.kind === 'feet' ? h.slide : h.prone) : s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.RAGDOLL ? h.prone : h[s.stance]);
     this.body.teleport?.(s.position);
   }
 }
@@ -956,6 +1087,9 @@ export class RapierBody {
     this.collider = this.world.createCollider(this.R.ColliderDesc.capsule(half, this.radius).setTranslation(0, h / 2, 0), this.body);
   }
   teleport(p) { this.body.setTranslation({ x: p.x, y: p.y, z: p.z }, true); }
+  /** Ground height for ragdoll particles (a ray down from above; Rapier colliders aren't boxes to hand out). */
+  groundAt(x, z) { const hit = this.probe(_tmp.set(x, this.body.translation().y + 50, z), DOWN, 200); return hit ? hit.point.y : -Infinity; }
+  nearBoxes() { return NO_BOXES; }
   probe(origin, dir, dist) {
     const ray = new this.R.Ray(origin, dir);
     const hit = this.world.castRayAndGetNormal(ray, dist, true, undefined, undefined, this.collider);
@@ -995,6 +1129,8 @@ export class FlatGroundBody {
   }
 
   groundAt(x, z) { return this.terrain ? this.terrain.height(x, z) : 0; }
+  /** Cover boxes overlapping a ground rectangle, for ragdoll collision (a reused array: don't keep it). */
+  nearBoxes(x0, z0, x1, z1) { return this.#gather(x0, z0, x1, z1); }
 
   #blocking(x, z, y, near) {
     const r = this.r;

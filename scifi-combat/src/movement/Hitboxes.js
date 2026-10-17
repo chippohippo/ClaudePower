@@ -1,5 +1,6 @@
 // Hitboxes: stance- and state-aware hit spheres. Going prone, sliding or diving really does
 // lower your profile, as in Helldivers 2, because these spheres are what bullets test against.
+// A ragdolling body is hit where its particles are (what you see is what you hit, mid-air too).
 //
 // Layout rows: [forward offset, height, radius, zone] along the body axis (the way the head points).
 // Stance transitions blend between layouts, so a soldier half-way up from prone is half-way tall.
@@ -60,12 +61,25 @@ function layoutFor(e) {
   }
 }
 
+// A ragdoll's spheres sit on its particles: head, chest, pelvis, and between the knees.
+const RAG = [[2, 2, 0.6, 0.21, 'head'], [15, 15, 0.5, 0.29, 'body'], [0, 0, 0.5, 0.27, 'body'], [5, 6, 0.5, 0.22, 'limb']];
+function ragdollSpheres(rd) {
+  const sc = rd.scale;
+  for (let i = 0; i < 4; i++) {
+    const [a, b, , r, zone] = RAG[i], o = pool[i];
+    o.x = (rd.x[a] + rd.x[b]) * 0.5; o.y = (rd.y[a] + rd.y[b]) * 0.5; o.z = (rd.z[a] + rd.z[b]) * 0.5;
+    o.r = r * sc; o.zone = zone;
+  }
+  return pool;
+}
+
 /**
  * World-space hit spheres for a fighter (reused objects: copy what you keep).
  * @returns {{x,y,z,r,zone}[]}
  */
 export function hitSpheres(e) {
   const s = e.movement.state;
+  if (s.mode === 'ragdoll' && e.movement.ragdoll) return ragdollSpheres(e.movement.ragdoll);
   const { a, b, t = 0 } = layoutFor(e);
   const scale = silhouetteScale(e);
   const axis = bodyAxisYaw(e);

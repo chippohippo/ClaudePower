@@ -16,6 +16,7 @@ import { ProjectileSystem } from './weapons/WeaponSystem.js';
 import { ZoneSystem } from './ZoneSystem.js';
 import { DeployableSystem } from './DeployableSystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
+import { ReviveSystem } from './ReviveSystem.js';
 import { hitSpheres } from '../movement/Hitboxes.js';
 import { EntityGrid } from '../world/EntityGrid.js';
 import { rayBox } from '../world/CoverIndex.js';
@@ -33,7 +34,7 @@ export class CombatWorld {
    * Also takes `supers` (data/supers.json), `meleeWeapons` (melee.json weapons) and `recoilDefs`
    * (recoil.json patterns). Transform supers need them to build temporary weapons and movesets.
    */
-  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB } = {}) {
+  constructor({ damageMatrix = {}, cover = [], supers = null, meleeWeapons = [], recoilDefs = {}, vehicleDefs = null, statusDefs = null, terrain = null, nav = null, spatial = !!cover?.queryAABB, down = null } = {}) {
     this.damageMatrix = damageMatrix;
     this.terrain = terrain;
     this.nav = nav;
@@ -49,6 +50,7 @@ export class CombatWorld {
     this.zones = new ZoneSystem(this);
     this.deployables = new DeployableSystem(this);
     this.vehicles = new VehicleSystem(this, vehicleDefs ?? { vehicles: {}, weapons: {} });
+    this.revives = new ReviveSystem(this, down?.enabled ? down : null);
   }
 
   add(e) { this.entities.push(e); this.version++; return e; }
@@ -207,6 +209,7 @@ export class CombatWorld {
     const base = weapon.damage?.base ?? 0;
     if (!base) return;
     const owner = this.entity(projectile?.ownerId);
+    const thrown = new Set();
     for (const e of this.entitiesInRadius(point, radius)) {
       const isOwner = e.id === projectile?.ownerId;
       if (isOwner && e.isVehicle) continue; // a tank is never hurt by its own shell's splash
@@ -216,15 +219,29 @@ export class CombatWorld {
       const armor = e.health.armorFor?.('body') ?? 'flesh';
       const mul = this.damageMatrix[weapon.ammoType]?.[armor] ?? 1;
       e.health.damage(base * fall * mul * (isOwner ? 0.5 : 1) * (projectile?.spec?.damageMul ?? 1), { kind: 'explosion', weapon: weapon.id, ammoType: weapon.ammoType }, owner);
-      // HD2: explosions throw people. Close blasts knock you down; prone soldiers resist (MovementController).
-      if (!e.isVehicle && !e.health.dead) {
-        const away = _oc.subVectors(e.movement.state.position, point).setY(0);
-        const len = away.length() || 1;
-        const k = (weapon.knockback ?? 10) * (1 - Math.min(1, dist / radius));
-        e.movement.impulse?.((away.x / len) * k, k * 0.45, (away.z / len) * k, { cause: 'explosion' });
-      }
+      if (!e.isVehicle) { this.#blast(e, point, radius, dist, weapon); thrown.add(e); }
     }
+    // Bodies already on the ground get thrown too.
+    this.fightersNear(point, radius + (this.spatial ? 6 : 0), (e) => {
+      if (thrown.has(e) || !e.health.dead || e.isVehicle || e.movement.state.mode !== 'ragdoll') return;
+      const dist = e.movement.state.position.distanceTo(point);
+      if (dist <= radius) this.#blast(e, point, radius, dist, weapon);
+    });
     this.damageDeployables(point, radius, base, owner, weapon.ammoType, projectile?.team);
+  }
+
+  /**
+   * HD2: explosions throw people. Anyone within ragdoll.blastRadiusFrac of the radius goes limp
+   * (prone soldiers resist: proneResist shrinks that reach); everyone else in it is shoved.
+   */
+  #blast(e, point, radius, dist, weapon) {
+    const mv = e.movement, R = mv.t?.ragdoll;
+    const away = _oc.subVectors(mv.state.position, point).setY(0);
+    const len = away.length() || 1;
+    const k = (weapon.knockback ?? 10) * (1 - Math.min(1, dist / radius));
+    const reach = R ? radius * R.blastRadiusFrac / (mv.state.stance === 'prone' ? mv.t.knockdown.proneResist : 1) : 0;
+    const limp = dist < reach;
+    mv.impulse?.((away.x / len) * k, k * 0.45 + (limp ? 1.5 : 0), (away.z / len) * k, { cause: 'explosion', at: point, ragdoll: limp });
   }
 
   damageDeployables(center, radius, amount, by, ammoType = 'explosive', team = by?.team) {

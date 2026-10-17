@@ -230,18 +230,24 @@ test('stamina: about 14 s of sprint, then a jog until it refills enough to sprin
   assert.ok(back > 1 && back < 2.5, `sprint back after ${back.toFixed(2)} s`);
 });
 
-test('knockdown: explosions throw you (ragdoll-lite) and you get up; prone soldiers resist', () => {
+test('knockdown: explosions throw you as a ragdoll, you land where it takes you and get up; prone soldiers resist', () => {
   const r = rig();
   r.m.impulse(8, 3, 0, { cause: 'explosion' });
   r.step(1);
-  assert.equal(r.s.mode, 'knockdown');
-  const t = r.until(() => r.s.mode === 'ground', 5);
-  assert.ok(t > 1 && t < 3.5, `down for ${t.toFixed(2)} s`);
+  assert.equal(r.s.mode, 'ragdoll');
+  assert.equal(r.s.weaponReady, false, 'no shooting while limp');
+  const rest = r.until(() => r.s.mode !== 'ragdoll', 5);
+  assert.equal(r.s.mode, 'knockdown', 'comes to rest, then the HD2 get-up');
+  assert.equal(r.s.knock.phase, 'getup');
+  const t = rest + r.until(() => r.s.mode === 'ground', 3);
+  assert.ok(t > 1 && t < 4, `down for ${t.toFixed(2)} s`);
+  assert.equal(r.s.stance, 'stand');
+  assert.ok(r.s.position.x > 1.5, `thrown with the blast (${r.s.position.x.toFixed(2)} m)`);
   const p = rig();
   p.tap('prone'); p.step(1); p.until(() => !p.s.stanceT);
   p.m.impulse(8, 3, 0);
   p.step(1);
-  assert.notEqual(p.s.mode, 'knockdown');
+  assert.notEqual(p.s.mode, 'ragdoll');
 });
 
 test('vault keeps momentum over a thin wall; climbing a 2 m block takes the climb time', () => {

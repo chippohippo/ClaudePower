@@ -1,0 +1,15 @@
+{
+ "_comment": "Down but not out (Battlefield-style). At 0 HP you are downed instead of dead unless the hit was overkill: past overkill x max HP below zero, or a headshot dealing headshotKill x max HP in one hit. Downed soldiers crawl, bleed out over bleedOut seconds (paused while someone revives them), and die when the enemy deals downHp more damage. A teammate holding interact within reviveRange revives in reviveTime (medics faster and with more HP). Tickets are only spent on deaths, so every revive saves one. A blast that downs you throws you as a ragdoll first; you end up lying at 0 HP with your body intact.",
+ "enabled": true,
+ "bleedOut": 25,
+ "downHp": 60,
+ "overkill": 0.6,
+ "headshotKill": 0.5,
+ "reviveTime": 3.0,
+ "medicReviveTime": 1.5,
+ "reviveHp": 0.3,
+ "medicReviveHp": 0.6,
+ "reviveRange": 1.6,
+ "giveUpHold": 1.2,
+ "medicRoles": ["medic"]
+}

@@ -36,6 +36,13 @@
     #fl-feed:empty { display: none; }
     #fl-banner { position: absolute; top: 30%; width: 100%; text-align: center; font-size: 30px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 14px #000; opacity: 0; transition: opacity .3s; }
     #fl-respawn { position: absolute; top: 58%; width: 100%; text-align: center; font-size: 20px; font-weight: 800; text-shadow: 0 0 10px #000; display: none; }
+    #fl-prompt { position: absolute; top: 64%; width: 100%; text-align: center; font-size: 16px; font-weight: 700; text-shadow: 0 0 8px #000; }
+    #fl-respawn small { font-size: 13px; font-weight: 600; opacity: .85; }
+    .pbar { display: inline-block; width: 140px; height: 8px; margin-left: 8px; vertical-align: middle; background: #ffffff26; border-radius: 4px; overflow: hidden; }
+    .pbar i { display: block; height: 100%; }
+    #fl-downs .dn { position: absolute; left: 0; top: 0; margin: -14px 0 0 -10px; color: #ff5a5a; font-size: 20px; font-weight: 900; text-shadow: 0 0 6px #000; text-align: center; width: 20px; }
+    #fl-downs .dn span { display: block; font-size: 10px; color: #eef2f8; font-weight: 600; white-space: nowrap; margin-left: -20px; width: 60px; }
+    #fl-downs .dn.helped { color: #7fffb0; }
     #help { position: fixed; left: 12px; top: 12px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
     @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
   </style>
@@ -48,7 +55,7 @@
   <div id="help">
     <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front.<br>
     Click to lock the mouse · WASD · Shift sprint · C crouch (hold: prone, sprinting: slide) · Alt dive · Space climb/hop ·
-    LMB fire · RMB aim · R reload · 1 sword/gun · Q E G Z abilities · X vehicles · Space to deploy when down.<br>
+    LMB fire · RMB aim · R reload · 1 sword/gun · Q E G Z abilities · X vehicles / hold X by a downed teammate to revive · when downed: crawl, hold Space to give up · Space to deploy when dead.<br>
     <a style="pointer-events:auto;color:#9fd3ff" href="?players=128">128 players</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="arena.html">arena (4v4 feel lab)</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="rig-lab.html">rig lab</a>

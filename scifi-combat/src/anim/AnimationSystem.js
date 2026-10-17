@@ -8,6 +8,8 @@
 //    get no pose at all (CrowdRenderer draws an impostor). The followed fighter is always near.
 //  * Event routing: a single bus listener per event type looks the rig up by id (O(1)), instead
 //    of every rig subscribing to everything.
+//  * Corpses: when a fighter respawns, the body it left behind is kept as a frozen pose
+//    (`corpses`, newest last, capped at `maxCorpses`) so the battlefield remembers the fight.
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
@@ -32,6 +34,10 @@ export class AnimationSystem {
     this.focusId = null;
     this.frame = 0;
     this.stats = { near: 0, mid: 0, far: 0, solved: 0 };
+    this.corpses = [];          // { j, F, scale, d, prop, capeInit, team, look, root, born }
+    this.maxCorpses = 96;
+    this.corpseLife = 90;       // seconds a body stays after its soldier redeployed
+    this.time = 0;
     this.off = [
       bus.on('weapon:recoil', (e) => this.rigs.get(e.id)?.h.onEvent('weapon:recoil', e)),
       bus.on('weapon:hit', (e) => this.#hit(e.victim, e.attacker, e.damage)),
@@ -48,7 +54,7 @@ export class AnimationSystem {
     const s = e.movement.state;
     const r = {
       e, slot: this.list.length,
-      h: new ProceduralHumanoid(e, this.cfg, { groundY: this.groundY, surfaceAt: this.surfaceAt }),
+      h: this.#rig(e),
       prevPos: s.position.clone(), prevYaw: s.bodyYaw, prevAim: e.weapons?.aimYaw ?? s.yaw, prevPitch: e.weapons?.aimPitch ?? 0,
       root: s.position.clone(), lod: 0, dist: 0, acc: 0,
     };
@@ -62,6 +68,34 @@ export class AnimationSystem {
     if (!r) return;
     this.rigs.delete(id);
     this.list.splice(this.list.indexOf(r), 1);
+  }
+
+  #rig(e) {
+    const h = new ProceduralHumanoid(e, this.cfg, { groundY: this.groundY, surfaceAt: this.surfaceAt });
+    h.onCorpse = (rig) => this.#keepCorpse(rig);
+    return h;
+  }
+
+  /** Freeze the body a respawning fighter leaves behind (a pose snapshot the crowd renderer can draw). */
+  #keepCorpse(h) {
+    const c = this.corpses.length >= this.maxCorpses ? this.corpses.shift() : {
+      j: {
+        pelvis: new Vector3(), neck: new Vector3(), neckTop: new Vector3(), head: new Vector3(), chestC: new Vector3(),
+        hip: [new Vector3(), new Vector3()], knee: [new Vector3(), new Vector3()], ankle: [new Vector3(), new Vector3()],
+        shoulder: [new Vector3(), new Vector3()], elbow: [new Vector3(), new Vector3()], hand: [new Vector3(), new Vector3()],
+        footYaw: [0, 0], footPitch: [0, 0],
+      },
+      F: { pelvis: { r: new Vector3(), d: new Vector3(), n: new Vector3() }, chest: { r: new Vector3(), d: new Vector3(), n: new Vector3() }, head: { r: new Vector3(), d: new Vector3(), n: new Vector3() } },
+      prop: { kind: null, length: 0 }, capeInit: false, root: new Vector3(),
+    };
+    const j = h.j;
+    for (const k of ['pelvis', 'neck', 'neckTop', 'head', 'chestC']) c.j[k].copy(j[k]);
+    for (const k of ['hip', 'knee', 'ankle', 'shoulder', 'elbow', 'hand']) { c.j[k][0].copy(j[k][0]); c.j[k][1].copy(j[k][1]); }
+    for (let i = 0; i < 2; i++) { c.j.footYaw[i] = j.footYaw[i]; c.j.footPitch[i] = j.footPitch[i]; }
+    for (const k of ['pelvis', 'chest', 'head']) { c.F[k].r.copy(h.F[k].r); c.F[k].d.copy(h.F[k].d); c.F[k].n.copy(h.F[k].n); }
+    c.scale = h.scale; c.d = h.d; c.team = h.e.team; c.root.copy(j.pelvis); c.born = this.time;
+    c.look = { team: h.e.team, status: null, flame: null, highlight: false };
+    this.corpses.push(c);
   }
 
   get(id) { return this.rigs.get(id)?.h ?? null; }
@@ -86,6 +120,8 @@ export class AnimationSystem {
   update(dt, alpha = 1, camPos = null) {
     const L = this.cfg.lod, lag = (1 - alpha) * this.simDt;
     this.frame++;
+    this.time += dt;
+    while (this.corpses.length && this.time - this.corpses[0].born > this.corpseLife) this.corpses.shift();
     const st = this.stats; st.near = st.mid = st.far = st.solved = 0;
     for (const r of this.list) {
       const e = r.e, s = e.movement.state;
@@ -101,7 +137,7 @@ export class AnimationSystem {
       const aimNow = e.weapons?.aimYaw ?? s.yaw, pitchNow = e.weapons?.aimPitch ?? 0;
       r.h.update(Math.min(r.acc, 0.1), r.root, {
         yaw, aimYaw: r.prevAim + angleDelta(r.prevAim, aimNow) * alpha, aimPitch: r.prevPitch + (pitchNow - r.prevPitch) * alpha,
-        lag, lod, emit: lod === 0,
+        lag, lod, emit: lod === 0, alpha,
       });
       r.acc = 0;
       st.solved++;

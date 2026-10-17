@@ -20,7 +20,7 @@ export class Squad {
     this.role = null;         // 'attack' | 'defend'
     this.since = 0;
   }
-  get leader() { return this.members.find((m) => !m.health.dead) ?? null; }
+  get leader() { return this.members.find((m) => !m.health.dead && !m.health.downed) ?? null; }
   get alive() { let n = 0; for (const m of this.members) if (!m.health.dead) n++; return n; }
   /** Centroid of living members (or null). */
   center(out) {

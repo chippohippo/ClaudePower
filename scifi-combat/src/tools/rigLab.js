@@ -12,7 +12,7 @@ import { routeCommand } from '../core/routing.js';
 import { AnimationSystem } from '../anim/AnimationSystem.js';
 import { CrowdRenderer } from '../render/CrowdRenderer.js';
 import { hitSpheres } from '../movement/Hitboxes.js';
-import { STATIONS, StationDriver } from './rigLabStations.js';
+import { STATIONS, StationDriver, buddyDriver } from './rigLabStations.js';
 
 const DT = 1 / 60;
 const SPACING = 6;
@@ -70,21 +70,28 @@ const slots = STATIONS.map((st, i) => {
   return { st, x, e: null, driver: null };
 });
 
-function spawn(slot) {
-  if (slot.e) {
-    world.entities.splice(world.entities.indexOf(slot.e), 1);
-    meleeSys.remove(slot.e.melee);
-    animSys.remove(slot.e.id);
-  }
-  const [sx, sy, sz] = slot.st.start ?? [0, 0, 0];
-  const e = buildFighter(world, factoryData, { id: nextId++, team: slot.st.team ?? 0, classId: slot.st.classId ?? 'lancer', pos: new THREE.Vector3(slot.x + sx, sy, sz) });
-  e.mode = slot.st.mode ?? 'gun';
+function spawnFighter(slot, def) {
+  const [sx, sy, sz] = def.start ?? [0, 0, 0];
+  const e = buildFighter(world, factoryData, { id: nextId++, team: def.team ?? 0, classId: def.classId ?? 'lancer', pos: new THREE.Vector3(slot.x + sx, sy, sz) });
+  e.mode = def.mode ?? slot.st.mode ?? 'gun';
   e.health.damage = () => ({}); // the lab is about motion: nobody dies
   e.look = { team: e.team, status: null, flame: new THREE.Color(e.melee.w.visual?.flameColor ?? '#ff7a1a'), highlight: false };
   meleeSys.add(e.melee);
   animSys.add(e);
-  slot.e = e;
+  return e;
+}
+
+function spawn(slot) {
+  for (const old of [slot.e, slot.buddy]) {
+    if (!old) continue;
+    world.entities.splice(world.entities.indexOf(old), 1);
+    meleeSys.remove(old.melee);
+    animSys.remove(old.id);
+  }
+  slot.e = spawnFighter(slot, slot.st);
+  slot.buddy = slot.st.buddy ? spawnFighter(slot, slot.st.buddy) : null;
   slot.driver = new StationDriver(slot.st);
+  slot.buddyDriver = buddyDriver(slot.st);
 }
 slots.forEach(spawn);
 
@@ -92,12 +99,15 @@ function tick() {
   animSys.snapshot();
   for (const slot of slots) {
     if (slot.driver.done) { spawn(slot); animSys.snapshot(); }
-    const e = slot.e, cmd = slot.driver.command(e, DT);
-    e.status.update(DT); e.health.update(DT);
-    e.movement.update(cmd, DT);
-    e.movement.state.speedScale = e.status.speedMul;
-    const r = routeCommand(e, cmd);
-    e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
+    const pairs = [[slot.e, slot.driver.command(slot.e, DT, slot.buddy)]];
+    if (slot.buddy) pairs.push([slot.buddy, slot.buddyDriver.command(slot.buddy, DT, slot.e)]);
+    for (const [e, cmd] of pairs) {
+      e.status.update(DT); e.health.update(DT);
+      e.movement.update(cmd, DT);
+      e.movement.state.speedScale = e.status.speedMul;
+      const r = routeCommand(e, cmd);
+      e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
+    }
   }
   world.update(DT);
   meleeSys.resolve();

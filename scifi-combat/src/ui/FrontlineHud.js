@@ -7,6 +7,8 @@
 //  * Minimap: sectors, points, allies, you, and enemies that gave themselves away by firing.
 //  * HD2 reticles: the camera crosshair plus a second ring where the gun actually points
 //    (ergonomics drag and recoil make them separate), status bars, ammo, killfeed and banners.
+//  * Downs: your bleed-out, the give-up hold and revive progress while you're down; a revive
+//    prompt beside a downed teammate; red crosses over downed teammates nearby (and on the map).
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -15,6 +17,7 @@ const TEAM_COL = ['#ffcf6b', '#b994ff'];
 const NEUTRAL_COL = '#d8dde6';
 const TEAM_NAME = ['SOLARI', 'VOID'];
 const _v = new THREE.Vector3();
+const bar = (k, col) => `<span class="pbar"><i style="width:${(Math.min(1, Math.max(0, k)) * 100).toFixed(0)}%;background:${col}"></i></span>`;
 
 export class FrontlineHud {
   constructor(root, session, player) {
@@ -29,7 +32,9 @@ export class FrontlineHud {
       <div id="fl-status"></div>
       <div id="fl-feed"></div>
       <div id="fl-banner"></div>
-      <div id="fl-respawn"></div>`;
+      <div id="fl-respawn"></div>
+      <div id="fl-prompt"></div>
+      <div id="fl-downs"></div>`;
     this.el = Object.fromEntries([...root.querySelectorAll('[id^="fl-"]')].map((e) => [e.id.slice(3), e]));
     this.ctx = this.el.map.getContext('2d');
     this.markers = session.map.points.map((p) => {
@@ -40,11 +45,21 @@ export class FrontlineHud {
       return d;
     });
     this.spotted = new Map();   // enemy id -> time (fired recently: shows on the minimap)
+    this.downMarks = [];        // pooled red crosses over downed teammates
     this.feed = [];
     this.bannerUntil = 0;
     this.time = 0;
-    const name = (id) => session.fighters.find((f) => f.id === id)?.name ?? '?';
-    const teamOf = (id) => session.fighters.find((f) => f.id === id)?.team ?? -1;
+    // Kills by turrets, mines and vehicles credit the owner or driver ("rigger's turret").
+    const fighter = (id) => session.fighters.find((f) => f.id === id);
+    const name = (id) => {
+      const f = fighter(id);
+      if (f) return f.name;
+      const x = session.world.entity(id);
+      if (x?.isDeployable) { const o = fighter(x.ownerId); return o ? `${o.name}'s ${x.kind}` : x.kind; }
+      if (x?.isVehicle) { const d = x.seats?.find((st) => st.occupant)?.occupant; return d ? d.name : (x.def?.name ?? 'vehicle'); }
+      return '?';
+    };
+    const teamOf = (id) => fighter(id)?.team ?? session.world.entity(id)?.team ?? -1;
     this.off = [
       bus.on('weapon:fire', (e) => { const f = session.world.entity(e.id); if (f && f.team !== this.team) this.spotted.set(e.id, this.time); }),
       bus.on('entity:death', (e) => {
@@ -52,6 +67,13 @@ export class FrontlineHud {
         if (vt < 0) return;
         const kt = teamOf(e.by);
         this.feed.unshift({ html: `<span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▸ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span>`, t: this.time });
+        this.feed.length = Math.min(this.feed.length, 6);
+      }),
+      bus.on('entity:downed', (e) => {
+        const vt = teamOf(e.id);
+        if (vt < 0) return;
+        const kt = teamOf(e.by);
+        this.feed.unshift({ html: `<span style="opacity:.75"><span style="color:${TEAM_COL[kt] ?? '#aaa'}">${e.by === player.id ? 'You' : e.by ? name(e.by) : 'World'}</span> ▾ <span style="color:${TEAM_COL[vt]}">${e.id === player.id ? 'You' : name(e.id)}</span> <i>down</i></span>`, t: this.time });
         this.feed.length = Math.min(this.feed.length, 6);
       }),
       bus.on('mode:point', (e) => {
@@ -117,7 +139,7 @@ export class FrontlineHud {
     // ---- minimap
     this.#minimap();
     // ---- reticles: camera centre, and where the gun really points
-    const wc = me.weapons, gunMode = me.mode === 'gun' && !me.health.dead && !me.vehicle;
+    const wc = me.weapons, gunMode = me.mode === 'gun' && !me.health.dead && !me.health.downed && !me.vehicle;
     this.el.reticle.style.display = this.el.gun.style.display = gunMode ? 'block' : 'none';
     if (gunMode) {
       const cy = Math.cos(wc.aimYaw), sy = Math.sin(wc.aimYaw), cp = Math.cos(wc.aimPitch), sp = Math.sin(wc.aimPitch);
@@ -133,14 +155,44 @@ export class FrontlineHud {
       <div class="bar sm"><i style="width:${st.stamina.toFixed(0)}%;background:${st.exhausted ? '#ff6b6b' : '#c8d47a'}"></i></div>
       <div class="wpn">${me.mode === 'gun' ? `${cw?.s.name ?? ''} · <b>${ammo}</b>${wc.phase === 'reloading' ? ' · RELOADING' : ''}` : `${me.melee.w.name ?? 'Sword'} · heat ${me.melee.heat.toFixed(0)}`} · ${st.stance.toUpperCase()}</div>`;
     this.el.feed.innerHTML = this.feed.filter((k) => this.time - k.t < 8).map((k) => k.html).join('<br>');
-    // ---- respawn and banners
-    const dead = me.health.dead && mode.winner < 0;
-    this.el.respawn.style.display = dead ? 'block' : 'none';
+    // ---- respawn, downed, revives and banners
+    const dead = me.health.dead && mode.winner < 0, rv = s.world.revives;
+    this.el.respawn.style.display = dead || hp.downed ? 'block' : 'none';
     if (dead) {
       const wait = Math.max(0, me.respawnAt - s.time);
       this.el.respawn.innerHTML = wait > 0 ? `REINFORCEMENTS IN <b>${wait.toFixed(1)}</b>` : 'PRESS <b>SPACE</b> TO DEPLOY';
+    } else if (hp.downed) {
+      const helper = rv.reviverOf(me.id), job = helper && rv.jobOf(helper.id);
+      let near = Infinity, medic = false;
+      for (const f of s.fighters) if (f !== me && f.team === team && f.health.up) { const d = f.movement.state.position.distanceTo(mp); if (d < near) { near = d; medic = rv.isMedic(f); } }
+      this.el.respawn.innerHTML = job
+        ? `<span style="color:#7fffb0">BEING REVIVED</span> ${bar(job.t / job.need, '#7fffb0')}`
+        : `<span style="color:#ff6b6b">DOWNED</span> · bleeding out <b>${Math.max(0, hp.bleed).toFixed(0)}</b>s<br><small>${near < 60 ? `${medic ? 'medic' : 'teammate'} ${near.toFixed(0)} m · ` : 'nobody close · '}hold <b>SPACE</b> to give up</small>`;
     }
+    const myJob = rv.jobOf(me.id), patient = !hp.downed && !me.health.dead && !myJob ? rv.patientFor?.(me) : null;
+    this.el.prompt.innerHTML = myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}` : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}` : '';
+    this.#downMarkers(camera, w, h);
     if (this.time > this.bannerUntil) this.el.banner.style.opacity = 0;
+  }
+
+  /** Red crosses over downed teammates within 60 m (pooled DOM nodes). */
+  #downMarkers(camera, w, h) {
+    const me = this.player, mp = me.movement.state.position;
+    let n = 0;
+    for (const f of this.s.fighters) {
+      if (f === me || f.team !== this.team || !f.health.downed) continue;
+      const p = f.movement.state.position, d = p.distanceTo(mp);
+      if (d > 60) continue;
+      _v.copy(p); _v.y += 1.0; _v.project(camera);
+      if (_v.z > 1) continue;
+      const el = this.downMarks[n] ?? this.el.downs.appendChild(Object.assign(document.createElement('div'), { className: 'dn' }));
+      this.downMarks[n++] = el;
+      el.style.display = 'block';
+      el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-_v.y * 0.5 + 0.5) * h).toFixed(0)}px)`;
+      el.innerHTML = `✚<span>${d.toFixed(0)} m · ${Math.max(0, f.health.bleed).toFixed(0)}s</span>`;
+      el.classList.toggle('helped', f.health.reviving > 0);
+    }
+    for (let i = n; i < this.downMarks.length; i++) this.downMarks[i].style.display = 'none';
   }
 
   #minimap() {
@@ -168,6 +220,12 @@ export class FrontlineHud {
       const ally = f.team === this.team;
       if (!ally && this.time - (this.spotted.get(f.id) ?? -99) > 2) continue;
       const p = f.movement.state.position;
+      if (ally && f.health.downed) {
+        // Downed teammates: a small red cross, so the medics know where to go.
+        c.fillStyle = '#ff5a5a';
+        c.fillRect(X(p.x) - 2.5, Z(p.z) - 0.75, 5, 1.5); c.fillRect(X(p.x) - 0.75, Z(p.z) - 2.5, 1.5, 5);
+        continue;
+      }
       c.fillStyle = ally ? '#9fd3ff' : '#ff4d6d';
       c.fillRect(X(p.x) - 1, Z(p.z) - 1, 2, 2);
     }

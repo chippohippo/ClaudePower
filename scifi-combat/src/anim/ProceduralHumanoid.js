@@ -18,6 +18,13 @@
 //    up the moment it can shoot. ADS cheek weld. Reload, vent and swap hand paths run on the
 //    weapon's own timers. Flame-sword keyframes per attack phase: a held windup tell, an
 //    accelerating strike and a committed follow-through.
+//  * Ragdolls (blasts, critical hits, downs, deaths): the body is drawn straight from the sim's
+//    physics particles (interpolated between ticks), blended in from the animated pose over
+//    blend.ragdollIn and back out into whatever comes next (get-up, downed crawl) over
+//    blend.ragdollOut, so nothing pops either way. Corpses stay where they fell.
+//  * Downed: lying where the body came to rest, one hand pressed to the wound (the rifle slung),
+//    the other arm pulling when it crawls; heavy breathing. Reviving: kneeling over the patient,
+//    both hands on their chest.
 //  * Additive layers that never touch the legs: recoil, hit flinch, breathing (heavy when out of stamina).
 //  * Secondary motion: a verlet cape for follow-through.
 //  * Events (LOD 0 only): anim:footstep on every heel strike, anim:impact when the body hits
@@ -32,7 +39,8 @@ import { bus } from '../core/EventBus.js';
 import { Spring } from '../core/Spring.js';
 import { FootPlanter } from './FootPlanter.js';
 import { MotionEvents, transitionPath } from './MotionEvents.js';
-import { silhouetteScale } from '../movement/Hitboxes.js';
+import { silhouetteScale, chestPoint } from '../movement/Hitboxes.js';
+import { J } from '../physics/Ragdoll.js';
 import {
   clamp, lerp, ease, easeOut, easeIn, smoothstep, table, angleDelta, lerpAngle, approach,
   forwardOf, rightOf, bodyFrame, makeFrame, frameToWorld, frameDir, twoBoneIK,
@@ -49,7 +57,39 @@ const _b = new Vector3();
 const _c = new Vector3();
 const _d = new Vector3();
 const _pole = new Vector3();
-const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'dead'];
+const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'dead', 'downed'];
+const JOINT_ARRAYS = ['hip', 'knee', 'ankle', 'shoulder', 'elbow', 'hand'];
+const JOINT_POINTS = ['pelvis', 'neck', 'neckTop', 'head', 'chestC'];
+const newJoints = () => ({
+  pelvis: new Vector3(), neck: new Vector3(), neckTop: new Vector3(), head: new Vector3(), chestC: new Vector3(),
+  hip: [new Vector3(), new Vector3()], knee: [new Vector3(), new Vector3()], ankle: [new Vector3(), new Vector3()],
+  shoulder: [new Vector3(), new Vector3()], elbow: [new Vector3(), new Vector3()], hand: [new Vector3(), new Vector3()],
+  footYaw: [0, 0], footPitch: [0, 0],
+});
+function copyJoints(dst, src) {
+  for (const k of JOINT_POINTS) dst[k].copy(src[k]);
+  for (const k of JOINT_ARRAYS) { dst[k][0].copy(src[k][0]); dst[k][1].copy(src[k][1]); }
+  for (let i = 0; i < 2; i++) { dst.footYaw[i] = src.footYaw[i]; dst.footPitch[i] = src.footPitch[i]; }
+  return dst;
+}
+/** dst = lerp(a, b, t) joint by joint (a moved by `shift` first, if given). */
+function lerpJoints(dst, a, b, t, shift = null) {
+  const sx = shift?.x ?? 0, sy = shift?.y ?? 0, sz = shift?.z ?? 0;
+  const one = (o, p, q) => o.set(p.x + sx + (q.x - p.x - sx) * t, p.y + sy + (q.y - p.y - sy) * t, p.z + sz + (q.z - p.z - sz) * t);
+  for (const k of JOINT_POINTS) one(dst[k], a[k], b[k]);
+  for (const k of JOINT_ARRAYS) { one(dst[k][0], a[k][0], b[k][0]); one(dst[k][1], a[k][1], b[k][1]); }
+  for (let i = 0; i < 2; i++) { dst.footYaw[i] = lerpAngle(a.footYaw[i], b.footYaw[i], t); dst.footPitch[i] = lerp(a.footPitch[i], b.footPitch[i], t); }
+  return dst;
+}
+/** Frame (r, d, n) from a right-ish and an up-ish vector: d = up, r ⟂ d, n = d × r (front). */
+function frameFromAxes(F, right, up) {
+  F.d.copy(up).normalize();
+  F.r.copy(right).addScaledVector(F.d, -right.dot(F.d));
+  if (F.r.lengthSq() < 1e-8) F.r.set(1, 0, 0);
+  F.r.normalize();
+  F.n.crossVectors(F.d, F.r);
+  return F;
+}
 
 /** One set of pose parameters. Poses are blended by normalized accumulation (order independent). */
 class Pose {
@@ -159,6 +199,12 @@ export class ProceduralHumanoid {
     this.aimYaw = null; this.aimPitch = 0; this.prevAimYaw = 0; this.prevAimPitch = 0;
     this.lod = 0; this.emit = true; this.visible = true;
     this.dead = false; this.deathBack = false; this.lastHitDir = v3();
+    // Ragdoll: joints to blend from on the way in (carried with the body) and out (where it lay).
+    this.limp = false; this.limpT = 0; this.unlimpT = 9;
+    this.jFrom = newJoints(); this.jRag = newJoints(); this.jAnim = newJoints();
+    this.limpPelvis0 = v3(); this.limpShift = v3();
+    this.thudCd = 0; this.lastContact = true;
+    this.onCorpse = null;               // AnimationSystem: keep the body where it fell after respawn
     // Sim moments the pose syncs to (impacts, cloth, transition plants), shared with the clip rig.
     const fs = cfg.footstep;
     this.motion = new MotionEvents(cfg, {
@@ -214,7 +260,15 @@ export class ProceduralHumanoid {
     this.emit = this.lod === 0 && ctx.emit !== false;
     const sc = silhouetteScale(e);
     if (sc !== this.scale) this.#setScale(sc);
-    if (this.dead && !e.health?.dead) { this.dead = false; this.hasPrev = false; } // respawned
+    if (this.dead && !e.health?.dead) {
+      // Respawned: the body stays where it fell (a corpse), the rig starts fresh at the spawn.
+      if (this.limp) this.onCorpse?.(this);
+      this.dead = false; this.hasPrev = false; this.limp = false; this.unlimpT = 9;
+    }
+    // Limp: the body is the sim's ragdoll (a corpse keeps lying as it fell).
+    const rd = e.movement.ragdoll;
+    if (s.mode === 'ragdoll' && rd) return this.#limpUpdate(dt, root, rd, ctx);
+    if (this.limp) this.#unlimp(s);
     if (!this.hasPrev || root.distanceTo(this.prevRoot) > 3) this.#snap(root, ctx.yaw ?? s.bodyYaw);
     this.travel = Math.hypot(root.x - this.prevRoot.x, root.z - this.prevRoot.z);
     this.prevRoot.copy(root);
@@ -263,11 +317,124 @@ export class ProceduralHumanoid {
       total += wk;
     }
 
+    this.#reviveLean(P);
     this.#layersAndFrames(P, dt);
     this.#upperBody(P, dt);
     this.#solveLimbs(P);
+    // Coming out of a ragdoll: from where the body lay into the animated pose.
+    if (this.unlimpT < cfg.blend.ragdollOut) {
+      this.unlimpT += dt;
+      const k = ease(clamp(this.unlimpT / cfg.blend.ragdollOut, 0, 1));
+      copyJoints(this.jAnim, this.j);
+      lerpJoints(this.j, this.jRag, this.jAnim, k);
+      this.#framesFromJoints();
+    }
     if (this.lod === 0 && cfg.cape?.enabled) this.#capeStep(dt);
     return this;
+  }
+
+  // ---------------------------------------------------------------- ragdoll
+  #limpUpdate(dt, root, rd, ctx) {
+    const cfg = this.cfg, j = this.j, alpha = ctx.alpha ?? 1;
+    if (!this.limp) {
+      // Going limp: blend from the pose we were in, carried along with the body.
+      this.limp = true; this.limpT = 0;
+      copyJoints(this.jFrom, j);
+      // The animated pose was where the body went limp; carry it from there with the body.
+      if (rd.origin) this.limpPelvis0.set(rd.origin.x, rd.origin.y, rd.origin.z); else rd.lerp(J.PELVIS, alpha, this.limpPelvis0);
+      if (!this.hasPrev) this.limpT = cfg.blend.ragdollIn; // nothing animated to blend from
+      this.thudCd = 0; this.lastContact = true;
+      this.planterLive = false;          // no feet planted while limp
+    }
+    this.limpT += dt;
+    this.root.copy(root); this.prevRoot.copy(root); this.hasPrev = true;
+    this.#ragdollJoints(rd, alpha, j);
+    if (this.limpT < cfg.blend.ragdollIn) {
+      this.limpShift.subVectors(j.pelvis, this.limpPelvis0);
+      copyJoints(this.jAnim, j);
+      lerpJoints(j, this.jFrom, this.jAnim, ease(this.limpT / cfg.blend.ragdollIn), this.limpShift);
+    }
+    this.#framesFromJoints();
+    // The weapon stays in the right hand, along the forearm.
+    const pr = this.prop;
+    if (pr.kind) {
+      pr.base.copy(j.hand[1]);
+      pr.dir.subVectors(j.hand[1], j.elbow[1]).normalize();
+      pr.up.copy(this.F.chest.d).addScaledVector(pr.dir, -this.F.chest.d.dot(pr.dir)).normalize();
+      pr.glow = 0;
+    }
+    // Thuds: the trunk hitting the ground hard (camera kick, body-impact foley).
+    this.thudCd -= dt;
+    const contact = !!(rd.contact[J.PELVIS] || rd.contact[J.CHEST] || rd.contact[J.HEAD]);
+    if (contact && !this.lastContact && this.thudCd <= 0) {
+      const vy = Math.abs((rd.y[J.CHEST] - rd.py[J.CHEST]) * 60) + Math.abs((rd.y[J.PELVIS] - rd.py[J.PELVIS]) * 60);
+      const sp = Math.max(vy, Math.hypot(this.e.movement.state.velocity.x, this.e.movement.state.velocity.z));
+      if (sp > 1.5) { this.#impact('ragdoll', clamp(sp / 8, 0.25, 1)); this.thudCd = 0.25; }
+    }
+    this.lastContact = contact;
+    if (this.lod === 0 && cfg.cape?.enabled) this.#capeStep(dt);
+    return this;
+  }
+
+  /** Leaving a ragdoll: remember where the body lay and start the next state clean (no stale crossfade). */
+  #unlimp(s) {
+    this.limp = false;
+    copyJoints(this.jRag, this.j);
+    this.unlimpT = 0;
+    const key = this.#activeKey(s);
+    for (const k of KEYS) { this.w[k] = k === key ? 1 : 0; this.fadeFrom[k] = this.w[k]; }
+    this.fadeP = 1; this.active = key; this.cache = {}; this.knockPhase = null; this.knockT = 9;
+    this.planterLive = false; this.motion.reset();
+    this.prevRoot.copy(this.root); this.hasPrev = true;
+  }
+
+  /** Joints straight from the particles (interpolated between the last two ticks). */
+  #ragdollJoints(rd, alpha, j) {
+    rd.lerp(J.PELVIS, alpha, j.pelvis); rd.lerp(J.NECK, alpha, j.neck); rd.lerp(J.HEAD, alpha, j.head); rd.lerp(J.CHEST, alpha, j.chestC);
+    j.neckTop.lerpVectors(j.neck, j.head, 0.48);
+    const L = [J.HIP_L, J.KNEE_L, J.ANKLE_L, J.SHOULDER_L, J.ELBOW_L, J.HAND_L], R = [J.HIP_R, J.KNEE_R, J.ANKLE_R, J.SHOULDER_R, J.ELBOW_R, J.HAND_R];
+    for (let i = 0; i < 2; i++) {
+      const ids = i === 0 ? L : R;
+      rd.lerp(ids[0], alpha, j.hip[i]); rd.lerp(ids[1], alpha, j.knee[i]); rd.lerp(ids[2], alpha, j.ankle[i]);
+      rd.lerp(ids[3], alpha, j.shoulder[i]); rd.lerp(ids[4], alpha, j.elbow[i]); rd.lerp(ids[5], alpha, j.hand[i]);
+    }
+    // Boots: perpendicular to the shin, toes toward the body's front.
+    frameFromAxes(this.F.pelvis, _a.subVectors(j.hip[1], j.hip[0]), _b.subVectors(j.chestC, j.pelvis));
+    for (let i = 0; i < 2; i++) {
+      _c.subVectors(j.ankle[i], j.knee[i]).normalize();
+      _d.copy(this.F.pelvis.n).addScaledVector(_c, -this.F.pelvis.n.dot(_c));
+      if (_d.lengthSq() < 1e-6) _d.copy(this.F.pelvis.n);
+      _d.normalize();
+      j.footYaw[i] = Math.atan2(-_d.x, -_d.z);
+      j.footPitch[i] = Math.asin(clamp(_d.y, -1, 1));
+    }
+  }
+
+  /** Pelvis, chest and head frames from the joints (ragdoll and its blends). */
+  #framesFromJoints() {
+    const j = this.j, F = this.F;
+    frameFromAxes(F.pelvis, _a.subVectors(j.hip[1], j.hip[0]), _b.subVectors(j.chestC, j.pelvis));
+    frameFromAxes(F.chest, _a.subVectors(j.shoulder[1], j.shoulder[0]), _b.subVectors(j.neck, j.chestC));
+    frameFromAxes(F.head, _a.copy(F.chest.r), _b.subVectors(j.head, j.neckTop));
+  }
+
+  // ---------------------------------------------------------------- reviving
+  /** Kneeling over a downed teammate: bent forward, both hands on their chest, pressing. */
+  #reviveLean(P) {
+    const job = this.e.reviveJob;
+    this.reviveW = (this.reviveW ?? 0) + ((job ? 1 : 0) - (this.reviveW ?? 0)) * approach(6, this.dt ?? 1 / 60);
+    const k = this.reviveW;
+    if (k < 1e-3) return;
+    P.pitchC += 0.75 * k; P.pitchP += 0.25 * k; P.aimW *= 1 - k; P.gunUp *= 1 - k;
+    if (!job) return;
+    chestPoint(job.patient, _a);
+    const press = Math.max(0, Math.sin(this.time * 7)) * 0.04 * this.scale;
+    rightOf(this.yaw, _r);
+    for (let i = 0; i < 2; i++) {
+      _b.copy(_a).addScaledVector(_r, (i === 0 ? -0.09 : 0.09) * this.scale);
+      _b.y += 0.12 * this.scale - press;
+      P.hand[i].lerp(_b, P.handW[i] > 0 ? k : 1); P.handW[i] = Math.max(P.handW[i], k);
+    }
   }
 
   #remember(name, pose) {
@@ -289,6 +456,7 @@ export class ProceduralHumanoid {
     if (s.mode !== 'knockdown') this.knockPhase = null;
     if (this.dead || e.health?.dead) return 'dead';
     if (e.vehicle) return 'seated';
+    if (s.downed) return 'downed';
     switch (s.mode) {
       case 'slide': return s.slide?.kind === 'belly' ? 'belly' : 'slide';
       case 'dive': return 'dive';
@@ -310,6 +478,7 @@ export class ProceduralHumanoid {
       case 'air': return this.#airPose(out);
       case 'mantle': return this.#mantlePose(out);
       case 'knock': return this.#knockPose(out);
+      case 'downed': return this.#downedPose(out);
       case 'seated': return this.#seatedPose(out);
       case 'dodge': return this.#dodgePose(out);
       case 'dead': { this.#keyPose(this.deathBack ? 'lyingBack' : 'lying', out, root, yaw); out.headW = 0; out.aimW = 0; out.gunUp = 0; return out; }
@@ -482,6 +651,32 @@ export class ProceduralHumanoid {
       out.leanP += 0.04 * Math.sin(ph) * moving;
       out.pelvis.y += 0.02 * Math.abs(Math.sin(ph)) * moving * sc;
     }
+    return out;
+  }
+
+  /**
+   * Downed: lying as the body came to rest (front or back), the wounded crawl when moving. The
+   * right hand presses the wound (slinging the rifle); the left reaches and pulls on the ground.
+   */
+  #downedPose(out) {
+    const s = this.e.movement.state, sc = this.scale, sup = s.supine;
+    this.#pronePose(out, sup);
+    out.aimW = 0; out.gunUp = 0; out.headW = 0.25;
+    forwardOf(this.yaw, _f); rightOf(this.yaw, _r);
+    const head = sup ? -1 : 1;                       // supine bodies lie head-behind bodyYaw
+    // Wound hand: on the belly (under it on the front, on top of it on the back).
+    out.hand[1].copy(out.pelvis).addScaledVector(_f, 0.22 * head * sc).addScaledVector(_r, 0.06 * head * sc);
+    out.hand[1].y += (sup ? 0.13 : -0.04) * sc;
+    out.handW[1] = 1;
+    // Free hand: reaches ahead and drags the body along while crawling; rests by the head when still.
+    const moving = smoothstep(0.03, 0.3, s.speed), reach = Math.max(0, Math.sin(this.crawl * TAU)) * moving;
+    out.hand[0].copy(out.pelvis).addScaledVector(_f, (0.55 + 0.25 * reach) * head * sc).addScaledVector(_r, -0.28 * head * sc);
+    out.hand[0].y = (this.groundY ? this.groundY(out.hand[0].x, out.hand[0].z) : this.root.y) + 0.05 * sc;
+    out.handW[0] = 1;
+    // Hurt: shallow, quick breaths and a curl toward the wound.
+    const breath = Math.sin(this.time * 9) * 0.015 * sc;
+    out.pelvis.y += breath * 0.5;
+    out.spinC += 0.12 * head; out.leanC += 0.06 * Math.sin(this.time * 1.3);
     return out;
   }
 
