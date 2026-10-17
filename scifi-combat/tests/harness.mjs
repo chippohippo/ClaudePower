@@ -29,14 +29,14 @@ export const DT = 1 / 60;
 export const v = (x, y, z) => new Vector3(x, y, z);
 
 /** @param {object} o { down: true for the down-but-not-out rules (data/down.json) } */
-export function makeWorld(cover = [], { down = false } = {}) {
+export function makeWorld(cover = [], { down = false, terrain = null } = {}) {
   const melee = new MeleeSystem();
   const downCfg = down ? data.down : null;
-  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg });
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg });
   const fighters = new Map(); // entity -> scripted command source
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
-    const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover), {}, id);
+    const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover, { terrain }), {}, id);
     movement.state.position.copy(pos);
     const e = { id, team, movement };
     e.health = new Health(e, { health: hp, down: downCfg });
@@ -84,6 +84,7 @@ export function makeWorld(cover = [], { down = false } = {}) {
         else {
           c = emptyCommand();
           c.yaw = s.yaw; c.pitch = s.pitch; c.moveX = s.moveX; c.moveY = s.moveY;
+          if (s.target) c.target = s.target;
           const down = new Set([...s.press, ...s.hold]);
           for (const k of new Set([...down, ...s.prev])) c.buttons[k] = { down: down.has(k), pressed: down.has(k) && !s.prev.has(k), released: !down.has(k) && s.prev.has(k) };
           s.prev = down; s.press.clear();
@@ -104,6 +105,8 @@ export function makeWorld(cover = [], { down = false } = {}) {
   const hold = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.add(k));
   const release = (e, ...keys) => keys.forEach((k) => fighters.get(e).hold.delete(k));
   const move = (e, x, y) => Object.assign(fighters.get(e), { moveX: x, moveY: y });
+  /** Mark a point for indirect fire (what the fire-control view or a fire mission sends). */
+  const target = (e, x, z) => Object.assign(fighters.get(e), { target: x == null ? null : [x, z] });
   const brainOf = (e) => fighters.get(e)?.brain;
-  return { world, fighter, bot, brainOf, press, hold, release, aim, aimAt, move, step, seconds };
+  return { world, fighter, bot, brainOf, press, hold, release, aim, aimAt, move, target, step, seconds };
 }

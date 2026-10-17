@@ -72,6 +72,13 @@
    "shield": 0.9,
    "barrier": 0.8,
    "vehicle": 1.4
+  },
+  "antitank": {
+   "flesh": 0.8,
+   "plate": 1.0,
+   "shield": 0.7,
+   "barrier": 1.6,
+   "vehicle": 2.2
   }
  },
  "status": {

@@ -18,6 +18,7 @@ import { computeDamage } from './WeaponDefs.js';
 import { angleDelta } from '../../core/geom.js';
 
 const DEG = Math.PI / 180;
+const HIGH = 45;               // m above the tallest ground: nothing up there for a shell to hit (flyers stay below 35 m)
 const _dir = new Vector3();
 const _origin = new Vector3();
 const _right = new Vector3();
@@ -476,9 +477,14 @@ export class WeaponComponent {
 
 // --------------------------------------------------------------------- projectiles
 
-/** Simulated projectiles: bolts, shards, rockets, grenades. Pooled with no per-tick allocation. */
+/**
+ * Simulated projectiles: bolts, shards, rockets, grenades, artillery shells. Pooled with no
+ * per-tick allocation. A spec may set `gravity` (m/s², else 9.8 × drop), `maxAge` (s, default 6)
+ * and `highFly`: a shell high above the tallest ground skips its collision test (nothing to hit
+ * up there), which keeps a long barrage cheap.
+ */
 export class ProjectileSystem {
-  constructor(world, max = 512) {
+  constructor(world, max = 1024) {
     this.world = world;
     this.pool = Array.from({ length: max }, () => ({ alive: false, pos: new Vector3(), vel: new Vector3(), prev: new Vector3() }));
     this._seg = new Vector3();
@@ -506,15 +512,16 @@ export class ProjectileSystem {
       // Grenades with a fuse explode when the fuse runs out, even in mid-air.
       if (p.spec.fuse != null && !p.spec.sticky && p.age >= p.spec.fuse) { this.#impact(p, { point: p.pos.clone(), entity: null, distance: p.traveled }); continue; }
       p.prev.copy(p.pos);
-      p.vel.y -= 9.8 * (p.spec.drop ?? 0) * dt;
+      p.vel.y -= (p.spec.gravity ?? 9.8 * (p.spec.drop ?? 0)) * dt;
       p.pos.addScaledVector(p.vel, dt);
       // Swept test between the last and current position so fast bolts never tunnel through targets.
       this._seg.subVectors(p.pos, p.prev);
       const len = this._seg.length();
       p.traveled += len;
-      const hit = this.world.raycast(p.prev, this._seg.divideScalar(len || 1), len, p.ownerId, { team: p.team, projectile: true });
+      const high = p.spec.highFly && Math.min(p.prev.y, p.pos.y) > (this.world.terrain?.maxHeight ?? 0) + HIGH;
+      const hit = high ? null : this.world.raycast(p.prev, this._seg.divideScalar(len || 1), len, p.ownerId, { team: p.team, projectile: true });
       if (hit) this.#impact(p, hit);
-      else if (p.age > 6 || p.traveled > (p.spec.weapon.range ?? 400)) {
+      else if (p.age > (p.spec.maxAge ?? 6) || p.traveled > (p.spec.weapon.range ?? 400)) {
         if (p.spec.fuse != null) this.#impact(p, { point: p.pos.clone(), entity: p.stuckTo !== 'world' ? p.stuckTo : null, distance: p.traveled });
         else p.alive = false;
       }
@@ -568,5 +575,7 @@ export class ProjectileSystem {
     } else {
       bus.emit('weapon:impact', { point: hit.point, normal: hit.normal, surface: hit.surface, style: s.vfx?.impact, ownerId: p.ownerId, team: p.team, damage: s.damage?.base ?? 0 });
     }
+    // Artillery: craters, blown-away sandbags, the big boom.
+    if (s.artillery) this.world.shellImpact?.(hit.point, s, p);
   }
 }

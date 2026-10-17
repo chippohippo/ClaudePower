@@ -269,6 +269,30 @@ export class CombatWorld {
     }
   }
 
+  /**
+   * Where an artillery round lands (FieldGuns shells and rockets, AT slugs): the destructible
+   * cover within `artillery.cover` is blown away (sandbag parapets, crates, dug-in positions) and,
+   * on open ground, the shell leaves a crater (`artillery.crater` [radius, depth, rim]): carved
+   * into the terrain (the renderer and nav redo that patch), muddy like the trenches. A round
+   * that bursts on a building or a blockhouse leaves no crater (and walls never float).
+   */
+  shellImpact(point, weapon, projectile) {
+    const A = weapon.artillery, by = this.entity(projectile?.ownerId);
+    if (A.cover) this.destroyCover(point, A.cover, by);
+    let crater = 0;
+    if (A.crater && this.terrain) {
+      const [r, depth, rim = 0] = A.crater, reach = r * 1.35, g = this.terrain.height(point.x, point.z);
+      let hard = false;
+      this.coverIn(point.x - reach, point.z - reach, point.x + reach, point.z + reach, (b) => { if (!b.destructible && b.min.y < g + 1) hard = true; });
+      if (!hard && point.y - g < 1.2) {
+        this.terrain.carveDisc(point.x, point.z, r, depth, rim);
+        this.nav?.updateRegion(point.x - reach, point.z - reach, point.x + reach, point.z + reach);
+        crater = r;
+      }
+    }
+    bus.emit('artillery:impact', { point: [point.x, point.y, point.z], radius: weapon.damage?.splash ?? 0, crater, shell: weapon.id, team: projectile?.team ?? -1, ownerId: projectile?.ownerId ?? null });
+  }
+
   /** Breach/Rift charges remove destructible cover overlapping the blast. */
   destroyCover(center, radius, by) {
     const hit = [];

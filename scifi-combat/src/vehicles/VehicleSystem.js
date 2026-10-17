@@ -1,4 +1,5 @@
-// VehicleSystem: hover bikes, light tanks and dropships (data/vehicles.json).
+// VehicleSystem: hover bikes, light tanks, dropships, field guns, rocket batteries and supply
+// trucks (data/vehicles.json).
 //
 // Design goals (Battlefront + Helldivers feel):
 //  * Snappy entry and exit. Interact within range seats you in 0.35 s (input locked only that long);
@@ -15,6 +16,10 @@
 //    they crash at speed, and ramming hurts in both directions unless the vehicle is armored.
 //  * Pads respawn their vehicle after destruction or abandonment (Battlefront pickups). Called
 //    vehicles (Skyrider, Driftcaller) arrive via DeployableSystem's drop marker.
+//  * Crew-served guns (a `gun` block: towed howitzers and AT guns, self-propelled rocket
+//    batteries) are vehicles too; FieldGuns owns setting them up, laying and firing them, and
+//    towing. A towed gun (model 'gun') moves at walking pace while its crew pushes it; a truck
+//    with a `tow` hitch can tow it (its driver presses H by the gun's trail).
 //
 // Integration: every tick, call `handleInput(entity, cmd)` for each fighter before its own
 // updates. If it returns true the entity is in or entering a vehicle, so skip its own
@@ -27,6 +32,7 @@ import { StatusComponent } from '../combat/StatusSystem.js';
 import { WeaponComponent, WeaponInstance } from '../combat/weapons/WeaponSystem.js';
 import { emptyCommand } from '../input/InputManager.js';
 import { rayYawBox, localToWorld, angleDelta } from '../core/geom.js';
+import { FieldGuns } from './FieldGuns.js';
 
 const DEG = Math.PI / 180;
 const ENTER_RANGE = 3.2;
@@ -37,6 +43,9 @@ const _r = new Vector3();
 const _v = new Vector3();
 const _p = new Vector3();
 let nextVehicleId = 200000;
+const NO_BUTTON = Object.freeze({ down: false, pressed: false, released: false });
+/** EMP: the gun's crew can't fire (nor set it up), but the command otherwise stands. */
+const stripFire = (cmd) => ({ ...cmd, buttons: { ...cmd.buttons, light: NO_BUTTON, dig: NO_BUTTON } });
 
 export class VehicleSystem {
   constructor(world, defs) {
@@ -44,6 +53,7 @@ export class VehicleSystem {
     this.defs = defs;          // data/vehicles.json
     this.list = [];
     this.pads = [];
+    this.guns = new FieldGuns(this);
   }
 
   // ---------------------------------------------------------------- spawning
@@ -68,6 +78,9 @@ export class VehicleSystem {
     v.status = new StatusComponent(v, this.world.statusDefs ?? {}, this.world);
     v.status.immune = new Set(VEHICLE_IMMUNE);
     v.seats = def.seats.map((sd) => ({ def: sd, occupant: null, cmd: null, weapons: sd.weapon ? this.#seatWeapons(v, sd) : null }));
+    if (def.gun) this.guns.init(v);
+    if (def.cargo) v.cargo = 0;
+    v.towing = null;
     this.list.push(v);
     this.world.version++;
     bus.emit('vehicle:spawn', this.describe(v));
@@ -124,7 +137,7 @@ export class VehicleSystem {
   nearestEnterable(e) {
     let best = null, bd = ENTER_RANGE;
     for (const v of this.list) {
-      if (v.removed || v.team !== e.team || !v.seats.some((s) => !s.occupant)) continue;
+      if (v.removed || v.team !== e.team || v.gun?.towedBy || !v.seats.some((s) => !s.occupant)) continue;
       const d = Math.hypot(v.movement.state.position.x - e.movement.state.position.x, v.movement.state.position.z - e.movement.state.position.z) - v.def.radius;
       if (d < bd) { bd = d; best = v; }
     }
@@ -185,6 +198,7 @@ export class VehicleSystem {
 
   // ---------------------------------------------------------------- simulation
   update(dt) {
+    this.guns.tick(dt);
     for (const v of this.list) {
       if (v.removed) continue;
       v.status.update(dt);
@@ -197,7 +211,14 @@ export class VehicleSystem {
       const stalled = v.status.rooted;
       const emp = v.status.silenced;
 
-      if (v.def.model === 'tracked') this.#tracked(v, cmd, dt, stalled);
+      if (v.gun) this.guns.update(v, emp ? stripFire(cmd) : cmd, dt);
+      if (v.def.tow && driver?.occupant && cmd.buttons.dig?.pressed) {
+        if (v.towing) this.guns.unhitch(v);
+        else { const g = this.guns.hitchable(v); if (g) this.guns.hitch(v, g); }
+      }
+      if (v.gun?.towedBy) continue;            // trails its tower (below), after the tower has moved
+      if (v.def.model === 'gun') this.#carriage(v, cmd, dt, stalled);
+      else if (v.def.model === 'tracked') this.#tracked(v, cmd, dt, stalled);
       else if (v.def.model === 'flyer') this.#flyer(v, cmd, dt, stalled);
       else this.#hover(v, cmd, dt, stalled, emp);
 
@@ -210,6 +231,7 @@ export class VehicleSystem {
       v.emptyTime = occupied ? 0 : v.emptyTime + dt;
       if (v.pad && !occupied && v.emptyTime > (this.defs.pads?.abandonTime ?? 40) && v.movement.state.position.distanceTo(v.pad.at) > 15) this.#remove(v, 'abandoned');
     }
+    for (const v of this.list) if (!v.removed && v.gun?.towedBy) { this.guns.follow(v, dt, this.#ground); this.#seatsAndWeapons(v, dt, false); }
     this.list = this.list.filter((v) => !v.removed);
     for (const pad of this.pads) {
       if (pad.current && !pad.current.removed) continue;
@@ -262,12 +284,15 @@ export class VehicleSystem {
 
   #tracked(v, cmd, dt, stalled) {
     const d = v.def, s = v.movement.state;
+    // A self-propelled gun that is set up (or setting up) has its stabilizers down: it can't move.
+    const anchored = stalled || (v.gun && v.gun.state !== 'packed');
     // Tank controls: A/D turn the hull, W/S throttle; the turret follows the camera at its own rate.
-    if (!stalled) v.yaw -= cmd.moveX * d.turnRate * DEG * dt;
+    if (!anchored) v.yaw -= cmd.moveX * d.turnRate * DEG * dt;
     v.turretYaw += Math.max(-d.turretTurnRate * DEG * dt, Math.min(d.turretTurnRate * DEG * dt, angleDelta(v.turretYaw, cmd.yaw)));
     this.#basis(v.yaw);
-    const throttle = stalled ? 0 : cmd.moveY;
-    const top = (throttle < 0 ? d.reverseSpeed : d.maxSpeed) * v.status.speedMul;
+    const throttle = anchored ? 0 : cmd.moveY;
+    const top = (throttle < 0 ? d.reverseSpeed : d.maxSpeed) * v.status.speedMul * (v.towing ? 0.75 : 1);
+    if (anchored && v.gun) s.velocity.multiplyScalar(Math.exp(-6 * dt));
     s.velocity.addScaledVector(_f, throttle * d.accel * dt);
     this.#gripAndDrag(v, dt, throttle === 0);
     this.#clampSpeed(s.velocity, top);
@@ -276,8 +301,30 @@ export class VehicleSystem {
     const ground = this.#support(v, 0.85);
     s.position.y = ground > s.position.y ? ground : s.position.y + (ground - s.position.y) * Math.min(1, dt * 10);
     // What tanks were built for: wire flattened under the tracks.
-    if (Math.hypot(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, d.radius * 0.8);
+    if ((d.cutsWire ?? true) && Math.hypot(s.velocity.x, s.velocity.z) > 1) this.world.cutWire?.(s.position, d.radius * 0.8);
   }
+
+  /**
+   * A towed gun on its own wheels: the commander pushes it with tank controls at walking pace
+   * while it's packed. Set up (or setting up), its spades are in the ground and it doesn't move.
+   */
+  #carriage(v, cmd, dt, stalled) {
+    const d = v.def, s = v.movement.state, packed = v.gun.state === 'packed';
+    const pushing = packed && !stalled && !!v.seats[0]?.occupant;
+    if (pushing) v.yaw -= cmd.moveX * d.turnRate * DEG * dt;
+    this.#basis(v.yaw);
+    const throttle = pushing ? cmd.moveY : 0;
+    s.velocity.addScaledVector(_f, throttle * d.accel * dt);
+    this.#gripAndDrag(v, dt, throttle === 0);
+    this.#clampSpeed(s.velocity, (throttle < 0 ? d.reverseSpeed : d.maxSpeed) * v.status.speedMul);
+    if (!packed) s.velocity.set(0, 0, 0);
+    s.position.addScaledVector(s.velocity, dt);
+    const ground = this.#support(v, 0.8);
+    s.position.y = ground > s.position.y ? ground : s.position.y + (ground - s.position.y) * Math.min(1, dt * 10);
+  }
+
+  /** Ground under a vehicle's hull (a bound helper for towed guns). */
+  #ground = (v) => this.#support(v, 0.8);
 
   #flyer(v, cmd, dt, stalled) {
     const d = v.def, s = v.movement.state;
@@ -335,7 +382,7 @@ export class VehicleSystem {
     for (const b of near) {
       // Tanks crush what's destructible and not too tall under their tracks (sandbags, crates,
       // broken walls): a tank crossing a trench line leaves a gap in the parapet behind it.
-      if (d.model === 'tracked' && b.destructible && b.max.y - base < 2 && b.max.y > base - 0.3 && speed > 0.8) {
+      if ((d.crush ?? d.model === 'tracked') && b.destructible && b.max.y - base < 2 && b.max.y > base - 0.3 && speed > 0.8) {
         const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
         if (Math.hypot(s.position.x - cx, s.position.z - cz) < d.radius * 0.8) {
           this.world.removeCover?.(b, v.seats.find((q) => q.def.role === 'driver')?.occupant ?? v);
@@ -343,7 +390,7 @@ export class VehicleSystem {
           continue;
         }
       }
-      if (b.max.y <= base + (d.model === 'tracked' ? 0.5 : 1.2)) continue;
+      if (b.max.y <= base + (d.model === 'tracked' || d.model === 'gun' ? 0.5 : 1.2)) continue;
       if (d.model === 'flyer' && base > b.max.y) continue;
       const cx = Math.max(b.min.x, Math.min(s.position.x, b.max.x)), cz = Math.max(b.min.z, Math.min(s.position.z, b.max.z));
       let nx = s.position.x - cx, nz = s.position.z - cz;
@@ -430,6 +477,8 @@ export class VehicleSystem {
 
   #destroy(v) {
     const s = v.movement.state;
+    if (v.towing) this.guns.unhitch(v);
+    if (v.gun?.towedBy) this.guns.unhitch(v.gun.towedBy);
     bus.emit('vehicle:destroyed', { id: v.id, type: v.type, team: v.team, at: s.position.toArray() });
     for (const seat of v.seats) {
       const e = seat.occupant;
@@ -443,6 +492,8 @@ export class VehicleSystem {
 
   #remove(v, reason) {
     if (v.removed) return;
+    if (v.towing) this.guns.unhitch(v);
+    if (v.gun?.towedBy) this.guns.unhitch(v.gun.towedBy);
     for (const seat of v.seats) if (seat.occupant) this.exit(seat.occupant);
     v.removed = true;
     this.world.version++;
@@ -450,11 +501,16 @@ export class VehicleSystem {
   }
 
   describe(v) {
-    return { id: v.id, type: v.type, team: v.team, name: v.def.name, model: v.def.model, at: v.movement.state.position.toArray(), yaw: v.yaw, size: v.def.size };
+    return { id: v.id, type: v.type, team: v.team, name: v.def.name, model: v.def.model, at: v.movement.state.position.toArray(), yaw: v.yaw, size: v.def.size, gun: v.def.gun?.kind ?? null };
   }
 
   /** Compact state for netcode snapshots. */
   serialize(v) {
-    return { id: v.id, type: v.type, team: v.team, p: v.movement.state.position.toArray(), vel: v.movement.state.velocity.toArray(), yaw: v.yaw, turret: v.turretYaw, alt: v.altitude, hp: v.health.hp, seats: v.seats.map((s) => s.occupant?.id ?? null) };
+    const g = v.gun;
+    return {
+      id: v.id, type: v.type, team: v.team, p: v.movement.state.position.toArray(), vel: v.movement.state.velocity.toArray(), yaw: v.yaw, turret: v.turretYaw, alt: v.altitude, hp: v.health.hp, seats: v.seats.map((s) => s.occupant?.id ?? null),
+      ...(g ? { gun: { st: g.state, t: g.t, y: g.yaw, p: g.pitch, a: g.ammo, l: g.load, tow: g.towedBy?.id ?? null } } : {}),
+      ...(v.def.cargo ? { cargo: v.cargo } : {}),
+    };
   }
 }

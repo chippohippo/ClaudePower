@@ -1,5 +1,5 @@
 {
- "_comment": "Vehicles. model: hover | tracked | flyer. Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes). weakSpot: hits on that face count as headshots. Every vehicle lists its counterplay.",
+ "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). Every vehicle lists its counterplay.",
  "vehicles": {
   "solari_hoverbike": {
    "name": "Sunrunner Hoverbike",
@@ -165,7 +165,9 @@
     "height": 3.2
    },
    "weakSpot": "rear",
-   "counterplay": "The turret turns at 70\u00b0/s, so circle it. The rear vent is a weak spot. Ion ammo and Arc Snare (Root) stop it; Grav Plate (Suppress) shuts off its weapons."
+   "counterplay": "The turret turns at 70\u00b0/s, so circle it. The rear vent is a weak spot. Ion ammo and Arc Snare (Root) stop it; Grav Plate (Suppress) shuts off its weapons.",
+   "crush": true,
+   "cutsWire": true
   },
   "void_crawler_tank": {
    "name": "Monolith Crawler",
@@ -222,7 +224,9 @@
     "height": 3.2
    },
    "weakSpot": "rear",
-   "counterplay": "Mortar shells arc slowly, so keep moving. The rear vent is a weak spot. Radiant Scorch doesn't stack on vehicles, so bring ion or explosives."
+   "counterplay": "Mortar shells arc slowly, so keep moving. The rear vent is a weak spot. Radiant Scorch doesn't stack on vehicles, so bring ion or explosives.",
+   "crush": true,
+   "cutsWire": true
   },
   "solari_dawnship": {
    "name": "Dawnship Dropship",
@@ -395,6 +399,682 @@
    },
    "weakSpot": "rear",
    "counterplay": "Same as the Dawnship. Its void lances are slow projectiles, so strafe."
+  },
+  "solari_field_gun": {
+   "name": "Sunhammer Field Gun",
+   "faction": "solari",
+   "model": "gun",
+   "hp": 1100,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.2,
+    "y": 1.7,
+    "z": 4.4
+   },
+   "radius": 2.1,
+   "hoverHeight": 0,
+   "maxSpeed": 2.4,
+   "accel": 2.5,
+   "reverseSpeed": 1.6,
+   "turnRate": 28,
+   "grip": 14,
+   "drag": 5,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "gun": {
+    "kind": "howitzer",
+    "indirect": true,
+    "shell": "sunhammer_shell",
+    "deployTime": 4.5,
+    "packTime": 3.5,
+    "traverse": 30,
+    "shiftRate": 6,
+    "elevation": [
+     6,
+     70
+    ],
+    "layRate": [
+     16,
+     14
+    ],
+    "arc": 52,
+    "speedRange": [
+     35,
+     190
+    ],
+    "gravity": 22,
+    "dispersion": [
+     4,
+     0.008
+    ],
+    "reload": 5.5,
+    "loaderMul": 0.6,
+    "ammo": 16,
+    "ammoMax": 30,
+    "trunnion": [
+     0,
+     1.25,
+     -0.3
+    ],
+    "barrel": 2.6
+   },
+   "towable": true,
+   "seats": [
+    {
+     "role": "driver",
+     "label": "gun commander",
+     "pose": "crew",
+     "offset": [
+      0.75,
+      0,
+      1.5
+     ],
+     "exposed": true
+    },
+    {
+     "role": "loader",
+     "pose": "crew",
+     "offset": [
+      -0.8,
+      0,
+      1.3
+     ],
+     "exposed": true
+    }
+   ],
+   "camera": {
+    "distance": 8,
+    "height": 2.8
+   },
+   "counterplay": "Set up, it can't move: counter-battery fire, raiders and tanks. Its crew kneels behind a small shield, open from the sides and rear. Every shell is heard coming: get prone or into a trench at the whistle. Range about 1.6 km."
+  },
+  "void_field_gun": {
+   "name": "Rift Bombard",
+   "faction": "void",
+   "model": "gun",
+   "hp": 1000,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.2,
+    "y": 1.7,
+    "z": 4.4
+   },
+   "radius": 2.1,
+   "hoverHeight": 0,
+   "maxSpeed": 2.4,
+   "accel": 2.5,
+   "reverseSpeed": 1.6,
+   "turnRate": 28,
+   "grip": 14,
+   "drag": 5,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "gun": {
+    "kind": "howitzer",
+    "indirect": true,
+    "shell": "bombard_shell",
+    "deployTime": 5.0,
+    "packTime": 3.5,
+    "traverse": 30,
+    "shiftRate": 6,
+    "elevation": [
+     6,
+     70
+    ],
+    "layRate": [
+     16,
+     14
+    ],
+    "arc": 52,
+    "speedRange": [
+     35,
+     190
+    ],
+    "gravity": 22,
+    "dispersion": [
+     4,
+     0.008
+    ],
+    "reload": 6.0,
+    "loaderMul": 0.6,
+    "ammo": 16,
+    "ammoMax": 30,
+    "trunnion": [
+     0,
+     1.25,
+     -0.3
+    ],
+    "barrel": 2.6
+   },
+   "towable": true,
+   "seats": [
+    {
+     "role": "driver",
+     "label": "gun commander",
+     "pose": "crew",
+     "offset": [
+      0.75,
+      0,
+      1.5
+     ],
+     "exposed": true
+    },
+    {
+     "role": "loader",
+     "pose": "crew",
+     "offset": [
+      -0.8,
+      0,
+      1.3
+     ],
+     "exposed": true
+    }
+   ],
+   "camera": {
+    "distance": 8,
+    "height": 2.8
+   },
+   "counterplay": "Set up, it can't move: counter-battery fire, raiders and tanks. Its crew kneels behind a small shield, open from the sides and rear. Every shell is heard coming: get prone or into a trench at the whistle. Heavier, slower shells with a wider burst."
+  },
+  "solari_at_gun": {
+   "name": "Lance AT Gun",
+   "faction": "solari",
+   "model": "gun",
+   "hp": 700,
+   "armor": "vehicle",
+   "size": {
+    "x": 1.8,
+    "y": 1.3,
+    "z": 3.2
+   },
+   "radius": 1.6,
+   "hoverHeight": 0,
+   "maxSpeed": 3.2,
+   "accel": 3.5,
+   "reverseSpeed": 2,
+   "turnRate": 45,
+   "grip": 14,
+   "drag": 5,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "gun": {
+    "kind": "at",
+    "indirect": false,
+    "shell": "lance_slug",
+    "deployTime": 1.6,
+    "packTime": 1.4,
+    "traverse": 30,
+    "shiftRate": 14,
+    "elevation": [
+     -6,
+     18
+    ],
+    "layRate": [
+     42,
+     28
+    ],
+    "speed": 330,
+    "gravity": 2.5,
+    "dispersion": [
+     0,
+     0.0012
+    ],
+    "reload": 3.2,
+    "loaderMul": 0.65,
+    "ammo": 20,
+    "ammoMax": 30,
+    "trunnion": [
+     0,
+     0.95,
+     -0.2
+    ],
+    "barrel": 2.0
+   },
+   "towable": true,
+   "seats": [
+    {
+     "role": "driver",
+     "label": "gun commander",
+     "pose": "crew",
+     "offset": [
+      0.55,
+      0,
+      1.25
+     ],
+     "exposed": true
+    },
+    {
+     "role": "loader",
+     "pose": "crew",
+     "offset": [
+      -0.6,
+      0,
+      1.15
+     ],
+     "exposed": true
+    }
+   ],
+   "camera": {
+    "distance": 5.5,
+    "height": 1.9
+   },
+   "counterplay": "Low and hard to spot, but it only covers 30 degrees either side of where it was set up: come at it from the flank. Its crew is exposed and the gun can't move once it's dug in. HE and artillery shred the crew."
+  },
+  "void_at_gun": {
+   "name": "Spike Cannon",
+   "faction": "void",
+   "model": "gun",
+   "hp": 650,
+   "armor": "vehicle",
+   "size": {
+    "x": 1.8,
+    "y": 1.3,
+    "z": 3.2
+   },
+   "radius": 1.6,
+   "hoverHeight": 0,
+   "maxSpeed": 3.2,
+   "accel": 3.5,
+   "reverseSpeed": 2,
+   "turnRate": 45,
+   "grip": 14,
+   "drag": 5,
+   "boost": null,
+   "ram": null,
+   "crash": null,
+   "gun": {
+    "kind": "at",
+    "indirect": false,
+    "shell": "spike_slug",
+    "deployTime": 1.6,
+    "packTime": 1.4,
+    "traverse": 30,
+    "shiftRate": 14,
+    "elevation": [
+     -6,
+     18
+    ],
+    "layRate": [
+     42,
+     28
+    ],
+    "speed": 330,
+    "gravity": 2.5,
+    "dispersion": [
+     0,
+     0.0012
+    ],
+    "reload": 3.2,
+    "loaderMul": 0.65,
+    "ammo": 20,
+    "ammoMax": 30,
+    "trunnion": [
+     0,
+     0.95,
+     -0.2
+    ],
+    "barrel": 2.0
+   },
+   "towable": true,
+   "seats": [
+    {
+     "role": "driver",
+     "label": "gun commander",
+     "pose": "crew",
+     "offset": [
+      0.55,
+      0,
+      1.25
+     ],
+     "exposed": true
+    },
+    {
+     "role": "loader",
+     "pose": "crew",
+     "offset": [
+      -0.6,
+      0,
+      1.15
+     ],
+     "exposed": true
+    }
+   ],
+   "camera": {
+    "distance": 5.5,
+    "height": 1.9
+   },
+   "counterplay": "Low and hard to spot, but it only covers 30 degrees either side of where it was set up: come at it from the flank. Its crew is exposed and the gun can't move once it's dug in. HE and artillery shred the crew."
+  },
+  "solari_rocket_battery": {
+   "name": "Starfall Rocket Battery",
+   "faction": "solari",
+   "model": "tracked",
+   "hp": 1500,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.8,
+    "y": 2.4,
+    "z": 5.6
+   },
+   "radius": 2.6,
+   "hoverHeight": 0,
+   "maxSpeed": 11,
+   "accel": 6,
+   "reverseSpeed": 5,
+   "turnRate": 50,
+   "turretTurnRate": 0,
+   "grip": 12,
+   "drag": 2.5,
+   "crush": false,
+   "boost": null,
+   "ram": {
+    "minSpeed": 5,
+    "damagePerMs": 8,
+    "selfDamageMul": 0,
+    "knock": 8
+   },
+   "crash": null,
+   "gun": {
+    "kind": "rockets",
+    "indirect": true,
+    "shell": "starfall_rocket",
+    "deployTime": 3,
+    "packTime": 2.5,
+    "traverse": 40,
+    "elevation": [
+     10,
+     60
+    ],
+    "layRate": [
+     22,
+     14
+    ],
+    "arc": 45,
+    "speedRange": [
+     55,
+     165
+    ],
+    "gravity": 18,
+    "dispersion": [
+     9,
+     0.02
+    ],
+    "salvo": 16,
+    "salvoInterval": 0.16,
+    "reload": 28,
+    "loaderMul": 0.7,
+    "ammo": 48,
+    "ammoMax": 64,
+    "trunnion": [
+     0,
+     2.3,
+     1.0
+    ],
+    "barrel": 2.2
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.5,
+      -1.9
+     ],
+     "aim": "free"
+    },
+    {
+     "role": "loader",
+     "offset": [
+      0.8,
+      1.5,
+      -1.1
+     ]
+    }
+   ],
+   "weakSpot": "rear",
+   "camera": {
+    "distance": 10,
+    "height": 3.6
+   },
+   "counterplay": "A salvo announces it: the launch is seen and heard across the map. It must set up to fire and pack up to move, its rear is weak, and it's helpless up close."
+  },
+  "void_rocket_battery": {
+   "name": "Swarm Rocket Battery",
+   "faction": "void",
+   "model": "tracked",
+   "hp": 1500,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.8,
+    "y": 2.4,
+    "z": 5.6
+   },
+   "radius": 2.6,
+   "hoverHeight": 0,
+   "maxSpeed": 11,
+   "accel": 6,
+   "reverseSpeed": 5,
+   "turnRate": 50,
+   "turretTurnRate": 0,
+   "grip": 12,
+   "drag": 2.5,
+   "crush": false,
+   "boost": null,
+   "ram": {
+    "minSpeed": 5,
+    "damagePerMs": 8,
+    "selfDamageMul": 0,
+    "knock": 8
+   },
+   "crash": null,
+   "gun": {
+    "kind": "rockets",
+    "indirect": true,
+    "shell": "swarm_rocket",
+    "deployTime": 3,
+    "packTime": 2.5,
+    "traverse": 40,
+    "elevation": [
+     10,
+     60
+    ],
+    "layRate": [
+     22,
+     14
+    ],
+    "arc": 45,
+    "speedRange": [
+     55,
+     165
+    ],
+    "gravity": 18,
+    "dispersion": [
+     9,
+     0.02
+    ],
+    "salvo": 16,
+    "salvoInterval": 0.16,
+    "reload": 28,
+    "loaderMul": 0.7,
+    "ammo": 48,
+    "ammoMax": 64,
+    "trunnion": [
+     0,
+     2.3,
+     1.0
+    ],
+    "barrel": 2.2
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0,
+      1.5,
+      -1.9
+     ],
+     "aim": "free"
+    },
+    {
+     "role": "loader",
+     "offset": [
+      0.8,
+      1.5,
+      -1.1
+     ]
+    }
+   ],
+   "weakSpot": "rear",
+   "camera": {
+    "distance": 10,
+    "height": 3.6
+   },
+   "counterplay": "A salvo announces it: the launch is seen and heard across the map. It must set up to fire and pack up to move, its rear is weak, and it's helpless up close."
+  },
+  "solari_supply_truck": {
+   "name": "Hauler Supply Truck",
+   "faction": "solari",
+   "model": "tracked",
+   "hp": 1000,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.6,
+    "y": 2.6,
+    "z": 6.0
+   },
+   "radius": 2.6,
+   "hoverHeight": 0,
+   "maxSpeed": 15,
+   "accel": 7,
+   "reverseSpeed": 6,
+   "turnRate": 70,
+   "turretTurnRate": 0,
+   "grip": 10,
+   "drag": 2,
+   "crush": false,
+   "cutsWire": false,
+   "boost": null,
+   "ram": {
+    "minSpeed": 6,
+    "damagePerMs": 8,
+    "selfDamageMul": 0.1,
+    "knock": 9
+   },
+   "crash": null,
+   "cargo": 150,
+   "tow": {
+    "hitch": [
+     0,
+     0.7,
+     3.4
+    ]
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0.5,
+      1.6,
+      -2.1
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -0.5,
+      1.6,
+      -2.1
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0,
+      1.6,
+      1.0
+     ]
+    }
+   ],
+   "weakSpot": "rear",
+   "camera": {
+    "distance": 10,
+    "height": 3.6
+   },
+   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short."
+  },
+  "void_supply_truck": {
+   "name": "Crawler Supply Hauler",
+   "faction": "void",
+   "model": "tracked",
+   "hp": 1000,
+   "armor": "vehicle",
+   "size": {
+    "x": 2.6,
+    "y": 2.6,
+    "z": 6.0
+   },
+   "radius": 2.6,
+   "hoverHeight": 0,
+   "maxSpeed": 15,
+   "accel": 7,
+   "reverseSpeed": 6,
+   "turnRate": 70,
+   "turretTurnRate": 0,
+   "grip": 10,
+   "drag": 2,
+   "crush": false,
+   "cutsWire": false,
+   "boost": null,
+   "ram": {
+    "minSpeed": 6,
+    "damagePerMs": 8,
+    "selfDamageMul": 0.1,
+    "knock": 9
+   },
+   "crash": null,
+   "cargo": 150,
+   "tow": {
+    "hitch": [
+     0,
+     0.7,
+     3.4
+    ]
+   },
+   "seats": [
+    {
+     "role": "driver",
+     "offset": [
+      0.5,
+      1.6,
+      -2.1
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      -0.5,
+      1.6,
+      -2.1
+     ]
+    },
+    {
+     "role": "passenger",
+     "offset": [
+      0,
+      1.6,
+      1.0
+     ]
+    }
+   ],
+   "weakSpot": "rear",
+   "camera": {
+    "distance": 10,
+    "height": 3.6
+   },
+   "counterplay": "Unarmed and soft: ambush the supply road. A destroyed truck loses its cargo, and the front it was feeding goes short."
   }
  },
  "weapons": {
@@ -688,6 +1368,134 @@
    "audio": "door_gun",
    "handling": {
     "ergonomics": 100
+   }
+  },
+  "sunhammer_shell": {
+   "id": "sunhammer_shell",
+   "name": "Sunhammer Shell",
+   "ammoType": "explosive",
+   "damage": {
+    "base": 320,
+    "splash": 9
+   },
+   "knockback": 17,
+   "range": 6000,
+   "vfx": {
+    "tracer": "shell"
+   },
+   "audio": "howitzer",
+   "artillery": {
+    "crater": [
+     2.3,
+     0.95,
+     0.3
+    ],
+    "cover": 3.2
+   }
+  },
+  "bombard_shell": {
+   "id": "bombard_shell",
+   "name": "Bombard Shell",
+   "ammoType": "explosive",
+   "damage": {
+    "base": 300,
+    "splash": 10.5
+   },
+   "knockback": 18,
+   "range": 6000,
+   "vfx": {
+    "tracer": "shell_void"
+   },
+   "audio": "bombard",
+   "artillery": {
+    "crater": [
+     2.6,
+     0.9,
+     0.3
+    ],
+    "cover": 3.4
+   }
+  },
+  "starfall_rocket": {
+   "id": "starfall_rocket",
+   "name": "Starfall Rocket",
+   "ammoType": "explosive",
+   "damage": {
+    "base": 170,
+    "splash": 6.5
+   },
+   "knockback": 13,
+   "range": 6000,
+   "vfx": {
+    "tracer": "rocket"
+   },
+   "audio": "rocket",
+   "artillery": {
+    "crater": [
+     1.5,
+     0.55,
+     0.15
+    ],
+    "cover": 2.0
+   }
+  },
+  "swarm_rocket": {
+   "id": "swarm_rocket",
+   "name": "Swarm Rocket",
+   "ammoType": "explosive",
+   "damage": {
+    "base": 160,
+    "splash": 7
+   },
+   "knockback": 13,
+   "range": 6000,
+   "vfx": {
+    "tracer": "rocket_void"
+   },
+   "audio": "rocket",
+   "artillery": {
+    "crater": [
+     1.5,
+     0.55,
+     0.15
+    ],
+    "cover": 2.0
+   }
+  },
+  "lance_slug": {
+   "id": "lance_slug",
+   "name": "Lance Slug",
+   "ammoType": "antitank",
+   "damage": {
+    "base": 460,
+    "head": 1.5
+   },
+   "knockback": 14,
+   "range": 900,
+   "vfx": {
+    "tracer": "at"
+   },
+   "audio": "at_gun",
+   "artillery": {
+    "cover": 1.2
+   }
+  },
+  "spike_slug": {
+   "id": "spike_slug",
+   "name": "Spike Slug",
+   "ammoType": "antitank",
+   "damage": {
+    "base": 460,
+    "head": 1.5
+   },
+   "knockback": 14,
+   "range": 900,
+   "vfx": {
+    "tracer": "at_void"
+   },
+   "audio": "at_gun",
+   "artillery": {
+    "cover": 1.2
    }
   }
  },
