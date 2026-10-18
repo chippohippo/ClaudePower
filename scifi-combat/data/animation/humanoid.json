@@ -16,7 +16,8 @@
   "foreArm": 0.28
  },
  "gait": {
-  "_note": "Tables are [[speed m/s, value], ...]. stride = metres per full cycle (two steps). duty = fraction of the cycle a foot is planted (below 0.5 gives a flight phase). Cadence = speed / stride, so feet never slide at any speed.",
+  "_note": "Tables are [[speed m/s, value], ...]. stride = metres per full cycle (two steps). duty = fraction of the cycle a foot is planted (below 0.5 gives a flight phase). Cadence = speed / stride, so feet never slide at any speed. maxAimSpeed: how fast (m/s, plus a quarter per m/s of body speed) a swinging foot's landing point may move when the prediction jumps (a sprint reversal, a sudden stop).",
+  "maxAimSpeed": 6,
   "stand": {
    "stride": [
     [
@@ -760,12 +761,12 @@
    "lean": 1.3,
    "feet": [
     [
-     0.85,
+     -0.85,
      0.4,
      -0.1
     ],
     [
-     0.82,
+     -0.82,
      0.55,
      0.12
     ]
@@ -1295,31 +1296,31 @@
   "_note": "Crossfade into each state: [seconds, curve]. 'out' (ease-out) for commits that must read instantly (dive, mantle, knockdown, evades), 'smooth' for drops and recoveries (no front-loaded pop), 'in' for collapses. A state that is fading out keeps its last pose and moves rigidly with the body, so it can't snap when its sim data disappears.",
   "fade": {
    "loco": [
-    0.16,
+    0.2,
     "smooth"
    ],
    "slide": [
-    0.14,
+    0.17,
     "smooth"
    ],
    "belly": [
-    0.12,
+    0.14,
     "smooth"
    ],
    "dive": [
-    0.08,
+    0.1,
     "out"
    ],
    "air": [
-    0.12,
+    0.15,
     "smooth"
    ],
    "mantle": [
-    0.08,
+    0.1,
     "out"
    ],
    "knock": [
-    0.1,
+    0.12,
     "smooth"
    ],
    "seated": [
@@ -1327,7 +1328,7 @@
     "smooth"
    ],
    "dodge": [
-    0.06,
+    0.08,
     "out"
    ],
    "dead": [
@@ -1346,13 +1347,28 @@
   "ragdollOut": 0.35
  },
  "body": {
-  "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim.",
+  "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim. Every locomotion signal is smoothed once per frame: the hips swivel on a spring (hipOmega, rad/s) and only flip between facing a strafe and backpedalling it past hipFlip (radians off the aim: [to back, to forward], hysteresis); the lean and bank follow the acceleration on springs (leanOmega, leanZeta); the side-step and backpedal stride blend (gaitBlendRate, 1/s) and the posture speed (postureRate) ease in. popLimit: the pop absorber's limits on how fast a pose channel's speed may change (pelvis m/s², yaw and angle rad/s²); anything sharper springs out over a few frames (omega, rad/s).",
   "accelLean": 0.5,
   "maxLean": 0.36,
   "hipFollow": 0.4,
   "maxHipYaw": 0.65,
   "headYawMax": 1.25,
-  "headPitchMax": 1.1
+  "headPitchMax": 1.1,
+  "hipOmega": 18,
+  "hipFlip": [
+   1.83,
+   1.31
+  ],
+  "leanOmega": 11,
+  "leanZeta": 0.8,
+  "gaitBlendRate": 8,
+  "postureRate": 8,
+  "popLimit": {
+   "pelvis": 100,
+   "yaw": 900,
+   "angle": 600,
+   "omega": 22
+  }
  },
  "footstep": {
   "stanceMul": {
@@ -1400,7 +1416,7 @@
   }
  },
  "gun": {
-  "_note": "Chest-frame [right, along-spine, front] from the neck base. pocket = shouldered (HD2 holds the rifle up whenever it can fire), ads = cheek weld, low = port arms (sprint, climbing). Direction comes from the weapon's own aim (ergonomics drag + recoil), so the gun visibly trails a fast camera turn.",
+  "_note": "Chest-frame [right, along-spine, front] from the neck base. pocket = shouldered (HD2 holds the rifle up whenever it can fire), ads = cheek weld, low = port arms (sprint, climbing). Direction comes from the weapon's own aim (ergonomics drag + recoil), so the gun visibly trails a fast camera turn. raiseOmega [up, down] (rad/s): the critically damped spring the gun comes up and goes down on.",
   "pocket": [
    0.13,
    -0.08,
@@ -1440,10 +1456,15 @@
    -0.14,
    -0.4,
    0.1
+  ],
+  "raiseOmega": [
+   44,
+   26
   ]
  },
  "sword": {
-  "_note": "Chest-frame keyframes: h = hand, b = blade direction, tw = chest twist (+ turns left). Windup eases out into a held tell (readable), the strike accelerates through 'arc', follow-through shows commitment, recovery eases home.",
+  "_note": "Chest-frame keyframes: h = hand, b = blade direction, tw = chest twist (+ turns left). Windup eases out into a held tell (readable), the strike accelerates through 'arc', follow-through shows commitment, recovery eases home. The follow-through starts at the strike's own speed (capped at followSpeed m/s) and brakes onto the follow key, so the blade never stops dead at the end of the arc.",
+  "followSpeed": 6,
   "length": 1.05,
   "idle": {
    "h": [

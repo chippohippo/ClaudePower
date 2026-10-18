@@ -47,13 +47,19 @@ reworked. The rules below are enforced by tests wherever they can be measured.
 - **Landing prediction:** while a foot swings, the landing point is re-predicted every frame from the
   velocity, so turns, strafes and speed changes steer it. A swing lasts (1 − duty) of a stride of
   body travel (distance-based too).
+- **Steering, not teleporting:** the swing heads for the prediction at a speed a foot can move
+  (`gait.maxAimSpeed`, faster with body speed). When the prediction jumps (a sprint reversal, a
+  sudden stop), the foot swings round to it, and touchdown waits until it gets there.
 - **Asymmetric stance:** a foot lands `land` (38%) of its stance ahead of the hip and pushes off the
   rest behind it, as real runners do.
 - **Foot roll:**
   - Forward: heel strike pivots on the heel, the foot goes flat, then the heel rises and it pivots on the toe.
   - Backpedalling: mirrored (toe strike, heel push-off).
   - Side-steps: flat.
-  - Strafes and backpedals take shorter, quicker steps.
+  - Strafes and backpedals take shorter, quicker steps, blending in as the direction changes.
+  - The swing starts from the rolled foot: the ankle eases off the toe pivot instead of dropping
+    back to flat at lift-off (which would whip a nearly straight leg's knee). A stop lets the roll
+    settle flat.
 - **Stretch guard:** a planted ankle that gets past its reach (pelvis would drop more than 15%) steps
   immediately. This covers hard accelerations, reversals and landing at a sprint.
 - **Idle:** settle steps put the feet back under the hips one at a time (turning in place, after a stop).
@@ -61,15 +67,26 @@ reworked. The rules below are enforced by tests wherever they can be measured.
 ### Body
 - **Pelvis reach:**
   - The pelvis drops whenever a planted foot would overstretch, so the IK always reaches a planted foot.
+  - It's measured from the real hip joints off the pelvis frame, standing or lying.
   - A swinging foot starts to count late in its swing, measured from where the hip will be at
     touchdown, so the drop ramps in before the plant.
-  - It eases out after lift-off. No pops.
+  - A soft knee slows the pelvis into the limit over its last few cm: a body standing up against
+    the limit never stops dead on it.
+  - It lets go on a critically damped spring after lift-off. Prone feet count too, so a get-up starts
+    from the drop the body already had. No pops.
 - **Bob:** locked to the step clock: lowest at mid-stance when running, highest when walking. It fades in and out with the gait.
 - **Thud:** every heel strike kicks a slightly underdamped compression spring (pelvis and chest),
   scaled by footfall intensity. Sprint steps land much heavier than jog steps, and landings kick it hard.
 - **Lean:** the body leans into acceleration like an inverted pendulum: a punchy lean into a start, a
-  braced lean back in a skid, banking into sprint carves. Running posture leans more with speed.
-- **Hips and chest:** the hips turn partly toward a strafe (or its reverse when backpedalling) while the chest stays on the aim.
+  braced lean back in a skid, banking into sprint carves. The lean and the bank follow the
+  acceleration on springs (`body.leanOmega`, `leanZeta`), so a stance change that brakes the body
+  in one tick reads as weight, not a snap. Running posture leans more with speed (a smoothed speed).
+- **Hips and chest:**
+  - The hips turn partly toward a strafe (or its reverse when backpedalling) while the chest stays on the aim.
+  - Which way they face only changes past `body.hipFlip` (hysteresis), and they swivel there on a
+    spring (`hipOmega`) instead of flipping 70° in a frame.
+  - An aim right behind the body keeps the chest twisting the way it was. When the twist crosses to
+    the other side, the chest swings across on the pop absorber (below).
 
 ## Stances and transitions
 
@@ -90,7 +107,7 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | Move | Pose language |
 |---|---|
 | **Dive (forward)** | 90 ms crouched spring-off, then a horizontal superman with the gun forward (hip fire stays live), legs trailing with a little flutter, nose dropping late. The belly lands with a compression kick and a `diveLand` impact. |
-| **Dive (side)** | The body stays on the aim and leans into the dive. It lands on the side and rolls onto the belly over `dive.belly.rollTime`, the same timer the hitboxes use. |
+| **Dive (side)** | The body stays on the aim and leans into the dive, stretched out: head leading, legs trailing (as the hitboxes lie). It lands on the side and rolls onto the belly over `dive.belly.rollTime`, the same timer the hitboxes use. |
 | **Dive (back)** | Falls back onto the shoulders, lands on the back (**supine**) and keeps aiming between the feet. Supine crawling scoots on the heels; the back get-up sits up first. |
 | **Slide** | The hip drops (`slide` impact on contact), the torso leans back, the lead leg extends and the other folds under. It steers with a lean, the ground rattles the body, and the weapon stays up (combat slide). |
 | **Hop / fall** | Push-off going up, tuck at the peak, legs reaching for the ground coming down. Landings plant both feet with a compression kick; heavy landings stumble (`land` impact). |
@@ -102,14 +119,34 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | **Death** | A ragdoll collapse, pushed gently the way the killing shot went. (A body without a ragdoll falls back on an authored collapse to the lying pose.) |
 
 **Crossfades:** each state fades in over `[seconds, curve]` from `blend.fade`:
-- `out` (ease-out) for commits that must read instantly: dive, mantle, evades.
-- `smooth` for drops, get-ups, the downed crawl and recoveries, so nothing front-loads a pop.
+- `out` (ease-out) for commits that must read instantly: dive (0.1 s), mantle (0.1 s), evades.
+- `smooth` for drops, get-ups, the downed crawl and recoveries, so nothing front-loads a pop:
+  back to locomotion 0.2 s, slide 0.17 s, air 0.15 s.
 - `in` for the authored death collapse.
 
 Ragdolls blend separately (`blend.ragdollIn`, `blend.ragdollOut`, below).
 
-A state that is fading out replays its last pose, carried rigidly with the body. It can't snap when
-its sim data disappears (a finished dive, a cleared mantle).
+A state that is fading out replays its last pose, carried rigidly with the body: moved with the root
+and turned with its yaw. It can't snap when its sim data disappears (a finished dive, a cleared
+mantle), and a body turning back to its aim after a get-up turns the fading pose with it.
+
+### Blending: nothing pops
+
+Changing moves (strafe to backpedal, stand to crouch to prone, slide, dive and back) must never
+show a cut. Beyond the crossfades:
+- **Smoothed signals:** everything the locomotion poses read from the sim is smoothed once per frame:
+  the hip turn, the lean and bank, the side-step and backpedal blend, the posture speed, the crawl.
+- **Pop absorber (inertialization):** after the poses blend, each body channel is checked: the
+  pelvis relative to the root, and the hips' and chest's yaw, pitch, spin and lean. A channel whose
+  speed changes faster than `body.popLimit` allows (a state switching on with a different pose, a
+  key that snaps) hands the excess to an offset. The offset springs back to zero, critically damped
+  (`popLimit.omega`). Smooth motion passes through untouched, however fast; only what would pop is
+  carried. Feet and hands aren't filtered: planted feet must stay planted.
+- **The gun** comes up and goes down on a critically damped spring (`gun.raiseOmega`). It starts from
+  rest, so a prone drop, a revive or a climb ending can't snap the arms up in a frame. It's still
+  up on the sprint-to-fire tick.
+- **Knees:** a pole that runs along the leg (a knee pulled up close to the hip) leaves the knee's
+  side undecided, so last frame's knee breaks the tie.
 
 ## Upper body
 
@@ -124,8 +161,11 @@ its sim data disappears (a finished dive, a cleared mantle).
 - **Flame sword:** chest-frame keyframes per attack (data `sword.attacks`):
   - The windup eases out into a **held tell**: the blade cocked where the swing will come from,
     readable by an opponent.
-  - The strike accelerates through the arc, then follows through (commitment) and eases home.
-  - Heavy, flame wave and guard break are two-handed. Guard, stagger and guard-broken have their own poses.
+  - The strike accelerates through the arc, then follows through (commitment) and eases home. The
+    follow-through starts at the strike's own speed (capped at `sword.followSpeed`) and brakes onto
+    its key, so the blade carries through instead of stopping dead at the end of the arc.
+  - Heavy, flame wave and guard break are two-handed; the off hand moves onto the grip over a few
+    frames. Guard, stagger and guard-broken have their own poses.
   - Unknown moveset attacks map by name (heavy, thrust, sweep).
 
 ## Additive layers (never touch the legs)
@@ -339,6 +379,12 @@ Drop-in replacement per fighter with the same inputs and events. Mapping lives i
 - **128 fighters:** LOD counts, mid-rate scheduling, events only from near rigs, frame time.
 - **Crowd renderer:** instance counts per LOD, all matrices finite and right-handed.
 - **Every rig-lab move:** finite joints, planted feet always reached, the body never jumps more than 13 cm relative to the root in one frame.
+- **No pops in any rig-lab move:** the second difference of each body channel (how much its motion
+  changes speed in one frame, which is what a pop is) stays under a limit. The channels are the hips'
+  yaw, chest and hip pitch, chest lean, pelvis, hands, knees and feet. The sword's hands are left out,
+  since its strikes are meant to whip.
+- **Strafing:** every 8-way direction both ways round, quick reversals, a crouch-walk sweep and a stop.
+  The hips never turn more than 0.12 rad in a frame (they flipped 1.25 rad before), and the lean never snaps.
 
 The ragdoll has its own tests (`tests/ragdoll.test.mjs`):
 - **Whole bodies:** blasts from any side keep the body whole and it comes to rest.
@@ -357,5 +403,6 @@ Downs and revives are covered in `tests/down.test.mjs`.
 
 - Feet align to the terrain's height (the `groundY` hook) but not to its slope angle yet.
 - Ragdolls collide with the terrain and cover boxes, but not with each other or with vehicle hulls.
-- Strafing is side-stepping with shorter strides, not a full 8-way blend.
+- Strafing is procedural (hips swivelling between facing the strafe and backpedalling it, shorter
+  strides), not a full 8-way clip blend.
 - Graybox geometry: the CrowdRenderer draws boxes and limbs. Real characters go through ClipAnimationController.

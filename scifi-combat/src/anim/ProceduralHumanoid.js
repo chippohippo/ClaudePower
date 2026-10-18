@@ -141,6 +141,43 @@ class Pose {
 
 const v3 = () => new Vector3();
 
+/**
+ * Pop absorber (inertialization). A pose channel that changes speed faster than its limit (a
+ * state switching on with a different pose, a key that snaps, an input that flips) hands the
+ * excess to an offset that springs back to zero, critically damped, over a few frames. Smooth
+ * motion passes through untouched, however fast; only what would pop is carried.
+ */
+class PopAbsorber {
+  /** lim[i]: max change of speed per second (units/s²); ang[i]: the channel is an angle. */
+  constructor(lim, ang, omega) {
+    const n = lim.length;
+    this.lim = lim; this.ang = ang; this.w = omega; this.n = n;
+    this.x = new Float64Array(n); this.prev = new Float64Array(n); this.vel = new Float64Array(n);
+    this.off = new Float64Array(n); this.ov = new Float64Array(n);
+    this.live = false;
+  }
+  reset() { this.live = false; }
+  /** Filters this.x in place. */
+  apply(dt) {
+    const { x, prev, vel, off, ov, lim, ang, n } = this;
+    if (!this.live || !(dt > 0)) {
+      prev.set(x); vel.fill(0); off.fill(0); ov.fill(0); this.live = true;
+      return;
+    }
+    const decay = Math.exp(-this.w * dt);
+    for (let i = 0; i < n; i++) {
+      const v = (ang[i] ? angleDelta(prev[i], x[i]) : x[i] - prev[i]) / dt, m = lim[i] * dt, dv = v - vel[i];
+      if (dv > m) { off[i] -= (dv - m) * dt; vel[i] += m; } else if (dv < -m) { off[i] -= (dv + m) * dt; vel[i] -= m; } else vel[i] = v;
+      prev[i] = x[i];
+      // The offset returns as an exact critically damped spring (stable through any hitch).
+      const c = ov[i] + this.w * off[i];
+      off[i] = (off[i] + c * dt) * decay;
+      ov[i] = (ov[i] - c * this.w * dt) * decay;
+      x[i] += off[i];
+    }
+  }
+}
+
 export class ProceduralHumanoid {
   /**
    * @param {object} entity  fighter: movement, weapons, melee, health, vehicle, transform, mode
@@ -183,18 +220,38 @@ export class ProceduralHumanoid {
     this.flZ = new Spring(L.flinch.omega, L.flinch.zeta);
     this.comp = new Spring(L.comp.omega, L.comp.zeta);
     this.prevRoot = v3(); this.hasPrev = false;
-    this.reachDrop = 0;
+    this.reachDrop = 0; this.reachV = 0;
     this.walkW = 0;
+    // Locomotion signals, smoothed once per frame: the hips' turn toward a strafe (and which way
+    // they face it), the lean into acceleration, the side-step and backpedal blend, the posture
+    // speed. Inputs and the sim change in steps; the body follows them on springs.
+    const B = cfg.body;
+    this.lm = {
+      hip: new Spring(B.hipOmega, 1), hemi: 0,
+      lean: new Spring(B.leanOmega, B.leanZeta), bank: new Spring(B.leanOmega, B.leanZeta),
+      lateral: 0, back: 0, speed: 0,
+    };
+    this.crawlW = 0;
+    // Pelvis (x, y, z relative to the root) and the body's angles (yaws relative to the facing).
+    const pl = B.popLimit;
+    this.pops = new PopAbsorber(
+      [pl.pelvis, pl.pelvis, pl.pelvis, pl.yaw, pl.yaw, pl.angle, pl.angle, pl.angle, pl.angle, pl.angle, pl.angle],
+      [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0], pl.omega);
+    this.twistPop = new PopAbsorber([pl.yaw], [0], pl.omega);
     this.root = v3();
     this.yaw = 0;
     this.time = 0;
     this.lag = 0;
     this.travel = 0;
     this.crawl = 0; this.crawlStep = 0;
-    this.raise = 1; this.raiseTarget = 1;
+    this.raise = 1; this.raiseTarget = 1; this.raiseV = 0;
     // Sword keyframe state starts at the idle guard (never a zero vector, even on the first frame).
     const idleH = new Vector3().fromArray(cfg.sword.idle.h), idleB = new Vector3().fromArray(cfg.sword.idle.b).normalize();
-    this.sword = { key: '', fromH: idleH.clone(), fromB: idleB.clone(), fromTw: 0, fromPitch: 0 };
+    this.sword = {
+      key: '', fromH: idleH.clone(), fromB: idleB.clone(), fromTw: 0, fromPitch: 0,
+      startH: idleH.clone(), startB: idleB.clone(), v0H: v3(), v0B: v3(),
+      prevH: idleH.clone(), prevB: idleB.clone(), velH: v3(), velB: v3(),
+    };
     this.swordLocal = { h: idleH.clone(), b: idleB.clone(), tw: 0, pitch: 0 };
     this.aimYaw = null; this.aimPitch = 0; this.prevAimYaw = 0; this.prevAimPitch = 0;
     this.lod = 0; this.emit = true; this.visible = true;
@@ -291,7 +348,8 @@ export class ProceduralHumanoid {
     const fk = curve === 'out' ? easeOut(this.fadeP) : curve === 'in' ? easeIn(this.fadeP) : ease(this.fadeP);
     for (const name of KEYS) this.w[name] = lerp(this.fadeFrom[name], name === key ? 1 : 0, fk);
 
-    // ---- foot planter and crawl phase (once per frame)
+    // ---- smoothed locomotion signals, foot planter and crawl phase (once per frame)
+    this.#locoSignals(s, dt);
     this.motion.observe(s, { dead: key === 'dead', root });
     const proneOnly = s.stance === 'prone' && !s.stanceT;
     const wantPlanter = key === 'loco' && !proneOnly;
@@ -322,6 +380,7 @@ export class ProceduralHumanoid {
     this.#staggerLayer(P);
     this.#injuredLayer(P);
     this.#callIn(P);
+    this.#absorbPops(P, dt);
     this.#layersAndFrames(P, dt);
     this.#upperBody(P, dt);
     this.#solveLimbs(P);
@@ -388,7 +447,7 @@ export class ProceduralHumanoid {
     const key = this.#activeKey(s);
     for (const k of KEYS) { this.w[k] = k === key ? 1 : 0; this.fadeFrom[k] = this.w[k]; }
     this.fadeP = 1; this.active = key; this.cache = {}; this.knockPhase = null; this.knockT = 9;
-    this.planterLive = false; this.motion.reset();
+    this.planterLive = false; this.motion.reset(); this.pops.reset(); this.twistPop.reset();
     this.prevRoot.copy(this.root); this.hasPrev = true;
   }
 
@@ -501,12 +560,13 @@ export class ProceduralHumanoid {
     const k = this.reviveW;
     if (k < 1e-3) return;
     P.pitchC += 0.75 * k; P.pitchP += 0.25 * k; P.aimW *= 1 - k; P.gunUp *= 1 - k;
-    if (!job) return;
-    chestPoint(job.patient, _a);
-    const press = Math.max(0, Math.sin(this.time * 7)) * 0.04 * this.scale;
+    // The hands leave the patient's chest as the lean eases off, not the moment the revive ends.
+    const at = this.reviveAt ??= v3();
+    if (job) chestPoint(job.patient, at);
+    const press = job ? Math.max(0, Math.sin(this.time * 7)) * 0.04 * this.scale : 0;
     rightOf(this.yaw, _r);
     for (let i = 0; i < 2; i++) {
-      _b.copy(_a).addScaledVector(_r, (i === 0 ? -0.09 : 0.09) * this.scale);
+      _b.copy(at).addScaledVector(_r, (i === 0 ? -0.09 : 0.09) * this.scale);
       _b.y += 0.12 * this.scale - press;
       P.hand[i].lerp(_b, P.handW[i] > 0 ? k : 1); P.handW[i] = Math.max(P.handW[i], k);
     }
@@ -549,13 +609,23 @@ export class ProceduralHumanoid {
   }
 
   #remember(name, pose) {
-    const c = this.cache[name] ??= { pose: new Pose(), root: v3() };
-    c.pose.copy(pose); c.root.copy(this.root);
+    const c = this.cache[name] ??= { pose: new Pose(), root: v3(), yaw: 0 };
+    c.pose.copy(pose); c.root.copy(this.root); c.yaw = this.yaw;
   }
 
+  /** A fading state's last pose, carried rigidly with the body: moved with the root, turned with its yaw. */
   #recall(name) {
     const c = this.cache[name], out = this.pq.copy(c.pose);
-    _d.subVectors(this.root, c.root);
+    const dy = angleDelta(c.yaw, this.yaw), r = this.root;
+    if (Math.abs(dy) > 1e-5) {
+      const cs = Math.cos(dy), sn = Math.sin(dy);
+      const turn = (p) => { const x = p.x - c.root.x, z = p.z - c.root.z; p.x = c.root.x + x * cs + z * sn; p.z = c.root.z - x * sn + z * cs; };
+      const spin = (v) => { const x = v.x, z = v.z; v.x = x * cs + z * sn; v.z = -x * sn + z * cs; };
+      turn(out.pelvis);
+      for (let i = 0; i < 2; i++) { turn(out.foot[i]); turn(out.hand[i]); spin(out.knee[i]); out.footYaw[i] += dy; }
+      out.yawP += dy; out.yawC += dy;
+    }
+    _d.subVectors(r, c.root);
     out.pelvis.add(_d);
     for (let i = 0; i < 2; i++) { out.foot[i].add(_d); out.hand[i].add(_d); }
     return out;
@@ -662,16 +732,12 @@ export class ProceduralHumanoid {
     const c = this._gait ??= { vel: new Vector3() };
     c.dt = this.dt ?? 1 / 60;
     c.root = this.root;
-    c.yaw = this.#hipYaw(s);
+    c.yaw = this.#hipYaw();
     c.vel.copy(s.velocity);
     c.travel = this.travel;
     c.speed = s.speed;
     // Side-steps and backpedals are shorter, quicker steps than running forward.
-    forwardOf(c.yaw, _a); rightOf(c.yaw, _b);
-    const vl = Math.hypot(s.velocity.x, s.velocity.z) || 1;
-    const lateral = Math.abs(s.velocity.x * _b.x + s.velocity.z * _b.z) / vl;
-    const back = (s.velocity.x * _a.x + s.velocity.z * _a.z) / vl < -0.3;
-    c.stride = T('stride') * sc * (1 - 0.35 * lateral) * (back ? 0.8 : 1);
+    c.stride = T('stride') * sc * (1 - 0.35 * this.lm.lateral) * (1 - 0.2 * this.lm.back);
     c.duty = T('duty');
     c.land = lerp(gs.land, gc.land, crouchK);
     c.heelRise = lerp(gs.heelRise, gc.heelRise, crouchK);
@@ -684,43 +750,88 @@ export class ProceduralHumanoid {
     c.reach = Math.sqrt(Math.max(0.04, L * L - (pelvisH * 0.85 - this.d.ankleH) ** 2));
     c.groundY = this.groundY;
     c.crouchK = crouchK;
+    c.maxAimSpeed = this.cfg.gait.maxAimSpeed;
     return c;
   }
 
   /** Hips turn partly toward a strafe (or its reverse when backpedalling); the chest stays on the aim. */
-  #hipYaw(s) {
-    const b = this.cfg.body;
-    if (s.speed < 0.5 || s.sprinting) return this.yaw;
-    let delta = angleDelta(this.yaw, Math.atan2(-s.velocity.x, -s.velocity.z));
-    if (Math.abs(delta) > Math.PI / 2) delta = angleDelta(0, delta + Math.PI);
-    return this.yaw + clamp(delta * b.hipFollow, -b.maxHipYaw, b.maxHipYaw) * smoothstep(0.5, 2, s.speed);
+  #hipYaw() { return this.yaw + this.lm.hip.x; }
+
+  /**
+   * Once per frame, the signals the locomotion poses read, each on a spring or a smoothing rate:
+   * input and sim changes come in steps (a strafe flipping to a backpedal, a stance change braking
+   * the body in one tick), the body follows them over a few frames instead of snapping.
+   */
+  #locoSignals(s, dt) {
+    const b = this.cfg.body, L = this.lm;
+    // Hips: toward a strafe while moving forward of it, away from it while backpedalling. Which
+    // way they face only flips past hipFlip (hysteresis), and they swivel there on a spring.
+    let hip = 0;
+    if (s.speed >= 0.5 && !s.sprinting) {
+      const delta = angleDelta(this.yaw, Math.atan2(-s.velocity.x, -s.velocity.z)), a = Math.abs(delta);
+      const [toBack, toFwd] = b.hipFlip;
+      if (L.hemi === 0) L.hemi = a <= Math.PI / 2 ? 1 : -1;
+      else if (L.hemi > 0 && a > toBack) L.hemi = -1;
+      else if (L.hemi < 0 && a < toFwd) L.hemi = 1;
+      const d = L.hemi > 0 ? delta : angleDelta(0, delta + Math.PI);
+      hip = clamp(d * b.hipFollow, -b.maxHipYaw, b.maxHipYaw) * smoothstep(0.5, 2, s.speed);
+    } else if (s.speed < 0.3) L.hemi = 0;
+    L.hip.step(hip, dt);
+    // Lean into acceleration like an inverted pendulum. The lean lags the push a little and
+    // settles with a touch of overshoot: a braking stance change reads as weight, not a snap.
+    forwardOf(this.yaw, _a); rightOf(this.yaw, _b);
+    const af = s.accel.x * _a.x + s.accel.z * _a.z, ar = s.accel.x * _b.x + s.accel.z * _b.z;
+    L.lean.step(clamp((af / G) * b.accelLean, -b.maxLean, b.maxLean), dt);
+    L.bank.step(clamp((ar / G) * b.accelLean, -b.maxLean, b.maxLean) * smoothstep(1, 3, s.speed), dt);
+    // Side-steps and backpedals take shorter steps; the blend follows the input direction smoothly.
+    const vl = Math.hypot(s.velocity.x, s.velocity.z);
+    if (vl > 0.3) {
+      forwardOf(this.#hipYaw(), _a); rightOf(this.#hipYaw(), _b);
+      const k = approach(b.gaitBlendRate, dt);
+      L.lateral += (Math.abs(s.velocity.x * _b.x + s.velocity.z * _b.z) / vl - L.lateral) * k;
+      L.back += (smoothstep(-0.1, -0.6, (s.velocity.x * _a.x + s.velocity.z * _a.z) / vl) - L.back) * k;
+    }
+    L.speed += (s.speed - L.speed) * approach(b.postureRate, dt);
+    // Crawl limbs ease in and out with the crawl (a get-up never cuts them off mid-reach).
+    this.crawlW += (smoothstep(0.04, 0.35, s.speed) - this.crawlW) * approach(10, dt);
+  }
+
+  /** Inertialization over the blended pose: whatever would pop springs out over a few frames. */
+  #absorbPops(P, dt) {
+    const A = this.pops, x = A.x, r = this.root, y = this.yaw;
+    x[0] = P.pelvis.x - r.x; x[1] = P.pelvis.y - r.y; x[2] = P.pelvis.z - r.z;
+    x[3] = angleDelta(y, P.yawP); x[4] = angleDelta(y, P.yawC);
+    x[5] = P.pitchP; x[6] = P.pitchC; x[7] = P.spinP; x[8] = P.spinC; x[9] = P.leanP; x[10] = P.leanC;
+    A.apply(dt);
+    P.pelvis.set(r.x + x[0], r.y + x[1], r.z + x[2]);
+    P.yawP = y + x[3]; P.yawC = y + x[4];
+    P.pitchP = x[5]; P.pitchC = x[6]; P.spinP = x[7]; P.spinC = x[8]; P.leanP = x[9]; P.leanC = x[10];
   }
 
   /** Standing/crouched locomotion pose on the planter's feet. */
   #locoPose(out, crouchK) {
-    const s = this.e.movement.state, cfg = this.cfg, P = cfg.poses, sc = this.scale, b = cfg.body;
+    const s = this.e.movement.state, cfg = this.cfg, P = cfg.poses, sc = this.scale;
     if (!this.planterLive) return this.#restStance(out, crouchK);
-    const gs = cfg.gait.stand, gc = cfg.gait.crouch, sp = s.speed / sc;
+    const gs = cfg.gait.stand, gc = cfg.gait.crouch, sp = s.speed / sc, sq = this.lm.speed / sc;
     const T = (key) => lerp(table(gs[key], sp), table(gc[key], sp), crouchK);
-    const hipYaw = this.#hipYaw(s);
+    // Posture (running lean, drop, bob size) follows the smoothed speed: a braking tick can't jerk it.
+    const TP = (key) => lerp(table(gs[key], sq), table(gc[key], sq), crouchK);
+    const hipYaw = this.#hipYaw();
     forwardOf(hipYaw, _f); rightOf(hipYaw, _r);
     // Pelvis: stance height, running drop, and a bob locked to the steps (low at mid-stance when
     // running, high at mid-stance when walking).
-    let h = lerp(P.stand.pelvisH, P.crouch.pelvisH, crouchK) * sc - T('pelvisDrop') * sc;
+    let h = lerp(P.stand.pelvisH, P.crouch.pelvisH, crouchK) * sc - TP('pelvisDrop') * sc;
     const pl = this.planter;
     this.walkW += ((pl.walking ? 1 : 0) - this.walkW) * approach(8, this.dt ?? 1 / 60);
     if (this.walkW > 1e-3) {
       const duty = T('duty');
       const run = smoothstep(0.52, 0.42, duty);
-      h += T('bob') * sc * Math.cos(TAU * (pl.clock - (1 - duty))) * (1 - 2 * run) * this.walkW;
+      h += TP('bob') * sc * Math.cos(TAU * (pl.clock - (1 - duty))) * (1 - 2 * run) * this.walkW;
     }
     out.pelvis.set(this.root.x, this.root.y + h, this.root.z);
-    // Lean into acceleration (inverted pendulum) plus the running posture.
-    forwardOf(this.yaw, _a); rightOf(this.yaw, _b);
-    const af = s.accel.x * _a.x + s.accel.z * _a.z, ar = s.accel.x * _b.x + s.accel.z * _b.z;
-    const leanF = clamp((af / G) * b.accelLean, -b.maxLean, b.maxLean);
-    const bank = clamp((ar / G) * b.accelLean, -b.maxLean, b.maxLean) * smoothstep(1, 3, s.speed);
-    const posture = T('lean');
+    // Lean into acceleration (inverted pendulum, on springs) plus the running posture.
+    const leanF = this.lm.lean.x, bank = this.lm.bank.x;
+    const posture = TP('lean');
     out.yawP = hipYaw; out.yawC = this.yaw;
     out.pitchP = lerp(P.stand.pitchP, P.crouch.pitchP, crouchK) + (posture + leanF) * 0.35;
     out.pitchC = lerp(P.stand.pitchC, P.crouch.pitchC, crouchK) + posture + leanF;
@@ -742,9 +853,9 @@ export class ProceduralHumanoid {
 
   /** Prone (face down) or supine (on the back, after a back dive): elbows-and-knees crawl. */
   #pronePose(out, supine) {
-    const s = this.e.movement.state, sc = this.scale;
+    const sc = this.scale;
     this.#keyPose(supine ? 'supine' : 'prone', out, this.root, this.yaw);
-    const moving = smoothstep(0.05, 0.4, s.speed);
+    const moving = this.crawlW;
     if (moving > 0) {
       const ph = this.crawl * TAU;
       forwardOf(this.yaw, _f); rightOf(this.yaw, _r);
@@ -780,7 +891,7 @@ export class ProceduralHumanoid {
     out.hand[1].y += (sup ? 0.13 : -0.04) * sc;
     out.handW[1] = 1;
     // Free hand: reaches ahead and drags the body along while crawling; rests by the head when still.
-    const moving = smoothstep(0.03, 0.3, s.speed), reach = Math.max(0, Math.sin(this.crawl * TAU)) * moving;
+    const moving = this.crawlW, reach = Math.max(0, Math.sin(this.crawl * TAU)) * moving;
     out.hand[0].copy(out.pelvis).addScaledVector(_f, (0.55 + 0.25 * reach) * head * sc).addScaledVector(_r, -0.28 * head * sc);
     out.hand[0].y = (this.groundY ? this.groundY(out.hand[0].x, out.hand[0].z) : this.root.y) + 0.05 * sc;
     out.handW[0] = 1;
@@ -912,7 +1023,7 @@ export class ProceduralHumanoid {
       out.foot[1].addScaledVector(_r, 0.35 * over * sc).y += 0.1 * over * sc;
       out.pelvis.y -= 0.2 * sc * over;
       out.pitchC += 0.45 * over; out.leanC -= 0.3 * over;
-      const hw = smoothstep(0.05, 0.2, u) * (1 - smoothstep(0.55, 0.72, u));
+      const hw = smoothstep(0.05, 0.2, u) * (1 - smoothstep(0.52, 0.8, u));
       out.hand[0].set(edge.x - _r.x * 0.12 * sc, edge.y + 0.02, edge.z - _r.z * 0.12 * sc); out.handW[0] = hw;
       out.handW[1] = 0;
       out.gunUp = 1 - hw;
@@ -924,10 +1035,13 @@ export class ProceduralHumanoid {
       out.pitchP = lerp(lerp(0.1, 0.6, pull), 0.05, stand);
       out.pelvis.y = this.root.y + lerp(lerp(0.78, 0.55, pull), this.cfg.poses.stand.pelvisH, stand) * sc;
       out.foot[1].addScaledVector(_f, 0.25 * pull * (1 - stand) * sc).y += 0.4 * pull * (1 - stand) * sc;
+      // The raised knee comes up as it would stepping onto a ledge (its pole can't run along the folded leg).
+      out.knee[1].copy(_f).addScaledVector(UP, 1.4 * pull * (1 - stand)).normalize();
       // Feet plant on top (world-fixed) as the body stands up.
       const top = m.to;
-      if (u > 0.7) { out.foot[1].lerp(_a.set(top.x + _r.x * 0.1 * sc - _f.x * 0.05, top.y + this.d.ankleH, top.z + _r.z * 0.1 * sc - _f.z * 0.05), smoothstep(0.62, 0.72, u)); }
-      if (u > 0.85) { out.foot[0].lerp(_a.set(top.x - _r.x * 0.1 * sc + _f.x * 0.05, top.y + this.d.ankleH, top.z - _r.z * 0.1 * sc + _f.z * 0.05), smoothstep(0.8, 0.9, u)); }
+      // (each from where its ramp starts, so a foot never jumps onto the ledge)
+      if (u > 0.62) { out.foot[1].lerp(_a.set(top.x + _r.x * 0.1 * sc - _f.x * 0.05, top.y + this.d.ankleH, top.z + _r.z * 0.1 * sc - _f.z * 0.05), smoothstep(0.62, 0.72, u)); }
+      if (u > 0.8) { out.foot[0].lerp(_a.set(top.x - _r.x * 0.1 * sc + _f.x * 0.05, top.y + this.d.ankleH, top.z - _r.z * 0.1 * sc + _f.z * 0.05), smoothstep(0.8, 0.9, u)); }
       const hw = smoothstep(0.0, 0.18, u) * (1 - smoothstep(0.66, 0.86, u));
       for (let i = 0; i < 2; i++) {
         const side = i === 0 ? -1 : 1;
@@ -1031,8 +1145,17 @@ export class ProceduralHumanoid {
     const sword = e.mode === 'sword' && e.melee;
     if (sword) this.#swordState(dt);
     const raisedK = sword ? 1 : clamp(this.raise, 0, 1);
-    const twist = clamp(angleDelta(P.yawC, this.aimYaw ?? P.yawC), -1.1, 1.1) * P.aimW * lerp(0.3, 1, raisedK);
-    P.yawC += twist + (sword ? this.swordLocal.tw * P.aimW : 0);
+    // An aim right behind the body could twist the chest either way: it keeps the way it was
+    // going until the aim is well past the back (no flip on a hair of yaw).
+    let ad = angleDelta(P.yawC, this.aimYaw ?? P.yawC);
+    if (Math.abs(ad) > Math.PI - 0.6 && Math.sign(ad) !== (this.twistSide ?? Math.sign(ad))) ad -= Math.sign(ad) * TAU;
+    else if (Math.abs(ad) > 0.05) this.twistSide = Math.sign(ad);
+    // The twist crossing over to the other side (an aim swinging through the back) swings the
+    // chest across on the pop absorber; aim tracking itself passes straight through.
+    const TW = this.twistPop;
+    TW.x[0] = clamp(ad, -1.1, 1.1) * P.aimW * lerp(0.3, 1, raisedK);
+    TW.apply(dt);
+    P.yawC += TW.x[0] + (sword ? this.swordLocal.tw * P.aimW : 0);
     if (sword) P.pitchC += this.swordLocal.pitch * P.aimW;
     // Additive layers on the upper body only (the legs keep their plants).
     const breathRate = s.exhausted || s.lowStamina ? L.breath.rateLow : L.breath.rate;
@@ -1045,29 +1168,37 @@ export class ProceduralHumanoid {
 
     // Planted feet must always be reachable: drop the pelvis rather than let a foot slide.
     // The drop is instant when it grows and eases out when a foot lifts (no pop at toe-off).
-    if (this.planterLive) {
-      const Lm = (d.thigh + d.shin) * 0.985;
-      rightOf(P.yawP, _r);
+    // Lying prone the feet are the pose's, on the ground, and count the same way, so a get-up
+    // (when the planter comes on) starts from the drop the body already had. Out of locomotion
+    // the drop eases away with the state's weight; it never cuts off.
+    // The hips are measured where the skeleton puts them (off the pelvis frame), standing or lying.
+    bodyFrame(P.yawP, P.pitchP, P.spinP, P.leanP, F.pelvis);
+    const footPose = !this.planterLive && this.active === 'loco';
+    if (this.planterLive || footPose) {
+      const Lm = (d.thigh + d.shin) * 0.985, Fp = F.pelvis;
       // A swinging foot starts to count late in its swing, so the drop ramps in before touchdown.
       let need = 0;
       for (let i = 0; i < 2; i++) {
-        const f = this.planter.feet[i];
-        const wf = f.planted ? 1 : smoothstep(0.55, 1, f.u);
+        const f = this.planter.feet[i], planted = footPose || f.planted;
+        const wf = planted ? 1 : smoothstep(0.55, 1, f.u);
         if (wf <= 0) continue;
         const side = i === 0 ? -1 : 1;
+        // Hip joint relative to the pelvis centre (as below: out along r, 3 cm down the spine).
+        const ox = Fp.r.x * side * d.hipW - Fp.d.x * 0.03 * sc, oy = Fp.r.y * side * d.hipW - Fp.d.y * 0.03 * sc, oz = Fp.r.z * side * d.hipW - Fp.d.z * 0.03 * sc;
         // For a swinging foot, measure from where the hip will be when it lands.
-        const lead = f.planted || !f.byDistance ? 0 : (1 - f.u) * f.swingDist, dir = this.planter.dir;
-        const hx = P.pelvis.x + _r.x * side * d.hipW + dir.x * lead, hz = P.pelvis.z + _r.z * side * d.hipW + dir.z * lead;
-        const ft = f.planted ? P.foot[i] : _c.set(f.target.x, f.target.y + d.ankleH, f.target.z);
+        const lead = planted || !f.byDistance ? 0 : (1 - f.u) * f.swingDist, dir = this.planter.dir;
+        const hx = P.pelvis.x + ox + dir.x * lead, hz = P.pelvis.z + oz + dir.z * lead;
+        const ft = planted ? P.foot[i] : _c.set(f.target.x, f.target.y + d.ankleH, f.target.z);
         const hd = Math.hypot(ft.x - hx, ft.z - hz);
-        const maxY = ft.y + 0.03 * this.scale + Math.sqrt(Math.max(0, Lm * Lm - hd * hd));
-        need = Math.max(need, (P.pelvis.y - maxY) * wf);
+        const maxY = ft.y - oy + Math.sqrt(Math.max(0, Lm * Lm - hd * hd));
+        // A soft knee: the pelvis slows into the limit over the last few cm, never stops dead on it.
+        const over = P.pelvis.y - maxY, k = 0.05 * this.scale;
+        need = Math.max(need, (over >= k ? over : over <= -k ? 0 : (over + k) * (over + k) / (4 * k)) * wf);
       }
-      this.reachDrop = need > this.reachDrop ? need : this.reachDrop + (need - this.reachDrop) * approach(20, dt);
-      P.pelvis.y -= this.reachDrop * this.w.loco;
-    } else this.reachDrop = 0;
+      this.#reachStep(need, dt);
+    } else this.#reachStep(0, dt);
+    P.pelvis.y -= this.reachDrop * this.w.loco;
 
-    bodyFrame(P.yawP, P.pitchP, P.spinP, P.leanP, F.pelvis);
     bodyFrame(P.yawC, P.pitchC, P.spinC, P.leanC, F.chest);
     j.pelvis.copy(P.pelvis);
     // Spine: lower part follows the pelvis, upper part the chest.
@@ -1093,6 +1224,17 @@ export class ProceduralHumanoid {
     j.head.copy(j.neckTop).addScaledVector(F.head.d, d.headR * 0.85).addScaledVector(F.head.n, 0.02 * sc);
   }
 
+  /** The reach drop grows at once (a planted foot is never overstretched) and lets go on a critically damped spring. */
+  #reachStep(need, dt) {
+    if (need >= this.reachDrop) { this.reachDrop = need; this.reachV = 0; return; }
+    const w = 16, n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n;
+    for (let i = 0; i < n; i++) {
+      this.reachV += (w * w * (need - this.reachDrop) - 2 * w * this.reachV) * h;
+      this.reachDrop += this.reachV * h;
+    }
+    if (this.reachDrop < need) { this.reachDrop = need; this.reachV = 0; }
+  }
+
   // ---------------------------------------------------------------- upper body
   #upperBody(P, dt) {
     const e = this.e;
@@ -1112,6 +1254,20 @@ export class ProceduralHumanoid {
     }
   }
 
+  /**
+   * The gun comes up and goes down on a critically damped spring: it starts from rest and lands
+   * without a bump (a prone drop, a revive or a climb ending can't snap the arms up in a frame),
+   * and it's quick enough to be up on the sim's sprint-to-fire timer (data: gun.raiseOmega).
+   */
+  #raiseStep(target, dt) {
+    const [up, down] = this.cfg.gun.raiseOmega, w = target > this.raise ? up : down;
+    const n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n;
+    for (let i = 0; i < n; i++) {
+      this.raiseV += (w * w * (target - this.raise) - 2 * w * this.raiseV) * h;
+      this.raise += this.raiseV * h;
+    }
+  }
+
   #gunHands(P, dt) {
     const e = this.e, s = e.movement.state, g = this.cfg.gun, sc = this.scale, F = this.F.chest, neck = this.j.neck;
     const w = e.weapons, st = w?.current?.s;
@@ -1123,7 +1279,7 @@ export class ProceduralHumanoid {
     target *= P.gunUp;
     if (target > 0.5 && this.raiseTarget <= 0.5) this.#cloth('raise', 0.25);
     this.raiseTarget = target;
-    this.raise += (target - this.raise) * approach(target < this.raise ? 16 : 45, dt);
+    this.#raiseStep(target, dt);
     const raise = this.raise, ads = (w?.ads ?? 0) * raise;
     const lo = g.lowPocket, po = g.pocket, ad = g.adsPocket;
     const px = lerp(lerp(lo[0], po[0], raise), ad[0], ads), py = lerp(lerp(lo[1], po[1], raise), ad[1], ads), pz = lerp(lerp(lo[2], po[2], raise), ad[2], ads);
@@ -1200,7 +1356,7 @@ export class ProceduralHumanoid {
     const e = this.e, s = e.movement.state, sc = this.scale, F = this.F.chest, neck = this.j.neck, pr = this.prop;
     pr.kind = null; pr.glow = 0; pr.twoHanded = false;
     this.raiseTarget = 0;
-    this.raise += (0 - this.raise) * approach(16, dt);
+    this.#raiseStep(0, dt);
     this.runK = (this.runK ?? 0) + ((s.sprinting ? 1 : 0) - (this.runK ?? 0)) * approach(8, dt);
     this.cowerK = (this.cowerK ?? 0) + ((e.cower ? 1 : 0) - (this.cowerK ?? 0)) * approach(7, dt);
     const rk = this.runK, ck = this.cowerK, walking = this.planter.walking && this.planterLive;
@@ -1240,6 +1396,14 @@ export class ProceduralHumanoid {
     if (key !== S.key) {
       // Blend from wherever the blade is now: chained attacks flow without pops.
       S.key = key; S.fromH.copy(out.h); S.fromB.copy(out.b); S.fromTw = out.tw; S.fromPitch = out.pitch;
+      // Where the blade is and how fast it's moving (capped): the follow-through starts from both.
+      S.startH.copy(out.h); S.startB.copy(out.b);
+      const cap = sw.followSpeed ?? 6, vh = S.velH.length(), vb = S.velB.length();
+      S.v0H.copy(S.velH).multiplyScalar(vh > cap ? cap / vh : 1);
+      S.v0B.copy(S.velB).multiplyScalar(vb > cap * 2 ? (cap * 2) / vb : 1);
+      // A phase starts somewhere inside the last frame: carry the blade on by one frame's travel.
+      const dt0 = this.dt ?? 1 / 60;
+      S.startH.addScaledVector(S.v0H, dt0); S.startB.addScaledVector(S.v0B, dt0).normalize();
       if (phase === 'windup') this.#cloth('swing', m.attackId?.startsWith('heavy') ? 0.6 : 0.35);
     }
     const t = Math.max(0, m.phaseTime - this.lag);
@@ -1265,13 +1429,18 @@ export class ProceduralHumanoid {
         break;
       }
       case 'recovery': {
-        // Follow-through first (commitment), then ease home.
-        const ur = clamp(t / Math.max(0.01, m.attack?.recovery ?? 0.3), 0, 1);
-        const last = kf.arc[kf.arc.length - 1];
+        // Follow-through first (commitment: the blade carries the strike's speed and brakes, it
+        // never stops dead at the end of the arc), then ease home.
+        // It starts from wherever the strike left the blade.
+        // A Hermite curve from there at the strike's speed onto the follow key: the blade carries
+        // through a little past the strike and brakes.
+        const rec = Math.max(0.01, m.attack?.recovery ?? 0.3), ur = clamp(t / rec, 0, 1);
         const home = s.sprinting ? sw.sprint : sw.idle;
         if (ur < 0.35) {
-          const f = ease(ur / 0.35);
-          _a.fromArray(last.h).lerp(_c.fromArray(kf.follow.h), f); _b.fromArray(last.b).lerp(_c.fromArray(kf.follow.b), f);
+          const f = ur / 0.35, Tf = 0.35 * rec, f2 = f * f, f3 = f2 * f;
+          const h00 = 2 * f3 - 3 * f2 + 1, h10 = (f3 - 2 * f2 + f) * Tf, h01 = 3 * f2 - 2 * f3;
+          _a.copy(S.startH).multiplyScalar(h00).addScaledVector(S.v0H, h10).addScaledVector(_c.fromArray(kf.follow.h), h01);
+          _b.copy(S.startB).multiplyScalar(h00).addScaledVector(S.v0B, h10).addScaledVector(_c.fromArray(kf.follow.b), h01);
           tw = kf.follow.tw ?? 0; pitch = kf.follow.pitch ?? 0;
         } else {
           const f = ease((ur - 0.35) / 0.65);
@@ -1291,6 +1460,9 @@ export class ProceduralHumanoid {
     out.b.copy(S.fromB).lerp(_b, blend).normalize();
     out.tw = lerp(S.fromTw, tw, blend);
     out.pitch = lerp(S.fromPitch, pitch, blend);
+    const dt = this.dt ?? 1 / 60;
+    if (dt > 0) { S.velH.subVectors(out.h, S.prevH).divideScalar(dt); S.velB.subVectors(out.b, S.prevB).divideScalar(dt); }
+    S.prevH.copy(out.h); S.prevB.copy(out.b);
   }
 
   #attackKeys(id) {
@@ -1313,8 +1485,10 @@ export class ProceduralHumanoid {
     pr.glow = (m.heat ?? 0) / 100 + (m.phase === 'active' ? 0.8 : 0);
     const two = (m.w?.visual?.twoHanded || sw.twoHanded.includes(m.attackId)) && (m.phase === 'windup' || m.phase === 'active' || m.phase === 'recovery');   // spears and cleavers: both hands
     pr.twoHanded = two || m.phase === 'guard';
-    if (pr.twoHanded) this.handT[0].copy(this.handT[1]).addScaledVector(pr.dir, -0.1 * sc);
-    else frameToWorld(F, neck, (-0.24 - out.tw * 0.12) * sc, -0.36 * sc, (0.22 + out.tw * 0.05) * sc, this.handT[0]);
+    // The off hand moves onto the grip (and back off it) over a few frames, never in one.
+    this.twoW = (this.twoW ?? 0) + ((pr.twoHanded ? 1 : 0) - (this.twoW ?? 0)) * approach(22, this.dt ?? 1 / 60);
+    frameToWorld(F, neck, (-0.24 - out.tw * 0.12) * sc, -0.36 * sc, (0.22 + out.tw * 0.05) * sc, this.handT[0]);
+    if (this.twoW > 1e-3) this.handT[0].lerp(_a.copy(this.handT[1]).addScaledVector(pr.dir, -0.1 * sc), ease(this.twoW));
   }
 
   // ---------------------------------------------------------------- IK and secondary motion
@@ -1323,7 +1497,16 @@ export class ProceduralHumanoid {
     for (let i = 0; i < 2; i++) {
       _pole.copy(P.knee[i]);
       if (_pole.lengthSq() < 1e-6) _pole.copy(F.n);
-      twoBoneIK(j.hip[i], P.foot[i], d.thigh, d.shin, _pole.normalize(), j.knee[i], j.ankle[i]);
+      _pole.normalize();
+      // A pole running along the leg leaves the knee's side undecided: last frame's knee breaks the tie.
+      _a.subVectors(P.foot[i], j.hip[i]).normalize();
+      const along = Math.abs(_pole.dot(_a));
+      if (along > 0.96 && this.kneeLive) {
+        _b.subVectors(j.knee[i], j.hip[i]);
+        _b.addScaledVector(_a, -_b.dot(_a));
+        if (_b.lengthSq() > 1e-8) _pole.addScaledVector(_b.normalize(), (along - 0.96) * 25).normalize();
+      }
+      twoBoneIK(j.hip[i], P.foot[i], d.thigh, d.shin, _pole, j.knee[i], j.ankle[i]);
       j.footYaw[i] = P.footYaw[i];
       j.footPitch[i] = P.footPitch[i];
       // Elbows hang down and out (onto the ground when prone).
@@ -1331,6 +1514,7 @@ export class ProceduralHumanoid {
       _pole.set(0, -0.75, 0).addScaledVector(F.r, side * 0.55).addScaledVector(F.n, -0.25).normalize();
       twoBoneIK(j.shoulder[i], this.handT[i], d.upperArm, d.foreArm, _pole, j.elbow[i], j.hand[i]);
     }
+    this.kneeLive = true;
   }
 
   #capeStep(dt) {
@@ -1414,6 +1598,8 @@ export class ProceduralHumanoid {
     this.prevRoot.copy(root); this.root.copy(root);
     this.hasPrev = true;
     this.yaw = yaw;
+    this.lm.hip.set(0); this.lm.lean.set(0); this.lm.bank.set(0); this.lm.hemi = 0;
+    this.reachDrop = 0; this.reachV = 0;
     this.planter.reset(root, yaw, this.#gaitCfg(this.e.movement.state, 0));
     this.planterLive = false;
     for (const k of KEYS) { this.w[k] = k === 'loco' ? 1 : 0; this.fadeFrom[k] = this.w[k]; }
@@ -1421,6 +1607,7 @@ export class ProceduralHumanoid {
     this.capeInit = false;
     this.motion.reset();
     this.rec.set(0); this.flX.set(0); this.flZ.set(0); this.comp.set(0);
+    this.pops.reset(); this.twistPop.reset(); this.kneeLive = false;
     for (let i = 0; i < 2; i++) this.j.ankle[i].copy(this.planter.feet[i].ankle);
   }
 }

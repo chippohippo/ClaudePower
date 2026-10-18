@@ -14,7 +14,7 @@ import { ClipAnimationController } from '../src/anim/ClipAnimationController.js'
 import { CrowdRenderer } from '../src/render/CrowdRenderer.js';
 import { CameraRig } from '../src/camera/CameraRig.js';
 import { hitSpheres } from '../src/movement/Hitboxes.js';
-import { table } from '../src/anim/ik.js';
+import { table, angleDelta } from '../src/anim/ik.js';
 import { makeWorld, data, DT, v } from './harness.mjs';
 
 const anim = JSON.parse(readFileSync(new URL('../data/animation/humanoid.json', import.meta.url)));
@@ -432,40 +432,49 @@ import { MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
 import { routeCommand } from '../src/core/routing.js';
 import { STATIONS, StationDriver, buddyDriver } from '../src/tools/rigLabStations.js';
 
+const stationFactory = {
+  movement: data.movement, weaponFiles: [data.ballistic, data.energy], attachments: data.attachments, recoil: data.recoil,
+  statuses: data.statuses, meleeWeapons: data.melee, kits: data.kits, classes: data.classes,
+};
+
+/** Drives a rig-lab station like the game (60 Hz); onFrame(h, e, rec) after every rendered frame. */
+function runStation(st, onFrame) {
+  const cover = (st.boxes ?? []).map((b) => ({ min: new Vector3(...b.min), max: new Vector3(...b.max), surface: 'metal' }));
+  const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses });
+  const e = buildFighter(world, stationFactory, { id: 1, team: 0, classId: st.classId ?? 'lancer', pos: new Vector3(...(st.start ?? [0, 0, 0])), cover });
+  e.mode = st.mode ?? 'gun';
+  e.health.damage = () => ({});
+  const meleeSys = new MeleeSystem(); meleeSys.add(e.melee);
+  const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id) });
+  const h = sys.add(e); sys.focusId = 1;
+  const drv = new StationDriver(st);
+  const buddy = st.buddy ? buildFighter(world, stationFactory, { id: 2, team: 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
+  if (buddy) { buddy.mode = 'gun'; buddy.health.damage = () => ({}); sys.add(buddy); }
+  const bdrv = buddyDriver(st);
+  const rec = sys.record(1);
+  while (!drv.done) {
+    sys.snapshot();
+    const cmd = drv.command(e, DT, buddy);
+    if (buddy) { const bc = bdrv.command(buddy, DT, e); buddy.health.update(DT); buddy.movement.update(bc, DT); }
+    e.status.update(DT); e.health.update(DT);
+    e.movement.update(cmd, DT);
+    e.movement.state.speedScale = e.status.speedMul;
+    const r = routeCommand(e, cmd);
+    e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
+    world.update(DT); meleeSys.resolve();
+    sys.update(DT, 1, null);
+    onFrame(h, e, rec);
+  }
+  sys.dispose();
+}
+
 test('every rig-lab move: finite pose, planted feet always reached, no body pops in crossfades', () => {
-  const factory = {
-    movement: data.movement, weaponFiles: [data.ballistic, data.energy], attachments: data.attachments, recoil: data.recoil,
-    statuses: data.statuses, meleeWeapons: data.melee, kits: data.kits, classes: data.classes,
-  };
   const finite = (p) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z);
   for (const st of STATIONS) {
-    const cover = (st.boxes ?? []).map((b) => ({ min: new Vector3(...b.min), max: new Vector3(...b.max), surface: 'metal' }));
-    const world = new CombatWorld({ damageMatrix: data.matrix, cover, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses });
-    const e = buildFighter(world, factory, { id: 1, team: 0, classId: st.classId ?? 'lancer', pos: new Vector3(...(st.start ?? [0, 0, 0])), cover });
-    e.mode = st.mode ?? 'gun';
-    e.health.damage = () => ({});
-    const meleeSys = new MeleeSystem(); meleeSys.add(e.melee);
-    const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id) });
-    const h = sys.add(e); sys.focusId = 1;
-    const drv = new StationDriver(st);
-    const buddy = st.buddy ? buildFighter(world, factory, { id: 2, team: 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
-    if (buddy) { buddy.mode = 'gun'; buddy.health.damage = () => ({}); sys.add(buddy); }
-    const bdrv = buddyDriver(st);
-    const rec = sys.record(1);
     let worstReach = 0, worstPop = 0;
     const lastPelvis = new Vector3(), lastRoot = new Vector3();
     let frames = 0;
-    while (!drv.done) {
-      sys.snapshot();
-      const cmd = drv.command(e, DT, buddy);
-      if (buddy) { const bc = bdrv.command(buddy, DT, e); buddy.health.update(DT); buddy.movement.update(bc, DT); }
-      e.status.update(DT); e.health.update(DT);
-      e.movement.update(cmd, DT);
-      e.movement.state.speedScale = e.status.speedMul;
-      const r = routeCommand(e, cmd);
-      e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
-      world.update(DT); meleeSys.resolve();
-      sys.update(DT, 1, null);
+    runStation(st, (h, e, rec) => {
       const j = h.j;
       for (const p of [j.pelvis, j.neck, j.head, ...j.hip, ...j.knee, ...j.ankle, ...j.shoulder, ...j.elbow, ...j.hand, h.prop.base]) assert.ok(finite(p), `${st.id}: finite joints`);
       assert.ok(Math.abs(h.prop.dir.length() - 1) < 1e-3, `${st.id}: unit weapon direction`);
@@ -473,9 +482,74 @@ test('every rig-lab move: finite pose, planted feet always reached, no body pops
       // The body never teleports relative to the root: pose changes are crossfades, not cuts.
       if (frames++ > 0) worstPop = Math.max(worstPop, new Vector3().subVectors(j.pelvis, lastPelvis).sub(new Vector3().subVectors(rec.root, lastRoot)).length());
       lastPelvis.copy(j.pelvis); lastRoot.copy(rec.root);
-    }
+    });
     assert.ok(worstReach < 0.002, `${st.id}: planted foot missed by ${(worstReach * 1000).toFixed(1)} mm`);
     assert.ok(worstPop < 0.13, `${st.id}: pelvis jumped ${worstPop.toFixed(3)} m in one frame relative to the body`);
-    sys.dispose();
   }
+});
+
+/**
+ * Smoothness: the second difference of a channel (how much its per-frame motion changes in one
+ * frame) is what a pop is. A fast move is fine; a sudden change of speed is not. Ragdoll frames
+ * are the physics' own and are skipped.
+ */
+function smoothness() {
+  const hist = [], worst = {};
+  const d2 = (a, b, c) => (typeof c === 'number' ? Math.abs(c - 2 * b + a) : new Vector3().copy(c).addScaledVector(b, -2).add(a).length());
+  return {
+    worst,
+    add(limp, ch) {
+      hist.push({ limp, ch });
+      if (hist.length > 3) hist.shift();
+      if (hist.length < 3 || hist.some((x) => x.limp)) return;
+      const [a, b, c] = hist.map((x) => x.ch);
+      for (const k of Object.keys(c)) worst[k] = Math.max(worst[k] ?? 0, k.startsWith('yaw') ? Math.abs(angleDelta(b[k], c[k]) - angleDelta(a[k], b[k])) : d2(a[k], b[k], c[k]));
+    },
+  };
+}
+const bodyChannels = (h, rec) => {
+  const P = h.pose, j = h.j, root = rec.root;
+  return {
+    yawHips: angleDelta(h.yaw, P.yawP), pitchChest: P.pitchC, leanChest: P.leanC, pitchHips: P.pitchP,
+    pelvis: j.pelvis.clone().sub(root), hand0: j.hand[0].clone().sub(root), hand1: j.hand[1].clone().sub(root),
+    knee0: j.knee[0].clone().sub(root), knee1: j.knee[1].clone().sub(root), foot0: j.ankle[0].clone(), foot1: j.ankle[1].clone(),
+  };
+};
+
+test('every rig-lab move blends without pops: hips, chest, pelvis, hands, knees and feet change speed smoothly', () => {
+  // Limits are per 60 Hz frame. The fast commits (dive, slide, vault) pass well inside them.
+  const LIM = { yawHips: 0.1, pitchChest: 0.22, leanChest: 0.22, pitchHips: 0.22, pelvis: 0.07, hand0: 0.26, hand1: 0.26, knee0: 0.3, knee1: 0.3, foot0: 0.3, foot1: 0.3 };
+  for (const st of STATIONS) {
+    const sm = smoothness();
+    runStation(st, (h, e, rec) => {
+      const s = e.movement.state;
+      sm.add(s.mode === 'ragdoll' || h.limp || h.unlimpT < anim.blend.ragdollOut || h.active === 'dead', bodyChannels(h, rec));
+    });
+    // The flame sword's strikes are meant to whip (the blade's speed is the point); its hands are left out.
+    for (const [k, lim] of Object.entries(LIM)) if (!(st.mode === 'sword' && k.startsWith('hand'))) assert.ok((sm.worst[k] ?? 0) < lim, `${st.id}: ${k} changed speed by ${(sm.worst[k] ?? 0).toFixed(3)} in one frame (limit ${lim})`);
+  }
+});
+
+test('strafing: the hips swivel between facing a strafe and backpedalling it, never flip; the lean follows on a spring', () => {
+  const r = rig();
+  const sm = smoothness();
+  let worstYawStep = 0, lastYaw = null;
+  const frame = (rr) => {
+    const ch = bodyChannels(rr.h, rr.sys.record(1));
+    sm.add(false, ch);
+    if (lastYaw !== null) worstYawStep = Math.max(worstYawStep, Math.abs(angleDelta(lastYaw, ch.yawHips)));
+    lastYaw = ch.yawHips;
+  };
+  // Every 8-way direction, both ways round (through the sideways strafes, where the hips change sides),
+  // then quick reversals, a crouch-walk sweep and a stop.
+  const dirs = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1]];
+  for (const [x, y] of dirs) { r.cmd.moveX = x; r.cmd.moveY = y; r.run(0.45, frame); }
+  for (const [x, y] of [[1, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) { r.cmd.moveX = x; r.cmd.moveY = y; r.run(0.25, frame); }
+  r.held.add('crouch'); r.run(2 / 60, frame); r.held.delete('crouch'); r.run(0.3, frame);
+  for (const [x, y] of [[1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [0, 1]]) { r.cmd.moveX = x; r.cmd.moveY = y; r.run(0.4, frame); }
+  r.cmd.moveX = 0; r.cmd.moveY = 0; r.run(0.6, frame);
+  assert.ok(worstYawStep < 0.12, `hips turned ${worstYawStep.toFixed(3)} rad in one frame`);
+  assert.ok(sm.worst.yawHips < 0.08, `hip swivel changed speed by ${sm.worst.yawHips.toFixed(3)} in one frame`);
+  assert.ok(sm.worst.leanChest < 0.05 && sm.worst.pitchChest < 0.05, `the lean snapped (${sm.worst.leanChest.toFixed(3)}, ${sm.worst.pitchChest.toFixed(3)})`);
+  for (const k of ['foot0', 'foot1', 'knee0', 'knee1']) assert.ok(sm.worst[k] < 0.3, `${k} changed speed by ${sm.worst[k].toFixed(3)} in one frame`);
 });

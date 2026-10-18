@@ -5,7 +5,9 @@
 //    ground speed. Animation rate scales with movement speed by construction, not by tuning.
 //  * Each step lifts the trailing foot and swings it to a landing point predicted from the
 //    velocity: under the hip halfway through its stance. The prediction updates every frame, so
-//    turns, strafes and speed changes steer the swing while it's in the air.
+//    turns, strafes and speed changes steer the swing while it's in the air. The swing heads for
+//    the prediction at a speed a foot can move (maxAimSpeed), so a prediction that jumps (a sprint
+//    reversal, a sudden stop) steers the foot instead of teleporting it.
 //  * Swing progress is distance-based too (a swing lasts (1 - duty) of a stride of body travel),
 //    so a foot lands where the body needs it, even mid-acceleration.
 //  * Running duty factors are below 0.5, which gives a real flight phase (the heavy HD2 sprint
@@ -14,7 +16,8 @@
 //    footstep audio and dust all hang off, so they are frame-synced to the visible plant.
 //  * Standing still, settle steps put the feet back under the hips when the body turns in place.
 //  * Planted feet roll: heel strike (toe up, pivoting on the heel), flat, then heel rise
-//    (pivoting on the toe) before lift-off.
+//    (pivoting on the toe) before lift-off. The swing starts from the rolled foot (the ankle eases
+//    off the toe pivot), and a stop lets the roll settle flat instead of snapping it.
 
 import { Vector3 } from 'three';
 import { clamp, ease, smoothstep, lerp, lerpAngle, angleDelta, forwardOf, rightOf } from './ik.js';
@@ -32,10 +35,13 @@ const mkFoot = (side, index) => ({
   plant: new Vector3(), yaw: 0,         // ground point under the ankle while planted, and foot yaw
   from: new Vector3(), fromYaw: 0,      // swing start
   target: new Vector3(), targetYaw: 0,  // predicted landing (re-predicted every frame)
+  aim: new Vector3(), aimed: false,     // where the swing is heading: follows target at a foot's speed
   u: 0, swingDist: 1, swingTime: 0.2, lift: 0.1, settle: false, byDistance: false,
   stanceTravel: 0, stanceLen: 1,        // body travel since the plant (drives the foot roll)
   roll: 1,                              // +1 walking forward over the foot, -1 backward, ~0 side-stepping
   pos: new Vector3(),                   // current ground-contact point (moves only while swinging)
+  liftOff: new Vector3(), liftPitch: 0, // ankle offset and pitch at toe-off (the swing starts from them)
+  rollW: 0,                             // foot roll weight: eases in walking, out standing
   ankle: new Vector3(), pitch: 0,       // outputs: ankle target and foot pitch (+ = toe up)
 });
 
@@ -64,7 +70,7 @@ export class FootPlanter {
       this.#restPos(f, root, yaw, f.plant);
       f.yaw = yaw - f.side * this.cfg.toeOut;
       f.planted = true; f.u = 0; f.settle = false;
-      f.stanceTravel = 0.4; f.stanceLen = 1;
+      f.stanceTravel = 0.4; f.stanceLen = 1; f.rollW = 0;
       f.pos.copy(f.plant);
     }
     this.walking = false; this.clock = 0;
@@ -123,7 +129,7 @@ export class FootPlanter {
       if (f.planted) { f.stanceTravel += c.travel; continue; }
       const byDistance = moving && !f.settle;
       f.byDistance = byDistance;
-      f.u = Math.min(1, f.u + (byDistance ? c.travel / f.swingDist : c.dt / f.swingTime));
+      const du = byDistance ? c.travel / f.swingDist : c.dt / f.swingTime;
       if (byDistance) {
         // Land ahead of where the hip will be, by `land` of the coming stance. Real runners land
         // short (about 40%) and push off long behind on the toes.
@@ -135,6 +141,7 @@ export class FootPlanter {
         f.targetYaw = c.yaw - f.side * c.toeOut;
       }
       f.target.y = this.#ground(f.target.x, f.target.z, c.root.y, c.groundY);
+      f.u = Math.min(1, f.u + this.#steer(f, c, du));
       if (f.u >= 1) this.#land(f, c, _fwd);
     }
 
@@ -148,12 +155,19 @@ export class FootPlanter {
         if (err > worstErr) { worstErr = err; worst = f; }
       }
       if (worst && worstErr > 0.13) {
-        worst.planted = false; worst.u = 0; worst.settle = true;
+        this.#takeOff(worst);
+        worst.planted = false; worst.u = 0; worst.settle = true; worst.aimed = false;
         worst.from.copy(worst.plant); worst.fromYaw = worst.yaw;
         worst.swingTime = 0.2; worst.lift = 0.05;
       }
     }
-    this.#outputs(c.root);
+    this.#outputs(c.root, c.dt);
+  }
+
+  /** Where the rolled foot's ankle sits off its flat position at toe-off: the swing eases out of it. */
+  #takeOff(f) {
+    f.liftOff.set(f.ankle.x - f.plant.x, f.ankle.y - f.plant.y - this.dims.ankleH, f.ankle.z - f.plant.z);
+    f.liftPitch = f.pitch;
   }
 
   #trailing(root) {
@@ -167,16 +181,32 @@ export class FootPlanter {
   }
 
   #liftoff(f, c) {
-    f.planted = false; f.u = 0; f.settle = false;
+    this.#takeOff(f);
+    f.planted = false; f.u = 0; f.settle = false; f.aimed = false;
     f.from.copy(f.plant); f.fromYaw = f.yaw;
     f.swingDist = Math.max(0.15, (1 - c.duty) * c.stride);
     f.swingTime = f.swingDist / Math.max(c.speed, 0.5);
     f.lift = c.lift;
   }
 
+  /**
+   * The swing's aim follows the predicted landing at most at a foot's speed (m/s). While it's
+   * still catching up, the swing is held short of touchdown, so the foot lands where it's needed.
+   */
+  #steer(f, c, du) {
+    if (!f.aimed) { f.aim.copy(f.target); f.aimed = true; }
+    const dx = f.target.x - f.aim.x, dz = f.target.z - f.aim.z, d = Math.hypot(dx, dz);
+    const speed = (c.maxAimSpeed ?? 6) * (1 + 0.25 * c.speed), max = speed * c.dt;
+    if (d > max) { f.aim.x += (dx / d) * max; f.aim.z += (dz / d) * max; } else { f.aim.x = f.target.x; f.aim.z = f.target.z; }
+    f.aim.y = d > max ? this.#ground(f.aim.x, f.aim.z, c.root.y, c.groundY) : f.target.y;
+    // Time the aim still needs to arrive; the swing can't finish sooner (it slows, never reverses).
+    const left = Math.max(0, d - max) / speed;
+    return left > 0 ? Math.min(du, Math.max(0, 1 - f.u) * c.dt / (left + c.dt)) : du;
+  }
+
   #land(f, c, travelDir) {
     f.planted = true;
-    f.plant.copy(f.target);
+    f.plant.copy(f.aim);
     f.yaw = f.targetYaw;
     // Roll direction: forward walking strikes the heel and pushes off the toe; backpedalling is
     // the mirror image (toe strike, heel push-off); side-steps stay flat.
@@ -204,15 +234,16 @@ export class FootPlanter {
   }
 
   /** Contact point, ankle target and foot pitch for each foot. */
-  #outputs(root) {
+  #outputs(root, dt = 0) {
     const { ankleH, heel, toe } = this.dims;
     for (const f of this.feet) {
+      f.rollW += ((this.walking ? 1 : 0) - f.rollW) * (dt > 0 ? 1 - Math.exp(-10 * dt) : 0);
       if (f.planted) {
         f.pos.copy(f.plant);
         // Foot roll: heel strike (pivot on the heel), flat, heel rise (pivot on the toe). Mirrored
-        // when backpedalling, flat when side-stepping.
-        const p = this.walking ? f.stanceTravel / f.stanceLen : 0.4;
-        const roll = this.walking ? f.roll : 0;
+        // when backpedalling, flat when side-stepping. Stopping lets it settle flat.
+        const p = f.stanceTravel / f.stanceLen;
+        const roll = f.roll * f.rollW;
         f.pitch = (p < 0.12 ? lerp(0.18, 0, p / 0.12) : -(this.cfg.heelRise ?? 0.9) * smoothstep(0.55, 1.0, p)) * roll;
         forwardOf(f.yaw, _v);
         const ca = Math.cos(f.pitch), sa = Math.sin(f.pitch);
@@ -228,10 +259,13 @@ export class FootPlanter {
         const e = ease(f.u);
         // Lift peaks early and the foot comes down fast at the end: a heavy plant, not a tiptoe.
         const h = f.lift * Math.sin(Math.PI * Math.pow(f.u, 0.7));
-        f.pos.set(lerp(f.from.x, f.target.x, e), lerp(f.from.y, f.target.y, e) + h, lerp(f.from.z, f.target.z, e));
+        f.pos.set(lerp(f.from.x, f.aim.x, e), lerp(f.from.y, f.aim.y, e) + h, lerp(f.from.z, f.aim.z, e));
         f.yaw = lerpAngle(f.fromYaw, f.targetYaw, e);
-        f.pitch = f.u < 0.3 ? lerp(-0.5, 0, f.u / 0.3) : lerp(0, 0.2, clamp((f.u - 0.3) / 0.7, 0, 1));
-        f.ankle.set(f.pos.x, f.pos.y + ankleH, f.pos.z);
+        // Out of the toe-off: the ankle leaves the toe pivot and the pitch blends into the swing's.
+        const k = 1 - smoothstep(0, 0.35, f.u);
+        const pitch = f.u < 0.3 ? lerp(-0.5, 0, f.u / 0.3) : lerp(0, 0.2, clamp((f.u - 0.3) / 0.7, 0, 1));
+        f.pitch = lerp(pitch, f.liftPitch, k);
+        f.ankle.set(f.pos.x + f.liftOff.x * k, f.pos.y + ankleH + f.liftOff.y * k, f.pos.z + f.liftOff.z * k);
       }
     }
     return root;
