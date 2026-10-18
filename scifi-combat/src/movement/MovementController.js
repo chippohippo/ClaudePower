@@ -923,6 +923,17 @@ export class MovementController {
     }
   }
 
+  /**
+   * A landing's fall damage (past the knockdown speed). True if it downed or killed: the hit has
+   * thrown the body limp there and then (HitReactions, inside the damage call), and the landing is
+   * over; it mustn't stand the body up again, or put it into a knockdown it would get up from.
+   */
+  #landHurt(impact) {
+    const L = this.t.landing, mode = this.state.mode;
+    if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
+    return this.state.mode !== mode;
+  }
+
   #onLand(impact) {
     const s = this.state, L = this.t.landing;
     switch (s.mode) {
@@ -936,7 +947,7 @@ export class MovementController {
         s.slide.from = dv.kind; s.slide.dirYaw = dv.dirYaw;
         return;
       case MoveState.KNOCKDOWN:
-        if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
+        if (this.#landHurt(impact)) return;
         s.knock.phase = 'ground'; s.knock.rest = 0;
         bus.emit('move:knockLand', { id: this.id, impact });
         return;
@@ -952,8 +963,7 @@ export class MovementController {
         if (tuck && s.mode === MoveState.AIR) {
           if (impact >= this.t.roll.maxImpact) {
             // Too far to roll out of: the legs fold and the body goes down in a heap.
-            if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
-            this.startRagdoll(0, 0.5, 0, { cause: 'fall' });
+            if (!this.#landHurt(impact)) this.startRagdoll(0, 0.5, 0, { cause: 'fall' });
             return;
           }
           if (impact >= this.t.roll.minImpact) { this.#startLandRoll(impact); return; }
@@ -965,7 +975,7 @@ export class MovementController {
           }
         }
         if (impact >= L.knockdownAt) {
-          this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
+          if (this.#landHurt(impact)) return;
           s.knock = { phase: 'ground', t: 0, rest: 0, supine: false };
           s.sprinting = false;
           this.body.setHeight(this.t.heights.prone);
@@ -1086,9 +1096,8 @@ export class MovementController {
    * goes partly into the roll; the roll takes `absorb` off what the landing costs.
    */
   #startLandRoll(impact) {
-    const s = this.state, R = this.t.roll, L = this.t.landing;
-    const hurt = impact - R.absorb;
-    if (hurt >= L.knockdownAt) this.hooks.fallDamage?.((hurt - L.knockdownAt) * L.fallDamagePerMs);
+    const s = this.state, R = this.t.roll;
+    if (this.#landHurt(impact - R.absorb)) return;
     const hs = this.#hspeed();
     const dirYaw = hs > 0.5 ? yawOf(s.velocity.x, s.velocity.z) : s.bodyYaw;
     const speed = Math.min(R.maxSpeed * this.mods.speedMul, hs * R.keep + impact * R.convert);

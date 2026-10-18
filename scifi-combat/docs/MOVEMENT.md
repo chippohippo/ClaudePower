@@ -154,6 +154,9 @@ Ground steeper than 48° makes you lose footing.
 - **Any living ragdoll landing hard** takes fall damage as a soldier on his feet would from the same
   height (its lighter ragdoll gravity is allowed for): a body thrown off a roof by a blast is hurt
   by the landing too.
+- **A landing that downs or kills** (its fall damage the last of the health): the body goes limp
+  where it lands, as with any hit that downs, whether it came down from a knockdown, on its feet
+  or in a roll; it doesn't get up again or roll on.
 
 ## Collision and steps (`FlatGroundBody`)
 

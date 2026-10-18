@@ -37,7 +37,7 @@ function ledge(h) {
   };
   // Run for the edge, then do it 1.4 m short of it.
   const go = (key) => { while (m.state.position.z > -1.6) step(); taps.add(key); held.clear(); cmd.moveY = 0; };
-  return { m, s: m.state, h: sys.get(1), hurt, step, go };
+  return { m, s: m.state, h: sys.get(1), hurt, step, go, still: () => { held.clear(); cmd.moveY = 0; } };
 }
 
 test('dives get more air and go farther: about half a metre up and half a second in the air', () => {
@@ -130,4 +130,38 @@ test('off a step a slide slides on; off too high a drop it can\'t be rolled out 
   for (let i = 0; i < 200 && high.s.mode !== 'ragdoll'; i++) high.step();
   assert.equal(high.s.mode, 'ragdoll', 'crumpled');
   assert.ok(high.hurt.length && high.hurt[0] > 30, `and hurt (${high.hurt[0]?.toFixed(0)})`);
+});
+
+test('a landing that downs leaves the body to the ragdoll: from a knockdown, on its feet or in a roll', () => {
+  // As in a match: the fall's damage goes through Health, and a hit that downs (or kills) throws the
+  // body limp there and then (HitReactions), inside the damage call. The landing mustn't then carry
+  // on as if nothing had happened (a knockdown or a roll that a downed soldier would get up from).
+  // (Once a crash: the knockdown's landing found its state gone.)
+  const downs = (r) => {
+    r.m.hooks.fallDamage = (a) => { r.hurt.push(a); r.m.hooks.vital = () => 'downed'; r.m.startRagdoll(0, 0, 0, { cause: 'downed' }); };
+    return r;
+  };
+  const land = (r) => { for (let i = 0; i < 300 && !r.hurt.length; i++) r.step(); r.step(); r.step(); };
+  // Knocked down at an edge and over it (a floor gone from under the body): 7 m.
+  const k = downs(ledge(7));
+  k.still();
+  k.s.position.set(0, 7, -5); k.m.body.teleport(k.s.position);
+  Object.assign(k.s, { mode: 'knockdown', knock: { phase: 'ground', t: 0, rest: 0, supine: false }, grounded: false, timeSinceGrounded: 0 });
+  land(k);
+  assert.ok(k.hurt.length, 'hurt by the landing');
+  assert.equal(k.s.mode, 'ragdoll', 'knocked down');
+  // Run off the same drop on foot.
+  const f = downs(ledge(7));
+  land(f);
+  assert.ok(f.hurt.length, 'hurt by the landing');
+  assert.equal(f.s.mode, 'ragdoll', 'on its feet');
+  // A slide off 8.5 m: a roll, but one that still hurts.
+  const r = downs(ledge(8.5));
+  r.go('crouch');
+  land(r);
+  assert.ok(r.hurt.length, 'hurt by the landing');
+  assert.equal(r.s.mode, 'ragdoll', 'rolling');
+  // Down, the body comes to rest downed, not back on its feet.
+  for (let i = 0; i < 600 && r.s.mode === 'ragdoll'; i++) r.step();
+  assert.ok(r.s.downed && r.s.mode === 'ground', `rests downed (${r.s.mode}${r.s.downed ? ', downed' : ''})`);
 });
