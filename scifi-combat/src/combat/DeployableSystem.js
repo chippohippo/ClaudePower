@@ -30,11 +30,11 @@ const _f = new Vector3();
 const _muzzle = new Vector3();
 const _c = new Vector3();
 const _drop = new Vector3();   // vehicle drop spot probes
-let nextDeployableId = 100000;
 
 export class DeployableSystem {
   constructor(world) {
     this.world = world;
+    this.nextId = 100000;   // (per world: a match plays the same whatever ran before it)
     this.list = [];
     this.walls = [];   // the only kind line-of-sight rays care about
     // Everything else that can be shot, hashed once a tick, so a bullet's ray tests the few
@@ -56,7 +56,7 @@ export class DeployableSystem {
     if (spec.kind === 'decoy') pos.copy(owner.movement.state.position);
 
     const d = {
-      id: nextDeployableId++, isDeployable: true, ...spec, team: spec.team, owner,
+      id: this.nextId++, isDeployable: true, ...spec, team: spec.team, owner,
       movement: { state: { position: pos, invulnerable: false, yaw: spec.yaw ?? 0, velocity: new Vector3() } },
       age: 0, armed: !ARM_TIME[spec.kind], aimYaw: spec.yaw ?? 0, target: null, cooldowns: new Map(), sincePulse: 0, sinceTickCue: 0,
     };

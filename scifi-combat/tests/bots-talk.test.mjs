@@ -92,13 +92,14 @@ test('frontline: squads flank and fall back as the fight goes, saying so', () =>
   };
   const ev = events(['squad:bark', 'squad:flank', 'squad:phase']);
   // A flank is a judgement call a squad makes about once in two or three minutes of a 12v12, and
-  // how a battle goes swings it (some never see one): run until one has, up to four minutes (at
-  // least two and a half), and if that battle didn't, a second one.
+  // how a battle goes swings it: about half of four-minute battles see one (measured over 16
+  // seeds), and any change to how men move reshuffles which. Run until one has, up to four minutes
+  // (at least two and a half), and if that battle didn't, another, up to four battles.
   let s = null;
   // (Squads under standing orders: the doctrine's commanders storm and keep their squads fighting below
   // strength, and a squad with fewer than three men up doesn't flank: see docs/FRONTLINE.md, Command.)
   const command = [data.ai.difficulty.recruit.command, data.ai.difficulty.recruit.command];
-  for (const seed of [1, 2]) {
+  for (const seed of [1, 2, 3, 4]) {
     s = new FrontlineSession(sessionData, { size: '12v12', seed, command });
     for (let i = 0; i < 60 * 240 && (i < 60 * 150 || !ev.got.some((e) => e.type === 'squad:flank')); i++) s.step(1 / 60);
     s.dispose();

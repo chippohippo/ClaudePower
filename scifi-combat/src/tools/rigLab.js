@@ -1,7 +1,9 @@
 // Rig lab: every move from rigLabStations.js, side by side, looping, with slow motion, orbit,
 // pause/step and debug overlays (planted feet, hit spheres, the event log). Use it to judge the
 // animation against Helldivers 2 footage frame by frame (docs/ANIMATION.md: calibration).
-// URL: rig-lab.html?station=slide&view=side&speed=0.25   ·   &at=1.9 freezes at that loop time.
+// URL: rig-lab.html?station=slide&view=side&speed=0.25   ·   &at=1.9 freezes at that loop time;
+// &solo shows only that station, &yaw=0.6&pitch=0.9&dist=4 frames the orbit view, &marks=0 hides
+// the planted-feet discs (for screenshots).
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -12,7 +14,8 @@ import { routeCommand } from '../core/routing.js';
 import { AnimationSystem } from '../anim/AnimationSystem.js';
 import { CrowdRenderer } from '../render/CrowdRenderer.js';
 import { hitSpheres } from '../movement/Hitboxes.js';
-import { STATIONS, StationDriver, buddyDriver } from './rigLabStations.js';
+import { STATIONS, StationDriver, buddyDriver, floorOf } from './rigLabStations.js';
+import { BodyContacts } from '../movement/BodyContacts.js';
 
 const DT = 1 / 60;
 const SPACING = 6;
@@ -53,21 +56,24 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); ca
 // ---------------------------------------------------------------- world and stations
 const world = new CombatWorld({ damageMatrix: damage.matrix, cover: [], supers, meleeWeapons: melee.weapons, recoilDefs: recoil.patterns, vehicleDefs: vehicles, statusDefs: statuses.statuses });
 const meleeSys = new MeleeSystem();
-const animSys = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z) });
+// Bodies solid to each other and feet on what they stand on, as in the game.
+const bodies = new BodyContacts(factoryData.movement.bodies);
+const animSys = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: floorOf(world.cover), bodies });
 const crowd = new CrowdRenderer(scene, { max: STATIONS.length + 2 });
 const boxMat = new THREE.MeshStandardMaterial({ color: '#6d7487' });
 let nextId = 1;
+const solo = params.has('solo');
 const slots = STATIONS.map((st, i) => {
-  const x = i * SPACING;
+  const x = i * SPACING, meshes = [];
   for (const b of st.boxes ?? []) {
     const box = { min: new THREE.Vector3(x + b.min[0], b.min[1], b.min[2]), max: new THREE.Vector3(x + b.max[0], b.max[1], b.max[2]), surface: 'metal' };
     world.cover.push(box);
     const size = new THREE.Vector3().subVectors(box.max, box.min);
     const m = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), boxMat);
     m.position.copy(box.min).addScaledVector(size, 0.5); m.castShadow = m.receiveShadow = true;
-    scene.add(m);
+    scene.add(m); meshes.push(m);
   }
-  return { st, x, e: null, driver: null };
+  return { st, x, e: null, driver: null, meshes };
 });
 
 function spawnFighter(slot, def) {
@@ -109,16 +115,18 @@ function tick() {
       e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
     }
   }
+  bodies.step(slots.flatMap((s) => (s.buddy ? [s.e, s.buddy] : [s.e])), [], DT, nudge);
   world.update(DT);
   meleeSys.resolve();
 }
+const nudge = (f, dx, dz) => f.movement.nudge(dx, dz);
 
 // ---------------------------------------------------------------- UI
 let selected = Math.max(0, STATIONS.findIndex((s) => s.id === params.get('station')));
 let view = params.get('view') ?? 'side';
 let speed = +(params.get('speed') ?? 1);
 let paused = false, stepOnce = false;
-const overlays = { feet: true, hits: false };
+const overlays = { feet: params.get('marks') !== '0', hits: false };
 const ui = document.getElementById('ui');
 ui.innerHTML = `
   <div class="row">${STATIONS.map((s, i) => `<button data-st="${i}">${s.name}</button>`).join('')}</div>
@@ -126,7 +134,7 @@ ui.innerHTML = `
     ${['side', 'front', 'back', 'top', 'orbit'].map((v) => `<button data-view="${v}">${v}</button>`).join('')}
     <label>speed <input id="speed" type="range" min="0.05" max="1" step="0.05" value="${speed}"><span id="speedv"></span></label>
     <button id="pause">pause</button><button id="step">step</button>
-    <label><input id="feet" type="checkbox" checked> planted feet</label>
+    <label><input id="feet" type="checkbox"${overlays.feet ? ' checked' : ''}> planted feet</label>
     <label><input id="hits" type="checkbox"> hit spheres</label>
   </div>`;
 const refreshUi = () => {
@@ -146,7 +154,7 @@ ui.addEventListener('click', (ev) => {
 document.getElementById('speed').addEventListener('input', (ev) => { speed = +ev.target.value; refreshUi(); });
 document.getElementById('feet').addEventListener('change', (ev) => (overlays.feet = ev.target.checked));
 document.getElementById('hits').addEventListener('change', (ev) => (overlays.hits = ev.target.checked));
-let orbit = { yaw: 0.9, pitch: 0.25, dragging: false };
+let orbit = { yaw: +(params.get('yaw') ?? 0.9), pitch: +(params.get('pitch') ?? 0.25), dist: +(params.get('dist') ?? 5), dragging: false };
 renderer.domElement.addEventListener('mousedown', () => { orbit.dragging = true; view = 'orbit'; refreshUi(); });
 addEventListener('mouseup', () => (orbit.dragging = false));
 addEventListener('mousemove', (ev) => { if (orbit.dragging) { orbit.yaw -= ev.movementX * 0.006; orbit.pitch = Math.max(-0.2, Math.min(1.3, orbit.pitch + ev.movementY * 0.004)); } });
@@ -180,7 +188,7 @@ function placeCamera(dtReal) {
   else if (view === 'front') want.set(root.x, root.y + 1.2, root.z - 5);
   else if (view === 'back') want.set(root.x + 0.6, root.y + 1.8, root.z + 2.6);
   else if (view === 'top') want.set(root.x + 0.01, root.y + 9, root.z);
-  else want.set(root.x + Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * 5, root.y + 0.9 + Math.sin(orbit.pitch) * 5, root.z + Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * 5);
+  else want.set(root.x + Math.sin(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist, root.y + 0.9 + Math.sin(orbit.pitch) * orbit.dist, root.z + Math.cos(orbit.yaw) * Math.cos(orbit.pitch) * orbit.dist);
   camPos.lerp(want, camPos.lengthSq() === 0 ? 1 : k);
   camera.position.copy(camPos);
   camera.lookAt(look);
@@ -191,10 +199,14 @@ function draw(dtAnim, alpha, dtReal) {
   animSys.focusId = slots[selected].e.id;
   animSys.update(dtAnim, alpha, camera.position);
   placeCamera(dtReal);
-  crowd.begin(camera);
-  for (const r of animSys.list) r.lod < 2 ? crowd.drawRig(r.h, r.e.look, r.lod) : crowd.drawImpostor(r.root, { yaw: r.e.movement.state.bodyYaw, height: 1.8 }, r.e.look);
-  crowd.end();
   const sel = slots[selected], h = animSys.get(sel.e.id), s = sel.e.movement.state;
+  crowd.begin(camera);
+  for (const r of animSys.list) {
+    if (solo && r.e !== sel.e && r.e !== sel.buddy) continue;
+    r.lod < 2 ? crowd.drawRig(r.h, r.e.look, r.lod) : crowd.drawImpostor(r.root, { yaw: r.e.movement.state.bodyYaw, height: 1.8 }, r.e.look);
+  }
+  crowd.end();
+  if (solo) for (const sl of slots) for (const m of sl.meshes) m.visible = sl === sel;
   for (let i = 0; i < 2; i++) {
     const f = h.planter.feet[i];
     footMarks[i].visible = overlays.feet && h.planterLive && f.planted;

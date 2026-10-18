@@ -98,6 +98,10 @@ test('counter-battery: a gun that keeps firing gets located and shelled', () => 
   bus.emit('gun:fire', { id: v.id, team: 1, kind: 'howitzer', from: P(v).toArray(), at: null });
   sc.next = 0; sc.update(0);
   assert.ok(!sc.units.some((u) => u.mission?.kind === 'counter'), 'one shot: not located yet');
+  // (Meanwhile the guns took up whatever else there was: men our soldiers can see, if the fronts have
+  // met by now. A gun keeps its mission unless something much more urgent comes up, and a located
+  // gun isn't that much more urgent than a group of men in the open; clean slate again.)
+  for (const u of sc.units) u.mission = null;
   for (let k = 0; k < 2; k++) bus.emit('gun:fire', { id: v.id, team: 1, kind: 'howitzer', from: P(v).toArray(), at: null });
   sc.next = 0; sc.update(0);
   const cb = sc.units.filter((u) => u.mission?.kind === 'counter');

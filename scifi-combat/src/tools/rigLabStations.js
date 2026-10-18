@@ -189,7 +189,52 @@ export const STATIONS = [
       c.hold('guard', between(t, 4.0, 5.2));
     },
   },
+  // ---- bodies and steps (BodyContacts, FootPlanter): what's underfoot and who's in the way
+  {
+    id: 'kerb', name: 'Up a kerb at a jog, then backing down off it: the feet lift onto it, no slowdown', length: 6.8,
+    start: [0, 0, 3], boxes: [{ min: [-2, -0.25, -6], max: [2, 0.16, 0] }],
+    script(t, c) {
+      if (between(t, 0.3, 2.4)) c.move(0, 1);
+      else if (between(t, 3.0, 6.0)) c.move(0, -0.5);   // (backing off it at a walk; at a jog the hips still drop a touch sharply)
+    },
+  },
+  {
+    id: 'stepOver', name: 'Stepping over a man lying across the way', length: 6,
+    start: [0, 0, 3],
+    buddy: { start: [0, 0, -1], script(t, c) { c.look(Math.PI / 2); c.hold('prone', t > 0.1); } },
+    script(t, c) { if (between(t, 1.6, 5.2)) c.move(0, 0.5); },
+  },
+  {
+    id: 'wallPush', name: 'Walking on into a wall: a hand out flat against it', length: 4.6,
+    start: [0, 0, 1.6], boxes: [{ min: [-2, 0, -1.6], max: [2, 2.4, -1.2] }],
+    script(t, c) { if (between(t, 0.3, 3.6)) c.move(0, 0.6); },
+  },
+  {
+    id: 'squeeze', name: 'Squeezing past a man standing in a narrow trench', length: 7,
+    start: [0, 0, 3], boxes: [{ min: [-2, 0, -7], max: [-0.45, 1.4, 4] }, { min: [0.45, 0, -7], max: [2, 1.4, 4] }],
+    buddy: { start: [0, 0, -1.5], script(t, c) { c.look(Math.PI); } },
+    script(t, c) { if (between(t, 0.4, 6.2)) c.move(0, 0.55); },
+  },
+  {
+    id: 'bump', name: 'Jogging into a lighter man standing there: he stumbles with it', length: 4.5,
+    start: [0, 0, 5],
+    buddy: { classId: 'veil', start: [0.15, 0, -2.5], script(t, c) { c.look(Math.PI / 2); } },
+    script(t, c) { if (between(t, 0.3, 2.4)) c.move(0, 1); },
+  },
 ];
+
+/**
+ * What the feet stand on among a station's (or any list of) boxes: the top of the highest one
+ * at or below the hips' level over (x, z), else the ground at 0 (as the game's floorAt).
+ */
+export function floorOf(boxes) {
+  return (x, z, near) => {
+    if (near === undefined) return 0;
+    let top = 0;
+    for (const b of boxes) if (x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z && b.max.y <= near + 0.45 && b.max.y > top) top = b.max.y;
+    return top;
+  };
+}
 
 /** Builds commands for a station from its script, with clean button edges. */
 export class StationDriver {

@@ -142,7 +142,15 @@ post.enabled = fxMode !== 'off';
 const sunScreen = new THREE.Vector3();
 
 const battlefield = new BattlefieldRenderer(scene, map, { localTeam: myTeam, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()), art: { planet, palette } });
-const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: (x, z) => map.terrain.height(x, z) });
+// Feet stand on what the body stands on: the terrain, or a kerb, a stair, a sandbag top near the
+// hips' level (CoverIndex.topAt); and they go over, not onto, anyone lying on the ground (BodyContacts).
+const floorAt = (x, z, near) => {
+  const g = map.terrain.height(x, z);
+  if (near === undefined) return g;
+  const top = map.cover.topAt(x, z, near + 0.45);
+  return top > g ? top : g;
+};
+const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: floorAt, bodies: session.bodies });
 // Each fighter wears its role's kit in its army's paint, with its own stencilled number. The
 // city's people wear street clothes (their number picks their colours; a raider's, his gang's).
 for (const f of session.fighters) {

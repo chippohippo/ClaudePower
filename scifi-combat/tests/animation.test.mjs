@@ -430,7 +430,8 @@ import { buildFighter } from '../src/game/FighterFactory.js';
 import { CombatWorld } from '../src/combat/CombatWorld.js';
 import { MeleeSystem } from '../src/combat/melee/MeleeSystem.js';
 import { routeCommand } from '../src/core/routing.js';
-import { STATIONS, StationDriver, buddyDriver } from '../src/tools/rigLabStations.js';
+import { STATIONS, StationDriver, buddyDriver, floorOf } from '../src/tools/rigLabStations.js';
+import { BodyContacts } from '../src/movement/BodyContacts.js';
 
 const stationFactory = {
   movement: data.movement, weaponFiles: [data.ballistic, data.energy], attachments: data.attachments, recoil: data.recoil,
@@ -445,7 +446,8 @@ function runStation(st, onFrame) {
   e.mode = st.mode ?? 'gun';
   e.health.damage = () => ({});
   const meleeSys = new MeleeSystem(); meleeSys.add(e.melee);
-  const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id) });
+  const bodies = new BodyContacts(data.movement.bodies);   // (as in the game: solid to each other, feet on what's underfoot)
+  const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id), groundY: floorOf(cover), bodies });
   const h = sys.add(e); sys.focusId = 1;
   const drv = new StationDriver(st);
   const buddy = st.buddy ? buildFighter(world, stationFactory, { id: 2, team: 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
@@ -461,6 +463,7 @@ function runStation(st, onFrame) {
     e.movement.state.speedScale = e.status.speedMul;
     const r = routeCommand(e, cmd);
     e.abilities.update(cmd, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT);
+    bodies.step(buddy ? [e, buddy] : [e], [], DT, (f, dx, dz) => f.movement.nudge(dx, dz));
     world.update(DT); meleeSys.resolve();
     sys.update(DT, 1, null);
     onFrame(h, e, rec);

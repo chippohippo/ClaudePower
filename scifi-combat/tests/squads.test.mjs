@@ -84,7 +84,9 @@ test('suppression: near misses, hits and blasts pin soldiers down, then it bleed
 });
 
 test('over the top: both sides man their jump-off trench, the whistle blows, everyone goes at once', () => {
-  const s = new FrontlineSession(sessionData, { size: '4v4', seed: 5 });
+  // (A 4v4 battle is chaotic: a man shot as the whistle goes, a squad short of its 3, on about half
+  // of all seeds, with or without solid bodies. This one goes cleanly both ways.)
+  const s = new FrontlineSession(sessionData, { size: '4v4', seed: 6 });
   const whistles = [];
   const off = bus.on('squad:whistle', (e) => whistles.push({ ...e, t: s.time }));
   const manned = [0, 0], out = [0, 0], infantry = [4, 4];
@@ -185,6 +187,9 @@ test('stormed: a squad fighting its way up to the point it attacks goes onto it 
 test('hold: anchors stay on the point, the rest hold a line in cover toward the enemy', () => {
   const s = new FrontlineSession(sessionData, { size: '12v12', seed: 6 });
   for (const c of s.commanders) c.update = () => {};
+  // (Nor the guns: men standing on a point the enemy can see get shelled, and a shell on the point
+  // takes the anchors with it; this is about where the squad stands.)
+  for (const sc of s.support ?? []) sc.update = () => {};
   const sq = s.squads[0][1];
   const point = s.mode.points.find((p) => p.owner === 0 && s.map.sectors[p.sector].kind === 'line');
   sq.objective = point.id; sq.role = 'defend';

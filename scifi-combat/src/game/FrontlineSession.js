@@ -42,6 +42,7 @@ import { MatchStats } from './MatchStats.js';
 import { Pings } from '../combat/Pings.js';
 import { BodyContacts } from '../movement/BodyContacts.js';
 import { J } from '../physics/Ragdoll.js';
+import { bodyAxisYaw } from '../movement/Hitboxes.js';
 import { Barks } from '../ai/Barks.js';
 import { Neutrals } from './Neutrals.js';
 import { Intel } from '../ai/command/Intel.js';
@@ -88,7 +89,7 @@ export class FrontlineSession {
     this.pings = this.world.pings = new Pings(this.world);   // marks for your side: enemies, where to go, what you need
     // Soldiers are solid to each other: shoulder to shoulder, prone side by side, stepping over the fallen (docs/MOVEMENT.md, "Bodies").
     this.bodies = this.world.bodies = data.movement.bodies ? new BodyContacts(data.movement.bodies) : null;
-    this.bodyList = []; this.corpseList = [];
+    this.corpseList = []; this.fallen = []; this.fallenN = 0;
     this.world.wire = new WireField(this.map.wire);
     // What each side knows of the other: who's been seen where, and which ground has been watched.
     this.intel = this.world.intel = [0, 1].map((t) => new Intel(t, { bounds: this.map.bounds }));
@@ -286,7 +287,7 @@ export class FrontlineSession {
       f.movement.state.speedScale = f.status.speedMul * (w.wire ? w.wire.slowAt(p.x, p.z) : 1); // wire: slow, no sprint
       f.abilities.update(c, fdt); f.melee.update(r.meleeCmd, fdt); f.weapons.update(r.gunCmd, fdt);
     }
-    if (this.bodies) this.bodies.step(this.#bodies(), this.#corpses(), dt, nudge);
+    if (this.bodies) this.bodies.step(this.fighters, this.#corpses(), dt, nudge);
     w.update(dt);
     this.structures?.update(dt);
     if (this.structures?.towers.length) this.#towerFall();
@@ -308,23 +309,21 @@ export class FrontlineSession {
     this.stats.simMs = performance.now() - t0;
   }
 
-  /** Everyone with a body on the ground this tick: the soldiers, and the city's civilians and gangs. */
-  #bodies() {
-    const L = this.bodyList; L.length = 0;
-    for (const f of this.fighters) L.push(f);
-    if (this.neutrals) { for (const f of this.neutrals.civilians) L.push(f); for (const f of this.neutrals.bandits) L.push(f); }
-    return L;
-  }
-
-  /** The dead lying where they fell (their ragdoll at rest), head to feet, for the living to step over. */
+  /**
+   * The dead lying where they fell, head to feet, for the living to step over: those still on the
+   * field (a ragdoll come to rest, or one who bled out where he lay), and the bodies left behind by
+   * the ones who've since redeployed (`fallen`: as long as the client shows them, 90 s, 96 at most).
+   */
   #corpses() {
     const L = this.corpseList; L.length = 0;
     for (const f of this.fighters) {
-      if (!f.health.dead || f.offField) continue;
-      const r = f.movement.ragdoll;
-      if (!r?.asleep || f.movement.state.mode !== 'ragdoll') continue;
-      L.push({ id: f.id, ax: r.x[J.HEAD], az: r.z[J.HEAD], bx: (r.x[J.ANKLE_L] + r.x[J.ANKLE_R]) / 2, bz: (r.z[J.ANKLE_L] + r.z[J.ANKLE_R]) / 2, y: r.y[J.PELVIS] - 0.15 });
+      if (!f.health.dead || f.offField || f.vehicle) continue;
+      const c = corpseOf(f);
+      if (c) L.push(c);
     }
+    const F = this.fallen;
+    while (F.length && (this.time - F[0].at > 90 || F.length > 96)) F.shift();
+    for (const c of F) L.push(c);
     return L;
   }
 
@@ -475,6 +474,8 @@ export class FrontlineSession {
 
   #deploy(f, initial = false, near = null, { hq = false } = {}) {
     const w = this.world, team = f.team;
+    // The body he leaves behind stays where it fell (as the client keeps showing it): still something to step over.
+    if (!initial && f.health.dead && !f.offField) { const c = corpseOf(f); if (c) this.fallen.push({ ...c, id: 100000 + this.fallenN++, at: this.time }); }
     if (f.vehicle) w.vehicles.exit(f);
     revertTransform(f, 'respawn');
     const enemiesNear = (p) => { let found = false; w.fightersNear(p, 25, (e) => { if (!found && e.team !== team && !e.health.dead && e.movement.state.position.distanceTo(p) < 25) found = true; }); return found; };
@@ -523,6 +524,19 @@ export class FrontlineSession {
 const EMPTY = Object.freeze({ moveX: 0, moveY: 0, yaw: 0, pitch: 0, buttons: {} });
 /** BodyContacts' push: a body moved by another, through the world. */
 const nudge = (f, dx, dz) => f.movement.nudge(dx, dz);
+
+/** A dead soldier's body as it lies, head to feet ({ id, ax, az, bx, bz, y }), or null while it's still falling. */
+function corpseOf(f) {
+  const m = f.movement, s = m.state, r = m.ragdoll;
+  if (s.mode === 'ragdoll') {
+    if (!r?.asleep) return null;
+    return { id: f.id, ax: r.x[J.HEAD], az: r.z[J.HEAD], bx: (r.x[J.ANKLE_L] + r.x[J.ANKLE_R]) / 2, bz: (r.z[J.ANKLE_L] + r.z[J.ANKLE_R]) / 2, y: r.y[J.PELVIS] - 0.15 };
+  }
+  if (s.mode === 'stagger') return null;   // (the death stumble: not down yet)
+  // Bled out or gave up where he lay: prone (or on his back) along his body's axis.
+  const p = s.position, yaw = bodyAxisYaw(f), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  return { id: f.id, ax: p.x + fx * 0.62, az: p.z + fz * 0.62, bx: p.x - fx * 0.82, bz: p.z - fz * 0.82, y: p.y };
+}
 /** A reviver's command: keep looking where they look, nothing else (interact stays held for the job). */
 function kneeling(cmd) { return { ...cmd, moveX: 0, moveY: 0, buttons: { interact: cmd.buttons.interact ?? NONE } }; }
 /** The last command with its edges removed: held buttons stay held, nothing is pressed twice. */

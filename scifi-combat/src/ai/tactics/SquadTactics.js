@@ -589,7 +589,9 @@ export class SquadTactics {
         if (s) J.positions.set(m, s);
       }
       if (s) { this.tmap.reserve(s, m.id, now); taken.push(s); if (d2(pos(m), s) < 2) inPlace++; }
-      this.#order(m, { kind: 'man', pos: s ?? { x: T.cx - dir * 2, z: laneZ }, spot: s, fire: 'cover', face: this.threat, suppress: this.hasThreat ? this.threat : null, sprint: !s || d2(pos(m), s) > 8, arrive: 0.7, why: 'jump-off' });
+      // (No firing position left in our stretch: a place of his own behind it, not the same spot as everyone else's.)
+      const wait = s ?? { x: T.cx - dir * (2 + (k % 2) * 1.6), z: laneZ + (k - (up.length - 1) / 2) * 2.2 };
+      this.#order(m, { kind: 'man', pos: wait, spot: s, fire: 'cover', face: this.threat, suppress: this.hasThreat ? this.threat : null, sprint: !s || d2(pos(m), s) > 8, arrive: 0.7, why: 'jump-off' });
     });
     // Ready when most of us are in place: tell the commander, who blows the whistle for the line.
     if (!J.ready && (inPlace >= Math.ceil(up.length * 0.75) || now - J.since > 25)) { J.ready = true; J.readyAt = now; this.cmdr?.readyAtTrench?.(this, T); }

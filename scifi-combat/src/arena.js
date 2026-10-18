@@ -26,6 +26,7 @@ import { routeCommand } from './core/routing.js';
 import { AudioDirector } from './audio/AudioDirector.js';
 import { SoundEngine } from './audio/SoundEngine.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
+import { BodyContacts } from './movement/BodyContacts.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { reactToHit, woundSite } from './combat/HitReactions.js';
@@ -95,7 +96,16 @@ bus.on('world:coverDestroyed', (e) => { const m = coverMeshes.get(e.cover); cons
 
 // Characters: a procedural Helldivers 2-style rig per fighter (foot planting, sim-timed
 // transitions, animation-synced foley), drawn by one instanced crowd renderer.
-const animSys = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z) });
+// Bodies solid to each other (docs/MOVEMENT.md, "Bodies"), the feet on the boxes' tops near the hips.
+const bodies = world.bodies = new BodyContacts(movementTuning.bodies);
+const floorAt = (x, z, near) => {
+  if (near === undefined) return 0;
+  let top = 0;
+  for (const b of boxes) if (x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z && b.max.y <= near + 0.45 && b.max.y > top) top = b.max.y;
+  return top;
+};
+const nudge = (f, dx, dz) => f.movement.nudge(dx, dz);
+const animSys = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id), surfaceAt: (x, y, z) => world.surfaceAt(x, y, z), groundY: floorAt, bodies });
 const crowd = new CrowdRenderer(scene, { max: 64 });
 const STATUS_GLOW = {
   iframes: new THREE.Color(0.15, 0.25, 1.1), vulnerable: new THREE.Color(1.0, 0.1, 0.1), radiant: new THREE.Color(0.7, 0.45, 0.1),
@@ -364,6 +374,7 @@ const loop = new FixedLoop({
       const r = routeCommand(b, b.status.rooted ? strip(bc, []) : bc);
       tickEntity(b, bc, bc, r.meleeCmd, r.gunCmd);
     }
+    bodies.step(entities, [], dt, nudge);
     world.update(dt);
     melee.resolve();
   },

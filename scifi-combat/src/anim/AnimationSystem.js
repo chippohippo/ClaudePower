@@ -21,12 +21,13 @@ const _dir = new Vector3();
 export class AnimationSystem {
   /**
    * @param {object} cfg   data/animation/humanoid.json
-   * @param {object} opts  { getEntity(id), groundY(x, z), surfaceAt(x, y, z), simDt }
+   * @param {object} opts  { getEntity(id), groundY(x, z, nearY), surfaceAt(x, y, z), simDt, bodies: BodyContacts }
    */
-  constructor(cfg, { getEntity = () => null, groundY = null, surfaceAt = null, simDt = 1 / 60 } = {}) {
+  constructor(cfg, { getEntity = () => null, groundY = null, surfaceAt = null, simDt = 1 / 60, bodies = null } = {}) {
     this.cfg = cfg;
     this.getEntity = getEntity;
     this.groundY = groundY;
+    this.bodies = bodies;
     this.surfaceAt = surfaceAt;
     this.simDt = simDt;
     this.rigs = new Map();     // id -> record
@@ -80,7 +81,7 @@ export class AnimationSystem {
   }
 
   #rig(e) {
-    const h = new ProceduralHumanoid(e, this.cfg, { groundY: this.groundY, surfaceAt: this.surfaceAt });
+    const h = new ProceduralHumanoid(e, this.cfg, { groundY: this.groundY, surfaceAt: this.surfaceAt, bodies: this.bodies });
     h.onCorpse = (rig) => this.#keepCorpse(rig);
     return h;
   }

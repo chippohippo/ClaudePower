@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { Vector3 } from 'three';
 import { MovementController, FlatGroundBody } from '../src/movement/MovementController.js';
+import { BodyContacts } from '../src/movement/BodyContacts.js';
 import { WeaponComponent, WeaponInstance } from '../src/combat/weapons/WeaponSystem.js';
 import { buildWeapon } from '../src/combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from '../src/combat/AbilitySystem.js';
@@ -38,13 +39,16 @@ export const v = (x, y, z) => new Vector3(x, y, z);
  * @param {object} o { down: true for the down-but-not-out rules (data/down.json), bp: battle points
  *                    (data/battle-points.json; mode: a FrontlineMode-like { points } for captures) }
  */
-export function makeWorld(cover = [], { down = false, terrain = null, bp = false, mode = null } = {}) {
+export function makeWorld(cover = [], { down = false, terrain = null, bp = false, mode = null, bodies = false } = {}) {
   const melee = new MeleeSystem({ blades: data.humanoid.sword });
   const downCfg = down ? data.down : null;
   const world = new CombatWorld({ damageMatrix: data.matrix, cover, terrain, supers: data.supers, meleeWeapons: data.melee, recoilDefs: data.recoil, vehicleDefs: data.vehicles, statusDefs: data.statuses, down: downCfg, rules: data.rules, stratagems: data.stratagems, passives: data.passives, support: data.support });
   if (bp) { lastBp?.dispose(); lastBp = world.bp = new BattlePoints(world, data.battlePoints, { mode }); }   // one listening at a time (fighter ids repeat between tests)
   lastBarks?.dispose(); lastBarks = world.barks = new Barks(world, data.barks);
   const fighters = new Map(); // entity -> scripted command source
+  // Bodies solid to each other, as in a battle (FrontlineSession): opt in. `world.corpses`: the dead lying there.
+  if (bodies) { world.bodies = new BodyContacts(data.movement.bodies); world.corpses = []; }
+  const nudge = (f, dx, dz) => f.movement.nudge(dx, dz);
 
   function fighter(id, team, pos, kitId, { gun = 'sol_ar_halcyon', hp = 200, role = null } = {}) {
     const movement = new MovementController(data.movement, new FlatGroundBody(pos, cover, { terrain }), {}, id);
@@ -127,6 +131,7 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
         if (s.brain) { const r = routeCommand(e, c); e.abilities.update(c, DT); e.melee.update(r.meleeCmd, DT); e.weapons.update(r.gunCmd, DT); }
         else { e.abilities.update(c, DT); e.melee.update(c, DT); e.weapons.update(c, DT); }
       }
+      if (world.bodies) world.bodies.step([...fighters.keys()], world.corpses, DT, nudge);
       world.update(DT);
       melee.resolve();
       world.bp?.update(DT);

@@ -358,7 +358,7 @@
     "mass": { "light": 80, "medium": 95, "heavy": 125 },
     "massMul": { "crouch": 1.5, "prone": 4, "cover": 2.5, "downed": 4, "planted": 3 },
     "stepOver": { "speedMul": 0.72, "nudge": 0.18, "hold": 0.15 },
-    "bump": { "speed": 3.2, "stumble": 2.4, "shove": 0.55, "cooldown": 0.8 },
+    "bump": { "speed": 3.2, "stumble": 2.3, "shove": 0.55, "cooldown": 0.8 },
     "squeeze": { "after": 0.7, "time": 1.6, "radiusMul": 0.15 }
   }
 }

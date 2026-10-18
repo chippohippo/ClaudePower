@@ -36,7 +36,7 @@ const mkFoot = (side, index) => ({
   from: new Vector3(), fromYaw: 0,      // swing start
   target: new Vector3(), targetYaw: 0,  // predicted landing (re-predicted every frame)
   aim: new Vector3(), aimed: false,     // where the swing is heading: follows target at a foot's speed
-  u: 0, swingDist: 1, swingTime: 0.2, lift: 0.1, settle: false, byDistance: false,
+  u: 0, swingDist: 1, swingTime: 0.2, lift: 0.1, clear: 0, settle: false, byDistance: false,
   stanceTravel: 0, stanceLen: 1,        // body travel since the plant (drives the foot roll)
   roll: 1,                              // +1 walking forward over the foot, -1 backward, ~0 side-stepping
   pos: new Vector3(),                   // current ground-contact point (moves only while swinging)
@@ -93,7 +93,9 @@ export class FootPlanter {
   /**
    * @param {object} c { dt, root (ground point under the pelvis), yaw (lateral axis), vel (world),
    *                     travel (horizontal metres moved this frame), speed, stride, duty, land,
-   *                     lift, heelRise, width, stagger, toeOut, reach, groundY(x, z) | null }
+   *                     lift, heelRise, width, stagger, toeOut, reach, groundY(x, z, nearY) | null,
+   *                     offBody(point, dir) | null: moves a landing off anyone lying there,
+   *                     lying(x0, z0, x1, z1) | null: how high to lift to clear a body lying across a swing }
    */
   update(c) {
     this.cfg = c;
@@ -140,8 +142,16 @@ export class FootPlanter {
         this.#restPos(f, c.root, c.yaw, f.target);
         f.targetYaw = c.yaw - f.side * c.toeOut;
       }
+      // Not on a man lying there: the landing goes on past him, or short of him (BodyContacts).
+      if (c.offBody) c.offBody(f.target, _fwd);
       f.target.y = this.#ground(f.target.x, f.target.z, c.root.y, c.groundY);
       f.u = Math.min(1, f.u + this.#steer(f, c, du));
+      // What lies across this swing (a body), to lift the foot over it: eased in early in the
+      // swing, never snapped on (or off) mid-stride.
+      if (c.lying) {
+        const want = f.u < 0.6 ? c.lying(f.from.x, f.from.z, f.aim.x, f.aim.z) : f.clear;
+        f.clear += (want - f.clear) * Math.min(1, c.dt * 14);
+      }
       if (f.u >= 1) this.#land(f, c, _fwd);
     }
 
@@ -186,7 +196,7 @@ export class FootPlanter {
     f.from.copy(f.plant); f.fromYaw = f.yaw;
     f.swingDist = Math.max(0.15, (1 - c.duty) * c.stride);
     f.swingTime = f.swingDist / Math.max(c.speed, 0.5);
-    f.lift = c.lift;
+    f.lift = c.lift; f.clear = 0;
   }
 
   /**
@@ -229,7 +239,7 @@ export class FootPlanter {
   }
 
   #ground(x, z, rootY, groundY) {
-    const g = groundY?.(x, z);
+    const g = groundY?.(x, z, rootY);
     return g === null || g === undefined || Math.abs(g - rootY) > 0.4 ? rootY : g;
   }
 
@@ -258,8 +268,13 @@ export class FootPlanter {
       } else {
         const e = ease(f.u);
         // Lift peaks early and the foot comes down fast at the end: a heavy plant, not a tiptoe.
-        const h = f.lift * Math.sin(Math.PI * Math.pow(f.u, 0.7));
-        f.pos.set(lerp(f.from.x, f.aim.x, e), lerp(f.from.y, f.aim.y, e) + h, lerp(f.from.z, f.aim.z, e));
+        // Up a step (a kerb, a stair, a sandbag lip) the foot gets to the new level early and lifts
+        // higher by about the step, clearing its edge; down one it stays up until late; across
+        // someone lying there it clears him.
+        const rise = f.aim.y - f.from.y;
+        const lvl = rise > 0.03 ? smoothstep(0, 0.6, f.u) : rise < -0.03 ? smoothstep(0.3, 1, f.u) : e;
+        const h = (f.lift + Math.max(0, rise) * 0.6 + f.clear) * Math.sin(Math.PI * Math.pow(f.u, 0.7));
+        f.pos.set(lerp(f.from.x, f.aim.x, e), f.from.y + rise * lvl + h, lerp(f.from.z, f.aim.z, e));
         f.yaw = lerpAngle(f.fromYaw, f.targetYaw, e);
         // Out of the toe-off: the ankle leaves the toe pivot and the pitch blends into the swing's.
         const k = 1 - smoothstep(0, 0.35, f.u);

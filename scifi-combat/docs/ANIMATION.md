@@ -64,6 +64,21 @@ reworked. The rules below are enforced by tests wherever they can be measured.
   immediately. This covers hard accelerations, reversals and landing at a sprint.
 - **Idle:** settle steps put the feet back under the hips one at a time (turning in place, after a stop).
 
+### Bodies and steps
+- **What's underfoot:** a foot plants on the floor near the hips' level (`groundY(x, z, nearY)`: the
+  terrain, or a kerb, a stair, a sandbag top: `CoverIndex.topAt`), not just on the terrain. Before,
+  feet on a 16 cm sidewalk stood 16 cm inside it.
+- **Stepping up:** a foot whose landing is higher than where it left (a kerb) gets to the new level
+  early in the swing (by 60% of it) and lifts higher by 0.6 of the step, so it clears the edge instead
+  of passing through it; stepping down, it stays up until late.
+- **Stepping over the fallen** (`BodyContacts.offBody`, `lyingAcross`): a landing on someone lying on
+  the ground moves on past him (or short of him, whichever's nearer); a swing across him lifts 0.3 m
+  (0.36 over the living), eased in early in the swing. Not the man you're kneeling over to revive.
+- **Contact** (`#contactLayer`): pushing on into a man (`state.press`) or a wall (`state.wallPress`), the
+  free (left) hand goes out flat against it at chest height and the body leans into the push;
+  squeezing past a teammate (`state.squeeze`) the shoulder leads, side-on to him, hips turned with it,
+  gun in. A bump that stumbles you plays the stagger.
+
 ### Body
 - **Pelvis reach:**
   - The pelvis drops whenever a planted foot would overstretch, so the IK always reaches a planted foot.
@@ -365,8 +380,16 @@ Drop-in replacement per fighter with the same inputs and events. Mapping lives i
   - `downed`: collapse, wounded crawl, revived, get up.
   - `revive`: kneel over a downed squadmate until they get up.
   - `corpse`: killed by a blast, and the body stays where it fell.
+- **Bodies and steps** (solid bodies, feet on what's underfoot, as in the game):
+  - `kerb`: up a kerb at a jog, then backing down off it.
+  - `stepOver`: stepping over a man lying across the way.
+  - `wallPush`: walking on into a wall, a hand out flat against it.
+  - `squeeze`: squeezing past a man standing in a narrow trench.
+  - `bump`: jogging into a lighter man standing there; he stumbles with it.
 - **URL:** `rig-lab.html?station=slide&view=side&speed=0.25`. Add `&at=1.9` to freeze at that loop
-  time (deterministic, used for screenshots).
+  time (deterministic, used for screenshots). For a clean shot, `&solo` shows only that station
+  (not the others lined up behind it), `&view=orbit&yaw=1.57&pitch=0.1&dist=2.8` frames the camera
+  (yaw 0 is behind a man walking north, π/2 his right side), and `&marks=0` hides the planted-feet discs.
 
 **To match HD2 frame for frame** (with the movement calibration in MOVEMENT.md):
 1. Capture HD2 at 120 fps from the side on flat ground (medium armor).

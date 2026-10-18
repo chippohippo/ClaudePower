@@ -48,6 +48,7 @@ const _a = new Vector3();
 const _b = new Vector3();
 const _d = new Vector3();
 const _lc = new Vector3();
+const _steer = { x: 0, z: 0 };
 
 /** Edge-correct button state: press() always produces a clean pressed edge, even on held keys. */
 export class Buttons {
@@ -195,7 +196,7 @@ export class CombatBotBrain {
     if (ms.mode === 'ground' && ms.stance === 'prone' && !ms.stanceT && !self.vehicle && this.time - this.proneAt > 0.5) this.btn.press('jump');
 
     // ---- a crew duty: man our gun or drive our supply truck
-    if (this.duty && this.#duty(dt, ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
+    if (this.duty && this.#duty(dt, ctx, cmd)) return this.#out(cmd);
 
     // ---- in a vehicle: the pilot owns the command
     if (self.vehicle) {
@@ -226,15 +227,14 @@ export class CombatBotBrain {
         if (this.vehicleGoal.car && this.vehicleGoal.car.upright < 0.5) { if (this.world.vehicles.flippedNear(self) === this.vehicleGoal) this.btn.hold('interact'); }
         else if (this.world.vehicles.nearestEnterable(self) === this.vehicleGoal) this.btn.press('interact');
         if (ctx.target && ctx.los) { this.#gunfight(dt, ctx, cmd, true); this.#worldMove(cmd, this.moveDir); } // shoot on the way
-        this.btn.finalize(cmd);
-        return cmd;
+        return this.#out(cmd, this.vehicleGoal);
       }
     }
 
     // ---- revive a downed teammate (the ReviveSystem kneels us once we hold interact beside them)
-    if (this.#revive(dt, ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
+    if (this.#revive(dt, ctx, cmd)) return this.#out(cmd, this.reviveGoal);   // (not round the man we're going to)
     // ---- finish a downed enemy close by when nothing else is standing near (a finisher: hold interact over him)
-    if (this.#finisher(ctx, cmd)) { this.btn.finalize(cmd); return cmd; }
+    if (this.#finisher(ctx, cmd)) return this.#out(cmd, this.finishGoal);
 
     // ---- abilities (may set an aim override for their cast)
     if (!self.transform || self.abilities.casting?.key !== 'super') this.#abilities(ctx);
@@ -288,8 +288,45 @@ export class CombatBotBrain {
     // final aim, so aiming elsewhere never bends the path.
     if (this.hasMoveDir) { this.#worldMove(cmd, this.moveDir); if (!this.dodging && !this.arriving) this.#avoidObstacles(cmd); }
     this.arriving = false;
+    return this.#out(cmd);
+  }
+
+  /** The command's last touches: round the bodies in the way (or out of a teammate's), then the buttons' edges. */
+  #out(cmd, ignore = null) {
+    this.#avoidBodies(cmd, ignore);
     this.btn.finalize(cmd);
     return cmd;
+  }
+
+  /**
+   * Bodies (BodyContacts): round a man standing in the way, one coming at us or someone lying on
+   * the ground, rather than into them (the stick turned off to the side; an even split to the
+   * right). Holding still with a teammate pushing into us to get past: a step aside for him, to
+   * whichever side's clear.
+   */
+  #avoidBodies(cmd, ignore) {
+    const B = this.world.bodies, me = this.self, s = me.movement.state;
+    if (!B || this.dodging || me.vehicle) return;
+    const y = cmd.yaw, fx = -Math.sin(y), fz = -Math.cos(y), rx = Math.cos(y), rz = -Math.sin(y);
+    const wx = fx * cmd.moveY + rx * cmd.moveX, wz = fz * cmd.moveY + rz * cmd.moveX, mag = hyp(wx, wz);
+    if (mag < 0.1) {
+      const pr = s.pressedBy;
+      if (pr && B.time - pr.at < 0.25 && !this.makeWay && s.stance !== 'prone' && this.world.entity(pr.id)?.team === me.team) {
+        // Off his line, sideways: the side with room (a wall a metre off is no room).
+        const p = s.position;
+        let sx = -pr.z, sz = pr.x;
+        if (this.world.raycastStatic(_a.set(p.x, p.y + 0.5, p.z), _d.set(sx, 0, sz), 1, { includeWalls: true })) { sx = -sx; sz = -sz; }
+        this.makeWay = { x: sx, z: sz, until: this.time + 0.7 };
+      }
+      if (this.makeWay && this.time >= this.makeWay.until) this.makeWay = null;
+      if (this.makeWay) { cmd.moveY = this.makeWay.x * fx + this.makeWay.z * fz; cmd.moveX = this.makeWay.x * rx + this.makeWay.z * rz; }
+      return;
+    }
+    const o = B.steer(me, wx / mag, wz / mag, _steer, ignore);
+    const k = mag * o.slow;
+    cmd.moveY = (o.x * fx + o.z * fz) * k;
+    cmd.moveX = (o.x * rx + o.z * rz) * k;
+    if (o.slow < 0.9) this.btn.down.delete('sprint');   // (a crowded trench: no running into the man ahead)
   }
 
   // ---------------------------------------------------------------- crews and shellfire
@@ -988,7 +1025,8 @@ export class CombatBotBrain {
       if (S.level === 2) S.repath = true;
       if (S.level >= 3) { S.side = this.rand() < 0.5 ? 1 : -1; S.until = this.time + 0.9; if (S.level > 5) { S.level = 1; S.repath = true; } }
     }
-    if (S.level >= 1) this.btn.hold('jump');                     // climb or vault whatever is in the way
+    const s = this.self.movement.state, body = (s.press?.k ?? 0) > 0.25 || (s.blocked ?? 0) > 0.1;
+    if (S.level >= 1 && !body) this.btn.hold('jump');            // climb or vault whatever is in the way (not a man: round him, or squeeze past)
     if (this.time < S.until) this.moveDir.set(-this.moveDir.z * S.side, 0, this.moveDir.x * S.side);
   }
 

@@ -56,7 +56,6 @@ const _r = new Vector3();
 const _v = new Vector3();
 const _p = new Vector3();
 const _o = new Vector3(), _d = new Vector3(), _qi = new Quaternion();
-let nextVehicleId = 200000;
 export const RIGHT_TIME = 1.5;   // s of holding interact to push a car back onto its wheels
 const NO_BUTTON = Object.freeze({ down: false, pressed: false, released: false });
 /** EMP: the gun's crew can't fire (nor set it up), but the command otherwise stands. */
@@ -66,6 +65,7 @@ export class VehicleSystem {
   constructor(world, defs) {
     this.world = world;
     this.defs = defs;          // data/vehicles.json
+    this.nextId = 200000;      // (per world: a match plays the same whatever ran before it)
     this.list = [];
     this.pads = [];
     this.guns = new FieldGuns(this);
@@ -82,7 +82,7 @@ export class VehicleSystem {
     const pos = at.clone();
     pos.y = this.world.groundHeight(pos) + (def.hoverHeight ?? 0);
     const v = {
-      id: nextVehicleId++, isVehicle: true, type, def, team, calledBy: ownerId, pad,
+      id: this.nextId++, isVehicle: true, type, def, team, calledBy: ownerId, pad,
       yaw, turretYaw: yaw, altitude: 0, boostTime: 0, boostCd: 0, emptyTime: 0, removed: false, ramCd: new Map(),
     };
     v.movement = {

@@ -182,13 +182,15 @@ export class ProceduralHumanoid {
   /**
    * @param {object} entity  fighter: movement, weapons, melee, health, vehicle, transform, mode
    * @param {object} cfg     data/animation/humanoid.json
-   * @param {object} opts    { groundY(x, z) -> y | null, surfaceAt(x, y, z) -> 'dirt' | 'metal' | ... }
+   * @param {object} opts    { groundY(x, z, nearY) -> y | null, surfaceAt(x, y, z) -> 'dirt' | 'metal' | ...,
+   *                          bodies: BodyContacts (feet go over, not onto, anyone lying on the ground) }
    */
-  constructor(entity, cfg, { groundY = null, surfaceAt = null } = {}) {
+  constructor(entity, cfg, { groundY = null, surfaceAt = null, bodies = null } = {}) {
     this.e = entity;
     this.id = entity.id;
     this.cfg = cfg;
     this.groundY = groundY;
+    this.bodies = bodies;
     this.surfaceAt = surfaceAt;
     this.scale = 1;
     this.d = { ...cfg.dims };
@@ -387,6 +389,7 @@ export class ProceduralHumanoid {
     }
 
     this.#reviveLean(P);
+    this.#contactLayer(P);
     this.#staggerLayer(P);
     this.#injuredLayer(P);
     this.#callIn(P);
@@ -582,6 +585,45 @@ export class ProceduralHumanoid {
     }
   }
 
+  /**
+   * Bodies and walls (BodyContacts' `press` and `squeeze`, the movement's `wallPress`): pushing on
+   * into a man or a wall, a hand goes out flat against it and the body leans into the push;
+   * squeezing past a teammate, the shoulder leads, turned side-on to him.
+   */
+  #contactLayer(P) {
+    const s = this.e.movement.state, dt = this.dt ?? 1 / 60, sc = this.scale;
+    const loco = s.mode === 'ground' && s.stance !== 'prone' && !s.downed;
+    const bp = s.press, wp = s.wallPress;
+    const kb = loco && bp ? bp.k : 0, kw = loco && wp ? wp.k : 0;
+    const want = clamp(Math.max(kb, kw) * 1.6 - 0.15, 0, 1);
+    this.pressW = (this.pressW ?? 0) + (want - (this.pressW ?? 0)) * approach(want > (this.pressW ?? 0) ? 5 : 3.5, dt);   // (in over a few frames: a hand, not a twitch)
+    this.squeezeW = (this.squeezeW ?? 0) + ((loco && (s.squeeze ?? 0) > 0 ? 1 : 0) - (this.squeezeW ?? 0)) * approach(7, dt);
+    if (this.pressW < 1e-3 && this.squeezeW < 1e-3) return;
+    const src = kb >= kw ? bp : wp;
+    if (src && Math.max(kb, kw) > 0.05) { this.pressX = src.x; this.pressZ = src.z; }   // (the last way, while it eases off)
+    const px = this.pressX ?? 0, pz = this.pressZ ?? 0;
+    forwardOf(P.yawC, _f); rightOf(P.yawC, _r);
+    const ahead = px * _f.x + pz * _f.z, right = px * _r.x + pz * _r.z;
+    if (this.squeezeW > 1e-3) {
+      // Side-on to the man being passed (the side he's on), shoulder first, hips turned with it, gun in.
+      if (kb > 0.05) this.squeezeSide = right >= 0 ? 1 : -1;
+      const side = this.squeezeSide ?? 1, k = this.squeezeW;
+      P.spinC += side * 0.6 * k; P.yawP += side * 0.45 * k; P.yawC += side * 0.3 * k;
+      P.gunUp *= 1 - 0.4 * k;
+    }
+    const k = this.pressW;
+    if (k > 1e-3) {
+      // Into it: forward if it's ahead, rolled toward it if it's at the side ...
+      P.pitchC += 0.14 * k * Math.max(0, ahead); P.leanC -= 0.12 * k * right;
+      // ... and the free hand (the left: the right keeps its grip) out flat against it, at chest height.
+      if (ahead > -0.3) {
+        _b.set(P.pelvis.x + px * 0.46 * sc, P.pelvis.y + 0.42 * sc, P.pelvis.z + pz * 0.46 * sc);
+        P.hand[0].lerp(_b, P.handW[0] > 0 ? k : 1); P.handW[0] = Math.max(P.handW[0], k);
+        P.gunUp *= 1 - 0.35 * k;
+      }
+    }
+  }
+
   // ---------------------------------------------------------------- call-ins
   /**
    * Typing a call-in: the left wrist's pad comes up in front of the chest and the gun drops.
@@ -761,6 +803,9 @@ export class ProceduralHumanoid {
     // hip before the pelvis would have to drop by more than 15% of its height.
     c.reach = Math.sqrt(Math.max(0.04, L * L - (pelvisH * 0.85 - this.d.ankleH) ** 2));
     c.groundY = this.groundY;
+    // (Not the man we're kneeling over to revive or finish: the feet are meant to be at his side.)
+    c.offBody = this.bodies ? this.offBody ??= (p, dir) => this.bodies.offBody(p, dir.x, dir.z, this.e.id, this.e.reviveJob?.patient?.id) : null;
+    c.lying = this.bodies ? this.lyingAcross ??= (x0, z0, x1, z1) => this.bodies.lyingAcross(x0, z0, x1, z1, this.e.id, this.e.reviveJob?.patient?.id) : null;
     c.crouchK = crouchK;
     c.maxAimSpeed = this.cfg.gait.maxAimSpeed;
     return c;

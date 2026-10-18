@@ -37,7 +37,6 @@ export const ARROW_KEYS = Object.fromEntries(Object.entries(ARROWS).map(([k, c])
 /** What the hands can't do while typing a code or holding a beacon. */
 const BUSY = ['light', 'heavy', 'guard', 'reload', 'swapWeapon', 'toggleMelee', 'ability1', 'ability2', 'grenade', 'super', 'interact', 'item', ...Object.keys(ARROWS)];
 const _v = new Vector3(), _d = new Vector3();
-let nextBeaconId = 1;
 
 /** Ground distance (m) from (x, z) to a capsule { ax, az, bx, bz, r } (a payload's footprint): negative inside. */
 export function capsuleDist(c, x, z) {
@@ -174,6 +173,7 @@ export class StratagemSystem {
     this.world = world;
     this.data = data;
     this.defs = data?.stratagems ?? {};
+    this.nextId = 1;   // (beacons; per world: a beacon's scatter is seeded by its id)
     this.shells = data?.shells ?? {};
     this.beacons = [];       // thrown and planted
     this.pods = [];          // falling and landed
@@ -207,7 +207,7 @@ export class StratagemSystem {
     const pt = Math.min(1.2, pitch + B.lift), cp = Math.cos(pt);
     const dir = new Vector3(-Math.sin(yaw) * cp, Math.sin(pt), -Math.cos(yaw) * cp);
     const beacon = {
-      id: nextBeaconId++, owner, ownerId: owner.id, team: owner.team, stratagem: slot.id, def: slot.def,
+      id: this.nextId++, owner, ownerId: owner.id, team: owner.team, stratagem: slot.id, def: slot.def,
       pos: new Vector3(p.x, p.y + up, p.z).addScaledVector(dir, 0.35), vel: dir.multiplyScalar(B.speed).add(_v.copy(s.velocity).multiplyScalar(0.5)),
       planted: false, on: null, offset: new Vector3(), at: 0, age: 0, plan: null, from: p.clone(), done: false,
     };

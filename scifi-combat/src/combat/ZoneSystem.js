@@ -25,18 +25,18 @@ export const ZonePhase = Object.freeze({ ARMING: 'arming', ACTIVE: 'active', END
 
 const _d = new Vector3();
 const _f = new Vector3();
-let nextZoneId = 1;
 
 export class ZoneSystem {
   constructor(world) {
     this.world = world;
     this.zones = [];
+    this.nextId = 1;   // (per world)
   }
 
   spawn(spec) {
     const owner = this.world.entity(spec.ownerId);
     const z = {
-      id: nextZoneId++, ...spec,
+      id: this.nextId++, ...spec,
       center: (spec.center ?? owner?.movement.state.position).clone(),
       yaw: spec.yaw ?? owner?.movement.state.yaw ?? 0,
       phase: spec.delay ? ZonePhase.ARMING : ZonePhase.ACTIVE,

@@ -146,6 +146,7 @@ export class MovementController {
       // Other bodies (BodyContacts): pressing into one ({ x, z, k 0..1, by }), stepping over one
       // lying down (s left), squeezing past a teammate (s left), pressed against one not moving (s).
       press: null, overBody: 0, squeeze: 0, blocked: 0,
+      wallPress: null,          // { x, z, k }: pushing on into a wall (the rig's hand out against it)
       wishMag: 0,               // how hard the command pushes to move (0..1)
     };
   }
@@ -452,9 +453,17 @@ export class MovementController {
     _delta.copy(s.velocity).multiplyScalar(dt);
     // Stay glued to the ground while grounded (crests, steps down); a hop or dive this tick has
     // already cleared `grounded`, so it leaves the ground normally.
+    const ix = _delta.x, iz = _delta.z;   // (where it meant to go, for a wall it's pushing against)
     const res = this.body.move(_delta, s.grounded && s.mode !== MoveState.AIR && s.mode !== MoveState.DIVE);
     s.position.add(res.delta);
     if (res.push) s.position.add(res.push);
+    // Pushing on into a wall (a car's side, a door that won't give): which way and how hard,
+    // smoothed, for the rig (a hand out flat against it, a lean into it).
+    const il = hyp(ix, iz), wp = s.wallPress ?? (s.wallPress = { x: 0, z: 0, k: 0 });
+    const lost = il > 1e-4 && !res.slip && s.grounded && s.wishMag > 0.5 ? 1 - (res.delta.x * ix + res.delta.z * iz) / (il * il) : 0;
+    const kw = dt > 0 ? 1 - Math.exp(-dt * 10) : 0;
+    if (lost > 0.5) { wp.x += (ix / il - wp.x) * kw; wp.z += (iz / il - wp.z) * kw; }
+    wp.k += ((lost > 0.5 ? Math.min(1, lost) : 0) - wp.k) * kw;
     // A kerb or a stair moved the body in one tick: what's seen eases over it (presentation only; #post eases it out).
     s.stepOff = Math.max(-0.45, Math.min(0.45, s.stepOff - (res.step ?? 0)));
     if (dt > 0) {

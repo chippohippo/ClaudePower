@@ -203,6 +203,30 @@ command/Strategist.js), not with a squad down to its last man, and waits longer 
 that didn't take the point; a person in the commander's seat storms with **G**. The squad leader
 shouts it.
 
+### Bodies (`BodyContacts.steer`, `CombatBotBrain.#avoidBodies`)
+
+Soldiers are solid (docs/MOVEMENT.md, "Bodies"), and the bots move like men who know it. Every
+command a bot sends has its stick turned, last thing, round the bodies ahead of where it's going
+(from the bodies of the last tick, within 1.5 to 3.4 m by speed):
+
+- **Round a man in the way:** standing there, or coming at it; off to the side he isn't, and dead
+  ahead (or coming straight at it) to the right, as he'll do too, so two men meeting pass each other.
+  Not round a man going its way as fast as it is: it's following him. Not round one of the enemy's
+  on his feet either: it's fighting him, and a blade or a rifle butt wants it closer, not off to the
+  side (civilians it does go round).
+- **Easing off:** a man square in the way and close (in a crowded trench, nowhere to go round him),
+  it slows and stops sprinting instead of running into him. Bumps between bots at 200v200 fell from
+  about 310 to 150 in 35 s with this (most of the rest are men knocked together by shellfire).
+- **Round the fallen:** someone lying on the ground, dead or down, is gone round, not walked over
+  (a bot crossing a body lying across its way spends 2 ticks over it, against 28 without). Not the man
+  it's walking up to: to revive, to finish, or the vehicle it's boarding.
+- **Making way:** a bot holding still with a teammate pushing into it to get past steps aside for
+  0.7 s, sideways to his push, to whichever side isn't a wall. Prone, it stays put (he goes over).
+- **No climbing men:** stuck, a bot holds jump to climb whatever's in the way, but not when what's in
+  the way is a man (it goes round, or squeezes past).
+- **Spread out behind a full trench:** men with no firing position left in their stretch of the
+  jump-off trench wait behind it in places of their own (2.2 m apart), not all on one spot.
+
 ## Gun crews and supply drivers (`SupportCommand`, `CrewPilot`)
 
 At the start of a match each team sets aside one bot per gun and truck (plus a loader for each

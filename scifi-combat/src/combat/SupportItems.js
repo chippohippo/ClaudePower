@@ -17,12 +17,11 @@
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 
-let nextPackId = 1;
-
 export class SupportItems {
   /** @param {object} world CombatWorld @param {object} data data/support.json */
   constructor(world, data = null) {
     this.world = world; this.data = data;
+    this.nextId = 1;          // (packs, per world)
     this.packs = [];          // ammo packs on the ground
     this.stims = [];          // downed teammates getting up on a stim: { patient, by, t }
     this.time = 0;
@@ -90,7 +89,7 @@ export class SupportItems {
 
   #drop(e) {
     const A = this.data.ammo, p = e.movement.state.position;
-    const pack = { id: nextPackId++, owner: e, team: e.team, pos: new Vector3(p.x, p.y, p.z), takers: A.takers, age: 0, took: new Set() };
+    const pack = { id: this.nextId++, owner: e, team: e.team, pos: new Vector3(p.x, p.y, p.z), takers: A.takers, age: 0, took: new Set() };
     this.packs.push(pack);
     bus.emit('support:pack', { pack: pack.id, owner: e.id, team: e.team, at: pack.pos.toArray() });
     return true;

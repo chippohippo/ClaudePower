@@ -165,10 +165,47 @@ Ground steeper than 48° makes you lose footing.
   slips round the corner, as a capsule would, keeping its speed (3% scraped off a tick) instead of
   stopping dead on a lamp post, a wreck's bumper or a doorframe. A seam between two boxes of one wall
   isn't a corner: that stops you like the wall.
-- **Steps without the pop:** kerbs, stairs and box tops up to 0.35 m are stepped in one tick (the
-  sim stays exact), but what's seen eases over the step in ~70 ms (`state.stepOff`, read by the
-  animation's root and so by the camera): the legs take the step instead of the whole body jumping
+- **Steps without the pop:** kerbs, stairs and box tops up to 0.35 m are stepped in one tick, at full
+  speed (the sim stays exact), but what's seen eases over the step in ~70 ms (`state.stepOff`, read by
+  the animation's root and so by the camera): the legs take the step instead of the whole body jumping
   16 cm in one frame, up or down. Slopes don't count as steps (only height beyond the ground's lie).
+  The feet stand on the kerb itself and the stepping foot lifts over its edge (docs/ANIMATION.md,
+  "Bodies and steps").
+
+## Bodies (`BodyContacts`)
+
+Soldiers are solid to each other: nobody runs through anybody. After everyone has moved each tick
+(`FrontlineSession.step`, before the world's update; the arena, the rig lab and, opting in, the test
+harness do the same), every body gets the shape its stance gives it (`data/movement.json` `bodies`):
+
+- **On his feet:** a round body as broad as his armor across the shoulders: 0.27 m light, 0.30
+  medium, 0.34 heavy (radius); crouched 4 cm wider (knees out) and 1.2 m tall instead of 1.8. Two men
+  shoulder to shoulder stand 0.6 m apart, crouched 0.68.
+- **Lying** (prone, a belly slide, a dive, downed, knocked flat): a capsule 0.26 m thick from 0.82 m
+  behind the hips to 0.62 m ahead, along the way the body lies (on his back the head's behind where he
+  faces: `Hitboxes.bodyAxisYaw`). Prone men lie side by side 0.52 m apart. **The dead** lie as they
+  fell: head to ankles from the ragdoll at rest (or along the body of a man who bled out where he lay),
+  and stay underfoot after he's redeployed, as long as the client shows the body (90 s, 96 at most).
+- **Pushed apart by weight:** an overlap is shared out by mass (80 / 95 / 125 kg by armor; ×1.5
+  crouched, ×4 prone or down, ×2.5 at cover, ×3 standing his ground: not trying to move), always
+  through the world (`MovementController.nudge`: a push never goes into a wall), and the speed into
+  each other comes off both over a few ticks: you slide along a man, not through him.
+- **Stepping over someone lying down** is never a wall: the walker goes over him at 0.72 of his
+  speed (`state.overBody`), eased off to whichever side he's nearer if he's walking along him rather
+  than across (pushed sideways, never back). Crawling into a man's legs stops you.
+- **Bumps:** coming together at 3.2 m/s or more is a bump (`body:bump`: a thud and the kit rattling;
+  a teammate you ran into tells you to watch it). The man hit stumbles with it (the stagger) if his
+  share of it is 2.3 m/s or more: a sprint into anybody, a jog into a lighter man. The one who ran in
+  saw it coming and only loses his speed, unless he hit a man a good deal heavier. Already stumbling,
+  a bump doesn't put you over.
+- **Squeezing past:** pressed 0.7 s into a teammate who's standing his ground, you turn your shoulders
+  and squeeze past for 1.6 s (`state.squeeze`, `body:squeeze`): the two ease to either side, the bodies
+  0.15 as thick between you, nobody shoved along the trench. A trench or a doorway never jams for good.
+  Enemies don't squeeze past each other.
+- **What the rig and the AI read:** `state.press` (which way and how hard you're pushing into a man),
+  `state.pressedBy` (who's pushing into you), `state.wallPress` (pushing on into a wall), `overBody`,
+  `squeeze`, `blocked`, `wishMag` (how hard the command pushes to move).
+- **Cost:** a grid of the cells someone's in; 0.3 ms a tick at 64v64, 1.3 ms at 200v200.
 
 ## Presentation timing
 

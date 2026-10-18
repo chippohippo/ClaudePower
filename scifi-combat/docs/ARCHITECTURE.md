@@ -68,6 +68,7 @@ scifi-combat/
 │  ├─ input/  InputManager.js  bindings.json (rebindable)
 │  ├─ camera/ CameraRig.js        1P/3P blend, shoulder swap, shake, FOV kick
 │  ├─ movement/ MovementController.js  states/  GroundProbe.js  Mantle.js
+│  │            BodyContacts.js (soldiers solid to each other: shapes by stance, pushes, bumps, squeezing past)
 │  ├─ combat/
 │  │  ├─ melee/ MeleeSystem.js (swept blades, the rifle butt)  MeleeWeapons.js (the arsenal: base + overrides)
 │  │  ├─ weapons/ WeaponSystem.js  RecoilPattern.js  Ballistics.js  Attachments.js
