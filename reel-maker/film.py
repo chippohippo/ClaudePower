@@ -100,8 +100,12 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     f = [f"scale=-2:{H}:flags=lanczos"]
     src_w, src_h = src_w * H / src_h, H
     if trf:
-        f.append(f"vidstabtransform=input={trf}:smoothing=40:optzoom=1:"
-                 f"crop=black:zoom=3:interpol=bicubic")
+        if seg.get("lock"):   # near-static shot: lock to a virtual tripod
+            f.append(f"vidstabtransform=input={trf}:tripod=1:optzoom=1:crop=black:"
+                     f"zoom=2:interpol=bicubic")
+        else:
+            f.append(f"vidstabtransform=input={trf}:smoothing=70:optzoom=1:"
+                     f"crop=black:zoom=3:interpol=bicubic")
     tempo = seg.get("tempo", "real")
     if tempo in ("dream", "step"):
         f.append(f"setpts=PTS/{FILM['dream_speed']}")
@@ -137,6 +141,44 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     return ",".join(f)
 
 
+def auto_frame(seg, analysis_dir):
+    """Centre the 3:2 window between the bride and groom: x/x_end follow the
+    detected couple across the segment, y keeps headroom, and the push-in is
+    capped so both heads (plus margin) stay in frame."""
+    p = os.path.join(analysis_dir or "", seg["clip"] + ".json")
+    if not analysis_dir or not os.path.exists(p) or seg.get("track") is False:
+        return seg
+    d = json.load(open(p))
+    speed = FILM["dream_speed"] if seg.get("tempo", "real") in ("dream", "step") else 1.0
+    a, b = seg["in"], seg["in"] + seg["dur"] * speed
+    rows = [(t, s) for t, s in zip(d["t"], d["subj"]) if a <= t <= b and s]
+    if len(rows) < 3:
+        return seg
+    t = np.array([r[0] for r in rows])
+    S = np.array([r[1] for r in rows])          # cx, cy, left, right, top
+    mid = (a + b) / 2
+    first, last = S[t <= mid], S[t > mid]
+    first = first if len(first) else S
+    last = last if len(last) else S
+    out = dict(seg)
+    out["x"] = round(float(np.median(first[:, 0])), 3)
+    out["x_end"] = round(float(np.median(last[:, 0])), 3)
+    left, right, top = float(np.percentile(S[:, 2], 10)), float(np.percentile(S[:, 3], 90)), \
+        float(np.percentile(S[:, 4], 10))
+    span = right - left                                 # in source-width units
+    base = min(1.0, (9 / 16) * 1.5)                     # 3:2 window / 16:9 width
+    zmax = max(1.0, base / max(span * 1.45, 1e-3))
+    z = seg.get("zoom", 0.06)
+    z0, z1 = (z if isinstance(z, list) else (1.0, 1.0 + z))
+    out["zoom"] = [round(min(z0, zmax), 3), round(min(z1, zmax), 3)]
+    # vertical: faces a bit above centre, top head never cropped
+    h = 1 / out["zoom"][1]
+    cy = float(np.median(S[:, 1])) + 0.10
+    cy = min(cy, top - 0.06 + h / 2)
+    out["y"] = round(float(np.clip(cy, h / 2, 1 - h / 2)), 3)
+    return out
+
+
 def render_segment(seg, i, media_dir, work, preview):
     H = 540 if preview else FILM["height"]
     src = os.path.join(media_dir, seg["clip"] + ".mp4")
@@ -156,7 +198,8 @@ def render_segment(seg, i, media_dir, work, preview):
     if FILM["stabilize"] and seg.get("stab", True):
         trf = os.path.join(work, f"stab_{key}.trf")
         run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
-             "-vf", f"scale=-2:{H},vidstabdetect=shakiness=5:accuracy=9:stepsize=8:result={trf}",
+             "-vf", f"scale=-2:{H},vidstabdetect=shakiness=8:accuracy=15:stepsize=6:"
+             f"result={trf}" + (":tripod=1" if seg.get("lock") else ""),
              "-f", "null", "-"])
     w, h = map(int, subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
@@ -334,11 +377,15 @@ def main():
     os.makedirs(work, exist_ok=True)
     print(f"• {len(edl['segments'])} segments, {total // 60:.0f}:{total % 60:04.1f}")
     files = []
+    adir = rel(edl["analysis_dir"]) if edl.get("analysis_dir") else None
+    edl["segments"] = [auto_frame(s, adir) for s in edl["segments"]]
     for i, s in enumerate(edl["segments"]):
         if args.only and i not in args.only:
             continue
         print(f"  [{i + 1:2d}/{len(edl['segments'])}] {s['clip']} @{s['in']}s  "
-              f"{s['dur']}s  {s.get('tempo', 'real')}  t={s['_start']:.1f}", flush=True)
+              f"{s['dur']}s  {s.get('tempo', 'real')}  t={s['_start']:.1f}  "
+              f"x={s.get('x', .5)}→{s.get('x_end', s.get('x', .5))} y={s.get('y', .5)} "
+              f"z={s.get('zoom')}", flush=True)
         files.append(render_segment(s, i, media, work, args.preview))
     if args.only:
         return
