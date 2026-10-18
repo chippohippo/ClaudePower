@@ -16,6 +16,7 @@ import { CrowdRenderer } from '../render/CrowdRenderer.js';
 import { hitSpheres } from '../movement/Hitboxes.js';
 import { STATIONS, StationDriver, buddyDriver, floorOf } from './rigLabStations.js';
 import { BodyContacts } from '../movement/BodyContacts.js';
+import { reactToHit } from '../combat/HitReactions.js';
 
 const DT = 1 / 60;
 const SPACING = 6;
@@ -80,7 +81,8 @@ function spawnFighter(slot, def) {
   const [sx, sy, sz] = def.start ?? [0, 0, 0];
   const e = buildFighter(world, factoryData, { id: nextId++, team: def.team ?? 0, classId: def.classId ?? 'lancer', pos: new THREE.Vector3(slot.x + sx, sy, sz) });
   e.mode = def.mode ?? slot.st.mode ?? 'gun';
-  e.health.damage = () => ({}); // the lab is about motion: nobody dies
+  // The lab is about motion: nobody dies, but a blow still rocks you (HitReactions).
+  e.health.damage = (dmg, info, by) => { reactToHit(e, { dealt: dmg, killed: false, downed: false }, info ?? {}, by); return {}; };
   e.look = { team: e.team, status: null, flame: new THREE.Color(e.melee.w.visual?.flameColor ?? '#ff7a1a'), highlight: false };
   meleeSys.add(e.melee);
   animSys.add(e);

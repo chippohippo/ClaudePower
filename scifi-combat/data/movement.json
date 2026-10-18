@@ -133,7 +133,16 @@
   }
  },
  "evade": {
-  "_note": "Non-dive evades for classes that live in melee range (a dive to prone would end every sword duel).",
+  "_note": "Non-dive evades for classes that live in melee range (a dive to prone would end every sword duel). sidestep: anyone's dodge within threatRange m of an enemy winding up or swinging at them (The Last of Us Part II: a quarter-second duck out of the blow's way, the trunk leaning with it); elsewhere a gunner's dodge is still the dive.",
+  "sidestep": {
+   "speed": 6.5,
+   "duration": 0.26,
+   "iframeStart": 0.02,
+   "iframeEnd": 0.2,
+   "staminaCost": 14,
+   "cancelableAfter": 0.2,
+   "threatRange": 4
+  },
   "flameStep": {
    "speed": 11,
    "duration": 0.24,
@@ -223,7 +232,15 @@
   "knockOver": 3.2,
   "impulse": 2.5,
   "shove": 0.55,
-  "die": { "time": [0.3, 0.6], "speed": [0.9, 1.9] }
+  "die": { "time": [0.3, 0.6], "speed": [0.9, 1.9] },
+  "melee": {
+   "_note": "A blow you stay on your feet for (The Last of Us Part II: every hit reels, a man hit is folded over and stumbling, helpless, then he's back): any melee hit with `poise[0]` or more reels you along it (kind 'reel'), harder and longer the more poise it carries, up to `poise[1]`: `speed` m/s for `time` s, the trunk folding over by `fold` radians once the first jolt's past. `knockdown` poise or more (a riposte, a kick from a big man) puts you down instead. Light blows (rifle butts, poise 0) keep their own shove.",
+   "poise": [15, 90],
+   "time": [0.5, 1.0],
+   "speed": [1.2, 2.6],
+   "fold": [0.55, 0.95],
+   "knockdown": 90
+  }
  },
  "ragdoll": {
   "_note": "Full ragdoll (src/physics/Ragdoll.js): blasts within blastRadiusFrac of their radius, critical hits (one hit taking criticalFraction of your health pool, or headFraction to the head), and every down or death throw the body as particles and constraints. Where it lands is where you are. Poses are the rig's joints in body space [right, up, forward] per stance (pelvis, neck, head, hips, knees, ankles, shoulders, elbows, hands; tests keep them in sync with the rig).",

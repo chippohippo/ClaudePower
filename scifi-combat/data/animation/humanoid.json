@@ -1065,7 +1065,7 @@
    "handsW": 1
   },
   "dash": {
-   "_note": "Melee-class evades (flameStep/ashStep): a low leap along the dash.",
+   "_note": "Melee-class evades (flameStep/ashStep): a low leap along the dash, the trunk leaning `away` rad after it (back for a hop back, over for one to the side), the chest on the aim.",
    "pelvisH": 0.72,
    "pitchP": 0.2,
    "pitchC": 0.3,
@@ -1096,7 +1096,34 @@
      0,
      1
     ]
-   ]
+   ],
+   "away": 0.35
+  },
+  "sidestep": {
+   "_note": "The Last of Us Part II's duck out of a blow (the sidestep, a quarter second): the far foot steps out the way the dodge goes, lifting at step[0] and down at step[1] (fractions of the evade) step[2] m past its place in the standing stance; the near foot pushes off at push[0] and comes in under him (push[2] m back) by push[1]; the trunk leans `away` rad after the step (TLOU2: 40-50 deg; the hips take `hips` of it and stay hipsBack m back over the push foot) on Hitboxes.evadeCurve, the spheres leaning with it; the knees give to pelvisH; the free hand flung out (arm: m out to the side, up from the hips, along the dodge) and the gun offAim off the aim; the head goes headWith of the way with the trunk (the rest stays on the look, the eyes on him).",
+   "pelvisH": 0.8,
+   "away": 1.05,
+   "hips": 0.5,
+   "hipsBack": 0.06,
+   "step": [
+    0,
+    0.45,
+    0.15
+   ],
+   "push": [
+    0.3,
+    0.8,
+    0
+   ],
+   "lift": 0.07,
+   "arm": [
+    0.55,
+    0.62,
+    0.12
+   ],
+   "armW": 0.9,
+   "offAim": 0.6,
+   "headWith": 0.65
   }
  },
  "transitions": {
@@ -1293,7 +1320,7 @@
   }
  },
  "blend": {
-  "_note": "Crossfade into each state: [seconds, curve]. 'out' (ease-out) for commits that must read instantly (dive, mantle, knockdown, evades), 'smooth' for drops and recoveries (no front-loaded pop), 'in' for collapses. A state that is fading out keeps its last pose and moves rigidly with the body, so it can't snap when its sim data disappears.",
+  "_note": "Crossfade into each state: [seconds, curve]. 'out' (ease-out) for commits that must read instantly (dive, mantle, knockdown, evades), 'smooth' for drops and recoveries (no front-loaded pop), 'in' for collapses. A state that is fading out keeps its last pose and moves rigidly with the body, so it can't snap when its sim data disappears. The sidestep starts from where the feet stand (its own pose takes the lean in), so it barely fades: a fading stance pose moves rigidly with the body and would drag the planted feet.",
   "fade": {
    "loco": [
     0.2,
@@ -1331,6 +1358,10 @@
     0.08,
     "out"
    ],
+   "sidestep": [
+    0.03,
+    "out"
+   ],
    "dead": [
     0.3,
     "in"
@@ -1342,6 +1373,13 @@
    "roll": [
     0.08,
     "out"
+   ]
+  },
+  "after": {
+   "_note": "Leaving these states the next one fades in over [seconds, curve] instead of its own fade: a sidestep ends stood over the feet the planter starts from, and a long fade would drag them along with the body.",
+   "sidestep": [
+    0.05,
+    "smooth"
    ]
   },
   "knockPhase": 0.12,
@@ -1421,11 +1459,13 @@
  "layers": {
   "recoil": {
    "omega": 34,
-   "zeta": 0.5,
+   "zeta": 0.6,
    "kick": 7,
-   "pitch": 0.09,
-   "back": 0.06,
-   "chest": 0.035
+   "pitch": 1.3,
+   "back": 0.35,
+   "chest": 0.22,
+   "head": 0.1,
+   "_note": "The kick in the hands (TLOU2: a pistol's wrists flip up within a frame, ~40 ms, and the gun's back on target by ~125 ms). A spring kicked by the shot's visualKick (capped at 2.5) x kick; per unit of it the muzzle climbs `pitch` rad, the stock comes back `back` m, the shoulders rock `chest` rad and the head nods `head` rad. A rifle shot aimed: ~3 deg and 1.4 cm; from the hip ~4.6 deg; a shotgun 12-19 deg."
   },
   "flinch": {
    "omega": 16,
@@ -1497,7 +1537,7 @@
   ]
  },
  "sword": {
-  "_note": "Chest-frame keyframes: h = hand, b = blade direction, tw = chest twist (+ turns left). Windup eases out into a held tell (readable), the strike accelerates through 'arc', follow-through shows commitment, recovery eases home. The follow-through starts at the strike's own speed (capped at followSpeed m/s) and brakes onto the follow key, so the blade never stops dead at the end of the arc.",
+  "_note": "Chest-frame keyframes: h = hand, b = blade direction, tw = chest twist (+ turns left). Windup eases out into a held tell (readable), the strike accelerates through 'arc', follow-through shows commitment, recovery eases home. The follow-through starts at the strike's own speed (capped at followSpeed m/s) and brakes onto the follow key, so the blade never stops dead at the end of the arc. body = the whole body behind the blade (TLOU2, docs/FEEL_TLOU2.md): hip = the pelvis's twist (+ left), leading the chest's (it reaches the follow key by 40% of the strike, the chest at 100%); lean = the trunk pitched into the blow (+ forward); drop = the hips sunk (m). The sim sweeps the blade with the same lean and drop (MeleeSystem bladeAt). guardBody: sunk a little behind the guard.",
   "followSpeed": 6,
   "length": 1.05,
   "idle": {
@@ -1578,7 +1618,12 @@
       0.15,
       -0.5
      ],
-     "tw": -0.45
+     "tw": -0.45,
+     "body": {
+      "hip": -0.22,
+      "lean": -0.04,
+      "drop": 0.04
+     }
     },
     "arc": [
      {
@@ -1629,7 +1674,12 @@
       -0.15,
       -0.5
      ],
-     "tw": 0.4
+     "tw": 0.4,
+     "body": {
+      "hip": 0.3,
+      "lean": 0.24,
+      "drop": 0.09
+     }
     }
    },
    "light2": {
@@ -1644,7 +1694,12 @@
       0.2,
       -0.45
      ],
-     "tw": 0.42
+     "tw": 0.42,
+     "body": {
+      "hip": 0.2,
+      "lean": -0.04,
+      "drop": 0.04
+     }
     },
     "arc": [
      {
@@ -1695,7 +1750,12 @@
       -0.12,
       -0.5
      ],
-     "tw": -0.42
+     "tw": -0.42,
+     "body": {
+      "hip": -0.3,
+      "lean": 0.24,
+      "drop": 0.09
+     }
     }
    },
    "light3": {
@@ -1710,7 +1770,12 @@
       0.75,
       -0.4
      ],
-     "tw": -0.55
+     "tw": -0.55,
+     "body": {
+      "hip": -0.28,
+      "lean": -0.08,
+      "drop": 0.05
+     }
     },
     "arc": [
      {
@@ -1761,7 +1826,12 @@
       -0.8,
       -0.3
      ],
-     "tw": 0.5
+     "tw": 0.5,
+     "body": {
+      "hip": 0.4,
+      "lean": 0.32,
+      "drop": 0.12
+     }
     }
    },
    "heavy1": {
@@ -1777,7 +1847,12 @@
       -0.85
      ],
      "tw": -0.2,
-     "pitch": -0.2
+     "pitch": -0.2,
+     "body": {
+      "hip": -0.12,
+      "lean": -0.12,
+      "drop": 0.02
+     }
     },
     "arc": [
      {
@@ -1829,7 +1904,12 @@
       0.4
      ],
      "tw": 0.1,
-     "pitch": 0.35
+     "pitch": 0.35,
+     "body": {
+      "hip": 0.1,
+      "lean": 0.36,
+      "drop": 0.14
+     }
     }
    },
    "thrust": {
@@ -1844,7 +1924,12 @@
       0.05,
       1
      ],
-     "tw": -0.35
+     "tw": -0.35,
+     "body": {
+      "hip": -0.18,
+      "lean": -0.06,
+      "drop": 0.06
+     }
     },
     "arc": [
      {
@@ -1884,7 +1969,12 @@
       1
      ],
      "tw": 0.3,
-     "pitch": 0.15
+     "pitch": 0.15,
+     "body": {
+      "hip": 0.22,
+      "lean": 0.3,
+      "drop": 0.1
+     }
     }
    },
    "slideSlash": {
@@ -1899,7 +1989,12 @@
       -0.3,
       -0.3
      ],
-     "tw": -0.5
+     "tw": -0.5,
+     "body": {
+      "hip": -0.2,
+      "lean": 0.0,
+      "drop": 0.05
+     }
     },
     "arc": [
      {
@@ -1950,7 +2045,12 @@
       -0.3,
       -0.3
      ],
-     "tw": 0.5
+     "tw": 0.5,
+     "body": {
+      "hip": 0.3,
+      "lean": 0.2,
+      "drop": 0.08
+     }
     }
    },
    "counter": {
@@ -1965,7 +2065,12 @@
       -0.75,
       0.4
      ],
-     "tw": -0.35
+     "tw": -0.35,
+     "body": {
+      "hip": -0.18,
+      "lean": -0.04,
+      "drop": 0.05
+     }
     },
     "arc": [
      {
@@ -2016,7 +2121,12 @@
       0.9,
       0
      ],
-     "tw": 0.45
+     "tw": 0.45,
+     "body": {
+      "hip": 0.32,
+      "lean": 0.3,
+      "drop": 0.11
+     }
     }
    },
    "flameWave": {
@@ -2032,7 +2142,12 @@
       -0.8
      ],
      "tw": -0.15,
-     "pitch": -0.25
+     "pitch": -0.25,
+     "body": {
+      "hip": -0.08,
+      "lean": -0.12,
+      "drop": 0.03
+     }
     },
     "arc": [
      {
@@ -2072,7 +2187,12 @@
       0.9
      ],
      "tw": 0,
-     "pitch": 0.3
+     "pitch": 0.3,
+     "body": {
+      "hip": 0.05,
+      "lean": 0.3,
+      "drop": 0.12
+     }
     }
    },
    "sweepArc": {
@@ -2087,7 +2207,12 @@
       -0.1,
       -0.5
      ],
-     "tw": -0.9
+     "tw": -0.9,
+     "body": {
+      "hip": -0.4,
+      "lean": 0.02,
+      "drop": 0.08
+     }
     },
     "arc": [
      {
@@ -2150,7 +2275,12 @@
       -0.3,
       -0.6
      ],
-     "tw": 1.3
+     "tw": 1.3,
+     "body": {
+      "hip": 0.6,
+      "lean": 0.18,
+      "drop": 0.12
+     }
     }
    },
    "guardBreak": {
@@ -2165,7 +2295,12 @@
       0.9,
       0.3
      ],
-     "tw": -0.3
+     "tw": -0.3,
+     "body": {
+      "hip": -0.15,
+      "lean": -0.1,
+      "drop": 0.02
+     }
     },
     "arc": [
      {
@@ -2205,7 +2340,12 @@
       0.3
      ],
      "tw": 0.25,
-     "pitch": 0.2
+     "pitch": 0.2,
+     "body": {
+      "hip": 0.15,
+      "lean": 0.12,
+      "drop": 0.04
+     }
     }
    }
   },
@@ -2221,6 +2361,11 @@
    "throw": "thrust",
    "counter": "counter",
    "slide": "slideSlash"
+  },
+  "guardBody": {
+   "hip": 0,
+   "lean": 0.06,
+   "drop": 0.04
   }
  },
  "cape": {

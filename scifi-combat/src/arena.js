@@ -402,8 +402,8 @@ const loop = new FixedLoop({
     const w = player.weapons;
     // HD2 camera: zero-latency look straight from the input (plus recoil), stiff follow, footfall bob, dynamic FOV.
     const pv = player.vehicle?.veh;
-    const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
-    const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+    const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw + (w.swayYaw ?? 0) : 0);
+    const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch + (w.swayPitch ?? 0) : 0)));
     const ph = animSys.get(player.id);
     rig.update(dt, {
       target: player, pos: animSys.record(player.id).root, yaw: lookYaw, pitch: lookPitch,

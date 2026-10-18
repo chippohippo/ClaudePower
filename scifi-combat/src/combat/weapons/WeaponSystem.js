@@ -42,6 +42,13 @@ export const WeaponPhase = Object.freeze({
 
 /** Sustained fire's tremor: built a share of `build` per magazine fired close together; settles over `settle` s once the trigger has rested `rest` s; at its height the aim shakes `pitch`/`yaw` rad. */
 const TREMOR = { build: 1.6, rest: 0.35, settle: 3.5, pitch: 0.0065, yaw: 0.005 };
+/**
+ * Aim sway (people only, aiming; TLOU2): a slow figure of eight at `rate` Hz, `base` rad wide plus
+ * `scoped` times the weapon's ads.sway. Hold sprint while aiming a gun with ads.holdBreath to hold
+ * your breath (that many seconds, the sway down to `held` of itself); let it go, or run out, and it
+ * comes back up to doubled, easing off over a second.
+ */
+const SWAY = { base: 0.0012, scoped: 0.011, rate: 0.25, held: 0.15 };
 
 /** Runtime state for one equipped weapon instance. */
 export class WeaponInstance {
@@ -79,6 +86,10 @@ export class WeaponComponent {
     this.burstLeft = 0;
     this.consecutive = 0;        // shots in current spray (recoil pattern index)
     this.tremor = 0;             // hands shaking after sustained fire (a mag dumped), 0..1: settles once the trigger rests
+    this.breathHeld = 0;         // s of breath held aiming a scope (ads.holdBreath), and the gasp after it (0..1)
+    this.gasp = 0;
+    this.swayYaw = 0;            // the sway in the aim now (rad): the view goes with it, as with recoil
+    this.swayPitch = 0;
     this.sinceShot = 99;
     this.bloom = 0;              // extra spread (deg) from sustained fire
     this.ads = 0;                // 0..1 blend
@@ -150,6 +161,18 @@ export class WeaponComponent {
       this.aimPitch += (Math.sin(t * 47.1) * 0.6 + Math.sin(t * 29.3 + 1.7) * 0.4) * a * TREMOR.pitch;
       this.aimYaw += (Math.sin(t * 38.7 + 0.4) * 0.6 + Math.sin(t * 23.9 + 2.9) * 0.4) * a * TREMOR.yaw;
     }
+    // Aiming, the gun breathes; through a scope, more, unless you hold your breath.
+    this.gasp = Math.max(0, this.gasp - dt);
+    if (!this.owner.brain && this.ads > 0) {
+      const hb = s.ads?.holdBreath ?? 0;
+      const holding = hb > 0 && !!b.sprint?.down && this.ads > 0.9 && this.breathHeld < hb && this.gasp <= 0;
+      if (holding) this.breathHeld += dt;
+      else if (this.breathHeld > 0) { this.gasp = Math.max(this.gasp, Math.min(1, this.breathHeld / hb + 0.3)); this.breathHeld = 0; }
+      const k = (SWAY.base + SWAY.scoped * (s.ads?.sway ?? 0)) * this.ads * (holding ? SWAY.held : 1 + this.gasp);
+      const ph = this.time * Math.PI * 2 * SWAY.rate;
+      this.swayYaw = Math.sin(ph) * k; this.swayPitch = Math.sin(ph * 2) * k * 0.5;
+      this.aimYaw += this.swayYaw; this.aimPitch += this.swayPitch;
+    } else { this.breathHeld = 0; this.swayYaw = 0; this.swayPitch = 0; }
 
     // Sprinting lowers the weapon. Firing out of a sprint costs a short "sprint-to-fire" delay.
     // A reload holds while you sprint (progress kept: you pick it up when you stop).

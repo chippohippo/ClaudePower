@@ -318,7 +318,7 @@ async function applyOptions(o, key) {
 // few ticks (offline only; nobody else's hits stop your game).
 let hitStop = 0;
 for (const ev of ['melee:parry', 'melee:hit', 'melee:perfectBlock', 'melee:block']) {
-  bus.on(ev, (e) => { if (e.defender === PLAYER_ID || e.attacker === PLAYER_ID) hitStop = Math.max(hitStop, Math.min(5 / 60, e.hitStop ?? 1 / 60)); });
+  bus.on(ev, (e) => { if (e.defender === PLAYER_ID || e.attacker === PLAYER_ID) hitStop = Math.max(hitStop, Math.min(9 / 60, e.hitStop ?? 1 / 60)); });   // (a riposte on a staggered man: 9 ticks)
 }
 bus.on('weapon:hit', (e) => { if (e.attacker === PLAYER_ID && e.killed && /^(shotgun|sniper)$/.test(player.weapons.current?.s.archetype ?? '')) hitStop = Math.max(hitStop, 2 / 60); });
 const gunPanel = Object.assign(document.createElement('div'), { id: 'fl-gunpanel' });
@@ -381,8 +381,8 @@ const loop = new FixedLoop({
       const w = player.weapons, pv = player.vehicle?.veh;
       // A magnified optic up: the eye goes to it (third person too), the gun isn't drawn, the screen is the sight picture.
       scoped = scope.update(dt, { scoped: player.mode === 'gun' && !pv && !player.health.dead && !player.health.downed && !fireControl.active && ScopeView.scoped(w.current), ads: w.ads });
-      const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
-      const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+      const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw + (w.swayYaw ?? 0) : 0);
+      const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch + (w.swayPitch ?? 0) : 0)));
       const ph = anim.get(PLAYER_ID);
       rig.update(dt, {
         target: player, pos: anim.record(PLAYER_ID).root, yaw: lookYaw, pitch: lookPitch,

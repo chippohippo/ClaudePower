@@ -19,7 +19,23 @@ const LAYOUTS = {
   dive:     [[0.47, 0.72, 0.22, 'head'], [0.19, 0.55, 0.30, 'body'], [-0.05, 0.48, 0.28, 'body'], [-0.60, 0.35, 0.24, 'limb']],
   diveBack: [[0.35, 0.90, 0.22, 'head'], [0.17, 0.65, 0.30, 'body'], [-0.05, 0.55, 0.28, 'body'], [-0.46, 0.78, 0.24, 'limb']],
   seated:   [[0, 0.85, 0.22, 'head'], [0, 0.50, 0.30, 'body'], [0.10, 0.25, 0.28, 'body'], [0.30, 0.10, 0.24, 'limb']],
+  // Reeling from a blow at its deepest (REEL_FULL): doubled over, the knees giving.
+  folded:   [[0.50, 1.28, 0.22, 'head'], [0.24, 1.07, 0.30, 'body'], [0.06, 0.88, 0.28, 'body'], [0.06, 0.46, 0.26, 'limb']],
 };
+
+/** How deep a reel's fold has gone at `u` (0..1 of the stumble): in over 10–32%, out over the last 30%. Rig and spheres share it. */
+export const REEL_FULL = 0.95;
+const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+export function reelCurve(u) { return ss(0.1, 0.32, u) * (1 - ss(0.7, 1, u)); }
+
+/**
+ * How far a sidestep's lean has gone at `u` (0..1 of the evade): thrown out by 45% (ease-out, it
+ * reads at once), held, back up by the end (TLOU2: out at 0.13 s, recovered by 0.25 s). Rig and
+ * spheres share it.
+ */
+export function evadeCurve(u) { const a = Math.min(1, Math.max(0, u / 0.45)); return (1 - (1 - a) * (1 - a)) * (1 - ss(0.62, 1, u)); }
+// At the sidestep's full lean: how far each sphere has gone along the dodge, and down (m).
+const SIDESTEP = [[0.46, 0.35], [0.19, 0.22], [-0.05, 0.14], [-0.1, 0.03]];
 
 const pool = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, r: 0, zone: 'body' }));
 const angleDelta = (a, b) => ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -60,7 +76,12 @@ function layoutFor(e) {
     case 'slide': return lay(s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide);
     case 'knockdown': return lay(s.knock?.phase === 'air' ? LAYOUTS.dive : s.knock?.phase === 'getup' ? LAYOUTS.crouch : LAYOUTS.prone);
     case 'roll': return lay(LAYOUTS.crouch);   // curled up, rolling
-    case 'stagger': if (s.stagger?.kind === 'buckle') return lay(LAYOUTS.crouch);   // down on one knee
+    case 'stagger':
+      if (s.stagger?.kind === 'buckle') return lay(LAYOUTS.crouch);   // down on one knee
+      if (s.stagger?.kind === 'reel') {   // doubled over as far as the rig shows it
+        const f = reelCurve(s.stagger.t / s.stagger.dur) * (s.stagger.fold ?? 0) / REEL_FULL;
+        if (f > 1e-3) return lay(layoutOf(s.stance, s), LAYOUTS.folded, Math.min(1, f));
+      }
     // falls through: a stumble keeps the stance's layout
     default:
       if (s.stanceT) return lay(layoutOf(s.stanceT.from, s), layoutOf(s.stanceT.to, s), Math.min(1, s.stanceT.t / s.stanceT.dur));
@@ -92,6 +113,8 @@ export function hitSpheres(e) {
   const axis = bodyAxisYaw(e);
   const fx = -Math.sin(axis), fz = -Math.cos(axis);
   const p = s.position;
+  // Leaning out of a blow: the spheres go the way the dodge goes, as far as the rig draws it.
+  const ev = s.mode === 'dodge' && s.dodgeStyle === 'sidestep' ? evadeCurve(s.modeTime / (e.movement.t?.evade?.sidestep?.duration ?? 0.26)) * scale : 0;
   for (let i = 0; i < 4; i++) {
     const ra = a[i], rb = b ? b[i] : ra;
     const fwd = (ra[0] + (rb[0] - ra[0]) * t) * scale;
@@ -101,6 +124,7 @@ export function hitSpheres(e) {
     o.y = p.y + (ra[1] + (rb[1] - ra[1]) * t) * scale;
     o.r = (ra[2] + (rb[2] - ra[2]) * t) * scale;
     o.zone = ra[3];
+    if (ev > 0) { const L = SIDESTEP[i], d = s.dodgeDir; o.x += d.x * L[0] * ev; o.z += d.z * L[0] * ev; o.y -= L[1] * ev; }
   }
   return pool;
 }

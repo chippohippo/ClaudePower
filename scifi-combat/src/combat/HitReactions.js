@@ -62,8 +62,12 @@ export function reactToHit(e, res, info = {}, by = null) {
   }
   const pool = (e.health.max + (e.health.maxShield ?? 0)) || 100;
   const frac = res.dealt / pool;
-  const critical = frac >= R.criticalFraction || (info.zone === 'head' && frac >= R.headFraction)
-    || (kind === 'melee' && (info.poise ?? 0) >= 50) || kind === 'ram';
+  // A blade or a fist doesn't throw a man however hard it lands: he reels (below), unless it was
+  // a knockdown blow (stagger.melee.knockdown poise).
+  const M = S?.melee, poise = info.poise ?? 0;
+  const critical = kind === 'melee'
+    ? (M ? poise >= M.knockdown || !!info.knockdown : poise >= 50)
+    : frac >= R.criticalFraction || (info.zone === 'head' && frac >= R.headFraction) || kind === 'ram';
 
   // Direction of the hit along the ground: given, or attacker → victim, or backward.
   const p = e.movement.state.position;
@@ -99,6 +103,12 @@ export function reactToHit(e, res, info = {}, by = null) {
   if (!S || mv.state.mode === 'ragdoll') return;
   if ((site === 'legL' || site === 'legR') && frac >= S.buckle) {
     mv.stagger(dx, dz, S.speed[0] * 0.6, { dur: S.time[1], kind: 'buckle', side: site === 'legL' ? -1 : 1 });
+    return;
+  }
+  if (kind === 'melee' && M && poise >= M.poise[0]) {
+    // Reeling: thrown along the blow, then folded over and stumbling with it.
+    const k = clamp((poise - M.poise[0]) / (M.poise[1] - M.poise[0]), 0, 1);
+    mv.stagger(dx, dz, lerp(M.speed[0], M.speed[1], k), { dur: lerp(M.time[0], M.time[1], k), kind: 'reel', fold: lerp(M.fold[0], M.fold[1], k) });
     return;
   }
   if (frac >= S.fraction || (kind === 'melee' && (info.poise ?? 0) >= 25)) {

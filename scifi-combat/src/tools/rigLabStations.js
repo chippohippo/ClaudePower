@@ -189,6 +189,14 @@ export const STATIONS = [
       c.hold('guard', between(t, 4.0, 5.2));
     },
   },
+  {
+    id: 'exchange', name: 'Blows landing (TLOU2): a step in, the hips ahead of the blade; he reels, doubled over', length: 5, mode: 'sword', classId: 'dawnblade',
+    buddy: { team: 1, mode: 'gun', start: [0, 0, -1.9], script(t, c) { c.look(Math.PI); } },
+    script(t, c) {
+      for (const at of [0.4, 1.3]) if (between(t, at, at + 0.05)) c.press('light');
+      c.hold('heavy', between(t, 2.6, 2.7));
+    },
+  },
   // ---- bodies and steps (BodyContacts, FootPlanter): what's underfoot and who's in the way
   {
     id: 'kerb', name: 'Up a kerb at a jog, then backing down off it: the feet lift onto it, no slowdown', length: 6.8,

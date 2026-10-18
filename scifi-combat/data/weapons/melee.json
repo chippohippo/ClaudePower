@@ -1,5 +1,5 @@
 {
- "_comment": "Times in seconds. windup = readable tell; active = hitbox sweeps; recovery = punish window. cancelAt = fraction of recovery after which dodge/guard can cancel. A weapon with `base` is that weapon's moveset with its own numbers merged over it (src/combat/melee/MeleeWeapons.js). visual.scale: blade length; visual.twoHanded: both hands on it for every attack. Attack extras: onHitStatus (a status on a clean hit), shieldMul (x damage while the target's shield is up), pull (m/s toward the attacker on a clean hit), lunge.",
+ "_comment": "Times in seconds. windup = readable tell; active = hitbox sweeps; recovery = punish window. step = metres the body steps into the strike over its active frames (forced motion; not with a lunge). hitStop = ticks (60 Hz) the exchange freezes on a clean hit (+2 against a staggered target). cancelAt = fraction of recovery after which dodge/guard can cancel. A weapon with `base` is that weapon's moveset with its own numbers merged over it (src/combat/melee/MeleeWeapons.js). visual.scale: blade length; visual.twoHanded: both hands on it for every attack. Attack extras: onHitStatus (a status on a clean hit), shieldMul (x damage while the target's shield is up), pull (m/s toward the attacker on a clean hit), lunge.",
  "weapons": [
   {
    "id": "solari_dawnblade",
@@ -34,6 +34,8 @@
    "attacks": {
     "light1": {
      "anim": "Sword_Slash_L1",
+     "step": 0.22,
+     "hitStop": 3,
      "windup": 0.18,
      "active": 0.12,
      "recovery": 0.28,
@@ -52,6 +54,8 @@
     },
     "light2": {
      "anim": "Sword_Slash_R1",
+     "step": 0.22,
+     "hitStop": 3,
      "windup": 0.16,
      "active": 0.12,
      "recovery": 0.3,
@@ -70,6 +74,8 @@
     },
     "light3": {
      "anim": "Sword_Slash_Finisher",
+     "step": 0.3,
+     "hitStop": 4,
      "windup": 0.24,
      "active": 0.14,
      "recovery": 0.45,
@@ -84,6 +90,8 @@
     },
     "heavy1": {
      "anim": "Sword_Heavy_Overhead",
+     "step": 0.32,
+     "hitStop": 6,
      "windup": 0.48,
      "active": 0.14,
      "recovery": 0.55,
@@ -105,6 +113,7 @@
     },
     "thrust": {
      "anim": "Sword_Thrust",
+     "hitStop": 4,
      "windup": 0.3,
      "active": 0.1,
      "recovery": 0.4,
@@ -120,6 +129,7 @@
     },
     "slideSlash": {
      "anim": "Sword_Slide_Slash",
+     "hitStop": 4,
      "windup": 0.08,
      "active": 0.16,
      "recovery": 0.35,
@@ -134,6 +144,8 @@
     },
     "counter": {
      "anim": "Sword_Riposte",
+     "step": 0.3,
+     "hitStop": 7,
      "windup": 0.06,
      "active": 0.12,
      "recovery": 0.3,
@@ -152,6 +164,7 @@
     },
     "flameWave": {
      "anim": "Sword_Flame_Wave",
+     "hitStop": 4,
      "windup": 0.6,
      "active": 0.1,
      "recovery": 0.5,
@@ -170,6 +183,7 @@
     },
     "sweepArc": {
      "anim": "Sword_Sweep_270",
+     "hitStop": 5,
      "windup": 0.35,
      "active": 0.2,
      "recovery": 0.6,
@@ -184,6 +198,8 @@
     },
     "guardBreak": {
      "anim": "Sword_Kick",
+     "step": 0.15,
+     "hitStop": 6,
      "windup": 0.4,
      "active": 0.1,
      "recovery": 0.5,

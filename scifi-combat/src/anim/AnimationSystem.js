@@ -45,6 +45,8 @@ export class AnimationSystem {
       bus.on('melee:hit', (e) => this.#hit(e.defender, e.attacker, e.damage)),
       bus.on('ability:hit', (e) => this.#hit(e.victim, e.attacker, e.damage)),
       bus.on('entity:death', (e) => this.rigs.get(e.id)?.h.onEvent('death', e)),
+      // A blast nearby flinches you away from it like a hit (blasts emit no weapon:hit).
+      bus.on('projectile:explode', (e) => this.#blast(e)),
       bus.on('fighter:nearMiss', (e) => {
         const r = this.rigs.get(e.id);
         if (!r) return;
@@ -153,6 +155,17 @@ export class AnimationSystem {
       });
       r.acc = 0;
       st.solved++;
+    }
+  }
+
+  #blast(e) {
+    const p = e.point, R = (e.radius ?? 3) * 1.6;
+    if (!p) return;
+    for (const r of this.list) {
+      const q = r.e.movement.state.position, dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
+      if (d > R || Math.abs(q.y - p.y) > R) continue;
+      if (d < 1e-3) _dir.set(0, 0, 1); else _dir.set(dx / d, 0, dz / d);
+      r.h.onEvent('hit', { dir: _dir, damage: 45 * (1 - d / R) });
     }
   }
 

@@ -39,7 +39,7 @@ import { bus } from '../core/EventBus.js';
 import { Spring } from '../core/Spring.js';
 import { FootPlanter } from './FootPlanter.js';
 import { MotionEvents, transitionPath } from './MotionEvents.js';
-import { silhouetteScale, chestPoint } from '../movement/Hitboxes.js';
+import { silhouetteScale, chestPoint, reelCurve, evadeCurve } from '../movement/Hitboxes.js';
 import { J } from '../physics/Ragdoll.js';
 import {
   clamp, lerp, ease, easeOut, easeIn, smoothstep, table, angleDelta, lerpAngle, approach,
@@ -55,9 +55,10 @@ const _v = new Vector3();
 const _a = new Vector3();
 const _b = new Vector3();
 const _c = new Vector3();
+const _body = { hip: 0, lean: 0, drop: 0 };   // (the sword state's body target, reused)
 const _d = new Vector3();
 const _pole = new Vector3();
-const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'roll', 'dead', 'downed'];
+const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'sidestep', 'roll', 'dead', 'downed'];
 const JOINT_ARRAYS = ['hip', 'knee', 'ankle', 'shoulder', 'elbow', 'hand'];
 const JOINT_POINTS = ['pelvis', 'neck', 'neckTop', 'head', 'chestC'];
 const newJoints = () => ({
@@ -251,11 +252,11 @@ export class ProceduralHumanoid {
     // Sword keyframe state starts at the idle guard (never a zero vector, even on the first frame).
     const idleH = new Vector3().fromArray(cfg.sword.idle.h), idleB = new Vector3().fromArray(cfg.sword.idle.b).normalize();
     this.sword = {
-      key: '', fromH: idleH.clone(), fromB: idleB.clone(), fromTw: 0, fromPitch: 0,
+      key: '', fromH: idleH.clone(), fromB: idleB.clone(), fromTw: 0, fromPitch: 0, fromBody: { hip: 0, lean: 0, drop: 0 },
       startH: idleH.clone(), startB: idleB.clone(), v0H: v3(), v0B: v3(),
       prevH: idleH.clone(), prevB: idleB.clone(), velH: v3(), velB: v3(),
     };
-    this.swordLocal = { h: idleH.clone(), b: idleB.clone(), tw: 0, pitch: 0 };
+    this.swordLocal = { h: idleH.clone(), b: idleB.clone(), tw: 0, pitch: 0, body: { hip: 0, lean: 0, drop: 0 } };
     this.aimYaw = null; this.aimPitch = 0; this.prevAimYaw = 0; this.prevAimPitch = 0;
     this.lod = 0; this.emit = true; this.visible = true;
     this.dead = false; this.deathBack = false; this.lastHitDir = v3();
@@ -351,11 +352,12 @@ export class ProceduralHumanoid {
     // ---- which state; crossfade on the incoming state's duration and curve (data: blend.fade)
     const key = this.#activeKey(s);
     if (key !== this.active) {
+      this.fadeOut = cfg.blend.after?.[this.active] ?? null;
       this.active = key;
       for (const name of KEYS) this.fadeFrom[name] = this.w[name];
       this.fadeP = 0;
     }
-    const [fadeT, curve] = cfg.blend.fade[key] ?? [0.12, 'smooth'];
+    const [fadeT, curve] = this.fadeOut ?? cfg.blend.fade[key] ?? [0.12, 'smooth'];
     this.fadeP = Math.min(1, this.fadeP + dt / fadeT);
     const fk = curve === 'out' ? easeOut(this.fadeP) : curve === 'in' ? easeIn(this.fadeP) : ease(this.fadeP);
     for (const name of KEYS) this.w[name] = lerp(this.fadeFrom[name], name === key ? 1 : 0, fk);
@@ -504,13 +506,16 @@ export class ProceduralHumanoid {
   #staggerLayer(P) {
     const s = this.e.movement.state, g = s.mode === 'stagger' ? s.stagger : null, dt = this.dt ?? 1 / 60;
     this.stagW = (this.stagW ?? 0) + ((g ? 1 : 0) - (this.stagW ?? 0)) * approach(g ? 20 : 6, dt);
-    if (g) this.stag = { dx: g.dx, dz: g.dz, kind: g.kind, side: g.side, fall: !!g.fall, u: g.t / g.dur };
+    if (g) this.stag = { dx: g.dx, dz: g.dz, kind: g.kind, side: g.side, fall: !!g.fall, u: g.t / g.dur, fold: g.fold ?? 0 };
     const k = this.stagW, G = this.stag;
     if (k < 1e-3 || !G) return;
     const sc = this.scale;
     forwardOf(P.yawC, _f); rightOf(P.yawC, _r);
     const along = G.dx * _f.x + G.dz * _f.z, across = G.dx * _r.x + G.dz * _r.z;
-    const jolt = Math.sin(Math.PI * Math.min(1, G.u * 1.25 + 0.2)) * k;   // thrown at once, easing back
+    // Reeling from a blow: the jolt is a snap over the first 18% (the head and chest go with it, a
+    // frame or two), then the fold takes the body.
+    const reel = G.kind === 'reel';
+    const jolt = Math.sin(Math.PI * Math.min(1, reel ? G.u / 0.18 * 0.8 + 0.2 : G.u * 1.25 + 0.2)) * k;   // thrown at once, easing back
     if (G.kind === 'buckle') {
       // The leg gives: hips down onto that knee, the trunk leaning off it.
       P.pelvis.y -= 0.34 * sc * jolt;
@@ -519,7 +524,8 @@ export class ProceduralHumanoid {
       return;
     }
     // The chest goes with the push (back for a shot from the front), the hips after it.
-    P.pitchC += along * 0.6 * jolt; P.pitchP += along * 0.22 * jolt;
+    const snap = reel ? 0.35 : 0.6;
+    P.pitchC += along * snap * jolt; P.pitchP += along * 0.22 * jolt;
     P.leanC += across * 0.45 * jolt; P.leanP += across * 0.15 * jolt;
     P.aimW *= 1 - 0.85 * jolt; P.gunUp *= 1 - 0.75 * jolt;
     // Arms flung out wide (against the push) to catch the balance.
@@ -528,6 +534,19 @@ export class ProceduralHumanoid {
       _b.copy(P.pelvis).addScaledVector(_r, side * 0.46 * sc);
       _b.x -= G.dx * 0.18 * sc; _b.z -= G.dz * 0.18 * sc; _b.y += (0.78 + 0.12 * side * across) * sc;
       P.hand[i].lerp(_b, jolt * 0.85); P.handW[i] = Math.max(P.handW[i], jolt * 0.85);
+    }
+    if (reel) {
+      // Doubled over and stumbling with it (the hit spheres fold the same way, Hitboxes): the trunk
+      // folds over the gut, the knees give, one hand pulled in to where it landed and the other
+      // reaching low for balance, the gun forgotten; it unfolds over the last 30%.
+      const f = reelCurve(G.u) * k, fold = G.fold;
+      P.pitchC += fold * f; P.pitchP += fold * 0.45 * f;
+      P.pelvis.y -= 0.13 * (fold / 0.95) * sc * f;
+      P.aimW *= 1 - f; P.gunUp *= 1 - f;
+      _b.copy(P.pelvis).addScaledVector(_f, 0.2 * sc); _b.y += 0.1 * sc;
+      P.hand[0].lerp(_b, f); P.handW[0] = Math.max(P.handW[0], f);
+      _b.copy(P.pelvis).addScaledVector(_f, 0.42 * sc).addScaledVector(_r, 0.32 * sc); _b.y -= 0.25 * sc;
+      P.hand[1].lerp(_b, f); P.handW[1] = Math.max(P.handW[1], f);
     }
     if (G.fall) {
       // Going down: hunched over, the knees starting to go, a hand pressed to the gut.
@@ -696,7 +715,7 @@ export class ProceduralHumanoid {
       case 'air': case 'wallrun': return 'air';
       case 'mantle': return s.mantle ? 'mantle' : 'loco';
       case 'knockdown': return s.knock ? 'knock' : 'loco';
-      case 'dodge': return s.dodgeStyle === 'shoulderBash' ? 'loco' : 'dodge';
+      case 'dodge': return s.dodgeStyle === 'shoulderBash' ? 'loco' : s.dodgeStyle === 'sidestep' ? 'sidestep' : 'dodge';
       case 'roll': return 'roll';
       default: return 'loco';
     }
@@ -715,6 +734,7 @@ export class ProceduralHumanoid {
       case 'downed': return this.#downedPose(out);
       case 'seated': return this.#seatedPose(out);
       case 'dodge': return this.#dodgePose(out);
+      case 'sidestep': return this.#sidestepPose(out);
       case 'roll': return this.#rollPose(out);
       case 'dead': { this.#keyPose(this.deathBack ? 'lyingBack' : 'lying', out, root, yaw); out.headW = 0; out.aimW = 0; out.gunUp = 0; return out; }
       default: return this.#restStance(out, 0);
@@ -836,8 +856,12 @@ export class ProceduralHumanoid {
     L.hip.step(hip, dt);
     // Lean into acceleration like an inverted pendulum. The lean lags the push a little and
     // settles with a touch of overshoot: a braking stance change reads as weight, not a snap.
+    // Not while swinging a blade: the strike's own keys lean the trunk into it (and the step into it
+    // is the strike's), as the sim sweeps the blade.
     forwardOf(this.yaw, _a); rightOf(this.yaw, _b);
-    const af = s.accel.x * _a.x + s.accel.z * _a.z, ar = s.accel.x * _b.x + s.accel.z * _b.z;
+    // Nor through an evade: its pose is the lean, and its burst would leave the springs leaning after it.
+    const strike = (this.e.mode === 'sword' && !!this.e.melee?.busy) || this.active === 'sidestep' || this.active === 'dodge';
+    const af = strike ? 0 : s.accel.x * _a.x + s.accel.z * _a.z, ar = strike ? 0 : s.accel.x * _b.x + s.accel.z * _b.z;
     L.lean.step(clamp((af / G) * b.accelLean, -b.maxLean, b.maxLean), dt);
     L.bank.step(clamp((ar / G) * b.accelLean, -b.maxLean, b.maxLean) * smoothstep(1, 3, s.speed), dt);
     // Side-steps and backpedals take shorter steps; the blend follows the input direction smoothly.
@@ -1228,10 +1252,69 @@ export class ProceduralHumanoid {
   }
 
   #dodgePose(out) {
-    const s = this.e.movement.state;
+    const s = this.e.movement.state, k = this.cfg.poses.dash;
     const dy = Math.atan2(-s.dodgeDir.x, -s.dodgeDir.z);
     this.#keyPose('dash', out, this.root, dy);
     out.yawC = this.yaw;
+    // The trunk goes some way after the dash (back for a hop back, over for one to the side), in
+    // the chest's frame, which stays on the aim.
+    const rel = angleDelta(this.yaw, dy), L = k.away ?? 0;
+    out.pitchC = k.pitchC + L * Math.cos(rel); out.leanC = -L * Math.sin(rel);
+    out.leanP = out.leanC * 0.3;
+    return out;
+  }
+
+  /**
+   * The Last of Us Part II's duck out of a blow (the sidestep, a quarter second; poses.sidestep):
+   * the far foot steps out the way the dodge goes while the near one pushes off, then comes in
+   * under him; the trunk leans after the step, as far as the hit spheres lean (Hitboxes.evadeCurve),
+   * the knees giving; the free hand flung out for balance, the gun off the aim, the eyes on the man
+   * swinging. The feet are planted in world space: they only move while they swing.
+   */
+  #sidestepPose(out) {
+    const s = this.e.movement.state, k = this.cfg.poses.sidestep, st0 = this.cfg.poses.stand, sc = this.scale, root = this.root, yaw = this.yaw;
+    const u = clamp((s.modeTime - this.lag) / (this.e.movement.t?.evade?.sidestep?.duration ?? 0.26), 0, 1), c = evadeCurve(u), d = s.dodgeDir;
+    let st = this.sstep;
+    if (!st || u < st.u - 1e-6) {
+      // A fresh sidestep: the feet start where they stand; the one further along the dodge steps.
+      st = this.sstep ??= { u: 0, at: [v3(), v3()], to: [v3(), v3()], landed: [false, false], aimed: [false, false], lead: 0 };
+      for (let i = 0; i < 2; i++) { st.at[i].copy(this.j.ankle[i]); st.landed[i] = st.aimed[i] = false; }
+      st.lead = (st.at[1].x - st.at[0].x) * d.x + (st.at[1].z - st.at[0].z) * d.z > 0 ? 1 : 0;
+    }
+    st.u = u;
+    forwardOf(yaw, _f); rightOf(yaw, _r);
+    // The hips sink and stay back over the push foot while the trunk goes.
+    const back = k.hipsBack * c * sc;
+    out.pelvis.set(root.x - d.x * back, root.y + lerp(st0.pelvisH, k.pelvisH, c) * sc, root.z - d.z * back);
+    out.yawP = yaw; out.yawC = yaw; out.spinP = out.spinC = 0;
+    // The lean, in the hips' and chest's frames (on the aim): back for a backstep, over for a sidestep.
+    const rel = angleDelta(yaw, Math.atan2(-d.x, -d.z)), A = k.away * c, fw = Math.cos(rel), sd = -Math.sin(rel);
+    out.pitchP = st0.pitchP + A * k.hips * fw; out.pitchC = st0.pitchC + A * fw;
+    out.leanP = A * k.hips * sd; out.leanC = A * sd;
+    const g = this.cfg.gait.stand;
+    for (let i = 0; i < 2; i++) {
+      const lead = i === st.lead, [t0, t1, reach] = lead ? k.step : k.push, side = i === 0 ? -1 : 1;
+      // Where it lands: its place in the standing stance, out along the dodge for the step (the
+      // body still travelling, so he ends up stood over his feet) or back toward the push.
+      const a = (lead ? reach : -reach) * sc, wd = side * g.width * sc, sg = -side * g.stagger * sc;
+      _b.set(root.x + d.x * a + _r.x * wd + _f.x * sg, root.y + this.d.ankleH, root.z + d.z * a + _r.z * wd + _f.z * sg);
+      // A swinging foot follows the body until it's coming down, then goes to where it'll land
+      // (it doesn't chase the body along the ground), and stays there.
+      const q = smoothstep(t0, t1, u);
+      if (q > 0.6 && !st.aimed[i]) { st.to[i].copy(_b); st.aimed[i] = true; }
+      const to = st.aimed[i] ? st.to[i] : _b;
+      if (st.landed[i]) out.foot[i].copy(st.at[i]);
+      else if (u >= t1) { st.at[i].copy(to); st.landed[i] = true; out.foot[i].copy(to); }
+      else { out.foot[i].copy(st.at[i]).lerp(to, q); out.foot[i].y += Math.sin(Math.PI * q) * k.lift * sc; }
+      out.footPitch[i] = 0; out.footYaw[i] = yaw;
+      out.knee[i].copy(_f).addScaledVector(_r, side * 0.2).add(_v.set(0, 0.1, 0));
+      out.handW[i] = 0;
+    }
+    // The free hand flung out wide (it leaves the gun); the gun hand keeps the gun, low, off the aim.
+    _b.copy(out.pelvis).addScaledVector(_r, -k.arm[0] * sc).addScaledVector(d, k.arm[2] * sc); _b.y += k.arm[1] * sc;
+    out.hand[0].copy(_b); out.handW[0] = c * k.armW;
+    // The head goes with the trunk (headW: what's left of it on the look keeps the eyes on him).
+    out.aimW = 1 - k.offAim * c; out.headW = 1 - k.headWith * c; out.gunUp = 1 - k.offAim * c;
     return out;
   }
 
@@ -1254,7 +1337,14 @@ export class ProceduralHumanoid {
     TW.x[0] = clamp(ad, -1.1, 1.1) * P.aimW * lerp(0.3, 1, raisedK);
     TW.apply(dt);
     P.yawC += TW.x[0] + (sword ? this.swordLocal.tw * P.aimW : 0);
-    if (sword) P.pitchC += this.swordLocal.pitch * P.aimW;
+    if (sword) {
+      P.pitchC += this.swordLocal.pitch * P.aimW;
+      // The body behind the blade: the hips twist ahead of the chest, the trunk leans and sinks.
+      const B = this.swordLocal.body;
+      P.yawP += this.#hipLead(B.hip, dt) * P.aimW;
+      P.pitchC += B.lean * P.aimW; P.pitchP += B.lean * 0.4 * P.aimW;
+      P.pelvis.y -= B.drop * this.scale * P.aimW;
+    }
     // Additive layers on the upper body only (the legs keep their plants).
     const breathRate = s.exhausted || s.lowStamina ? L.breath.rateLow : L.breath.rate;
     const breathAmp = (s.exhausted || s.lowStamina ? L.breath.ampLow : L.breath.amp) * sc;
@@ -1314,12 +1404,25 @@ export class ProceduralHumanoid {
     const lookYaw = s.yaw, lookPitch = e.weapons?.weaponPitch ?? this.aimPitch ?? 0;
     const hy = P.yawC + clamp(angleDelta(P.yawC, lookYaw), -b.headYawMax, b.headYawMax) * P.headW;
     const hp = clamp(-lookPitch * 0.85, P.pitchC - b.headPitchMax, P.pitchC + b.headPitchMax);
-    const headPitch = lerp(P.pitchC, hp, P.headW) + this.flZ.x * L.flinch.head + this.rec.x * 0.02;
+    const headPitch = lerp(P.pitchC, hp, P.headW) + this.flZ.x * L.flinch.head + this.rec.x * (L.recoil.head ?? 0.02);
     const ads = sword ? 0 : (e.weapons?.ads ?? 0) * raisedK;
     bodyFrame(hy, headPitch, 0, P.leanC * 0.5 + this.flX.x * L.flinch.head + ads * 0.14, F.head);
     _v.copy(F.chest.d).multiplyScalar(0.6).addScaledVector(F.head.d, 0.4).normalize();
     j.neckTop.copy(j.neck).addScaledVector(_v, d.neck);
     j.head.copy(j.neckTop).addScaledVector(F.head.d, d.headR * 0.85).addScaledVector(F.head.n, 0.02 * sc);
+  }
+
+  /**
+   * The hips' twist behind a blow: a fast spring (they lead the shoulders) whose acceleration is
+   * capped, so a strike's hip turn never pops (tests: the hips' yaw changes speed smoothly).
+   */
+  #hipLead(target, dt) {
+    const H = (this.hipL ??= { x: 0, v: 0 }), w = 40, A = 300, n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n;
+    for (let i = 0; i < n; i++) {
+      const a = clamp(w * w * (target - H.x) - 2 * w * H.v, -A, A);
+      H.v += a * h; H.x += H.v * h;
+    }
+    return H.x;
   }
 
   /** The reach drop grows at once (a planted foot is never overstretched) and lets go on a critically damped spring. */
@@ -1493,7 +1596,7 @@ export class ProceduralHumanoid {
     const key = `${phase}:${m.attackId ?? ''}`;
     if (key !== S.key) {
       // Blend from wherever the blade is now: chained attacks flow without pops.
-      S.key = key; S.fromH.copy(out.h); S.fromB.copy(out.b); S.fromTw = out.tw; S.fromPitch = out.pitch;
+      S.key = key; S.fromH.copy(out.h); S.fromB.copy(out.b); S.fromTw = out.tw; S.fromPitch = out.pitch; Object.assign(S.fromBody, out.body);
       // Where the blade is and how fast it's moving (capped): the follow-through starts from both.
       S.startH.copy(out.h); S.startB.copy(out.b);
       const cap = sw.followSpeed ?? 6, vh = S.velH.length(), vb = S.velB.length();
@@ -1507,11 +1610,19 @@ export class ProceduralHumanoid {
     const t = Math.max(0, m.phaseTime - this.lag);
     const set = (k, tw = 0, pitch = 0) => { _a.fromArray(k.h); _b.fromArray(k.b); return [tw ?? 0, pitch ?? 0]; };
     let tw = 0, pitch = 0, blend = 1;
+    // The whole body behind the blade (TLOU2): the hips coil with the wind, lead into the strike,
+    // the trunk drops and leans into it, held through the follow-through.
+    const body = _body; body.hip = 0; body.lean = 0; body.drop = 0;
+    const bodyKey = (k) => { if (k?.body) { body.hip = k.body.hip ?? 0; body.lean = k.body.lean ?? 0; body.drop = k.body.drop ?? 0; } };
     switch (phase) {
       case 'windup': {
         // The tell: pull back fast, then hold where the opponent can read it.
         [tw, pitch] = set(kf.wind, kf.wind.tw, kf.wind.pitch);
-        blend = easeOut(t / Math.max(0.01, m.attack?.windup ?? 0.2) * 1.6);
+        bodyKey(kf.wind);
+        // The hips start to unwind before the arms let go (a third of the way by the end of the tell).
+        const wu = t / Math.max(0.01, m.attack?.windup ?? 0.2);
+        if (kf.wind.body && kf.follow?.body) body.hip = lerp(kf.wind.body.hip ?? 0, kf.follow.body.hip ?? 0, smoothstep(0.75, 1, wu) * 0.35);
+        blend = easeOut(wu * 1.6);
         break;
       }
       case 'active': {
@@ -1523,6 +1634,13 @@ export class ProceduralHumanoid {
         _b.fromArray(arc[i].b).lerp(_c.fromArray(arc[i + 1].b), f);
         tw = lerp(kf.wind.tw ?? 0, kf.follow.tw ?? 0, ua / (arc.length - 1));
         pitch = lerp(kf.wind.pitch ?? 0, kf.follow.pitch ?? 0, ua / (arc.length - 1));
+        // The trunk with the blade (as the sim sweeps it: MeleeSystem bladeAt); the hips ahead of it,
+        // at their follow twist by 40% of the strike.
+        const W = kf.wind.body, Fb = kf.follow.body, ub = ua / (arc.length - 1);
+        if (W && Fb) {
+          body.lean = lerp(W.lean ?? 0, Fb.lean ?? 0, ub); body.drop = lerp(W.drop ?? 0, Fb.drop ?? 0, ub);
+          body.hip = lerp(W.hip ?? 0, Fb.hip ?? 0, 0.35 + 0.65 * smoothstep(0, 0.4, clamp(t / Math.max(0.01, m.attack?.active ?? 0.1), 0, 1)));
+        }
         blend = 1; S.fromH.copy(_a); S.fromB.copy(_b);
         break;
       }
@@ -1540,24 +1658,28 @@ export class ProceduralHumanoid {
           _a.copy(S.startH).multiplyScalar(h00).addScaledVector(S.v0H, h10).addScaledVector(_c.fromArray(kf.follow.h), h01);
           _b.copy(S.startB).multiplyScalar(h00).addScaledVector(S.v0B, h10).addScaledVector(_c.fromArray(kf.follow.b), h01);
           tw = kf.follow.tw ?? 0; pitch = kf.follow.pitch ?? 0;
+          bodyKey(kf.follow);   // (held: the commitment you can read)
         } else {
           const f = ease((ur - 0.35) / 0.65);
           _a.fromArray(kf.follow.h).lerp(_c.fromArray(home.h), f); _b.fromArray(kf.follow.b).lerp(_c.fromArray(home.b), f);
           tw = lerp(kf.follow.tw ?? 0, 0, f); pitch = lerp(kf.follow.pitch ?? 0, 0, f);
+          bodyKey(kf.follow); body.hip *= 1 - f; body.lean *= 1 - f; body.drop *= 1 - f;
         }
         blend = 1; S.fromH.copy(_a); S.fromB.copy(_b);
         break;
       }
-      case 'guard': case 'parryWhiff': set(sw.guard); blend = easeOut(t / 0.08); break;
+      case 'guard': case 'parryWhiff': set(sw.guard); bodyKey({ body: sw.guardBody }); blend = easeOut(t / 0.08); break;
       case 'stagger': set(sw.stagger); tw = 0.3; pitch = -0.25; blend = easeOut(t / 0.1); break;
       case 'guardBroken': set(sw.broken); tw = 0.4; pitch = -0.3; blend = easeOut(t / 0.1); break;
-      case 'charging': [tw, pitch] = set(this.#attackKeys('heavy1').wind, this.#attackKeys('heavy1').wind.tw, this.#attackKeys('heavy1').wind.pitch); blend = easeOut(t / 0.15); break;
+      case 'charging': [tw, pitch] = set(this.#attackKeys('heavy1').wind, this.#attackKeys('heavy1').wind.tw, this.#attackKeys('heavy1').wind.pitch); bodyKey(this.#attackKeys('heavy1').wind); blend = easeOut(t / 0.15); break;
       default: set(s.sprinting ? sw.sprint : sw.idle); blend = easeOut(t / 0.18);
     }
     out.h.copy(S.fromH).lerp(_a, blend);
     out.b.copy(S.fromB).lerp(_b, blend).normalize();
     out.tw = lerp(S.fromTw, tw, blend);
     out.pitch = lerp(S.fromPitch, pitch, blend);
+    const ob = out.body, fb = S.fromBody;
+    ob.hip = lerp(fb.hip, body.hip, blend); ob.lean = lerp(fb.lean, body.lean, blend); ob.drop = lerp(fb.drop, body.drop, blend);
     const dt = this.dt ?? 1 / 60;
     if (dt > 0) { S.velH.subVectors(out.h, S.prevH).divideScalar(dt); S.velB.subVectors(out.b, S.prevB).divideScalar(dt); }
     S.prevH.copy(out.h); S.prevB.copy(out.b);

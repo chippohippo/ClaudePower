@@ -93,6 +93,7 @@ export class CameraRig {
     this.collisionDist = FRAMING.stand.dist;
     this.trauma = 0;
     this.flinchP = 0; this.flinchY = 0;   // a hit's kick (rad), recovering
+    this.shotKick = new Spring(40, 0.55);   // your own shot's jolt (rad): up within ~30 ms, gone in ~150 (TLOU2's pistol)
     this.time = 0;
     this.initialized = false;
     this.lastFoot = 0;
@@ -107,6 +108,10 @@ export class CameraRig {
     bus.on('melee:hit', (e) => (e.defender === this.targetId || e.attacker === this.targetId) && this.addTrauma(e.crit ? 0.3 : 0.16));
     bus.on('melee:guardBreak', (e) => (e.defender === this.targetId || e.attacker === this.targetId) && this.addTrauma(0.4));
     bus.on('weapon:fire', (e) => e.id === this.targetId && this.addTrauma(e.shake ?? 0.05));
+    // Each of your shots jolts the view up and back (presentation: the aim's own climb is the recoil offset).
+    bus.on('weapon:recoil', (e) => e.id === this.targetId && this.shotKick.kick(Math.min(2.5, e.kick ?? 0.5) * 0.92 * (this.settings.reducedMotion ? 0.3 : 1)));
+    // Shot yourself: a jolt on top of the flinch (HitFeedback).
+    bus.on('weapon:hit', (e) => e.victim === this.targetId && this.addTrauma(Math.min(0.3, 0.1 + (e.damage ?? 0) / 150)));
     bus.on('projectile:explode', (e) => this.#explosion(e));
     bus.on('stratagem:land', (e) => this.#explosion({ point: { x: e.at[0], y: e.at[1], z: e.at[2] }, radius: 3.5 }));   // a pod slamming in
     bus.on('structure:land', (e) => {   // a building coming down near you: the ground shakes as it goes (the biggest piece in each 0.15 s)
@@ -183,11 +188,14 @@ export class CameraRig {
       f = FRAMING[stance] ?? FRAMING.stand; eye = EYE[stance] ?? EYE.stand;
     }
     const ads = o.ads ?? 0;
+    // Aiming pushes the camera in with the arms (TLOU2: the same ~0.25 s): the aim's own blend, eased,
+    // over the stance framing's springs (which keep their weight for stance and sprint changes).
+    const adsK = ads * ads * (3 - 2 * ads);
     const sprintPull = st.sprinting ? 0.3 : 0;
-    const right = MathUtils.lerp(f.right, FRAMING.ads.right, ads) * scale;
-    const up = MathUtils.lerp(f.up, FRAMING.ads.up, ads) * scale;
-    const dist = (MathUtils.lerp(f.dist + sprintPull, FRAMING.ads.dist, ads)) * (o.vehicle ? 1 : scale);
-    this.frame.right.step(right, dt); this.frame.up.step(up, dt); this.frame.dist.step(dist, dt);
+    const vs = o.vehicle ? 1 : scale;
+    this.frame.right.step(f.right * scale, dt); this.frame.up.step(f.up * scale, dt); this.frame.dist.step((f.dist + sprintPull) * vs, dt);
+    const right = MathUtils.lerp(f.right * scale, FRAMING.ads.right * scale, adsK);
+    const upNow = MathUtils.lerp(this.frame.up.x, FRAMING.ads.up * scale, adsK), distNow = MathUtils.lerp(this.frame.dist.x, FRAMING.ads.dist * vs, adsK);
     this.eye.step(eye * (o.vehicle ? 1 : scale), dt);
     this.shoulderBlend.step(o.coverSide ?? this.shoulder, dt);   // in cover: over the shoulder on the side you'd come out
     this.pov.step(o.vehicle || o.thirdPerson ? 0 : (o.scope ?? 0) > 0.5 ? 1 : this.povTarget, dt);
@@ -207,11 +215,12 @@ export class CameraRig {
     // ---- orientation (zero-latency look) + bob pitch/roll
     const fk = Math.exp(-dt / 0.04);                    // a hit's flinch recovers in ~120 ms
     this.flinchP *= fk; this.flinchY *= fk;
-    _e.set(o.pitch + this.bobPitch.x + this.flinchP, o.yaw + this.flinchY, this.bobRoll.x + this.sway.x);
+    this.shotKick.step(0, dt);
+    _e.set(o.pitch + this.bobPitch.x + this.flinchP + this.shotKick.x, o.yaw + this.flinchY, this.bobRoll.x + this.sway.x);
     _q.setFromEuler(_e);
 
     // ---- desired camera position: pivot + shoulder offset + back, with collision pull-in
-    _off.set(right * this.shoulderBlend.x, this.frame.up.x, this.frame.dist.x).applyQuaternion(_q);
+    _off.set(right * this.shoulderBlend.x, upNow, distNow).applyQuaternion(_q);
     const want = _off.length();
     _dir.copy(_off).divideScalar(want || 1);
     const pivot = _target.set(px, py, pz);
@@ -257,8 +266,8 @@ export class CameraRig {
       fov += 6 * sprintK + (mode === 'slide' ? 8 : 0) + (mode === 'dive' ? 10 : 0) + this.fovKick;
     }
     this.fovKick = MathUtils.damp(this.fovKick, 0, 5, dt);
-    fov = MathUtils.lerp(fov, o.adsFov ?? s.baseFov * 0.78, ads);
     this.fov.step(fov, dt);
-    if (Math.abs(this.camera.fov - this.fov.x) > 0.01) { this.camera.fov = this.fov.x; this.camera.updateProjectionMatrix(); }
+    const fovNow = MathUtils.lerp(this.fov.x, o.adsFov ?? s.baseFov * 0.78, adsK);   // (with the arms, as the framing)
+    if (Math.abs(this.camera.fov - fovNow) > 0.01) { this.camera.fov = fovNow; this.camera.updateProjectionMatrix(); }
   }
 }

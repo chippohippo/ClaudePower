@@ -85,7 +85,7 @@ export class MovementController {
      * coverFaces(x, z, r, out): the sides of other things to take cover against (parked cars),
      * coverHolds(src): is that one still cover (not driven off or blown up)?
      */
-    this.hooks = { fallDamage: null, vital: null, scale: null, coverFaces: null, coverHolds: null };
+    this.hooks = { fallDamage: null, vital: null, scale: null, coverFaces: null, coverHolds: null, meleeThreat: null };
     this.coverOff = -9;           // when you last left cover (the key that took you out doesn't put you back)
     this.ragdoll = null;          // physics/Ragdoll, created on the first throw and reused
     this.fall = null;             // { vy, brace } while limp: how fast it's coming down (a hard landing hurts)
@@ -124,7 +124,7 @@ export class MovementController {
       dodgeStyle: null,
       mantle: null,
       knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest, supine }
-      stagger: null,            // { t, dur, dx, dz, speed, kind: 'stagger' | 'buckle', side, fall }: rocked by a hit
+      stagger: null,            // { t, dur, dx, dz, speed, kind: 'stagger' | 'buckle' | 'reel', side, fall, fold }: rocked by a hit
       roll: null,               // { t, to: supine? }: downed, rolling onto the back or the belly
       landRoll: null,           // { t, dur, dirYaw, speed }: a slide off a ledge, come down into a forward roll
       tuck: null,               // { slideT }: in the air off a ledge mid-slide (lands in a roll, or slides on)
@@ -240,11 +240,12 @@ export class MovementController {
    * Rocked by a hit (data: stagger): you stumble along (dx, dz) at `speed` m/s, easing off over
    * `dur` s, the gun off target and no steering for most of it. Rocked again before you find your
    * feet, over you go (a full ragdoll). kind 'buckle': the leg on `side` gives way and you drop
-   * onto that knee for a moment. `fall`: startRagdoll options; the stumble ends in that fall (a
-   * dying or downed soldier: a step or two, then the knees go).
+   * onto that knee for a moment. kind 'reel' (a melee blow): the same stumble, the trunk folding
+   * over by `fold` radians as it goes (the rig). `fall`: startRagdoll options; the stumble ends in
+   * that fall (a dying or downed soldier: a step or two, then the knees go).
    * @returns {boolean} false when it can't stumble (airborne, limp, in a vehicle): `fall` still falls
    */
-  stagger(dx, dz, speed, { dur = 0.5, kind = 'stagger', side = 0, fall = null } = {}) {
+  stagger(dx, dz, speed, { dur = 0.5, kind = 'stagger', side = 0, fall = null, fold = 0 } = {}) {
     const s = this.state, S = this.t.stagger;
     const l = hyp(dx, dz);
     if (l > 1e-6) { dx /= l; dz /= l; } else { forwardOf(s.bodyYaw, _dir); dx = -_dir.x; dz = -_dir.z; }
@@ -267,7 +268,7 @@ export class MovementController {
       const w = fall.wound, y = s.bodyYaw, ox = w.x - s.position.x, oz = w.z - s.position.z;
       fall = { ...fall, wound: null, woundLocal: [ox * Math.cos(y) - oz * Math.sin(y), w.y - s.position.y, -ox * Math.sin(y) - oz * Math.cos(y), w.site ?? null] };
     }
-    s.stagger = { t: 0, dur, dx, dz, speed, kind, side, fall, from: s.stance };
+    s.stagger = { t: 0, dur, dx, dz, speed, kind, side, fall, fold, from: s.stance };
     s.sprinting = false; s.slide = null; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.forced = null;
     if (kind === 'buckle') this.body.setHeight(this.t.heights.crouch);
     this.#setMode(MoveState.STAGGER);
@@ -755,6 +756,9 @@ export class MovementController {
 
   #startEvade(wishMag) {
     const style = this.mods.dodgeStyle;
+    // A blow coming: a quick sidestep out of its way (TLOU2), whatever your evade is otherwise.
+    const side = this.t.evade?.sidestep;
+    if (style === 'dive' && side && this.hooks.meleeThreat?.(side.threatRange ?? 4)) return this.#startDodge('sidestep', wishMag);
     if (style !== 'dive') return this.#startDodge(style, wishMag);
     const s = this.state, d = this.t.dive;
     if (!this.spendStamina(d.staminaCost)) return;

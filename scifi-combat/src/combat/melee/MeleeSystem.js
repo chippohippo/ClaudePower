@@ -94,6 +94,7 @@ export class MeleeComponent {
   update(cmd, dt) {
     this.time += dt;
     this.phaseTime += dt;
+    this.attackT = (this.attackT ?? 0) + dt;   // since the attack began (hyper armor runs on it)
     this.chainTimer = Math.max(0, this.chainTimer - dt);
     this.counterWindow = Math.max(0, this.counterWindow - dt);
     this.#updateHeat(dt);
@@ -140,6 +141,11 @@ export class MeleeComponent {
           this.sweptT = 0; this.swept = this.attack;          // the blade is swept from here (MeleeSystem)
           this.#setPhase(MeleePhase.ACTIVE);
           if (this.attack.lunge) mv.state.velocity.addScaledVector(this.#forward(), this.attack.lunge);
+          else if (this.attack.step > 0 && !mv.state.forced && ms.mode === 'ground') {
+            // A step into the strike (TLOU2): the body carried `step` m forward over the active frames.
+            const f = this.#forward(), v = this.attack.step / Math.max(0.05, this.attack.active);
+            mv.state.forced = { x: f.x * v, z: f.z * v, time: this.attack.active };
+          }
           if (this.attack.projectile) this.#launchProjectile(this.attack);
         }
         return;
@@ -263,8 +269,9 @@ export class MeleeComponent {
     if (stab?.status) this.owner.status?.apply(stab.status, { duration: stab.duration, source: attacker.owner });
 
     // Poise: hyper-armor ignores flinch; otherwise poise damage → interrupt.
-    const inHyper = this.attack?.hyperArmor && this.phase !== MeleePhase.IDLE &&
-      this.phaseTime >= this.attack.hyperArmor[0] && this.phaseTime <= this.attack.hyperArmor[1];
+    // (Timed from the start of the attack, wind-up included: a heavy's armor covers its swing.)
+    const inHyper = this.attack?.hyperArmor && this.busy &&
+      this.attackT >= this.attack.hyperArmor[0] && this.attackT <= this.attack.hyperArmor[1];
     this.poise -= attack.poise;
     if (attack.stagger && !inHyper) this.#stagger(attack.stagger, 'bash');
     else if (!inHyper && (this.poise <= 0 || this.busy)) this.#stagger(this.poise <= 0 ? 0.8 : 0.35, 'flinch');
@@ -275,7 +282,7 @@ export class MeleeComponent {
 
     bus.emit('melee:hit', {
       attacker: attacker.owner.id, defender: this.owner.id, damage: dmg, crit: this.vulnerable || hot || !!stab, backstab: !!stab,
-      hitStop: (this.vulnerable ? 5 : 3) / 60, dir: hitDir,
+      hitStop: ((attack.hitStop ?? 3) + (this.vulnerable ? 2 : 0)) / 60, dir: hitDir,
     });
     // Gun interplay: melee interrupts reloads/ADS on the victim.
     this.owner.weapons?.interrupt?.('melee');
@@ -296,7 +303,7 @@ export class MeleeComponent {
     const mv = this.owner.movement;
     if (a.stamina > 0 && !mv.spendStamina(a.stamina)) { bus.emit('melee:noStamina', { id: this.owner.id }); this.queued = null; return; }
     if (this.overheated > 0 && (id === 'flameWave' || id === 'sweepArc')) id = 'heavy1';
-    this.attackId = id;
+    this.attackId = id; this.attackT = 0;
     this.attack = a;
     this.queued = null;
     this.#addHeat(this.attack.heat);
@@ -375,7 +382,27 @@ const _fwdScratch = new Vector3();
 export class MeleeSystem {
   /** @param {object} o { blades: data/animation/humanoid.json `sword` (the rig's keyframes: swept hits) } */
   constructor({ blades = null } = {}) { this.components = []; this.blades = blades; }
-  add(c) { this.components.push(c); return c; }
+  add(c) {
+    this.components.push(c);
+    // The dodge button: within reach of an enemy's swing it's a sidestep, not a dive (MovementController).
+    const mv = c.owner.movement;
+    if (mv?.hooks) mv.hooks.meleeThreat = (range) => this.threatTo(c.owner, range);
+    return c;
+  }
+
+  /** Is an enemy within `range` m winding up or swinging at `e` (facing him)? */
+  threatTo(e, range = 4) {
+    const p = e.movement.state.position;
+    for (const c of this.components) {
+      const o = c.owner;
+      if (o === e || o.team === e.team || o.health?.dead || (c.phase !== MeleePhase.WINDUP && c.phase !== MeleePhase.ACTIVE)) continue;
+      const q = o.movement.state.position, dx = p.x - q.x, dz = p.z - q.z, d = Math.hypot(dx, dz);
+      if (d > range || d < 1e-3) continue;
+      const yaw = o.movement.state.yaw;
+      if ((-Math.sin(yaw) * dx - Math.cos(yaw) * dz) / d > 0.5) return true;
+    }
+    return false;
+  }
   remove(c) { this.components = this.components.filter((x) => x !== c); }
 
   resolve() {
@@ -455,7 +482,7 @@ export class MeleeSystem {
 }
 
 /** The rig's keyframes for an attack (the same lookup as ProceduralHumanoid): by id, by a fragment of it, else the light pair. */
-function keysFor(sw, id, a) {
+export function keysFor(sw, id, a) {
   if (!id || id === 'bash' || !sw?.attacks) return null;
   if (sw.attacks[id]) return sw.attacks[id];
   for (const [frag, k] of Object.entries(sw.fallbacks ?? {})) if (id.toLowerCase().includes(frag)) return sw.attacks[k];
@@ -464,19 +491,26 @@ function keysFor(sw, id, a) {
 
 const lerp = (a, b, t) => a + (b - a) * t;
 /** Where the blade is `t` s into the active window: base and tip, world space (as the rig swings it). */
-function bladeAt(atk, kf, a, t, len, scale, base, tip) {
+export function bladeAt(atk, kf, a, t, len, scale, base, tip) {
   const arc = [kf.wind, ...kf.arc], n = arc.length - 1;
   const u = Math.max(0, Math.min(1, t / Math.max(0.01, a.active)));
   const ua = u * u * n, i = Math.min(n - 1, Math.floor(ua)), f = ua - i;      // easeIn, as the rig
   const h0 = arc[i].h, h1 = arc[i + 1].h, b0 = arc[i].b, b1 = arc[i + 1].b;
-  const tw = lerp(kf.wind.tw ?? 0, kf.follow?.tw ?? 0, ua / n), p = lerp(kf.wind.pitch ?? 0, kf.follow?.pitch ?? 0, ua / n);
+  const tw = lerp(kf.wind.tw ?? 0, kf.follow?.tw ?? 0, ua / n), p0 = lerp(kf.wind.pitch ?? 0, kf.follow?.pitch ?? 0, ua / n);
+  // The body behind the blade, as the rig draws it: the trunk leans into the blow and sinks.
+  const W = kf.wind.body, Fb = kf.follow?.body;
+  const lean = W && Fb ? lerp(W.lean ?? 0, Fb.lean ?? 0, ua / n) : 0, drop = W && Fb ? lerp(W.drop ?? 0, Fb.drop ?? 0, ua / n) : 0;
+  const p = p0 + lean;
   const s = atk.owner.movement.state, yaw = s.yaw + tw;
   const sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(p), cp = Math.cos(p);
   // The chest frame (bodyFrame): right, up along the spine, front.
   const rx = cy, rz = -sy, dx = -sy * sp, dy = cp, dz = -cy * sp, nx = -sy * cp, ny = -sp, nz = -cy * cp;
-  const neckY = s.position.y + (s.stance === 'crouch' ? 1.06 : s.stance === 'prone' ? 0.4 : 1.44) * scale;
+  // The neck rides forward and down with the lean (the spine is 35% the hips' pitch, 0.4 of the
+  // lean, and 65% the chest's) and down with the drop.
+  const ln = lean * 0.79, ahead = 0.5 * Math.sin(ln) * scale;
+  const neckY = s.position.y + ((s.stance === 'crouch' ? 1.06 : s.stance === 'prone' ? 0.4 : 1.44) - drop - 0.5 * (1 - Math.cos(ln))) * scale;
   const hx = lerp(h0[0], h1[0], f) * scale, hy = lerp(h0[1], h1[1], f) * scale, hz = lerp(h0[2], h1[2], f) * scale;
-  _hand.set(s.position.x + rx * hx + dx * hy + nx * hz, neckY + dy * hy + ny * hz, s.position.z + rz * hx + dz * hy + nz * hz);
+  _hand.set(s.position.x - sy * ahead + rx * hx + dx * hy + nx * hz, neckY + dy * hy + ny * hz, s.position.z - cy * ahead + rz * hx + dz * hy + nz * hz);
   const bx = lerp(b0[0], b1[0], f), by = lerp(b0[1], b1[1], f), bz = lerp(b0[2], b1[2], f);
   _dir.set(rx * bx + dx * by + nx * bz, dy * by + ny * bz, rz * bx + dz * by + nz * bz).normalize();
   base.copy(_hand).addScaledVector(_dir, 0.08 * scale);
