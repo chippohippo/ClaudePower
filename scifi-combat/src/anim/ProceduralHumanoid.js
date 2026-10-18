@@ -291,6 +291,15 @@ export class ProceduralHumanoid {
       this.lastHitDir.copy(ev.dir);
       return;
     }
+    if (type === 'nearMiss') {
+      // A round cracking past: a smaller flinch away from it, and a duck.
+      const mag = clamp(ev.k ?? 0.5, 0.25, 1) * L.flinch.kick * L.flinch.nearMiss;
+      forwardOf(this.yaw, _f); rightOf(this.yaw, _r);
+      this.flZ.kick((ev.dir.x * _f.x + ev.dir.z * _f.z) * mag);
+      this.flX.kick((ev.dir.x * _r.x + ev.dir.z * _r.z) * mag);
+      this.comp.kick(this.cfg.footstep.landKick * L.flinch.duck * (ev.k ?? 0.5));
+      return;
+    }
     if (type === 'death') {
       forwardOf(this.yaw, _f);
       this.dead = true;

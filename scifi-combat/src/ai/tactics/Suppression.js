@@ -78,7 +78,12 @@ export class Suppression {
     const d = Math.sqrt(cx * cx + cy * cy + cz * cz);
     if (d >= this.radius || v.suppressRound === round) return;
     v.suppressRound = round;   // one round, one increment
-    this.add(v, per * (1 - d / this.radius));
+    const k = 1 - d / this.radius;
+    this.add(v, per * k);
+    // The crack makes him flinch: his body (the rig, fighter:nearMiss), and a person's aim jumps a
+    // little (a bot's shooting worse under fire is its suppression already).
+    if (!v.brain) v.weapons?.flinch?.(4 + 8 * k, { x: ox, z: oz });
+    bus.emit('fighter:nearMiss', { id: v.id, from: [ox, oy, oz], k });
   }
 
   #near(point, team, amount, ownerId) {

@@ -40,6 +40,9 @@ export const WeaponPhase = Object.freeze({
   OVERHEATED: 'overheated', CHARGING: 'charging', SPRINT_RECOVER: 'sprintRecover',
 });
 
+/** Sustained fire's tremor: built a share of `build` per magazine fired close together; settles over `settle` s once the trigger has rested `rest` s; at its height the aim shakes `pitch`/`yaw` rad. */
+const TREMOR = { build: 1.6, rest: 0.35, settle: 3.5, pitch: 0.0065, yaw: 0.005 };
+
 /** Runtime state for one equipped weapon instance. */
 export class WeaponInstance {
   constructor(stats, recoilDefs) {
@@ -75,6 +78,7 @@ export class WeaponComponent {
     this.shotIndex = 0;          // global, for deterministic RNG
     this.burstLeft = 0;
     this.consecutive = 0;        // shots in current spray (recoil pattern index)
+    this.tremor = 0;             // hands shaking after sustained fire (a mag dumped), 0..1: settles once the trigger rests
     this.sinceShot = 99;
     this.bloom = 0;              // extra spread (deg) from sustained fire
     this.ads = 0;                // 0..1 blend
@@ -138,6 +142,14 @@ export class WeaponComponent {
     this.weaponPitch += (cmd.pitch - this.weaponPitch) * follow;
     this.aimYaw = this.weaponYaw + this.recoilYaw;
     this.aimPitch = Math.max(-1.5, Math.min(1.5, this.weaponPitch + this.recoilPitch));
+    // A mag dumped: the hands shake for a few seconds, aiming and reloading alike, settling once the
+    // trigger has rested a moment (a burst or two isn't noticed; most of a mag held down is).
+    if (this.sinceShot > TREMOR.rest) this.tremor = Math.max(0, this.tremor - dt / TREMOR.settle);
+    if (this.tremor > 0) {
+      const t = this.time, a = this.tremor * this.tremor;
+      this.aimPitch += (Math.sin(t * 47.1) * 0.6 + Math.sin(t * 29.3 + 1.7) * 0.4) * a * TREMOR.pitch;
+      this.aimYaw += (Math.sin(t * 38.7 + 0.4) * 0.6 + Math.sin(t * 23.9 + 2.9) * 0.4) * a * TREMOR.yaw;
+    }
 
     // Sprinting lowers the weapon. Firing out of a sprint costs a short "sprint-to-fire" delay.
     // A reload holds while you sprint (progress kept: you pick it up when you stop).
@@ -299,6 +311,9 @@ export class WeaponComponent {
     const rpm = (s.rpm ?? 600) * rpmMul * this.buffs.rpmMul;
     this.cooldown = Math.min(0, this.cooldown) + 60 / rpm;
     this.#kick(w, rand);
+    // Rounds fired close together wear a person's hands: most of a magazine at full rate and they
+    // shake (a bot's aim under strain is its difficulty's).
+    if (!this.owner.brain) this.tremor = Math.min(1, this.tremor + (this.sinceShot < 0.3 ? TREMOR.build : TREMOR.build * 0.25) / Math.max(6, s.mag ?? 30));
     this.sinceShot = 0;
     this.consecutive++;
 

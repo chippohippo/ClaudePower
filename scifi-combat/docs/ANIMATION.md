@@ -177,6 +177,8 @@ show a cut. Beyond the crossfades:
 
 - **Recoil** (`weapon:recoil`): the muzzle climbs, the stock drives back, the chest rocks.
 - **Hit flinch** (`weapon:hit`, `melee:hit`, `ability:hit`): the chest and head snap away from the hit direction, scaled by damage.
+- **Near-miss flinch** (`fighter:nearMiss`, from suppression): a round cracking past makes the chest and head
+  jerk away from where it came from (45% of a hit's kick, harder the closer it came) and the body duck a little.
 - **Breathing:** slow at rest, heavy and fast when stamina is low or exhausted.
 - **Secondary motion:** a 3-link verlet cape streams behind sprints, dives and slides.
 
@@ -286,8 +288,8 @@ The hitboxes sit on the particles the whole time, so you shoot the body where it
 
 | Event | Payload | Fired | Consumers |
 |---|---|---|---|
-| `anim:footstep` | `id, foot (0 L / 1 R), gait (walk/jog/sprint/crouch/crawl/shuffle/land), stance, intensity, surface, x, y, z, speed` | Heel strike (planted on that frame), crawl contacts, landings, transition plants | CameraRig bob (local player), AudioDirector foley, VFX dust |
-| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands / ragdoll), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), VFX |
+| `anim:footstep` | `id, foot (0 L / 1 R), gait (walk/jog/sprint/crouch/crawl/shuffle/land), stance, intensity, surface, x, y, z, speed` | Heel strike (planted on that frame), crawl contacts, landings, transition plants | CameraRig bob (local player), AudioDirector foley, FootFx dust |
+| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands / ragdoll), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), FootFx dirt ring |
 | `anim:cloth` | `id, kind (dive / slide / stance / mantle / knockdown / getup / sprint / raise / swing), intensity, x, y, z` | Start of big motions | Audio rustle and gear |
 
 - **Intensity** comes from the gait table × stance (stand 1, crouch 0.45, prone 0.3) × armor (light 0.85, heavy 1.25) × size.

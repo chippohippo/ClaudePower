@@ -144,7 +144,7 @@ const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, pal
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id), look: planet.fx?.bolts, localTeam: myTeam, muzzle: (id, p) => gunFx.muzzleAt(id, p) });   // (gunFx: below)
 const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
 let viewCam = null;   // (the camera the frame was drawn from: FootFx kicks dust up only near it)
-const footFx = new FootFx({ fx, world, camera: () => viewCam, snow: !!planet.snow?.amount });   // dust off feet and falls
+const footFx = new FootFx({ fx, world, camera: () => viewCam, snow: !!planet.snow?.amount, palette });   // dust off feet and falls
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
@@ -348,6 +348,8 @@ const loop = new FixedLoop({
         thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll', scope: scoped,
       });
       cam = fireControl.update(dt, player, rig.camera);
+      // Hands shaking after a mag dump: down the sights, the view trembles with them.
+      if (w.tremor > 0.25 && w.ads > 0.3) rig.trauma = Math.max(rig.trauma, (w.tremor - 0.25) * 0.4 * w.ads);
     }
     viewCam = cam;
     crowd.begin(cam);

@@ -44,6 +44,15 @@ export class AnimationSystem {
       bus.on('melee:hit', (e) => this.#hit(e.defender, e.attacker, e.damage)),
       bus.on('ability:hit', (e) => this.#hit(e.victim, e.attacker, e.damage)),
       bus.on('entity:death', (e) => this.rigs.get(e.id)?.h.onEvent('death', e)),
+      bus.on('fighter:nearMiss', (e) => {
+        const r = this.rigs.get(e.id);
+        if (!r) return;
+        const vp = r.e.movement.state.position;
+        _dir.set(vp.x - e.from[0], 0, vp.z - e.from[2]);
+        const l = _dir.length();
+        if (l < 1e-4) return;
+        r.h.onEvent('nearMiss', { dir: _dir.divideScalar(l), k: e.k });
+      }),
     ];
   }
 

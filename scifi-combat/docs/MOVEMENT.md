@@ -217,6 +217,15 @@ pose (tested), so what you see is what you hit:
   scaled up to it by speed up to 7 m/s) on the move, × `slideMul` (1.4) in a slide, × `airMul` (2)
   in the air; × 0.8 crouched and × 0.6 prone. Recoil kicks 15% less crouched and 40% less prone.
   So fire on the move to suppress, and go down to hit.
+- **Shaky hands after a mag dump (tremor):** every round a person fires close on the last (within
+  0.3 s) adds 1.6 ÷ the magazine to a tremor on the gun (a quarter of that spaced out), so a burst
+  barely registers and holding the trigger through most of a magazine brings it to full. Once the
+  trigger has rested 0.35 s it settles over 3.5 s, reloading or aiming alike. The aim shakes with it,
+  up to about 0.4° up and down and 0.3° across, scaled by the tremor squared (a little hardly shows),
+  and down the sights the view trembles too. Persons only: a bot's aim under strain is its difficulty's.
+- **Flinch under fire:** a round cracking past within the suppression radius makes the body flinch
+  away from it and duck (every soldier; see [ANIMATION.md](ANIMATION.md)), and a person's aim jumps a
+  little, as from a light hit, the closer the round the more. Hits flinch harder than they used to.
 
 ## Animation sync contract
 
@@ -227,6 +236,13 @@ back. It plants feet in world space and emits:
   ragdoll thud, heavy landing, ledge hands);
 - `anim:cloth {kind}` at the start of big motions.
 
-Camera bob and footstep, gear, cloth and impact audio are driven only by those events. They're
+Camera bob, foot dust and footstep, gear, cloth and impact audio are driven only by those events. They're
 frame-synced to the visible contact by construction. Timed animations (stance transitions, dive,
 slide, mantle, get-ups, sprint-to-fire, reloads) read the sim's own timers.
+
+**Dust (`FootFx`):** each footfall kicks up a little: a puff walking, two running, three sprinting
+thrown back behind the runner, next to none crouched. A body meeting the ground throws a ring of dirt
+rolling out from it, as big as the hit was hard: a heavy landing, a dive coming down on its belly, a
+drop to prone, a knockdown, a ragdoll's trunk thumping down; a vault kicks a little off the hands. The
+colour is the ground's: snow powder on a snowy planet, the planet's own dust on dirt and sand, grey
+grit on concrete and rubble; nothing off metal, wood or water. Only within 60 m of the camera.
