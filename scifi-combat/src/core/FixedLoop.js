@@ -2,7 +2,8 @@
 // sim(dt, tick) runs at a constant rate; render(alpha) gets the blend factor between ticks.
 // A computer that can't keep up runs the battle in slow motion rather than freezing: at most
 // maxSteps ticks per frame, and time it couldn't simulate is dropped (no spiral of death, where
-// each frame owes more ticks than the last).
+// each frame owes more ticks than the last). Paused (the options menu), it keeps drawing frames
+// but runs no ticks and owes none when it resumes.
 export class FixedLoop {
   constructor({ hz = 60, sim, render, maxFrame = 0.25, maxSteps = 4 }) {
     this.dt = 1 / hz;
@@ -15,6 +16,7 @@ export class FixedLoop {
     this.tick = 0;
     this.last = 0;
     this.running = false;
+    this.paused = false;
   }
 
   start() {
@@ -25,6 +27,7 @@ export class FixedLoop {
       const now = performance.now() / 1000;
       this.acc += Math.min(now - this.last, this.maxFrame);
       this.last = now;
+      if (this.paused) { this.acc = 0; this.behind = 0; this.render(1, now); requestAnimationFrame(frame); return; }
       let steps = 0;
       while (this.acc >= this.dt && steps < this.maxSteps) {
         this.sim(this.dt, this.tick++);

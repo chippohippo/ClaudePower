@@ -40,6 +40,7 @@ The Automaton-front mood: a world already on fire. Every value lives in
 | Ground | Ochre dust (`#b39265`) on earth (`#8a6a48`), rock on slopes (`#5d4e45`), dark wet mud on trench floors and in craters (`#46382c`); grey ash (`#7a726a`) and black scorch (`#463a31`) round every crater and blast. Detail: an 8 m tile of drifted dust, wind ripples where it lies deep, pale stones in their own contact shadow, and dried-mud plates in patches (fine, macro and crack normal maps) |
 | Air | Ash falling all the time (small grey flakes, never in your face), a few glowing embers, dust kicked up by every blast |
 | Post | God rays toward the sun (depth-masked: soldiers and ridges cut dark shafts), bloom on fire, visors and muzzle flashes, ACES filmic, cool lifted shadows against warm highlights, saturation 0.88, contrast 1.12, a strong vignette, film grain, a touch of chromatic aberration at the edges |
+| Render scale | The options' render scale draws the scene, rays and bloom smaller and the final pass scales them up with contrast-adaptive sharpening (AMD CAS, the sharpening half of FSR 1) in a tone-compressed space, so highlights don't ring; the ink lines are found at the scene's resolution. Each effect (bloom, rays, ink, letterbox, grain and aberration) can be turned off in the options |
 
 ## Planet preset: Neon Night (the night city)
 

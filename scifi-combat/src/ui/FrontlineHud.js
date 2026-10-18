@@ -55,10 +55,10 @@ const CSS = `
 @font-face { font-family: 'HudDisplay'; src: url(./vendor/fonts/Orbitron.woff2) format('woff2'); font-weight: 400 900; font-display: swap; }
 @font-face { font-family: 'HudText'; src: url(./vendor/fonts/Rajdhani-SemiBold.woff2) format('woff2'); font-weight: 600; font-display: swap; }
 @font-face { font-family: 'HudText'; src: url(./vendor/fonts/Rajdhani-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
-#hud { --lb: 0px; --us: ${US}; --them: ${THEM}; --amber: ${AMBER}; --disp: 'HudDisplay', 'Bahnschrift', 'Arial Narrow', sans-serif;
+#hud { --lb: 0px; --hz: 1; --us: ${US}; --them: ${THEM}; --amber: ${AMBER}; --disp: 'HudDisplay', 'Bahnschrift', 'Arial Narrow', sans-serif;
   --text: 'HudText', 'Bahnschrift SemiCondensed', 'Bahnschrift', 'Arial Narrow', system-ui, sans-serif;
   font-family: var(--text); color: #eef2f8; text-shadow: 0 1px 2px #000c, 0 0 8px #0007; }
-#fl-top { position: absolute; top: calc(var(--lb) + 14px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+#fl-top { position: absolute; top: calc(var(--lb) + 14px); left: 50%; transform: translateX(-50%) scale(var(--hz)); transform-origin: top center; display: flex; align-items: center; gap: 14px; white-space: nowrap; }
 #fl-top .side { display: flex; align-items: center; gap: 10px; }
 #fl-top .tn { font: 700 12px var(--disp); letter-spacing: 2px; }
 #fl-top .sc { font: 800 26px/1 var(--disp); min-width: 60px; }
@@ -79,7 +79,8 @@ const CSS = `
 #fl-strip .pt em { position: absolute; top: -9px; font: 700 8px var(--disp); font-style: normal; }
 #fl-strip.many { gap: 4px; } #fl-strip.many .pt { width: 24px; height: 24px; font-size: 10px; } #fl-strip.many .pt.hq { font-size: 7px; }
 @keyframes hudpulse { 50% { box-shadow: 0 0 2px #fff4; filter: brightness(1.5); } }
-#fl-compass { position: absolute; top: calc(var(--lb) + 54px); left: 50%; width: ${COMPASS_W}px; margin-left: -${COMPASS_W / 2}px; height: 36px; overflow: hidden;
+#fl-compass { position: absolute; top: calc(var(--lb) + 14px + 40px * var(--hz)); left: 50%; width: ${COMPASS_W}px; margin-left: -${COMPASS_W / 2}px; height: 36px; overflow: hidden;
+  transform: scale(var(--hz)); transform-origin: top center;
   -webkit-mask: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); mask: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent); }
 #fl-compass .strip { position: absolute; left: 0; top: 0; height: 100%; will-change: transform; }
 #fl-compass .strip span { position: absolute; top: 1px; transform: translateX(-50%); font: 700 14px var(--disp); }
@@ -88,7 +89,7 @@ const CSS = `
 #fl-compass .mk { position: absolute; top: 20px; margin-left: -7px; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box;
   display: grid; place-items: center; font: 700 6px var(--disp); background: #0b0d14a0; }
 #fl-compass .mk.obj { box-shadow: 0 0 0 2px #ffc94d90; }
-#fl-squad { position: absolute; left: 24px; top: calc(var(--lb) + 124px); width: 260px; font: 600 15px/1.2 var(--text); }
+#fl-squad { position: absolute; left: 24px; top: calc(var(--lb) + 14px + 110px * var(--hz)); width: 260px; font: 600 15px/1.2 var(--text); transform: scale(var(--hz)); transform-origin: top left; }
 #fl-squad .cs { font: 700 15px var(--disp); letter-spacing: 3px; color: #d6e6ff; }
 #fl-squad .mo { font: 700 8px var(--disp); letter-spacing: 1px; padding: 1px 4px 0; border: 1px solid currentColor; margin-left: 8px; vertical-align: 3px; }
 #fl-squad .st { font: 700 12px var(--disp); letter-spacing: 2px; color: var(--amber); margin-top: 4px; }
@@ -100,7 +101,7 @@ const CSS = `
 #fl-squad .m .hb i { display: block; height: 100%; background: var(--us); }
 #fl-squad .m.down { color: var(--them); } #fl-squad .m.down .hb i { background: var(--them); }
 #fl-squad .m.dead { opacity: .35; }
-#fl-feed { position: absolute; right: 24px; top: calc(var(--lb) + 52px); text-align: right; font: 700 15px/1.55 var(--text); letter-spacing: .5px; }
+#fl-feed { position: absolute; right: 24px; top: calc(var(--lb) + 14px + 38px * var(--hz)); text-align: right; font: 700 15px/1.55 var(--text); letter-spacing: .5px; transform: scale(var(--hz)); transform-origin: top right; }
 #fl-feed .dn { opacity: .8; }
 #fl-feed b { font: 700 9px var(--disp); letter-spacing: 1px; margin-left: 6px; }
 #fl-markers .mk { position: absolute; left: 0; top: 0; margin: -15px 0 0 -16px; width: 32px; text-align: center; }
@@ -118,7 +119,7 @@ const CSS = `
 #fl-reticle i:nth-child(4) { top: -1px; left: var(--gap); height: 2px; width: var(--len); }
 #fl-reticle b { position: absolute; left: -1.5px; top: -1.5px; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 1px #0009; }
 #fl-gun { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px; border: 1.5px solid #ffffffa0; border-radius: 50%; box-shadow: 0 0 0 1px #0007; }
-#fl-status { position: absolute; left: 24px; bottom: calc(var(--lb) + 16px); width: 340px; }
+#fl-status { position: absolute; left: 24px; bottom: calc(var(--lb) + 16px); width: 340px; transform: scale(var(--hz)); transform-origin: bottom left; }
 #fl-status .stn { font: 700 10px var(--disp); letter-spacing: 3px; color: #ffffff85; margin-bottom: 4px; }
 #fl-status .hp { display: flex; align-items: center; gap: 12px; }
 #fl-status .hb { flex: 1; height: 6px; background: #ffffff1c; position: relative; box-shadow: 0 0 0 1px #0004; }
@@ -128,7 +129,7 @@ const CSS = `
 #fl-status .thin i { display: block; height: 100%; }
 #fl-status .kit { font: 700 11px var(--text); letter-spacing: 1px; color: #9fd3ff; margin-top: 5px; }
 #fl-status .kit .bp { color: #ffe14d; }
-#fl-right { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px); display: flex; flex-direction: column; align-items: flex-end; }
+#fl-right { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px); display: flex; flex-direction: column; align-items: flex-end; transform: scale(var(--hz)); transform-origin: bottom right; }
 #fl-map { width: 200px; height: 200px; }
 #fl-weapon { text-align: right; }
 #fl-weapon .pov { font: 700 9px var(--disp); letter-spacing: 3px; color: #ffffff5c; margin-top: 8px; }
@@ -139,7 +140,7 @@ const CSS = `
 #fl-weapon .rl { font: 700 10px var(--disp); letter-spacing: 2px; color: var(--amber); }
 #fl-weapon .gr { font: 700 9px var(--disp); letter-spacing: 3px; color: #ffffff85; margin-top: 2px; }
 #fl-weapon .gr i { font-style: normal; color: #7fe7ff; margin-left: 4px; letter-spacing: 1px; } #fl-weapon .gr i.e { color: #ffffff30; }
-#fl-banner { position: absolute; top: 26%; width: 100%; text-align: center; font: 800 26px var(--disp); letter-spacing: 5px; text-shadow: 0 0 14px #000, 0 0 3px #000; opacity: 0; transition: opacity .3s; }
+#fl-banner { position: absolute; top: 26%; width: 100%; text-align: center; font: 800 max(15px, 2.4vh) var(--disp); letter-spacing: .2em; text-shadow: 0 0 14px #000, 0 0 3px #000; opacity: 0; transition: opacity .3s; }
 #fl-respawn { position: absolute; top: 58%; width: 100%; text-align: center; font: 700 18px var(--disp); letter-spacing: 3px; display: none; }
 #fl-respawn small { font: 600 14px var(--text); letter-spacing: 1px; opacity: .85; }
 #fl-prompt { position: absolute; top: 64%; width: 100%; text-align: center; font: 700 17px var(--text); letter-spacing: 1.5px; text-transform: uppercase; }
@@ -152,7 +153,7 @@ const CSS = `
 #fl-foes .fm { position: absolute; left: 0; top: 0; margin: -26px 0 0 -60px; width: 120px; text-align: center; white-space: nowrap; color: var(--them);
   font: 700 11px var(--disp); letter-spacing: 1.5px; }
 #fl-foes .fm i { display: block; font: 700 10px/1 var(--disp); font-style: normal; }
-#fl-supply { position: absolute; right: 24px; bottom: calc(var(--lb) + 320px); font: 700 13px var(--text); letter-spacing: 1px; line-height: 1.5; text-align: right; }
+#fl-supply { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px + 304px * var(--hz)); font: 700 13px var(--text); letter-spacing: 1px; line-height: 1.5; text-align: right; transform: scale(var(--hz)); transform-origin: bottom right; }
 #fl-supply:empty { display: none; }
 #fl-supply b { font-family: var(--disp); }
 #fl-suppress { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, #0b0c0ecc 100%); opacity: 0; transition: opacity .15s; }
@@ -168,7 +169,10 @@ export class FrontlineHud {
     this.s = session; this.player = player; this.team = player.team;
     this.root = root;
     if (!document.getElementById('fl-css')) document.head.appendChild(Object.assign(document.createElement('style'), { id: 'fl-css', textContent: CSS }));
-    root.style.setProperty('--lb', `${(letterbox * 100).toFixed(2)}vh`);
+    this.setLetterbox(letterbox);
+    // The corner panels are drawn for 1080p and scale with the window's height (0.8 to 1.5).
+    const fit = () => root.style.setProperty('--hz', Math.min(1.5, Math.max(0.8, innerHeight / 1080)).toFixed(3));
+    fit(); addEventListener('resize', fit);
     const ny = this.team === 1 ? 1 : 0;
     root.innerHTML = `
       <div id="fl-top">
@@ -274,6 +278,9 @@ export class FrontlineHud {
   }
 
   dispose() { this.off.forEach((f) => f()); }
+
+  /** The letterbox each bar covers (the options can turn it off): the HUD stays inside it. */
+  setLetterbox(f) { this.root.style.setProperty('--lb', `${(f * 100).toFixed(2)}vh`); }
 
   /** A team's colour as you see it: yours blue, theirs red, the city's people grey, its gangs orange. */
   col(team) {

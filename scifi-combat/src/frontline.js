@@ -37,6 +37,8 @@ import { BattleFx } from './vfx/BattleFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { Atmosphere, installFog } from './render/Atmosphere.js';
 import { PostFX } from './render/PostFX.js';
+import { loadSettings, withUrlOverrides } from './ui/Settings.js';
+import { OptionsMenu } from './ui/OptionsMenu.js';
 import { kitFor, peopleKit } from './render/TrooperKit.js';
 import { DropViews } from './vfx/DropViews.js';
 import { CIVILIAN, BANDIT, civilianEngaging } from './combat/Teams.js';
@@ -90,23 +92,29 @@ const player = session.fighters.find((f) => f.id === PLAYER_ID);
 player.name = 'You';
 
 // ---------------------------------------------------------------- scene
-const fxMode = params.get('fx') ?? 'high';
+// The player's options (the [Esc] menu, the start menu's Settings); ?fx=low or ?fx=off override for a run.
+const settings = withUrlOverrides(loadSettings(), params);
+const fxMode = settings.postOff ? 'off' : settings.preset === 'low' ? 'low' : 'high';
 const renderer = new THREE.WebGLRenderer({ antialias: fxMode === 'off', powerPreference: 'high-performance' });
-// Sharp on a high-DPI screen, but never more than ~3.7 million pixels a frame (a 4K laptop screen
-// at 150% would otherwise ask an integrated GPU for 8 million, every frame, through the post chain).
-const pixelRatio = () => Math.max(0.5, Math.min(devicePixelRatio, fxMode === 'high' ? 1.5 : 1.25, Math.sqrt(3.7e6 / (innerWidth * innerHeight))));
+// The canvas at the display's pixel density only on High DPI; the 3D image at the render scale,
+// and never more than ~3.7 million pixels a frame whatever the screen (a 4K laptop screen at 150%
+// would otherwise ask an integrated GPU for 8 million, every frame, through the post chain).
+const pixelRatio = () => Math.min(devicePixelRatio, settings.hiDpi ? 2 : 1);
+const renderScale = () => settings.renderScale * Math.min(1, Math.sqrt(3.7e6 / (innerWidth * innerHeight * pixelRatio() ** 2)));
 renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;   // for the plain path (PostFX tone-maps itself)
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = settings.shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 // The planet: sky dome, the low hard sun and its shadow box, height fog, the sky as fill light,
 // falling ash. Then the frame: god rays, bloom, the grade (PostFX).
-const atmo = new Atmosphere(scene, planet, { radius: 1100, shadowBox: 45, renderer });
-const post = new PostFX(renderer, planet.post, { quality: fxMode === 'low' ? 'low' : 'high' });
+const atmo = new Atmosphere(scene, planet, { radius: 1100, shadowBox: 45, renderer, shadows: settings.shadows });
+if (atmo.ash) atmo.ash.visible = settings.particles;
+const post = new PostFX(renderer, planet.post, { quality: fxMode === 'low' ? 'low' : 'high', scale: renderScale(), samples: settings.aa });
+post.setOptions({ bloom: settings.bloom, rays: settings.rays, ink: settings.ink, letterbox: settings.letterbox, film: settings.film });
 post.enabled = fxMode !== 'off';
 const sunScreen = new THREE.Vector3();
 
@@ -137,14 +145,16 @@ const gunFx = new GunFx(scene, { fx, anim, world, player, palette });          /
 const dropViews = new DropViews(scene, world, { kit: crowd.kit, palette, glint: planet.fx?.bolts?.neutral });   // guns lying on the ground
 
 const input = new InputManager(renderer.domElement);
+input.mouseSens = 0.0022 * settings.sens;
 input.yaw = myTeam === 0 ? -Math.PI / 2 : Math.PI / 2; // face the enemy's side of the map
 const groundOrCover = (o, d, max) => {
   const a = world.raycastStatic(o, d, max), b = world.raycastGround(o, d, max);
   return !a ? b : !b ? a : a.distance < b.distance ? a : b;
 };
-const rig = new CameraRig({ raycast: groundOrCover });
+const rig = new CameraRig({ raycast: groundOrCover, settings: { baseFov: settings.fov, shakeScale: settings.shake, bobScale: settings.bob, reducedMotion: settings.reducedMotion } });
 rig.camera.far = 1500; rig.camera.updateProjectionMatrix();
-addEventListener('resize', () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.setSize(innerWidth, innerHeight); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); });
+const resize = () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.setOptions({ scale: renderScale() }); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); };
+addEventListener('resize', resize);
 // The graphics driver gave up (a GPU too busy for too long resets, and the page's WebGL with it):
 // say so and come back with lighter effects instead of sitting on a frozen frame.
 renderer.domElement.addEventListener('webglcontextlost', (e) => {
@@ -190,8 +200,9 @@ const audio = new AudioDirector(sound, {
   onNearMiss: (k) => rig.addTrauma(k * 0.22),       // a round past your ear: the camera flinches
 });
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sound.resume());
+sound.setVolume(settings.volume);
 
-const hud = new FrontlineHud(document.getElementById('hud'), session, player, { letterbox: planet.post?.letterbox ?? 0 });
+const hud = new FrontlineHud(document.getElementById('hud'), session, player, { letterbox: post.enabled ? post.letterbox : 0 });
 // The controls card: up for the first 25 s of the match, F1 hides it or brings it back.
 const helpCard = document.getElementById('help');
 const helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000);
@@ -200,7 +211,44 @@ const callIn = new StratagemPanel(document.getElementById('hud'), { world, playe
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
 const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
 const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
-const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' });   // the soldiers' callouts
+const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' && settings.voices });   // the soldiers' callouts
+
+// ---------------------------------------------------------------- options ([Esc]: the battle waits)
+// Freeing the mouse (Esc) opens the options and pauses the battle; Resume locks the mouse again.
+// Every change applies live (shadows recompile the shaders while paused, so the game never hitches).
+let wasLocked = false, started = false;   // (the battle loop is built further down)
+const options = new OptionsMenu(document.body, {
+  inGame: true,
+  onChange: (o, key) => applyOptions(o, key),
+  onClose: () => { loop.paused = false; sound.resume(); renderer.domElement.requestPointerLock?.(); },
+  onQuit: () => { location.href = 'start.html'; },
+});
+const openOptions = () => { if (options.isOpen || !started) return; loop.paused = true; sound.ctx.suspend?.(); options.open(); };
+document.addEventListener('pointerlockchange', () => {
+  const locked = document.pointerLockElement === renderer.domElement;
+  if (wasLocked && !locked && !player.health.dead) openOptions();
+  wasLocked = locked;
+});
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && !document.pointerLockElement) { if (options.isOpen) options.close(); else openOptions(); } });
+async function applyOptions(o, key) {
+  Object.assign(settings, o);
+  rig.settings.baseFov = o.fov; rig.settings.shakeScale = o.shake; rig.settings.bobScale = o.bob; rig.settings.reducedMotion = o.reducedMotion;
+  rig.fov.set(o.fov); rig.camera.fov = o.fov; rig.camera.updateProjectionMatrix();
+  input.mouseSens = 0.0022 * o.sens;
+  sound.setVolume(o.volume);
+  voices.setVoices(o.voices && params.get('voices') !== 'off');
+  if (atmo.ash) atmo.ash.visible = o.particles;
+  renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight);
+  post.setOptions({ scale: renderScale(), samples: o.aa, bloom: o.bloom, rays: o.rays, ink: o.ink, letterbox: o.letterbox, film: o.film });
+  hud.setLetterbox(post.enabled ? post.letterbox : 0);
+  if (renderer.shadowMap.enabled !== o.shadows) {
+    renderer.shadowMap.enabled = o.shadows; atmo.sun.castShadow = o.shadows;
+    scene.traverse((x) => { for (const m of [x.material].flat()) if (m) m.needsUpdate = true; });
+    loading.show('Compiling shaders');
+    await renderer.compileAsync(scene, rig.camera);
+    loading.hide();
+  }
+}
 // Hit-stop: your melee, and your kills with a shotgun or a sniper rifle, freeze the battle for a
 // few ticks (offline only; nobody else's hits stop your game).
 let hitStop = 0;
@@ -237,6 +285,8 @@ const loop = new FixedLoop({
     session.step(dt);
   },
   render(alpha) {
+    // Paused behind the options: the frame as it stands (the options' changes show on it live).
+    if (loop.paused) { const c = fireControl.active ? fireControl.camera : rig.camera; post.render(scene, c, atmo.sunScreen(c, sunScreen), 0); return; }
     const dt = 1 / 60;
     for (const f of session.fighters) {
       const s = f.movement.state, st = f.status, tf = f.transform;
@@ -307,4 +357,5 @@ await renderer.compileAsync(scene, rig.camera);
 loop.render(0, performance.now() / 1000);
 loading.hide();
 loop.start();
+started = true;
 bus.emit('frontline:ready', { players, seed });

@@ -41,7 +41,7 @@ folder any way you like and open `index.html` with these parameters:
 | `seed` | 7 | map and match seed (deterministic map) |
 | `map` | trench | `city`: the same front fought through a city at night (below) |
 | `planet` | (by map) | the sky and look: `scorched` (trenches), `duskcity` (the city's default), `nightcity` |
-| `fx` | high | post-processing: `high`, `low` or `off` |
+| `fx` | (the options) | for one run: `low` (the low preset) or `off` (no post-processing); otherwise the saved options apply |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json` |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
@@ -57,6 +57,31 @@ HQ dump to load and inside the forward depot to unload; **H** hitches the gun be
 Stratagems: hold **Tab** (or Ctrl) and type the code with WASD or the arrow keys, **LMB** throws the
 beacon, **Tab** again puts it away, **X** beside a supply pod takes two mags (pad: hold LB, the D-pad,
 RT). `arena.html` is the 4v4 feel lab and `rig-lab.html` the animation lab.
+
+### Options (`Settings`, `OptionsMenu`)
+
+**Esc** in a match frees the mouse and opens the options; the battle (and its sound) waits while
+they're open, and every change applies at once (turning shadows on or off recompiles the shaders
+there and then, behind a "Compiling shaders" card, so play never hitches on it). Resume locks the
+mouse again; Quit to menu goes back to the start menu. The start menu has the same panel
+(**Settings…**) and the four presets. Everything is saved in the browser for the next match.
+
+| Group | Options |
+|---|---|
+| Graphics | Preset (Low, Medium, High, Ultra; tuning anything reads CUSTOM); render scale 50–100% (the 3D image, rays and bloom drawn smaller, then scaled up in the final pass with contrast-adaptive sharpening, AMD CAS, the sharpening half of FSR 1; the sharper the smaller); anti-aliasing (off, MSAA 2×, 4×); shadows, bloom, god rays, ink outlines, letterbox, film grain (and the chromatic edges), snow and ash, High DPI (the canvas at the display's full pixel density) |
+| Camera | Field of view 55–100°, camera shake, step bob, reduced motion |
+| Audio | Volume; the soldiers' voices (the radio chatter stays written up) |
+| Controls | Mouse sensitivity |
+
+| Preset | Render scale | AA | Shadows | Bloom | God rays | Snow | High DPI |
+|---|---|---|---|---|---|---|---|
+| Low | 67% | off | off | off | off | off | off |
+| Medium | 85% | off | on | on | off | on | off |
+| High | 100% | 4× | on | on | on | on | off |
+| Ultra | 100% | 4× | on | on | on | on | on |
+
+Whatever the options, the 3D image never exceeds ~3.7 million pixels a frame (a 4K screen gets
+a lower render scale rather than melting the GPU).
 
 ## A map per match size (`MapSizes`, `FrontlineMap`)
 

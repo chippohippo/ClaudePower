@@ -28,18 +28,21 @@ opens the start menu. Leave that window open while you play; close it when you'r
 In the start menu:
 
 1. Pick the battlefield: **Dusk City** (civilians and gangs included), Night City, or The Trenches.
-2. Pick the battle size, your side, your class, the bots' skill, the effects quality and the map seed.
+2. Pick the battle size, your side, your class, the bots' skill, the graphics (Low, Medium, High,
+   Ultra, or **Settings…** for everything) and the map seed.
 3. Press **Deploy**, or Enter.
 
-Click in the game to capture the mouse; Esc frees it. The controls are on the start menu.
+Click in the game to capture the mouse. **Esc** frees it and opens the options: the battle waits
+while it's open, and every change applies at once. **V** switches between third and first person.
+The controls are on the start menu (and on screen for the first 25 seconds; F1 brings them back).
 
 ## If something's off
 
 | Problem | Fix |
 |---|---|
-| It stutters | Pick a smaller battle (12v12 or 32v32) and set Effects to Low. Close other heavy tabs. |
+| It stutters | Pick a smaller battle (12v12 or 32v32) and Graphics: Low. Or open the options (Esc) and lower the render scale (the image is drawn smaller, then scaled up and sharpened) or turn shadows off. Close other heavy tabs. |
 | A blank or black page | Use a current Chrome, Edge or Firefox, with hardware acceleration on (browser settings → System). The game needs WebGL 2. |
 | "Port in use" | The launchers take the next free port by themselves. With Python on a Mac, run `PORT=9000 ./play.sh` from a terminal. |
 | Opening `index.html` directly shows nothing | Browsers block games opened as files. Use a launcher above. |
 
-Your start-menu choices are remembered in your browser.
+Your start-menu choices and your options are remembered in your browser.

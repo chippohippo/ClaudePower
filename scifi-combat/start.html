@@ -85,7 +85,7 @@
         </div>
         <div class="row" style="display:flex;gap:18px;flex-wrap:wrap">
           <div><div class="label">Bots</div><div class="opts" id="difficulty"></div></div>
-          <div><div class="label">Effects</div><div class="opts" id="fx"></div></div>
+          <div><div class="label">Graphics</div><div class="opts" id="fx"></div></div>
           <div><div class="label">Map seed</div><div class="seed"><input id="seed" type="number" min="1" max="99999" /><button class="opt" id="dice" title="A new map">New</button></div></div>
         </div>
         <button id="deploy">Deploy</button>
@@ -114,11 +114,13 @@
           <a href="art-lab.html?station=people">Art lab</a>
           <a href="rig-lab.html">Rig lab</a>
         </div>
-        <p class="note">Runs offline in Chrome, Edge or Firefox (WebGL 2). Bigger battles want a stronger PC: start at 32v32, Effects: Low if it stutters.</p>
+        <p class="note">Runs offline in Chrome, Edge or Firefox (WebGL 2). Bigger battles want a stronger PC: start at 32v32, Graphics: Low if it stutters (Settings has the render scale, shadows and every effect; Esc in a match opens the same options and pauses).</p>
       </section>
     </div>
   </main>
   <script type="module">
+    import { loadSettings, saveSettings, applyPreset } from './src/ui/Settings.js';
+    import { OptionsMenu } from './src/ui/OptionsMenu.js';
     const MAPS = [
       { id: 'dusk', name: 'Dusk City', note: 'Snowfall at dusk: neon megatowers, houses to clear, civilians and gangs', q: { map: 'city', planet: 'duskcity' } },
       { id: 'night', name: 'Night City', note: 'The same city under the aurora, lit windows and searchlights', q: { map: 'city', planet: 'nightcity' } },
@@ -128,12 +130,15 @@
     const TEAMS = [['Solari Directorate', 'hard-light shields'], ['Void Legion', 'leech armor']];
     const ROLE = { assault: 'Assault', juggernaut: 'Juggernaut', infiltrator: 'Infiltrator', engineer: 'Engineer', medic: 'Medic', marksman: 'Marksman', flameKnight: 'Flame Knight', pilot: 'Pilot', tech: 'Tech', demolitionist: 'Demolitionist' };
     const DIFF = [['recruit', 'Recruit'], ['veteran', 'Veteran'], ['elite', 'Elite']];
-    const FX = [['high', 'High'], ['low', 'Low'], ['off', 'Off']];
+    const PRESET = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['ultra', 'Ultra']];
     const title = (id) => id.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem('emberfall.start') ?? '{}') ?? {}; } catch { saved = {}; }
-    const st = { map: 'dusk', size: '32v32', team: 0, cls: { 0: 'lancer', 1: 'reaver' }, difficulty: 'veteran', fx: 'high', seed: 7, ...saved };
+    const st = { map: 'dusk', size: '32v32', team: 0, cls: { 0: 'lancer', 1: 'reaver' }, difficulty: 'veteran', seed: 7, ...saved };
+    delete st.fx;   // (graphics are the shared settings now)
+    // The options (graphics, camera, audio, controls), shared with the game's Esc menu.
+    const menu = new OptionsMenu(document.body, { onChange: () => render(), onClose: () => render() });
     st.cls = { 0: 'lancer', 1: 'reaver', ...(saved.cls ?? {}) };
     const factions = await Promise.all(['solari', 'void'].map((f) => fetch(`./data/classes/${f}.json`).then((r) => r.json()).catch(() => ({ classes: [] }))));
 
@@ -151,20 +156,23 @@
       $('team').replaceChildren(...TEAMS.map(([n, t], i) => button(n, t, st.team === i, () => { st.team = i; render(); }, `side-${i}`)));
       $('cls').replaceChildren(...(factions[st.team].classes ?? []).map((c) => button(title(c.id), ROLE[c.role] ?? c.role, st.cls[st.team] === c.id, () => { st.cls[st.team] = c.id; render(); }, `side-${st.team}`)));
       $('difficulty').replaceChildren(...DIFF.map(([k, n]) => button(n, '', st.difficulty === k, () => { st.difficulty = k; render(); })));
-      $('fx').replaceChildren(...FX.map(([k, n]) => button(n, '', st.fx === k, () => { st.fx = k; render(); })));
+      const gs = loadSettings();
+      $('fx').replaceChildren(
+        ...PRESET.map(([k, n]) => button(n, '', gs.preset === k, () => { saveSettings(applyPreset(loadSettings(), k)); menu.settings = loadSettings(); render(); })),
+        button(gs.preset === 'custom' ? 'Settings · custom' : 'Settings…', '', false, () => { menu.settings = loadSettings(); menu.open(); }));
       $('seed').value = st.seed;
       $('summary').textContent = url();
       try { localStorage.setItem('emberfall.start', JSON.stringify(st)); } catch { /* private window: not remembered */ }
     }
     function url() {
       const m = MAPS.find((x) => x.id === st.map) ?? MAPS[0];
-      const q = new URLSearchParams({ ...m.q, size: st.size, team: st.team, class: st.cls[st.team], difficulty: st.difficulty, fx: st.fx, seed: st.seed });
+      const q = new URLSearchParams({ ...m.q, size: st.size, team: st.team, class: st.cls[st.team], difficulty: st.difficulty, seed: st.seed });
       return `index.html?${q}`;
     }
     $('seed').onchange = () => { st.seed = Math.max(1, Math.min(99999, Math.round(+$('seed').value) || 7)); render(); };
     $('dice').onclick = () => { st.seed = 1 + Math.floor(Math.random() * 9999); render(); };
     $('deploy').onclick = () => { location.href = url(); };
-    addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName !== 'INPUT') location.href = url(); });
+    addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName !== 'INPUT' && !menu.isOpen) location.href = url(); if (e.key === 'Escape' && menu.isOpen) menu.close(); });
     render();
 
     // Snow drifting past, as in the city.

@@ -11,7 +11,11 @@
 //  5. The stylized look (`post.outline`, `post.letterbox`): ink lines where the depth breaks
 //     (silhouettes and creases, found as a kink in 1/depth, so flat ground never draws one), on
 //     the near side of the edge, 2 px wide up to 1080p, fading out with distance; cinematic bars.
-// quality 'low' drops multisampling and halves the ray samples.
+//  6. Render scale (the options menu): the scene, rays and bloom draw at a fraction of the screen's
+//     resolution and the final pass scales them up with contrast-adaptive sharpening (AMD CAS,
+//     the sharpening half of FSR 1), so a smaller image still reads crisp.
+// quality 'low' drops multisampling and halves the ray samples. setOptions() changes the scale,
+// the multisampling and each effect live.
 
 import * as THREE from 'three';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -47,9 +51,23 @@ const FINAL_FRAG = `
 uniform sampler2D tColor, tRays, tDepth;
 uniform vec3 rayColor, lift, gamma, gain, inkColor;
 uniform float rayStrength, exposure, saturation, contrast, vignette, grain, aberration, time;
-uniform float ink, inkEdge, inkNear, inkFar, camNear, camFar, letterbox;
+uniform float ink, inkEdge, inkNear, inkFar, camNear, camFar, letterbox, sharpen;
 uniform vec2 resolution;
 varying vec2 vUv;
+// Contrast-adaptive sharpening of the upscaled image (AMD CAS), in a tone-compressed space so the
+// HDR highlights can't ring: the cross's local contrast sets how hard to sharpen.
+vec3 tc(vec3 x) { return x / (1.0 + x); }
+vec3 itc(vec3 y) { return y / max(vec3(1.0) - y, vec3(1e-4)); }
+vec3 casColor(vec2 uv) {
+  vec2 t = 1.0 / resolution;
+  vec3 a = tc(texture2D(tColor, uv + vec2(0.0, -t.y)).rgb), b = tc(texture2D(tColor, uv + vec2(-t.x, 0.0)).rgb);
+  vec3 c = tc(texture2D(tColor, uv).rgb);
+  vec3 d = tc(texture2D(tColor, uv + vec2(t.x, 0.0)).rgb), e = tc(texture2D(tColor, uv + vec2(0.0, t.y)).rgb);
+  vec3 mn = min(min(min(a, b), min(d, e)), c), mx = max(max(max(a, b), max(d, e)), c);
+  vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
+  vec3 w = amp * mix(-0.125, -0.2, sharpen);
+  return itc(clamp((c + w * (a + b + d + e)) / (1.0 + 4.0 * w), 0.0, 0.999));
+}
 float invDepth(vec2 uv) { float z = texture2D(tDepth, uv).r * 2.0 - 1.0; return (camFar + camNear - z * (camFar - camNear)) / (2.0 * camNear * camFar); }
 vec3 RRTAndODTFit(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
 vec3 aces(vec3 color) {
@@ -66,7 +84,8 @@ void main() {
   float r2 = dot(d, d);
   // Chromatic aberration: red out, blue in, toward the edges.
   vec2 off = d * aberration * r2 * 4.0;
-  vec3 c = vec3(texture2D(tColor, vUv + off).r, texture2D(tColor, vUv).g, texture2D(tColor, vUv - off).b);
+  vec3 c = sharpen > 0.0 ? casColor(vUv) : texture2D(tColor, vUv).rgb;
+  if (aberration > 0.0) { c.r = texture2D(tColor, vUv + off).r; c.b = texture2D(tColor, vUv - off).b; }
   c += texture2D(tRays, vUv).rgb * rayColor * rayStrength;
   // Ink: a kink in 1/depth across the pixel (zero on any flat surface), on the near side only.
   if (ink > 0.0) {
@@ -99,13 +118,15 @@ export class PostFX {
    * @param {object} post   palette.json planet `post`
    * @param {object} o { quality: 'high' | 'low' }
    */
-  constructor(renderer, post, { quality = 'high' } = {}) {
+  constructor(renderer, post, { quality = 'high', scale = 1, samples = null } = {}) {
     this.renderer = renderer; this.post = post; this.quality = quality;
     this.enabled = true;
-    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.scale = scale;
+    this.samples = samples ?? (quality === 'high' ? 4 : 0);
+    this.fx = { bloom: true, rays: true, ink: true, letterbox: true, film: true };
+    const size = this.#size();
     const W = size.x, H = size.y;
-    this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: quality === 'high' ? 4 : 0, depthTexture: new THREE.DepthTexture(W, H) });
-    this.rt.depthTexture.type = THREE.UnsignedIntType;
+    this.rt = this.#target(W, H);
     this.raysRT = new THREE.WebGLRenderTarget(Math.max(1, W >> 1), Math.max(1, H >> 1), { type: THREE.HalfFloatType });
     const G = post.godRays, gr = post.grade;
     this.raysMat = new THREE.ShaderMaterial({
@@ -123,7 +144,7 @@ export class PostFX {
         tDepth: { value: this.rt.depthTexture }, camNear: { value: 0.1 }, camFar: { value: 1000 },
         ink: { value: post.outline?.strength ?? 0 }, inkColor: { value: new THREE.Color(post.outline?.color ?? '#2a2444') },
         inkEdge: { value: post.outline?.edge ?? 0.12 }, inkNear: { value: post.outline?.near ?? 4 }, inkFar: { value: post.outline?.far ?? 70 },
-        letterbox: { value: post.letterbox ?? 0 },
+        letterbox: { value: post.letterbox ?? 0 }, sharpen: { value: 0 },
       },
     });
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.raysMat);
@@ -134,14 +155,55 @@ export class PostFX {
     this.time = 0;
   }
 
-  setSize(w, h) {
+  /** The scene's resolution: the drawing buffer's at the render scale. */
+  #size() {
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    return size.set(Math.max(1, Math.round(size.x * this.scale)), Math.max(1, Math.round(size.y * this.scale)));
+  }
+
+  #target(W, H) {
+    const rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: this.samples, depthTexture: new THREE.DepthTexture(W, H) });
+    rt.depthTexture.type = THREE.UnsignedIntType;
+    return rt;
+  }
+
+  setSize(w, h) {
+    const size = this.#size();
     const W = size.x, H = size.y;
     this.rt.setSize(W, H);
     this.raysRT.setSize(Math.max(1, W >> 1), Math.max(1, H >> 1));
     this.bloom.setSize(W, H);
     this.finalMat.uniforms.resolution.value.set(W, H);
+    this.finalMat.uniforms.sharpen.value = this.scale < 0.999 ? Math.min(1, (1 - this.scale) * 2.5) : 0;
   }
+
+  /**
+   * The options menu's graphics, live: { scale (0.5..1), samples (0, 2, 4), bloom, rays, ink,
+   * letterbox, film }.
+   */
+  setOptions(o) {
+    if (o.samples !== undefined && o.samples !== this.samples) {
+      this.samples = o.samples;
+      const old = this.rt, size = this.#size();
+      this.rt = this.#target(size.x, size.y);
+      old.dispose(); old.depthTexture?.dispose();
+      const U = this.finalMat.uniforms;
+      U.tColor.value = this.rt.texture; U.tDepth.value = this.rt.depthTexture;
+      this.raysMat.uniforms.tColor.value = this.rt.texture; this.raysMat.uniforms.tDepth.value = this.rt.depthTexture;
+    }
+    if (o.scale !== undefined) this.scale = Math.min(1, Math.max(0.25, o.scale));
+    for (const k of ['bloom', 'rays', 'ink', 'letterbox', 'film']) if (o[k] !== undefined) this.fx[k] = !!o[k];
+    const U = this.finalMat.uniforms, P = this.post;
+    U.ink.value = this.fx.ink ? P.outline?.strength ?? 0 : 0;
+    U.letterbox.value = this.fx.letterbox ? P.letterbox ?? 0 : 0;
+    U.grain.value = this.fx.film ? P.grain : 0;
+    U.aberration.value = this.fx.film ? P.aberration : 0;
+    U.rayStrength.value = this.fx.rays ? P.godRays.strength : 0;
+    this.setSize();
+  }
+
+  /** The letterbox each bar covers now (0 when the planet has none or it's turned off). */
+  get letterbox() { return this.finalMat.uniforms.letterbox.value; }
 
   /**
    * @param {THREE.Scene} scene
@@ -157,13 +219,15 @@ export class PostFX {
     R.setRenderTarget(this.rt);
     R.render(scene, camera);
     // God rays.
-    this.raysMat.uniforms.sun.value.set(sunScreen.x, sunScreen.y);
-    this.raysMat.uniforms.ahead.value = Math.max(0, sunScreen.z);
-    this.quad.material = this.raysMat;
-    R.setRenderTarget(this.raysRT);
-    R.render(this.quadScene, this.quadCam);
+    if (this.fx.rays) {
+      this.raysMat.uniforms.sun.value.set(sunScreen.x, sunScreen.y);
+      this.raysMat.uniforms.ahead.value = Math.max(0, sunScreen.z);
+      this.quad.material = this.raysMat;
+      R.setRenderTarget(this.raysRT);
+      R.render(this.quadScene, this.quadCam);
+    }
     // Bloom, added into the scene target.
-    this.bloom.render(R, null, this.rt, dt, false);
+    if (this.fx.bloom) this.bloom.render(R, null, this.rt, dt, false);
     // Final.
     this.finalMat.uniforms.time.value = this.time;
     this.finalMat.uniforms.camNear.value = camera.near; this.finalMat.uniforms.camFar.value = camera.far;
