@@ -25,10 +25,10 @@
 //    cover, and against men dug in round it they can do that for minutes without one of them setting
 //    foot on it. Where the men we've sent are within 110 m and outnumber his round it by the odds (or
 //    have been stuck short of it for 30 s with the better of it), every squad there storms it at
-//    once (SquadTactics.storm: everyone onto the point, whatever's shooting); not a squad down to its
-//    last man, and after a storm that didn't take it, the next waits longer. Once the middle is
-//    decided, the elite (`barrage`) shells the point first where it can see men on it, and storms as
-//    the shells land.
+//    once (SquadTactics.storm: everyone onto the point, whatever's shooting); out of the race for the
+//    middle, not a squad down to its last man, and after a storm that didn't take it the next waits
+//    longer. Once the middle is decided, the elite (`barrage`) shells the point first where it can
+//    see men on it, and storms as the shells land.
 //  * Rescue (`rescue`, elite, once the middle is decided): his men on a point of ours, more than ours
 //    on it, and the nearest squads, whatever they're doing, go and throw him off it.
 //  * No task takes everything (he's weaker wherever he isn't massing), and a squad keeps its task
@@ -691,12 +691,14 @@ export class Strategist {
     const odds = this.cfg.storm, I = this.world.intel?.[this.team], enemy = 1 - this.team;
     if (!odds) return;
     this.close ??= new Map(); this.stormed ??= new Map(); this.barrage ??= new Map(); this.tries ??= new Map();
+    // (`rush`, elite) The race for the middle: every man there goes, and goes again (the first onto it have it).
+    const race = this.cfg.rush && this.posture?.opening;
     for (let k = 0; k < B.P; k++) {
       const p = B.obj[k].p, due = this.barrage.get(p.id);
       if (due !== undefined && this.time < due) continue;   // (the shells still landing)
       if (B.obj[k].held >= 0.999) this.tries.delete(p.id);
       // A storm that didn't take it: the next one waits longer (men thrown at the same guns again die the same way).
-      const wait = 25 * (1 + Math.min(2, this.tries.get(p.id) ?? 0));
+      const wait = race ? 25 : 25 * (1 + Math.min(2, this.tries.get(p.id) ?? 0));
       if (B.obj[k].held >= 0.999 || this.time - (this.stormed.get(p.id) ?? -1e9) < wait) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
       let ours = 0;
       const near = [];
@@ -709,7 +711,8 @@ export class Strategist {
           const q = m.movement.state.position;
           if (Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < 110) n++;
         }
-        if (n >= 2) { ours += n; near.push(s); }   // (a squad down to its last man waits for the rest to come back)
+        // (Out of the race, a squad down to its last man waits for the rest to come back; a squad of one is all there is.)
+        if (n >= (race ? 1 : Math.min(2, s.members.length))) { ours += n; near.push(s); }
       }
       if (ours < 3) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
       if (!this.close.has(p.id)) this.close.set(p.id, this.time);
@@ -727,7 +730,7 @@ export class Strategist {
         && cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 4, by: this.by, pri: 5 }).ok) { this.barrage.set(p.id, this.time + 9); this.lastFire = this.time; continue; }
       for (const s of near) cmd.storm(s);
       this.stormed.set(p.id, this.time); this.close.delete(p.id); this.barrage.delete(p.id);
-      if (his >= 1) this.tries.set(p.id, (this.tries.get(p.id) ?? 0) + 1);
+      if (his >= 1 && !race) this.tries.set(p.id, (this.tries.get(p.id) ?? 0) + 1);
     }
   }
 

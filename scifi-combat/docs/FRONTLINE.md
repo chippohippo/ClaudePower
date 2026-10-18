@@ -700,10 +700,11 @@ difficulty, working round their orders and never overriding them (at recruit, st
     squads, 17 men, two minutes short of a point four men held). So where the men it has sent are
     within 110 m and outnumber his round it by the odds (elite 1.6 to 1, veteran 2.5), or have been
     stuck short of it for 30 s with the better of it, every squad there storms it at once: everyone
-    onto the point, whatever's shooting (`SquadTactics.storm`; you can order it too, **G**). Not a
-    squad down to its last man (he waits for the rest to come back), and after a storm that didn't
-    take the point the next waits longer (25 s, then 50, then 75): men thrown at the same guns again
-    die the same way. Once
+    onto the point, whatever's shooting (`SquadTactics.storm`; you can order it too, **G**). Out of
+    the race for the middle, not a squad down to its last man (he waits for the rest to come back),
+    and after a storm that didn't take the point the next waits longer (25 s, then 50, then 75): men
+    thrown at the same guns again die the same way. In the race, the elite's go with every man there
+    and again every 25 s. Once
     the middle is decided, the elite shells the point first where it can see men on it and its own
     are clear, and storms as the shells land (in the race itself, the first men onto a point have it).
   - *Rescue* (elite, once the middle is decided). His men on a point of ours, more than ours on it:
