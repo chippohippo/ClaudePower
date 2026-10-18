@@ -47,6 +47,7 @@ const CSS = `
 #hud.commanding #fl-gun, #hud.commanding #fl-status, #hud.commanding #fl-right, #hud.commanding #fl-kill,
 #hud.commanding #fl-dead, #hud.commanding #fl-respawn, #hud.commanding #fl-prompt, #hud.commanding #fl-downs,
 #hud.commanding #fl-foes, #hud.commanding #fl-suppress, #hud.commanding #fl-mind { display: none !important; }
+#hud.commanding #fl-feed { right: calc(36px + 340px * var(--hz)); }   /* (the killfeed beside the radio, not over it) */
 #cv-map { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 4; cursor: default; }
 #cv-map.armed { cursor: crosshair; }
 .cv-panel { position: fixed; z-index: 5; font-family: var(--text); color: #e8ecf4; pointer-events: auto; }
