@@ -197,8 +197,8 @@ export class VisorDamage {
     const g = document.createElementNS(NS, 'g'), d = crackPath(cx, cy, R, 1.1 + R() * 0.45);
     g.setAttribute('class', 'crack');
     g.innerHTML = `<circle cx="${f1(cx)}" cy="${f1(cy)}" r="26" fill="url(#frost)"/>`
-      + `<path d="${d}" fill="none" stroke="rgba(0,0,0,.32)" stroke-width="1.9" transform="translate(1 1.2)" stroke-linejoin="round"/>`
-      + `<path d="${d}" fill="none" stroke="rgba(226,238,252,.7)" stroke-width=".9" stroke-linejoin="round"/>`
+      + `<path d="${d}" fill="none" stroke="rgba(0,0,0,.24)" stroke-width="1.7" transform="translate(1 1.2)" stroke-linejoin="round"/>`
+      + `<path d="${d}" fill="none" stroke="rgba(226,238,252,.55)" stroke-width=".8" stroke-linejoin="round"/>`
       + `<circle cx="${f1(cx)}" cy="${f1(cy)}" r="3.2" fill="rgba(240,248,255,.75)"/>`;
     if (!this.crackSvg.querySelector('#frost')) this.crackSvg.insertAdjacentHTML('afterbegin', '<defs><radialGradient id="frost"><stop offset="0" stop-color="#e8f4ff" stop-opacity=".38"/><stop offset="1" stop-color="#e8f4ff" stop-opacity="0"/></radialGradient></defs>');
     g.style.opacity = 0;
