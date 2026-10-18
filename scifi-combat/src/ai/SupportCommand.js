@@ -9,13 +9,15 @@
 //    behind the front-line trench, facing the enemy, spread across the lanes of the attacked
 //    sector: where the enemy's armor has to come through.
 //  * Fire missions, re-planned every second, highest priority first:
+//      7  our commander's (a person in the seat): every battery in range fires its rounds at it,
+//         even danger close (it's his call). The AI commander's: an attack's preparation (5).
 //      6  SOS: the enemy blew its whistles. Fire on the ground in front of the trench they are
 //         leaving, while they cross it.
 //      5  preparation: our commander is about to send a wave over. Shell the enemy-held points
 //         ahead of it (prepare() pushes that whistle back while the barrage lands), lifting
 //         early enough that the last rounds are down when the wave goes.
 //      4  counter-battery: enemy guns located from their muzzle flashes (more shots, better fix).
-//      2+ observed fire: groups of enemies our soldiers can see.
+//      2+ observed fire: groups of enemies our soldiers can see (the team's intel: scouts' too).
 //      1  interdiction: the enemy's forward depot (howitzers only, a few rounds, not too often).
 //    Never danger close: no mission within DANGER m of our own soldiers. Low on ammo, a battery
 //    only answers priority 4 and up.
@@ -52,6 +54,8 @@ export class SupportCommand {
     this.prepEnded = -1e9;
     this.interdictAt = -1e9;        // last interdiction mission (one every INTERDICT s at most)
     this.sos = null;                // { x, z, r, until }
+    this.orders = [];               // our commander's fire missions: { id, x, z, r, rounds, pri, until, observed, by, fired: Set(unit id) }
+    this.missionN = 0;
     this.offs = [
       bus.on('gun:fire', (e) => this.#heard(e)),
       bus.on('squad:whistle', (e) => this.#whistle(e)),
@@ -145,6 +149,23 @@ export class SupportCommand {
     return PREP;
   }
 
+  /**
+   * A fire mission from our commander: every battery in range fires `rounds` at (x, z). Fired blind
+   * (nobody has eyes on it), the aim is off by 10-25 m and the rounds spread twice as wide.
+   * Returns false if there are no guns to fire it.
+   */
+  request({ x, z, r = 16, rounds = 4, observed = true, pri = 5.5, by = 'ai' }) {
+    if (!this.units.some((u) => (u.kind === 'howitzer' || u.kind === 'rockets') && this.vehicle(u))) return false;
+    const id = ++this.missionN;
+    if (!observed) {
+      const h = Math.sin((id + this.team * 97) * 12.9898) * 43758.5453, k = h - Math.floor(h), a = k * Math.PI * 2, off = 10 + ((k * 7.31) % 1) * 15;
+      x += Math.cos(a) * off; z += Math.sin(a) * off; r *= 2;
+    }
+    this.orders.push({ id, x, z, r, rounds, pri, until: this.time + 30, observed, by, fired: new Set() });
+    this.next = 0;
+    return true;
+  }
+
   /** Set up (or setting up) with rounds to fire. */
   #ready(u) { const v = this.vehicle(u); return !!v && !!v.seats[0]?.occupant && v.gun?.ammo > 0 && v.gun.state !== 'packing'; }
 
@@ -184,7 +205,10 @@ export class SupportCommand {
     for (const c of this.#clusters()) cands.push({ ...c, until: time + 10, kind: 'observed', pri: 2 + Math.min(6, c.n) * 0.4 });
     const ed = this.logistics?.front(1 - team);
     if (ed && ed.stock > 30 && time - this.interdictAt > INTERDICT) cands.push({ x: ed.pos.x, z: ed.pos.z, r: 9, until: time + 20, kind: 'interdict', pri: 1 });
-    const safe = cands.filter((c) => !this.#friendsNear(c.x, c.z, DANGER + c.r * 0.5)).sort((a, b) => b.pri - a.pri);
+    this.orders = this.orders.filter((o) => time < o.until && o.fired.size < this.units.length);
+    for (const o of this.orders) cands.push({ x: o.x, z: o.z, r: o.r, until: o.until, kind: 'ordered', pri: o.pri, rounds: o.rounds, order: o });
+    // (Never danger close on the guns' own account; our commander's call stands.)
+    const safe = cands.filter((c) => (c.order?.by === 'human') || !this.#friendsNear(c.x, c.z, DANGER + c.r * 0.5)).sort((a, b) => b.pri - a.pri);
 
     for (const u of this.units) {
       if (u.kind !== 'howitzer' && u.kind !== 'rockets') continue;
@@ -194,39 +218,28 @@ export class SupportCommand {
       const m = u.mission;
       // Keep the current mission while it lasts and nothing much more urgent comes up.
       const rounds = m ? G.shots - (m.start ?? G.shots) : 0;
+      if (m?.order && rounds >= m.rounds) m.order.fired.add(u.id);   // (our commander's: this gun's share is fired)
       const keep = m && time < m.until && rounds < m.rounds && !safe.some((c) => c.pri >= m.pri + 2) && safe.some((c) => c.kind === m.kind && Math.hypot(c.x - m.x, c.z - m.z) < 30);
       if (keep) continue;
       const low = G.ammo < 3;
       const pick = safe.find((c) => {
+        if (c.order?.fired.has(u.id)) return false;
         if (low && c.pri < 4) return false;
         if (u.kind === 'rockets' && (c.kind === 'counter' || c.kind === 'interdict')) return false;    // rockets saturate areas, not point targets
         const r = Math.hypot(c.x - p.x, c.z - p.z);
         return r > lo * 1.1 && r < hi * 0.97;
       });
-      u.mission = pick ? { x: pick.x, z: pick.z, r: pick.r, kind: pick.kind, pri: pick.pri, until: pick.until, rounds: u.kind === 'rockets' ? d.salvo : ROUNDS[pick.kind] ?? 3, start: null } : null;
+      u.mission = pick ? { x: pick.x, z: pick.z, r: pick.r, kind: pick.kind, pri: pick.pri, until: pick.until, rounds: u.kind === 'rockets' ? d.salvo : pick.rounds ?? ROUNDS[pick.kind] ?? 3, start: null, order: pick.order ?? null } : null;
       if (pick?.kind === 'interdict') this.interdictAt = time;
       if (pick && (!m || m.kind !== pick.kind || Math.hypot(m.x - pick.x, m.z - pick.z) > 20)) bus.emit('support:mission', { team, unit: u.id, gun: v.id, kind: pick.kind, x: pick.x, z: pick.z, pri: pick.pri });
     }
   }
 
-  /** Groups of enemies our soldiers can see (anything a friendly bot saw in the last 3 s). */
+  /** Groups of enemies our soldiers can see (the team's intel: anyone in sight in the last 3 s, scouts' sightings too). */
   #clusters() {
-    const seen = new Set(), team = this.team;
-    for (const e of this.world.entities) {
-      if (e.team !== team || e.health.dead || !e.brain) continue;
-      const t = e.brain.target;
-      if (t && !t.health?.dead && !t.health?.downed && !t.isVehicle && !t.vehicle && e.brain.time - e.brain.sawAt < 3) seen.add(t);
-    }
-    const cells = new Map();
-    for (const t of seen) {
-      const p = t.movement.state.position, k = `${Math.floor(p.x / CLUSTER)},${Math.floor(p.z / CLUSTER)}`;
-      const c = cells.get(k) ?? { x: 0, z: 0, n: 0 };
-      c.x += p.x; c.z += p.z; c.n++;
-      cells.set(k, c);
-    }
-    const out = [];
-    for (const c of cells.values()) if (c.n >= 2) out.push({ x: c.x / c.n, z: c.z / c.n, r: 10, n: c.n });
-    return out;
+    const intel = this.world.intel?.[this.team];
+    if (!intel) return [];
+    return intel.clusters(3, CLUSTER, 2, (c) => !c.e.health?.downed && !c.e.isVehicle && !c.e.vehicle).map((c) => ({ x: c.x, z: c.z, r: 10, n: c.n }));
   }
 
   #friendsNear(x, z, r) {

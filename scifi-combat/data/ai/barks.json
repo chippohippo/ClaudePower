@@ -93,6 +93,26 @@
     },
     "armed": {
       "civilian": ["I've got a gun, stay back!", "Nobody touches us!", "Back off or I shoot!"]
+    },
+    "order": {
+      "solari": ["Copy, moving on {place}!", "Wilco, {place}. Moving!", "Understood. On our way to {place}.", "Roger, {place}. Let's go!"],
+      "void": ["Order received: {place}.", "We go to {place}.", "Acknowledged. {place}.", "As you command. {place}."]
+    },
+    "refuse": {
+      "solari": ["Negative, {why}! Give us a minute!", "Can't move yet, {why}!", "Say again? We're {why}!", "Hold that, command, {why}!"],
+      "void": ["Not now, {why}!", "We cannot, {why}!", "Wait. We are {why}.", "Denied, {why}!"]
+    },
+    "scout": {
+      "solari": ["{name}, get eyes on {place}!", "{name}, go forward, eyes on {place}.", "Sending {name} up to look at {place}."],
+      "void": ["{name}, watch {place}.", "{name} goes ahead to {place}.", "{name}, find them at {place}."]
+    },
+    "eyes": {
+      "solari": ["Eyes on {place}: {n} hostiles!", "Got eyes on {place}, {n} in sight.", "Observing {place}. {n} contacts."],
+      "void": ["I see {place}. {n} of them.", "{place} in sight: {n}.", "Watching {place}: {n} targets."]
+    },
+    "secured": {
+      "solari": ["{place} secured! Awaiting orders.", "We hold {place}. What's next?", "{place} is ours!"],
+      "void": ["{place} is taken.", "{place} held. Orders?", "We have {place}."]
     }
   }
 }

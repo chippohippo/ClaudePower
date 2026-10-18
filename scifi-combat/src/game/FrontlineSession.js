@@ -40,6 +40,8 @@ import { parkSlot } from './frontline/FrontlineMap.js';
 import { BattlePoints } from './BattlePoints.js';
 import { Barks } from '../ai/Barks.js';
 import { Neutrals } from './Neutrals.js';
+import { Intel } from '../ai/command/Intel.js';
+import { Strategist } from '../ai/command/Strategist.js';
 
 const NONE = Object.freeze({ down: false, pressed: false, released: false });
 
@@ -50,10 +52,12 @@ export class FrontlineSession {
    *                         battlePoints, passives, support, humanoid (animation/humanoid.json: the swords' sweeps),
    *                         barks (ai/barks.json: names and callouts) }
    * @param {object} o     { size: '4v4' | '12v12' | '32v32' | '64v64' | '200v200' (or players: the size built for that count),
-   *                         seed, map: 'trench' (the trench war) | 'city' (the night city), humans: [{ id, team, classId }],
+   *                         seed, map: 'trench' (the trench war) | 'city' (the night city), humans: [{ id, team, classId }]
+   *                         (classId 'commander': that person commands his side instead of fighting in it),
+   *                         command: [team 0's, team 1's] the AI commanders' settings (default: the difficulty's `command`),
    *                         tickets, waveInterval, timeLimit, lod }
    */
-  constructor(data, { size = null, players = null, seed = 1, map = 'trench', humans = [], tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
+  constructor(data, { size = null, players = null, seed = 1, map = 'trench', humans = [], command = null, tickets = null, waveInterval = null, timeLimit = null, lod = { near: 60, mid: 160, far: 400 } } = {}) {
     const profile = mapSizeFor(size, players), M = profile.match;
     players = players ?? profile.players;
     this.data = data;
@@ -77,6 +81,8 @@ export class FrontlineSession {
     this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
     this.barks = this.world.barks = new Barks(this.world, data.barks ?? null, { seed });   // soldiers' callouts
     this.world.wire = new WireField(this.map.wire);
+    // What each side knows of the other: who's been seen where, and which ground has been watched.
+    this.intel = this.world.intel = [0, 1].map((t) => new Intel(t, { bounds: this.map.bounds }));
     // The city's buildings stand on what holds them up, and come down when it's shot away.
     this.structures = this.world.structures = this.map.city ? new StructureSystem(this.world, this.map, { seed }) : null;
     this.melee = new MeleeSystem({ blades: data.humanoid?.sword ?? null });   // swept hits along the rig's swings
@@ -96,9 +102,17 @@ export class FrontlineSession {
       this.neutrals = new Neutrals(this);
       for (const f of this.neutrals.all) { this.fighters.push(f); this.melee.add(f.melee); f.respawnAt = Infinity; }
     }
-    this.commanders = [0, 1].map((t) => { const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav }); c.squads = this.squads[t]; return c; });
     // Squad tactics: where the cover is, who is pinned down, and a leader's plan per squad.
     this.tactical = this.world.tactical = new TacticalMap(this.map);   // (bots search its cover)
+    // Command: one per side, a person in the seat or the AI (at veteran and up, the Strategist).
+    this.commanders = [0, 1].map((t) => {
+      const cfg = command?.[t] ?? data.difficulty?.command ?? null;
+      const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav, world: this.world, tmap: this.tactical, cfg, seed });
+      c.squads = this.squads[t];
+      c.human = this.fighters.some((f) => f.team === t && f.commander);
+      if (!c.human && c.cfg.mind) c.mind = new Strategist(t, { world: this.world, mode: this.mode, cfg: c.cfg, seed });
+      return c;
+    });
     this.suppression = new Suppression(this.world);
     this.fortify = this.world.fortify = new FortifySystem(this.world, this.map, { cap: M.fortCap ?? 24, tmap: this.tactical });
     for (const team of [0, 1]) for (const sq of this.squads[team]) {
@@ -133,6 +147,7 @@ export class FrontlineSession {
       for (const f of sq.members) this.#deploy(f, true, at);
     }
     for (const f of this.fighters) if (f.duty) this.#deploy(f, true);   // crews start beside their guns and trucks
+    for (const f of this.fighters) if (f.offField) f.movement.reset(this.map.hq[f.team].clone(), 0);
     this.world.refreshSpatial();
     for (const c of this.commanders) c.update(0);
   }
@@ -153,8 +168,18 @@ export class FrontlineSession {
     for (const team of [0, 1]) {
       const classes = d.classes[team].classes.map((c) => c.id);
       const teamHumans = humans.filter((h) => h.team === team);
+      // A person in the commander's seat isn't one of the soldiers: he's off the field, at HQ.
+      const seat = teamHumans.find((h) => h.classId === 'commander');
+      if (seat) {
+        const f = buildFighter(this.world, d, { id: seat.id, team, classId: classes[0], pos: this.map.hq[team].clone() });
+        this.world.remove(f);
+        Object.assign(f, { commander: true, offField: true, name: 'Command', respawnAt: Infinity });
+        this.fighters.push(f);
+        this.humans.set(f.id, null);
+      }
+      const fighting = teamHumans.filter((h) => h !== seat);
       for (let i = 0; i < perTeam; i++) {
-        const human = teamHumans[i];
+        const human = fighting[i];
         const classId = human?.classId ?? classes[(i * 7 + team * 3) % classes.length];
         const f = buildFighter(this.world, d, { id: human?.id ?? 1000 + id, team, classId, pos: this.map.hq[team].clone() });
         id++;
@@ -173,7 +198,7 @@ export class FrontlineSession {
       const crew = this.#crewCount(team, players), bots = this.fighters.filter((f) => f.team === team && f.brain);
       for (const f of bots.slice(Math.max(0, bots.length - crew))) f.crewPending = true;
       // Squads in roster order (humans lead their squad).
-      const members = this.fighters.filter((f) => f.team === team && !f.crewPending), n = this.squadSize;
+      const members = this.fighters.filter((f) => f.team === team && !f.crewPending && !f.offField), n = this.squadSize;
       for (let i = 0; i < members.length; i += n) {
         const sq = new Squad(team, this.squads[team].length, members.slice(i, i + n));
         for (const m of sq.members) m.squad = sq;
@@ -197,8 +222,9 @@ export class FrontlineSession {
     const t0 = performance.now();
     this.time += dt; this.tick++;
     const w = this.world;
-    for (const f of this.fighters) { f.status.update(dt); f.health.update(dt); }
+    for (const f of this.fighters) { if (f.offField) continue; f.status.update(dt); f.health.update(dt); }
     for (const f of this.fighters) {
+      if (f.offField) continue;                                                              // (the commander, at HQ)
       if (f.health.dead) { f.movement.simulateCorpse(dt); f.simTick = this.tick; continue; } // bodies keep falling until they rest
       // LOD: a soldier far from every camera runs his whole pipeline at 30 Hz, every other tick
       // with a double step (not limp bodies: a Verlet ragdoll needs its step steady; not crews).
@@ -231,6 +257,7 @@ export class FrontlineSession {
     this.logistics?.update(dt, this.fighters);
     this.neutrals?.update(dt);
     this.mode.update(dt, this.fighters, w);
+    for (const I of this.intel) I.update(dt, this.fighters);
     this.bp.update(dt);
     this.barks.update(dt);
     for (const c of this.commanders) c.update(dt);
@@ -284,7 +311,7 @@ export class FrontlineSession {
       if (this.waveTimer[team] > 0) continue;
       this.waveTimer[team] = this.waveInterval;
       if (this.mode.winner >= 0 || this.mode.tickets[team] <= 0) continue;
-      for (const f of this.fighters) if (f.team === team && f.health.dead && this.time >= f.respawnAt && !this.humans.has(f.id)) this.#deploy(f);
+      for (const f of this.fighters) if (f.team === team && f.health.dead && this.time >= f.respawnAt && !this.humans.has(f.id) && !f.offField) this.#deploy(f);
     }
   }
 

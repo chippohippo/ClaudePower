@@ -188,7 +188,8 @@ test('headless battle: 64 bots fight over the line, capture points, die and rein
       if (p.distanceTo(o.pos) < o.radius + 8) reached.add(f.id);
       // Waiting in the jump-off trench for the whistle (and its barrage) is an order, not a route.
       if (f.squad?.tactics?.phase === 'jumpoff') { last.delete(f.id); continue; }
-      const route = nav.distance(nav.fields.get(o.field), p.x, p.z), prev = last.get(f.id);
+      // (A place the commander sent them to has its field built when they first need it.)
+      const F = nav.fields.get(o.field), route = F ? nav.distance(F, p.x, p.z) : Infinity, prev = last.get(f.id);
       if (prev && prev.id === o.id && prev.route > o.radius * 1.8 && Number.isFinite(route + prev.route)) { gained += prev.route - route; enRoute += 0.5; }
       last.set(f.id, { id: o.id, route });
     }

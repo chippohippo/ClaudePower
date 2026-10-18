@@ -475,9 +475,11 @@ export class CombatBotBrain {
       near[j] = i;
     }
     let best = null, bs = Infinity;
+    const intel = this.world.intel?.[this.self.team];   // (what we see, the team knows: commanders, artillery)
     for (let i = 0; i < cand.length; i += 2) {
       const d = cand[i], e = cand[i + 1];
       const vis = (near[0] === i || near[1] === i || near[2] === i || near[3] === i) && this.#visible(e, d);
+      if (vis && intel && !e.isDeployable) intel.spot(e, this.self.id);
       let s = d * (vis ? 1 : 2.2);
       if (e.isDeployable) s += e.target === this.self ? -4 : 5;          // a turret: first if it's shooting at us
       else if (e.isVehicle && !e.seats.some((x) => x.occupant)) s += 60;     // empty vehicles are low value
@@ -905,6 +907,7 @@ export class CombatBotBrain {
    */
   #exposure(o, ctx, sup, dt) {
     const E = this.expose, w = this.self.weapons;
+    if (o.fire === 'hidden') { E.up = false; return false; }   // a scout on watch stays down
     const wants = (ctx.target && ctx.los) || (o.suppress && o.fire === 'cover');
     const reloading = w.phase === 'reloading' || w.phase === 'venting';
     if (!wants || reloading || sup > 0.8) { E.up = false; return false; }

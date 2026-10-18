@@ -3,7 +3,7 @@
 //
 //  * Every soldier has a name from his army's list (data/ai/barks.json `names`), and his squad
 //    uses it: "Man down! Kael's down!", "Watch your fire, Vex!".
-//  * Lines are data (per kind, per army, a few variants with {name} and {dir} slots), picked
+//  * Lines are data (per kind, per army, a few variants with {name}, {dir}, {place} slots), picked
 //    with a seeded roll so a replay says the same things.
 //  * Bots speak; people don't (the player has a voice of his own). A soldier waits `gap` s
 //    between any two lines and `same` s before repeating a kind; a squad doesn't repeat a kind
@@ -18,6 +18,9 @@ import { CIVILIAN } from '../combat/Teams.js';
 import { bus } from '../core/EventBus.js';
 
 const ARMY = ['solari', 'void'];
+const SLOTS = { name: 'him', dir: 'front', place: 'the objective', why: 'engaged', n: 'no' };
+/** A line with its slots filled ({name}, {dir}, {place}, {why}, {n}). */
+const fill = (line, vars) => line.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? SLOTS[k] ?? ''));
 
 export class Barks {
   /** @param {object} world CombatWorld @param {object} data data/ai/barks.json */
@@ -65,10 +68,17 @@ export class Barks {
     if (ks && this.time - (ks.get(kind) ?? -1e9) < D.squad) return null;
     me.at = this.time; me.kinds.set(kind, this.time); this.mine.set(e.id, me);
     if (ks) { ks.set(kind, this.time); this.squads.set(sq, ks); }
-    const text = lines[Math.floor(this.#roll() * lines.length)].replaceAll('{name}', vars.name ?? 'him').replaceAll('{dir}', vars.dir ?? 'front');
+    const text = fill(lines[Math.floor(this.#roll() * lines.length)], vars);
     const p = e.movement.state.position;
     bus.emit('squad:bark', { id: e.id, team: e.team, squad: sq?.id ?? null, kind, text, name: e.name ?? null, at: [p.x, p.y + 1.6, p.z] });
     return text;
+  }
+
+  /** A line of `kind` as soldier e would say it, cooldowns or not (the commander's radio log); null if there's none. */
+  line(e, kind, vars = {}) {
+    const lines = this.data?.lines[kind]?.[e?.faction ?? ARMY[e?.team]];
+    if (!lines?.length) return null;
+    return fill(lines[Math.floor(this.#roll() * lines.length)], vars);
   }
 
   /** "Contact left!": where `target` is from `e`, by his facing. */
