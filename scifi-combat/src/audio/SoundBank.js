@@ -581,6 +581,39 @@ function heartbeat(sr) {
   D.mix(x, thump(D.samples(0.2, sr), 60, 40, 0.05, sr), 1); D.mix(x, thump(D.samples(0.2, sr), 55, 38, 0.05, sr), 0.7, 0.28, sr);
   return D.normalize2([x, Float32Array.from(x)], 0.8);
 }
+// ---------------------------------------------------------------- buildings coming apart (Structures.js)
+/**
+ * creak: a building about to go: loaded concrete and rebar groaning (a slow pitch that drags and
+ * catches), stick-slip crackle, a crack or two. crumble: a wall broken through: the break, then
+ * chunks and grit pouring down, thinning out. crash: a piece of it landing: a deep thud with the
+ * slab's slap in it, then the rubble settling.
+ */
+function structural(kind, r, sr) {
+  if (kind === 'creak') {
+    const len = 1.7, n = D.samples(len, sr), x = new Float32Array(n);
+    const f0 = jit(r, 70, 0.2), ph = r() * 6.28, ph2 = r() * 6.28;
+    const groan = D.osc(n, (t) => f0 * (1 + 0.32 * Math.sin(t * 2.3 + ph) * Math.sin(t * 0.9 + ph2) + 0.06 * Math.sin(t * 37 + ph)), 'saw', sr);
+    D.mix(x, D.mul(D.bandpass(groan, 240, 1.4, sr), D.envSwell(n, 0.35, len, 0.6, sr, 1.5)), 0.9);
+    D.mix(x, D.bandpass(D.grains(n, r, 60, (q) => q() ** 0.7 * len * 0.9, 0.003, sr), 1800, 0.9, sr), 0.6);
+    for (let k = 0; k < 2; k++) D.mix(x, noiseHit(D.samples(0.25, sr), r, { type: 'highpass', f: 900, a: 0.0005, tau: 0.04 }, sr), 0.7, 0.3 + r() * 1.1, sr);
+    return D.normalize2([x, Float32Array.from(x)], 0.7);
+  }
+  if (kind === 'crumble') {
+    const len = 1.3, n = D.samples(len, sr), x = new Float32Array(n);
+    D.mix(x, noiseHit(n, r, { type: 'bandpass', f: jit(r, 700, 0.2), q: 0.8, a: 0.002, tau: 0.08 }, sr), 1.2);
+    D.mix(x, thump(D.samples(0.3, sr), 160, 60, 0.07, sr), 0.6);
+    D.mix(x, D.bandpass(D.grains(n, r, 160, (q) => q() ** 2 * len, 0.004, sr), 1400, 0.7, sr), 0.9);
+    D.mix(x, D.lowpass(D.grains(n, r, 40, (q) => q() ** 1.5 * len, 0.012, sr), 600, 0.8, sr), 0.7);
+    return D.normalize2([x, Float32Array.from(x)], 0.75);
+  }
+  const len = 2.2, n = D.samples(len, sr), x = new Float32Array(n);
+  D.mix(x, thump(D.samples(0.8, sr), jit(r, 90, 0.1), 32, 0.22, sr, 0.003), 1.4);
+  D.mix(x, noiseHit(n, r, { color: 'brown', type: 'lowpass', f: 380, a: 0.004, tau: 0.35 }, sr), 1.1);
+  D.mix(x, D.bandpass(D.grains(n, r, 220, (q) => q() ** 2.2 * len, 0.005, sr), 1100, 0.6, sr), 0.8);
+  D.mix(x, D.lowpass(D.grains(n, r, 50, (q) => 0.05 + q() ** 1.8 * len, 0.02, sr), 420, 0.8, sr), 0.9);
+  return D.normalize2([x, Float32Array.from(x)], 0.85);
+}
+
 function dig(r, sr) {
   const n = D.samples(0.4, sr), x = new Float32Array(n);
   D.mix(x, noiseHit(n, r, { type: 'bandpass', f: 1300, q: 1.1, a: 0.012, tau: 0.08 }, sr), 1.5);
@@ -687,6 +720,7 @@ export function catalogue() {
   for (const k of ['hit', 'hit_head', 'hit_kill', 'hit_plink', 'hit_shieldbreak', 'hit_friendly', 'ability_hit', 'ready', 'super_ready', 'denied', 'stinger', 'empty', 'open', 'error', 'armed', 'beacon', 'beep', 'throw', 'grab', 'stim', 'repair', 'bp', 'buy', 'hero', 'smoke', 'revive', 'revived', 'down']) ids.push(`ui:${k}`);
   for (let k = 1; k <= 10; k++) ids.push(`arrow:${k}`);
   ids.push('whistle:ours', 'whistle:enemy', 'heartbeat', 'dig', 'amb:city', 'amb:trench');
+  ids.push('struct:creak', 'struct:crumble', 'struct:crash');
   return ids;
 }
 /** An ability cue's id: its signature, its army, what it's doing. */
@@ -739,6 +773,7 @@ function design(id, variant, sr) {
     case 'whistle': return squadWhistle(p[1] === 'enemy', sr);
     case 'heartbeat': return heartbeat(sr);
     case 'dig': return dig(r, sr);
+    case 'struct': return structural(p[1], r, sr);
     case 'amb': return ambience(p[1], r, sr);
     case 'ability': return ability(p[1], p[2], p[3], p[4], r, sr);
     default: return ui('default', r, sr);

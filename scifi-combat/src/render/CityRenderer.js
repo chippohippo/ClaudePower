@@ -15,8 +15,12 @@
 //    (moved every few frames), so soldiers walking under a lamp are lit by it, and a few point
 //    lights in the burning wrecks nearest it.
 // One draw call per kind of thing; nothing per frame but the lights, the flicker and the fires.
+// Buildings that come apart (Structures.js): each piece of a house, scaffold or skybridge knows its
+// instance, so a piece shot away or fallen disappears from its mesh, the pieces left round a hole
+// take spare instances in the same mesh, and what comes down lies in a rubble mesh of its own.
 
 import * as THREE from 'three';
+import { bus } from '../core/EventBus.js';
 import { wreckModels, WRECK_COLORS, BURNED, lampModels, jerseyModel, containerModel, CONTAINER_COLORS, hedgehogModel, propModels, treeModels, hedgeModel, fountainModel, signAtlas } from './CityKit.js';
 import { concreteTexture, triplanar } from './CoverTextures.js';
 import { snowCover } from './SnowCover.js';
@@ -24,6 +28,10 @@ import { CityFuture, streetSigns } from './CityFuture.js';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler(), _c = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
+const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+const RUBBLE_MAX = 1600;
+/** The colours structural pieces are drawn in (a house's walls take its facade's). */
+const PIECE = { hfloor: '#8e8a82', balcony: '#8e8a82', hroof: '#8e8a82', hstair: '#5e5c58', hrail: '#2a2c31', bridge: '#77736c', brail: '#3a3d44', ramp: '#5d5850', deck: '#7a6448', sstair: '#5f646c' };
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 const glsl = (hex) => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`; };
 
@@ -38,6 +46,8 @@ export class CityRenderer {
    */
   constructor(scene, map, { planet, palette = null, fx = null, anisotropy = 4, lights = null } = {}) {
     this.scene = scene; this.map = map; this.city = map.city; this.fx = fx;
+    this.slots = new Map();          // structural box -> { mesh, i } (its instance)
+    this.houseColor = new Map();     // house id -> facade colour
     this.L = planet.city ?? {};
     this.planet = planet;
     this.snow = planet.snow ?? null;   // lying on the roofs, sidewalks, barriers and wrecks (SnowCover)
@@ -60,11 +70,16 @@ export class CityRenderer {
     this.#searchlights();
     this.#lightPool(lights ?? this.L.lights ?? 8);
     this.#outskirts();
+    this.#rubble();
+    this.off = [
+      bus.on('world:coverDestroyed', (e) => { if (e.structural) this.#hide(e.cover); }),
+      bus.on('world:coverAdded', (e) => { if (e.structural) this.#show(e.cover); }),
+    ];
     // The future: ad screens, flying traffic, cables over the streets (a planet's `city.future`).
     if (this.L.future) this.future = new CityFuture(this.group, map, { F: this.L.future, neon: this.L.neon, towers: this.megatowers, buildings: this.city.buildings, ground: this.ground });
   }
 
-  dispose() { this.group.removeFromParent(); for (const l of [...this.lights, ...this.fireLights, ...(this.roomPoints ?? [])]) { l.removeFromParent(); l.target?.removeFromParent(); } }
+  dispose() { this.off?.forEach((f) => f()); this.group.removeFromParent(); for (const l of [...this.lights, ...this.fireLights, ...(this.roomPoints ?? [])]) { l.removeFromParent(); l.target?.removeFromParent(); } }
 
   /** Ground beyond the map's edge for the skyline to stand on (seen from above, or down a long avenue). */
   #outskirts() {
@@ -236,6 +251,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     const walls = [], roofs = [], floors = [], stairs = [], rails = [], lights = [];
     for (const h of H) {
       const col = STYLE[h.style % STYLE.length];
+      this.houseColor.set(h.id, col);
       // The ground floor's own floor over the sidewalk slab (so no snow lies indoors): drawn only.
       floors.push([{ min: { x: h.min.x + 0.3, y: h.base - 0.05, z: h.min.z + 0.3 }, max: { x: h.max.x - 0.3, y: h.base + 0.015, z: h.max.z - 0.3 } }, '#8e8a82']);
       for (const b of h.parts.wall) walls.push([b, col]);
@@ -244,13 +260,16 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       for (const b of h.parts.rail) rails.push([b, '#2a2c31']);
       for (const L of h.lights) lights.push(L);
     }
-    const batch = (list, mat, shadows = true) => {
+    // (Room to spare in each mesh: the pieces left round a shell hole are drawn in it too.)
+    const batch = (list, mat, shadows = true, spare = 0) => {
       if (!list.length) return null;
-      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length);
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length + spare);
       list.forEach(([b, col], i) => {
         _m.compose(_p.set((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), _q.identity(), _s.set(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z));
         mesh.setMatrixAt(i, _m); mesh.setColorAt(i, _c.set(col));
+        this.slots.set(b, { mesh, i });
       });
+      mesh.count = list.length; mesh.userData.free = [];
       mesh.castShadow = shadows; mesh.receiveShadow = true; mesh.frustumCulled = false;
       this.group.add(mesh);
       return mesh;
@@ -260,11 +279,11 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       return snow ? snowCover(m, this.snow) : m;
     };
     this.houseMeshes = {
-      walls: batch(walls, concrete(true, 0.3)),
-      roofs: batch(roofs, concrete(true)),
-      floors: batch(floors, concrete(false)),
-      stairs: batch(stairs, concrete(false)),
-      rails: batch(rails, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.5, metalness: 0.6 }), this.snow), false),
+      walls: batch(walls, concrete(true, 0.3), true, 600),
+      roofs: batch(roofs, concrete(true), true, 160),
+      floors: batch(floors, concrete(false), true, 240),
+      stairs: batch(stairs, concrete(false), true, 40),
+      rails: batch(rails, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.5, metalness: 0.6 }), this.snow), false, 40),
     };
     // Ceiling panels: a glowing slab under each room's ceiling, warm or cool, some rooms dark.
     if (lights.length) {
@@ -294,9 +313,9 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     const C = this.city, tex = concreteTexture(); tex.anisotropy = this.anisotropy;
     const neon = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).map((c) => new THREE.Color(c));
     const sets = { steel: [], plank: [], concrete: [], rubble: [], wood: [], cloth: [], glow: [] };
-    const tread = (b, col) => [new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y - 0.03, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, 0.06, b.max.z - b.min.z), col, 0, 0];
+    const tread = (b, col) => Object.assign([new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y - 0.03, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, 0.06, b.max.z - b.min.z), col, 0, 0], { box: b });
     // An axis-aligned box, or one turned (yaw about y, tilt about the box's x): [center, size, color, yaw, tilt].
-    const ab = (b, col) => [new THREE.Vector3((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z), col, 0, 0];
+    const ab = (b, col) => Object.assign([new THREE.Vector3((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2), new THREE.Vector3(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z), col, 0, 0], { box: b });
     const rnd = (k) => { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
     for (const sc of C.scaffolds ?? []) {
       for (const d of sc.parts.deck) sets.plank.push(ab(d, '#7a6448'));
@@ -355,14 +374,17 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       e[3] = (rnd(b.min.x * 3.1 + b.min.z) - 0.5) * 0.5;      // lying a little askew
       sets.rubble.push(e);
     }
-    const make = (list, mat, shadows = true) => {
+    const make = (list, mat, shadows = true, spare = 0) => {
       if (!list.length) return null;
-      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length);
-      list.forEach(([c, sz, col, yaw, tilt], i) => {
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length + spare);
+      list.forEach((entry, i) => {
+        const [c, sz, col, yaw, tilt] = entry;
         _e.set(tilt, yaw, 0, 'YXZ');
         mesh.setMatrixAt(i, _m.compose(c, _q.setFromEuler(_e), sz));
         mesh.setColorAt(i, col instanceof THREE.Color ? col : _c.set(col));
+        if (entry.box?.st) this.slots.set(entry.box, { mesh, i });   // a piece of a scaffold or a skybridge
       });
+      mesh.count = list.length; mesh.userData.free = [];
       mesh.castShadow = shadows; mesh.receiveShadow = true; mesh.frustumCulled = false;
       this.group.add(mesh);
       return mesh;
@@ -372,14 +394,80 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       return snow ? snowCover(m, this.snow) : m;
     };
     this.extraMeshes = {
-      steel: make(sets.steel, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.45, metalness: 0.7 }), this.snow)),
-      plank: make(sets.plank, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }), this.snow)),
-      concrete: make(sets.concrete, tri(0.9)),
-      rubble: make(sets.rubble, tri(1, 0, 0.6)),
+      steel: make(sets.steel, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.45, metalness: 0.7 }), this.snow), true, 40),
+      plank: make(sets.plank, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }), this.snow), true, 40),
+      concrete: make(sets.concrete, tri(0.9), true, 40),
+      rubble: make(sets.rubble, tri(1, 0, 0.6), true, 20),
       wood: make(sets.wood, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.85 }), this.snow)),
       cloth: make(sets.cloth, snowCover(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, side: THREE.DoubleSide }), this.snow, 0.3)),   // (a dusting: the cloth's colour shows)
       glow: make(sets.glow, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), false),
     };
+  }
+
+  /** What comes down lies here: one mesh of concrete and steel, every slab and wall lying askew. */
+  #rubble() {
+    const tex = concreteTexture(); tex.anisotropy = this.anisotropy;
+    const mat = snowCover(triplanar(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), tex, 0.4, 0.5), this.snow);
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, RUBBLE_MAX);
+    mesh.count = 0; mesh.userData.free = [];
+    mesh.setColorAt(0, _c.set('#6e6a62'));
+    mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
+    this.group.add(mesh);
+    this.rubbleMesh = mesh;
+  }
+
+  /** The colour a structural piece is drawn in. */
+  colorOf(b) {
+    if (b.kind === 'hwall') return this.houseColor.get(b.house) ?? STYLE[0];
+    if (b.kind === 'rubble') return b.rubble === 'metal' ? '#4a4d55' : ['#6e6a62', '#5d5a54', '#7a756b', '#66625c'][Math.floor(hash(b.min.x * 3.7 + b.min.z * 1.3) * 4)];
+    return PIECE[b.kind] ?? '#77736c';
+  }
+
+  /** The mesh a structural piece of this kind is drawn in. */
+  #meshFor(b) {
+    if (b.kind === 'rubble') return this.rubbleMesh;
+    const H = this.houseMeshes ?? {}, X = this.extraMeshes ?? {};
+    switch (b.kind) {
+      case 'hwall': return H.walls;
+      case 'hroof': return H.roofs;
+      case 'hfloor': case 'balcony': return H.floors;
+      case 'hstair': return H.stairs;
+      case 'hrail': return H.rails;
+      case 'bridge': return X.concrete;
+      case 'brail': case 'sstair': return X.steel;
+      case 'deck': return X.plank;
+      case 'ramp': return X.rubble;
+      default: return null;
+    }
+  }
+
+  /** A piece shot away or fallen: gone from its mesh (its instance free for another). */
+  #hide(b) {
+    const s = this.slots.get(b);
+    if (!s) return;
+    s.mesh.setMatrixAt(s.i, ZERO);
+    s.mesh.instanceMatrix.needsUpdate = true;
+    s.mesh.userData.free?.push(s.i);
+    this.slots.delete(b);
+  }
+
+  /** A piece left round a hole, or one lying as rubble: drawn in its mesh (in a free instance). */
+  #show(b) {
+    const mesh = this.#meshFor(b);
+    if (!mesh || this.slots.has(b)) return;
+    const free = mesh.userData.free ?? [];
+    const i = free.length ? free.pop() : mesh.count < mesh.instanceMatrix.count ? mesh.count++ : -1;
+    if (i < 0) return;
+    _p.set((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2);
+    _s.set(b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z);
+    // Rubble lies a little askew (its box stays square: you walk on the box).
+    if (b.kind === 'rubble') _q.setFromEuler(_e.set((hash(b.min.x) - 0.5) * 0.08, (hash(b.min.z + 7) - 0.5) * 0.3, (hash(b.min.x + b.min.z) - 0.5) * 0.08));
+    else _q.identity();
+    mesh.setMatrixAt(i, _m.compose(_p, _q, _s));
+    mesh.setColorAt(i, _c.set(this.colorOf(b)));
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    this.slots.set(b, { mesh, i });
   }
 
   /** The blocks' sidewalk slabs: paving, a kerb you can see. */

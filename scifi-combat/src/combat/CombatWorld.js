@@ -28,6 +28,7 @@ import { CIVILIAN, civilianFights, civilianEngaging } from './Teams.js';
 /** Friendly fire by default (data/rules.json can change any share): everything hurts everyone. */
 const FRIENDLY_FIRE = { gun: 1, beam: 1, projectile: 1, explosion: 1, status: 1, melee: 1, ram: 1, deployable: 1, zone: 1, self: 0.5 };
 
+const CHARGE = { id: 'charge', damage: { base: 150 } };   // a breach charge, as Structures.blast sees it
 const _oc = new Vector3();
 const _pt = new Vector3();
 const _box = new Box3();
@@ -316,6 +317,8 @@ export class CombatWorld {
     for (const v of this.vehicles.list) if (v.car && !v.removed && v.id !== projectile?.ownerId && v.movement.state.position.distanceTo(point) < radius + 3) v.car.blast(point, radius, weapon.knockback);
     // Shells cut barbed wire: the gap opens for everyone (and for the bots' routes).
     this.cutWire(point, radius * 0.6);
+    // Buildings: walls holed, floors and facades brought down (Structures.js).
+    this.structures?.blast(point, radius, weapon, { by: projectile?.ownerId ?? null });
   }
 
   /** Cut the barbed wire within r of a point (shells, tank tracks): routes open through the gap. */
@@ -383,8 +386,9 @@ export class CombatWorld {
     bus.emit('artillery:impact', { point: [point.x, point.y, point.z], radius: weapon.damage?.splash ?? 0, crater, shell: weapon.id, team: projectile?.team ?? -1, ownerId: projectile?.ownerId ?? null });
   }
 
-  /** Breach/Rift charges remove destructible cover overlapping the blast. */
+  /** Breach/Rift charges remove destructible cover overlapping the blast, and blow holes in buildings (a charge against the wall). */
   destroyCover(center, radius, by) {
+    this.structures?.blast(center, radius, CHARGE, { charge: true, by: by?.id ?? null });
     const hit = [];
     this.coverIn(center.x - radius, center.z - radius, center.x + radius, center.z + radius, (b) => {
       if (!b.destructible) return;

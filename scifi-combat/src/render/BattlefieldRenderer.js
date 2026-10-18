@@ -48,7 +48,7 @@ export class BattlefieldRenderer {
     this.#lines();
     this.off.push(
       bus.on('world:coverDestroyed', (e) => this.#hide(e.cover)),
-      bus.on('world:coverAdded', (e) => this.#add(e.cover)),
+      bus.on('world:coverAdded', (e) => { if (!e.cover.render) this.#add(e.cover); }),   // (a city's pieces and rubble are CityRenderer's)
       bus.on('world:wireCut', (e) => this.#cutWire(e.belts)),
     );
   }

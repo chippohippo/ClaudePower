@@ -79,6 +79,7 @@ repeats exactly.
 | Abilities | built from each ability's signature (its root note and timbre in its data): bells, choirs, sub drops, air, servos, zaps. Solari rise and shine; Void falls, ring-modulated, reversed. |
 | UI and call-ins | hit markers (a hit, a headshot, a kill, a plink off armor, a shield broken), the wrist pad, beacons, battle points. |
 | Ambience | the city's wind and far hum, the open front's wind. |
+| Buildings (`struct:*`) | a creak before one goes (loaded concrete groaning on a pitch that drags and catches, stick-slip crackle, a crack or two), a crumble as a wall breaks (the break, then chunks and grit pouring down, thinning out), a crash as each piece lands (a deep thud with the slab's slap in it, the rubble settling). The director plays one crumble per blast and one crash per 80 ms of a collapse, at the size of the biggest piece, with a far rumble for the big ones. |
 
 `render(id, variant)` is pure (Node runs it in the tests). In the browser a worker renders the
 bank in the order the director asks for it: your own guns first, then every gun's near and far

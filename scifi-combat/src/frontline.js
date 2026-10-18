@@ -19,6 +19,7 @@ import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { BattlefieldRenderer } from './render/BattlefieldRenderer.js';
 import { CityRenderer } from './render/CityRenderer.js';
+import { CollapseViews } from './vfx/CollapseViews.js';
 import { TracerPool } from './render/TracerPool.js';
 import { VehicleViews } from './vfx/VehicleViews.js';
 import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
@@ -139,6 +140,7 @@ const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
+const collapse = city ? new CollapseViews(scene, { fx, colorOf: (b) => city.colorOf(b) }) : null;   // buildings coming apart
 // A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
@@ -338,6 +340,7 @@ const loop = new FixedLoop({
     stratViews.update(dt, cam, alpha);
     gunFx.update(dt, cam);
     dropViews.update(dt);
+    collapse?.update(dt);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio.update(dt, player.movement.state.position, input.yaw);
@@ -350,7 +353,7 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.

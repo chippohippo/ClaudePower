@@ -28,6 +28,7 @@ import { buildFighter } from './FighterFactory.js';
 import { generateFrontlineMap } from './frontline/FrontlineMap.js';
 import { mapSizeFor } from './frontline/MapSizes.js';
 import { WireField } from '../world/WireField.js';
+import { StructureSystem } from '../world/Structures.js';
 import { FrontlineMode } from './frontline/FrontlineMode.js';
 import { TacticalMap } from '../ai/tactics/TacticalMap.js';
 import { Suppression } from '../ai/tactics/Suppression.js';
@@ -76,6 +77,8 @@ export class FrontlineSession {
     this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
     this.barks = this.world.barks = new Barks(this.world, data.barks ?? null, { seed });   // soldiers' callouts
     this.world.wire = new WireField(this.map.wire);
+    // The city's buildings stand on what holds them up, and come down when it's shot away.
+    this.structures = this.world.structures = this.map.city ? new StructureSystem(this.world, this.map, { seed }) : null;
     this.melee = new MeleeSystem({ blades: data.humanoid?.sword ?? null });   // swept hits along the rig's swings
     this.fighters = [];
     this.bots = [];
@@ -223,6 +226,7 @@ export class FrontlineSession {
       f.abilities.update(c, fdt); f.melee.update(r.meleeCmd, fdt); f.weapons.update(r.gunCmd, fdt);
     }
     w.update(dt);
+    this.structures?.update(dt);
     this.melee.resolve();
     this.logistics?.update(dt, this.fighters);
     this.neutrals?.update(dt);

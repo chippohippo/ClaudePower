@@ -88,8 +88,9 @@ scifi-combat/
 │  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules)
 │  │                   Logistics.js (supply war) → docs/FRONTLINE.md
 │  ├─ vehicles/ VehicleSystem.js  FieldGuns.js (howitzers, rockets, AT guns, towing) → docs/VEHICLES.md
-│  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js  WireField.js
-│  │         spatial indexes, diggable heightfield, self-repairing flow fields and A*, barbed wire
+│  ├─ world/ CoverIndex.js  EntityGrid.js  Terrain.js  NavGrid.js  WireField.js  Structures.js
+│  │         spatial indexes, diggable heightfield, self-repairing flow fields and A*, barbed wire,
+│  │         what holds the city's buildings up and what comes down when it's shot away
 │  ├─ physics/ Ragdoll.js       deterministic particle ragdolls (blasts, criticals, downs, deaths)
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
@@ -104,6 +105,7 @@ scifi-combat/
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
 │  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
 │  │        GunFx.js (muzzle flashes at the rig's barrel, impacts by surface, bullet holes, spent brass)
+│  │        CollapseViews.js (walls toppling and floors dropping as buildings come apart)
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)

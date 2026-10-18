@@ -79,7 +79,8 @@ export class TacticalMap {
         const x = x0 + (x1 - x0) * u + fnx * OUT, z = z0 + (z1 - z0) * u + fnz * OUT;
         const y = t ? t.height(x, z) : 0;
         const h = b.max.y - y;
-        if (h < MIN_COVER || this.#inside(x, z)) continue;
+        // (Nothing to hide behind under a piece up in the air: an upper storey's wall over a blown-out ground floor.)
+        if (h < MIN_COVER || b.min.y - y > 1 || this.#inside(x, z)) continue;
         const s = { x, y, z, kind: b.kind === 'ruin' ? 'ruin' : 'box', nx: fnx, nz: fnz, h, fire: h <= HALF_MAX ? 'over' : 'hide', box: b };
         // Full cover near a corner: lean out past it to fire.
         if (s.fire === 'hide') {

@@ -201,6 +201,8 @@ const SCREEN = [0.6, 0.58, 0.54, 0.62], SCREEN_END = [0.67, 0.66, 0.63, 0];
 const TRAIL = [0.16, 0.15, 0.14, 0.45], TRAIL_END = [0.3, 0.29, 0.28, 0];
 const DUST = [0.5, 0.42, 0.32, 0.5], DUST_END = [0.56, 0.5, 0.42, 0];
 const BURN = [0.95, 0.45, 0.12, 0.9], SOOT = [0.06, 0.055, 0.05, 0.85], SOOT_END = [0.16, 0.15, 0.15, 0];   // a burning wreck's flames and its black smoke
+const CONCRETE = [0.58, 0.56, 0.53, 0.6], CONCRETE_END = [0.66, 0.65, 0.62, 0];   // a building's dust
+const CHUNK = [0.42, 0.4, 0.37, 1], CHUNK_END = [0.38, 0.36, 0.34, 0.9];           // and its pieces
 
 export class BattleFx {
   /**
@@ -332,6 +334,49 @@ export class BattleFx {
     const [x, y, z] = this.#at(at), R = this.rand;
     if (R() > k) return;
     this.dust.add(x + (R() - 0.5) * 0.3, y + 0.15, z + (R() - 0.5) * 0.3, -vx * 0.15 + (R() - 0.5), 0.6 + R() * 0.8, -vz * 0.15 + (R() - 0.5), 0.9 + R() * 0.8, 0.5, 2.2 + R() * 1.4, DUST, DUST_END, 1.2, -0.05);
+  }
+
+  // ---------------------------------------------------------------- buildings coming apart (Structures.js)
+  /** A blast that didn't break the wall: a puff of its dust. */
+  chips(at, mat = 'concrete') {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    for (let i = 0; i < 3; i++) this.dust.add(x + (R() - 0.5) * 0.6, y + (R() - 0.5) * 0.6, z + (R() - 0.5) * 0.6, (R() - 0.5) * 2, R() * 1.2, (R() - 0.5) * 2, 0.9 + R() * 0.6, 0.4, 1.6, mat === 'metal' ? SMOKE : CONCRETE, CONCRETE_END, 1.5, -0.05);
+  }
+
+  /** A wall or a slab broken through: chunks thrown out of the hole, its dust bursting from it. `hole` = [x0, y0, z0, x1, y1, z1]. */
+  crumble(at, hole, mat = 'concrete', whole = false) {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    const [x0, y0, z0, x1, y1, z1] = hole ?? [x - 1, y - 1, z - 1, x + 1, y + 1, z + 1];
+    const size = Math.cbrt(Math.max(0.05, (x1 - x0) * (y1 - y0) * (z1 - z0)) + 0.5), k = Math.min(2.2, size);
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+    const n = Math.round((whole ? 8 : 14) * k);
+    for (let i = 0; i < n; i++) {
+      const px = x0 + R() * (x1 - x0), py = y0 + R() * (y1 - y0), pz = z0 + R() * (z1 - z0);
+      const dx = px - x, dz = pz - z, l = Math.hypot(dx, dz) || 1, v = 2 + R() * 6;
+      this.matter.add(px, py, pz, (dx / l) * v + (R() - 0.5) * 2, 1 + R() * 4, (dz / l) * v + (R() - 0.5) * 2, 1.2 + R() * 0.8, 0.12 + R() * 0.2, 0.1 + R() * 0.15, mat === 'metal' ? SMOKE_DARK : CHUNK, CHUNK_END, 0.2, 14);
+    }
+    for (let i = 0; i < Math.round(6 * k); i++) this.matter.add(cx + (R() - 0.5) * (x1 - x0), cy + (R() - 0.5) * (y1 - y0), cz + (R() - 0.5) * (z1 - z0), (R() - 0.5) * 3, R() * 1.5, (R() - 0.5) * 3, 2.5 + R() * 2, 1.2 * k, (3 + R() * 2) * k, CONCRETE, CONCRETE_END, 0.9, -0.05);
+  }
+
+  /** Where a building is about to go: dust sifting down. */
+  trickle(at, n = 1) {
+    const [x, y, z] = this.#at(at), R = this.rand, k = Math.min(3, 1 + n / 8);
+    for (let i = 0; i < Math.round(8 * k); i++) this.dust.add(x + (R() - 0.5) * 3 * k, y + R() * 1.5, z + (R() - 0.5) * 3 * k, (R() - 0.5) * 0.4, -0.5 - R() * 1.5, (R() - 0.5) * 0.4, 1 + R() * 0.8, 0.15, 0.6, CONCRETE, CONCRETE_END, 0.4, 3);
+  }
+
+  /** A piece coming down: dust rolling out along the ground from under it, bits bouncing off. `size` = [x, y, z] of what landed. */
+  collapseDust(at, size = [2, 0.3, 2], energy = 50, mat = 'concrete') {
+    const [x, y, z] = this.#at(at), R = this.rand;
+    const span = Math.max(size[0], size[2]), k = Math.min(2, 0.5 + Math.sqrt(energy) / 22);
+    const n = Math.round(4 + 7 * k);
+    for (let i = 0; i < n; i++) {
+      const a = R() * Math.PI * 2, r = R() * span * 0.5, v = (1.5 + R() * 3.5) * k;
+      this.matter.add(x + Math.cos(a) * r, y + 0.3, z + Math.sin(a) * r, Math.cos(a) * v, 0.3 + R() * 1.1, Math.sin(a) * v, 2.2 + R() * 2.2, 0.8 + R() * k, (2.4 + R() * 2.4) * k, CONCRETE, CONCRETE_END, 1.2, -0.04);
+    }
+    for (let i = 0; i < Math.round(5 * k); i++) {
+      const a = R() * Math.PI * 2, v = 1 + R() * 3;
+      this.matter.add(x + (R() - 0.5) * span, y + 0.4, z + (R() - 0.5) * span, Math.cos(a) * v, 2 + R() * 3, Math.sin(a) * v, 0.9 + R() * 0.5, 0.1 + R() * 0.15, 0.1, mat === 'metal' ? SMOKE_DARK : CHUNK, CHUNK_END, 0.2, 14);
+    }
   }
 
   /** One frame of a drop pod's fall: fire round its nose, a dark trail left hanging behind. */

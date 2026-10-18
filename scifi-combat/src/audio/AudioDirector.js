@@ -324,7 +324,25 @@ export class AudioDirector {
     on('deployable:fire', (e) => E.play('gun:smg_sol:near', { pos: at(e.from), far: 'gun:smg_sol:far', kind: 'gun', gain: 0.5 }));
     on('deployable:pulse', (e) => E.play('impact:energy', { pos: at(e.center), kind: 'ability', gain: 0.5, rate: 0.6 }));
     on('deployable:removed', (e) => e.reason === 'destroyed' && E.play('impact:metal', { pos: at(e.at), kind: 'impact', gain: 0.6 }));
-    on('world:coverDestroyed', (e) => E.play('boom:grenade:near', { pos: at(e.center), kind: 'boom', gain: 0.5, rate: 0.8 }));
+    on('world:coverDestroyed', (e) => { if (!e.structural) E.play('boom:grenade:near', { pos: at(e.center), kind: 'boom', gain: 0.5, rate: 0.8 }); });   // (a building's pieces have their own sounds, below)
+
+    // ---- buildings coming apart (Structures.js): a groan before it goes, walls breaking, pieces landing
+    on('structure:creak', (e) => E.play('struct:creak', { pos: at(e.at), kind: 'impact', gain: Math.min(1, 0.55 + e.n * 0.02), rate: 0.9 + Math.random() * 0.2 }));
+    on('structure:break', (e) => {
+      if (this.time - (this.lastBreak ?? -1) < 0.06) return;   // a blast breaks a dozen pieces at once: one crumble
+      this.lastBreak = this.time;
+      E.play('struct:crumble', { pos: at(e.at), kind: 'impact', gain: e.fragments?.length ? 0.6 : 0.8 });
+    });
+    on('structure:land', (e) => {
+      // A wall coming down is a stream of pieces landing: one crash every 80 ms at most, as loud as the biggest of them.
+      this.landE = Math.max(this.landE ?? 0, e.energy);
+      if (this.time - (this.lastLand ?? -1) < 0.08) return;
+      this.lastLand = this.time;
+      const k = Math.min(1, Math.sqrt(this.landE) / 25);
+      this.landE = 0;
+      E.play('struct:crash', { pos: at(e.at), kind: 'boom', gain: 0.35 + 0.65 * k, rate: 1.15 - 0.35 * k });
+      if (k > 0.6) E.play('boom:shell:far', { pos: at(e.at), kind: 'boom', gain: 0.3 * k, rate: 0.7 });   // a big one rumbles
+    });
 
     // ---- the front: whistles, spades, sandbags
     on('squad:whistle', (e) => {
