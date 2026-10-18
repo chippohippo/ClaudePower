@@ -37,6 +37,7 @@ import { SoundEngine } from './audio/SoundEngine.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
 import { CommandView } from './ui/CommandView.js';
+import { ScopeView } from './ui/ScopeView.js';
 import { BattleFx } from './vfx/BattleFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { Atmosphere, installFog } from './render/Atmosphere.js';
@@ -228,6 +229,7 @@ const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, wor
 const visor = new VisorDamage(document.getElementById('hud'), { player, reducedMotion: settings.reducedMotion });   // red edges, cracks, blood when hurt
 const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
 const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
+const scope = new ScopeView(document.getElementById('hud'));   // the sight picture through a magnified optic
 const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' && settings.voices });   // the soldiers' callouts
 
 // ---------------------------------------------------------------- options ([Esc]: the battle waits)
@@ -327,9 +329,11 @@ const loop = new FixedLoop({
     if (commanding) commandView.update(dt);
     const view = commanding ? commandView.camera : fireControl.active ? fireControl.camera : rig.camera;
     anim.update(dt, alpha, view.position);
-    let cam = view;
+    let cam = view, scoped = 0;
     if (!commanding) {
       const w = player.weapons, pv = player.vehicle?.veh;
+      // A magnified optic up: the eye goes to it (third person too), the gun isn't drawn, the screen is the sight picture.
+      scoped = scope.update(dt, { scoped: player.mode === 'gun' && !pv && !player.health.dead && !player.health.downed && !fireControl.active && ScopeView.scoped(w.current), ads: w.ads });
       const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
       const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
       const ph = anim.get(PLAYER_ID);
@@ -338,7 +342,7 @@ const loop = new FixedLoop({
         ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current?.s.ads?.fov,
         vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
         eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
-        thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll',
+        thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll', scope: scoped,
       });
       cam = fireControl.update(dt, player, rig.camera);
     }
@@ -347,6 +351,7 @@ const loop = new FixedLoop({
       const f = r.e, s = f.movement.state;
       if (f.vehicle && !f.vehicle.exposed && !f.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
       if (commanding && !commandView.shows(f)) continue;                  // the commander's fog of war: enemies only while we see them
+      if (f === player && scoped > 0.5) continue;                          // looking down a scope: no gun, no arms in the way
       if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod, f === player && rig.firstPerson ? FIRST_PERSON : null);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || f.health.dead }, f.look);
     }
@@ -371,7 +376,7 @@ const loop = new FixedLoop({
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio.update(dt, commanding ? commandView.target : player.movement.state.position, commanding ? commandView.listenYaw : input.yaw);
-    hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active && !commanding });
+    hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active && !commanding, scoped: scoped > 0.5 });
     if (commanding) return;
     callIn.update(dt, cam);
     hitFx.update(dt, cam);

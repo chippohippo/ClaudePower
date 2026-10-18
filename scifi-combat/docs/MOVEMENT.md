@@ -190,6 +190,12 @@ pose (tested), so what you see is what you hit:
 - **Sway:** the camera banks into sprint carves (body turn rate × speed).
 - **FOV:** base 70, +6 at full sprint, +8 sliding, +10 diving. The dive start punches +5;
   heavy landings dip −4 and knockdowns punch +6. ADS goes to the weapon's ADS FOV.
+- **Scopes** (`ScopeView`): a gun whose sights narrow the view to 30° or less (the snipers, a 4x
+  optic) is looked through. As it comes up, the eye goes to the sight whatever the view (third person
+  too), your gun and arms aren't drawn, and the screen becomes the sight picture: a round field of view
+  magnified to the gun's ADS FOV (the Longwatch's 18°, about 4x), black round it, a reticle (posts, a
+  fine cross with stadia dots, a lit centre dot) and the lens darkening at its edge. The rounds left
+  and the score stay on screen over the black.
 - **Reduced motion:** bob is ×0.25, with no roll, sway or FOV effects, and a quarter of the shake.
 - **First person ([V], pad View):** the camera blends (ω 14) into the animated head's eyes, so
   stance changes, dives and slides move it as the body moves. Stiff springs on where the eyes sit

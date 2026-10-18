@@ -417,7 +417,7 @@ export class FrontlineHud {
     // ---- minimap
     this.#minimap(camYaw);
     // ---- reticles: camera centre, and where the gun really points
-    const wc = me.weapons, gunMode = me.mode === 'gun' && !me.health.dead && !me.health.downed && !me.vehicle;
+    const wc = me.weapons, gunMode = me.mode === 'gun' && !me.health.dead && !me.health.downed && !me.vehicle && !view.scoped;   // (a scope has its own reticle)
     this.el.reticle.style.display = this.el.gun.style.display = gunMode ? 'block' : 'none';
     if (gunMode) {
       const cy = Math.cos(wc.aimYaw), sy = Math.sin(wc.aimYaw), cp = Math.cos(wc.aimPitch), sp = Math.sin(wc.aimPitch);
