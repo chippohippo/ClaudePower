@@ -39,6 +39,7 @@ import { FireControl } from './ui/FireControl.js';
 import { CommandView } from './ui/CommandView.js';
 import { ScopeView } from './ui/ScopeView.js';
 import { BattleFx } from './vfx/BattleFx.js';
+import { FootFx } from './vfx/FootFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { Atmosphere, installFog } from './render/Atmosphere.js';
 import { PostFX } from './render/PostFX.js';
@@ -142,6 +143,8 @@ anim.focusId = commanding ? null : PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id), look: planet.fx?.bolts, localTeam: myTeam, muzzle: (id, p) => gunFx.muzzleAt(id, p) });   // (gunFx: below)
 const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
+let viewCam = null;   // (the camera the frame was drawn from: FootFx kicks dust up only near it)
+const footFx = new FootFx({ fx, world, camera: () => viewCam, snow: !!planet.snow?.amount });   // dust off feet and falls
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
@@ -346,6 +349,7 @@ const loop = new FixedLoop({
       });
       cam = fireControl.update(dt, player, rig.camera);
     }
+    viewCam = cam;
     crowd.begin(cam);
     for (const r of anim.list) {
       const f = r.e, s = f.movement.state;
@@ -386,7 +390,7 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, commandView, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
+window.__frontline = { session, player, commandView, footFx, scope, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.

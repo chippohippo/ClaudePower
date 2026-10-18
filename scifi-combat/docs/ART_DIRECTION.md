@@ -54,11 +54,12 @@ itself, in pools.
 | Sky | Near-black blue zenith (`#04050d`) to a violet horizon (`#3a2650`) under a violet haze (`#6a4890`); a twinkling star field; the ringed planet small and low (8°, 15° up) and half in haze |
 | Aurora | Curtains all round the sky, brightest and highest to the north (azimuth 350°, raised 16° there). Their lower edge sits about 10° up so it shows down the avenues over the skyline. It folds and drifts, with rays streaming up it, magenta at the hot lower edge (`#ff4ad6`) through violet (`#9a46ff`) to deep blue (`#2f22c4`). It is patchy along its length and baked into the environment light, so the city is tinted by it |
 | Moon | The "sun" of the preset: cool (`#a9b6ff`, intensity 1.25), high (52°) so the streets aren't all in building shadow. Its disk is dimmed (`gain` 0.32) |
-| Fill | A blue night sky fill (`#3a4676`, intensity 2.0) over a dark ground, so shade reads |
+| Fill | A blue night sky fill (`#4b5890`, intensity 2.4) over a dark violet ground (`#2c2840`), and a bounce from the camera's side (0.7), so shade reads |
+| Walls | Never black: facades in mid greys and browns (`#7b7974`, `#4c5464`, `#8b7e69`, `#9b9ea5`), unlit windows dark glass, not holes, and the city's own glow on its walls (`city.glow` 0.09: a share of the wall's colour, for the streetlights, signs and haze), so a wall under the night sky still shows its colour and its window grid |
 | Fog | Thin violet (`#221b3a`, density 0.0029): the skyline melts into it |
 | Ground | Asphalt (`#37383f`) with paving on the sidewalk slabs, park grass (`#243322`), paths (`#4c4940`), rubble (`#4a443d`). The city's `paint(x, z)` picks the colour per ground sample |
 | Street lights | Cool LED (`#cfe2ff`) and some warm sodium (`#ffb35c`) heads on dark posts. Each casts a soft pool on the ground, drawn right after the ground and the sidewalks (and before everything else), so it lights those and never a boot under it. The eight lamps nearest the action get real spot lights shining down, so soldiers under a lamp are lit by it (and a facade beside one isn't lit above it), and the fires nearest it real point lights. Some lamps are out, some flicker |
-| Windows | A grid worked out in the facade shader from each building's own size: bays from the corners, storeys from the foot. The glass is dark; 8–45% of windows are lit warm (`#ffcf8a`) or cool (`#9ac8ff`). Shelled buildings have blown-out holes. Some ground floors have lit shopfronts |
+| Windows | A grid worked out in the facade shader from each building's own size: bays from the corners, storeys from the foot. The glass is dark (but not black: that's for the holes); 8–45% of windows are lit warm (`#ffcf8a`) or cool (`#9ac8ff`). Shelled buildings have blown-out holes. Some ground floors have lit shopfronts |
 | Neon | Signs on the facades (horizontal and vertical boards: a noodle bar, a hotel, a cross, 24/7, arrows, chevrons, glyphs), in cyan, magenta, amber, violet and green. Some are dead, some flicker |
 | Landmarks | Red beacons blinking on the tall roofs and the skyline beyond the map's edge; searchlights sweeping the sky behind both lines |
 | War | Wrecks in old paint or burned out, a few still on fire (particles and a real light); rubble heaps; jersey barriers, containers and tank traps |
@@ -75,7 +76,8 @@ city, flat-lit low-poly forms with ink outlines, lavender light and shadow, warm
 |---|---|
 | Sky | Deep indigo zenith (`#24223a`) to a dusty rose horizon (`#8e8296`), a warm glow (`#d9a58a`) toward the low sun; a few stars; no aurora |
 | Sun | Low and warm (`#ffbf96`, 8° up, azimuth 236°): long shadows down the cross streets, a peach glow in the fog toward it |
-| Fill | A grey-lavender sky fill (`#9c97b8`, 1.1) and bounce, so shade is lavender, never black |
+| Fill | A grey-lavender sky fill (`#9c97b8`, 1.35) over the snow's own bounce (`#625c72`), and a bounce from the camera's side (0.55), so shade is lavender, never black |
+| Walls | As at night: lighter facades, dark glass for unlit windows, and the city's glow on its walls (`city.glow` 0.05), so a street in the low sun's shadow still reads |
 | Fog | Grey-lavender (`#67637e`, density 0.0045): the skyline fades into it |
 | Ground | Snow on the streets (`#bdb8c8`), the park (`#d0ccd8`) and its paths; the ground's detail tile turned down (`terrain`: relief 0.3, grain 0.35), so fresh snow lies smooth |
 | Snow lying | On every top (`snow`, `src/render/SnowCover.js`): roofs, sidewalk slabs, barriers, wrecks, sandbags, tree crowns go white (`#d6d2e0`) where the world normal points up (full above 0.8, none under 0.55); walls keep their colour |

@@ -38,7 +38,7 @@ const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return
 const glsl = (hex) => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`; };
 
 /** Building colours by style: concrete, dark glass and metal, sandstone, pale panels. */
-const STYLE = ['#5d5b58', '#2b313b', '#6d6150', '#7d8086'];
+const STYLE = ['#7b7974', '#4c5464', '#8b7e69', '#9b9ea5'];   // (light enough to read in the shade at dusk and under the night sky)
 
 export class CityRenderer {
   /**
@@ -159,6 +159,7 @@ varying vec4 vF;
 varying vec3 vObjN;
 uniform vec3 uNeon[5];
 uniform float uFuture;
+uniform float uGlow;
 float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   {
@@ -178,7 +179,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     float h = cityHash(cell + vec2(vB.x * 0.0137 + face, vB.x * 0.0071 - face));
     float blown = win * vB.z * step(0.72, cityHash(cell * 1.7 + vec2(vB.x * 0.01, face)));
     float lit = win * step(1.0 - vB.y, h) * (1.0 - blown);
-    diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.022, 0.026, 0.034), vec3(0.0), blown), win);
+    diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.045, 0.052, 0.068), vec3(0.0), blown), win);   // (dark glass, not a hole: a blown window is)
     // Storey lines and grime streaks under the windows.
     diffuseColor.rgb *= wall > 0.5 ? (1.0 - 0.18 * step(0.97, f.y) - 0.12 * step(f.x, 0.15) * step(0.5, cityHash(cell + 5.3))) : 0.55;
     // Shopfronts: a lit band in some ground floors.
@@ -205,9 +206,13 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       diffuseColor.rgb *= 1.0 - 0.8 * max(strip, max(lines, bands));
       totalEmissiveRadiance += nc * (strip * 3.2 + lines * 1.7 + bands * 2.4 + crown * 2.8 + top * 2.0) * (0.85 + 0.15 * vB.w);
     }
+    // The city's own glow on its walls (streetlights, signs, the sky's reflected haze): a wall in the
+    // shade or under the night sky still shows its colour, never a black cut-out.
+    totalEmissiveRadiance += diffuseColor.rgb * uGlow;
   }`);
       sh.uniforms.uNeon = { value: neonCols.map((c) => new THREE.Color(c)) };
       sh.uniforms.uFuture = { value: FU ? 1 : 0 };
+      sh.uniforms.uGlow = { value: this.L.glow ?? 0.04 };
     };
     snowCover(mat, this.snow);
     const mesh = new THREE.InstancedMesh(geo, mat, count);

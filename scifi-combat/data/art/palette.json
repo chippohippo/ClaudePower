@@ -166,11 +166,11 @@
         "haze": 0.5
       },
       "fill": {
-        "sky": "#3a4676",
-        "ground": "#16131c",
-        "intensity": 2.0,
+        "sky": "#4b5890",
+        "ground": "#2c2840",
+        "intensity": 2.4,
         "bounce": "#4c4274",
-        "bounceIntensity": 0.32,
+        "bounceIntensity": 0.7,
         "env": 0.85
       },
       "fog": {
@@ -240,7 +240,7 @@
       "stars": 1.0,
       "city": {
         "_note": "The night city's lights (CityRenderer): street lamps cool and warm (sodium), their pools of light on the ground, neon sign colours, windows warm and cool, searchlights, the real lights near the camera.",
-        "lampCool": "#cfe2ff",
+        "glow": 0.09, "lampCool": "#cfe2ff",
         "lampWarm": "#ffb35c",
         "pool": 1.0,
         "neon": [
@@ -327,10 +327,10 @@
       },
       "fill": {
         "sky": "#9c97b8",
-        "ground": "#3a3644",
-        "intensity": 1.1,
+        "ground": "#625c72",
+        "intensity": 1.35,
         "bounce": "#a09ab8",
-        "bounceIntensity": 0.3,
+        "bounceIntensity": 0.55,
         "env": 0.75
       },
       "fog": {
@@ -453,8 +453,8 @@
         "smokeDark": "#4a4458"
       },
       "city": {
-        "_note": "The night city's lights (CityRenderer): street lamps cool and warm (sodium), their pools of light on the ground, neon sign colours, windows warm and cool, searchlights, the real lights near the camera; windows: the share of windows lit (1 = the city's own).",
-        "lampCool": "#ffd9b0",
+        "_note": "The night city's lights (CityRenderer): street lamps cool and warm (sodium), their pools of light on the ground, neon sign colours, windows warm and cool, searchlights, the real lights near the camera; windows: the share of windows lit (1 = the city's own); glow: the city's own light on its walls (a share of the wall's colour, so a wall in the shade or under the night sky never goes black).",
+        "glow": 0.05, "lampCool": "#ffd9b0",
         "lampWarm": "#ffa95a",
         "pool": 0.8,
         "neon": [
