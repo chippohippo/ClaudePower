@@ -40,6 +40,8 @@ import { parkSlot } from './frontline/FrontlineMap.js';
 import { BattlePoints } from './BattlePoints.js';
 import { MatchStats } from './MatchStats.js';
 import { Pings } from '../combat/Pings.js';
+import { BodyContacts } from '../movement/BodyContacts.js';
+import { J } from '../physics/Ragdoll.js';
 import { Barks } from '../ai/Barks.js';
 import { Neutrals } from './Neutrals.js';
 import { Intel } from '../ai/command/Intel.js';
@@ -84,6 +86,9 @@ export class FrontlineSession {
     this.match = new MatchStats(this.world, this.mode);   // the scoreboard, ribbons, the after-action report
     this.barks = this.world.barks = new Barks(this.world, data.barks ?? null, { seed });   // soldiers' callouts
     this.pings = this.world.pings = new Pings(this.world);   // marks for your side: enemies, where to go, what you need
+    // Soldiers are solid to each other: shoulder to shoulder, prone side by side, stepping over the fallen (docs/MOVEMENT.md, "Bodies").
+    this.bodies = this.world.bodies = data.movement.bodies ? new BodyContacts(data.movement.bodies) : null;
+    this.bodyList = []; this.corpseList = [];
     this.world.wire = new WireField(this.map.wire);
     // What each side knows of the other: who's been seen where, and which ground has been watched.
     this.intel = this.world.intel = [0, 1].map((t) => new Intel(t, { bounds: this.map.bounds }));
@@ -281,6 +286,7 @@ export class FrontlineSession {
       f.movement.state.speedScale = f.status.speedMul * (w.wire ? w.wire.slowAt(p.x, p.z) : 1); // wire: slow, no sprint
       f.abilities.update(c, fdt); f.melee.update(r.meleeCmd, fdt); f.weapons.update(r.gunCmd, fdt);
     }
+    if (this.bodies) this.bodies.step(this.#bodies(), this.#corpses(), dt, nudge);
     w.update(dt);
     this.structures?.update(dt);
     if (this.structures?.towers.length) this.#towerFall();
@@ -300,6 +306,26 @@ export class FrontlineSession {
     this.#reinforce(dt);
     this.map.nav.maintain(4000); // flow-field refresh after cover breaks, sliced by a work budget
     this.stats.simMs = performance.now() - t0;
+  }
+
+  /** Everyone with a body on the ground this tick: the soldiers, and the city's civilians and gangs. */
+  #bodies() {
+    const L = this.bodyList; L.length = 0;
+    for (const f of this.fighters) L.push(f);
+    if (this.neutrals) { for (const f of this.neutrals.civilians) L.push(f); for (const f of this.neutrals.bandits) L.push(f); }
+    return L;
+  }
+
+  /** The dead lying where they fell (their ragdoll at rest), head to feet, for the living to step over. */
+  #corpses() {
+    const L = this.corpseList; L.length = 0;
+    for (const f of this.fighters) {
+      if (!f.health.dead || f.offField) continue;
+      const r = f.movement.ragdoll;
+      if (!r?.asleep || f.movement.state.mode !== 'ragdoll') continue;
+      L.push({ id: f.id, ax: r.x[J.HEAD], az: r.z[J.HEAD], bx: (r.x[J.ANKLE_L] + r.x[J.ANKLE_R]) / 2, bz: (r.z[J.ANKLE_L] + r.z[J.ANKLE_R]) / 2, y: r.y[J.PELVIS] - 0.15 });
+    }
+    return L;
   }
 
   /** Distance (Manhattan, m) to the nearest human camera: Infinity headless. */
@@ -495,6 +521,8 @@ export class FrontlineSession {
 }
 
 const EMPTY = Object.freeze({ moveX: 0, moveY: 0, yaw: 0, pitch: 0, buttons: {} });
+/** BodyContacts' push: a body moved by another, through the world. */
+const nudge = (f, dx, dz) => f.movement.nudge(dx, dz);
 /** A reviver's command: keep looking where they look, nothing else (interact stays held for the job). */
 function kneeling(cmd) { return { ...cmd, moveX: 0, moveY: 0, buttons: { interact: cmd.buttons.interact ?? NONE } }; }
 /** The last command with its edges removed: held buttons stay held, nothing is pressed twice. */

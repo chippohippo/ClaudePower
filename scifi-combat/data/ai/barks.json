@@ -134,6 +134,10 @@
       "solari": ["Everybody in! Take {place}, go, go, go!", "Storm it! Onto the point!", "On me! We take {place} now!"],
       "void": ["Now. Overrun them.", "Forward, all of you. Take {place}.", "Into them. No one stops."]
     },
+    "bumped": {
+      "solari": ["Watch it!", "Easy, {name}!", "Oi! Mind yourself!", "Look where you're going!"],
+      "void": ["Mind your step.", "Careful, {name}.", "Watch yourself.", "Clumsy."]
+    },
     "spotted": {
       "solari": ["Eyes on!", "I see him!", "Got him!", "Target marked!"],
       "void": ["Seen.", "Marked.", "I see it.", "Target."]

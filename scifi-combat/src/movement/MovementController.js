@@ -143,6 +143,10 @@ export class MovementController {
       speedScale: 1,            // guarding 0.55, ADS ~0.65, casting slows, statuses
       forced: null,             // { x, z, time }: ability dashes that input acceleration must not fight
       stepOff: 0,               // m: what's seen of the body lags a step it just took (eases to 0; presentation only)
+      // Other bodies (BodyContacts): pressing into one ({ x, z, k 0..1, by }), stepping over one
+      // lying down (s left), squeezing past a teammate (s left), pressed against one not moving (s).
+      press: null, overBody: 0, squeeze: 0, blocked: 0,
+      wishMag: 0,               // how hard the command pushes to move (0..1)
     };
   }
 
@@ -369,6 +373,20 @@ export class MovementController {
 
   canAct() { const m = this.state.mode; return m !== MoveState.MANTLE && m !== MoveState.VEHICLE && m !== MoveState.KNOCKDOWN && m !== MoveState.RAGDOLL && m !== MoveState.STAGGER && !this.state.downed; }
   isSliding() { return this.state.mode === MoveState.SLIDE; }
+  /**
+   * Moved by another body (BodyContacts: pushed apart from a man you walked into): through the
+   * world, so never into a wall. Position only; the contact sets velocities itself.
+   */
+  nudge(dx, dz) {
+    const s = this.state;
+    if (s.mode === MoveState.VEHICLE || s.mode === MoveState.RAGDOLL || s.mode === MoveState.MANTLE) return;
+    _delta.set(dx, 0, dz);
+    const res = this.body.move(_delta, s.grounded);
+    s.position.add(res.delta);
+    if (res.push) s.position.add(res.push);
+    s.stepOff = Math.max(-0.45, Math.min(0.45, s.stepOff - (res.step ?? 0)));
+  }
+
   spendStamina(amount) {
     const s = this.state;
     const cost = amount * this.mods.staminaMul;
@@ -397,6 +415,7 @@ export class MovementController {
     let wishMag = Math.min(1, _wish.length());
     if (wishMag > 1e-4) _wish.divideScalar(Math.max(1e-4, _wish.length())); else wishMag = 0;
     if (s.locks.move > 0) wishMag = 0;
+    s.wishMag = wishMag;   // (BodyContacts: a man not trying to go anywhere stands his ground)
 
     this.#updateStamina(dt);
 
@@ -628,6 +647,7 @@ export class MovementController {
   #speedFor(base) {
     const s = this.state;
     let k = this.mods.speedMul * s.speedScale;
+    if (s.overBody > 0) k *= this.t.bodies?.stepOver.speedMul ?? 1;   // stepping over someone lying there (BodyContacts)
     const n = s.groundNormal;
     if (s.grounded && n.y < 0.999 && this.#hspeed() > 0.5) {
       // Climb ratio along the direction of travel: uphill slows you, downhill speeds you up a little.

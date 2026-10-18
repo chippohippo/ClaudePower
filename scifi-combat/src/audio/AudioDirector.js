@@ -249,6 +249,14 @@ export class AudioDirector {
     on('revive:start', (e) => (e.id === this.listenerId || e.patient === this.listenerId) && E.play('ui:revive', { ui: true, gain: 0.4 }));
     on('revive:done', (e) => (e.id === this.listenerId || e.patient === this.listenerId) && E.play('ui:revived', { ui: true, gain: 0.45 }));
 
+    // ---- bodies: two men running into each other (BodyContacts): the thud and the kit rattling
+    on('body:bump', (e) => {
+      const g = Math.min(1, e.speed / 7), y = (this.posOf(e.a)?.y ?? 0) + 1.1;
+      if (e.a === this.listenerId || e.b === this.listenerId) { E.play('body:heavy', { ui: true, gain: 0.3 + 0.4 * g, jitter: 0.06 }); E.play('rattle', { ui: true, gain: 0.4 * g, jitter: 0.08 }); return; }
+      const p = { x: e.x, y, z: e.z };
+      if (this.#dist(p) < 25) { E.play('body:heavy', { pos: p, kind: 'foley', gain: 0.25 + 0.4 * g }); E.play('rattle', { pos: p, kind: 'foley', gain: 0.3 * g, jitter: 0.08 }); }
+    });
+
     // ---- foley, from the rig
     on('anim:footstep', (e) => {
       const quiet = this.getEntity(e.id)?.perks?.silent;

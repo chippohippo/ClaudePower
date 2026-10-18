@@ -348,5 +348,17 @@
   "gravityMul": 0.25,
   "jumpOffForce": 7.0,
   "perAirtime": 1
- }
+ },
+  "bodies": {
+    "_note": "Soldiers are solid to each other (src/movement/BodyContacts.js). On your feet you're a round body `radius` m across the shoulders by armor class (crouched, crouchExtra wider); lying (prone, a belly slide, a dive, downed, knocked flat, a corpse) a capsule `lying.head` m ahead of the hips and `lying.feet` behind, `lying.radius` thick. Overlapping bodies are pushed apart by mass (`mass` by armor, times `massMul` crouched, prone, at cover, downed, or planted (not trying to move): braced bodies give less) and the speed into each other is taken off both. Walking into someone lying down you step over him (`stepOver`: speedMul while over him, nudged `nudge` of the overlap a tick toward his nearer side). Coming together at `bump.speed` m/s or more is a bump: whoever took `stumble` m/s or more of it stumbles (shove x that), once per `cooldown` s. Pressed `squeeze.after` s into a teammate who isn't moving, you squeeze past for `squeeze.time` s: shoulders turned, the two of you ease to either side (radiusMul as thick) and nobody's shoved along the trench.",
+    "radius": { "light": 0.27, "medium": 0.3, "heavy": 0.34 },
+    "crouchExtra": 0.04,
+    "lying": { "radius": 0.26, "head": 0.62, "feet": 0.82 },
+    "height": { "up": 1.8, "crouch": 1.2, "low": 0.5, "dead": 0.4 },
+    "mass": { "light": 80, "medium": 95, "heavy": 125 },
+    "massMul": { "crouch": 1.5, "prone": 4, "cover": 2.5, "downed": 4, "planted": 3 },
+    "stepOver": { "speedMul": 0.72, "nudge": 0.18, "hold": 0.15 },
+    "bump": { "speed": 3.2, "stumble": 2.4, "shove": 0.55, "cooldown": 0.8 },
+    "squeeze": { "after": 0.7, "time": 1.6, "radiusMul": 0.15 }
+  }
 }

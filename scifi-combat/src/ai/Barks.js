@@ -37,6 +37,8 @@ export class Barks {
       bus.on('entity:downed', (e) => this.#downed(e)),
       bus.on('revive:start', (e) => { const f = this.#bot(e.id), p = this.world.entity(e.patient); if (f && p) this.say(f, 'revive', { name: p.name }); }),
       bus.on('weapon:hit', (e) => { if (!e.friendly) return; const f = this.#bot(e.victim), by = this.world.entity(e.attacker); if (f && by && by !== f) this.say(f, 'checkfire', { name: by.name }); }),
+      // Run into by a teammate: he lets you know.
+      bus.on('body:bump', (e) => { if (!e.friendly) return; const hit = e.by === e.a ? e.b : e.a, f = this.#bot(hit), by = this.world.entity(e.by); if (f && by && by !== f) this.say(f, 'bumped', { name: by.name ?? '' }); }),
       bus.on('entity:death', (e) => { const f = this.#bot(e.by), v = this.world.entity(e.id); if (f && v && v.team !== f.team && v.team !== CIVILIAN && !v.isVehicle && !v.isDeployable && this.#roll() < 0.35) this.say(f, 'kill'); }),
       bus.on('stratagem:thrown', (e) => { const f = this.#bot(e.id), def = this.world.stratagems?.defs[e.stratagem]; if (f && def) { if (def.kind === 'strike') this.say(f, 'strike'); else if (def.kind === 'supply') this.say(f, 'supply'); } }),
     ];
