@@ -209,14 +209,18 @@ export class CrowdRenderer {
    * @param {ProceduralHumanoid} h  (or a corpse snapshot: j, F, scale, prop, capeInit)
    * @param {object} look  { team, kit, number, status: THREE.Color | null, flame: THREE.Color | null, highlight }
    * @param {number} lod   0 near, 1 mid
+   * @param {object} hide  { head, cape, rim }: the player's own, seen in first person (the head
+   *                       bone collapses, so nothing skinned to it can block the view; no rim light
+   *                       glaring off your own arms)
    */
-  drawRig(h, look, lod = 0) {
+  drawRig(h, look, lod = 0, hide = null) {
     const j = h.j, F = h.F, sc = h.scale;
     if (!this.#visible(j.pelvis, 1.6 * sc + (h.prop?.length ?? 1))) return;
     if (this.slots >= this.max) return;
     const slot = this.slots++;
     this.drawn++;
     const st = this.#style(look);
+    if (hide?.rim) st.rim = _noRim;
     const near = lod === 0 && (!this.camera || this.camera.position.distanceTo(j.pelvis) < this.nearDist) ? 1 : 0;
     near ? this.stats.near++ : this.stats.mid++;
 
@@ -224,7 +228,7 @@ export class CrowdRenderer {
     this.#frame(slot, BONE.pelvis, F.pelvis, j.pelvis, sc);
     this.#limb(slot, BONE.abdomen, j.pelvis, j.chestC, REF.abdomen * sc, F.chest.r, sc);
     this.#frame(slot, BONE.chest, F.chest, j.chestC, sc);
-    this.#frame(slot, BONE.head, F.head, j.head, sc);
+    this.#frame(slot, BONE.head, F.head, j.head, hide?.head ? 1e-4 : sc);
     for (let i = 0; i < 2; i++) {
       this.#limb(slot, BONE.upperArmL + i, j.shoulder[i], j.elbow[i], REF.upperArm * sc, F.chest.r, sc);
       this.#limb(slot, BONE.foreArmL + i, j.elbow[i], j.hand[i], REF.foreArm * sc, F.chest.r, sc);
@@ -242,7 +246,7 @@ export class CrowdRenderer {
     const pal = this.parts;
     const put = (p) => p.put(slot, st.team, st.number, st.tint, st.em, st.rim);
     put(pal.body[st.kit.body]?.[near] ?? pal.body.medium[near]);
-    put(pal.helmet[st.kit.helmet]?.[near] ?? pal.helmet.medium[near]);
+    if (!hide?.head) put(pal.helmet[st.kit.helmet]?.[near] ?? pal.helmet.medium[near]);
     if (st.kit.gear && pal.gear[st.kit.gear]) put(pal.gear[st.kit.gear][near]);
 
     // Weapon.
@@ -269,7 +273,7 @@ export class CrowdRenderer {
     }
 
     // Cape: three links between the verlet points.
-    if (st.kit.cape !== false && h.capeInit && h.cape) {
+    if (st.kit.cape !== false && h.capeInit && h.cape && !hide?.cape) {
       const pts = h.cape, C = F.chest;
       for (let i = 0; i < 3 && i < pts.length - 1; i++) {
         _t.subVectors(pts[i + 1], pts[i]);

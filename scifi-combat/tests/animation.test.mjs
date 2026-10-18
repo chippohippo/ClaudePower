@@ -12,7 +12,7 @@ import { MovementController, FlatGroundBody } from '../src/movement/MovementCont
 import { AnimationSystem } from '../src/anim/AnimationSystem.js';
 import { ClipAnimationController } from '../src/anim/ClipAnimationController.js';
 import { CrowdRenderer } from '../src/render/CrowdRenderer.js';
-import { CameraRig } from '../src/camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf } from '../src/camera/CameraRig.js';
 import { hitSpheres } from '../src/movement/Hitboxes.js';
 import { table, angleDelta } from '../src/anim/ik.js';
 import { makeWorld, data, DT, v } from './harness.mjs';
@@ -467,6 +467,49 @@ function runStation(st, onFrame) {
   }
   sys.dispose();
 }
+
+test('first person [V]: the camera sits at the eyes and on the sight line when aiming; your head is hidden; ragdolls go third person', () => {
+  const r = rig();
+  const cam = new CameraRig({ aspect: 16 / 9 });
+  const eye = new Vector3(), sight = new Vector3();
+  const frame = (o = {}) => {
+    r.run(1 / 60);
+    const s = r.m.state, rec = r.sys.record(1);
+    cam.update(1 / 60, { target: r.e, pos: rec.root, yaw: s.yaw, pitch: 0, ads: r.e.weapons.ads, eye: eyeOf(r.h, eye), sight: sightOf(r.h, sight), ...o });
+  };
+  for (let i = 0; i < 30; i++) frame();
+  assert.ok(!cam.firstPerson && cam.camera.position.distanceTo(eye) > 1.5, 'third person: behind the shoulder');
+  cam.togglePOV();
+  for (let i = 0; i < 40; i++) frame();
+  assert.ok(cam.firstPerson, 'first person after the toggle');
+  assert.ok(cam.camera.position.distanceTo(eye) < 0.03, `at the eyes (${cam.camera.position.distanceTo(eye).toFixed(3)} m off)`);
+  // Walking: still at the eyes (the springs keep up with the body).
+  r.cmd.moveY = 1;
+  let worst = 0;
+  for (let i = 0; i < 60; i++) { frame(); if (i > 20) worst = Math.max(worst, cam.camera.position.distanceTo(eye)); }
+  assert.ok(worst < 0.12, `follows the eyes while moving (${worst.toFixed(3)} m)`);
+  r.cmd.moveY = 0;
+  // Aiming down sights: the eye goes onto the sight line, just behind the optic.
+  r.e.weapons.ads = 1;
+  for (let i = 0; i < 40; i++) frame();
+  assert.ok(cam.camera.position.distanceTo(sight) < 0.03, `on the sight line (${cam.camera.position.distanceTo(sight).toFixed(3)} m off)`);
+  r.e.weapons.ads = 0;
+  // A ragdoll is seen from outside.
+  for (let i = 0; i < 40; i++) frame({ thirdPerson: true });
+  assert.ok(!cam.firstPerson && cam.camera.position.distanceTo(eye) > 1, 'third person while thrown');
+  // Your own head collapses (nothing skinned to it can block the view); others' don't.
+  const crowd = new CrowdRenderer(new Scene(), { max: 4 });
+  crowd.begin(null);
+  crowd.drawRig(r.h, { team: 0 }, 0, { head: true, cape: true });
+  crowd.drawRig(r.h, { team: 0 }, 0);
+  const helmets = crowd.parts.helmet.medium[1].count, capes = crowd.parts.cape[1].count;
+  crowd.end();
+  const D = crowd.bones.image.data, m = new Matrix4();
+  const headScale = (slot) => m.fromArray(D, (slot * 18 + 3) * 16).getMaxScaleOnAxis();
+  assert.ok(headScale(0) < 1e-3 && headScale(1) > 0.5, 'the head bone collapses only for the hidden one');
+  assert.equal(helmets, 1, 'one helmet drawn (not yours)');
+  assert.equal(capes, 1, 'one cape drawn (not yours)');
+});
 
 test('every rig-lab move: finite pose, planted feet always reached, no body pops in crossfades', () => {
   const finite = (p) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z);

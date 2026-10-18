@@ -8,60 +8,15 @@
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0f14; font: 13px/1.45 system-ui, sans-serif; color: #eef2f8; }
     #hud { position: fixed; inset: 0; pointer-events: none; }
-    #fl-top { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; }
-    #fl-top .tk { background: #000a; padding: 4px 10px; border-radius: 4px; font-size: 15px; min-width: 96px; }
-    #fl-tk0 { text-align: right; }
-    #fl-strip { display: flex; gap: 3px; }
-    #fl-strip .sec { position: relative; width: 34px; height: 24px; border: 2px solid; border-radius: 3px; background: #000a; display: grid; place-items: center; font-weight: 800; font-size: 12px; overflow: hidden; }
-    #fl-strip .sec.hot { box-shadow: 0 0 8px #fff8; animation: hot 1.2s infinite; }
-    #fl-strip .sec em { position: absolute; top: -3px; right: 1px; font-style: normal; font-size: 9px; }
-    #fl-strip .sec i { position: absolute; left: 0; bottom: 0; height: 3px; background: #fff; }
-    #fl-strip.many { gap: 2px; } #fl-strip.many .sec { width: 25px; font-size: 11px; }
-    @keyframes hot { 50% { box-shadow: 0 0 2px #fff4; } }
-    #fl-orders { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); background: #000a; padding: 3px 10px; border-radius: 4px; font-size: 13px; }
-    #fl-orders:empty { display: none; }
-    #fl-markers .mk { position: absolute; left: 0; top: 0; margin: -18px 0 0 -18px; width: 36px; text-align: center; font-weight: 800; text-shadow: 0 0 4px #000; }
-    #fl-markers .mk b { display: block; font-size: 14px; }
-    #fl-markers .mk i { display: block; width: 18px; height: 18px; margin: 1px auto; border-radius: 50%; border: 2px solid currentColor; box-sizing: border-box; }
-    #fl-markers .mk span { font-size: 10px; color: #eef2f8; font-weight: 600; }
-    #fl-markers .mk.contested i { animation: hot .5s infinite; }
-    #fl-markers .mk.mine b { text-decoration: underline; }
-    #fl-map { position: absolute; right: 12px; bottom: 12px; border: 1px solid #ffffff30; border-radius: 4px; width: 300px; height: 120px; }
-    #fl-reticle { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 1px #000; }
-    #fl-gun { position: absolute; left: 0; top: 0; width: 18px; height: 18px; margin: -9px; border: 2px solid #ffffffb0; border-radius: 50%; box-shadow: 0 0 0 1px #0008; }
-    #fl-status { position: absolute; left: 12px; bottom: 12px; width: 260px; background: #000a; padding: 8px; border-radius: 6px; }
-    #fl-status .bar { height: 8px; background: #ffffff1c; border-radius: 3px; margin-bottom: 4px; overflow: hidden; }
-    #fl-status .bar.sm { height: 4px; }
-    #fl-status .bar i { display: block; height: 100%; }
-    #fl-status .wpn { margin-top: 4px; font-size: 12px; }
-    #fl-feed { position: absolute; right: 12px; top: 12px; text-align: right; background: #0007; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-    #fl-feed:empty { display: none; }
-    #fl-banner { position: absolute; top: 30%; width: 100%; text-align: center; font-size: 30px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 14px #000; opacity: 0; transition: opacity .3s; }
-    #fl-respawn { position: absolute; top: 58%; width: 100%; text-align: center; font-size: 20px; font-weight: 800; text-shadow: 0 0 10px #000; display: none; }
-    #fl-prompt { position: absolute; top: 64%; width: 100%; text-align: center; font-size: 16px; font-weight: 700; text-shadow: 0 0 8px #000; }
-    #fl-respawn small { font-size: 13px; font-weight: 600; opacity: .85; }
-    .pbar { display: inline-block; width: 140px; height: 8px; margin-left: 8px; vertical-align: middle; background: #ffffff26; border-radius: 4px; overflow: hidden; }
-    .pbar i { display: block; height: 100%; }
-    #fl-downs .dn { position: absolute; left: 0; top: 0; margin: -14px 0 0 -10px; color: #ff5a5a; font-size: 20px; font-weight: 900; text-shadow: 0 0 6px #000; text-align: center; width: 20px; }
-    #fl-downs .dn span { display: block; font-size: 10px; color: #eef2f8; font-weight: 600; white-space: nowrap; margin-left: -20px; width: 60px; }
-    #fl-downs .dn.helped { color: #7fffb0; }
-    #fl-squad { position: absolute; left: 12px; bottom: 112px; width: 260px; background: #0009; padding: 6px 8px; border-radius: 6px; font-size: 12px; line-height: 1.45; }
-    #fl-squad:empty { display: none; }
-    #fl-squad .hd { font-weight: 800; letter-spacing: .5px; font-size: 11px; opacity: .9; margin-bottom: 2px; }
-    #fl-squad .m { display: flex; justify-content: space-between; gap: 8px; }
-    #fl-squad .m em { font-style: normal; opacity: .75; text-align: right; }
-    #fl-squad .m.down { color: #ff8a8a; } #fl-squad .m.dead { opacity: .4; }
-    #fl-suppress { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, #0b0c0ecc 100%); opacity: 0; transition: opacity .15s; }
-    #fl-gunpanel { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); min-width: 380px; max-width: 640px; background: #000b; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.5; text-align: center; display: none; }
+    #fl-gunpanel { position: absolute; left: 50%; bottom: calc(var(--lb, 0px) + 16px); transform: translateX(-50%); min-width: 380px; max-width: 640px; background: #000b; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.5; text-align: center; display: none; }
     #fl-gunpanel small { font-size: 11px; opacity: .85; }
     #fl-gunpanel .pbar { width: 110px; }
     .fc-barrel { position: fixed; left: 0; top: 0; width: 26px; height: 26px; margin: -13px; border: 2px solid #ffd166; border-radius: 3px; transform-origin: center; box-shadow: 0 0 0 1px #0009; pointer-events: none; }
-    #fl-supply { position: absolute; right: 12px; bottom: 140px; background: #0009; padding: 5px 9px; border-radius: 5px; font-size: 12px; line-height: 1.5; text-align: right; }
-    #fl-supply:empty { display: none; }
     #fl-supply .pbar { width: 90px; }
     #loading { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #1d1730ee, #0d0b16f5); color: #f1edf8; font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 3px; text-transform: uppercase; z-index: 10; pointer-events: none; }
-    #help { position: fixed; left: 12px; top: 62px; background: #0008; padding: 6px 10px; border-radius: 6px; max-width: 360px; font-size: 12px; pointer-events: none; }
-    @media (max-width: 700px) { #fl-map { width: 200px; height: 80px; } #fl-status { width: 200px; } #fl-strip .sec { width: 26px; } #help { display: none; } }
+    #help { position: fixed; left: 24px; top: 36%; background: #0b0d14d9; padding: 8px 12px; border-left: 2px solid #ffc94d; max-width: 380px; font-size: 12px; pointer-events: none; transition: opacity .6s; }
+    #help.gone { opacity: 0; }
+    @media (max-width: 700px) { #help { display: none; } }
   </style>
   <script type="importmap">
     { "imports": { "three": "./vendor/three@0.160.0/three.module.min.js", "three/addons/": "./vendor/three@0.160.0/addons/" } }
@@ -71,12 +26,12 @@
   <div id="loading">Deploying…</div>
   <div id="hud"></div>
   <div id="help">
-    <b>Frontline</b> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.
+    <b>Frontline</b> <small style="opacity:.7">(F1 hides and shows this)</small> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.
     Guns (12v12 and up): <b>X</b> to crew one, <b>H</b> to set it up or pack it up; at a howitzer or rocket battery the mouse moves the fire mission's mark, hold LMB to fire. Supply trucks: drive into the HQ dump and stop to load, into the forward depot to unload; <b>H</b> hitches a gun behind you.<br>
     Click to lock the mouse · WASD · Shift sprint · C crouch (hold: prone, sprinting: slide) · Alt dive · Space climb/hop ·
-    LMB fire · RMB aim · R reload · 1 sword/gun · Q E G Z abilities · X vehicles / hold X by a downed teammate to revive · when downed: crawl, hold Space to give up · Space to deploy when dead.<br>
+    LMB fire · RMB aim · R reload · <b>V</b> first / third person · B swap shoulder · 1 sword/gun · Q E G Z abilities · X vehicles / hold X by a downed teammate to revive · when downed: crawl, hold Space to give up · Space to deploy when dead.<br>
     Stratagems: hold <b>Tab</b> (or Ctrl) and type the code with WASD or the arrows, LMB throws the beacon, Tab again puts it away; stand clear of a red beam. <b>X</b> takes supplies from a pod. Pad: hold LB, the D-pad, RT. Battle points buy extra call-ins, vehicles and the hero from the same panel.<br>
-    Melee: <b>V</b> drives your rifle butt into whoever's in your face; hold <b>X</b> over a downed enemy to finish him; chevrons round your crosshair are swings coming at you (red: unblockable).<br>
+    Melee: <b>F</b> drives your rifle butt into whoever's in your face (with the sword out, <b>F</b> is its heavy attack); hold <b>X</b> over a downed enemy to finish him; chevrons round your crosshair are swings coming at you (red: unblockable).<br>
     Support: <b>3</b> uses your item (medics: a stim for the teammate in front of you, or yourself; engineers: an ammo pack at your feet); engineers hold <b>H</b> beside a damaged vehicle or turret of ours to repair it. Every class has a passive (on your status panel).<br>
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=4v4">4v4</a> ·
     <a style="pointer-events:auto;color:#9fd3ff" href="?size=12v12">12v12</a> ·

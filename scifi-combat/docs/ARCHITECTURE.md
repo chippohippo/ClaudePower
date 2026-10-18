@@ -189,8 +189,8 @@ handles collide-and-slide, autostep (stairs ≤ 0.35 m), slope limits (≤ 50°)
    becomes a shoulder-bash; Scout ×1.12 speed, double wall-run).
 
 ### Camera
-`CameraRig` keeps a single camera; blends between `fpAnchor` (head bone) and `tpAnchor`
-(shoulder offset `[0.45, 0.25, -2.6]`, swap with key). Spring-damped follow, sphere-cast
+`CameraRig` keeps a single camera; blends between first person (the animated head's eyes, or the
+gun's sight line when aiming; [V]) and third person (shoulder offset, swap with [B]). Spring-damped follow, sphere-cast
 collision pull-in, FOV kick on sprint (+6°) / slide (+10°). Head-bob is **procedural and
 small** (amplitude ∝ speed, capped at 1.5 cm in FP, 0 in reduced-motion mode); camera shake
 uses trauma² Perlin noise (Squirrel Eiserloh model) clamped per-source.

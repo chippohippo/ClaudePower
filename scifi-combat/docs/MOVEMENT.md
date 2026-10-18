@@ -153,14 +153,15 @@ pose (tested), so what you see is what you hit:
 - **Transitions:** stance changes blend between layouts.
 - **Scale:** transform supers scale the spheres with their silhouette.
 
-## Camera (HD2 third person)
+## Camera (HD2 third person, optional first person)
 
 - **Look:** zero latency. The camera reads the latest mouse or stick yaw and pitch every render frame; only position lags.
 - **Follow:** critically damped springs, ω = 24 horizontal (~40 ms) and 14 vertical (~70 ms).
   Slight lag that reads as weight, never float.
-- **Framing (right, up, back):**
-  - Stand: 0.55, 0.18, 2.35 m. Crouch: 0.5, 0.2, 2.2 m. Prone: 0.45, 0.38, 2.0 m.
-  - Sprint pulls back 0.35 m. ADS: 0.42, 0.12, 1.2 m.
+- **Framing (right, up, back):** close over the right shoulder, as in the reference clips (the
+  soldier's head just left of and below the crosshair, the body filling the lower middle).
+  - Stand: 0.48, 0.16, 2.0 m. Crouch: 0.45, 0.2, 1.85 m. Prone: 0.42, 0.38, 1.9 m.
+  - Sprint pulls back 0.3 m. ADS: 0.42, 0.12, 1.2 m.
   - Collision pulls in instantly and eases out.
 - **Bob:** event-driven. Each `anim:footstep` (planted by the animation rig) kicks a stiff spring
   down (ω 26, ζ 0.45, so a thud with a small rebound) plus an alternating roll. Footstep intensity scales
@@ -169,6 +170,14 @@ pose (tested), so what you see is what you hit:
 - **FOV:** base 70, +6 at full sprint, +8 sliding, +10 diving. The dive start punches +5;
   heavy landings dip −4 and knockdowns punch +6. ADS goes to the weapon's ADS FOV.
 - **Reduced motion:** bob is ×0.25, with no roll, sway or FOV effects, and a quarter of the shake.
+- **First person ([V], pad View):** the camera blends (ω 14) into the animated head's eyes, so
+  stance changes, dives and slides move it as the body moves. Stiff springs on where the eyes sit
+  on the body (ω 40 across, 22 up and down) take out the footfall thud without lagging the body's
+  travel. Aiming down sights puts the eye inside the optic on the gun's sight line (the housing's
+  walls vanish from in there): the gun still trails a fast turn (ergonomics drag), so the sight
+  picture drifts and settles. Your own head, helmet and cape aren't drawn, nor is the rim light on
+  your arms; the rest of the body is, so you see your arms, gun and legs. Vehicles, ragdolls and
+  death are always third person.
 
 ## Weapon handling tied to movement
 

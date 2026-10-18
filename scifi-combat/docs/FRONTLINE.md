@@ -48,7 +48,7 @@ folder any way you like and open `index.html` with these parameters:
 | `voices` | on | `off`: the soldiers' callouts as subtitles only |
 
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
-R, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
+R, V first / third person, B swap shoulder, F rifle butt, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
 downed teammate to revive. When you're down: crawl, hold **Space** to give up; when dead, **Space** to
 deploy. Your squad's bots follow you and take cover around you when you stop. At a gun, **X** takes a
 crew seat and **H** sets it up or packs it up; at a howitzer or rocket battery the view goes overhead
@@ -405,7 +405,7 @@ shield, a hook's pull.
   four steps a tick, against the hit spheres: a slash passes over a man lying prone, misses one
   behind you, and reaches as far as the blade you see (a knife about 1.3 m, a sword 1.9 m, a
   spear 2.5 m). Bots close to their blade's reach before they swing.
-- **The rifle butt (V, pad R3)** for anyone with a gun out: 0.12 s up, 35 damage, a 0.4 s stagger
+- **The rifle butt (F, pad R3)** for anyone with a gun out (F is the sword's heavy attack when it's out): 0.12 s up, 35 damage, a 0.4 s stagger
   and a shove that can put a man off a parapet or back out of a doorway. Bots use it on an enemy
   in their face.
 - **Finishers.** Hold **X** over a downed enemy (none of yours to revive there): you kneel over
@@ -603,26 +603,33 @@ dropships are arena-only).
 
 ## HUD (`FrontlineHud`)
 
-| Element | What it shows |
+Laid out like the reference clips. Colours are relative to you: your side blue, theirs red, the
+city's civilians grey and its gangs orange. Numbers and labels are in a squared display face
+(Orbitron), names and speech in a condensed one (Rajdhani); both ship in `vendor/fonts` (SIL Open
+Font License) so the game looks the same offline. On a planet with letterbox bars everything sits
+inside them.
+
+| Where | What it shows |
 |---|---|
-| Top bar | Tickets, plus a sector strip in owner colors with ◆ on each team's front and a fill bar while a sector is being secured |
-| Orders | Your squad's order and distance, e.g. `ATTACK C2 · 30 m` |
-| Squad panel | Your squad's phase (ON YOU, BOUNDING · IN CONTACT, IN THE TRENCH · WAITING FOR THE WHISTLE, CLEARING A BUILDING, HOLDING THE LINE...) and what each squadmate is doing, or that they're down |
-| Banners | Captures, sectors, victory, `WHISTLES · OVER THE TOP!` and the enemy's whistles |
-| Downs | Your bleed-out, give-up hold and revive progress; a revive prompt beside a downed teammate; red crosses over downed teammates |
-| Digging | Progress through foxhole, sandbags and trench |
-| Supply | The forward depot's stock and the HQ dump's, trucks on the road; banners for shortages, depot moves and the preparation barrage |
+| Top | Your side's name, tickets and bar on the left; the sectors as circles from your HQ to theirs (owner's colour, pulsing while fought over, a ring filling as one falls, ◆ on each front); the match clock counting down; theirs mirrored on the right |
+| Under it | A compass strip: headings (N, NE, E...) and degrees every 15°, the live capture points at their bearings, your squad's objective ringed |
+| Top left | Your squad: its callsign (ANVIL, RIVET...; the Void's WRAITH, HOLLOW...) and morale (CONFIDENT, SHAKEN after losses, BROKEN while falling back), what it's doing (ADVANCING B1, IN CONTACT · BOUNDING, HOLDING C2...), the order (`ORDER: TAKE B1 · 61 M`), then each member with a role tag (TRP, HVY, RCN, ENG, MED, MKS, BLD, PLT, TCH, DEM), what they're up to and a health line; the leader starred, you last |
+| Top right | The killfeed: ▸ a kill, ◆ a down; TEAMKILL and CIVILIAN flagged |
+| Bottom left | Radio chatter (`BarkVoices`), then your stance (STAND, SPRINT, PRONE, SLIDE, DOWNED...), health bar and number, shield and stamina lines, your passive and items, battle points |
+| Bottom right | A round minimap, heading up, about 110 m to the rim: building and wall footprints, sectors tinted by owner, points (pinned to the rim when far), allies, downed teammates, enemies that fired or a spotter revealed, nearby civilians, our depots, guns and trucks, enemy guns we've located, shells landing; north on the rim. Under it the view (`3RD PERSON [V]`), the weapon, the magazine large with the reserve beside it (heat or charge for energy weapons; red when low), RELOADING with its progress, and your grenades as ◆ |
+| In the world | Capture points (owner's colour, capture progress round them, distance; your squad's one labelled ATTACK or DEFEND), red crosses over downed teammates within 60 m (distance and bleed-out), the crosshair and HD2's second reticle where the gun really points |
+| Centre | Banners (captures, sectors, victory, `WHISTLES · OVER THE TOP!` and the enemy's, shortages, friendly fire, gang turf), the downed and reinforcement states, prompts (revive, finish, dig, repair, stim, crew, push a car back over, driving controls), Mindread's line over the enemy in your sights |
+| Controls card | Up for the first 25 s of a match; F1 hides it or brings it back |
 | Call-in (`StratagemPanel`) | While the call-in key is held: your stratagems with their codes, typed arrows lit on the codes that still match, cooldowns, uses and rearms, your battle points and every price (BUY 400 on one that's cooling down, lit when you can pay); with a beacon in hand, which one, how to throw it and what it will cost; a red flash on a wrong arrow. Markers over your side's live beacons (name, countdown, DANGER CLOSE), and the supply prompt beside a pod |
 | Battle points (`BattlePointsHud`) | The total on the status panel; a line under the crosshair per thing you did, repeats adding up on one line, and what you spend or lose on death |
-| Callouts (`BarkVoices`) | Your squad's lines, and anyone's within 40 m, spoken and subtitled at the bottom of the screen with the speaker's name in his army's colour; `?voices=off` keeps only the subtitles |
+| Radio chatter (`BarkVoices`) | Your squad's lines, and anyone's within 40 m, spoken and written up bottom left: your squad's on an amber rule with rank and name (your squad leader is the sergeant), anyone else's dimmer in his side's colour; `?voices=off` keeps only the text |
 | Melee (`MeleeTells`) | Chevrons round the crosshair for swings coming at you (amber blockable, red not, white: now); HOLD X TO FINISH over a downed enemy, FINISHING with its progress |
-| Support | Your passive and items on the status panel; **3 STIM** facing a hurt or downed teammate, **HOLD H TO REPAIR** beside a damaged vehicle of ours, REPAIRING with the hull's health; enemies a spotter revealed glow red and show on the minimap; Mindread's line over the enemy in your sights |
+| Support | Your passive and items on the status panel; **3 STIM** facing a hurt or downed teammate, **HOLD H TO REPAIR** beside a damaged vehicle of ours, REPAIRING with the hull's health; enemies a spotter revealed glow red and show on the minimap |
 | Guns | Crew and drive prompts; at a gun, FireControl's panel (overhead fire-control view with the predicted arc, the scatter ring, range, flight time, rounds and loading; for an AT gun a second reticle where the barrel points). See [VEHICLES.md](VEHICLES.md) |
-| Minimap | Also our depots, guns and trucks, enemy guns we've located, and where shells land |
+| Supply | The forward depot's stock and the HQ dump's above the minimap, trucks on the road; banners for shortages, depot moves and the preparation barrage |
 | Suppression | The screen edges darken while rounds crack past you |
 | Hit markers (`HitFeedback`) | At the gun's reticle, on each hit of yours: four white ticks (90 ms); a kill: bigger and red (180 ms); a headshot: gold; a round the armor shrugs off: small and grey, with a dull plink (switch weapons or aim elsewhere); a teammate: a blue X. Each kind has its own confirm sound |
 | Damage direction | A red wedge on a ring round the crosshair pointing at whoever hit you (a blast: where it burst), as strong as the hit, fading over 1.2 s and turning with you. The hit also kicks your view up and toward it (0.6° per 20 damage, at most 3°, back in 120 ms) and knocks your gun's aim by half that |
-| Also | Point markers, minimap with spotted enemies, HD2 gun reticle, status, ammo, killfeed, reinforcement countdown |
 
 ## Tests
 

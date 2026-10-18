@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { bus } from './core/EventBus.js';
 import { FixedLoop } from './core/FixedLoop.js';
 import { InputManager } from './input/InputManager.js';
-import { CameraRig } from './camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf } from './camera/CameraRig.js';
 import { FrontlineSession } from './game/FrontlineSession.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
@@ -191,7 +191,11 @@ const audio = new AudioDirector(sound, {
 });
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sound.resume());
 
-const hud = new FrontlineHud(document.getElementById('hud'), session, player);
+const hud = new FrontlineHud(document.getElementById('hud'), session, player, { letterbox: planet.post?.letterbox ?? 0 });
+// The controls card: up for the first 25 s of the match, F1 hides it or brings it back.
+const helpCard = document.getElementById('help');
+const helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000);
+addEventListener('keydown', (e) => { if (e.code !== 'F1' || !helpCard) return; e.preventDefault(); clearTimeout(helpTimer); helpCard.classList.toggle('gone'); });
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
 const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
@@ -213,6 +217,8 @@ const STATUS_GLOW = {
   stim: new THREE.Color(0.1, 0.55, 0.2), revealed: new THREE.Color(0.75, 0.08, 0.05),
 };
 const LYING = new Set(['dive', 'knockdown', 'ragdoll']);
+const FIRST_PERSON = { head: true, cape: true, rim: true };   // your own head, cape and rim light, from inside the helmet
+const _eye = new THREE.Vector3(), _sight = new THREE.Vector3();
 const _yaw = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
 
 // ---------------------------------------------------------------- loop
@@ -247,17 +253,20 @@ const loop = new FixedLoop({
     const w = player.weapons, pv = player.vehicle?.veh;
     const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
     const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+    const ph = anim.get(PLAYER_ID);
     rig.update(dt, {
       target: player, pos: anim.record(PLAYER_ID).root, yaw: lookYaw, pitch: lookPitch,
       ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current?.s.ads?.fov,
       vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
+      eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
+      thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll',
     });
     const cam = fireControl.update(dt, player, rig.camera);
     crowd.begin(cam);
     for (const r of anim.list) {
       const f = r.e, s = f.movement.state;
       if (f.vehicle && !f.vehicle.exposed && !f.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
-      if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod);
+      if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod, f === player && rig.firstPerson ? FIRST_PERSON : null);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || f.health.dead }, f.look);
     }
     // The fallen stay where they fell after their soldier redeploys.
@@ -280,7 +289,7 @@ const loop = new FixedLoop({
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio.update(dt, player.movement.state.position, input.yaw);
-    hud.update(dt, cam);
+    hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active });
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
     bpHud.update(dt);

@@ -19,7 +19,7 @@ import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from './combat/AbilitySystem.js';
 import { StatusComponent } from './combat/StatusSystem.js';
 import { Health } from './combat/Health.js';
-import { CameraRig } from './camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf } from './camera/CameraRig.js';
 import { CombatBotBrain } from './ai/CombatBotBrain.js';
 import { buildFighter } from './game/FighterFactory.js';
 import { routeCommand } from './core/routing.js';
@@ -102,6 +102,8 @@ const STATUS_GLOW = {
   void: new THREE.Color(0.35, 0.1, 0.7), mech: new THREE.Color(0.25, 0.25, 0.25), scorch: new THREE.Color(0.5, 0.16, 0), weaken: new THREE.Color(0.22, 0.07, 0.4), silenced: new THREE.Color(0.2, 0.2, 0.2),
 };
 const LYING = new Set(['dive', 'knockdown', 'ragdoll']);
+const FIRST_PERSON = { head: true, cape: true, rim: true };   // your own head, cape and rim light, from inside the helmet
+const _eye = new THREE.Vector3(), _sight = new THREE.Vector3();
 
 // ---------------------------------------------------------------- entities
 function makeFighter(id, team, color, pos, kit, guns) {
@@ -391,17 +393,20 @@ const loop = new FixedLoop({
     const pv = player.vehicle?.veh;
     const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
     const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+    const ph = animSys.get(player.id);
     rig.update(dt, {
       target: player, pos: animSys.record(player.id).root, yaw: lookYaw, pitch: lookPitch,
       ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current.s.ads?.fov,
       vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
+      eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
+      thirdPerson: player.health.dead || ps.mode === 'ragdoll',
     });
     // Draw the crowd: full rigs near, reduced mid, capsule impostors far (frustum-culled per fighter).
     crowd.begin(rig.camera);
     for (const r of animSys.list) {
       const e = r.e, s = e.movement.state;
       if (e.vehicle && !e.vehicle.exposed && !e.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
-      if (r.lod < 2) crowd.drawRig(r.h, e.look, r.lod);
+      if (r.lod < 2) crowd.drawRig(r.h, e.look, r.lod, e === player && rig.firstPerson ? FIRST_PERSON : null);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(e), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || e.health.dead }, e.look);
     }
     crowd.end();

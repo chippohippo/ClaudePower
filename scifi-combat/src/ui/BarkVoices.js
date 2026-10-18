@@ -1,20 +1,22 @@
 // BarkVoices: the soldiers' callouts out loud (docs/GAMEPLAY_PLAN.md §6; the sim's Barks). Your
 // squad is heard at any range, any other soldier within `hear` m (40: you hear the enemy's plan
 // too). Spoken with the browser's speech synthesis, a voice per army (the Solari brisk and
-// bright, the Void low and slow), quieter with distance, and subtitled at the bottom of the
-// screen with the speaker's name in his army's colour. One voice at a time: your squad's lines
-// cut in ahead of the rest; at most two wait. ?voices=off keeps the subtitles and drops the voices.
+// bright, the Void low and slow), quieter with distance, and written up as radio chatter at the
+// bottom left (the reference clips' style): your squad's lines on an amber rule with the
+// speaker's rank and name (your squad leader is the sergeant), anyone else's dimmer, named in
+// his side's colour (yours blue, theirs red). One voice at a time: your squad's lines cut in
+// ahead of the rest; at most two wait. ?voices=off keeps the chatter and drops the voices.
 
 import { bus } from '../core/EventBus.js';
 
-const TEAM_COL = ['#ffcf6b', '#b994ff'];
+const US = '#5ab4ff', THEM = '#ff4d4d', AMBER = '#ffc94d';
 const VOICE = [{ pitch: 1.05, rate: 1.12 }, { pitch: 0.55, rate: 0.92 }];
 const CSS = `
-#bark-subs { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%); pointer-events: none; text-align: center;
-  font: 600 14px system-ui; letter-spacing: .02em; text-shadow: 0 0 6px #000, 0 0 2px #000; color: #f4f1e8; max-width: 70vw; }
-#bark-subs div { margin-top: 3px; transition: opacity .3s; }
-#bark-subs b { font-weight: 800; margin-right: 6px; }
-#bark-subs .far { opacity: .7; font-size: 12px; }
+#bark-subs { position: absolute; left: 24px; bottom: calc(var(--lb, 0px) + 96px); pointer-events: none; text-align: left; max-width: 46vw;
+  font: 600 16px var(--text, system-ui); letter-spacing: .02em; text-shadow: 0 1px 2px #000c, 0 0 8px #0008; color: #f4f1e8; }
+#bark-subs div { margin-top: 6px; padding: 1px 0 1px 10px; border-left: 2px solid ${AMBER}; transition: opacity .3s; }
+#bark-subs b { font: 700 11px var(--disp, system-ui); letter-spacing: 1.5px; margin-right: 10px; text-transform: uppercase; }
+#bark-subs .far { opacity: .7; font-size: 14px; border-left-color: #ffffff40; }
 `;
 
 export class BarkVoices {
@@ -38,10 +40,11 @@ export class BarkVoices {
     const d = Math.hypot(e.at[0] - p.x, e.at[2] - p.z);
     const mine = e.team === me.team && me.squad && e.squad === me.squad.id;
     if (!mine && d > this.hear) return;
-    // The subtitle.
+    // The radio line.
     const el = document.createElement('div');
     if (!mine) el.className = 'far';
-    el.innerHTML = `<b style="color:${TEAM_COL[e.team] ?? '#ccc'}">${e.name ?? '?'}</b>${e.text}`;
+    const rank = mine ? (me.squad.leader?.id === e.id ? 'SGT ' : 'PVT ') : '';
+    el.innerHTML = `<b style="color:${mine ? AMBER : e.team === me.team ? US : THEM}">${rank}${e.name ?? '?'}</b>${e.text}`;
     this.el.appendChild(el);
     this.lines.push({ el, until: this.time + 2.6 + e.text.length * 0.03 });
     while (this.lines.length > 3) this.lines.shift().el.remove();
