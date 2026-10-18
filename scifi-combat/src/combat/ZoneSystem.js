@@ -131,11 +131,12 @@ export class ZoneSystem {
   #applyTick(z) {
     const src = z.owner;
     if (z.target) {
-      if (z.damage && z.target.team !== z.team) z.target.health.damage(z.damage, { kind: 'ability', ability: z.ability }, src);
+      // (A target can be something without a health of its own, or one gone since: nothing to hurt or mend.)
+      if (z.damage && z.target.team !== z.team) z.target.health?.damage(z.damage, { kind: 'ability', ability: z.ability }, src);
       if (z.allyHeal) {
         // Repair tether heals its target; Siphon heals whichever ally is closest to the caster.
         const healTarget = z.target.team === z.team ? z.target : this.#closestAlly(z);
-        healTarget?.health.heal(z.allyHeal);
+        healTarget?.health?.heal(z.allyHeal);
       }
       return;
     }
@@ -222,7 +223,7 @@ export class ZoneSystem {
     let best = null, bestDot = Math.cos((15 * Math.PI) / 180);
     const candidates = [...this.world.fighters(), ...(wantAlly ? this.world.deployables?.list ?? [] : [])];
     for (const e of candidates) {
-      if (e === owner || e.health?.dead || (e.team === owner.team) !== wantAlly) continue;
+      if (e === owner || !e.health || e.health.dead || (e.team === owner.team) !== wantAlly) continue;   // (nothing to mend: a vehicle still on its way down, say)
       _d.subVectors(e.movement.state.position, o).setY(0);
       const dist = _d.length();
       if (dist > z.radius || dist < 0.1) continue;

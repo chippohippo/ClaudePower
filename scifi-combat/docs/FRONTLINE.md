@@ -45,7 +45,7 @@ folder any way you like and open `index.html` with these parameters:
 | `fx` | (the options) | for one run: `low` (the low preset) or `off` (no post-processing); otherwise the saved options apply |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
 | `class` | lancer / reaver | any class id from `data/classes/*.json`, or `commander`: the commander's seat (below) |
-| `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
+| `difficulty` | veteran | recruit, veteran or elite: bot aim and reactions, and how well the AI commands both sides ([Command](#command)) |
 | `voices` | on | `off`: the soldiers' callouts as subtitles only |
 
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
@@ -679,7 +679,9 @@ squads take the commander's orders the same way, and squads given none follow st
     our side, behind it's against us, and level at the end the tickets decide. Whoever takes the
     neutral middle first nearly always keeps it (standing orders against themselves: every time).
   - *The race for the middle.* The nearest squad onto every point of it at once, the rest where he's
-    strongest; the line's lanes wait until it's decided.
+    strongest; the line's lanes wait until it's decided. The elite's squads run straight onto the
+    points, whatever's there (the first men onto a point have it); the veteran's go the careful way,
+    cover to cover.
   - *Ahead.* One point of our sector held come what may (the anchor: the one he isn't on, nearest our
     spawn; up to half of us, more while he's on it), pickets on the others as he comes at them, the
     lanes held (giving way to the points when he comes at them in strength). What's left attacks his
@@ -711,19 +713,24 @@ squads take the commander's orders the same way, and squads given none follow st
   - Scouts (veteran one, elite two, with squads to spare, one sent every 40 s at most) get eyes on the
     points it will attack and ours under threat that nobody's watching. Elite squads also take
     orders more readily, and it misjudges the enemy less (`noise`).
-  - *Measured* (AI against AI, both sides' soldiers veteran, each seed played from both sides; 7
-    minute matches at 32v32, 10 at 12v12). Against standing orders (recruit): veteran 15–1 (32v32
-    city); elite 11–5 (32v32 city), 13–3 (32v32 trenches), 29–3 (12v12 trenches, four of them
-    breakthroughs to the HQ). Elite against veteran: 12–4 (32v32 city). Whoever took the middle first
-    won nine matches in ten. It wins bloodier than standing orders do: at 32v32 it lost 10 to 45 more
-    men a match than the side it beat (attacks cost men, and so do the gun crews posted forward once
-    the front moves up), at 12v12 13 fewer. And its squads flank less: they storm instead, and are
-    often below the three men up a flank needs. Before the doctrine, the elite was even with
-    standing orders (12v12: 26–22 in 48).
+  - *Measured* (AI against AI, both sides' soldiers veteran, each seed played from both sides; 7 minute
+    matches at 32v32, 10 at 12v12). 32v32 in the city, 16 matches each: veteran against standing orders
+    (recruit) 12–4, elite against veteran 12–4, elite against recruit 12–4; in the trenches, elite
+    against recruit 12–4. 12v12 in the trenches, 32 each: veteran against recruit 19–13, elite against
+    recruit 27–5 (six breakthroughs to the HQ, against one), elite against veteran 17–15: with only
+    three squads a side there's little to command, and the two play much alike. Whoever took the
+    middle first won nine matches in ten. It wins bloodier than standing orders: at 32v32 the elite
+    lost about 40 more men a match than the recruit it beat, the veteran about 12 more (their attacks,
+    and the gun crews posted forward once the front moves up), elite and veteran even against each
+    other; at 12v12 the elite lost 15 fewer. And its squads flank less: they storm instead, and are
+    often below the three men up a flank needs.
   - *How it got there.* The old AI played the standing orders' plan with extras (the home guard, staged
     attacks, scouts) and measured even with plain standing orders (12v12: 26–22 in 48). Spreading
     squads by need loses the race for the middle; massing without storms wins the race but not the
-    points (32v32 city: 9–7); the storm is what turned it (14–2). It also has a forward model that
+    points (32v32 city: 9–7); the storm is what turned it (14–2). Standing orders with storms alone are
+    no better than without (32v32 city: 8–8): it takes the doctrine as well. Between two doctrine
+    commanders the race decides, and the elite's rush onto the points (with all in, the barrage and
+    the rescue) is its edge over the veteran. It also has a forward model that
     plays 75 s of battle ahead against the enemy's possible answers (`search` > 0), off at every level:
     in AI-vs-AI matches the plans it chose did worse than the plan it started from.
 

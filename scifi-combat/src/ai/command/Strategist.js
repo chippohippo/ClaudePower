@@ -7,7 +7,9 @@
 //    side; behind, against us; level at the end, the tickets decide. Whoever takes the neutral middle
 //    first nearly always keeps it (standing orders against themselves: every time, in 8 matches).
 //  * The race for the middle: the nearest squad onto every point of it at once, the rest where he's
-//    strongest; the line's lanes wait until it's decided.
+//    strongest; the line's lanes wait until it's decided. The elite's squads (`rush`) run straight
+//    onto the points, whatever's there (a storm on each: the first men onto a point have it); the
+//    veteran's go the careful way.
 //  * Ahead: one point of our sector held come what may (the anchor: the one he isn't on, nearest our
 //    spawn; up to half of us, more while he's on it), pickets on the others as he comes at them, the
 //    lanes held. What's left attacks his sector only where that's worth its men: his last line
@@ -693,10 +695,11 @@ export class Strategist {
       }
       if (ours < 3) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
       if (!this.close.has(p.id)) this.close.set(p.id, this.time);
-      // Nobody there that we know of: in the race for the middle, onto it at a run all the same (the first
-      // men onto a point have it); after that, no storm, they take it the careful way (clearing as they go).
+      // Nobody there that we know of: no storm, they take it the careful way (clearing as they go). Except
+      // (`rush`, elite) in the race for the middle: onto it at a run all the same (the first men onto a
+      // point have it).
       const his = (p.counts?.[enemy] ?? 0) + (I ? I.near(p.pos.x, p.pos.z, p.radius + 35, 6) : 0);
-      if (due === undefined && his < 1 && !this.posture?.opening) continue;
+      if (due === undefined && his < 1 && !(this.cfg.rush && this.posture?.opening)) continue;
       const stuck = this.time - this.close.get(p.id) > 30 && ours >= his * 1.2 + 1;
       if (due === undefined && ours < odds * his + 2 && !stuck) continue;
       // (`barrage`) The guns on it first, where we can see men on it and ours are clear of the shells

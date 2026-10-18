@@ -135,6 +135,21 @@ test('Siphon Tether drains an enemy, heals the caster, and breaks behind cover',
   assert.equal(got.length, 1);
 });
 
+test('Repair Tether never latches onto something with no health to mend (a vehicle still on its way down)', () => {
+  // Regression: an engineer aimed his tether at a called-in vehicle's drop before it had landed (a
+  // deployable with no health yet), and the first heal threw, stopping the whole simulation.
+  const { world, fighter, press, seconds } = makeWorld();
+  const A = fighter(1, 0, v(0, 0, 0), 'artificer');
+  const drop = world.deployables.spawn({ kind: 'vehicle', vehicle: 'solari_recon_car', ownerId: A.id, team: 0, at: v(0, 0, -6), delay: 30 });
+  assert.ok(!drop.health, 'a drop on its way has no health of its own');
+  const { got, off } = events(['zone:start', 'zone:fizzle']);
+  press(A, 'ability2');
+  assert.doesNotThrow(() => seconds(1.5));
+  off();
+  assert.ok(!world.zones.zones.some((z) => z.target === drop), 'not its target');
+  assert.ok(got.length >= 1, 'the tether fizzled or found something else');
+});
+
 test('Grav Lift launches allies; Rally Beacon hastes allies in its aura', () => {
   const { world, fighter, press, seconds } = makeWorld();
   const R = fighter(1, 0, v(0, 0, 0), 'rigger');
