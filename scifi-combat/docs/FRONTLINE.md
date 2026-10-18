@@ -673,7 +673,8 @@ difficulty, working round their orders and never overriding them (at recruit, st
   outranks everything the guns do on their own, even danger close. The AI's own fire only prepares an
   attack as it goes in, below counter-battery fire: guns that fire too much get found and shelled
   (measured: when the AI ordered a mission every 12 s, the enemy's counter-battery killed 25 of its
-  gun crews in five minutes, against 7). It orders one every 30 s at most.
+  gun crews in five minutes, against 7). It prepares an attack every 20 s at most (tried at 30, it
+  lost races for the middle it had won).
 - **The AI commander** (`Strategist`, veteran and elite; recruit sides run on plain standing orders):
   it commands by a doctrine made from the rules of the game, re-made every 4 s (elite: 2.5 s).
   - *The rules it plays to.* A sector is his only once he holds every point in it, so ours holds while

@@ -88,7 +88,7 @@ const ODDS = 0.4;                // ...the odds of it falling, for each point st
 const RESERVE = -1;              // (a squad's assignment: the reserve)
 const COMMIT = 30;               // s an order stands (turning a squad round sooner costs more)
 const SLICE = 40;                // evaluations thought through a tick
-const FIRE_EVERY = 30;           // s between the AI's own fire missions at least (guns that fire too often get found)
+const FIRE_EVERY = 20;           // s between its fire missions to prepare an attack at least (guns that fire too often get found)
 const NS = Math.floor(H / STEP) + 1;   // steps played forward
 let LATE = 0;                          // ...of them in the second half (the sectors are judged over those)
 for (let t = 0; t <= H; t += STEP) if (t >= H / 2) LATE++;
@@ -726,7 +726,7 @@ export class Strategist {
       // (`barrage`) The guns on it first, where we can see men on it and ours are clear of the shells
       // (they never fire danger close); the storm goes in as the last of them land.
       // (Not in the race for the middle: there the first men onto it have it.)
-      if (due === undefined && this.cfg.barrage && !this.posture?.opening && cmd.support && this.time - this.lastFire >= FIRE_EVERY && I && I.near(p.pos.x, p.pos.z, p.radius + 15, 6) >= 2
+      if (due === undefined && this.cfg.barrage && !this.posture?.opening && cmd.support && I && I.near(p.pos.x, p.pos.z, p.radius + 15, 6) >= 2
         && cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 4, by: this.by, pri: 5 }).ok) { this.barrage.set(p.id, this.time + 9); this.lastFire = this.time; continue; }
       for (const s of near) cmd.storm(s);
       this.stormed.set(p.id, this.time); this.close.delete(p.id); this.barrage.delete(p.id);
