@@ -155,7 +155,7 @@
    "clip": "0472",
    "in": 0.6,
    "pick": null,
-   "dur": 5.2,
+   "dur": 4.9,
    "lock": true,
    "cue": "them",
    "in_tr": "dissolve:0.8"
@@ -364,7 +364,7 @@
     0,
     6
    ],
-   "dur": 9.8,
+   "dur": 10.1,
    "lock": true,
    "in_tr": "dissolve:1.0"
   }
