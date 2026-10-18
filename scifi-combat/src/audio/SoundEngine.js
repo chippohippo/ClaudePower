@@ -17,6 +17,12 @@
 //    master, the UI dry on its own bus.
 //  * Voices: at most `maxVoices`; a new sound steals the quietest (as heard here) if it's louder,
 //    otherwise it isn't played.
+//  * Recorded sounds (the Audio Revamp, audio/manifest.json built by tools/audio/revamp.mjs): a
+//    sound in the manifest plays from its recordings instead of the bank. Several takes of each,
+//    dealt from a shuffled deck (none twice running, all before any repeats) at a slightly
+//    different pitch and level every time; the guns and blasts in three distance versions (near,
+//    mid, far) crossfaded by distance, and your own gun in its first-person version. Near versions
+//    (and the UI's) load at the start, mid and far ones the first time something's that far away.
 
 import { render as renderLocal, variantsOf } from './SoundBank.js';
 import * as D from './dsp.js';
@@ -34,6 +40,18 @@ export const KINDS = {
   voice: { ref: 4, rolloff: 1, max: 120, air: 1, prio: 1 },
 };
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+/** Recorded sounds' distance versions: where mid takes over from near, and far from mid (m). */
+export const TIERS = {
+  gun: { mid: [15, 45], far: [100, 220] },
+  boom: { mid: [30, 90], far: [160, 400] },
+  report: { mid: [40, 120], far: [200, 500] },
+};
+/** How much of each distance version to hear at d metres ({ near, mid, far }, summing to 1). */
+export function tierWeights(d, kind = 'gun') {
+  const T = TIERS[kind] ?? TIERS.gun, m = smoothstep(T.mid[0], T.mid[1], d), f = smoothstep(T.far[0], T.far[1], d);
+  return { near: 1 - m, mid: m * (1 - f), far: m * f };
+}
 
 /** What `d` metres does to a sound of `kind`: { gain, cutoff (Hz), delay (s), wet (reverb send), far (crossfade 0..1) }. */
 export function distanceShape(d, kind = KINDS.gun) {
@@ -72,7 +90,7 @@ export class SoundEngine {
   /**
    * @param {object} o { ctx, environment: 'city' | 'open', occluder(pos) -> 0..1, maxVoices, worker: false to render on this thread }
    */
-  constructor({ ctx = null, environment = 'city', occluder = null, maxVoices = 48, worker = true } = {}) {
+  constructor({ ctx = null, environment = 'city', occluder = null, maxVoices = 48, worker = true, recorded = true } = {}) {
     const AC = globalThis.AudioContext ?? globalThis.webkitAudioContext;
     this.ctx = ctx ?? new AC({ latencyHint: 'interactive' });
     const c = this.ctx, sr = c.sampleRate;
@@ -119,14 +137,81 @@ export class SoundEngine {
       } catch { this.worker = null; }
     }
     this.pending = [];
+    // ---- the recordings (the Audio Revamp)
+    this.manifest = null;                 // id -> { kind, tiers: { near|mid|far|1p|ui: [files] } }
+    this.recorded = new Map();            // 'id|tier' -> [AudioBuffer] once loaded, or 'loading'
+    this.decks = new Map();               // 'id|tier' -> the takes still to deal
+    this.waiting = [];                    // ids asked for before the manifest arrived
+    if (recorded && typeof fetch !== 'undefined') this.ready = this.loadManifest().catch(() => null);
+  }
+
+  // ---------------------------------------------------------------- recorded sounds
+  /** Load audio/manifest.json (the recorded sounds); ids asked for meanwhile are routed when it's in. */
+  async loadManifest(url = new URL('../../audio/manifest.json', import.meta.url)) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`manifest ${res.status}`);
+    const m = await res.json();
+    this.audioBase = new URL('.', res.url || url);
+    this.manifest = m.sounds ?? {};
+    const ids = this.waiting; this.waiting = [];
+    this.prefetch(ids);
+    return this.manifest;
+  }
+
+  /** The recorded sound an id plays ('gun:ar_sol:near' and 'gun:ar_sol:1p' are both 'gun:ar_sol'), or null. */
+  recordedId(id) {
+    const M = this.manifest;
+    if (!M) return null;
+    if (M[id]) return id;
+    const base = id.replace(/:(near|mid|far|1p)$/, '');
+    return base !== id && M[base] ? base : null;
+  }
+
+  #tier(base, tier) {
+    const key = `${base}|${tier}`, got = this.recorded.get(key);
+    if (got) return got === 'loading' ? null : got;
+    const files = this.manifest[base]?.tiers[tier];
+    if (!files?.length) return null;
+    this.recorded.set(key, 'loading');
+    Promise.all(files.map((f) => fetch(new URL(f, this.audioBase)).then((r) => r.arrayBuffer()).then((a) => this.ctx.decodeAudioData(a))))
+      .then((list) => this.recorded.set(key, list))
+      .catch(() => this.recorded.delete(key));
+    return null;
+  }
+
+  /** The next take of a tier, from a shuffled deck: never the one just played, every take before a repeat. */
+  #deal(base, tier) {
+    const list = this.#tier(base, tier);
+    if (!list) return null;
+    const key = `${base}|${tier}`;
+    let deck = this.decks.get(key);
+    if (!deck?.length) {
+      deck = list.map((_, i) => i);
+      for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+      const last = this.last.get(key);
+      if (deck.length > 1 && deck.at(-1) === last) [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+      this.decks.set(key, deck);
+    }
+    const i = deck.pop();
+    this.last.set(key, i);
+    return list[i];
   }
 
   /** Start (the first click: browsers keep audio off until you've touched the page). */
   resume() { if (this.ctx.state !== 'running') this.ctx.resume(); }
   get running() { return this.ctx.state === 'running'; }
 
-  /** Ask for sounds ahead of need (most important first). */
+  /** Ask for sounds ahead of need (most important first). Recorded ones load their near (or UI) takes. */
   prefetch(ids) {
+    if (!this.manifest && this.ready) { this.waiting.push(...ids); return; }
+    const synth = [];
+    for (const id of ids) {
+      const base = this.recordedId(id);
+      if (!base) { synth.push(id); continue; }
+      const T = this.manifest[base].tiers;
+      this.#tier(base, id.endsWith(':1p') && T['1p'] ? '1p' : T.near ? 'near' : 'ui');
+    }
+    ids = synth;
     const fresh = ids.filter((id) => !this.asked.has(id));
     for (const id of fresh) this.asked.add(id);
     if (!fresh.length) return;
@@ -158,7 +243,7 @@ export class SoundEngine {
     }));
   }
 
-  has(id) { return this.buffers.has(id); }
+  has(id) { const base = this.recordedId(id); return base ? !!this.#tier(base, this.manifest[base].tiers.near ? 'near' : 'ui') : this.buffers.has(id); }
 
   setListener(pos, yaw) { if (pos) { this.listener.x = pos.x; this.listener.y = pos.y; this.listener.z = pos.z; } this.listener.yaw = yaw ?? this.listener.yaw; }
 
@@ -185,8 +270,10 @@ export class SoundEngine {
    * rate (playback rate), jitter (± rate), offset (s into the buffer), delay (true: sound's travel
    * time), occlude (true: ask the occluder), ui (true: the dry UI bus) }. Returns the voice or null.
    */
-  play(id, { pos = null, far = null, kind = 'gun', gain = 1, rate = 1, jitter = 0.02, offset = 0, delay = true, occlude = false, ui = false } = {}) {
+  play(id, { pos = null, far = null, kind = 'gun', gain = 1, rate = 1, jitter = 0.02, offset = 0, delay = true, occlude = false, ui = false, wait = 0 } = {}) {
     if (!this.running) return null;
+    const rec = this.recordedId(id);
+    if (rec) return this.#playRecorded(rec, id, { pos, kind, gain, rate, jitter, offset, delay, occlude, ui, wait });
     const c = this.ctx, K = KINDS[kind] ?? KINDS.gun;
     let shape = { gain: 1, cutoff: 20000, delay: 0, wet: 0.08, far: 0 }, pan = 0, az = 0, d = 0;
     if (pos) {
@@ -230,6 +317,61 @@ export class SoundEngine {
     };
     if (nearBuf) start(nearBuf, farBuf ? 1 - shape.far : 1);
     if (farBuf) start(farBuf, nearBuf ? shape.far : 1);
+    this.voices.push(voice);
+    return voice;
+  }
+
+  /** A recorded sound: its distance versions mixed for where it is, a fresh take, a little pitch and level of its own. */
+  #playRecorded(base, id, { pos, kind, gain, rate, jitter, offset, delay, occlude, ui, wait }) {
+    const c = this.ctx, K = KINDS[kind] ?? KINDS.gun, T = this.manifest[base].tiers;
+    let shape = { gain: 1, cutoff: 20000, delay: 0, wet: 0.08 }, pan = 0, d = 0, az = 0;
+    if (pos) {
+      ({ d, az } = this.relative(pos));
+      shape = distanceShape(d, K);
+      if (shape.gain <= 0.0005) return null;
+      pan = Math.sin(az) * (d < 2 ? d / 2 : 1) * 0.85;
+      shape.cutoff *= 0.6 + 0.4 * (0.5 + 0.5 * Math.cos(az));
+      if (occlude && this.occluder && d > 2 && d < 220) { const o = this.occluder(pos); if (o > 0) { shape.cutoff *= 1 - 0.6 * o; shape.gain *= 1 - 0.3 * o; } }
+    }
+    // Which versions, how much of each (equal power through the crossfades).
+    let mixes;
+    if (id.endsWith(':1p') && T['1p']) mixes = [['1p', 1]];
+    else if (!T.near) mixes = [[T.ui ? 'ui' : Object.keys(T)[0], 1]];
+    else if (pos && T.mid) { const w = tierWeights(d, TIERS[kind] ? kind : 'gun'); mixes = [['near', w.near], ['mid', w.mid], ['far', w.far]].filter(([, x]) => x > 0.02); }
+    else mixes = [['near', 1]];
+    const picks = [];
+    for (const [tier, w] of mixes) {
+      const b = this.#deal(base, tier) ?? (tier !== 'near' && T.near ? this.#deal(base, 'near') : null);   // (still loading: the near take, dulled by the air)
+      if (b) picks.push([b, Math.sqrt(w)]);
+    }
+    if (!picks.length) return null;
+    const level = gain * shape.gain * 10 ** (((Math.random() * 2 - 1) * 1) / 20);   // ±1 dB a take
+    this.voices = this.voices.filter((v) => !v.done);
+    if (this.voices.length >= this.maxVoices) {
+      let q = null;
+      for (const v of this.voices) if (!q || v.level * (1 + v.prio) < q.level * (1 + q.prio)) q = v;
+      if (q.level * (1 + q.prio) >= level * (1 + K.prio)) return null;
+      this.#stop(q, 0.03);
+    }
+    const out = c.createGain(); out.gain.value = level;
+    let node = out;
+    if (shape.cutoff < 19000) { const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = shape.cutoff; lp.Q.value = 0.5; out.connect(lp); node = lp; }
+    if (pos && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); node.connect(p); node = p; }
+    if (ui) node.connect(this.ui);
+    else {
+      node.connect(this.world);
+      // The mid and far versions carry their own echoes: less of the room on top of them.
+      const send = c.createGain(); send.gain.value = shape.wet * (mixes.some(([t]) => t === 'mid' || t === 'far') ? 0.5 : 1); node.connect(send); send.connect(this.reverbIn);
+    }
+    const t = c.currentTime + wait + (pos && delay ? shape.delay : 0) + 0.005, r = rate * (1 + (Math.random() * 2 - 1) * Math.max(jitter, 0.025));
+    const voice = { srcs: [], out, level, prio: K.prio, done: false, end: t };
+    for (const [b, g] of picks) {
+      const src = c.createBufferSource(); src.buffer = b; src.playbackRate.value = r;
+      const sg = c.createGain(); sg.gain.value = g; src.connect(sg); sg.connect(out);
+      src.start(t, Math.min(offset, b.duration - 0.01));
+      voice.srcs.push(src); voice.end = Math.max(voice.end, t + (b.duration - offset) / r);
+      src.onended = () => { src.ended = true; if (voice.srcs.every((x) => x.ended)) { voice.done = true; out.disconnect(); } };
+    }
     this.voices.push(voice);
     return voice;
   }

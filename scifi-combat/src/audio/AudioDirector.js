@@ -131,7 +131,8 @@ export class AudioDirector {
     // ---- guns
     on('weapon:fire', (e) => {
       const ent = this.getEntity(e.id), spec = ent?.weapon;
-      const [kind, profile] = weaponDesign(spec ?? { id: e.weaponId });
+      let [kind, profile] = weaponDesign(spec ?? { id: e.weaponId });
+      if (kind === 'gun' && e.suppressed && E.recordedId?.('gun:supp')) profile = 'supp';   // a suppressor: the silenced shot
       if (kind === 'beam') return;
       if (this.charging.has(e.id)) { E.stop(this.charging.get(e.id), 0.04); this.charging.delete(e.id); }
       if (e.id === this.listenerId) { E.play(`${kind}:${profile}:1p`, { gain: kind === 'laser' ? 0.48 : 0.6, jitter: 0.015 }); return; }
@@ -204,16 +205,18 @@ export class AudioDirector {
     on('projectile:deflect', (e) => E.play('melee:deflect', { pos: at(e.point), kind: 'impact', gain: 0.6 }));
 
     // ---- explosions: the bigger and nearer, the harder they hit you
-    const blast = (p, radius, id) => {
+    const blast = (p, radius, id, element = null) => {
       if (!p) return;
       const d = this.#dist(p), size = radius >= 7 ? 'bomb' : radius >= 4.5 ? 'shell' : radius >= 3 ? 'vehicle' : 'grenade';
       E.play(`boom:${size}:near`, { pos: p, far: `boom:${size}:far`, kind: 'boom', gain: 1, jitter: 0.04 });
+      // Void and plasma blasts crackle as they go off.
+      if (element === 'void' || element === 'plasma') E.play('boom:emp', { pos: p, kind: 'boom', gain: 0.55, jitter: 0.05 });
       const reach = Math.max(6, radius * 3.2);
       if (d < reach) E.shock(Math.min(1, (1 - d / reach) * (0.6 + radius / 10)));
       if (id === this.listenerId) return;
       this.onNearMiss(Math.max(0, 1 - d / (reach * 1.5)));
     };
-    on('projectile:explode', (e) => blast(at(e.point), e.radius ?? 3, e.ownerId));
+    on('projectile:explode', (e) => { if (!e.artillery) blast(at(e.point), e.radius ?? 3, e.ownerId, e.element); });   // (a shell's boom is artillery:impact's)
     on('artillery:impact', (e) => blast(at(e.point), Math.max(5, e.radius ?? 6)));
     on('deployable:triggered', (e) => { if (/mine|charge|trip/.test(e.kind ?? '')) blast(at(e.point), e.radius ?? 3); });
     on('vehicle:destroyed', (e) => blast(at(e.at), 4));
@@ -345,10 +348,12 @@ export class AudioDirector {
     on('stratagem:thrown', (e) => E.play('ui:throw', e.id === this.listenerId ? { gain: 0.4 } : { pos: this.posOf(e.id), kind: 'foley', gain: 0.5 }));
     on('stratagem:beacon', (e) => E.play('ui:beacon', { pos: at(e.at), kind: 'ability', gain: 0.5 }));
     on('stratagem:pod', (e) => E.play('sky:pod', { pos: at(e.at), kind: 'report', gain: 0.9, offset: Math.max(0, 4 - (e.eta ?? 2)), delay: false }));
-    on('stratagem:land', (e) => blast(at(e.at), 4.5));
+    on('stratagem:land', (e) => { blast(at(e.at), 4.5); E.play('pod:open', { pos: at(e.at), kind: 'impact', gain: 0.8, wait: 0.6 }); });   // the pod's doors coming open
     on('stratagem:incoming', (e) => e.first && e.dir && E.play('sky:jet', { pos: at(e.from), kind: 'report', gain: 0.9, delay: false }));
     on('stratagem:smoke', (e) => E.play('ui:smoke', { pos: at(e.at), kind: 'ability', gain: 0.6 }));
     on('stratagem:grab', (e) => mine(e) && E.play('ui:grab', { ui: true, gain: 0.45 }));
+    // The end of the match: brass for a win, a falling line for a loss.
+    on('mode:victory', (e) => E.play(e.team === this.getEntity(this.listenerId)?.team ? 'music:victory' : 'music:defeat', { ui: true, gain: 0.5, jitter: 0 }));
     on('bp:earn', (e) => mine(e) && e.amount >= 25 && E.play('ui:bp', { ui: true, gain: 0.2 }));
     on('bp:spend', (e) => mine(e) && E.play('ui:buy', { ui: true, gain: 0.4 }));
     on('stratagem:instant', (e) => mine(e) && E.play('ui:hero', { ui: true, gain: 0.45 }));

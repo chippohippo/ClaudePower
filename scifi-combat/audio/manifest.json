@@ -1,0 +1,1444 @@
+{
+ "version": 1,
+ "note": "Built by tools/audio/revamp.mjs from the recorded packs (the Audio Revamp).",
+ "sounds": {
+  "gun:ar_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/ar_sol/near-1.ogg",
+     "gun/ar_sol/near-2.ogg",
+     "gun/ar_sol/near-3.ogg",
+     "gun/ar_sol/near-4.ogg",
+     "gun/ar_sol/near-5.ogg",
+     "gun/ar_sol/near-6.ogg",
+     "gun/ar_sol/near-7.ogg",
+     "gun/ar_sol/near-8.ogg"
+    ],
+    "mid": [
+     "gun/ar_sol/mid-1.ogg",
+     "gun/ar_sol/mid-2.ogg",
+     "gun/ar_sol/mid-3.ogg",
+     "gun/ar_sol/mid-4.ogg"
+    ],
+    "far": [
+     "gun/ar_sol/far-1.ogg",
+     "gun/ar_sol/far-2.ogg",
+     "gun/ar_sol/far-3.ogg"
+    ],
+    "1p": [
+     "gun/ar_sol/1p-1.ogg",
+     "gun/ar_sol/1p-2.ogg",
+     "gun/ar_sol/1p-3.ogg",
+     "gun/ar_sol/1p-4.ogg",
+     "gun/ar_sol/1p-5.ogg",
+     "gun/ar_sol/1p-6.ogg",
+     "gun/ar_sol/1p-7.ogg",
+     "gun/ar_sol/1p-8.ogg"
+    ]
+   }
+  },
+  "gun:ar_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/ar_void/near-1.ogg",
+     "gun/ar_void/near-2.ogg",
+     "gun/ar_void/near-3.ogg",
+     "gun/ar_void/near-4.ogg",
+     "gun/ar_void/near-5.ogg",
+     "gun/ar_void/near-6.ogg",
+     "gun/ar_void/near-7.ogg",
+     "gun/ar_void/near-8.ogg"
+    ],
+    "mid": [
+     "gun/ar_void/mid-1.ogg",
+     "gun/ar_void/mid-2.ogg",
+     "gun/ar_void/mid-3.ogg",
+     "gun/ar_void/mid-4.ogg"
+    ],
+    "far": [
+     "gun/ar_void/far-1.ogg",
+     "gun/ar_void/far-2.ogg",
+     "gun/ar_void/far-3.ogg"
+    ],
+    "1p": [
+     "gun/ar_void/1p-1.ogg",
+     "gun/ar_void/1p-2.ogg",
+     "gun/ar_void/1p-3.ogg",
+     "gun/ar_void/1p-4.ogg",
+     "gun/ar_void/1p-5.ogg",
+     "gun/ar_void/1p-6.ogg",
+     "gun/ar_void/1p-7.ogg",
+     "gun/ar_void/1p-8.ogg"
+    ]
+   }
+  },
+  "gun:br_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/br_sol/near-1.ogg",
+     "gun/br_sol/near-2.ogg",
+     "gun/br_sol/near-3.ogg",
+     "gun/br_sol/near-4.ogg"
+    ],
+    "mid": [
+     "gun/br_sol/mid-1.ogg",
+     "gun/br_sol/mid-2.ogg",
+     "gun/br_sol/mid-3.ogg",
+     "gun/br_sol/mid-4.ogg"
+    ],
+    "far": [
+     "gun/br_sol/far-1.ogg",
+     "gun/br_sol/far-2.ogg",
+     "gun/br_sol/far-3.ogg"
+    ],
+    "1p": [
+     "gun/br_sol/1p-1.ogg",
+     "gun/br_sol/1p-2.ogg",
+     "gun/br_sol/1p-3.ogg",
+     "gun/br_sol/1p-4.ogg"
+    ]
+   }
+  },
+  "gun:hmg": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/hmg/near-1.ogg",
+     "gun/hmg/near-2.ogg",
+     "gun/hmg/near-3.ogg",
+     "gun/hmg/near-4.ogg",
+     "gun/hmg/near-5.ogg",
+     "gun/hmg/near-6.ogg"
+    ],
+    "mid": [
+     "gun/hmg/mid-1.ogg",
+     "gun/hmg/mid-2.ogg",
+     "gun/hmg/mid-3.ogg",
+     "gun/hmg/mid-4.ogg"
+    ],
+    "far": [
+     "gun/hmg/far-1.ogg",
+     "gun/hmg/far-2.ogg",
+     "gun/hmg/far-3.ogg"
+    ],
+    "1p": [
+     "gun/hmg/1p-1.ogg",
+     "gun/hmg/1p-2.ogg",
+     "gun/hmg/1p-3.ogg",
+     "gun/hmg/1p-4.ogg",
+     "gun/hmg/1p-5.ogg",
+     "gun/hmg/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:smg_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/smg_sol/near-1.ogg",
+     "gun/smg_sol/near-2.ogg",
+     "gun/smg_sol/near-3.ogg",
+     "gun/smg_sol/near-4.ogg",
+     "gun/smg_sol/near-5.ogg",
+     "gun/smg_sol/near-6.ogg"
+    ],
+    "mid": [
+     "gun/smg_sol/mid-1.ogg",
+     "gun/smg_sol/mid-2.ogg",
+     "gun/smg_sol/mid-3.ogg",
+     "gun/smg_sol/mid-4.ogg"
+    ],
+    "far": [
+     "gun/smg_sol/far-1.ogg",
+     "gun/smg_sol/far-2.ogg",
+     "gun/smg_sol/far-3.ogg"
+    ],
+    "1p": [
+     "gun/smg_sol/1p-1.ogg",
+     "gun/smg_sol/1p-2.ogg",
+     "gun/smg_sol/1p-3.ogg",
+     "gun/smg_sol/1p-4.ogg",
+     "gun/smg_sol/1p-5.ogg",
+     "gun/smg_sol/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:smg_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/smg_void/near-1.ogg",
+     "gun/smg_void/near-2.ogg",
+     "gun/smg_void/near-3.ogg",
+     "gun/smg_void/near-4.ogg",
+     "gun/smg_void/near-5.ogg",
+     "gun/smg_void/near-6.ogg"
+    ],
+    "mid": [
+     "gun/smg_void/mid-1.ogg",
+     "gun/smg_void/mid-2.ogg",
+     "gun/smg_void/mid-3.ogg",
+     "gun/smg_void/mid-4.ogg"
+    ],
+    "far": [
+     "gun/smg_void/far-1.ogg",
+     "gun/smg_void/far-2.ogg",
+     "gun/smg_void/far-3.ogg"
+    ],
+    "1p": [
+     "gun/smg_void/1p-1.ogg",
+     "gun/smg_void/1p-2.ogg",
+     "gun/smg_void/1p-3.ogg",
+     "gun/smg_void/1p-4.ogg",
+     "gun/smg_void/1p-5.ogg",
+     "gun/smg_void/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:sg_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/sg_sol/near-1.ogg",
+     "gun/sg_sol/near-2.ogg",
+     "gun/sg_sol/near-3.ogg",
+     "gun/sg_sol/near-4.ogg",
+     "gun/sg_sol/near-5.ogg",
+     "gun/sg_sol/near-6.ogg"
+    ],
+    "mid": [
+     "gun/sg_sol/mid-1.ogg",
+     "gun/sg_sol/mid-2.ogg",
+     "gun/sg_sol/mid-3.ogg",
+     "gun/sg_sol/mid-4.ogg"
+    ],
+    "far": [
+     "gun/sg_sol/far-1.ogg",
+     "gun/sg_sol/far-2.ogg",
+     "gun/sg_sol/far-3.ogg"
+    ],
+    "1p": [
+     "gun/sg_sol/1p-1.ogg",
+     "gun/sg_sol/1p-2.ogg",
+     "gun/sg_sol/1p-3.ogg",
+     "gun/sg_sol/1p-4.ogg",
+     "gun/sg_sol/1p-5.ogg",
+     "gun/sg_sol/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:sg_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/sg_void/near-1.ogg",
+     "gun/sg_void/near-2.ogg",
+     "gun/sg_void/near-3.ogg",
+     "gun/sg_void/near-4.ogg",
+     "gun/sg_void/near-5.ogg",
+     "gun/sg_void/near-6.ogg"
+    ],
+    "mid": [
+     "gun/sg_void/mid-1.ogg",
+     "gun/sg_void/mid-2.ogg",
+     "gun/sg_void/mid-3.ogg",
+     "gun/sg_void/mid-4.ogg"
+    ],
+    "far": [
+     "gun/sg_void/far-1.ogg",
+     "gun/sg_void/far-2.ogg",
+     "gun/sg_void/far-3.ogg"
+    ],
+    "1p": [
+     "gun/sg_void/1p-1.ogg",
+     "gun/sg_void/1p-2.ogg",
+     "gun/sg_void/1p-3.ogg",
+     "gun/sg_void/1p-4.ogg",
+     "gun/sg_void/1p-5.ogg",
+     "gun/sg_void/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:sr_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/sr_sol/near-1.ogg",
+     "gun/sr_sol/near-2.ogg",
+     "gun/sr_sol/near-3.ogg",
+     "gun/sr_sol/near-4.ogg",
+     "gun/sr_sol/near-5.ogg",
+     "gun/sr_sol/near-6.ogg"
+    ],
+    "mid": [
+     "gun/sr_sol/mid-1.ogg",
+     "gun/sr_sol/mid-2.ogg",
+     "gun/sr_sol/mid-3.ogg",
+     "gun/sr_sol/mid-4.ogg"
+    ],
+    "far": [
+     "gun/sr_sol/far-1.ogg",
+     "gun/sr_sol/far-2.ogg",
+     "gun/sr_sol/far-3.ogg"
+    ],
+    "1p": [
+     "gun/sr_sol/1p-1.ogg",
+     "gun/sr_sol/1p-2.ogg",
+     "gun/sr_sol/1p-3.ogg",
+     "gun/sr_sol/1p-4.ogg",
+     "gun/sr_sol/1p-5.ogg",
+     "gun/sr_sol/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:sr_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/sr_void/near-1.ogg",
+     "gun/sr_void/near-2.ogg",
+     "gun/sr_void/near-3.ogg",
+     "gun/sr_void/near-4.ogg",
+     "gun/sr_void/near-5.ogg",
+     "gun/sr_void/near-6.ogg"
+    ],
+    "mid": [
+     "gun/sr_void/mid-1.ogg",
+     "gun/sr_void/mid-2.ogg",
+     "gun/sr_void/mid-3.ogg",
+     "gun/sr_void/mid-4.ogg"
+    ],
+    "far": [
+     "gun/sr_void/far-1.ogg",
+     "gun/sr_void/far-2.ogg",
+     "gun/sr_void/far-3.ogg"
+    ],
+    "1p": [
+     "gun/sr_void/1p-1.ogg",
+     "gun/sr_void/1p-2.ogg",
+     "gun/sr_void/1p-3.ogg",
+     "gun/sr_void/1p-4.ogg",
+     "gun/sr_void/1p-5.ogg",
+     "gun/sr_void/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:autocannon": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/autocannon/near-1.ogg",
+     "gun/autocannon/near-2.ogg",
+     "gun/autocannon/near-3.ogg",
+     "gun/autocannon/near-4.ogg",
+     "gun/autocannon/near-5.ogg",
+     "gun/autocannon/near-6.ogg"
+    ],
+    "mid": [
+     "gun/autocannon/mid-1.ogg",
+     "gun/autocannon/mid-2.ogg",
+     "gun/autocannon/mid-3.ogg",
+     "gun/autocannon/mid-4.ogg"
+    ],
+    "far": [
+     "gun/autocannon/far-1.ogg",
+     "gun/autocannon/far-2.ogg",
+     "gun/autocannon/far-3.ogg"
+    ],
+    "1p": [
+     "gun/autocannon/1p-1.ogg",
+     "gun/autocannon/1p-2.ogg",
+     "gun/autocannon/1p-3.ogg",
+     "gun/autocannon/1p-4.ogg",
+     "gun/autocannon/1p-5.ogg",
+     "gun/autocannon/1p-6.ogg"
+    ]
+   }
+  },
+  "gun:cannon": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/cannon/near-1.ogg",
+     "gun/cannon/near-2.ogg",
+     "gun/cannon/near-3.ogg"
+    ],
+    "mid": [
+     "gun/cannon/mid-1.ogg",
+     "gun/cannon/mid-2.ogg",
+     "gun/cannon/mid-3.ogg"
+    ],
+    "far": [
+     "gun/cannon/far-1.ogg",
+     "gun/cannon/far-2.ogg",
+     "gun/cannon/far-3.ogg"
+    ],
+    "1p": [
+     "gun/cannon/1p-1.ogg",
+     "gun/cannon/1p-2.ogg",
+     "gun/cannon/1p-3.ogg"
+    ]
+   }
+  },
+  "gun:supp": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "gun/supp/near-1.ogg",
+     "gun/supp/near-2.ogg",
+     "gun/supp/near-3.ogg",
+     "gun/supp/near-4.ogg",
+     "gun/supp/near-5.ogg",
+     "gun/supp/near-6.ogg"
+    ],
+    "mid": [
+     "gun/supp/mid-1.ogg",
+     "gun/supp/mid-2.ogg",
+     "gun/supp/mid-3.ogg",
+     "gun/supp/mid-4.ogg"
+    ],
+    "far": [
+     "gun/supp/far-1.ogg",
+     "gun/supp/far-2.ogg",
+     "gun/supp/far-3.ogg"
+    ],
+    "1p": [
+     "gun/supp/1p-1.ogg",
+     "gun/supp/1p-2.ogg",
+     "gun/supp/1p-3.ogg",
+     "gun/supp/1p-4.ogg",
+     "gun/supp/1p-5.ogg",
+     "gun/supp/1p-6.ogg"
+    ]
+   }
+  },
+  "laser:pulse_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/pulse_sol/near-1.ogg",
+     "laser/pulse_sol/near-2.ogg",
+     "laser/pulse_sol/near-3.ogg",
+     "laser/pulse_sol/near-4.ogg",
+     "laser/pulse_sol/near-5.ogg",
+     "laser/pulse_sol/near-6.ogg"
+    ],
+    "mid": [
+     "laser/pulse_sol/mid-1.ogg",
+     "laser/pulse_sol/mid-2.ogg",
+     "laser/pulse_sol/mid-3.ogg",
+     "laser/pulse_sol/mid-4.ogg"
+    ],
+    "far": [
+     "laser/pulse_sol/far-1.ogg",
+     "laser/pulse_sol/far-2.ogg",
+     "laser/pulse_sol/far-3.ogg"
+    ],
+    "1p": [
+     "laser/pulse_sol/1p-1.ogg",
+     "laser/pulse_sol/1p-2.ogg",
+     "laser/pulse_sol/1p-3.ogg",
+     "laser/pulse_sol/1p-4.ogg",
+     "laser/pulse_sol/1p-5.ogg",
+     "laser/pulse_sol/1p-6.ogg"
+    ]
+   }
+  },
+  "laser:pulse_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/pulse_void/near-1.ogg",
+     "laser/pulse_void/near-2.ogg",
+     "laser/pulse_void/near-3.ogg",
+     "laser/pulse_void/near-4.ogg",
+     "laser/pulse_void/near-5.ogg",
+     "laser/pulse_void/near-6.ogg"
+    ],
+    "mid": [
+     "laser/pulse_void/mid-1.ogg",
+     "laser/pulse_void/mid-2.ogg",
+     "laser/pulse_void/mid-3.ogg",
+     "laser/pulse_void/mid-4.ogg"
+    ],
+    "far": [
+     "laser/pulse_void/far-1.ogg",
+     "laser/pulse_void/far-2.ogg",
+     "laser/pulse_void/far-3.ogg"
+    ],
+    "1p": [
+     "laser/pulse_void/1p-1.ogg",
+     "laser/pulse_void/1p-2.ogg",
+     "laser/pulse_void/1p-3.ogg",
+     "laser/pulse_void/1p-4.ogg",
+     "laser/pulse_void/1p-5.ogg",
+     "laser/pulse_void/1p-6.ogg"
+    ]
+   }
+  },
+  "laser:light_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/light_sol/near-1.ogg",
+     "laser/light_sol/near-2.ogg",
+     "laser/light_sol/near-3.ogg",
+     "laser/light_sol/near-4.ogg",
+     "laser/light_sol/near-5.ogg",
+     "laser/light_sol/near-6.ogg"
+    ],
+    "mid": [
+     "laser/light_sol/mid-1.ogg",
+     "laser/light_sol/mid-2.ogg",
+     "laser/light_sol/mid-3.ogg",
+     "laser/light_sol/mid-4.ogg"
+    ],
+    "far": [
+     "laser/light_sol/far-1.ogg",
+     "laser/light_sol/far-2.ogg",
+     "laser/light_sol/far-3.ogg"
+    ],
+    "1p": [
+     "laser/light_sol/1p-1.ogg",
+     "laser/light_sol/1p-2.ogg",
+     "laser/light_sol/1p-3.ogg",
+     "laser/light_sol/1p-4.ogg",
+     "laser/light_sol/1p-5.ogg",
+     "laser/light_sol/1p-6.ogg"
+    ]
+   }
+  },
+  "laser:light_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/light_void/near-1.ogg",
+     "laser/light_void/near-2.ogg",
+     "laser/light_void/near-3.ogg",
+     "laser/light_void/near-4.ogg",
+     "laser/light_void/near-5.ogg",
+     "laser/light_void/near-6.ogg"
+    ],
+    "mid": [
+     "laser/light_void/mid-1.ogg",
+     "laser/light_void/mid-2.ogg",
+     "laser/light_void/mid-3.ogg",
+     "laser/light_void/mid-4.ogg"
+    ],
+    "far": [
+     "laser/light_void/far-1.ogg",
+     "laser/light_void/far-2.ogg",
+     "laser/light_void/far-3.ogg"
+    ],
+    "1p": [
+     "laser/light_void/1p-1.ogg",
+     "laser/light_void/1p-2.ogg",
+     "laser/light_void/1p-3.ogg",
+     "laser/light_void/1p-4.ogg",
+     "laser/light_void/1p-5.ogg",
+     "laser/light_void/1p-6.ogg"
+    ]
+   }
+  },
+  "laser:plasma_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/plasma_sol/near-1.ogg",
+     "laser/plasma_sol/near-2.ogg",
+     "laser/plasma_sol/near-3.ogg"
+    ],
+    "mid": [
+     "laser/plasma_sol/mid-1.ogg",
+     "laser/plasma_sol/mid-2.ogg",
+     "laser/plasma_sol/mid-3.ogg"
+    ],
+    "far": [
+     "laser/plasma_sol/far-1.ogg",
+     "laser/plasma_sol/far-2.ogg",
+     "laser/plasma_sol/far-3.ogg"
+    ],
+    "1p": [
+     "laser/plasma_sol/1p-1.ogg",
+     "laser/plasma_sol/1p-2.ogg",
+     "laser/plasma_sol/1p-3.ogg"
+    ]
+   }
+  },
+  "laser:lance_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/lance_sol/near-1.ogg",
+     "laser/lance_sol/near-2.ogg",
+     "laser/lance_sol/near-3.ogg"
+    ],
+    "mid": [
+     "laser/lance_sol/mid-1.ogg",
+     "laser/lance_sol/mid-2.ogg",
+     "laser/lance_sol/mid-3.ogg"
+    ],
+    "far": [
+     "laser/lance_sol/far-1.ogg",
+     "laser/lance_sol/far-2.ogg",
+     "laser/lance_sol/far-3.ogg"
+    ],
+    "1p": [
+     "laser/lance_sol/1p-1.ogg",
+     "laser/lance_sol/1p-2.ogg",
+     "laser/lance_sol/1p-3.ogg"
+    ]
+   }
+  },
+  "laser:lance_void": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/lance_void/near-1.ogg",
+     "laser/lance_void/near-2.ogg",
+     "laser/lance_void/near-3.ogg"
+    ],
+    "mid": [
+     "laser/lance_void/mid-1.ogg",
+     "laser/lance_void/mid-2.ogg",
+     "laser/lance_void/mid-3.ogg"
+    ],
+    "far": [
+     "laser/lance_void/far-1.ogg",
+     "laser/lance_void/far-2.ogg",
+     "laser/lance_void/far-3.ogg"
+    ],
+    "1p": [
+     "laser/lance_void/1p-1.ogg",
+     "laser/lance_void/1p-2.ogg",
+     "laser/lance_void/1p-3.ogg"
+    ]
+   }
+  },
+  "laser:rail_sol": {
+   "kind": "gun",
+   "tiers": {
+    "near": [
+     "laser/rail_sol/near-1.ogg",
+     "laser/rail_sol/near-2.ogg",
+     "laser/rail_sol/near-3.ogg"
+    ],
+    "mid": [
+     "laser/rail_sol/mid-1.ogg",
+     "laser/rail_sol/mid-2.ogg",
+     "laser/rail_sol/mid-3.ogg"
+    ],
+    "far": [
+     "laser/rail_sol/far-1.ogg",
+     "laser/rail_sol/far-2.ogg",
+     "laser/rail_sol/far-3.ogg"
+    ],
+    "1p": [
+     "laser/rail_sol/1p-1.ogg",
+     "laser/rail_sol/1p-2.ogg",
+     "laser/rail_sol/1p-3.ogg"
+    ]
+   }
+  },
+  "boom:grenade": {
+   "kind": "boom",
+   "tiers": {
+    "near": [
+     "boom/grenade/near-1.ogg",
+     "boom/grenade/near-2.ogg",
+     "boom/grenade/near-3.ogg",
+     "boom/grenade/near-4.ogg",
+     "boom/grenade/near-5.ogg",
+     "boom/grenade/near-6.ogg"
+    ],
+    "mid": [
+     "boom/grenade/mid-1.ogg",
+     "boom/grenade/mid-2.ogg",
+     "boom/grenade/mid-3.ogg",
+     "boom/grenade/mid-4.ogg"
+    ],
+    "far": [
+     "boom/grenade/far-1.ogg",
+     "boom/grenade/far-2.ogg",
+     "boom/grenade/far-3.ogg"
+    ]
+   }
+  },
+  "boom:vehicle": {
+   "kind": "boom",
+   "tiers": {
+    "near": [
+     "boom/vehicle/near-1.ogg",
+     "boom/vehicle/near-2.ogg",
+     "boom/vehicle/near-3.ogg"
+    ],
+    "mid": [
+     "boom/vehicle/mid-1.ogg",
+     "boom/vehicle/mid-2.ogg",
+     "boom/vehicle/mid-3.ogg"
+    ],
+    "far": [
+     "boom/vehicle/far-1.ogg",
+     "boom/vehicle/far-2.ogg",
+     "boom/vehicle/far-3.ogg"
+    ]
+   }
+  },
+  "boom:shell": {
+   "kind": "boom",
+   "tiers": {
+    "near": [
+     "boom/shell/near-1.ogg",
+     "boom/shell/near-2.ogg",
+     "boom/shell/near-3.ogg"
+    ],
+    "mid": [
+     "boom/shell/mid-1.ogg",
+     "boom/shell/mid-2.ogg",
+     "boom/shell/mid-3.ogg"
+    ],
+    "far": [
+     "boom/shell/far-1.ogg",
+     "boom/shell/far-2.ogg",
+     "boom/shell/far-3.ogg"
+    ]
+   }
+  },
+  "boom:bomb": {
+   "kind": "boom",
+   "tiers": {
+    "near": [
+     "boom/bomb/near-1.ogg",
+     "boom/bomb/near-2.ogg",
+     "boom/bomb/near-3.ogg"
+    ],
+    "mid": [
+     "boom/bomb/mid-1.ogg",
+     "boom/bomb/mid-2.ogg",
+     "boom/bomb/mid-3.ogg"
+    ],
+    "far": [
+     "boom/bomb/far-1.ogg",
+     "boom/bomb/far-2.ogg",
+     "boom/bomb/far-3.ogg"
+    ]
+   }
+  },
+  "boom:emp": {
+   "kind": "boom",
+   "tiers": {
+    "near": [
+     "boom/emp/near-1.ogg",
+     "boom/emp/near-2.ogg",
+     "boom/emp/near-3.ogg"
+    ],
+    "mid": [
+     "boom/emp/mid-1.ogg",
+     "boom/emp/mid-2.ogg",
+     "boom/emp/mid-3.ogg"
+    ],
+    "far": [
+     "boom/emp/far-1.ogg",
+     "boom/emp/far-2.ogg",
+     "boom/emp/far-3.ogg"
+    ]
+   }
+  },
+  "mech:magout": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/magout/near-1.ogg",
+     "mech/magout/near-2.ogg",
+     "mech/magout/near-3.ogg"
+    ]
+   }
+  },
+  "mech:magin": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/magin/near-1.ogg",
+     "mech/magin/near-2.ogg",
+     "mech/magin/near-3.ogg"
+    ]
+   }
+  },
+  "mech:bolt": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/bolt/near-1.ogg",
+     "mech/bolt/near-2.ogg",
+     "mech/bolt/near-3.ogg"
+    ]
+   }
+  },
+  "mech:pump": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/pump/near-1.ogg",
+     "mech/pump/near-2.ogg",
+     "mech/pump/near-3.ogg"
+    ]
+   }
+  },
+  "mech:swap": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/swap/near-1.ogg",
+     "mech/swap/near-2.ogg",
+     "mech/swap/near-3.ogg"
+    ]
+   }
+  },
+  "mech:dry": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/dry/near-1.ogg",
+     "mech/dry/near-2.ogg",
+     "mech/dry/near-3.ogg"
+    ]
+   }
+  },
+  "mech:vent": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/vent/near-1.ogg",
+     "mech/vent/near-2.ogg",
+     "mech/vent/near-3.ogg"
+    ]
+   }
+  },
+  "mech:overheat": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "mech/overheat/near-1.ogg",
+     "mech/overheat/near-2.ogg",
+     "mech/overheat/near-3.ogg"
+    ]
+   }
+  },
+  "brass:hard": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "brass/hard/near-1.ogg",
+     "brass/hard/near-2.ogg",
+     "brass/hard/near-3.ogg"
+    ]
+   }
+  },
+  "brass:dirt": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "brass/dirt/near-1.ogg",
+     "brass/dirt/near-2.ogg",
+     "brass/dirt/near-3.ogg"
+    ]
+   }
+  },
+  "brass:snow": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "brass/snow/near-1.ogg",
+     "brass/snow/near-2.ogg",
+     "brass/snow/near-3.ogg"
+    ]
+   }
+  },
+  "cloth": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "cloth/near-1.ogg",
+     "cloth/near-2.ogg",
+     "cloth/near-3.ogg"
+    ]
+   }
+  },
+  "body:heavy": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "body/heavy/near-1.ogg",
+     "body/heavy/near-2.ogg",
+     "body/heavy/near-3.ogg"
+    ]
+   }
+  },
+  "body:slide": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "body/slide/near-1.ogg",
+     "body/slide/near-2.ogg",
+     "body/slide/near-3.ogg"
+    ]
+   }
+  },
+  "dig": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "dig/near-1.ogg",
+     "dig/near-2.ogg",
+     "dig/near-3.ogg"
+    ]
+   }
+  },
+  "foot:concrete": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "foot/concrete/near-1.ogg",
+     "foot/concrete/near-2.ogg",
+     "foot/concrete/near-3.ogg",
+     "foot/concrete/near-4.ogg"
+    ]
+   }
+  },
+  "foot:dirt": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "foot/dirt/near-1.ogg",
+     "foot/dirt/near-2.ogg",
+     "foot/dirt/near-3.ogg",
+     "foot/dirt/near-4.ogg",
+     "foot/dirt/near-5.ogg",
+     "foot/dirt/near-6.ogg",
+     "foot/dirt/near-7.ogg",
+     "foot/dirt/near-8.ogg"
+    ]
+   }
+  },
+  "foot:snow": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "foot/snow/near-1.ogg",
+     "foot/snow/near-2.ogg",
+     "foot/snow/near-3.ogg",
+     "foot/snow/near-4.ogg"
+    ]
+   }
+  },
+  "foot:wood": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "foot/wood/near-1.ogg",
+     "foot/wood/near-2.ogg",
+     "foot/wood/near-3.ogg",
+     "foot/wood/near-4.ogg"
+    ]
+   }
+  },
+  "foot:metal": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "foot/metal/near-1.ogg",
+     "foot/metal/near-2.ogg",
+     "foot/metal/near-3.ogg",
+     "foot/metal/near-4.ogg"
+    ]
+   }
+  },
+  "impact:metal": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "impact/metal/near-1.ogg",
+     "impact/metal/near-2.ogg",
+     "impact/metal/near-3.ogg",
+     "impact/metal/near-4.ogg"
+    ]
+   }
+  },
+  "impact:vehicle": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "impact/vehicle/near-1.ogg",
+     "impact/vehicle/near-2.ogg",
+     "impact/vehicle/near-3.ogg"
+    ]
+   }
+  },
+  "impact:wood": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "impact/wood/near-1.ogg",
+     "impact/wood/near-2.ogg",
+     "impact/wood/near-3.ogg"
+    ]
+   }
+  },
+  "impact:flesh": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "impact/flesh/near-1.ogg",
+     "impact/flesh/near-2.ogg",
+     "impact/flesh/near-3.ogg",
+     "impact/flesh/near-4.ogg",
+     "impact/flesh/near-5.ogg"
+    ]
+   }
+  },
+  "melee:swing": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/swing/near-1.ogg",
+     "melee/swing/near-2.ogg",
+     "melee/swing/near-3.ogg"
+    ]
+   }
+  },
+  "melee:hit": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/hit/near-1.ogg",
+     "melee/hit/near-2.ogg",
+     "melee/hit/near-3.ogg",
+     "melee/hit/near-4.ogg",
+     "melee/hit/near-5.ogg",
+     "melee/hit/near-6.ogg",
+     "melee/hit/near-7.ogg"
+    ]
+   }
+  },
+  "melee:block": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/block/near-1.ogg",
+     "melee/block/near-2.ogg",
+     "melee/block/near-3.ogg"
+    ]
+   }
+  },
+  "melee:parry": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/parry/near-1.ogg",
+     "melee/parry/near-2.ogg",
+     "melee/parry/near-3.ogg"
+    ]
+   }
+  },
+  "melee:deflect": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/deflect/near-1.ogg",
+     "melee/deflect/near-2.ogg",
+     "melee/deflect/near-3.ogg"
+    ]
+   }
+  },
+  "melee:guardbreak": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "melee/guardbreak/near-1.ogg",
+     "melee/guardbreak/near-2.ogg",
+     "melee/guardbreak/near-3.ogg"
+    ]
+   }
+  },
+  "ui:hit": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit/ui-1.ogg",
+     "ui/hit/ui-2.ogg",
+     "ui/hit/ui-3.ogg",
+     "ui/hit/ui-4.ogg"
+    ]
+   }
+  },
+  "ui:hit_head": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit_head/ui-1.ogg",
+     "ui/hit_head/ui-2.ogg",
+     "ui/hit_head/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:hit_kill": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit_kill/ui-1.ogg",
+     "ui/hit_kill/ui-2.ogg",
+     "ui/hit_kill/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:hit_plink": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit_plink/ui-1.ogg",
+     "ui/hit_plink/ui-2.ogg",
+     "ui/hit_plink/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:hit_shieldbreak": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit_shieldbreak/ui-1.ogg",
+     "ui/hit_shieldbreak/ui-2.ogg",
+     "ui/hit_shieldbreak/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:hit_friendly": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hit_friendly/ui-1.ogg",
+     "ui/hit_friendly/ui-2.ogg",
+     "ui/hit_friendly/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:ability_hit": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/ability_hit/ui-1.ogg",
+     "ui/ability_hit/ui-2.ogg",
+     "ui/ability_hit/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:open": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/open/ui-1.ogg",
+     "ui/open/ui-2.ogg",
+     "ui/open/ui-3.ogg"
+    ]
+   }
+  },
+  "arrow:1": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/1/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:2": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/2/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:3": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/3/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:4": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/4/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:5": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/5/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:6": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/6/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:7": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/7/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:8": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/8/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:9": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/9/ui-1.ogg"
+    ]
+   }
+  },
+  "arrow:10": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "arrow/10/ui-1.ogg"
+    ]
+   }
+  },
+  "ui:error": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/error/ui-1.ogg",
+     "ui/error/ui-2.ogg",
+     "ui/error/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:denied": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/denied/ui-1.ogg",
+     "ui/denied/ui-2.ogg",
+     "ui/denied/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:armed": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/armed/ui-1.ogg",
+     "ui/armed/ui-2.ogg",
+     "ui/armed/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:beacon": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/beacon/ui-1.ogg",
+     "ui/beacon/ui-2.ogg",
+     "ui/beacon/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:beep": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/beep/ui-1.ogg",
+     "ui/beep/ui-2.ogg",
+     "ui/beep/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:throw": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/throw/ui-1.ogg",
+     "ui/throw/ui-2.ogg",
+     "ui/throw/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:grab": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/grab/ui-1.ogg",
+     "ui/grab/ui-2.ogg",
+     "ui/grab/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:stim": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/stim/ui-1.ogg",
+     "ui/stim/ui-2.ogg",
+     "ui/stim/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:repair": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/repair/ui-1.ogg",
+     "ui/repair/ui-2.ogg",
+     "ui/repair/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:bp": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/bp/ui-1.ogg",
+     "ui/bp/ui-2.ogg",
+     "ui/bp/ui-3.ogg",
+     "ui/bp/ui-4.ogg"
+    ]
+   }
+  },
+  "ui:buy": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/buy/ui-1.ogg",
+     "ui/buy/ui-2.ogg",
+     "ui/buy/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:ready": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/ready/ui-1.ogg",
+     "ui/ready/ui-2.ogg",
+     "ui/ready/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:super_ready": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/super_ready/ui-1.ogg",
+     "ui/super_ready/ui-2.ogg",
+     "ui/super_ready/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:hero": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/hero/ui-1.ogg"
+    ]
+   }
+  },
+  "ui:smoke": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "ui/smoke/near-1.ogg",
+     "ui/smoke/near-2.ogg",
+     "ui/smoke/near-3.ogg"
+    ]
+   }
+  },
+  "ui:revive": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/revive/ui-1.ogg",
+     "ui/revive/ui-2.ogg",
+     "ui/revive/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:revived": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/revived/ui-1.ogg",
+     "ui/revived/ui-2.ogg",
+     "ui/revived/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:down": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/down/ui-1.ogg",
+     "ui/down/ui-2.ogg",
+     "ui/down/ui-3.ogg"
+    ]
+   }
+  },
+  "ui:empty": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "ui/empty/ui-1.ogg",
+     "ui/empty/ui-2.ogg",
+     "ui/empty/ui-3.ogg"
+    ]
+   }
+  },
+  "pod:open": {
+   "kind": "near",
+   "tiers": {
+    "near": [
+     "pod/open/near-1.ogg",
+     "pod/open/near-2.ogg",
+     "pod/open/near-3.ogg",
+     "pod/open/near-4.ogg"
+    ]
+   }
+  },
+  "music:victory": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "music/victory/ui-1.ogg"
+    ]
+   }
+  },
+  "music:defeat": {
+   "kind": "ui",
+   "tiers": {
+    "ui": [
+     "music/defeat/ui-1.ogg"
+    ]
+   }
+  }
+ }
+}

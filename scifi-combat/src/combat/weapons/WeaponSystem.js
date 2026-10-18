@@ -685,7 +685,7 @@ export class ProjectileSystem {
       }
     }
     if (p.spec.splash > 0) {
-      bus.emit('projectile:explode', { point: hit.point, radius: p.spec.splash, ownerId: p.ownerId, artillery: !!s.artillery });
+      bus.emit('projectile:explode', { point: hit.point, radius: p.spec.splash, ownerId: p.ownerId, artillery: !!s.artillery, element: s.ammoType ?? null });
       this.world.explode?.(hit.point, p.spec.splash, s, p);
     } else if (e && (this.world.harm ? this.world.harm(p.team, e, 'projectile') : e.team !== p.team ? 1 : 0) > 0) {
       const share = this.world.harm ? this.world.harm(p.team, e, 'projectile') : 1, friendly = e.team === p.team;
