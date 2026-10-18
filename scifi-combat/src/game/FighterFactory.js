@@ -53,6 +53,8 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
   movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
   movement.hooks.scale = () => silhouetteScale(e);
+  movement.hooks.coverFaces = (x, z, r, out) => world.vehicles?.coverFaces(x, z, r, out);   // parked cars are cover too
+  movement.hooks.coverHolds = (v) => world.vehicles?.coverHolds(v) ?? false;
   e.onHit = (res, info, by) => reactToHit(e, res, info, by);
   e.woundSite = (info) => woundSite(e, info);   // Health books each hit to where it landed
   // Downed or killed on an exposed seat: you come off the vehicle (and the ragdoll takes over).

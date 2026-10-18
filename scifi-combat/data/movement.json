@@ -189,6 +189,20 @@
   "absorb": 3,
   "maxImpact": 21
  },
+ "cover": {
+  "_note": "Cover (the cover key, T): your back to the face of a wall, barrier or parked car within reach m in front of you that's at least minHeight m tall; from highAt m it's high cover (you stand at it), below that low cover (you crouch behind it). You get to it at up to snapSpeed m/s and shuffle along it at moveSpeed m/s and stop at its ends; within edge m of an end you're at its corner. Aiming or firing brings you out over peekTime s: up over low cover, or out peekOut m past a high corner (halfway along a wall there's nothing to come out to); the gun is up once you're `ready` of the way out, and you go back in when you let go. Out of it: the key again, a dive, sprinting or pushing away from it for leaveHold s, a hop over low cover, or the cover going (blown away, driven off). turn: how far you face along it toward your side.",
+  "reach": 2.2,
+  "minHeight": 0.85,
+  "highAt": 1.45,
+  "moveSpeed": 2.2,
+  "snapSpeed": 6,
+  "edge": 0.5,
+  "peekOut": 0.55,
+  "peekTime": 0.16,
+  "ready": 0.8,
+  "leaveHold": 0.15,
+  "turn": 0.35
+ },
  "knockdown": {
   "_note": "Ragdoll-lite: explosions, rams and big shoves throw you, you tumble and slide, then get up (~0.85 s). Prone soldiers need 1.8x the impulse.",
   "threshold": 6,

@@ -56,6 +56,8 @@ export function makeWorld(cover = [], { down = false, terrain = null, bp = false
     e.status = new StatusComponent(e, data.statuses, world);
     movement.hooks.fallDamage = (amount) => e.health.damage(amount, { kind: 'fall' }, null);
     movement.hooks.vital = () => (e.health.dead ? 'dead' : e.health.downed ? 'downed' : 'alive');
+    movement.hooks.coverFaces = (x, z, r, out) => world.vehicles?.coverFaces(x, z, r, out);
+    movement.hooks.coverHolds = (v) => world.vehicles?.coverHolds(v) ?? false;
     e.onHit = (res, info, by) => reactToHit(e, res, info, by);
     e.woundSite = (info) => woundSite(e, info);
     e.weapons = new WeaponComponent(e, [new WeaponInstance(buildWeapon(data.ballistic, gun, [], []), data.recoil)], world);

@@ -18,6 +18,9 @@
 //  * The slide (sprint + crouch) is committed for 0.45 s, carries far on a friction curve that
 //    ramps up, and can be steered at 80 deg/s. Off a ledge it comes down into a forward roll.
 //  * No coyote time and no jump buffer: HD2 has no such leniency.
+//  * Cover: the key puts your back to the wall, barrier or parked car in front of you (crouched
+//    behind low cover, standing at a wall); you shuffle along it, and aiming brings you up over it
+//    or out round its corner, back in when you let go.
 //  * Heavy landings stumble you and big falls knock you down with a real get-up. Blasts, critical
 //    hits, downs and deaths throw you as a full ragdoll (physics/Ragdoll.js): no control until the
 //    body comes to rest where it landed, then a get-up (or the downed crawl, or a corpse).
@@ -30,11 +33,12 @@ import { bus } from '../core/EventBus.js';
 import { Ragdoll, J, local } from '../physics/Ragdoll.js';
 import { RagdollDrive } from '../physics/RagdollDrive.js';
 import { hyp } from '../core/geom.js';
+import { boxFaces, pickFace } from './CoverFaces.js';
 
 export const MoveState = Object.freeze({
   GROUND: 'ground', AIR: 'air', SLIDE: 'slide', DIVE: 'dive', DODGE: 'dodge', MANTLE: 'mantle',
   LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle', RAGDOLL: 'ragdoll', STAGGER: 'stagger',
-  ROLL: 'roll',
+  ROLL: 'roll', COVER: 'cover',
 });
 export const Stance = Object.freeze({ STAND: 'stand', CROUCH: 'crouch', PRONE: 'prone' });
 export const Gait = Object.freeze({ IDLE: 'idle', WALK: 'walk', JOG: 'jog', SPRINT: 'sprint' });
@@ -53,6 +57,7 @@ const _right = new Vector3();
 const _delta = new Vector3();
 const _tmp = new Vector3();
 const _dir = new Vector3();
+const _faces = [];
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -81,9 +86,12 @@ export class MovementController {
     this.staminaRegenMul = this.mods.staminaRegenMul ?? tuning.armor?.[armor]?.staminaRegenMul ?? 1;
     /**
      * Optional callbacks wired by the entity factory: fallDamage(amount), vital() -> 'alive' |
-     * 'downed' | 'dead' (what a ragdoll becomes when it comes to rest), scale() -> silhouette scale.
+     * 'downed' | 'dead' (what a ragdoll becomes when it comes to rest), scale() -> silhouette scale,
+     * coverFaces(x, z, r, out): the sides of other things to take cover against (parked cars),
+     * coverHolds(src): is that one still cover (not driven off or blown up)?
      */
-    this.hooks = { fallDamage: null, vital: null, scale: null };
+    this.hooks = { fallDamage: null, vital: null, scale: null, coverFaces: null, coverHolds: null };
+    this.coverOff = -9;           // when you last left cover (the key that took you out doesn't put you back)
     this.ragdoll = null;          // physics/Ragdoll, created on the first throw and reused
     this.fall = null;             // { vy, brace } while limp: how fast it's coming down (a hard landing hurts)
 
@@ -125,6 +133,7 @@ export class MovementController {
       roll: null,               // { t, to: supine? }: downed, rolling onto the back or the belly
       landRoll: null,           // { t, dur, dirYaw, speed }: a slide off a ledge, come down into a forward roll
       tuck: null,               // { slideT }: in the air off a ledge mid-slide (lands in a roll, or slides on)
+      cover: null,              // { face, u, side, out, high, gap, hold, check }: in cover (CoverFaces: the face you're at)
       downed: false,            // at 0 HP but not dead: the wounded crawl (Health drives this)
       lastDiveLand: -99,
       wallRunsLeft: tuning.wallRun.perAirtime,
@@ -199,7 +208,7 @@ export class MovementController {
       rd.drive?.start(rd, { pose: local(R.poses[pose] ?? R.poses.stand), vital: this.hooks.vital?.() ?? 'alive', limp, wound, brace });
       this.fall = { vy: s.grounded ? 0 : Math.min(0, s.velocity.y), brace };   // (the landing's fall damage: #ragdollTick)
       s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null;
-      s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.landRoll = null; s.tuck = null;
+      s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.landRoll = null; s.tuck = null; s.cover = null;
       this.#setInvulnerable(false);
       this.#setMode(MoveState.RAGDOLL);
       s.knockStarted = true;
@@ -320,7 +329,7 @@ export class MovementController {
     s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0); s.stepOff = 0;
     s.mode = MoveState.GROUND; s.modeTime = 0; s.stance = Stance.STAND;
     s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.stagger = null; s.roll = null;
-    s.landRoll = null; s.tuck = null;
+    s.landRoll = null; s.tuck = null; s.cover = null;
     s.supine = false; s.downed = false; s.sprinting = false; s.pivoting = false;
     s.yaw = s.bodyYaw = s.aimYaw = yaw;
     s.stamina = this.t.stamina.max; s.exhausted = false; s.staminaRegenTimer = 0;
@@ -335,7 +344,7 @@ export class MovementController {
     const s = this.state;
     s.mode = MoveState.VEHICLE; s.modeTime = 0;
     s.velocity.set(0, 0, 0);
-    s.slide = null; s.dive = null; s.knock = null; s.stanceT = null; s.mantle = null; s.landRoll = null; s.tuck = null;
+    s.slide = null; s.dive = null; s.knock = null; s.stanceT = null; s.mantle = null; s.landRoll = null; s.tuck = null; s.cover = null;
     s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand);
     this.#setInvulnerable(false);
     s.sprinting = false; s.forced = null;
@@ -403,6 +412,7 @@ export class MovementController {
         case MoveState.SLIDE:     this.#slide(cmd, dt, wishMag); break;
         case MoveState.DIVE:      if (this.#dive(cmd, dt, wishMag)) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } break;   // (true: it went limp over a drop)
         case MoveState.ROLL:      this.#landRoll(cmd, dt); break;
+        case MoveState.COVER:     this.#cover(cmd, dt, wishMag); break;
         case MoveState.DODGE:     this.#dodge(cmd, dt); break;
         case MoveState.KNOCKDOWN: this.#knockdown(cmd, dt); break;
         case MoveState.STAGGER:   if (this.#staggerTick(cmd, dt, wishMag)) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } break;   // (true: it ended in a fall)
@@ -445,6 +455,8 @@ export class MovementController {
 
     // Dive or evade interrupts almost everything (HD2: always available on your feet or crouched).
     if (b.dodge?.pressed && !landing && this.#canEvade()) return this.#startEvade(wishMag);
+    // Into cover: the wall, barrier or parked car in front of you.
+    if (b.cover?.pressed && !landing && this.#tryCover()) return;
 
     // Climb or vault: hold the climb key and it climbs when you reach the ledge (HD2 hold-to-climb).
     // Space only hops (the Battlefront addition) when there's nothing climbable just ahead.
@@ -973,6 +985,101 @@ export class MovementController {
     }
   }
 
+  // ---------------------------------------------------------------- cover
+  /**
+   * The cover there is to take from here (no side effects): { face, u (along it), d (how far off
+   * it), high } or null. The HUD asks, to offer it when you're up against something.
+   */
+  coverHere() {
+    const s = this.state, C = this.t.cover;
+    if (!C || s.mode !== MoveState.GROUND || s.stance === Stance.PRONE || s.stanceT || s.downed) return null;
+    const p = s.position, R = C.reach + 1, r = this.body.r ?? this.body.radius ?? 0.35;
+    _faces.length = 0;
+    for (const b of this.body.nearBoxes?.(p.x - R, p.z - R, p.x + R, p.z + R) ?? []) boxFaces(b, _faces);
+    this.hooks.coverFaces?.(p.x, p.z, R, _faces);
+    const ground = (x, z) => this.body.floorBelow?.(x, z, p.y + 0.5) ?? p.y;
+    const pick = pickFace(_faces, p.x, p.z, { yaw: s.yaw, reach: C.reach, minHeight: C.minHeight, radius: r, ground, free: (x, z) => this.body.freeAt?.(x, z, p.y) ?? true });
+    if (!pick) return null;
+    const F = pick.face, gap = r + 0.05;
+    pick.high = F.top - ground(F.ax + F.tx * pick.u + F.nx * gap, F.az + F.tz * pick.u + F.nz * gap) >= C.highAt;
+    pick.gap = gap;
+    return pick;
+  }
+
+  /** Into cover: the face of the wall, barrier or parked car in front of you (data: cover). */
+  #tryCover() {
+    const s = this.state;
+    if (s.time - this.coverOff < 0.25) return false;
+    const pick = this.coverHere();
+    if (!pick) return false;
+    const F = pick.face;
+    forwardOf(s.yaw, _dir);
+    s.cover = { face: F, u: pick.u, side: _dir.x * F.tx + _dir.z * F.tz >= 0 ? 1 : -1, out: 0, high: pick.high, gap: pick.gap, hold: 0, check: 0.2 };
+    s.sprinting = false; s.crouchPress = null; s.stanceQueued = null;
+    s.stance = s.cover.high ? Stance.STAND : Stance.CROUCH;
+    this.body.setHeight(this.t.heights[s.stance]);
+    this.#setMode(MoveState.COVER);
+    bus.emit('move:cover', { id: this.id, high: s.cover.high });
+    return true;
+  }
+
+  #cover(cmd, dt, wishMag) {
+    const s = this.state, c = s.cover, C = this.t.cover, F = c.face, b = cmd.buttons;
+    // Still there? (blown away, come down as rubble, driven off)
+    if ((c.check -= dt) <= 0) { c.check = 0.2; if (!this.#coverHolds(c)) return this.#leaveCover(cmd, dt, wishMag); }
+    // Out of it: the key again, a dive, sprinting or pushing away from it, a hop over low cover.
+    const along = wishMag > 0 ? (_wish.x * F.tx + _wish.z * F.tz) * wishMag : 0, away = wishMag > 0 ? (_wish.x * F.nx + _wish.z * F.nz) * wishMag : 0;
+    if (b.cover?.pressed || b.dodge?.pressed || (b.sprint?.down && away > 0.2) || (b.jump?.pressed && !c.high)) return this.#leaveCover(cmd, dt, wishMag);
+    c.hold = away > 0.7 ? c.hold + dt : 0;
+    if (c.hold >= C.leaveHold) return this.#leaveCover(cmd, dt, wishMag);
+    // At a corner (within `edge` of an end)?
+    const edge = c.u <= C.edge ? -1 : c.u >= F.len - C.edge ? 1 : 0;
+    // Aiming or firing brings you out: up over low cover, round the corner of high cover. Halfway
+    // along a wall there's nothing to come out to.
+    const want = (b.guard?.down || b.light?.down) && (!c.high || edge !== 0);
+    c.out = Math.max(0, Math.min(1, c.out + (want ? dt : -dt) / C.peekTime));
+    // Which way you're turned: to the corner you're at, else the way you last shuffled.
+    if (edge) c.side = edge;
+    else if (Math.abs(along) > 0.3) c.side = Math.sign(along);
+    // Shuffle along it (not while out).
+    if (c.out < 0.05 && Math.abs(along) > 0.1) c.u = clamp(c.u + along * C.moveSpeed * this.mods.speedMul * dt, 0, F.len);
+    // Where that puts you: off the face by a body's width; out past the corner, aiming round it.
+    const k = c.out * c.out * (3 - 2 * c.out);
+    const u = c.high && k > 0 ? lerp(c.u, (c.side > 0 ? F.len : 0) + c.side * C.peekOut, k) : c.u;
+    const x = F.ax + F.tx * u + F.nx * c.gap, z = F.az + F.tz * u + F.nz * c.gap;
+    // (Getting there, from wherever you took it: quick, not a jump.)
+    const dx = x - s.position.x, dz = z - s.position.z, l = hyp(dx, dz), step = C.snapSpeed * this.mods.speedMul * dt;
+    const f = l > step ? step / l : 1;
+    s.velocity.x = (dx * f) / dt; s.velocity.z = (dz * f) / dt;
+    s.velocity.y -= this.t.gravity * dt;
+    // Crouched behind low cover (up to aim over it), standing at a wall.
+    const stance = c.high || k > 0.5 ? Stance.STAND : Stance.CROUCH;
+    if (stance !== s.stance) { s.stance = stance; this.body.setHeight(this.t.heights[stance]); }
+    // Facing the cover, turned a little the way you're turned; out, on the aim.
+    const fx = -F.nx + F.tx * c.side * C.turn, fz = -F.nz + F.tz * c.side * C.turn;
+    s.bodyYaw = turnToward(s.bodyYaw, k > 0.3 ? s.yaw : yawOf(fx, fz), this.t.turnRates.jog * DEG * dt);
+  }
+
+  /** Is what you're in cover behind still there? */
+  #coverHolds(c) {
+    const src = c.face.src;
+    if (!src) return true;
+    if (src.isVehicle) return this.hooks.coverHolds?.(src) ?? true;
+    if (src.st?.gone || src.st?.doomed) return false;
+    if (!this.body.nearBoxes) return true;
+    const p = this.state.position;
+    for (const b of this.body.nearBoxes(p.x - 2.5, p.z - 2.5, p.x + 2.5, p.z + 2.5)) if (b === src) return true;
+    return false;
+  }
+
+  #leaveCover(cmd, dt, wishMag) {
+    const s = this.state;
+    s.cover = null; this.coverOff = s.time;
+    this.#setMode(MoveState.GROUND);
+    bus.emit('move:coverOff', { id: this.id });
+    this.#ground(cmd, dt, wishMag);   // (a dive, a hop or a sprint pressed to get out goes ahead now)
+  }
+
   // ---------------------------------------------------------------- landing roll (a slide off a ledge)
   /**
    * Come down off a ledge mid-slide: a forward roll (a parachute landing fall). The fall's speed
@@ -1228,7 +1335,9 @@ export class MovementController {
     const limp = s.mode === MoveState.RAGDOLL || s.mode === MoveState.KNOCKDOWN;
     // Stumbling: the gun's off target for the first part of it (and for all of a fall).
     const rocked = s.mode === MoveState.STAGGER && s.stagger && (s.stagger.fall || s.stagger.t < s.stagger.dur * t.stagger.gunOff);
-    s.weaponReady = !(limp || rocked || s.mode === MoveState.MANTLE || s.mode === MoveState.ROLL || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
+    // In cover the gun is down until you've come out to aim (over it, or round its corner).
+    const hidden = s.mode === MoveState.COVER && s.cover.out < this.t.cover.ready;
+    s.weaponReady = !(limp || rocked || hidden || s.mode === MoveState.MANTLE || s.mode === MoveState.ROLL || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
     s.busy = limp || s.mode === MoveState.STAGGER || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.ROLL || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
     const low = s.stamina < t.stamina.lowAt;
     if (low !== s.lowStamina) { s.lowStamina = low; bus.emit('move:lowStamina', { id: this.id, on: low }); }
@@ -1276,7 +1385,7 @@ export class MovementController {
       tsg: s.timeSinceGrounded, grounded: s.grounded, wr: s.wallRunsLeft,
       stanceT: s.stanceT && { ...s.stanceT }, stanceQueued: s.stanceQueued, crouchPress: s.crouchPress && { ...s.crouchPress },
       slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock }, stagger: s.stagger && { ...s.stagger }, roll: s.roll && { ...s.roll },
-      landRoll: s.landRoll && { ...s.landRoll }, tuck: s.tuck && { ...s.tuck },
+      landRoll: s.landRoll && { ...s.landRoll }, tuck: s.tuck && { ...s.tuck }, cover: s.cover && { ...s.cover, face: { ...s.cover.face, src: null } },
       dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand, supine: s.supine,
       mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), edge: v3(s.mantle.edge), exitVelocity: v3(s.mantle.exitVelocity) },
       invulnerable: s.invulnerable, sprinting: s.sprinting, downed: s.downed,
@@ -1294,6 +1403,7 @@ export class MovementController {
       stanceT: snap.stanceT && { ...snap.stanceT }, stanceQueued: snap.stanceQueued, crouchPress: snap.crouchPress && { ...snap.crouchPress },
       slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock }, stagger: snap.stagger ? { ...snap.stagger } : null, roll: snap.roll ? { ...snap.roll } : null,
       landRoll: snap.landRoll ? { ...snap.landRoll } : null, tuck: snap.tuck ? { ...snap.tuck } : null,
+      cover: snap.cover ? { ...snap.cover, face: { ...snap.cover.face } } : null,
       dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine, downed: !!snap.downed,
       mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), edge: v3(snap.mantle.edge), exitVelocity: v3(snap.mantle.exitVelocity) },
     });
@@ -1395,6 +1505,8 @@ export class FlatGroundBody {
     const moving = this.boxes?.platforms?.(x, z, y + 0.05);
     return moving > floor ? moving : floor;
   }
+  /** Is there room to stand at (x, z) at height y (nothing in the way of a body there)? */
+  freeAt(x, z, y) { return !this.#blocking(x, z, y + 0.05, this.#gather(x, z, x, z)); }
   /** Cover boxes overlapping a ground rectangle, for ragdoll collision (a reused array: don't keep it). */
   nearBoxes(x0, z0, x1, z1) { return this.#gather(x0, z0, x1, z1); }
 

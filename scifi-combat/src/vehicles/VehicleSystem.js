@@ -42,6 +42,7 @@ import { emptyCommand } from '../input/InputManager.js';
 import { rayYawBox, localToWorld, angleDelta, hyp } from '../core/geom.js';
 import { FieldGuns } from './FieldGuns.js';
 import { CarBody } from './CarPhysics.js';
+import { orientedFaces } from '../movement/CoverFaces.js';
 import { Quaternion } from 'three';
 
 const IDLE = Object.freeze({ ...emptyCommand(), buttons: Object.freeze({}) });   // an empty gun seat's command, every tick
@@ -719,6 +720,22 @@ export class VehicleSystem {
     this.world.version++;
     bus.emit('vehicle:removed', { id: v.id, reason });
   }
+
+  /**
+   * The sides of the parked cars near (x, z) to take cover behind (movement's cover: CoverFaces),
+   * as high as their bodywork (you crouch behind a car and come up over its bonnet to shoot).
+   */
+  coverFaces(x, z, r, out) {
+    for (const v of this.list) {
+      if (!this.coverHolds(v)) continue;
+      const p = v.movement.state.position, S = v.def.size, R = r + v.def.radius;
+      if (Math.abs(p.x - x) > R || Math.abs(p.z - z) > R) continue;
+      orientedFaces(p.x, p.z, v.yaw, S.x / 2, S.z / 2, p.y, p.y + Math.min(S.y, 1.25), v, out);
+    }
+  }
+
+  /** Is a car still cover? Parked: whole, on its wheels, standing still (not driven off, not burning). */
+  coverHolds(v) { return !!(v.car && !v.removed && !v.wreck && !v.health.dead && v.car.upright > 0.7 && v.car.speed < 0.8); }
 
   describe(v) {
     return { id: v.id, type: v.type, team: v.team, name: v.def.name, model: v.def.model, at: v.movement.state.position.toArray(), yaw: v.yaw, size: v.def.size, gun: v.def.gun?.kind ?? null };

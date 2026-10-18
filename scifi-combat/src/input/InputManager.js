@@ -8,6 +8,7 @@ const DEFAULT_BINDINGS = {
   crouch:   { keys: ['KeyC'],                  pad: [1] },  // B / Circle: tap = crouch, hold = prone (HD2 pad layout); while sprinting = slide
   sprint:   { keys: ['ShiftLeft'],             pad: [10] }, // L3
   dodge:    { keys: ['AltLeft'],               pad: [2] },  // X / Square: HD2 dive (class evade for melee classes)
+  cover:    { keys: ['KeyT'],                  pad: [] },   // into (and out of) cover against the wall, barrier or parked car in front of you
   bash:     { keys: ['KeyF'],                  pad: [11] }, // R3: quick melee with a gun out (a rifle-butt shove; F is the sword's heavy)
   light:    { mouse: [0],                      pad: [7] },  // RT  (fire when gun out)
   heavy:    { keys: ['KeyF'],                  pad: [5] },  // RB

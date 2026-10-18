@@ -346,6 +346,7 @@ const loop = new FixedLoop({
         vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
         eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
         thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll', scope: scoped,
+        coverSide: player.movement.state.cover?.side ?? null,
       });
       cam = fireControl.update(dt, player, rig.camera);
       // Hands shaking after a mag dump: down the sights, the view trembles with them.

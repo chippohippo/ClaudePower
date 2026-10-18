@@ -451,7 +451,7 @@ export class FrontlineHud {
       : fixing ? `REPAIRING ${bar(fixing.health.hp / fixing.health.max, '#9fd3ff')}`
       : D ? (D.stage === -1 ? `${D.kind === 'foxhole' ? 'FOXHOLE DUG' : D.kind === 'sandbags' ? 'SANDBAGS UP' : 'TRENCH CUT'}` : `${['DIGGING A FOXHOLE', 'FILLING SANDBAGS', 'DIGGING A TRENCH'][D.stage]} ${bar(D.k, '#d9b77a')}`)
       : patient ? `HOLD <b>X</b> TO REVIVE ${patient.name ?? ''}${this.#stimPrompt(me, sup) ? ' · <b>3</b> STIM' : ''}`
-      : this.#repairPrompt(me, sup) || this.#stimPrompt(me, sup) || this.#boardPrompt(me));
+      : this.#repairPrompt(me, sup) || this.#stimPrompt(me, sup) || this.#boardPrompt(me) || this.#coverPrompt(me));
     this.#mindread(me, camera, w, h);
     this.#squad(me);
     this.#supply();
@@ -620,6 +620,16 @@ export class FrontlineHud {
    * "X: crew the Sunhammer Field Gun" beside a vehicle you could take; "HOLD X" beside one of our
    * cars on its roof (with how far over it is); in a car, its controls.
    */
+  /** Cover: offered when you're up against something to take it behind; in it, how to come out. */
+  #coverPrompt(me) {
+    const s = me.movement.state;
+    if (me.health.dead || me.health.downed || me.vehicle) return '';
+    if (s.mode === 'cover') return s.cover.out > 0.3 ? '' : `IN COVER · <b>RMB</b> ${s.cover.high ? 'AIM ROUND THE CORNER' : 'AIM OVER'} · <b>T</b> LEAVE`;
+    if ((this.coverAsk = (this.coverAsk ?? 0) + 1) % 6) return this.coverWas ?? '';   // (asked every 6th frame)
+    const c = s.speed < 4.5 ? me.movement.coverHere?.() : null;
+    return (this.coverWas = c && c.d < 1.4 ? `<b>T</b> TAKE COVER` : '');
+  }
+
   #boardPrompt(me) {
     if (me.health.dead || me.health.downed) return '';
     if (me.vehicle) {

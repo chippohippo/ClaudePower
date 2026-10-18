@@ -231,6 +231,25 @@ pose (tested), so what you see is what you hit:
   your arms; the rest of the body is, so you see your arms, gun and legs. Vehicles, ragdolls and
   death are always third person.
 
+## Cover
+
+Not in HD2 (added on request; `cover` in the data, `src/movement/CoverFaces.js`).
+- **Taking it ([T]):** your back to the nearest face within 2.2 m of a wall, barrier, wreck, sandbag
+  parapet or parked car (whole, on its wheels, standing still) that's at least 0.85 m tall, the one
+  you're facing first. You get there quickly (up to 6 m/s), not in a jump. Under 1.45 m it's low
+  cover and you crouch behind it; taller, high cover and you stand at it, turned a little toward the
+  end you're facing with a shoulder to it. A car is low cover (its bodywork), whatever its roof.
+- **In it:** [A]/[D] shuffle along it (2.2 m/s), stopping at its ends; within 0.5 m of an end you're
+  at its corner. The gun is down; the camera goes over the shoulder on the side you're turned to.
+- **Peek, aim and shoot:** aiming ([RMB]) or firing brings you out over 0.16 s: up over low cover,
+  or out 0.55 m past a high corner (halfway along a wall there's nothing to come out to). The gun is
+  up once you're most of the way out; let go and you're back in. Out, you're exposed: the body's
+  really there, over the top or round the corner.
+- **Leaving it:** [T] again, a dive, sprinting or pushing away from it for 0.15 s, a hop over low cover
+  (it vaults it), or the cover going: blown away, come down as rubble, or the car driven off or
+  burning.
+- **HUD:** up against something you can take cover behind, "T TAKE COVER"; in it, how to come out.
+
 ## Weapon handling tied to movement
 
 - **Ergonomics drag (HD2's second reticle):** the gun's aim chases the camera aim with a rate of

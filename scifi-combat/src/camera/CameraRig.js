@@ -160,7 +160,8 @@ export class CameraRig {
    *   ads: 0..1, adsFov: weapon ADS FOV, vehicle: { distance, height } | null, scale: silhouette scale,
    *   eye: the animated head's eye point (world, first person), sight: the weapon's sight point (ADS),
    *   thirdPerson: force third person (a ragdoll, death), scope: 0..1 into a magnified optic (past
-   *   0.5 the eye goes to the sight whatever the view: ScopeView) }
+   *   0.5 the eye goes to the sight whatever the view: ScopeView), coverSide: in cover, the side
+   *   you're turned to (-1 left, 1 right): the camera goes over that shoulder }
    */
   update(dt, o) {
     const s = this.settings, st = o.target.movement.state;
@@ -188,7 +189,7 @@ export class CameraRig {
     const dist = (MathUtils.lerp(f.dist + sprintPull, FRAMING.ads.dist, ads)) * (o.vehicle ? 1 : scale);
     this.frame.right.step(right, dt); this.frame.up.step(up, dt); this.frame.dist.step(dist, dt);
     this.eye.step(eye * (o.vehicle ? 1 : scale), dt);
-    this.shoulderBlend.step(this.shoulder, dt);
+    this.shoulderBlend.step(o.coverSide ?? this.shoulder, dt);   // in cover: over the shoulder on the side you'd come out
     this.pov.step(o.vehicle || o.thirdPerson ? 0 : (o.scope ?? 0) > 0.5 ? 1 : this.povTarget, dt);
 
     // ---- follow: stiff springs on the pivot (slight lag = weight, never float)

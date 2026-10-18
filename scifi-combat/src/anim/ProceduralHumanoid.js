@@ -851,6 +851,11 @@ export class ProceduralHumanoid {
     out.leanP = bank * 0.5; out.leanC = bank;
     // Shoulder bash: shoulder leads, head down.
     if (s.mode === 'dodge' && s.dodgeStyle === 'shoulderBash') { out.pitchC += 0.4; out.spinC += 0.55; }
+    // In cover, in behind it: hunched low behind low cover, a shoulder leant to a wall (out of it to aim: upright).
+    if (s.mode === 'cover' && s.cover) {
+      const hid = 1 - smoothstep(0, 0.6, s.cover.out);
+      if (s.cover.high) out.leanC += s.cover.side * 0.12 * hid; else out.pitchC += 0.28 * hid;
+    }
     for (let i = 0; i < 2; i++) {
       const f = pl.feet[i], side = f.side;
       out.foot[i].copy(f.ankle);
