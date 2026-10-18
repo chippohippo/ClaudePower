@@ -75,7 +75,7 @@ const CSS = `
 .mf-cols { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
 .mf-card { background: #0b0e16d9; border: 1px solid #ffffff1a; padding: 14px 16px; }
 .mf-card h3 { margin: 0 0 10px; font: 800 13px var(--disp); letter-spacing: .2em; color: ${AMBER}; }
-.mf-big { display: flex; align-items: baseline; gap: 12px; } .mf-big b { font: 900 38px var(--disp); color: #fff; } .mf-big span { font: 700 13px var(--disp); color: #aab3c3; letter-spacing: .1em; }
+.mf-big { display: flex; align-items: baseline; gap: 12px; } .mf-big b { font: 900 38px var(--disp); color: #fff; } .mf-big span { font: 700 12px var(--disp); color: #aab3c3; letter-spacing: .08em; white-space: nowrap; }
 .mf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; margin: 12px 0; }
 .mf-grid div { background: #ffffff08; padding: 6px 8px; } .mf-grid b { display: block; font: 800 20px var(--disp); color: #fff; } .mf-grid span { font: 700 10px var(--disp); letter-spacing: .12em; color: #8a93a5; }
 .mf-ribs { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; min-height: 18px; } .mf-ribs .r { display: flex; align-items: center; gap: 6px; font: 700 12px var(--text); color: #dfe5ef; }
@@ -182,7 +182,7 @@ export class MatchFlow {
     const won = rep.winner === us, mvp = !!me && rep.mvp[us]?.id === me.id;
     if (!this.recorded && me) {
       const c = loadCareer();
-      this.result = recordMatch(c, me, { won, mvp, meta: { ...this.meta, side: us, at: Date.now() } });
+      this.result = recordMatch(c, me, { won, mvp, meta: { ...this.meta, classId: this.player.classId ?? this.meta.classId, side: us, at: Date.now() } });   // (the class you finished as)
       saveCareer(c);
       this.recorded = true;
     }
@@ -192,7 +192,7 @@ export class MatchFlow {
     const xp = R?.xp, bf = R ? (R.before.span ? R.before.into / R.before.span : 1) : 0, af = R ? (R.after.span ? R.after.into / R.after.span : 1) : 0;
     const up = R && R.after.rank > R.before.rank;
     const card = me ? `<div class="mf-card"><h3>YOUR BATTLE</h3>
-      <div class="mf-big"><b>${fmt(me.score)}</b><span>SCORE · #${rep.place || '—'} ON YOUR SIDE${mvp ? ' · MVP' : ''}</span></div>
+      <div class="mf-big"><b>${fmt(me.score)}</b><span>SCORE · #${rep.place || '—'} ON YOUR SIDE${mvp ? '<br>MVP' : ''}</span></div>
       <div class="mf-grid">${[['KILLS', me.kills], ['DEATHS', me.deaths], ['ASSISTS', me.assists], ['REVIVES', me.revives], ['CAPTURES', me.captures], ['VEHICLES', me.vehicles]].map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
       <h3>RIBBONS</h3><div class="mf-ribs">${ribs.length ? ribs.map(([id, n]) => `<div class="r" title="${esc(RIBBONS[id]?.desc)}">${ribbonSvg(id)}${esc(RIBBONS[id]?.name ?? id)}${n > 1 ? ` ×${n}` : ''}</div>`).join('') : '<span class="mf-none">None this time.</span>'}</div>
       ${xp ? `<div class="mf-xp">${[['Score', xp.score], ['Saw it through', xp.finish], ['Victory', xp.win], ['Ribbons', xp.ribbons], ['MVP', xp.mvp]].filter(([, v]) => v).map(([k, v]) => `<div class="row"><span>${k}</span><span>+${fmt(v)}</span></div>`).join('')}<div class="row t"><span>EXPERIENCE</span><span>+${fmt(xp.total)}</span></div></div>

@@ -141,7 +141,7 @@ export class DeployScreen {
       team: who?.team ?? null, cls: who?.classId ? classTitle(who.classId) : null,
       what: this.#what(e.info, k) ?? this.life.get(e.by)?.what ?? null,
       dist: k?.movement ? Math.round(k.movement.state.position.distanceTo(pos)) : null,
-      left: who?.health && !who.health.dead ? Math.round(100 * who.health.hp / who.health.max) : null,
+      left: who?.health && !who.health.dead ? (who.health.downed ? -1 : Math.round(100 * who.health.hp / who.health.max)) : null,   // (-1: down himself)
       how: e.how, friendly: who && who.team === me.team && who !== me, self: who === me,
       hits: [...this.life.entries()].sort((a, b) => b[1].dmg - a[1].dmg).slice(0, 4),
     };
@@ -184,7 +184,7 @@ export class DeployScreen {
     const by = R.self ? 'YOURSELF' : R.name ? R.name.toUpperCase() : null;
     const head = R.how === 'gaveUp' ? 'YOU GAVE UP' : R.how === 'bledOut' && !by ? 'YOU BLED OUT' : R.friendly ? 'KILLED BY A TEAMMATE' : 'ELIMINATED BY';
     const line = [R.cls, R.what, R.dist != null ? `${R.dist} m` : null].filter(Boolean).map(esc).join(' · ');
-    who.innerHTML = `<small>${head}</small><b style="color:${R.friendly ? AMBER : R.team === this.team ? US : THEM}">${esc(by ?? (R.what ? R.what.toUpperCase() : 'THE BATTLE'))}</b><span>${line}${R.left != null ? ` · ${R.left}% health left` : ''}</span>`;
+    who.innerHTML = `<small>${head}</small><b style="color:${R.friendly ? AMBER : R.team === this.team ? US : THEM}">${esc(by ?? (R.what ? R.what.toUpperCase() : 'THE BATTLE'))}</b><span>${line}${R.left != null ? (R.left < 0 ? ' · now down' : ` · ${R.left}% health left`) : ''}</span>`;
     const hits = (R.hits ?? []).filter(([, l]) => l.dmg >= 1 || l.finished);
     dmg.innerHTML = `<h4>DAMAGE TAKEN</h4>${hits.length ? hits.map(([, l]) => `<div><span>${esc(l.name ?? 'the battle')}${l.what ? ` · ${esc(l.what)}` : ''}</span><b>${l.dmg >= 1 ? Math.round(l.dmg) : ''}${l.finished ? `${l.dmg >= 1 ? ' · ' : ''}FINISHED YOU` : ''}</b></div>`).join('') : '<div><span>—</span></div>'}`;
   }
