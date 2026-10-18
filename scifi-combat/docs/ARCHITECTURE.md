@@ -92,6 +92,8 @@ scifi-combat/
 │  │         spatial indexes, diggable heightfield, self-repairing flow fields and A*, barbed wire,
 │  │         what holds the city's buildings up and what comes down when it's shot away
 │  ├─ physics/ Ragdoll.js       deterministic particle ragdolls (blasts, criticals, downs, deaths)
+│  │           RigidWorld.js   deterministic rigid bodies (XPBD): what comes off a building sags on
+│  │                           elastic joints, tears loose, smashes, and rests as climbable rubble
 │  ├─ anim/ ProceduralHumanoid.js  FootPlanter.js  MotionEvents.js  AnimationSystem.js
 │  │        ClipAnimationController.js (GLB)  ik.js        → docs/ANIMATION.md
 │  ├─ render/ CrowdRenderer.js    the crowd in the trooper kit (bone texture, ~25 instanced draws, impostors)
@@ -105,7 +107,7 @@ scifi-combat/
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
 │  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
 │  │        GunFx.js (muzzle flashes at the rig's barrel, impacts by surface, bullet holes, spent brass)
-│  │        CollapseViews.js (walls toppling and floors dropping as buildings come apart)
+│  │        CollapseViews.js (every piece coming off a building, moving and at rest; its dust)
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)

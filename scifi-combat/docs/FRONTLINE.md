@@ -216,60 +216,105 @@ stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `
 - **The cover index** holds a house's (a scaffold's, a bridge's) hundred-odd boxes as one group
   under its bounds (`CoverIndex`): a ray or a query that misses the bounds skips every box in it.
 
-### Buildings that come apart (`Structures`, `CollapseViews`)
+### Buildings that come apart (`Structures`, `RigidWorld`, `CollapseViews`)
 
 Every house, scaffold and skybridge is a structure, and its boxes are its members. They stand on
-what holds them up and come down when it's shot away.
+what holds them up. When that's shot away they come apart the way The Finals' buildings do: what's
+left sags and hangs on, tears loose where it's pulled hardest, and comes down in chunks that
+smash, tumble and pile up as rubble you can climb.
 - **Damage:** every blast (`CombatWorld.explode`; a breach charge) hits the members it reaches for
   P (1 − d/R)^1.5, where P is the weapon's structural power and R is 90% of its splash. P is the
   weapon's damage ×2.5 for explosives, ×4 for artillery and ×6 for a charge against the wall: a
   grenade 275, a tank shell 550, a breach charge 900, a howitzer round 1280, a precision strike
   3600. Where that beats what a wall or a slab takes per m² (concrete 400 for a 0.3 m wall, scaled
-  by thickness), it breaks through: the member is split into what's left round a hole. A grenade
-  only chips walls, a tank shell punches a hole about a metre and a half across, and a howitzer
-  round tears out eight metres of a ground floor. Smaller hits wear a member down (hit points:
-  400 per m³ of concrete), and small things like rails go at once.
-- **What holds what:** a member stands on the ground, bears on a standing member under it, or
-  hangs from members beside it that stand or bear. Nothing hangs from something that is itself
-  hanging off another hanging member, and a hang must grip the member at or below its middle (a
-  slab across the top of a pier doesn't hold the pier up). Walls are frames:
+  by thickness), it breaks through: the member is split into what's left round a hole, and the
+  blast throws chunks of it (ten at most a blast: small bodies that bounce, roll and lie where
+  they stop, too small to be cover). A grenade only chips walls, a tank shell punches a hole
+  about a metre and a half across, and a howitzer round tears out eight metres of a ground floor.
+  Smaller hits wear a member down (hit points: 400 per m³ of concrete), and small things like
+  rails go at once. A member that's been hit darkens with its damage, so you see what's about to go.
+- **What holds what** (the strain): a member stands on the ground, bears on a standing member
+  under it, or hangs from members beside it that stand or bear. Nothing hangs from something that
+  is itself hanging off another hanging member, and a hang must grip the member at or below its
+  middle (a slab across the top of a pier doesn't hold the pier up). Walls are frames:
   - a pier is carried only by the band (lintel) under it;
   - a band is carried by the piers at its ends;
   - floors, stairs, rails and decks hang from whatever they're fixed to.
   A hanging member holds out as far as its material reaches past its supports (concrete 2.2 m), and
   a beam bridges a gap only as wide as its material spans (6 m). So a lintel carries the wall over
-  one blown-out pier, but over an eight-metre hole it breaks. The wall above then falls, and a
-  floor left with one wall under it goes, except the strip within reach of that wall. Interior
-  walls carry what meets them. A skybridge is a welded frame: it stands while both its houses hold
-  its ends (or it stands on its ramp), and goes down whole when one gives way.
-- **Coming down:** what's left unheld creaks for a moment (0.2-0.6 s), then falls, the lowest
-  first:
-  - a wall topples away from its building's middle, into the street, and lies flat;
-  - a slab drops.
-  Both land on whatever is below: the street, the rubble, the floor under it. A falling piece
-  crushes whoever it lands on (6 damage per kJ, outright with no downed state past 200), and
-  hammers the member it lands on (2.5 damage per kJ), so a floor coming down can take the one
-  below with it. It stays there as rubble: cover you can climb over, stand on and hide behind,
-  stacked where pieces pile up (up to 90 a building). Bodies lying on a piece that goes wake and
-  fall.
+  one blown-out pier, but over an eight-metre hole it breaks. Interior walls carry what meets them.
+  A skybridge is a welded frame: it stands while both its houses hold its ends (or it stands on its
+  ramp), and goes down whole when one gives way.
+- **Coming away** (the Dynamism): what's left unheld creaks for a moment (0.15-0.35 s), then comes
+  away as rigid bodies (`physics/RigidWorld.js`). It's split into chunks of up to four members
+  that sit together, each chunk one body, and the bodies are joined to one another and to what
+  still stands by elastic joints at the corners of every face they touched by.
+  - The joints to what stands hold as much as *c* times the chunk's weight. *c* is drawn for each
+    piece, 0.5 to 2.5, so some pieces tear straight off and some hang on. That strength is shared
+    out by the faces' areas.
+  - The joints between chunks hold as much as *k* times the lighter one's weight (*k* 0.6-1.6).
+  - A joint stretches 1.5 cm before it tears, so a piece sags visibly first. It tears pulled
+    apart or sheared, never pressed together. While it holds up a piece that hangs from its
+    joints (the joints carry more than 65% of its weight), it tires once its load passes 10% of
+    its strength.
+  So a piece tears along its top first (bending pulls the top apart) and hinges on its bottom
+  edge. A floor let go on three sides swings down into a ramp onto the floor below, or tears
+  loose and lands flat. A facade over a blown-out ground floor hangs off the floors for a few
+  seconds, its chunks sagging over the gap and tearing off one by one, then crumbles into the
+  street. What hung from a member that comes away hangs from its body. When a member is shot
+  away, what hung from it is let go.
+- **Smashing:** a body that hits something hard breaks up, a wall into slabs and a slab into
+  chunks (2-3 pieces at random places). Each piece carries on as it was going (a piece that
+  wasn't in the impact keeps its speed from before it), with a little spin of its own.
+  - It crushes whoever it hits by how fast it comes at them: 0.5 m v² × 6 damage per kJ, mass
+    counted up to 20 t, outright with no downed state past 200. Riding a floor down does no harm.
+  - It hammers the member it lands on (2.5 damage per kJ it loses), so a floor coming down can
+    hole the one below or take it with it.
+  - Blasts throw bodies, and wake the rubble they throw.
+- **At rest it's rubble:** a body that's still (or has hardly moved in 1.5 s, or has been moving
+  15 s) sleeps. It's then cover: boxes stepped to the lie of each piece, so a slab leaning on a
+  wall is a stair you can walk up (if it isn't too steep), and you can climb over the rest and
+  hide behind it. Pieces under 0.12 m³ are only seen. Past 480 bodies, the smallest at rest go to
+  dust.
+- **Riding it down:** a piece on the move is a floor for whoever stands on it. The movement
+  bodies ask the cover for the top of anything moving under them (`Structures.topAt`), so a
+  soldier on a floor that gives way is carried down on it.
 - **The rest of the game:** every piece that goes or arrives is `world:coverDestroyed` /
   `world:coverAdded` with `structural: true`, so the bots' cover spots change
   (`TacticalMap`), the routes round it are redone once a tick (`NavGrid.updateRegion`), and the
   renderers update.
+- **The physics** (`RigidWorld`, XPBD after Müller et al. 2020):
+  - Bodies are boxes or compounds of boxes with full inertia.
+  - Each tick is 6 substeps (fewer, down to 4, when more than 80 bodies are moving), each with
+    one pass of position corrections; velocities come from them, then a velocity pass adds
+    friction and a little bounce.
+  - Contacts are box against box by separating axes (the incident face clipped to the reference
+    face, or edge against edge), against each other and the static cover, plus corners and edge
+    points against the terrain. They're found once a tick, a little ahead of where the bodies are
+    going, and re-measured every substep.
+  - Contacts are solved there and back each substep, so a slab landing flat stays flat.
+  - Resting pieces lose spin, so a chunk balanced on a kerb settles.
+  - Deterministic: the same blasts bring down the same pieces to the same places.
 - **Seen and heard:**
-  - `CityRenderer` knows each piece's instance: a piece that goes disappears from its mesh, the
-    pieces left round a hole take spare instances in the same mesh, and rubble lies askew in a
-    mesh of its own.
-  - `CollapseViews` draws the fall: a wall turning about its foot, a slab dropping with a wobble,
-    both gathering speed.
+  - `CityRenderer` knows each piece's instance: a piece that goes disappears from its mesh, and
+    the pieces left round a hole take spare instances in the same mesh.
+  - `CollapseViews` draws every body box by box, at its pose blended between the sim's last two
+    ticks, moving or at rest, in the colour of the piece it came from.
   - Dust and debris (`BattleFx`): chips off a wall that held, chunks thrown out of a hole, dust
-    sifting down where a building creaks, a cloud rolling out where each piece lands.
-  - Sound: a groan before it goes, a crumble as a wall breaks, a crash as each piece lands (a
-    rumble for the big ones). The ground shakes under you within 35 m.
-- **Cost:** a shell on a house costs 2-8 ms the first time it's hit (the contacts between its
-  members are worked out then), a few after. One house is worked out at load so the first hit
-  of the match doesn't also pay for compiling it. A 2.5-minute 32v32 city battle (70 breaks,
-  20-odd falls) costs nothing measurable per tick. Deterministic.
+    sifting down where a building creaks or a joint tears, a cloud rolling out where a piece
+    lands. The big clouds are rationed so a collapse doesn't hide every piece in it.
+  - Sound: a groan before it goes, a crumble as a wall breaks, a snap as a piece tears loose (the
+    rebar pinging), a crash as each piece lands (a rumble for the big ones). The ground shakes
+    under you within 35 m.
+- **Cost:**
+  - A shell on a house costs 4-11 ms (the contacts between its members are worked out the first
+    time it's hit).
+  - At load, a small collapse is rehearsed off stage (the bus hushed), so the first one of the
+    match doesn't stall the game compiling it.
+  - A collapse in progress costs about 40 µs a tick per moving body. A barrage of 24 howitzer
+    shells on four houses averages 2.4 ms a tick for the buildings (99th percentile 7 ms).
+  - Pieces stop breaking up further past 160 bodies moving at once, and blasts stop throwing
+    chunks past 90.
 
 ### The city's people (`Neutrals`, `CivilianBrain`, `Teams`, `data/civilians.json`)
 
@@ -742,11 +787,26 @@ inside them.
 - `tests/squads.test.mjs`: cover spots, routes, suppression, over the top on the whistle, wedge
   spacing, bounding overwatch, hold the line, holding a lane of the front, sweep and clear, charges only when desperate, a human
   leader, digging in, and armor crossing trenches and wire with the motor pool following the front.
-- `tests/structures.test.mjs`: buildings that come apart (a grenade chips, a tank shell holes, a
-  howitzer brings the wall over its hole down and it lies as rubble; a lintel carries the wall
-  over one missing pier but not over a gap wider than it spans; a floor held on one side goes;
-  falling floors crush and pound; rubble you climb onto; a skybridge goes with its house; the
-  same blasts bring down the same pieces; the renderer and the falls drawn).
+- `tests/structures.test.mjs`: buildings that come apart:
+  - a grenade chips a wall and a tank shell holes it;
+  - a howitzer round brings the wall over its hole down: it creaks, hangs on, tears loose, comes
+    down in pieces and lies as rubble in front of the house;
+  - a floor let go on three sides comes down flat or leans on the wall left as a ramp of steps;
+  - a lintel carries the wall over one missing pier, but not over a gap wider than it spans;
+  - a floor held on one side goes;
+  - falling floors crush and pound, and you can climb onto the rubble;
+  - a soldier is carried down on a floor that gives way;
+  - a skybridge goes with its house;
+  - the same blasts bring down the same pieces;
+  - every body is drawn as it moves and where it lies.
+- `tests/rigid.test.mjs`: the physics under it:
+  - a box lands flat and sleeps;
+  - stacks stay stacked;
+  - a slab tears along its top and swings down into a ramp;
+  - joints tear pulled apart but not pressed together, and tire;
+  - a wall breaks into pieces that carry on as it was going;
+  - the same fall comes out the same every time, a hundred falling costing about a millisecond
+    a tick.
 - `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander (every
   attack point covered, two squads for a point being taken, four squads in ten on lanes spread across
   the map, flanks and gaps first, pushed forward with the attack and back behind our line), and a
