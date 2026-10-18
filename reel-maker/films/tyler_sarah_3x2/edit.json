@@ -1,0 +1,412 @@
+{
+ "media_dir": "../../footage/tyler_sarah_all",
+ "audio_dir": "../../footage/tyler_sarah_audio",
+ "score": "score.wav",
+ "output": "../../output/tyler_sarah_film_3x2.mp4",
+ "grade": {
+  "log_footage": true,
+  "warmth": 0.9,
+  "saturation": 0.85,
+  "contrast": 1.05
+ },
+ "segments": [
+  {
+   "clip": "0440",
+   "in": 1.0,
+   "dur": 8.0,
+   "zoom": 0.03,
+   "audio": -14,
+   "fade_in": 2.0,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0437",
+   "in": 4.0,
+   "dur": 6.0,
+   "in_tr": "dissolve:1.5",
+   "audio": -8,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0438",
+   "in": 1.0,
+   "dur": 4.5,
+   "in_tr": "dissolve:1.0",
+   "audio": -10,
+   "zoom": 0.05,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0439",
+   "in": 3.0,
+   "dur": 5.0,
+   "in_tr": "dissolve:1.2",
+   "audio": -16,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0448",
+   "in": 0.2,
+   "dur": 5.5,
+   "in_tr": "dissolve:1.0",
+   "audio": -16,
+   "zoom": 0.02,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0441",
+   "in": 3.5,
+   "dur": 3.0,
+   "audio": -10,
+   "cue": "hands",
+   "saturation": 0.8
+  },
+  {
+   "clip": "0442",
+   "in": 1.0,
+   "dur": 2.5,
+   "audio": -10,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0442",
+   "in": 7.0,
+   "dur": 3.0,
+   "audio": -10,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0450",
+   "in": 0.5,
+   "dur": 2.5,
+   "audio": -12,
+   "saturation": 0.8
+  },
+  {
+   "clip": "0444",
+   "in": 0.3,
+   "dur": 3.2,
+   "in_tr": "dissolve:0.8",
+   "audio": -14,
+   "cue": "roses",
+   "zoom": 0.05
+  },
+  {
+   "clip": "0445",
+   "in": 2.0,
+   "dur": 3.0,
+   "audio": -14
+  },
+  {
+   "clip": "0452",
+   "in": 1.0,
+   "dur": 3.5,
+   "audio": -8
+  },
+  {
+   "clip": "0453",
+   "in": 6.0,
+   "dur": 3.0,
+   "audio": -10
+  },
+  {
+   "clip": "0457",
+   "in": 1.0,
+   "dur": 4.0,
+   "in_tr": "dissolve:1.0",
+   "audio": -14
+  },
+  {
+   "clip": "0455",
+   "in": 8.0,
+   "dur": 3.0,
+   "audio": -14
+  },
+  {
+   "clip": "0456",
+   "in": 0.5,
+   "dur": 5.5,
+   "audio": -6,
+   "zoom": 0.03
+  },
+  {
+   "clip": "0460",
+   "in": 0.5,
+   "dur": 4.0,
+   "audio": -14
+  },
+  {
+   "clip": "0461",
+   "in": 60.0,
+   "dur": 4.0,
+   "in_tr": "dissolve:1.5",
+   "audio": -8,
+   "stab": false,
+   "zoom": 0,
+   "cue": "wait"
+  },
+  {
+   "clip": "0461",
+   "in": 200.0,
+   "dur": 4.0,
+   "in_tr": "dissolve:2.0",
+   "audio": -8,
+   "stab": false,
+   "zoom": 0
+  },
+  {
+   "clip": "0461",
+   "in": 330.0,
+   "dur": 4.0,
+   "in_tr": "dissolve:2.0",
+   "audio": -8,
+   "stab": false,
+   "zoom": 0
+  },
+  {
+   "clip": "0461",
+   "in": 378.0,
+   "dur": 16.0,
+   "in_tr": "dissolve:1.5",
+   "audio": -6,
+   "stab": false,
+   "zoom": 0
+  },
+  {
+   "clip": "0461",
+   "in": 446.0,
+   "dur": 58.0,
+   "in_tr": "dissolve:1.0",
+   "audio": -2,
+   "x": 0.53,
+   "y": 0.6,
+   "zoom": [
+    1.35,
+    1.42
+   ],
+   "cue": "question"
+  },
+  {
+   "clip": "0461",
+   "in": 596.0,
+   "dur": 6.0,
+   "in_tr": "black:0.6",
+   "audio": 0,
+   "cue": "everyone"
+  },
+  {
+   "clip": "0461",
+   "in": 602.0,
+   "dur": 5.0,
+   "audio": -2
+  },
+  {
+   "clip": "0461",
+   "in": 690.0,
+   "dur": 5.0,
+   "audio": -3
+  },
+  {
+   "clip": "0462",
+   "in": 20.0,
+   "dur": 4.0,
+   "audio": -6
+  },
+  {
+   "clip": "0466",
+   "in": 3.0,
+   "dur": 3.5,
+   "audio": -6
+  },
+  {
+   "clip": "0464",
+   "in": 20.0,
+   "dur": 3.0,
+   "audio": -8
+  },
+  {
+   "clip": "0469",
+   "in": 1.0,
+   "dur": 3.5,
+   "audio": -8
+  },
+  {
+   "clip": "0470",
+   "in": 2.0,
+   "dur": 4.0,
+   "in_tr": "dissolve:1.0",
+   "cue": "them",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0472",
+   "in": 0.5,
+   "dur": 3.0,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0475",
+   "in": 0.5,
+   "dur": 3.5,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0477",
+   "in": 0.0,
+   "dur": 3.0,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0474",
+   "in": 2.5,
+   "dur": 3.0,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0479",
+   "in": 0.2,
+   "dur": 3.0,
+   "tempo": "step",
+   "in_tr": "dissolve:0.8"
+  },
+  {
+   "clip": "0480",
+   "in": 0.5,
+   "dur": 4.0,
+   "in_tr": "dissolve:0.8",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0481",
+   "in": 20.0,
+   "dur": 5.0,
+   "tempo": "step",
+   "in_tr": "dissolve:0.8"
+  },
+  {
+   "clip": "0482",
+   "in": 0.5,
+   "dur": 4.0,
+   "in_tr": "dissolve:0.8",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0483",
+   "in": 5.5,
+   "dur": 4.0,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0485",
+   "in": 2.0,
+   "dur": 5.0,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0489",
+   "in": 0.2,
+   "dur": 3.0,
+   "audio": -14,
+   "cue": "ring",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0490",
+   "in": 1.0,
+   "dur": 4.5,
+   "audio": -14,
+   "tempo": "dream"
+  },
+  {
+   "clip": "0486",
+   "in": 1.0,
+   "dur": 4.0,
+   "audio": -12,
+   "cue": "family"
+  },
+  {
+   "clip": "0487",
+   "in": 1.5,
+   "dur": 3.0,
+   "audio": -12
+  },
+  {
+   "clip": "0488",
+   "in": 8.0,
+   "dur": 3.0,
+   "audio": -8
+  },
+  {
+   "clip": "0492",
+   "in": 2.0,
+   "dur": 2.5,
+   "audio": -8
+  },
+  {
+   "clip": "0495",
+   "in": 1.0,
+   "dur": 2.5,
+   "audio": -8
+  },
+  {
+   "clip": "0493",
+   "in": 1.0,
+   "dur": 2.5,
+   "audio": -8
+  },
+  {
+   "clip": "0491",
+   "in": 20.0,
+   "dur": 5.0,
+   "in_tr": "dissolve:1.0",
+   "audio": -8
+  },
+  {
+   "clip": "0498",
+   "in": 1.0,
+   "dur": 6.0,
+   "tempo": "step",
+   "in_tr": "dissolve:1.5",
+   "cue": "coda"
+  },
+  {
+   "clip": "0502",
+   "in": 3.0,
+   "dur": 3.5,
+   "in_tr": "dissolve:1.0",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0499",
+   "in": 8.0,
+   "dur": 5.0,
+   "in_tr": "dissolve:1.0",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0500",
+   "in": 0.5,
+   "dur": 4.0,
+   "in_tr": "dissolve:1.2",
+   "tempo": "dream"
+  },
+  {
+   "clip": "0440",
+   "in": 2.0,
+   "dur": 9.0,
+   "in_tr": "dissolve:2.0",
+   "audio": -12,
+   "zoom": 0.03
+  }
+ ],
+ "titles": [
+  {
+   "text": "Tyler & Sarah",
+   "start": 251.0,
+   "end": 257.0,
+   "y": 0.8,
+   "size": 0.042,
+   "fade": 1.8
+  }
+ ]
+}

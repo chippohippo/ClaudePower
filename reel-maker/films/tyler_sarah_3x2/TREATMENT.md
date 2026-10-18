@@ -1,5 +1,5 @@
 # THE GARDEN, BEFORE AND AFTER
-### Tyler & Sarah · an engagement film · 3:2 · ~4:10
+### Tyler & Sarah · an engagement film · 3:2 · 4:18
 
 *Director's treatment, written for the footage that exists: Sony FX3, S-Log3, 3840×2160 at 29.97p, shot on 31 July 2026 in a redwood-and-oak garden. The garden has a stone waterfall, terraced ivy, brick paths, hydrangeas and Edison string lights hanging from the oaks. The camera clip numbers (`0437`–`0503`) are used throughout, so an editor can pull every shot directly.*
 
@@ -78,7 +78,7 @@ The film breathes in **three tempos**:
 
 Timings are approximate. "Hold" means a locked frame with no reframing.
 
-### PROLOGUE: *The garden, before* (0:00–0:38)
+### PROLOGUE: *The garden, before* (0:00–0:24)
 
 | # | Clip | Shot (3:2) | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
@@ -87,7 +87,7 @@ Timings are approximate. "Hold" means a locked frame with no reframing.
 | P3 | `0438` | Macro-ish water sheeting over rock as the sun flares through the redwoods behind. | Texture. Time before time starts. | 85 | backlit flare | 4 s | dissolve |
 | P4 | `0448` / `0439` | The empty brick path curving through the lawn. Nobody is there yet. | The stage, empty. We'll see this exact frame again, filled. | 28 | soft | 6 s | cut |
 
-### I · *Many hands* (0:38–1:20)
+### I · *Many hands* (0:24–1:01)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
@@ -100,21 +100,22 @@ Timings are approximate. "Hold" means a locked frame with no reframing.
 | 1.7 | `0456` | Tyler shrugging on the burgundy jacket, adjusting a cuff, a nervous half-smile. Real time. | **The first time we meet him**, alone and getting ready. | 50 | soft | 5–6 s | cut on cuff |
 | 1.8 | `0459` / `0460` | Tyler walks the stairs and the lawn alone, a small figure. | Alone in the garden that's waiting. | 28 | soft | 4 s | **slow dissolve into the wide** |
 
-### II · *The question* (1:20–2:05)
+### II · *The question* (1:01–2:21)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
-| 2.1 | `0461` (wide take) | The locked-off wide of the lawn and path. Figures gather and wait. Time compressed with 2–3 long dissolves, like *A Ghost Story*'s time-jumps. | Suspense through stillness. | 28 deep | flat | 10–12 s | dissolve, dissolve |
-| 2.2 | `0461` | **The moment, in real time, uncut.** Sarah arrives, the walk, the kneel, the answer, the eruption. Wide. We never cut in. | Emotional truth: we're a guest, at a distance. The restraint is the power. | 28 | flat | 25–35 s | **hard cut to black for 0.5 s,** then sound first |
+| 2.1 | `0461` 1:00 / 3:20 / 5:30 | The locked-off wide of the lawn and path. Figures gather and wait. Time compressed with 2–3 long dissolves, like *A Ghost Story*'s time-jumps. | Suspense through stillness. | 28 deep | flat | 10–12 s | dissolve, dissolve |
+| 2.1b | `0461` 6:18–6:34 | Sarah alone walking down the petal path, away from the locked camera, toward the oak. | The path rhyme becomes literal: she walks the stage the hands prepared. | 28 deep | flat | 16 s | dissolve as the camera finds them |
+| 2.2 | `0461` 7:26–8:24 | **The moment, in real time, uncut.** Sarah arrives, the walk, the kneel, the answer, the eruption. Wide. We never cut in. | Emotional truth: we're a guest, at a distance. The restraint is the power. | 28 | flat | 25–35 s | **hard cut to black for 0.5 s,** then sound first |
 
-### III · *Everyone* (2:05–2:35)
+### III · *Everyone* (2:21–2:50)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
 | 3.1 | `0462`, `0464`–`0466` | Family arriving and embracing: the bouquet, the mothers, tears and laughter, in real time. | The burst of joyful energy. | 40 | soft | 3–5 s each | cuts on hug impacts |
 | 3.2 | `0467`–`0469` | Sarah walking with the bouquet among friends, and Tyler being swarmed. | The garden fills. | 35 | soft | 3–4 s | cut |
 
-### IV · *Them* (2:35–3:25), the heart
+### IV · *Them* (2:50–3:36), the heart
 
 Everything in this act plays in the **dream tempo**, at 80 %.
 
@@ -128,7 +129,7 @@ Everything in this act plays in the **dream tempo**, at 80 %.
 | 4.6 | `0483`, `0485` | He kisses her hand, then they kiss. | Peak of intimacy. | 85 | soft | 4 / 5 s | cut |
 | 4.7 | `0489`, `0490` | She lifts her hand to camera with the ring, laughing into his chest. | **Hands motif #3:** her hand, now changed. | 85 | soft | 3 / 4 s | **music drops out entirely** |
 
-### V · *The people who made it* (3:25–3:50)
+### V · *The people who made it* (3:36–3:56)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
@@ -136,7 +137,7 @@ Everything in this act plays in the **dream tempo**, at 80 %.
 | 5.2 | `0488`, `0492`–`0497` | Family portraits, real time, with the jostling and laughter left in. Never posed stillness. | Grounded, everyday joy. | 35–40 | soft | 2–3 s each | rhythmic cuts |
 | 5.3 | `0491` | Everyone, six across, held. | The village. | 28 | soft | 4–5 s | slow dissolve |
 
-### CODA · *After* (3:50–4:10)
+### CODA · *After* (3:56–4:18)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
@@ -150,23 +151,25 @@ Everything in this act plays in the **dream tempo**, at 80 %.
 
 ```
 0:00  ░░ PROLOGUE: the garden, empty        ambient only (water, birds, wind)
-0:38  ▒▒ I  · many hands                    piano enters, sparse; real-time cuts on action
-1:20  ▓  II · the wide wait (time-dissolves) music thins to a held note → silence
-1:35  ██ II · THE QUESTION (real time, uncut) diegetic only: distance, gasps, cheer
-2:05  ▓▓ III· everyone                      cheer carries over the cut, strings lift
-2:35  ██ IV · them (80 % dream tempo)       full theme, intimate; voices low under music
-3:15     ↳ the ring                         MUSIC DROPS OUT for ~3 s, breath + laugh only
-3:25  ▓▓ V  · family, the path rhymes       theme returns brighter, real time
-3:50  ░░ CODA · the kneel remembered        strings resolve; piano alone
-4:05     title · fade · water sound tail    end ≈ 4:10
+0:24  ▒▒ I  · many hands                    single piano note; real-time cuts on action
+0:34     ↳ first roses (first red)          the motif, on piano
+1:01  ▓  II · the wait (time-dissolves)     motif stretches → one held cello note
+1:08     ↳ Sarah walks the petal path       the cello thins out
+1:23  ██ II · THE QUESTION (58 s, one shot) NO MUSIC: distance, wind, gasps
+2:21  ▓▓ III· everyone (0.6 s black first)  the cheer, then strings lift under it
+2:50  ██ IV · them (80 % dream tempo)       full theme, violins arrive
+3:29     ↳ the ring                         MUSIC DROPS OUT: breath + laugh only
+3:36  ▓▓ V  · family, the path rhymes       theme returns brighter, an octave up
+3:56  ░░ CODA · the kneel remembered        piano alone; harp, final D♭ chord
+4:11     title over the canopy · fade       ends 4:18
 ```
 
-- **Opening hook:** no faces for 38 seconds. The hook is *sound and patience*. The first red, on the roses at about 0:52, lands like a heartbeat because we've been starved of colour.
+- **Opening hook:** no faces for 38 seconds. The hook is *sound and patience*. The first red, on the roses at 0:34, lands like a heartbeat because we've been starved of colour.
 - **Rising arc:** many hands, then one man alone, then the wide wait. The tension comes from *stillness*, not tempo.
 - **Peaks:**
-  1. The answer, wide and in real time, about 1:50.
-  2. Foreheads together, about 2:58.
-  3. The ring in silence, about 3:15.
+  1. The answer, wide and in real time, about 1:50 (the kneel lands at about 1:49).
+  2. Foreheads together, about 3:10.
+  3. The ring in silence, about 3:29.
 - **Breathing room:** the prologue, the 0461 time-dissolves, and the coda.
 - **Cut grammar:**
   - **Hard cuts** on action and sound in the real-time acts.
