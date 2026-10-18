@@ -287,12 +287,15 @@ def assemble(edl, files, total, out, preview, work):
         inputs += ["-i", f]
         tr = s.get("in_tr", "cut")
         d = float(tr.split(":")[1]) if ":" in tr else 0.0
-        chain = f"[{i}:v]setpts=PTS-STARTPTS+{s['_start']:.4f}/TB"
+        # hold the last frame a beat past the cut so frame rounding can never
+        # expose the black canvas (the next shot is layered on top anyway)
+        chain = (f"[{i}:v]tpad=stop_mode=clone:stop_duration=0.25,"
+                 f"setpts=PTS-STARTPTS+{s['_start']:.4f}/TB")
         if tr.startswith("dissolve") and i > 0:
             chain += f",format=yuva420p,fade=in:st={s['_start']:.4f}:d={d}:alpha=1"
         filters.append(chain + f"[v{i}]")
         filters.append(f"{last}[v{i}]overlay=eof_action=pass:enable='between(t,{s['_start']:.3f},"
-                       f"{s['_start'] + s['dur'] + s.get('_tail', 0):.3f})'[o{i}]")
+                       f"{s['_start'] + s['dur'] + 0.2:.3f})'[o{i}]")
         last = f"[o{i}]"
     # title(s)
     for k, tx in enumerate(edl.get("titles", [])):

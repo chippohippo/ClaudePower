@@ -153,12 +153,9 @@
   },
   {
    "clip": "0472",
-   "in": 0,
-   "pick": [
-    0,
-    5
-   ],
-   "dur": 6.0,
+   "in": 0.6,
+   "pick": null,
+   "dur": 5.2,
    "lock": true,
    "cue": "them",
    "in_tr": "dissolve:0.8"
@@ -201,7 +198,7 @@
   },
   {
    "clip": "0480",
-   "in": 2.8,
+   "in": 2.4,
    "dur": 2.4,
    "audio": -6
   },
@@ -367,7 +364,7 @@
     0,
     6
    ],
-   "dur": 9.0,
+   "dur": 9.8,
    "lock": true,
    "in_tr": "dissolve:1.0"
   }
