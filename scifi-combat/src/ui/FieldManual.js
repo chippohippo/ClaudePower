@@ -63,6 +63,7 @@ const CSS = `
   background: #0b0d14e0; border: 1px solid #ffffff22; border-left: 3px solid #ffc94d; padding: 9px 16px 9px 12px; opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; }
 #fm-hint.on { opacity: 1; }
 #fm-hint .tag { font: 800 10px var(--disp); letter-spacing: .2em; color: #ffc94d; white-space: nowrap; }
+#fm-hint .ks { flex: none; white-space: nowrap; }
 #fm-hint .tx { font: 600 15px/1.35 var(--text); color: #eef2f8; }
 `;
 
@@ -137,7 +138,7 @@ export class FieldManual {
     const H = HINTS[id];
     this.shown.add(id); this.last = this.time; this.until = this.time + SHOW;
     const s = (this.state[id] ??= {}); s.seen = (s.seen ?? 0) + 1; this.save();
-    this.hint.innerHTML = `<span class="tag">FIELD MANUAL</span><span>${H.keys.map((k) => `<i class="fm-key">${k}</i>`).join('')}</span><span class="tx">${H.text}</span>`;
+    this.hint.innerHTML = `<span class="tag">FIELD MANUAL</span><span class="ks">${H.keys.map((k) => `<i class="fm-key">${k}</i>`).join('')}</span><span class="tx">${H.text}</span>`;
     this.hint.classList.add('on');
   }
 }

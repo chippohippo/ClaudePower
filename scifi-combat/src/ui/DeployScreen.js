@@ -95,6 +95,7 @@ export class DeployScreen {
   update(dt) {
     this.time += dt;
     const me = this.player;
+    if (!me.health.dead) { this.pool = this.#pool(); this.down = me.health.downed; }   // (heals, shields back, revives: between hits)
     if (!me.health.dead || this.s.mode.winner >= 0) { if (this.open) this.#close(); return; }
     if (!this.open && this.deadAt != null && this.time - this.deadAt >= AFTER) this.#show();
     if (!this.open) return;
@@ -103,10 +104,22 @@ export class DeployScreen {
     if ((this.renderAt ?? 0) <= this.time) { this.renderAt = this.time + 0.2; this.#render(); }
   }
 
+  /** What's left to take: shields and health, or the downed pool. */
+  #pool() {
+    const h = this.player.health;
+    return h.downed ? Math.max(0, h.downHp ?? 0) : Math.max(0, h.hp) + (h.shield ?? 0) + (h.overshield ?? 0);
+  }
+
   #hurt(res, info, by) {
     if (!(res?.dealt > 0)) return;
+    // What the hit took of your shields and health, not what it carried (a shell on your last few
+    // points took a few points). Down, there's no more to take: whoever finishes you did just that.
+    const down = !!this.down;
+    const after = this.#pool(), lost = down ? 0 : res.downed ? this.pool ?? res.dealt : Math.max(0, (this.pool ?? after + res.dealt) - after);
+    this.pool = after; this.down = down || res.downed;
     const id = by?.id ?? -1, l = this.life.get(id) ?? { dmg: 0, what: null, name: by?.name ?? null };
-    l.dmg += res.dealt; l.what = this.#what(info, by) ?? l.what;
+    l.dmg += lost; l.what = this.#what(info, by) ?? l.what;
+    if (down && res.killed) l.finished = true;
     this.life.set(id, l);
   }
 
@@ -152,7 +165,7 @@ export class DeployScreen {
 
   #deployed() {
     this.#close();
-    this.life.clear(); this.deadAt = null;
+    this.life.clear(); this.deadAt = null; this.pool = this.#pool(); this.down = false;
     this.cls = this.player.classId;
   }
 
@@ -172,8 +185,8 @@ export class DeployScreen {
     const head = R.how === 'gaveUp' ? 'YOU GAVE UP' : R.how === 'bledOut' && !by ? 'YOU BLED OUT' : R.friendly ? 'KILLED BY A TEAMMATE' : 'ELIMINATED BY';
     const line = [R.cls, R.what, R.dist != null ? `${R.dist} m` : null].filter(Boolean).map(esc).join(' · ');
     who.innerHTML = `<small>${head}</small><b style="color:${R.friendly ? AMBER : R.team === this.team ? US : THEM}">${esc(by ?? (R.what ? R.what.toUpperCase() : 'THE BATTLE'))}</b><span>${line}${R.left != null ? ` · ${R.left}% health left` : ''}</span>`;
-    const hits = (R.hits ?? []).filter(([, l]) => l.dmg >= 1);
-    dmg.innerHTML = `<h4>DAMAGE TAKEN</h4>${hits.length ? hits.map(([, l]) => `<div><span>${esc(l.name ?? 'the battle')}${l.what ? ` · ${esc(l.what)}` : ''}</span><b>${Math.round(l.dmg)}</b></div>`).join('') : '<div><span>—</span></div>'}`;
+    const hits = (R.hits ?? []).filter(([, l]) => l.dmg >= 1 || l.finished);
+    dmg.innerHTML = `<h4>DAMAGE TAKEN</h4>${hits.length ? hits.map(([, l]) => `<div><span>${esc(l.name ?? 'the battle')}${l.what ? ` · ${esc(l.what)}` : ''}</span><b>${l.dmg >= 1 ? Math.round(l.dmg) : ''}${l.finished ? `${l.dmg >= 1 ? ' · ' : ''}FINISHED YOU` : ''}</b></div>`).join('') : '<div><span>—</span></div>'}`;
   }
 
   #classes() {

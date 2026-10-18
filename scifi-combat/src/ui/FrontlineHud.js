@@ -127,6 +127,7 @@ const CSS = `
 #fl-markers .mk span { font: 700 9px var(--disp); color: #eef2f8; letter-spacing: 1px; white-space: nowrap; }
 #fl-markers .mk em { display: block; font: 700 8px var(--disp); font-style: normal; letter-spacing: 2px; color: var(--amber); white-space: nowrap; margin: 0 -40px 2px; }
 #fl-markers .mk.contested i { animation: hudpulse .5s infinite; }
+#fl-markers .mk.pinged i { box-shadow: 0 0 0 2px #0b0d14, 0 0 0 4px var(--amber), 0 0 14px var(--amber); } #fl-markers .mk.pinged em { color: #fff; }
 #fl-reticle { position: absolute; left: 50%; top: 50%; width: 0; height: 0; --gap: 4.1vh; --len: 1.2vh; }
 #fl-reticle i { position: absolute; background: #ffffffe0; box-shadow: 0 0 0 1px #0008; }
 #fl-reticle i:nth-child(1) { left: -1px; top: calc(-1 * (var(--gap) + var(--len))); width: 2px; height: var(--len); }
@@ -333,7 +334,7 @@ export class FrontlineHud {
   dispose() { this.off.forEach((f) => f()); }
 
   /** The letterbox each bar covers (the options can turn it off): the HUD stays inside it. */
-  setLetterbox(f) { this.root.style.setProperty('--lb', `${(f * 100).toFixed(2)}vh`); }
+  setLetterbox(f) { this.lbFrac = f; this.root.style.setProperty('--lb', `${(f * 100).toFixed(2)}vh`); }
 
   /** A team's colour as you see it: yours blue, theirs red, the city's people grey, its gangs orange. */
   col(team) {
@@ -391,7 +392,14 @@ export class FrontlineHud {
     const camYaw = Math.atan2(camera.matrixWorld.elements[8], camera.matrixWorld.elements[10]);
     this.#compass(mode, sq, mp, camYaw);
     // ---- point markers
-    const w = innerWidth, h = innerHeight, held = [];
+    const w = innerWidth, h = innerHeight, held = [], fixed = [];
+    // Where a marker held at the edge may sit: below the compass, and down the sides between the
+    // corners' panels (the squad and the radio on the left, the killfeed and the minimap on the
+    // right). The ping marks use the same (PingView reads it off the HUD's root).
+    const hz = Math.min(1.5, Math.max(0.8, h / 1080)), lb = (this.lbFrac ?? 0) * h;
+    const safe = this.root.safe = { top: lb + 14 + 115 * hz, l: [lb + 14 + 340 * hz, h - lb - 270 * hz], r: [lb + 14 + 245 * hz, h - lb - 470 * hz] };
+    const pinged = new Map();   // point id -> your side's attack or defend ping on it
+    for (const pg of this.s.world.pings?.of(this.team) ?? []) if (pg.point != null) pinged.set(pg.point, pg);
     for (const [i, el] of this.markers.entries()) {
       const p = mode.points[i];
       const live = mode.capturable(p);
@@ -403,29 +411,37 @@ export class FrontlineHud {
       let x = (_v.x * 0.5 + 0.5) * w, y = (-_v.y * 0.5 + 0.5) * h;
       const behind = _v.z > 1;
       if (behind) { x = w - x; y = h - 30; }
-      const off = behind || x < 48 || x > w - 48 || y < 60 || y > h - 30;
-      x = Math.min(w - 48, Math.max(48, x)); y = Math.min(h - 30, Math.max(60, y));   // (inside the edge: its ATTACK and distance whole)
-      if (off) held.push({ el, x, y });
-      else el.style.transform = `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`;
+      const off = behind || x < 48 || x > w - 48 || y < safe.top || y > h - 30;
+      x = Math.min(w - 48, Math.max(48, x)); y = Math.min(h - 30, Math.max(safe.top, y));   // (inside the edge: its ATTACK and distance whole)
+      let lane = [safe.top, h - 30];
+      if (off && y >= h - 31) x = Math.min(w * 0.78, Math.max(w * 0.22, x));   // (along the bottom: clear of the panels in its corners)
+      else if (off && (x <= 48 || x >= w - 48)) { lane = x <= 48 ? safe.l : safe.r; y = Math.min(lane[1], Math.max(lane[0], y)); }
+      if (off) held.push({ el, x, y, lane });
+      else { fixed.push({ x, y }); el.style.transform = `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`; }
       el.style.color = p.owner >= 0 ? this.col(p.owner) : NEUTRAL;
       el.classList.toggle('contested', p.contested);
-      const mine = sq?.objective === p.id;
-      el.firstChild.textContent = mine ? (sq.role === 'attack' ? 'ATTACK' : 'DEFEND') : '';
+      const mine = sq?.objective === p.id, pg = pinged.get(p.id);
+      el.firstChild.textContent = pg ? pg.label : mine ? (sq.role === 'attack' ? 'ATTACK' : 'DEFEND') : '';
+      el.classList.toggle('pinged', !!pg);
       // Capture progress: + is team 0's.
       const k = Math.abs(p.progress), by = p.progress >= 0 ? 0 : 1;
       el.querySelector('u').style.background = k > 0.01 ? `conic-gradient(${this.col(by)} ${(k * 360).toFixed(0)}deg, transparent 0)` : 'none';
       el.lastChild.textContent = `${dist.toFixed(0)}m`;
     }
-    // Markers held at the edge stack instead of piling up on each other (down the edge, then back
-    // up from the bottom).
-    const near = (a, b) => Math.abs(a.x - b.x) < 46 && Math.abs(a.y - b.y) < 46;
+    // Markers held at the edge step around the ones on screen and each other instead of piling up
+    // (down the edge; up from the bottom of their lane when there's no room below).
+    const STEP = 58;   // (a marker with its ATTACK over it and its distance under it)
+    const near = (a, b) => Math.abs(a.x - b.x) < 46 && Math.abs(a.y - b.y) < STEP;
     held.sort((a, b) => a.y - b.y);
-    for (let j = 1; j < held.length; j++) for (let k = 0; k < j; k++) if (near(held[k], held[j])) held[j].y = held[k].y + 46;
-    for (let j = held.length - 1; j >= 0; j--) {
-      held[j].y = Math.min(h - 30, held[j].y);
-      for (let k = j + 1; k < held.length; k++) if (near(held[k], held[j])) held[j].y = Math.min(held[j].y, held[k].y - 46);
+    for (const m of held) {
+      for (let n = 0, again = true; again && n < 24; n++) { again = false; for (const o of fixed) if (near(o, m)) { m.y = o.y + STEP; again = true; } }
+      if (m.y > m.lane[1]) {
+        m.y = m.lane[1];
+        for (let n = 0, again = true; again && n < 24; n++) { again = false; for (const o of fixed) if (near(o, m)) { m.y = o.y - STEP; again = true; } }
+      }
+      fixed.push(m);
+      m.el.style.transform = `translate(${m.x.toFixed(0)}px, ${m.y.toFixed(0)}px)`;
     }
-    for (const m of held) m.el.style.transform = `translate(${m.x.toFixed(0)}px, ${m.y.toFixed(0)}px)`;
     // ---- minimap
     this.#minimap(camYaw);
     // ---- reticles: camera centre, and where the gun really points
@@ -728,6 +744,7 @@ export class FrontlineHud {
   #foeMarkers(camera, w, h) {
     const me = this.player, mp = me.movement.state.position, W = this.s.world;
     let n = 0;
+    const placed = [];
     const mark = (p, lift, label) => {
       if (n >= 12 || p.distanceTo(mp) > 150) return;
       _v.copy(p); _v.y += lift; _v.project(camera);
@@ -735,13 +752,20 @@ export class FrontlineHud {
       const el = this.foeMarks[n] ?? this.el.foes.appendChild(Object.assign(document.createElement('div'), { className: 'fm' }));
       this.foeMarks[n++] = el;
       el.style.display = 'block';
-      el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-_v.y * 0.5 + 0.5) * h).toFixed(0)}px)`;
+      // Two names in the same place: the second goes up a line (a gun and its crew, a tank by a squad).
+      const x = (_v.x * 0.5 + 0.5) * w; let y = (-_v.y * 0.5 + 0.5) * h;
+      for (let again = true; again;) { again = false; for (const o of placed) if (Math.abs(o.x - x) < 110 && Math.abs(o.y - y) < 15) { y = o.y - 15; again = true; } }
+      placed.push({ x, y });
+      el.style.transform = `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`;
       const html = `◆ ${label}<i>▾</i>`;
       if (el.innerHTML !== html) el.innerHTML = html;
     };
     if (!me.health.dead) {
+      // (an enemy pinged has the ping's mark, with its distance and who saw him: not two)
+      const pinged = new Set();
+      for (const p of W.pings?.of(this.team) ?? []) if (p.target) pinged.add(p.target);
       for (const f of this.s.fighters) {
-        if (f.team === this.team || f.team > 1 || f.health.dead || f.vehicle || !f.status?.has('revealed')) continue;
+        if (f.team === this.team || f.team > 1 || f.health.dead || f.vehicle || !f.status?.has('revealed') || pinged.has(f)) continue;
         mark(f.movement.state.position, 2.2, (f.name ?? '').toUpperCase());
       }
       for (const v of W.vehicles.list) {

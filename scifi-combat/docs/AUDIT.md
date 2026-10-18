@@ -89,6 +89,19 @@ can hear coming.
 5. **The briefing and the field manual** (docs/FRONTLINE.md, "Learning the game"). What your side has
    to do as the battle starts, then the one hint you need when you need it, until you've done it.
 
+## Fixed along the way
+
+- Finding 7, readability: off-screen point markers are held inside the screen's edge (not cut off),
+  stack instead of piling on each other, and keep clear of the HUD's corner panels (the squad, the
+  killfeed, the radio, the minimap and weapon); ping marks have their own lane inside them; a call-in
+  beacon's label stays on screen; the killfeed sits beside the commander's radio, not over it.
+- An enemy is marked once: a pinged soldier gets the ping's mark (his name, how far, who saw him),
+  not that and the HUD's tag as well; two names in the same place stack; off screen, only your own
+  and your squad's enemy pings show (the whole side's callouts would line the edges).
+- A point pinged lights up the point's own marker rather than putting a second one over it.
+- The loading screen's tips follow the battlefield (no civilians in the trenches); the developer labs
+  moved off the main menu into Settings.
+
 ## Next
 
 - Readability at scale: enemies against the haze at distance (a rim or outline when spotted, a colour

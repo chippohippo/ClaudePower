@@ -3,13 +3,13 @@
 //    within a couple of degrees of it), a capture point (attack it, or defend it if it's ours), else
 //    the ground there (move). Tapped twice: danger. Held: the wheel (move, attack, defend, regroup,
 //    medic, ammo, danger), picked with the mouse (the view holds still), sent on release.
-//  * Every ping of your side: its icon over it in the kind's colour, what it is (the enemy's name,
-//    the point), how far, and who pinged it if it wasn't you; fading in its last second; held
-//    inside the screen's edge with an arrow toward it when it's off screen. (The minimap shows them
-//    too: FrontlineHud; the blip is the AudioDirector's.)
+//  * Every ping of your side: its icon over it in the kind's colour, what it is (the enemy's name),
+//    how far, and who pinged it if it wasn't you; fading in its last second. Off screen it's held in
+//    a lane inside the screen's edge, with an arrow toward it: yours, your squad's, and orders and
+//    calls for help (not every enemy the side calls out). A point pinged lights up the point's own
+//    marker instead. (The minimap shows them too: FrontlineHud; the blip is the AudioDirector's.)
 
 import * as THREE from 'three';
-import { PING } from '../combat/Pings.js';
 
 const HOLD = 0.25;          // s held: the wheel instead of a ping
 const DOUBLE = 0.35;        // s between two taps: danger
@@ -27,6 +27,7 @@ const ICON = {
   ammo: 'M6 21V9l2-5 2 5v12zM11 21V9l2-5 2 5v12zM16 21V9l2-5 2 5v12z',
 };
 const WHEEL = ['move', 'attack', 'defend', 'danger', 'ammo', 'medic', 'regroup'];
+const SAY = { move: 'MOVE', attack: 'ATTACK', defend: 'DEFEND', danger: 'DANGER', ammo: 'AMMO', medic: 'MEDIC', regroup: 'REGROUP' };   // (on the wheel)
 const svg = (k, c) => `<svg viewBox="0 0 24 24" width="22" height="22"><path d="${ICON[k]}" fill="${k === 'enemy' || k === 'medic' || k === 'defend' ? c : 'none'}" fill-opacity="${k === 'enemy' ? 0.85 : 0.25}" stroke="${c}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 
 const CSS = `
@@ -37,7 +38,7 @@ const CSS = `
 .pg .ar { position: absolute; top: 9px; width: 0; height: 0; border: 6px solid transparent; }
 .pg.new svg { animation: pg-pop .35s ease-out; }
 @keyframes pg-pop { from { transform: scale(1.8); opacity: .2; } to { transform: none; opacity: 1; } }
-#pg-wheel { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; display: none; pointer-events: none; }
+#pg-wheel { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; display: none; pointer-events: none; z-index: 25; }
 #pg-wheel .ring { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, #0b0d1400 34%, #0b0d14c8 35%, #0b0d14c8 70%, #0b0d1400 71%); }
 #pg-wheel .opt { position: absolute; width: 74px; margin-left: -37px; margin-top: -26px; text-align: center; font: 700 10px var(--disp); letter-spacing: .1em; color: #c9d0dc; }
 #pg-wheel .opt svg { display: block; margin: 0 auto 3px; width: 26px; height: 26px; }
@@ -57,9 +58,10 @@ export class PingView {
     this.wheel = Object.assign(document.createElement('div'), { id: 'pg-wheel' });
     this.wheel.innerHTML = '<div class="ring"></div>' + WHEEL.map((k, i) => {
       const a = (i / WHEEL.length) * Math.PI * 2 - Math.PI / 2, r = 110;
-      return `<div class="opt" data-k="${k}" style="left:${150 + Math.cos(a) * r}px;top:${150 + Math.sin(a) * r}px;color:${COLOR[k]}">${svg(k, COLOR[k])}${PING[k].label.replace(' ON ME', '').replace('NEED ', '')}</div>`;
+      return `<div class="opt" data-k="${k}" style="left:${150 + Math.cos(a) * r}px;top:${150 + Math.sin(a) * r}px;color:${COLOR[k]}">${svg(k, COLOR[k])}${SAY[k]}</div>`;
     }).join('') + '<div class="dot"></div>';
     hud.append(this.root, this.wheel);
+    this.hud = hud;
     this.marks = new Map();    // ping id -> element
     this.down = null;          // when the ping key went down (s)
     this.lastTap = -1e9;
@@ -165,20 +167,26 @@ export class PingView {
     }
     const P = this.world.pings, me = this.player, team = me.team;
     const live = new Set();
-    const W = innerWidth, H = innerHeight, M = 46;
+    // Off screen, a mark is held in its own lane inside the edge (the points' markers have the
+    // edge itself), below the compass and above the radio, with an arrow out toward it.
+    const W = innerWidth, H = innerHeight, M = 46, L = 150, T = 150, B = H - 130, held = [];
+    const safe = this.hud.safe;   // (down the sides, clear of the HUD's corner panels: FrontlineHud)
     const mp = me.offField ? null : me.movement.state.position;
     for (const p of P?.of(team) ?? []) {
+      if (p.point != null) continue;   // (a point pinged lights up the point's own marker: FrontlineHud)
       live.add(p.id);
+      const t = p.target, q = t?.movement?.state.position;
       let el = this.marks.get(p.id);
       if (!el) {
         el = Object.assign(document.createElement('div'), { className: 'pg new' });
         const c = COLOR[p.kind] ?? '#fff', by = p.by === me.id ? '' : this.world.entity(p.by)?.name ?? '';
-        el.innerHTML = `${svg(p.kind, c)}<div class="l" style="color:${c}">${p.label}</div><div class="d"></div>${by ? `<div class="by">${by}</div>` : ''}<i class="ar"></i>`;
+        // An enemy by name (a vehicle by its type), as the HUD names the ones it marks.
+        const label = p.kind === 'enemy' && t ? (t.isVehicle ? t.def?.short ?? t.def?.name ?? p.label : t.name ?? p.label).toUpperCase() : p.label;
+        el.innerHTML = `${svg(p.kind, c)}<div class="l" style="color:${c}">${label}</div><div class="d"></div>${by ? `<div class="by">${by}</div>` : ''}<i class="ar"></i>`;
         this.root.appendChild(el); this.marks.set(p.id, el);
         setTimeout(() => el.classList.remove('new'), 400);
       }
       // Over the thing (a target that moves, its head), or the place.
-      const t = p.target, q = t?.movement?.state.position;
       const v = this._v.set(q ? q.x : p.at[0], (q ? q.y : p.at[1]) + (t ? (t.isVehicle ? 3.2 : 2.3) : 1.2), q ? q.z : p.at[2]);
       const dist = mp ? Math.hypot(v.x - mp.x, v.z - mp.z) : null;
       v.project(cam);
@@ -186,20 +194,33 @@ export class PingView {
       const behind = v.z > 1;
       if (behind) { x = W - x; y = H - y; }
       const off = behind || x < M || x > W - M || y < M + 30 || y > H - M;
+      // Off screen, only what's yours or your squad's, and orders and calls for help: the whole
+      // side's callouts of enemies would line the edges.
+      const ours = p.by === me.id || (me.squad && this.world.entity(p.by)?.squad === me.squad);
+      el.style.display = off && p.kind === 'enemy' && !ours ? 'none' : '';
       const ar = el.lastChild;
       if (off) {
-        // Held inside the edge, an arrow toward it.
-        const cx = W / 2, cy = H / 2, dx = x - cx, dy = (behind ? Math.max(y, cy + 1) : y) - cy;
-        const k = Math.min((W / 2 - M) / Math.max(1e-3, Math.abs(dx)), (H / 2 - M - 20) / Math.max(1e-3, Math.abs(dy)));
+        const cx = W / 2, cy = (T + B) / 2, dx = x - cx, dy = (behind ? Math.max(y, cy + 1) : y) - cy;
+        const k = Math.min((W / 2 - L) / Math.max(1e-3, Math.abs(dx)), ((B - T) / 2) / Math.max(1e-3, Math.abs(dy)));
         x = cx + dx * k; y = cy + dy * k;
+        if (safe && (x <= L + 1 || x >= W - L - 1)) { const s = x <= L + 1 ? safe.l : safe.r; y = Math.min(s[1] + 24, Math.max(s[0] + 24, y)); }   // (the mark stands on its point)
         const ang = Math.atan2(dy, dx);
         ar.style.display = 'block';
         ar.style.transform = `translate(${Math.cos(ang) * 20}px, ${Math.sin(ang) * 20}px) rotate(${ang}rad)`;
         ar.style.borderLeftColor = COLOR[p.kind] ?? '#fff';
+        if (el.style.display !== 'none') held.push({ el, x, y });
       } else ar.style.display = 'none';
       el.style.left = `${x.toFixed(1)}px`; el.style.top = `${y.toFixed(1)}px`;
       el.style.opacity = Math.min(1, Math.max(0, p.until - P.time)).toFixed(2);
       el.children[2].textContent = dist != null ? `${Math.round(dist)} m` : '';
+    }
+    // Marks held in the lane make room for each other (down the sides, along the top and bottom).
+    held.sort((a, b) => a.y - b.y || a.x - b.x);
+    for (let j = 1; j < held.length; j++) for (let k = 0; k < j; k++) {
+      const a = held[k], b = held[j];
+      if (Math.abs(a.x - b.x) > 70 || Math.abs(a.y - b.y) > 56) continue;
+      if (b.x <= L + 1 || b.x >= W - L - 1) b.y = a.y + 56; else b.x = a.x + (b.x >= a.x ? 70 : -70);
+      b.el.style.left = `${b.x.toFixed(1)}px`; b.el.style.top = `${b.y.toFixed(1)}px`;
     }
     for (const [id, el] of this.marks) if (!live.has(id)) { el.remove(); this.marks.delete(id); }
   }

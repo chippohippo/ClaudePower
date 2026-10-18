@@ -567,10 +567,13 @@ you lead them.
   uses his stim on you (or drops a pack at your feet), and says he's coming.
 - **Your side's pings too**: a squad's "Contact!" callout marks that enemy for the side (one a squad
   every 6 s), so you see what your side's soldiers see.
-- In the world: each ping's icon in its colour over the thing or the place, what it is ("ENEMY ·
-  Dravek", "ATTACK C2"), how far, who pinged it if it wasn't you; it fades in its last second and is
-  held inside the screen's edge with an arrow when it's off screen. On the minimap: a diamond in the
-  ping's colour. A blip (yours louder; an enemy's two falling notes; danger three).
+- In the world: each ping's icon in its colour over the thing or the place, what it is (an enemy by
+  name, a vehicle by its type), how far, who pinged it if it wasn't you; it fades in its last second.
+  Off screen it's held in a lane inside the screen's edge with an arrow toward it, making room for
+  the others there: yours, your squad's, and orders and calls for help (not every enemy your side
+  calls out). A pinged enemy has the ping's mark only, not the HUD's tag as well. A point pinged
+  lights up the point's own marker ("ATTACK C2"). On the minimap: a diamond in the ping's colour. A
+  blip (yours louder; an enemy's two falling notes; danger three).
 - Pings last 8 s (an enemy), 20 s (move, attack, defend), 12 s (danger, medic, ammo); three in 1.5 s at
   most. Event `ping:add`, `ping:remove`.
 
@@ -581,7 +584,8 @@ reviewers dock big shooters for.
 
 - **The recap**, as you fall: who got you (as what class, with what weapon or what kind of death,
   from how far, how much health he had left; a vehicle and its driver; a teammate's fire; a fall),
-  and the damage you took that life by who did it.
+  and the damage you took that life by who did it (what each took of your shields and health, not
+  what the round carried; whoever finished you while you were down is marked so).
 - **Then the front from above**: the sectors in their owner's colour, the buildings, the points, your
   side, the enemies your side knows of, where you fell, and every place you can deploy, numbered
   (`session.spawnOptions(id)`): the **HQ** (always open), every **point your side holds** while it's
