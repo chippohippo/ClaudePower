@@ -191,7 +191,8 @@ const CSS = `
 #fl-dead .row { display: flex; align-items: center; gap: 12px; }
 #fl-dead .bar { width: 84px; height: 14px; background: repeating-linear-gradient(-55deg, #ff4438d0 0 4px, transparent 4px 8px); }
 #fl-dead .txt { font: 800 30px/1 var(--disp); letter-spacing: .2em; color: #ffe1dd; background: linear-gradient(90deg, #b3120a90, #d61d12b0, #b3120a90); padding: 7px 10px 7px 16px; text-shadow: 0 0 14px #ff3b30; box-shadow: 0 0 24px #ff3b3040; }
-#fl-dead small { display: block; margin-top: 8px; font: 700 13px var(--text); letter-spacing: 3px; color: #ffb4ad; text-shadow: 0 0 6px #000; }
+#fl-dead small { display: inline-block; margin-top: 8px; padding: 2px 10px; font: 700 14px var(--text); letter-spacing: 3px; color: #ffd6d1; background: #120607b0; text-shadow: 0 0 6px #000; }
+#fl-dead small:empty { display: none; }
 #fl-respawn { position: absolute; top: 58%; width: 100%; text-align: center; font: 700 18px var(--disp); letter-spacing: 3px; display: none; }
 #fl-respawn small { font: 600 14px var(--text); letter-spacing: 1px; opacity: .85; }
 #fl-prompt { position: absolute; top: 64%; width: 100%; text-align: center; font: 700 17px var(--text); letter-spacing: 1.5px; text-transform: uppercase; }
