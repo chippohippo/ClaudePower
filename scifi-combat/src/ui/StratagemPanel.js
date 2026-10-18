@@ -33,7 +33,7 @@ const CSS = `
 #sg-panel .row .st.buy { color: #9fd3ff; }
 #sg-panel h4 .bp { float: right; color: #f4f1e8; letter-spacing: .06em; }
 #sg-panel .tip { margin-top: 6px; font-size: 10px; color: #a9a49a; text-transform: uppercase; }
-.sg-mark { position: absolute; transform: translate(-50%, -100%); text-align: center; font: 800 11px system-ui; letter-spacing: .08em;
+.sg-mark { position: absolute; transform: translate(-50%, -100%); text-align: center; font: 800 11px var(--disp, system-ui); letter-spacing: .08em;
   text-transform: uppercase; text-shadow: 0 0 6px #000, 0 0 2px #000; white-space: nowrap; pointer-events: none; }
 .sg-mark .t { font-size: 15px; }
 .sg-mark .dc { color: #ff4d40; font-size: 10px; }
@@ -103,11 +103,14 @@ export class StratagemPanel {
       if (_v.z > 1) continue;
       const el = this.pool[n] ?? (this.pool[n] = this.marks.appendChild(Object.assign(document.createElement('div'), { className: 'sg-mark' })));
       n++;
-      const x = Math.max(24, Math.min(innerWidth - 24, (_v.x * 0.5 + 0.5) * innerWidth)), y = Math.max(40, Math.min(innerHeight - 20, (-_v.y * 0.5 + 0.5) * innerHeight));
       const def = this.world.stratagems.defs[b.stratagem];
       const close = b.kind === 'strike' && capsuleDist(b.zone, me.x, me.z) < 3;   // inside its footprint, or 3 m from it
-      el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.color = this.col[b.kind] ?? '#ffe14d'; el.style.display = 'block';
+      el.style.color = this.col[b.kind] ?? '#ffe14d'; el.style.display = 'block';
       el.innerHTML = `${def?.name ?? b.stratagem}<br><span class="t">${b.eta > 0 ? b.eta.toFixed(1) : '▼'}</span>${close ? '<br><span class="dc">Danger close</span>' : ''}`;
+      // Pinned inside the screen by its own width: the whole name shows at the edge.
+      const half = el.offsetWidth / 2 + 8;
+      const x = Math.max(half, Math.min(innerWidth - half, (_v.x * 0.5 + 0.5) * innerWidth)), y = Math.max(40, Math.min(innerHeight - 20, (-_v.y * 0.5 + 0.5) * innerHeight));
+      el.style.left = `${x}px`; el.style.top = `${y}px`;
     }
     for (let i = n; i < this.pool.length; i++) this.pool[i].style.display = 'none';
   }

@@ -13,9 +13,31 @@
     #fl-gunpanel .pbar { width: 110px; }
     .fc-barrel { position: fixed; left: 0; top: 0; width: 26px; height: 26px; margin: -13px; border: 2px solid #ffd166; border-radius: 3px; transform-origin: center; box-shadow: 0 0 0 1px #0009; pointer-events: none; }
     #fl-supply .pbar { width: 90px; }
-    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #1d1730ee, #0d0b16f5); color: #f1edf8; font: 800 18px/1.4 system-ui, sans-serif; letter-spacing: 3px; text-transform: uppercase; z-index: 10; pointer-events: none; }
+    @font-face { font-family: 'Disp'; src: url(./vendor/fonts/Orbitron.woff2) format('woff2'); font-weight: 400 900; font-display: swap; }
+    @font-face { font-family: 'Text'; src: url(./vendor/fonts/Rajdhani-SemiBold.woff2) format('woff2'); font-weight: 600; font-display: swap; }
+    /* The loading screen: the battlefield's key art, where you're going, what's being built, a tip. */
+    #loading { position: fixed; inset: 0; display: grid; align-items: end; background: #0d0b16 center / cover no-repeat; color: #f1edf8; z-index: 10; pointer-events: none; }
+    #loading::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, #07060cf5 0%, #07060cb8 34%, #07060c40 70%, #07060c70 100%); }
+    #loading .in { position: relative; padding: 0 6vw 9vh; max-width: 980px; }
+    #loading .mode { font: 700 13px 'Disp', sans-serif; letter-spacing: 5px; color: #ffd34d; text-transform: uppercase; }
+    #loading .name { font: 900 clamp(34px, 6vw, 72px)/1.02 'Disp', sans-serif; letter-spacing: 6px; text-transform: uppercase; margin: 8px 0 18px; text-shadow: 0 0 30px #000a; }
+    #loading .bar { position: relative; height: 4px; width: min(560px, 80vw); background: #ffffff22; overflow: hidden; }
+    #loading .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #f2a832, #ffd34d); transition: width .4s; }
+    #loading .bar b { position: absolute; top: 0; bottom: 0; width: 30%; background: linear-gradient(90deg, transparent, #ffffff55, transparent); animation: sweep 1.4s linear infinite; }
+    @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(400%); } }
+    #loading .stage { font: 600 15px 'Text', system-ui, sans-serif; color: #cfc9dc; margin-top: 10px; letter-spacing: 1px; }
+    #loading .tip { font: 600 17px/1.4 'Text', system-ui, sans-serif; color: #f1edf8; margin-top: 26px; max-width: 760px; border-left: 2px solid #ffd34d; padding-left: 12px; }
+    #loading .tip b { font: 700 11px 'Disp', sans-serif; letter-spacing: 3px; color: #ffd34d; display: block; margin-bottom: 3px; }
+    /* Something went wrong before the battle started: say so, and the way back. */
+    #fail { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; background: #07060cf2; color: #f1edf8; font: 600 15px/1.5 'Text', system-ui, sans-serif; }
+    #fail.on { display: grid; } #fail div { max-width: 640px; padding: 24px; }
+    #fail h1 { font: 900 30px 'Disp', sans-serif; letter-spacing: 4px; color: #ff6b5a; margin: 0 0 10px; }
+    #fail pre { white-space: pre-wrap; background: #ffffff0c; border: 1px solid #ffffff1c; padding: 10px; font: 12px/1.4 ui-monospace, monospace; color: #e6dfe9; max-height: 30vh; overflow: auto; }
+    #fail a { display: inline-block; margin: 14px 10px 0 0; padding: 11px 22px; font: 800 13px 'Disp', sans-serif; letter-spacing: 3px; color: #1a1408; background: linear-gradient(90deg, #f2a832, #ffd34d); text-decoration: none; }
+    #fail a.alt { background: #ffffff14; color: #f1edf8; border: 1px solid #ffffff3a; }
     #help { position: fixed; left: 24px; top: 36%; background: #0b0d14d9; padding: 8px 12px; border-left: 2px solid #ffc94d; max-width: 380px; font-size: 12px; pointer-events: none; transition: opacity .6s; }
     #help.gone { opacity: 0; }
+    #loading:not([style*="none"]) ~ #help { display: none; }
     @media (max-width: 700px) { #help { display: none; } }
   </style>
   <script type="importmap">
@@ -23,9 +45,53 @@
   </script>
 </head>
 <body>
-  <div id="loading">Deploying…</div>
+  <div id="loading"><div class="in"><div class="mode" id="ld-mode">Frontline</div><div class="name" id="ld-name">Deploying</div><div class="bar"><i id="ld-fill"></i><b></b></div><div class="stage" id="ld-stage">Deploying…</div><div class="tip" id="ld-tip"></div></div></div>
+  <div id="fail"><div><h1>THE BATTLE COULDN'T START</h1><p id="fail-why">Something went wrong while building it.</p><pre id="fail-err"></pre><a href="start.html">MAIN MENU</a><a class="alt" href="" id="fail-retry">TRY AGAIN</a></div></div>
+  <script>
+    // The loading screen, filled in before the game's code arrives: where you're going, and a tip.
+    (() => {
+      const q = new URLSearchParams(location.search), city = q.get('map') === 'city', night = q.get('planet') === 'nightcity';
+      const id = city ? (night ? 'night' : 'dusk') : 'trench', name = city ? (night ? 'Night City' : 'Dusk City') : 'The Trenches';
+      const side = q.get('team') === '1' ? 'Void Legion' : 'Solari Directorate', cls = q.get('class') ?? '';
+      const L = document.getElementById('loading');
+      L.style.backgroundImage = `url(./media/keyart-${id}.jpg)`;
+      document.getElementById('ld-name').textContent = name;
+      document.getElementById('ld-mode').textContent = ['Frontline', q.get('size') ?? '32v32', side, cls === 'commander' ? 'Commander' : cls.replace(/_/g, ' ')].filter(Boolean).join(' · ');
+      const TIPS = [
+        'Take every point of the sector ahead and the front moves up. Break through to their HQ, run them out of reinforcements, or hold more of the line when time runs out.',
+        'Your squad follows you and covers you when you stop. Ping (middle mouse or Y) to mark an enemy for everyone, or to send your squad to a point.',
+        'Hold X by a downed teammate to revive them: 150 points, and every third earns a Field Medic ribbon.',
+        'Hold Tab and type the code with WASD to call in a stratagem. Stand clear of a red beam.',
+        'The magazine you drop is gone with its rounds. Top up only when it\'s worth it.',
+        'Press T against a wall, a barrier or a parked car to take cover; RMB pops you up or out to shoot.',
+        'Shells whistle before they land. Get into a trench, or behind something solid.',
+        'Battle points buy extra call-ins, vehicles and your hero. Dying keeps half of what you hadn\'t spent.',
+        'Hold P for the scoreboard. Every match goes into your career: experience, ranks, ribbons and medals.',
+        'Downed: crawl to cover and wait for a medic, or hold Space to give up.',
+        'One commander per side. If nobody takes the seat, the AI commands, and it plays to win.',
+      ].concat(city
+        ? ['Shooting a civilian who isn\'t shooting at you costs you. Gangs hold their turf against both sides.', 'Houses, scaffolding and broken bridges: the city fights on more than one floor.']
+        : ['Hold H to dig in: a foxhole, then sandbags, then a trench to the next position.', 'Field guns and supply trucks want crews: X to take a seat.']);
+      const tip = document.getElementById('ld-tip');
+      let k = Math.floor(Math.random() * TIPS.length);
+      const show = () => { tip.innerHTML = `<b>FIELD MANUAL</b>${TIPS[k++ % TIPS.length]}`; };
+      show(); const timer = setInterval(show, 6000);
+      // A failure before the battle starts: what went wrong, and the way back (not an endless load).
+      const fail = (err) => {
+        if (window.__frontline) return;
+        clearInterval(timer);
+        document.getElementById('fail-err').textContent = String(err?.stack ?? err?.message ?? err ?? 'unknown error').slice(0, 1500);
+        document.getElementById('fail-retry').href = location.href;
+        document.getElementById('fail').classList.add('on');
+        L.style.display = 'none';
+      };
+      window.__fail = fail;
+      addEventListener('error', (e) => fail(e.error ?? e.message));
+      addEventListener('unhandledrejection', (e) => fail(e.reason));
+    })();
+  </script>
   <div id="hud"></div>
-  <div id="help">
+  <div id="help" class="gone">
     <b>Frontline</b> <small style="opacity:.7">(F1 hides and shows this)</small> · take the points in front of your line; holding all of a sector moves the front. Trenches: stand to fire over the sandbags, crouch for cover, climb out to go over the top; wire slows you. Hold <b>H</b> to dig in (foxhole, sandbags, then a trench to the next position). Your squad follows you and covers you when you stop.
     Guns (12v12 and up): <b>X</b> to crew one, <b>H</b> to set it up or pack it up; at a howitzer or rocket battery the mouse moves the fire mission's mark, hold LMB to fire. Supply trucks: drive into the HQ dump and stop to load, into the forward depot to unload; <b>H</b> hitches a gun behind you.<br>
     Click to lock the mouse · WASD · Shift sprint · C crouch (hold: prone, sprinting: slide) · Alt dive · Space climb/hop ·

@@ -28,6 +28,9 @@
 //                (Sword fighters close in on their own: that's their weapon, not a charge.)
 //  * follow    - a human leads the squad: wedge on them while they move, cover around them when
 //                they stop.
+//  * directed  - a human leading the squad pinged a place or a point (Pings): the squad goes and
+//                takes cover round it (on a point, inside its circle), facing the enemy, for 45 s
+//                or until they ping regroup.
 //  * fallback  - morale: half the squad killed within 20 s breaks it; everyone sprints back
 //                to cover 40 m behind (the trench behind, where there is one) for 15 s, then regroups.
 //
@@ -96,6 +99,24 @@ export class SquadTactics {
   /** The commander's storm: for `seconds`, every man of the squad onto the point it's attacking, whatever's shooting. */
   storm(seconds = 20) { this.stormUntil = this.time + seconds; this.next = 0; }
 
+  /** A ping on an enemy (Pings): the squad has him, and turns its guns on him. */
+  mark(e) {
+    this.#spot(e, this.time); this.next = 0;
+    const m = this.squad.members.find((x) => x.brain && isUp(x) && !x.vehicle);
+    if (m) this.world.barks?.say(m, 'spotted');
+  }
+
+  /**
+   * A person leading this squad pinged somewhere (Pings): { kind: 'move' | 'attack' | 'defend', pos,
+   * point, radius }; the squad goes there for 45 s. null: regroup on them.
+   */
+  send(o) {
+    this.sentTo = o ? { ...o, until: this.time + 45 } : null; this.next = 0;
+    const m = this.squad.members.find((x) => x.brain && isUp(x) && !x.vehicle);
+    const name = o?.point != null ? this.mode.points.find((p) => p.id === o.point)?.name : null;
+    if (m) this.world.barks?.say(m, o ? 'onmark' : 'regroup', { place: name ?? 'the mark' });
+  }
+
   /** The whistle: the commander sends this squad over the top (the rush starts at once). */
   overTheTop() {
     if (!this.jump) return;
@@ -118,6 +139,7 @@ export class SquadTactics {
     const obj = this.#objective();
     if (obj?.point.id !== this.lastObjective) { this.lastObjective = obj?.point.id ?? null; this.jump = null; this.clear = null; this.holdSpots.clear(); }
     const human = up.find((m) => !m.brain);
+    if (human && this.sentTo && this.time < this.sentTo.until) { this.#setPhase('directed', `to ${this.sentTo.kind} at the mark`); this.#directed(up, obj); return; }
     if (human) { this.#setPhase('follow', 'a human leads'); this.#follow(up, human, obj); return; }
     if (!obj) { this.#setPhase('regroup', 'no orders'); this.#regroup(up); return; }
     this.#defaultThreat(obj);
@@ -785,6 +807,24 @@ export class SquadTactics {
       } else {
         this.#order(m, { kind: 'move', pos: want, sprint: human.movement.state.sprinting || d2(pos(m), want) > 8, fire: 'move', arrive: 1.5, follow: true, why: 'following you' });
       }
+    });
+  }
+
+  // ---------------------------------------------------------------- where the human pinged
+  #directed(up, obj) {
+    const D = this.sentTo, bots = up.filter((m) => m.brain);
+    if (!this.hasThreat && obj) this.#defaultThreat(obj);
+    // Round the mark: on a point, inside its circle (so it counts for the capture); else a ring 5 m out.
+    const r = D.radius ? Math.max(2, Math.min(D.radius * 0.55, 7)) : 5;
+    const taken = [];
+    bots.forEach((m, k) => {
+      const a = (k / Math.max(1, bots.length)) * Math.PI * 2 + 0.7;
+      const want = { x: D.pos.x + Math.cos(a) * r, z: D.pos.z + Math.sin(a) * r };
+      const far = d2(pos(m), want);
+      if (far > 12) { this.#order(m, { kind: 'move', pos: want, sprint: far > 25, fire: 'move', arrive: 2, why: 'to your mark' }); return; }
+      const s = this.#cover(m, want, D.radius ? Math.min(D.radius * 0.7, 8) : 8, { avoid: taken });
+      if (s) { this.tmap.reserve(s, m.id, this.time); taken.push(s); }
+      this.#order(m, { kind: 'overwatch', pos: s ?? want, spot: s, fire: 'cover', face: this.threat, suppress: this.hasThreat ? this.threat : null, arrive: 1, why: 'holding your mark' });
     });
   }
 }

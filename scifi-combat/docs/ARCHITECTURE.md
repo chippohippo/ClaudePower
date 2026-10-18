@@ -75,6 +75,7 @@ scifi-combat/
 │  │  ├─ Stratagems.js          call-ins: codes on the wrist pad, beacons, strikes, jets, pods, smoke
 │  │  ├─ SupportItems.js  Passives.js   stims, ammo packs, repairs; the 20 class passives
 │  │  ├─ HitReactions.js  ReviveSystem.js   ragdoll triggers; downs and revives
+│  │  ├─ Pings.js               marks for your side: enemies revealed, squads sent, help asked for
 │  ├─ classes/ ClassSystem.js  abilities/*.js
 │  ├─ ai/ AIController.js  UtilityBrain.js  SquadDirector.js  Perception.js  CoverGraph.js
 │  │      FrontlineCommander.js  squads of 4, attack/defend orders per team, whistle waves
@@ -84,6 +85,7 @@ scifi-combat/
 │  │      tactics/ SquadTactics.js  TacticalMap.js  Suppression.js   squad phases, cover spots → docs/AI.md
 │  ├─ game/ FighterFactory.js  FrontlineSession.js (match loop, think and pipeline LOD, waves)
 │  │        BattlePoints.js (earned for team play, spent on the call-in panel)
+│  │        MatchStats.js (every soldier's line, ribbons)  Career.js (ranks, medals, history; in the browser)
 │  │        frontline/ MapSizes.js (4v4–200v200)  FrontlineMap.js (a seeded map per size)  Trenches.js
 │  │                   Ruins.js  Fortify.js (digging in)  FrontlineMode.js (rules)
 │  │                   Logistics.js (supply war) → docs/FRONTLINE.md
@@ -115,6 +117,9 @@ scifi-combat/
 │           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)  MeleeTells.js (windup chevrons)
 │           BarkVoices.js (callouts spoken and subtitled)
 │           OptionsMenu.js  Settings.js (graphics presets, render scale, toggles, camera, audio; saved in the browser)
+│           MatchFlow.js (ribbons, the scoreboard, the after-action report)  Ribbons.js
+│           PingView.js (the ping key, the wheel, the marks)  DeployScreen.js (death recap, where to deploy, next class)
+│           FieldManual.js (the briefing, hints when they're needed)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

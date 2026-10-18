@@ -37,7 +37,7 @@ const PITCH = 1.05;             // rad below the horizon the view looks down
 const ZOOM = [60, 1400];        // m from the ground point looked at (out to about the whole map)
 const ARM = { KeyT: 'take', KeyH: 'hold', KeyR: 'scout', KeyF: 'fire' };
 const LABEL = { take: 'TAKE', hold: 'HOLD', scout: 'SCOUT', fire: 'FIRE MISSION', fallback: 'FALL BACK', auto: 'STANDING ORDERS', storm: 'STORM', line: 'HOLD' };
-const PHASE = { follow: 'WITH YOU', advance: 'ADVANCING', contact: 'IN CONTACT', jumpoff: 'IN THE TRENCH', assault: 'ASSAULTING', clear: 'CLEARING', hold: 'HOLDING', charge: 'CHARGING', regroup: 'REGROUPING', down: 'ALL DOWN' };
+const PHASE = { follow: 'WITH YOU', directed: 'ON A PING', advance: 'ADVANCING', contact: 'IN CONTACT', jumpoff: 'IN THE TRENCH', assault: 'ASSAULTING', clear: 'CLEARING', hold: 'HOLDING', charge: 'CHARGING', regroup: 'REGROUPING', down: 'ALL DOWN' };
 const RADIO = { order: US, fallback: GREY, refuse: AMBER, scout: SCOUT, eyes: SCOUT, secured: '#ffe08a', fire: THEM };
 const FIRE_R = 16;              // m: a fire mission's radius
 const _v = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();

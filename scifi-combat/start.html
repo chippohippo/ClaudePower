@@ -4,170 +4,323 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1c1 3 4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-5 0-7z' fill='%23ffb43a'/%3E%3C/svg%3E" />
-  <title>Emberfall Frontline</title>
-  <!-- The start menu: pick the battlefield, the size, your side and class, then deploy
-       (index.html with those as URL parameters). The launchers (play.bat, play.command,
-       play.sh) open this page. Choices are remembered in this browser. -->
+  <title>Emberfall</title>
+  <!-- The start menu: pick the battlefield, the size, your side and class, then deploy (index.html
+       with those as URL parameters); your career (Career.js) on its own tab, the controls on
+       another, the shared settings on a third. The launchers (play.bat, play.command, play.sh) open
+       this page. Choices are remembered in this browser; Enter deploys. -->
   <style>
+    @font-face { font-family: 'Disp'; src: url(./vendor/fonts/Orbitron.woff2) format('woff2'); font-weight: 400 900; font-display: swap; }
+    @font-face { font-family: 'Text'; src: url(./vendor/fonts/Rajdhani-SemiBold.woff2) format('woff2'); font-weight: 600; font-display: swap; }
+    @font-face { font-family: 'Text'; src: url(./vendor/fonts/Rajdhani-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
     :root {
-      --bg: #120f1c; --bg2: #1d1730; --panel: #0d0b16cc; --line: #ffffff1f; --text: #f1edf8; --dim: #a59fb8;
-      --accent: #ffe14d; --accent2: #f2b632; --sol: #ffcf6b; --void: #b994ff; --cold: #7fd1ff;
+      --bg: #07060c; --panel: #0b0a13d9; --panel2: #13111ee6; --line: #ffffff1c; --text: #f1edf8; --dim: #a59fb8; --dim2: #7d7790;
+      --accent: #ffd34d; --accent2: #f2a832; --sol: #ffcf6b; --void: #b994ff; --cold: #7fd1ff;
+      --disp: 'Disp', 'Bahnschrift', 'Arial Narrow', sans-serif; --txt: 'Text', 'Bahnschrift SemiCondensed', 'Arial Narrow', system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
-    body {
-      background: radial-gradient(ellipse at 70% -10%, #4b3a6b 0%, transparent 55%), radial-gradient(ellipse at 10% 110%, #3a2140 0%, transparent 50%), linear-gradient(180deg, var(--bg2), var(--bg));
-      color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden;
-    }
+    html, body { margin: 0; height: 100%; }
+    body { background: var(--bg); color: var(--text); font: 600 15px/1.4 var(--txt); overflow: hidden; }
+    #bg { position: fixed; inset: 0; background: #1a1424 center / cover no-repeat; transition: background-image .5s; }
+    #bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #07060cf5 0%, #07060cd8 38%, #07060c80 70%, #07060c55 100%), linear-gradient(0deg, #07060cf0 0%, transparent 30%, transparent 75%, #07060cc0 100%); }
     #snow { position: fixed; inset: 0; pointer-events: none; }
-    main { position: relative; max-width: 1080px; margin: 0 auto; padding: 28px 16px 48px; }
-    header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-    h1 { margin: 0; font-size: clamp(30px, 6vw, 54px); letter-spacing: 6px; font-weight: 900; text-transform: uppercase; text-shadow: 0 0 24px #ff9d4d55; }
-    h1 span { color: var(--accent); }
-    header p { margin: 0; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; font-size: 12px; }
-    .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-    section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; backdrop-filter: blur(4px); }
-    h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); }
-    .row { margin-bottom: 14px; }
-    .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
-    .opts { display: flex; flex-wrap: wrap; gap: 6px; }
-    .opt { cursor: pointer; border: 1px solid var(--line); background: #ffffff08; color: var(--text); padding: 7px 11px; border-radius: 4px; font: inherit; font-size: 13px; text-align: left; }
-    .opt:hover { border-color: #ffffff55; }
-    .opt[aria-pressed="true"] { border-color: var(--accent); background: #ffe14d1c; box-shadow: inset 0 0 0 1px var(--accent); }
-    .opt small { display: block; color: var(--dim); font-size: 11px; margin-top: 2px; }
-    .maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    @media (max-width: 560px) { .maps { grid-template-columns: 1fr; } }
-    .maps .opt { padding: 10px; min-height: 88px; }
-    .maps .opt b { display: block; font-size: 14px; letter-spacing: 1px; }
-    .side-0[aria-pressed="true"] { border-color: var(--sol); box-shadow: inset 0 0 0 1px var(--sol); background: #ffcf6b18; }
-    .side-1[aria-pressed="true"] { border-color: var(--void); box-shadow: inset 0 0 0 1px var(--void); background: #b994ff18; }
-    .classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-    .classes .cmdr { border-style: dashed; } .classes .cmdr b::before { content: '★ '; color: var(--accent); }
-    #deploy { width: 100%; margin-top: 4px; padding: 14px; border: 0; border-radius: 4px; cursor: pointer; background: linear-gradient(90deg, var(--accent2), var(--accent)); color: #1a1408; font: 900 18px/1 system-ui, sans-serif; letter-spacing: 6px; text-transform: uppercase; box-shadow: 0 0 22px #ffcf4d44; }
-    #deploy:hover { filter: brightness(1.08); }
-    #summary { margin-top: 8px; color: var(--dim); font-size: 12px; word-break: break-all; }
+    #app { position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+    /* The top bar: the name, the tabs, your rank. */
+    header { display: flex; align-items: center; gap: 28px; padding: 18px 34px 10px; }
+    .logo { font: 900 34px/1 var(--disp); letter-spacing: 7px; text-shadow: 0 0 26px #ff9d4d55; white-space: nowrap; }
+    .logo span { color: var(--accent); } .logo small { display: block; font: 700 11px var(--disp); letter-spacing: 6px; color: var(--dim); margin-top: 6px; }
+    nav { display: flex; gap: 4px; }
+    nav button { font: 800 14px var(--disp); letter-spacing: 3px; text-transform: uppercase; color: var(--dim); background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; cursor: pointer; }
+    nav button:hover { color: var(--text); } nav button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+    #rank { margin-left: auto; display: flex; align-items: center; gap: 12px; min-width: 250px; cursor: pointer; }
+    #rank .t { font: 800 13px var(--disp); letter-spacing: 2px; } #rank .x { font: 600 12px var(--txt); color: var(--dim); }
+    .bar { height: 5px; background: #ffffff1a; margin-top: 5px; } .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+    main { overflow: auto; padding: 8px 34px 18px; }
+    .tab { display: none; max-width: 1500px; } .tab.on { display: block; animation: in .25s ease-out; }
+    @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    h2 { margin: 0 0 9px; font: 800 12px var(--disp); letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
+    .panel { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; backdrop-filter: blur(6px); }
+    .row { margin-bottom: 16px; }
+    /* PLAY */
+    .play { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; }
+    .maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .map { position: relative; height: 128px; border: 1px solid var(--line); background: #1a1424 center / cover no-repeat; cursor: pointer; text-align: left; padding: 0; color: var(--text); overflow: hidden; }
+    .map::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, #07060cf0 10%, #07060c30 60%, transparent); }
+    .map div { position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 1; }
+    .map b { display: block; font: 800 15px var(--disp); letter-spacing: 1.5px; } .map small { display: block; font: 600 12.5px/1.25 var(--txt); color: #cfc9dc; margin-top: 3px; }
+    .map:hover { border-color: #ffffff60; } .map[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px #ffd34d30; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { cursor: pointer; border: 1px solid var(--line); background: #ffffff0a; color: var(--text); padding: 8px 13px; font: 700 14px var(--txt); text-align: left; }
+    .chip small { display: block; font: 600 11.5px var(--txt); color: var(--dim); }
+    .chip:hover { border-color: #ffffff55; } .chip[aria-pressed="true"] { border-color: var(--accent); background: #ffd34d1c; box-shadow: inset 0 0 0 1px var(--accent); }
+    .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .side { cursor: pointer; border: 1px solid var(--line); background: #ffffff08; color: var(--text); padding: 10px 12px; text-align: left; display: flex; gap: 10px; align-items: center; }
+    .side b { display: block; font: 800 14px var(--disp); letter-spacing: 1px; } .side small { color: var(--dim); font: 600 12.5px var(--txt); }
+    .side .em { width: 34px; height: 34px; flex: none; }
+    .side.s0[aria-pressed="true"] { border-color: var(--sol); background: #ffcf6b16; box-shadow: inset 0 0 0 1px var(--sol); }
+    .side.s1[aria-pressed="true"] { border-color: var(--void); background: #b994ff16; box-shadow: inset 0 0 0 1px var(--void); }
+    .split { display: flex; gap: 22px; flex-wrap: wrap; }
     .seed { display: flex; gap: 6px; align-items: center; }
-    .seed input { width: 110px; padding: 7px 8px; border-radius: 4px; border: 1px solid var(--line); background: #ffffff0d; color: var(--text); font: inherit; }
-    kbd { display: inline-block; min-width: 20px; padding: 1px 5px; border: 1px solid #ffffff40; border-bottom-width: 2px; border-radius: 3px; font: 600 11px/1.4 ui-monospace, monospace; text-align: center; background: #ffffff0a; }
-    .keys { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; font-size: 13px; }
-    .keys div:nth-child(odd) { white-space: nowrap; }
-    .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .links a { color: var(--cold); text-decoration: none; border: 1px solid var(--line); padding: 6px 10px; border-radius: 4px; font-size: 13px; }
-    .links a:hover { border-color: var(--cold); }
-    .note { color: var(--dim); font-size: 12px; margin-top: 10px; }
+    .seed input { width: 96px; padding: 8px; border: 1px solid var(--line); background: #ffffff0d; color: var(--text); font: 700 14px var(--txt); }
+    .classes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .cls { cursor: pointer; border: 1px solid var(--line); background: #ffffff08; color: var(--text); padding: 8px 6px 7px; text-align: center; }
+    .cls svg { width: 26px; height: 26px; display: block; margin: 0 auto 4px; color: var(--dim); }
+    .cls b { display: block; font: 700 13.5px var(--txt); } .cls small { display: block; font: 600 11px var(--txt); color: var(--dim); }
+    .cls:hover { border-color: #ffffff55; } .cls[aria-pressed="true"] { border-color: var(--accent); background: #ffd34d18; box-shadow: inset 0 0 0 1px var(--accent); }
+    .cls[aria-pressed="true"] svg { color: var(--accent); } .cls.cmdr { border-style: dashed; }
+    .detail { margin-top: 12px; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: start; }
+    .detail .nm { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; }
+    .detail .nm b { font: 900 22px var(--disp); letter-spacing: 2px; } .detail .nm span { font: 700 12px var(--disp); letter-spacing: 2px; color: var(--accent); }
+    .detail .k { font: 700 11px var(--disp); letter-spacing: 2px; color: var(--dim2); padding-top: 3px; text-transform: uppercase; }
+    .detail .v { font: 600 14.5px var(--txt); color: #e2dcef; } .detail .v kbd { margin-right: 4px; }
+    .stat { display: inline-flex; gap: 6px; margin-right: 14px; } .stat em { font-style: normal; color: var(--dim); }
+    kbd { display: inline-block; min-width: 20px; padding: 1px 5px; border: 1px solid #ffffff40; border-bottom-width: 2px; font: 700 11px/1.4 var(--disp); text-align: center; background: #ffffff0a; color: var(--text); }
+    /* The deploy bar. */
+    #bar { display: flex; align-items: center; gap: 18px; padding: 14px 34px 18px; background: linear-gradient(0deg, #07060cf5 40%, transparent); }
+    #summary { flex: 1; font: 700 14px var(--disp); letter-spacing: 2px; color: #d9d3e6; text-transform: uppercase; }
+    #summary small { display: block; font: 600 12px var(--txt); letter-spacing: 0; color: var(--dim2); text-transform: none; margin-top: 3px; }
+    #deploy { padding: 16px 58px; border: 0; cursor: pointer; background: linear-gradient(90deg, var(--accent2), var(--accent)); color: #1a1408; font: 900 20px/1 var(--disp); letter-spacing: 8px; text-transform: uppercase; box-shadow: 0 0 28px #ffcf4d40; }
+    #deploy:hover { filter: brightness(1.08); box-shadow: 0 0 36px #ffcf4d70; } #deploy kbd { font-size: 10px; margin-left: 10px; vertical-align: middle; letter-spacing: 1px; color: #1a1408; border-color: #1a140880; background: #0000; }
+    /* CAREER */
+    .career { display: grid; grid-template-columns: 380px 1fr; gap: 18px; }
+    .rankcard { display: flex; gap: 16px; align-items: center; } .rankcard svg { width: 86px; height: 96px; flex: none; }
+    .rankcard b { display: block; font: 900 24px var(--disp); letter-spacing: 2px; } .rankcard small { color: var(--dim); font: 600 13px var(--txt); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .stats div { background: #ffffff08; padding: 8px 10px; } .stats b { display: block; font: 800 22px var(--disp); } .stats span { font: 700 10px var(--disp); letter-spacing: 1.5px; color: var(--dim2); }
+    .ribs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 18px; }
+    .rib { display: flex; align-items: center; gap: 10px; font: 600 14px var(--txt); } .rib b { font: 800 14px var(--disp); margin-left: auto; } .rib .md { font: 700 10px var(--disp); letter-spacing: 1px; padding: 1px 5px; color: #10131c; }
+    .hist { width: 100%; border-collapse: collapse; font: 600 14px var(--txt); }
+    .hist th { text-align: left; font: 700 10px var(--disp); letter-spacing: 1.5px; color: var(--dim2); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+    .hist td { padding: 5px 6px; border-bottom: 1px solid #ffffff0a; } .hist .w { color: #7fd18c; } .hist .l { color: #ff7a7a; }
+    .empty { color: var(--dim); font: 600 14px var(--txt); }
+    /* CONTROLS */
+    .controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font: 600 14px var(--txt); }
+    .keys > div:nth-child(odd) { white-space: nowrap; }
+    .note { color: var(--dim); font: 600 13px var(--txt); margin-top: 10px; }
+    /* The labs, out of the way. */
+    .labs a { color: var(--cold); text-decoration: none; } .labs a:hover { text-decoration: underline; }
+    @media (max-width: 1100px) { .play, .career { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr 1fr; } body { overflow: auto; } #app { height: auto; min-height: 100%; } }
+    @media (max-width: 700px) { header { flex-wrap: wrap; padding: 14px 16px 6px; } main { padding: 8px 16px; } #bar { padding: 12px 16px; flex-wrap: wrap; } .maps, .controls { grid-template-columns: 1fr; } .classes { grid-template-columns: repeat(2, 1fr); } #rank { margin-left: 0; } #deploy { width: 100%; } }
   </style>
 </head>
 <body>
+  <div id="bg"></div>
   <canvas id="snow"></canvas>
-  <main>
+  <div id="app">
     <header>
-      <h1>Ember<span>fall</span></h1>
-      <p>Frontline · a war across the city</p>
+      <div class="logo">EMBER<span>FALL</span><small>FRONTLINE · A WAR ACROSS THE CITY</small></div>
+      <nav id="tabs">
+        <button data-tab="play" aria-selected="true">Play</button>
+        <button data-tab="career">Career</button>
+        <button data-tab="controls">Controls</button>
+        <button data-tab="settings">Settings</button>
+      </nav>
+      <div id="rank" title="Your career"></div>
     </header>
-    <div class="grid">
-      <section>
-        <h2>Deployment</h2>
-        <div class="row">
-          <div class="label">Battlefield</div>
-          <div class="maps" id="map"></div>
+    <main>
+      <section class="tab on" id="tab-play">
+        <div class="play">
+          <div>
+            <div class="row"><h2>Battlefield</h2><div class="maps" id="map"></div></div>
+            <div class="row"><h2>Battle size</h2><div class="chips" id="size"></div></div>
+            <div class="row"><h2>Your side</h2><div class="sides" id="team"></div></div>
+            <div class="row split">
+              <div><h2>Enemy and allied bots</h2><div class="chips" id="difficulty"></div></div>
+              <div><h2>Map seed</h2><div class="seed"><input id="seed" type="number" min="1" max="99999" aria-label="Map seed" /><button class="chip" id="dice" title="A new map">New map</button></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Class</h2>
+            <div class="classes" id="cls"></div>
+            <div class="detail" id="detail"></div>
+          </div>
         </div>
-        <div class="row">
-          <div class="label">Battle size</div>
-          <div class="opts" id="size"></div>
-        </div>
-        <div class="row">
-          <div class="label">Your side</div>
-          <div class="opts" id="team"></div>
-        </div>
-        <div class="row">
-          <div class="label">Class</div>
-          <div class="classes" id="cls"></div>
-        </div>
-        <div class="row" style="display:flex;gap:18px;flex-wrap:wrap">
-          <div><div class="label">Bots</div><div class="opts" id="difficulty"></div></div>
-          <div><div class="label">Graphics</div><div class="opts" id="fx"></div></div>
-          <div><div class="label">Map seed</div><div class="seed"><input id="seed" type="number" min="1" max="99999" /><button class="opt" id="dice" title="A new map">New</button></div></div>
-        </div>
-        <button id="deploy">Deploy</button>
-        <div id="summary"></div>
       </section>
-      <section>
-        <h2>Controls</h2>
-        <div class="keys">
-          <div><kbd>Click</kbd></div><div>capture the mouse (<kbd>Esc</kbd> frees it)</div>
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>move · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> climb / hop / vault</div>
-          <div><kbd>C</kbd></div><div>crouch · hold: prone · while sprinting: slide · <kbd>Alt</kbd> dive</div>
-          <div><kbd>T</kbd></div><div>take cover against the wall, barrier or parked car in front of you · <kbd>A</kbd><kbd>D</kbd> along it · <kbd>RMB</kbd> up over it or out round its corner to shoot · <kbd>T</kbd> again, or walk away, to leave</div>
-          <div><kbd>LMB</kbd> <kbd>RMB</kbd></div><div>fire · aim down sights · <kbd>R</kbd> reload</div>
-          <div><kbd>V</kbd></div><div>first person / third person · <kbd>B</kbd> swap shoulder</div>
-          <div><kbd>1</kbd></div><div>sword or gun · <kbd>F</kbd> rifle-butt melee (the sword's heavy)</div>
-          <div><kbd>Q</kbd><kbd>E</kbd><kbd>G</kbd><kbd>Z</kbd></div><div>abilities, grenade, super</div>
-          <div><kbd>Tab</kbd></div><div>hold, then type a stratagem code with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>; <kbd>LMB</kbd> throws the beacon</div>
-          <div><kbd>X</kbd></div><div>vehicles and guns · hold by a downed teammate to revive · hold over a downed enemy to finish him</div>
-          <div><kbd>H</kbd></div><div>dig in (foxhole, sandbags, trench) · set a gun up · repair (engineers)</div>
-          <div><kbd>3</kbd></div><div>your item (stims, ammo packs)</div>
-          <div><b>Commander</b></div><div>click a squad (<kbd>1</kbd>-<kbd>9</kbd>), <kbd>RMB</kbd> the map to send it · <kbd>T</kbd> take · <kbd>H</kbd> hold · <kbd>R</kbd> scout · <kbd>G</kbd> storm · <kbd>F</kbd> fire mission · <kbd>B</kbd> fall back · <kbd>X</kbd> back to your staff · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> pan, wheel zoom</div>
-          <div><kbd>Space</kbd></div><div>when dead: deploy again · when downed: hold to give up</div>
+      <section class="tab" id="tab-career"><div class="career" id="career"></div></section>
+      <section class="tab" id="tab-controls">
+        <div class="controls">
+          <div class="panel"><h2>Moving</h2><div class="keys">
+            <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>move · <kbd>Shift</kbd> sprint</div>
+            <div><kbd>Space</kbd></div><div>climb, hop, vault</div>
+            <div><kbd>C</kbd></div><div>crouch · hold: prone · sprinting: slide</div>
+            <div><kbd>Alt</kbd></div><div>dive</div>
+            <div><kbd>T</kbd></div><div>cover against the wall, barrier or parked car in front of you · <kbd>A</kbd><kbd>D</kbd> along it · <kbd>RMB</kbd> up or out round the corner to shoot · <kbd>T</kbd> again to leave</div>
+            <div><kbd>V</kbd></div><div>first or third person · <kbd>B</kbd> swap shoulder</div>
+            <div><kbd>X</kbd></div><div>vehicles and guns</div>
+          </div></div>
+          <div class="panel"><h2>Fighting</h2><div class="keys">
+            <div><kbd>LMB</kbd> <kbd>RMB</kbd></div><div>fire · aim down sights</div>
+            <div><kbd>R</kbd></div><div>reload (the mag you drop is gone)</div>
+            <div><kbd>1</kbd> <kbd>2</kbd></div><div>sword or gun · next gun</div>
+            <div><kbd>F</kbd></div><div>rifle-butt melee (the sword's heavy)</div>
+            <div><kbd>Q</kbd><kbd>E</kbd><kbd>G</kbd><kbd>Z</kbd></div><div>abilities, grenade, super</div>
+            <div><kbd>Tab</kbd></div><div>hold, type a call-in's code with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>LMB</kbd> throws the beacon</div>
+            <div><kbd>3</kbd></div><div>your item: a medic's stim, an engineer's ammo pack</div>
+          </div></div>
+          <div class="panel"><h2>Your squad and side</h2><div class="keys">
+            <div><kbd>MMB</kbd> <kbd>Y</kbd></div><div>ping: mark an enemy, send your squad to a point or a place · double tap: danger · hold: the ping wheel</div>
+            <div><kbd>X</kbd></div><div>hold by a downed teammate: revive · over a downed enemy: finish</div>
+            <div><kbd>H</kbd></div><div>dig in (foxhole, sandbags, trench) · set a gun up · repair</div>
+            <div><kbd>P</kbd></div><div>hold: the scoreboard</div>
+            <div><kbd>Space</kbd></div><div>dead: deploy · downed: hold to give up</div>
+            <div><kbd>Esc</kbd></div><div>pause and options · <kbd>F1</kbd> the controls card</div>
+          </div></div>
+          <div class="panel"><h2>Commander</h2><div class="keys">
+            <div><kbd>LMB</kbd></div><div>select a squad (<kbd>1</kbd>-<kbd>9</kbd>) · <kbd>RMB</kbd> the map: send it</div>
+            <div><kbd>T</kbd> <kbd>H</kbd> <kbd>R</kbd></div><div>take · hold · scout (eyes for the guns)</div>
+            <div><kbd>G</kbd> <kbd>F</kbd> <kbd>B</kbd></div><div>storm · fire mission · fall back</div>
+            <div><kbd>X</kbd></div><div>hand a squad back to your staff</div>
+            <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div>pan · the wheel zooms</div>
+          </div></div>
+          <div class="panel" style="grid-column: span 2"><h2>The battlefield</h2>
+            <p class="note" style="margin-top:0">Take every point of the sector ahead to move the front; break through to their HQ, run them out of reinforcements, or hold more of the line when time runs out. Your squad follows you and covers you when you stop; ping to send it. The city's civilians hide from the fighting: shooting one who isn't shooting at you costs you. Gangs hold their turf against both sides.</p>
+          </div>
         </div>
-        <p class="note">The city's civilians hide from the fighting: shooting one who isn't shooting at you costs you. Gangs hold their turf against both sides; you'll see a warning as you walk in.</p>
-        <h2 style="margin-top:16px">Labs</h2>
-        <div class="links">
-          <a href="arena.html">Arena · 4v4 feel lab</a>
-          <a href="art-lab.html?station=people">Art lab</a>
-          <a href="rig-lab.html">Rig lab</a>
-        </div>
-        <p class="note">Runs offline in Chrome, Edge or Firefox (WebGL 2). Bigger battles want a stronger PC: start at 32v32, Graphics: Low if it stutters (Settings has the render scale, shadows and every effect; Esc in a match opens the same options and pauses).</p>
       </section>
-    </div>
-  </main>
+      <section class="tab" id="tab-settings">
+        <div class="panel" style="max-width:760px">
+          <h2>Graphics</h2>
+          <div class="chips" id="fx"></div>
+          <p class="note">Runs offline in Chrome, Edge or Firefox (WebGL 2). Bigger battles want a stronger PC: start at 32v32 and Low graphics if it stutters. The full settings (render scale, shadows, every effect, field of view, audio, sensitivity) are the same as the game's <kbd>Esc</kbd> menu.</p>
+          <button class="chip" id="allsettings" style="margin-top:6px">All settings…</button>
+        </div>
+        <div class="panel labs" style="max-width:760px;margin-top:14px">
+          <h2>Developer labs</h2>
+          <p class="note" style="margin-top:0">Where the game's pieces are built and tested: <a href="arena.html">Arena</a> (a 4v4 feel test) · <a href="art-lab.html?station=people">Art lab</a> · <a href="rig-lab.html">Rig lab</a></p>
+        </div>
+      </section>
+    </main>
+    <footer id="bar">
+      <div id="summary"></div>
+      <button id="deploy">Deploy<kbd>ENTER</kbd></button>
+    </footer>
+  </div>
   <script type="module">
     import { loadSettings, saveSettings, applyPreset } from './src/ui/Settings.js';
     import { OptionsMenu } from './src/ui/OptionsMenu.js';
+    import { loadCareer, rankOf, RANKS, medalFor } from './src/game/Career.js';
+    import { RIBBONS } from './src/game/MatchStats.js';
+    import { ribbonSvg } from './src/ui/Ribbons.js';
+
     const MAPS = [
-      { id: 'dusk', name: 'Dusk City', note: 'Snowfall at dusk: neon megatowers, houses to clear, civilians and gangs', q: { map: 'city', planet: 'duskcity' } },
-      { id: 'night', name: 'Night City', note: 'The same city under the aurora, lit windows and searchlights', q: { map: 'city', planet: 'nightcity' } },
+      { id: 'dusk', name: 'Dusk City', note: 'Snowfall at dusk: neon megatowers, houses to clear, civilians and gangs', q: { map: 'city', planet: 'duskcity' }, card: 'background-size:170%;background-position:80% 22%' },
+      { id: 'night', name: 'Night City', note: 'The same city under the aurora: lit windows and searchlights', q: { map: 'city', planet: 'nightcity' } },
       { id: 'trench', name: 'The Trenches', note: 'A scorched front: trench lines, wire, guns and the supply war', q: { map: 'trench' } },
     ];
+    const art = (id) => `./media/keyart-${id}.jpg`;
     const SIZES = [['4v4', 'Skirmish'], ['12v12', 'Squads'], ['32v32', 'Battle'], ['64v64', 'Front'], ['200v200', 'Extreme Warfront']];
-    const TEAMS = [['Solari Directorate', 'hard-light shields'], ['Void Legion', 'leech armor']];
+    const TEAMS = [['Solari Directorate', 'Hard-light shields. Gold and sunfire.'], ['Void Legion', 'Leech armor. Shadow and violet.']];
     const ROLE = { assault: 'Assault', juggernaut: 'Juggernaut', infiltrator: 'Infiltrator', engineer: 'Engineer', medic: 'Medic', marksman: 'Marksman', flameKnight: 'Flame Knight', pilot: 'Pilot', tech: 'Tech', demolitionist: 'Demolitionist' };
-    const DIFF = [['recruit', 'Recruit'], ['veteran', 'Veteran'], ['elite', 'Elite']];
+    const DIFF = [['recruit', 'Recruit', 'Standing orders'], ['veteran', 'Veteran', 'A thinking commander'], ['elite', 'Elite', 'Fast, deadly, all in']];
     const PRESET = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['ultra', 'Ultra']];
+    // Role glyphs (24 x 24, stroked).
+    const ICON = {
+      assault: 'M12 3l7 7h-4v11h-6V10H5z', juggernaut: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z',
+      infiltrator: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10-3a3 3 0 100 6 3 3 0 000-6z',
+      engineer: 'M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z',
+      medic: 'M9 3h6v6h6v6h-6v6H9v-6H3V9h6z', marksman: 'M12 4a8 8 0 100 16 8 8 0 000-16zM12 1v6M12 17v6M1 12h6M17 12h6',
+      flameKnight: 'M12 2c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-6 1-9z', pilot: 'M12 7l10 4-8 2-2 8-2-8-8-2z',
+      tech: 'M7 7h10v10H7zM9 2v5M15 2v5M9 17v5M15 17v5M2 9h5M2 15h5M17 9h5M17 15h5', demolitionist: 'M12 2l2 6 6-2-4 5 6 3-7 1 1 7-4-5-4 5 1-7-7-1 6-3-4-5 6 2z',
+      commander: 'M12 2l3 7h7l-5.5 4.5 2 7.5L12 17l-6.5 4 2-7.5L2 9h7z',
+    };
+    const glyph = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="${ICON[k] ?? ICON.assault}"/></svg>`;
+    const EMBLEM = [
+      '<svg class="em" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="none" stroke="#ffcf6b" stroke-width="2"/><path d="M17 5l3 9h9l-7 5 3 9-8-6-8 6 3-9-7-5h9z" fill="#ffcf6b"/></svg>',
+      '<svg class="em" viewBox="0 0 34 34"><path d="M17 2l14 8v14l-14 8-14-8V10z" fill="none" stroke="#b994ff" stroke-width="2"/><path d="M17 9c-5 0-8 4-8 8s3 8 8 8c-3-2-4-5-4-8s1-6 4-8z" fill="#b994ff"/></svg>',
+    ];
     const title = (id) => id.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+    const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem('emberfall.start') ?? '{}') ?? {}; } catch { saved = {}; }
     const st = { map: 'dusk', size: '32v32', team: 0, cls: { 0: 'lancer', 1: 'reaver' }, difficulty: 'veteran', seed: 7, ...saved };
     delete st.fx;   // (graphics are the shared settings now)
+    st.cls = { 0: 'lancer', 1: 'reaver', ...(saved.cls ?? {}) };
+    if (!MAPS.some((m) => m.id === st.map)) st.map = 'dusk';
     // The options (graphics, camera, audio, controls), shared with the game's Esc menu.
     const menu = new OptionsMenu(document.body, { onChange: () => render(), onClose: () => render() });
-    st.cls = { 0: 'lancer', 1: 'reaver', ...(saved.cls ?? {}) };
-    const factions = await Promise.all(['solari', 'void'].map((f) => fetch(`./data/classes/${f}.json`).then((r) => r.json()).catch(() => ({ classes: [] }))));
+    const get = (p, d) => fetch(`./data/${p}`).then((r) => r.json()).catch(() => d);
+    const [factions, kits, guns] = await Promise.all([
+      Promise.all(['solari', 'void'].map((f) => get(`classes/${f}.json`, { classes: [] }))),
+      Promise.all(['solari', 'void'].map((f) => get(`abilities/${f}.json`, { kits: {} }))),
+      Promise.all(['ballistic', 'energy'].map((f) => get(`weapons/${f}.json`, []))),
+    ]);
+    const kitOf = Object.assign({}, ...kits.map((k) => k.kits ?? {}));
+    const gunName = new Map(guns.flatMap((g) => (Array.isArray(g) ? g : g.weapons ?? [])).map((w) => [w.id, w.name]));
+    // A class the data no longer has (an old save): back to the side's first.
+    for (const t of [0, 1]) if (st.cls[t] !== 'commander' && !factions[t].classes?.some((c) => c.id === st.cls[t])) st.cls[t] = factions[t].classes?.[0]?.id ?? (t ? 'reaver' : 'lancer');
 
     const $ = (id) => document.getElementById(id);
-    const button = (label, sub, pressed, onClick, cls = '') => {
-      const b = document.createElement('button');
-      b.className = `opt ${cls}`; b.setAttribute('aria-pressed', pressed);
-      b.innerHTML = `<b>${label}</b>${sub ? `<small>${sub}</small>` : ''}`;
-      b.onclick = onClick;
+    const btn = (cls, html, pressed, onClick, extra = {}) => {
+      const b = Object.assign(document.createElement('button'), { className: cls, innerHTML: html, onclick: onClick, ...extra });
+      b.setAttribute('aria-pressed', pressed);
       return b;
     };
+
+    function detail() {
+      const id = st.cls[st.team];
+      if (id === 'commander') {
+        return `<div class="nm"><b>COMMANDER</b><span>ONE PER SIDE</span></div>
+          <div class="k">Seat</div><div class="v">Off the field, at HQ: the front from above, your side's squads and guns at your orders.</div>
+          <div class="k">Orders</div><div class="v"><kbd>T</kbd>take <kbd>H</kbd>hold <kbd>R</kbd>scout <kbd>G</kbd>storm <kbd>F</kbd>fire mission <kbd>B</kbd>fall back</div>
+          <div class="k">Staff</div><div class="v">At veteran and up, the AI runs every squad you haven't given an order.</div>`;
+      }
+      const c = factions[st.team].classes?.find((x) => x.id === id);
+      if (!c) return '';
+      const k = kitOf[id] ?? {};
+      const ab = [['Q', k.ability1], ['E', k.ability2], ['G', k.grenade], ['Z', k.super]].filter(([, a]) => a).map(([key, a]) => `<kbd>${key}</kbd>${esc(a.name)}`).join(' &nbsp; ');
+      const primary = (c.loadout?.primary ?? []).map((w) => esc(gunName.get(w) ?? w)).join(' or ');
+      return `<div class="nm"><b>${esc(title(c.id).toUpperCase())}</b><span>${esc((ROLE[c.role] ?? c.role).toUpperCase())}</span></div>
+        <div class="k">Body</div><div class="v"><span class="stat"><em>Health</em>${c.health}</span><span class="stat"><em>Shield</em>${c.shield ?? 0}</span><span class="stat"><em>Armor</em>${esc(c.armor)}</span></div>
+        <div class="k">Weapon</div><div class="v">${primary || '—'}</div>
+        <div class="k">Kit</div><div class="v">${ab || '—'}</div>
+        <div class="k">Passive</div><div class="v">${esc(c.passive?.desc ?? '—')}</div>`;
+    }
+
+    function rankBadge(r, size = 86) {
+      const grade = Math.floor((r.rank - 1) / 3), sub = (r.rank - 1) % 3 + 1;
+      const chev = Array.from({ length: sub }, (_, i) => `<path d="M26 ${64 + i * 9}l17 -8 17 8" fill="none" stroke="#ffd34d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+      return `<svg viewBox="0 0 86 96" width="${size}" height="${size * 96 / 86}"><path d="M43 3l37 18v32c0 20-16 34-37 40C22 87 6 73 6 53V21z" fill="#0b0a13" stroke="#ffd34d" stroke-width="2.5"/>
+        <text x="43" y="47" text-anchor="middle" font-family="Disp, sans-serif" font-weight="900" font-size="26" fill="#fff">${grade + 1}</text>${chev}</svg>`;
+    }
+
+    function career() {
+      const c = loadCareer(), r = rankOf(c.xp);
+      $('rank').innerHTML = `${rankBadge(r, 34)}<div style="flex:1"><div class="t">${esc(r.title.toUpperCase())}</div><div class="x">${r.span ? `${fmt(r.into)} / ${fmt(r.span)} XP` : `${fmt(c.xp)} XP · top rank`}</div><div class="bar"><i style="width:${r.span ? (100 * r.into / r.span).toFixed(1) : 100}%"></i></div></div>`;
+      const kd = c.deaths ? (c.kills / c.deaths).toFixed(2) : c.kills ? '∞' : '—';
+      const wr = c.matches ? `${Math.round(100 * c.wins / c.matches)}%` : '—';
+      const stats = [['Matches', c.matches], ['Won', wr], ['MVP', c.mvps], ['Kills', fmt(c.kills)], ['Deaths', fmt(c.deaths)], ['K/D', kd], ['Revives', fmt(c.revives)], ['Captures', fmt(c.captures)], ['Best score', fmt(c.best.score)]];
+      const MC = { Bronze: '#cd8a4f', Silver: '#cfd6e0', Gold: '#ffd34d' };
+      const ribs = Object.entries(RIBBONS).map(([id, R]) => { const n = c.ribbons[id] ?? 0, m = medalFor(n); return `<div class="rib" title="${esc(R.desc)}">${ribbonSvg(id, 52, 15)}${esc(R.name)}${m ? `<span class="md" style="background:${MC[m]}">${m.toUpperCase()}</span>` : ''}<b>${n}</b></div>`; }).join('');
+      const mapName = (id) => MAPS.find((m) => m.id === id)?.name ?? id ?? '—';
+      const hist = c.history.length ? `<table class="hist"><tr><th>Result</th><th>Battlefield</th><th>Size</th><th>Class</th><th>Score</th><th>K</th><th>D</th></tr>${c.history.map((h) => `<tr><td class="${h.won ? 'w' : 'l'}">${h.won ? 'VICTORY' : 'DEFEAT'}${h.mvp ? ' · MVP' : ''}</td><td>${esc(mapName(h.map))}</td><td>${esc(h.size ?? '')}</td><td>${esc(h.classId ? title(h.classId) : '')}</td><td>${fmt(h.score)}</td><td>${h.kills}</td><td>${h.deaths}</td></tr>`).join('')}</table>` : '<p class="empty">No matches yet. Your first one goes here when it ends.</p>';
+      $('career').innerHTML = `<div><div class="panel"><div class="rankcard">${rankBadge(r)}<div><b>${esc(r.title.toUpperCase())}</b><small>Rank ${r.rank} of ${RANKS.length} · ${fmt(c.xp)} XP${r.span ? ` · ${fmt(r.span - r.into)} to ${esc(RANKS[r.rank])}` : ''}</small><div class="bar" style="width:200px"><i style="width:${r.span ? (100 * r.into / r.span).toFixed(1) : 100}%"></i></div></div></div>
+          <div class="stats">${stats.map(([k, v]) => `<div><b>${v}</b><span>${k.toUpperCase()}</span></div>`).join('')}</div></div>
+          <p class="note">Experience: your score, 300 for seeing a match through, 600 for winning, 150 a ribbon, 300 for MVP. Ranks are for show: nothing is locked.</p></div>
+        <div><div class="panel"><h2>Ribbons and medals</h2><div class="ribs">${ribs}</div><p class="note">Medals at 10, 50 and 150 of a ribbon.</p></div>
+          <div class="panel" style="margin-top:14px"><h2>Last matches</h2>${hist}</div></div>`;
+    }
+
     function render() {
-      $('map').replaceChildren(...MAPS.map((m) => button(m.name, m.note, st.map === m.id, () => { st.map = m.id; render(); })));
-      $('size').replaceChildren(...SIZES.map(([s, n]) => button(s, n, st.size === s, () => { st.size = s; render(); })));
-      $('team').replaceChildren(...TEAMS.map(([n, t], i) => button(n, t, st.team === i, () => { st.team = i; render(); }, `side-${i}`)));
+      const m = MAPS.find((x) => x.id === st.map) ?? MAPS[0];
+      $('bg').style.backgroundImage = `url(${art(m.id)})`;
+      $('map').replaceChildren(...MAPS.map((x) => btn('map', `<div><b>${x.name.toUpperCase()}</b><small>${esc(x.note)}</small></div>`, st.map === x.id, () => { st.map = x.id; render(); }, { style: `background-image:url(${art(x.id)});${x.card ?? ''}` })));
+      $('size').replaceChildren(...SIZES.map(([s, n]) => btn('chip', `${s}<small>${n}</small>`, st.size === s, () => { st.size = s; render(); })));
+      $('team').replaceChildren(...TEAMS.map(([n, t], i) => btn(`side s${i}`, `${EMBLEM[i]}<div><b>${n.toUpperCase()}</b><small>${t}</small></div>`, st.team === i, () => { st.team = i; render(); })));
       $('cls').replaceChildren(
-        ...(factions[st.team].classes ?? []).map((c) => button(title(c.id), ROLE[c.role] ?? c.role, st.cls[st.team] === c.id, () => { st.cls[st.team] = c.id; render(); }, `side-${st.team}`)),
+        ...(factions[st.team].classes ?? []).map((c) => btn('cls', `${glyph(c.role)}<b>${esc(title(c.id))}</b><small>${esc(ROLE[c.role] ?? c.role)}</small>`, st.cls[st.team] === c.id, () => { st.cls[st.team] = c.id; render(); })),
         // The commander's seat: one per side (the AI commands it when nobody takes it).
-        button('Commander', 'Command your side from above', st.cls[st.team] === 'commander', () => { st.cls[st.team] = 'commander'; render(); }, `side-${st.team} cmdr`));
-      $('difficulty').replaceChildren(...DIFF.map(([k, n]) => button(n, '', st.difficulty === k, () => { st.difficulty = k; render(); })));
+        btn('cls cmdr', `${glyph('commander')}<b>Commander</b><small>From above</small>`, st.cls[st.team] === 'commander', () => { st.cls[st.team] = 'commander'; render(); }));
+      $('detail').innerHTML = detail();
+      $('difficulty').replaceChildren(...DIFF.map(([k, n, d]) => btn('chip', `${n}<small>${d}</small>`, st.difficulty === k, () => { st.difficulty = k; render(); })));
       const gs = loadSettings();
-      $('fx').replaceChildren(
-        ...PRESET.map(([k, n]) => button(n, '', gs.preset === k, () => { saveSettings(applyPreset(loadSettings(), k)); menu.settings = loadSettings(); render(); })),
-        button(gs.preset === 'custom' ? 'Settings · custom' : 'Settings…', '', false, () => { menu.settings = loadSettings(); menu.open(); }));
+      $('fx').replaceChildren(...PRESET.map(([k, n]) => btn('chip', n, gs.preset === k, () => { saveSettings(applyPreset(loadSettings(), k)); menu.settings = loadSettings(); render(); })));
       $('seed').value = st.seed;
-      $('summary').textContent = url();
+      const cls = st.cls[st.team];
+      $('summary').innerHTML = `${esc(m.name)} · ${st.size} · ${TEAMS[st.team][0].split(' ')[0]} · ${cls === 'commander' ? 'Commander' : esc(title(cls))} · ${DIFF.find((d) => d[0] === st.difficulty)?.[1] ?? ''}<small>Graphics: ${gs.preset === 'custom' ? 'custom' : gs.preset} · map seed ${st.seed}</small>`;
+      career();
       try { localStorage.setItem('emberfall.start', JSON.stringify(st)); } catch { /* private window: not remembered */ }
     }
     function url() {
@@ -175,26 +328,34 @@
       const q = new URLSearchParams({ ...m.q, size: st.size, team: st.team, class: st.cls[st.team], difficulty: st.difficulty, seed: st.seed });
       return `index.html?${q}`;
     }
+    function tab(name) {
+      for (const b of document.querySelectorAll('#tabs button')) b.setAttribute('aria-selected', b.dataset.tab === name);
+      for (const s of document.querySelectorAll('.tab')) s.classList.toggle('on', s.id === `tab-${name}`);
+    }
+    for (const b of document.querySelectorAll('#tabs button')) b.onclick = () => tab(b.dataset.tab);
+    $('rank').onclick = () => tab('career');
+    $('allsettings').onclick = () => { menu.settings = loadSettings(); menu.open(); };
     $('seed').onchange = () => { st.seed = Math.max(1, Math.min(99999, Math.round(+$('seed').value) || 7)); render(); };
     $('dice').onclick = () => { st.seed = 1 + Math.floor(Math.random() * 9999); render(); };
     $('deploy').onclick = () => { location.href = url(); };
     addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName !== 'INPUT' && !menu.isOpen) location.href = url(); if (e.key === 'Escape' && menu.isOpen) menu.close(); });
     render();
 
-    // Snow drifting past, as in the city.
+    // Embers and snow drifting past.
     const cv = $('snow'), cx = cv.getContext('2d');
-    const flakes = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.8, v: 0.02 + Math.random() * 0.05, w: Math.random() * 6 }));
+    const flakes = Array.from({ length: 120 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.8, v: 0.015 + Math.random() * 0.045, w: Math.random() * 6, ember: Math.random() < 0.25 }));
     let last = performance.now();
     (function frame(t) {
       const dt = Math.min(0.05, (t - last) / 1000); last = t;
       if (cv.width !== innerWidth || cv.height !== innerHeight) { cv.width = innerWidth; cv.height = innerHeight; }
       cx.clearRect(0, 0, cv.width, cv.height);
-      cx.fillStyle = '#f4efff';
       for (const f of flakes) {
-        f.y += f.v * dt; f.w += dt;
+        f.y += (f.ember ? -f.v * 0.7 : f.v) * dt; f.w += dt;
         if (f.y > 1.02) { f.y = -0.02; f.x = Math.random(); }
-        cx.globalAlpha = 0.25 + f.r / 3.5;
-        cx.beginPath(); cx.arc((f.x + Math.sin(f.w) * 0.01) * cv.width, f.y * cv.height, f.r, 0, Math.PI * 2); cx.fill();
+        if (f.y < -0.02) { f.y = 1.02; f.x = Math.random(); }
+        cx.fillStyle = f.ember ? '#ffb45a' : '#f4efff';
+        cx.globalAlpha = f.ember ? 0.35 + 0.3 * Math.sin(f.w * 3) ** 2 : 0.2 + f.r / 4;
+        cx.beginPath(); cx.arc((f.x + Math.sin(f.w) * 0.01) * cv.width, f.y * cv.height, f.ember ? f.r * 0.8 : f.r, 0, Math.PI * 2); cx.fill();
       }
       requestAnimationFrame(frame);
     })(last);

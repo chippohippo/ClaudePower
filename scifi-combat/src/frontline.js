@@ -35,6 +35,11 @@ import { GunFx } from './vfx/GunFx.js';
 import { AudioDirector } from './audio/AudioDirector.js';
 import { SoundEngine } from './audio/SoundEngine.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
+import { MatchFlow } from './ui/MatchFlow.js';
+import { PingView } from './ui/PingView.js';
+import { DeployScreen } from './ui/DeployScreen.js';
+import { FieldManual } from './ui/FieldManual.js';
+import { loadCareer, saveCareer } from './game/Career.js';
 import { FireControl } from './ui/FireControl.js';
 import { CommandView } from './ui/CommandView.js';
 import { ScopeView } from './ui/ScopeView.js';
@@ -50,12 +55,19 @@ import { DropViews } from './vfx/DropViews.js';
 import { CIVILIAN, BANDIT, civilianEngaging } from './combat/Teams.js';
 
 const params = new URLSearchParams(location.search);
-// The loading line (index.html #loading): what's being built while the page is busy.
+// The loading screen (index.html #loading): what's being built while the page is busy, and how far along.
 const loading = {
   el: document.getElementById('loading'),
-  show(text) { if (this.el) { this.el.textContent = text; this.el.style.display = 'grid'; } },
+  show(text, done = null) {
+    if (!this.el) return;
+    this.el.style.display = 'grid';
+    const stage = document.getElementById('ld-stage'), fill = document.getElementById('ld-fill');
+    if (stage) stage.textContent = text; else this.el.textContent = text;
+    if (fill && done != null) fill.style.width = `${Math.round(done * 100)}%`;
+  },
   hide() { if (this.el) this.el.style.display = 'none'; },
 };
+loading.show('Loading the armies…', 0.08);
 const sizeParam = params.get('size'), playersParam = params.get('players');
 const requestedPlayers = playersParam ? Math.max(8, Math.min(400, +playersParam)) : null;
 const seed = +(params.get('seed') ?? 7);
@@ -77,7 +89,10 @@ installFog(planet);   // before any material compiles
 for (const [k, paint] of Object.entries(planet.factions ?? {})) if (palette.factions[k]) Object.assign(palette.factions[k], paint);
 Object.assign(palette.vfx, planet.vfx ?? {});
 const classes = [solari, voidC];
-const myClass = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
+// Your class (a class your side doesn't have, from an old link or a typo: its first, rather than no battle).
+const wanted = params.get('class') ?? (myTeam === 0 ? 'lancer' : 'reaver');
+const myClass = wanted === 'commander' || classes[myTeam].classes.some((c) => c.id === wanted) ? wanted : classes[myTeam].classes[0].id;
+if (myClass !== wanted) console.warn(`No class "${wanted}" in this army: you're a ${myClass}.`);
 const data = {
   movement, weaponFiles: [ballistic, energy], attachments: attachments.attachments, recoil: recoil.patterns, statuses: statuses.statuses,
   meleeWeapons: melee.weapons, kits: { ...solariKits.kits, ...voidKits.kits }, classes, damageMatrix: damage.matrix, supers, vehicleDefs: vehicles,
@@ -88,7 +103,7 @@ const abilityIndex = new Map();
 for (const f of [solariKits, voidKits]) for (const kit of Object.values(f.kits)) for (const a of Object.values(kit)) abilityIndex.set(a.id, { ...a, family: f.soundFamily });
 
 const PLAYER_ID = 1;
-loading.show(`Building the ${mapTheme === 'city' ? 'city' : 'front'}…`);
+loading.show(`Building the ${mapTheme === 'city' ? 'city' : 'front'}…`, 0.22);
 await new Promise((r) => setTimeout(r, 30));          // (let the line paint before the build holds the page)
 const session = new FrontlineSession(data, { size: sizeParam ?? (requestedPlayers ? null : '32v32'), players: requestedPlayers, seed, map: mapTheme, humans: [{ id: PLAYER_ID, team: myTeam, classId: myClass }] });
 const { world, map, mode } = session;
@@ -225,7 +240,7 @@ if (commanding && helpCard) {
     <b>T</b> take · <b>H</b> hold · <b>R</b> scout (one man goes ahead to get eyes on it: the guns can hit what he sees) · <b>B</b> fall back · <b>F</b> fire mission (click the spot; blind where nobody has eyes on it, the rounds scatter) · Esc disarms.<br>
     <b>WASD</b> or the arrows pan, the wheel zooms, the middle button drags the map, <b>Home</b> goes back to the front. Darkened ground: nobody's watched it lately; red rings: where enemies were last seen.`;
 }
-const helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000);
+let helpTimer = null;   // (the card comes up when the battle starts: below)
 addEventListener('keydown', (e) => { if (e.code !== 'F1' || !helpCard) return; e.preventDefault(); clearTimeout(helpTimer); helpCard.classList.toggle('gone'); });
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
@@ -234,6 +249,25 @@ const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, worl
 const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
 const scope = new ScopeView(document.getElementById('hud'));   // the sight picture through a magnified optic
 const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' && settings.voices });   // the soldiers' callouts
+// The scoreboard (hold P), ribbons as they're earned, the after-action report (and your career).
+const mapId = mapTheme === 'city' ? (params.get('planet') === 'nightcity' ? 'night' : 'dusk') : 'trench';
+// Pings: mark an enemy for your side, send your squad, ask for a medic (middle mouse or Y; hold: the wheel).
+const pingView = new PingView(document.getElementById('hud'), { session, player, input, camera: () => (fireControl.active ? fireControl.camera : rig.camera) });
+// Dead: the recap, then where to deploy and as what (Space or DEPLOY when the reinforcements are in).
+const list = (x) => (Array.isArray(x) ? x : Object.values(x ?? {}));
+const gunName = new Map([...list(ballistic.weapons), ...list(energy.weapons), ...list(melee.weapons)].map((w) => [w.id, w.name]));
+const deploy = commanding ? null : new DeployScreen(document.getElementById('hud'), { session, player, team: myTeam, data, gunName, footprints: () => hud.footprints });
+bus.on('fighter:deploy', (e) => { if (e.id === PLAYER_ID && !commanding) renderer.domElement.requestPointerLock?.(); });
+// A soldier who came back as another class wears its kit.
+bus.on('fighter:class', (e) => { const f = world.entity(e.id); if (f?.look) f.look.kit = kitFor(trooperKits, f.role); });
+// The briefing as the battle starts, and the field manual's hints as each is first useful (until learned: the career keeps them).
+const career = loadCareer();
+const mapLabel = `${mapTheme === 'city' ? (params.get('planet') === 'nightcity' ? 'Night City' : 'Dusk City') : 'The Trenches'} · ${map.name} · ${session.size}`;
+const manual = commanding ? null : new FieldManual(document.getElementById('hud'), {
+  session, player, team: myTeam, input, enabled: settings.hints !== false, state: career.hints, mapLabel,
+  save: () => { const c = loadCareer(); c.hints = career.hints; saveCareer(c); },
+});
+const matchFlow = new MatchFlow(document.getElementById('hud'), { session, player, team: myTeam, meta: { map: mapId, mapName: map.name, size: session.size, classId: player.classId } });
 
 // ---------------------------------------------------------------- options ([Esc]: the battle waits)
 // Freeing the mouse (Esc) opens the options and pauses the battle; Resume locks the mouse again.
@@ -248,7 +282,7 @@ const options = new OptionsMenu(document.body, {
 const openOptions = () => { if (options.isOpen || !started) return; loop.paused = true; sound.ctx.suspend?.(); options.open(); };
 document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === renderer.domElement;
-  if (wasLocked && !locked && !player.health.dead) openOptions();
+  if (wasLocked && !locked && !player.health.dead && mode.winner < 0) openOptions();   // (not the after-action report's mouse)
   wasLocked = locked;
 });
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && !document.pointerLockElement) { if (options.isOpen) options.close(); else if (!commandView?.escape()) openOptions(); } });
@@ -259,6 +293,7 @@ async function applyOptions(o, key) {
   input.mouseSens = 0.0022 * o.sens;
   sound.setVolume(o.volume);
   voices.setVoices(o.voices && params.get('voices') !== 'off');
+  if (manual) manual.enabled = o.hints !== false;
   if (atmo.ash) atmo.ash.visible = o.particles;
   renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight);
   post.setOptions({ scale: renderScale(), samples: o.aa, bloom: o.bloom, rays: o.rays, ink: o.ink, letterbox: o.letterbox, film: o.film });
@@ -305,10 +340,11 @@ const loop = new FixedLoop({
     }
     if (hitStop > 0) { hitStop -= dt; return; }        // input waits too: no press is lost
     const cmd = fireControl.command(input.sample(tick, dt), input, player);   // at a gun: the mouse moves the fire mission's mark
+    pingView.tick(cmd, dt);
     if (cmd.buttons.togglePOV?.pressed) rig.togglePOV();
     if (cmd.buttons.swapShoulder?.pressed) rig.swapShoulder();
     if (cmd.buttons.toggleMelee?.pressed) player.mode = player.mode === 'sword' ? 'gun' : 'sword';
-    if (player.health.dead && cmd.buttons.jump?.pressed) session.respawn(PLAYER_ID);
+    if (player.health.dead && (cmd.buttons.jump?.pressed || deploy?.takeWant())) session.respawn(PLAYER_ID, deploy?.choice() ?? {});
     session.setCommand(PLAYER_ID, cmd);
     session.focus[0] = player.movement.state.position;
     anim.snapshot();
@@ -384,6 +420,10 @@ const loop = new FixedLoop({
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio.update(dt, commanding ? commandView.target : player.movement.state.position, commanding ? commandView.listenYaw : input.yaw);
     hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active && !commanding, scoped: scoped > 0.5 });
+    matchFlow.update(dt, { held: input.keys.has('KeyP') });
+    deploy?.update(dt);
+    manual?.update(dt);
+    pingView.update(dt, cam);
     if (commanding) return;
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
@@ -393,15 +433,20 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, commandView, footFx, scope, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
+window.__frontline = { session, player, commandView, matchFlow, pingView, deploy, manual, footFx, scope, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.
-loading.show(`Compiling shaders · ${map.name}`);
+loading.show(`Compiling shaders · ${map.name}`, 0.8);
+const ldName = document.getElementById('ld-name');
+if (ldName) ldName.textContent = map.name;
 await new Promise((r) => setTimeout(r, 30));
 await renderer.compileAsync(scene, rig.camera);
 loop.render(0, performance.now() / 1000);
+loading.show('Deploying…', 1);
 loading.hide();
+// The controls card: the commander's up for the first 25 s; a soldier has the briefing and the field manual instead (F1 brings it up).
+if (commanding) { helpCard?.classList.remove('gone'); helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000); }
 loop.start();
 started = true;
 bus.emit('frontline:ready', { players, seed });

@@ -383,6 +383,11 @@ export class AudioDirector {
     on('stratagem:grab', (e) => mine(e) && E.play('ui:grab', { ui: true, gain: 0.45 }));
     // The end of the match: brass for a win, a falling line for a loss.
     on('mode:victory', (e) => E.play(e.team === this.getEntity(this.listenerId)?.team ? 'music:victory' : 'music:defeat', { ui: true, gain: 0.5, jitter: 0 }));
+    // Pings (Pings, PingView): your side's, a blip (yours louder; an enemy's two notes falling; danger three).
+    on('ping:add', (e) => {
+      if (e.team !== this.getEntity(this.listenerId)?.team) return;
+      E.play(e.kind === 'enemy' ? 'ui:ping_enemy' : e.kind === 'danger' ? 'ui:ping_danger' : 'ui:ping', { ui: true, gain: e.by === this.listenerId ? 0.5 : 0.22, jitter: 0 });
+    });
     on('bp:earn', (e) => mine(e) && e.amount >= 25 && E.play('ui:bp', { ui: true, gain: 0.2 }));
     on('bp:spend', (e) => mine(e) && E.play('ui:buy', { ui: true, gain: 0.4 }));
     on('stratagem:instant', (e) => mine(e) && E.play('ui:hero', { ui: true, gain: 0.45 }));

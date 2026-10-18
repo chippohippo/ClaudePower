@@ -10,6 +10,8 @@
 //    at him and no enemy close: he goes to its hull and holds the dig key until it's whole (or
 //    the fight comes to him).
 //  * Short of ammo with one of our packs within 25 m: walk over (like a supply pod).
+//  * Asked for (a teammate's medic or ammo ping: Pings sets self.helpFor): go to him (helpJob, the
+//    brain walks), and there, a stim for him if he's hurt or a pack at his feet; then it's done.
 
 import { lowOnAmmo } from '../combat/Stratagems.js';
 import { hyp } from '../core/geom.js';
@@ -40,12 +42,40 @@ export class ItemPlanner {
     return true;
   }
 
+  /**
+   * A teammate who asked for us (a medic or ammo ping), while it stands: the soldier to go to, or
+   * null (nobody asked, it's run out, he's gone, we're out, or the fight is on us).
+   */
+  helpJob(ctx) {
+    const self = this.b.self, H = self.helpFor;
+    if (!H) return null;
+    const who = H.who, now = this.b.world.pings?.time ?? 0;   // (the request's clock is the pings')
+    if (now > H.until || !who || who.health?.dead || who.vehicle || !self.items || self.items.left <= 0 || self.vehicle) { self.helpFor = null; return null; }
+    if (ctx.target && ctx.los && ctx.dist < 10) return null;   // (fight first)
+    return who;
+  }
+
   /** Each think, after the call-ins: stims for the hurt, a pack for the short. */
   update(ctx) {
     const b = this.b, self = b.self, I = self.items, sup = this.#sup;
     if (!I || I.left <= 0 || !sup?.data || self.vehicle || !self.health.up || b.time < this.next || (self.stratagems && self.stratagems.state !== 'idle')) return;
     this.next = b.time + 0.4 + b.rand() * 0.3;
     const me = self.movement.state.position;
+    // Asked for, and there: the stim (if he's hurt) or a pack at his feet; either way, that's it.
+    const who = this.helpJob(ctx);
+    if (who) {
+      const q = who.movement.state.position, d = q.distanceTo(me);
+      if (I.kind === 'stim' && d < (sup.data.stim?.reach ?? 3) * 0.9) {
+        if (who.health.up && who.health.hp < who.health.max && !who.status?.has('stim')) {
+          const yaw = Math.atan2(-(q.x - me.x), -(q.z - me.z));
+          b.aimOverride = { yaw, pitch: -0.3, until: b.time + 0.12 };
+          b.btn.press('item');
+        }
+        self.helpFor = null;
+        return;
+      }
+      if (I.kind === 'ammo' && d < 4) { b.btn.press('item'); self.helpFor = null; return; }
+    }
     if (I.kind === 'stim') {
       // A teammate in reach below half health (the nearest), else ourselves when it's quiet.
       const S = sup.data.stim;

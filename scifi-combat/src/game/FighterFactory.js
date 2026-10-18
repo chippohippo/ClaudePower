@@ -73,3 +73,30 @@ export function buildFighter(world, data, { id, team, classId, pos, cover = worl
   world.add(e);
   return e;
 }
+
+/**
+ * A soldier changes class between lives (the deploy screen): the same soldier with the new class's
+ * body (health, shield, armor, how it moves), guns, blade, kit, call-ins, passive and item. Only a
+ * class of his own army. Returns the old blade (the session swaps it in its melee system), or null
+ * if he can't be that class (nothing changes).
+ */
+export function rekit(world, data, e, classId) {
+  let found;
+  try { found = findClass(data, classId); } catch { return null; }
+  const { cls, faction } = found;
+  if (faction !== e.faction || classId === e.classId) return null;
+  const blade = e.melee;
+  e.classId = classId; e.role = cls.role ?? null; e.ai = cls.ai;
+  const dead = e.health.dead;
+  e.health = new Health(e, { health: cls.health ?? 100, shield: cls.shield ?? cls.leechArmor ?? 0, armor: cls.armor ?? 'flesh', down: data.down ?? null });
+  if (dead) e.health.dead = true;   // (still waiting to deploy: the deploy revives him)
+  e.movement.setMods(cls.movement ?? {});
+  e.melee = new MeleeComponent(meleeFor(data.meleeWeapons, cls, faction), e, world);
+  e.weapons = new WeaponComponent(e, resolveGuns(data, cls, faction).map((s) => new WeaponInstance(s, data.recoil)), world);
+  e.abilities = new AbilityComponent(e, data.kits[classId], world);
+  if (world.stratagems?.data) e.stratagems = new StratagemComponent(e, world.stratagems, world.stratagems.loadoutFor(e.role));
+  world.passives?.detach?.(e);
+  world.passives?.attach(e, cls.passive?.id);
+  if (world.support?.data) world.support.equip(e);
+  return blade;
+}

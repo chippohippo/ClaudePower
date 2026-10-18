@@ -556,6 +556,9 @@ function ui(kind, r, sr) {
     case 'revive': tone(x, 'sine', 659, 988, 0, 0.3, 0.35, sr); end = 0.35; break;
     case 'revived': [880, 1175, 1760].forEach((f, i) => tone(x, 'sine', f, f, i * 0.06, 0.3, 0.3, sr)); end = 0.45; break;
     case 'down': D.mix(x, thump(D.samples(0.6, sr), 80, 32, 0.2, sr), 1.2); D.mix(x, D.mul(D.osc(n, 3900, 'sine', sr), D.envExp(n, 0.05, 0.6, sr)), 0.08); end = 1; break;
+    case 'ping': tone(x, 'sine', 1568, 1568, 0, 0.06, 0.35, sr); tone(x, 'sine', 2093, 2093, 0.05, 0.12, 0.3, sr); end = 0.2; break;
+    case 'ping_enemy': tone(x, 'tri', 1397, 1397, 0, 0.05, 0.4, sr); tone(x, 'tri', 1047, 1047, 0.06, 0.1, 0.4, sr); end = 0.2; break;
+    case 'ping_danger': for (const at of [0, 0.09, 0.18]) tone(x, 'square', 1300, 1300, at, 0.05, 0.16, sr); end = 0.26; break;
     default: tone(x, 'sine', 1000, 1000, 0, 0.05, 0.3, sr); end = 0.08;
   }
   const out = x.subarray(0, D.samples(end + 0.02, sr));
@@ -727,7 +730,7 @@ export function catalogue() {
   for (const m of ['tracked', 'car', 'hover', 'flyer']) ids.push(`engine:${m}`);
   ids.push('fire');
   for (const k of ['swing', 'swing_flame', 'hit', 'block', 'parry', 'guardbreak', 'windup', 'windup_unblockable', 'deflect']) ids.push(`melee:${k}`);
-  for (const k of ['hit', 'hit_head', 'hit_kill', 'hit_plink', 'hit_shieldbreak', 'hit_friendly', 'ability_hit', 'ready', 'super_ready', 'denied', 'stinger', 'empty', 'open', 'error', 'armed', 'beacon', 'beep', 'throw', 'grab', 'stim', 'repair', 'bp', 'buy', 'hero', 'smoke', 'revive', 'revived', 'down']) ids.push(`ui:${k}`);
+  for (const k of ['hit', 'hit_head', 'hit_kill', 'hit_plink', 'hit_shieldbreak', 'hit_friendly', 'ability_hit', 'ready', 'super_ready', 'denied', 'stinger', 'empty', 'open', 'error', 'armed', 'beacon', 'beep', 'throw', 'grab', 'stim', 'repair', 'bp', 'buy', 'hero', 'smoke', 'revive', 'revived', 'down', 'ping', 'ping_enemy', 'ping_danger']) ids.push(`ui:${k}`);
   for (let k = 1; k <= 10; k++) ids.push(`arrow:${k}`);
   ids.push('whistle:ours', 'whistle:enemy', 'heartbeat', 'dig', 'amb:city', 'amb:trench');
   ids.push('struct:creak', 'struct:crumble', 'struct:crash', 'struct:snap');

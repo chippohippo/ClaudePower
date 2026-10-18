@@ -31,9 +31,20 @@ The biggest size, **Extreme Warfront**, puts 400 soldiers on a 2.6 km front.
 ## Play it
 
 Double-click `play.bat` (Windows) or `play.command` (Mac), or run `./play.sh` or `npm start`: a small
-server for this folder starts on your computer and the start menu (`start.html`) opens in your browser.
-Pick the battlefield, size, side and class there and deploy ([PLAY.md](../PLAY.md)). Or serve the
-folder any way you like and open `index.html` with these parameters:
+server for this folder starts on your computer and the start menu (`start.html`) opens in your browser
+([PLAY.md](../PLAY.md)). It's a game's front end: the chosen battlefield's key art behind it
+(`media/keyart-*.jpg`), your rank at the top, and four tabs. **Play**: the battlefield (cards with
+their art), the size, your side, your class (each with its health, weapon, kit and passive, from the
+data), the bots, the map seed; the deploy bar is always on screen (Enter deploys). **Career**: your
+rank, totals, ribbons and medals, the last ten matches. **Controls**, and **Settings** (the same
+options as the game's Esc menu). The developer labs are a footnote.
+
+The loading screen shows where you're going (the battlefield's art, the size, your side and class),
+what's being built and how far along it is, and a tip from the field manual every few seconds. If
+the battle can't start (a broken link, a missing file), it says so and offers the menu and a retry
+instead of loading forever; a class your side doesn't have becomes its first class.
+
+Or serve the folder any way you like and open `index.html` with these parameters:
 
 | Param | Default | |
 |---|---|---|
@@ -50,8 +61,9 @@ folder any way you like and open `index.html` with these parameters:
 
 The controls are the arena's (WASD, Shift sprint, C crouch/prone/slide, Alt dive, Space climb, LMB/RMB,
 R, V first / third person, B swap shoulder, F rifle butt, 1 sword/gun, Q E G Z abilities, X vehicles), plus **H** (hold) to dig in and **X** (hold) beside a
-downed teammate to revive. When you're down: crawl, hold **Space** to give up; when dead, **Space** to
-deploy. Your squad's bots follow you and take cover around you when you stop. At a gun, **X** takes a
+downed teammate to revive, **middle mouse** or **Y** to ping (hold: the ping wheel), **P** (hold) for
+the scoreboard. When you're down: crawl, hold **Space** to give up; when dead, the deploy screen
+(where, and as what), **Space** to deploy. Your squad's bots follow you and take cover around you when you stop. At a gun, **X** takes a
 crew seat and **H** sets it up or packs it up; at a howitzer or rocket battery the view goes overhead
 and the mouse moves the fire mission's mark (hold LMB to fire). In a supply truck, stop inside the
 HQ dump to load and inside the forward depot to unload; **H** hitches the gun behind you.
@@ -499,6 +511,106 @@ spent and what dying cost you; each comes with a small chime. In a six-minute 32
 reach 3,000 points earned and spend some on extra strikes, a vehicle and the hero; most spend
 nothing before they die.
 
+## Match flow (`MatchStats`, `MatchFlow`, `Career`)
+
+What every competitive shooter ends a round with, and what reviewers dock a game for leaving out:
+a scoreboard with something on it, recognition for the team play, a report at the end, and a
+reason to play the next one.
+
+- **The board** (`MatchStats`, sim, `session.match`): every soldier of both armies has a line from
+  the start, read off the battle points' ledger (`bp:earn`) and the deaths, so a soldier scores for
+  exactly what earns him points: score (every point earned, a teamkill's penalty off), kills (downs
+  count, as for battle points), deaths, assists, revives, captures (points taken or neutralized
+  while on them), vehicles and emplacements destroyed, support points (resupplying, healing,
+  repairing, building, delivering) and spots. It also keeps the match's story: every sector as it
+  changed hands, and both sides' tickets every 15 s.
+- **The scoreboard** (hold **P**): both sides, best score first: place, squad, role, name, score, K,
+  D, A, revives, captures; you highlighted, the dead greyed. In a big battle each side shows its top
+  20, and you wherever you are.
+- **Ribbons**: every 4 takedowns (Combat), 3 revives (Field Medic), 2 points taken (Objective), 15 s
+  holding a point under attack (Defender), 2 vehicles or emplacements (Anti-Armor), 300 support
+  points (Support), 3 enemies you revealed taken down (Recon) or 5 assists (Teamwork) in a match
+  earns that ribbon again: its bar comes up under the crosshair with what it was for
+  (`ribbon:earn`).
+- **The after-action report** (`MatchFlow`), five seconds after the end: VICTORY or DEFEAT and how
+  (broke through, ran them out of reinforcements, held more of the front), the clock and the
+  tickets; your battle: score and place on your side, kills, deaths, assists, revives, captures,
+  vehicles, the ribbons, the experience it earned line by line and your rank's bar filling (a rank
+  or a medal gained, announced); the battle's chart (both sides' tickets over the match, the sectors
+  marked as they fell); each side's MVP and its top ten. **Play again** starts the same battle on
+  the next seed, **Main menu** goes back to the start menu, **Keep watching** leaves the battle
+  running (the report comes back from a button).
+- **Career** (`Career.js`, saved in the browser): experience per match (its score, 300 for seeing it
+  through, 600 for winning, 150 a ribbon, 300 for an MVP), 30 ranks in ten grades of three (Recruit
+  I to Marshal III; each takes longer than the last), lifetime totals and bests, every ribbon's count
+  and the medals they add up to (bronze at 10, silver at 50, gold at 150), each class's experience,
+  and the last ten matches. The start menu shows it. Ranks are for show: nothing is locked behind
+  them.
+
+## Pings (`Pings`, `PingView`)
+
+Apex Legends made talking without a microphone the genre's standard; with a squad of bots it's how
+you lead them.
+
+- **Middle mouse or Y, tapped**: a ping on what's under the crosshair. An enemy (or one you can see
+  within 2.5° of it) is **revealed** to your whole side for 6 s (on everyone's HUD and minimap, and
+  you're paid for the spot if someone else takes him down), goes into your side's intel (the
+  commander, the guns) and your squad turns on him. A capture point: **attack** it, or **defend** it
+  if it's yours. Anywhere else: **move here**. Tapped twice: **danger**.
+- **Held**: the ping wheel (the view holds still and the mouse picks): move, attack, defend, danger,
+  ammo, medic, regroup; let go to send it.
+- **Your squad obeys** (`SquadTactics` `directed`): sent somewhere, it goes and takes cover round the
+  mark facing the enemy (on a point, inside its circle, so it counts for the capture) for 45 s or
+  until you ping **regroup** (back on you); a squadmate answers on the radio ("Copy, moving to your
+  mark!"). A new move, attack or defend replaces the last.
+- **Need a medic, need ammo**: the nearest medic (or engineer) of your side within 60 m comes over and
+  uses his stim on you (or drops a pack at your feet), and says he's coming.
+- **Your side's pings too**: a squad's "Contact!" callout marks that enemy for the side (one a squad
+  every 6 s), so you see what your side's soldiers see.
+- In the world: each ping's icon in its colour over the thing or the place, what it is ("ENEMY ·
+  Dravek", "ATTACK C2"), how far, who pinged it if it wasn't you; it fades in its last second and is
+  held inside the screen's edge with an arrow when it's off screen. On the minimap: a diamond in the
+  ping's colour. A blip (yours louder; an enemy's two falling notes; danger three).
+- Pings last 8 s (an enemy), 20 s (move, attack, defend), 12 s (danger, medic, ammo); three in 1.5 s at
+  most. Event `ping:add`, `ping:remove`.
+
+## Deploying (`spawnOptions`, `DeployScreen`)
+
+Battlefield's deploy screen, the shortest way back into the fight, and the end of the long walks
+reviewers dock big shooters for.
+
+- **The recap**, as you fall: who got you (as what class, with what weapon or what kind of death,
+  from how far, how much health he had left; a vehicle and its driver; a teammate's fire; a fall),
+  and the damage you took that life by who did it.
+- **Then the front from above**: the sectors in their owner's colour, the buildings, the points, your
+  side, the enemies your side knows of, where you fell, and every place you can deploy, numbered
+  (`session.spawnOptions(id)`): the **HQ** (always open), every **point your side holds** while it's
+  quiet (closed with UNDER ATTACK while they're taking it, ENEMIES NEAR with one within 40 m) and
+  each **squadmate** who's clear (not down, in a vehicle, hit in the last 3 s or with an enemy within
+  25 m). Click one or press 1–9. The default: your squad leader if he's clear, else the point nearest
+  the front, else the HQ.
+- **Your class for the next life**: any of your army's, with its weapon and kit shown
+  (`FighterFactory.rekit`: the same soldier with the new body, guns, blade, kit, call-ins, passive and
+  item; the HUD and the crowd's kit follow).
+- **Space** or **DEPLOY** once the reinforcements are in (the countdown). A choice that closed while
+  you waited goes to the HQ instead of onto the enemy (`session.respawn(id, { spawn, classId })`).
+
+## Learning the game (`FieldManual`)
+
+The commonest complaint about big team shooters is that they're opaque to a newcomer; what works is
+telling him the one thing he needs at the moment he needs it.
+
+- **The briefing** as the battle starts (10 s): the battlefield, your side and its job right now
+  (ATTACK SECTOR B: take B1 and B2; or HOLD THE LINE), your squad (you lead it: it follows you and
+  covers you when you stop), and the keys that matter first. The controls card is on **F1**.
+- **Hints** (the field manual's), one at a time, 7 s each, never within 14 s of the last, in order of
+  need: being downed, a teammate down near you (revive), shells landing within 40 m, low ammo, your
+  call-ins (after 40 s), an empty vehicle, standing in a point you're taking, digging in under fire
+  (the trenches), pinging your squad (after the briefing), the scoreboard (after two minutes).
+- Each stops once you've done the thing (pinged, revived, called something in, dug in, opened the
+  scoreboard...) or after it's been shown three times (twice for being downed, shells and capturing),
+  across matches: your career keeps them. Options, Controls: **Field manual hints** on or off.
+
 ## Support roles and passives (`SupportItems`, `Passives`)
 
 Medics and engineers carry items (`data/support.json`), used with **3**; supply pods, depots and
@@ -936,6 +1048,21 @@ inside them.
 
 ## Tests
 
+- `tests/match-flow.test.mjs`: every soldier on the board from the start, scored off exactly the
+  battle points he earns (and his takedowns and deaths); ribbons at each step; the after-action
+  report's facts (who won and how, the MVPs at the top of the boards, your line and place, the
+  tickets to the end); the career's ranks, a match's experience line by line, totals, medals, the last
+  ten, and saving and reading it back (or a new one from an unreadable save).
+- `tests/pings.test.mjs`: an enemy ping reveals him to the whole side, puts him in its intel and turns
+  the pinger's squad on him, and goes after 8 s; no spamming; a person's squad goes where they ping
+  (and says so), onto a point they ping (inside its circle), and back on regroup; a medic comes when
+  asked and you're patched up; bots ping what they call out, one a squad every 6 s.
+- `tests/deploy.test.mjs`: where a dead soldier can deploy (the HQ, his side's quiet points, his
+  squadmates who are clear; an enemy on a point closes it); deploying on a point or a squadmate; a
+  choice closed by then goes to the HQ; not before the reinforcements; coming back as another class
+  of his army (its body, guns, item, passive, blade in the melee system), not one of theirs.
+- `tests/field-manual.test.mjs`: the hint that matters most right now, one at a time and not too
+  soon after the last, each once a match, and never again once learned or seen enough.
 - `tests/maps.test.mjs`: every size builds a valid map (bigger matches, bigger maps, a point per
   lane, a trench line between line sectors), every point is reachable from both HQs, spawns are
   walkable, the same seed builds the same map, trench floors are flat with parapets you fire over

@@ -28,6 +28,7 @@ export const DEFAULTS = {
   voices: true,
   // Controls
   sens: 1,
+  hints: true,          // the field manual's hints in a match (FieldManual)
 };
 
 /** The graphics group of each preset. */

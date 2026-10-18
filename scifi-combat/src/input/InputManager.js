@@ -21,6 +21,7 @@ const DEFAULT_BINDINGS = {
   toggleMelee:{ keys: ['Digit1'],              pad: [15] }, // D-pad right: sword <-> guns
   swapWeapon:{ keys: ['Digit2'],               pad: [] },   // next gun (pad: hold D-pad right, TBD)
   item:     { keys: ['Digit3'],                pad: [] },   // the role's item: a medic's stim, an engineer's ammo pack
+  ping:     { keys: ['KeyY'], mouse: [1],      pad: [] },   // tap: ping what's under the crosshair; double tap: danger; hold: the ping wheel
   // Ability kit (Destiny: grenade/class/super; Deadlock: 1-2-3-4)
   ability1: { keys: ['KeyQ'],                  pad: [] },   // LB tap (on release; see sample)
   ability2: { keys: ['KeyE'],                  pad: [12] }, // D-pad up
@@ -62,14 +63,16 @@ export class InputManager {
     this.pitch = 0;
     this.prev = {};
     this.lastDevice = 'kbm';
+    this.lookLock = null;   // { x, y }: the mouse moves this instead of the view (the ping wheel)
 
     addEventListener('keydown', (e) => { this.keys.add(e.code); this.lastDevice = 'kbm'; if (e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault(); });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
-    dom.addEventListener('mousedown', (e) => { this.mouse.add(e.button); dom.requestPointerLock?.(); });
+    dom.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); this.mouse.add(e.button); dom.requestPointerLock?.(); });   // (the middle button pings: no autoscroll)
     addEventListener('mouseup', (e) => this.mouse.delete(e.button));
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
     addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== dom) return;
+      if (this.lookLock) { this.lookLock.x += e.movementX; this.lookLock.y += e.movementY; return; }
       this.yaw -= e.movementX * this.mouseSens;
       this.pitch -= e.movementY * this.mouseSens;
       this.clampPitch();

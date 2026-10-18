@@ -78,12 +78,7 @@ export class MovementController {
     this.t = tuning;
     this.body = body;
     this.id = entityId;
-    this.mods = { speedMul: 1, accelMul: 1, staminaMul: 1, canWallRun: true, dodgeStyle: 'dive', ...mods };
-    if (this.mods.dodgeStyle === 'roll') this.mods.dodgeStyle = 'dive'; // legacy name for the HD2 dive
-    // Armor class (HD2): explicit, or inferred from the class speed modifier.
-    const armor = this.mods.armor ?? (this.mods.speedMul >= 1.08 ? 'light' : this.mods.speedMul <= 0.86 ? 'heavy' : 'medium');
-    this.armor = armor;
-    this.staminaRegenMul = this.mods.staminaRegenMul ?? tuning.armor?.[armor]?.staminaRegenMul ?? 1;
+    this.setMods(mods);
     /**
      * Optional callbacks wired by the entity factory: fallDamage(amount), vital() -> 'alive' |
      * 'downed' | 'dead' (what a ragdoll becomes when it comes to rest), scale() -> silhouette scale,
@@ -149,6 +144,16 @@ export class MovementController {
       forced: null,             // { x, z, time }: ability dashes that input acceleration must not fight
       stepOff: 0,               // m: what's seen of the body lags a step it just took (eases to 0; presentation only)
     };
+  }
+
+  /** The class's movement (its speed, acceleration and stamina, its armor class): at construction, and when a soldier changes class. */
+  setMods(mods = {}) {
+    this.mods = { speedMul: 1, accelMul: 1, staminaMul: 1, canWallRun: true, dodgeStyle: 'dive', ...mods };
+    if (this.mods.dodgeStyle === 'roll') this.mods.dodgeStyle = 'dive'; // legacy name for the HD2 dive
+    // Armor class (HD2): explicit, or inferred from the class speed modifier.
+    const armor = this.mods.armor ?? (this.mods.speedMul >= 1.08 ? 'light' : this.mods.speedMul <= 0.86 ? 'heavy' : 'medium');
+    this.armor = armor;
+    this.staminaRegenMul = this.mods.staminaRegenMul ?? this.t.armor?.[armor]?.staminaRegenMul ?? 1;
   }
 
   // ---------------------------------------------------------------- public API

@@ -246,6 +246,8 @@ export class CombatBotBrain {
     // An engineer with something of ours to fix and no fight close (above): to its hull, the dig key held.
     // Short of ammo with one of our supply pods or ammo packs close: go and take some (it hands it over).
     const pod = fix ? null : this.callIn.podToFetch(ctx) ?? this.items.packToFetch(ctx);
+    // A teammate who pinged for a medic or ammo, and we're the one with it: to him (the item planner does the rest).
+    const asked = fix || pod ? null : this.items.helpJob(ctx);
     if (fix) {
       const q = fix.movement.state.position, r = (fix.isVehicle ? fix.def.radius ?? 1.5 : 0.6) + 1.2;
       if (this.#goTo(cmd, q, dt, { sprint: true, radius: r })) {
@@ -255,6 +257,9 @@ export class CombatBotBrain {
       } else this.#look(cmd, null, dt);
     } else if (pod) {
       this.#goTo(cmd, pod.pos, dt, { sprint: true, radius: 1.2 });
+      if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
+    } else if (asked) {
+      this.#goTo(cmd, asked.movement.state.position, dt, { sprint: true, radius: 1.6 });
       if (ctx.target && ctx.los) this.#gunfight(dt, ctx, cmd, true); else this.#look(cmd, null, dt);
     } else if (this.order) this.#execute(this.order, ctx, cmd, dt, tick);
     else {

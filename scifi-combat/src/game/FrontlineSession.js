@@ -24,7 +24,7 @@ import { revertTransform } from '../combat/TransformSystem.js';
 import { CombatBotBrain } from '../ai/CombatBotBrain.js';
 import { FrontlineCommander, Squad } from '../ai/FrontlineCommander.js';
 import { routeCommand, stripButtons } from '../core/routing.js';
-import { buildFighter } from './FighterFactory.js';
+import { buildFighter, rekit } from './FighterFactory.js';
 import { generateFrontlineMap } from './frontline/FrontlineMap.js';
 import { mapSizeFor } from './frontline/MapSizes.js';
 import { WireField } from '../world/WireField.js';
@@ -38,6 +38,8 @@ import { Logistics, COST } from './frontline/Logistics.js';
 import { SupportCommand } from '../ai/SupportCommand.js';
 import { parkSlot } from './frontline/FrontlineMap.js';
 import { BattlePoints } from './BattlePoints.js';
+import { MatchStats } from './MatchStats.js';
+import { Pings } from '../combat/Pings.js';
 import { Barks } from '../ai/Barks.js';
 import { Neutrals } from './Neutrals.js';
 import { Intel } from '../ai/command/Intel.js';
@@ -79,7 +81,9 @@ export class FrontlineSession {
     });
     this.world.mode = this.mode;
     this.bp = this.world.bp = new BattlePoints(this.world, data.battlePoints ?? null, { mode: this.mode });
+    this.match = new MatchStats(this.world, this.mode);   // the scoreboard, ribbons, the after-action report
     this.barks = this.world.barks = new Barks(this.world, data.barks ?? null, { seed });   // soldiers' callouts
+    this.pings = this.world.pings = new Pings(this.world);   // marks for your side: enemies, where to go, what you need
     this.world.wire = new WireField(this.map.wire);
     // What each side knows of the other: who's been seen where, and which ground has been watched.
     this.intel = this.world.intel = [0, 1].map((t) => new Intel(t, { bounds: this.map.bounds }));
@@ -96,6 +100,7 @@ export class FrontlineSession {
     this.focus = [];                  // positions that keep bots at full think rate (human cameras)
     this.stats = { thinks: 0, simMs: 0 };
     this.#roster(players, humans);
+    for (const f of this.fighters) if (!f.offField) this.match.add(f);   // (everyone on the board from the start)
     // The city's other people (data.civilians): civilians sheltering from the battle, bandit gangs
     // holding their turf. Simulated like any fighter; never respawned, never counted.
     if (this.map.city && data.civilians) {
@@ -179,7 +184,7 @@ export class FrontlineSession {
 
   dispose() {
     this.off.forEach((f) => f());
-    this.bp.dispose(); this.barks.dispose(); this.neutrals?.dispose();
+    this.bp.dispose(); this.match.dispose(); this.pings.dispose(); this.barks.dispose(); this.neutrals?.dispose();
     for (const b of this.bots) b.brain.dispose();
     for (const c of this.commanders) c.dispose();
     this.tactical.dispose(); this.suppression.dispose(); this.logistics?.dispose();
@@ -285,6 +290,8 @@ export class FrontlineSession {
     this.mode.update(dt, this.fighters, w);
     for (const I of this.intel) I.update(dt, this.fighters);
     this.bp.update(dt);
+    this.match.update(dt);
+    this.pings.update(dt);
     this.barks.update(dt);
     for (const c of this.commanders) c.update(dt);
     for (const sc of this.support ?? []) sc.update(dt);
@@ -390,9 +397,57 @@ export class FrontlineSession {
   }
 
   /** Human respawn request (the client decides when). */
-  respawn(id) { const f = this.fighters.find((x) => x.id === id); if (f?.health.dead && this.time >= f.respawnAt) this.#deploy(f); }
+  /**
+   * Deploy a dead soldier whose wait is over. With no choice: on his squad leader if that's safe,
+   * else his squad's spawn. `spawn`: an option's id from spawnOptions (a closed one, or one that's
+   * gone, falls back to the HQ); `classId`: a class of his army to come back as. True if he deployed.
+   */
+  respawn(id, { spawn = null, classId = null } = {}) {
+    const f = this.fighters.find((x) => x.id === id);
+    if (!f?.health.dead || this.time < f.respawnAt) return false;
+    if (classId && classId !== f.classId) {
+      const old = rekit(this.world, this.data, f, classId);
+      if (old) { this.melee.remove(old); this.melee.add(f.melee); bus.emit('fighter:class', { id: f.id, classId }); }
+    }
+    if (spawn == null) { this.#deploy(f); return true; }
+    const o = this.spawnOptions(id).find((x) => x.id === spawn);
+    if (o?.ok && o.kind !== 'hq') this.#deploy(f, false, o.pos);
+    else this.#deploy(f, false, null, { hq: true });
+    return true;
+  }
 
-  #deploy(f, initial = false, near = null) {
+  /**
+   * Where a dead soldier could deploy right now (the deploy screen): [{ id, kind, label, pos: { x, z }, ok, why }].
+   *  - 'hq': his side's rear, always open.
+   *  - 'point': every capture point his side holds, open while no enemy is within 40 m and it isn't
+   *    being taken.
+   *  - 'squad': each squadmate on his feet, open while he isn't in a vehicle, hasn't been hit in the
+   *    last 3 s and has no enemy within 25 m.
+   */
+  spawnOptions(id) {
+    const f = this.fighters.find((x) => x.id === id), team = f?.team, w = this.world;
+    if (!f || !(team === 0 || team === 1)) return [];
+    const enemyWithin = (p, r) => { let found = false; w.fightersNear(p, r, (e) => { if (!found && e.team !== team && (e.team === 0 || e.team === 1) && !e.health.dead && e.movement.state.position.distanceTo(p) < r) found = true; }); return found; };
+    const hq = this.map.hq[team];
+    const out = [{ id: 'hq', kind: 'hq', label: 'HQ', pos: { x: hq.x, z: hq.z }, ok: true, why: null }];
+    for (const p of this.mode.points) {
+      if (p.owner !== team) continue;
+      const contested = (p.counts?.[1 - team] ?? 0) > 0 || p.capturing === 1 - team;
+      const near = enemyWithin(new Vector3(p.pos.x, p.pos.y ?? 0, p.pos.z), 40);
+      out.push({ id: `point:${p.id}`, kind: 'point', label: p.name, pos: { x: p.pos.x, z: p.pos.z }, ok: !contested && !near, why: contested ? 'UNDER ATTACK' : near ? 'ENEMIES NEAR' : null });
+    }
+    const lead = f.squad?.leader;
+    for (const m of [lead, ...(f.squad?.members ?? [])]) {
+      if (!m || m === f || out.some((o) => o.id === `squad:${m.id}`)) continue;
+      if (m.health.dead) continue;
+      const q = m.movement.state.position;
+      const why = m.health.downed ? 'DOWN' : m.vehicle ? 'IN A VEHICLE' : m.health.sinceDamage < 3 ? 'UNDER FIRE' : enemyWithin(q, 25) ? 'ENEMIES NEAR' : null;
+      out.push({ id: `squad:${m.id}`, kind: 'squad', label: m.name ?? 'squadmate', leader: m === lead, pos: { x: q.x, z: q.z }, ok: !why, why });
+    }
+    return out;
+  }
+
+  #deploy(f, initial = false, near = null, { hq = false } = {}) {
     const w = this.world, team = f.team;
     if (f.vehicle) w.vehicles.exit(f);
     revertTransform(f, 'respawn');
@@ -403,6 +458,7 @@ export class FrontlineSession {
     const duty = f.duty?.unit, dutyAt = duty && (duty.pad.current && !duty.pad.current.removed ? duty.pad.current.movement.state.position : duty.pad.at);
     if (near) pos.set(near.x + (this.mode.rand() - 0.5) * 7, 0, near.z + (this.mode.rand() - 0.5) * 7);
     else if (dutyAt && !enemiesNear(dutyAt)) pos.set(dutyAt.x + 5 + this.mode.rand() * 3, 0, dutyAt.z + (this.mode.rand() - 0.5) * 6);   // crews come back beside their unit
+    else if (hq) this.mode.spawnPosition(f.team, enemiesNear, pos);   // (chosen on the deploy screen: the rear)
     else if (!initial && lead && lead !== f && !lead.vehicle && !lead.health.dead && !lead.health.downed && lead.health.sinceDamage > 3 && !enemiesNear(lead.movement.state.position)) {
       const lp = lead.movement.state.position;
       pos.set(lp.x + (this.mode.rand() - 0.5) * 4, 0, lp.z + (this.mode.rand() - 0.5) * 4);

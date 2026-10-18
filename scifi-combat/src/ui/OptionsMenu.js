@@ -45,6 +45,7 @@ const TOGGLES = {
   graphics: [['shadows', 'Shadows'], ['bloom', 'Bloom'], ['rays', 'God rays'], ['ink', 'Ink outlines'], ['letterbox', 'Letterbox'], ['film', 'Film grain'], ['particles', 'Snow & ash'], ['hiDpi', 'High DPI']],
   camera: [['reducedMotion', 'Reduced motion']],
   audio: [['voices', 'Voices']],
+  controls: [['hints', 'Field manual hints']],
 };
 
 export class OptionsMenu {
@@ -111,6 +112,7 @@ export class OptionsMenu {
     panel.append(row('Callouts', chips(TOGGLES.audio)));
     panel.append(h('CONTROLS'));
     panel.append(slider('sens'));
+    panel.append(row('Help', chips(TOGGLES.controls)));
     const foot = document.createElement('div'); foot.className = 'foot';
     if (this.inGame) {
       const quit = btn('Quit to menu', false, () => this.onQuit?.());

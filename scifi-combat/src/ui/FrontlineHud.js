@@ -54,8 +54,8 @@ const DOLL = `<g fill="currentColor" fill-opacity=".14" stroke="currentColor" st
   <rect x="19" y="69" width="9" height="27" rx="2"/><rect x="32" y="69" width="9" height="27" rx="2"/>
   <rect x="18" y="98" width="10" height="16" rx="2"/><rect x="32" y="98" width="10" height="16" rx="2"/>
 </g>`;
-const ROLE_TAG = { assault: 'TRP', juggernaut: 'HVY', infiltrator: 'RCN', engineer: 'ENG', medic: 'MED', marksman: 'MKS', flameKnight: 'BLD', pilot: 'PLT', tech: 'TCH', demolitionist: 'DEM' };
-const PHASE = { follow: 'ON YOU', advance: 'ADVANCING', contact: 'IN CONTACT · BOUNDING', jumpoff: 'IN THE TRENCH · WAITING', assault: 'ASSAULTING', clear: 'CLEARING A BUILDING', hold: 'HOLDING', charge: 'CHARGE', regroup: 'REGROUPING', down: 'SQUAD DOWN' };
+export const ROLE_TAG = { assault: 'TRP', juggernaut: 'HVY', infiltrator: 'RCN', engineer: 'ENG', medic: 'MED', marksman: 'MKS', flameKnight: 'BLD', pilot: 'PLT', tech: 'TCH', demolitionist: 'DEM' };
+const PHASE = { follow: 'ON YOU', directed: 'ON YOUR MARK', advance: 'ADVANCING', contact: 'IN CONTACT · BOUNDING', jumpoff: 'IN THE TRENCH · WAITING', assault: 'ASSAULTING', clear: 'CLEARING A BUILDING', hold: 'HOLDING', charge: 'CHARGE', regroup: 'REGROUPING', down: 'SQUAD DOWN' };
 const SHORT = { ammo: 'AMMO', shells: 'SHELLS', sandbags: 'SANDBAGS', tank: 'TANKS', hoverbike: 'BIKES', howitzer: 'GUNS', rockets: 'ROCKETS', at: 'AT GUNS' };
 const HEADINGS = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
 const COMPASS_W = 460, COMPASS_SPAN = 150;     // px wide, degrees shown
@@ -391,7 +391,7 @@ export class FrontlineHud {
     const camYaw = Math.atan2(camera.matrixWorld.elements[8], camera.matrixWorld.elements[10]);
     this.#compass(mode, sq, mp, camYaw);
     // ---- point markers
-    const w = innerWidth, h = innerHeight;
+    const w = innerWidth, h = innerHeight, held = [];
     for (const [i, el] of this.markers.entries()) {
       const p = mode.points[i];
       const live = mode.capturable(p);
@@ -403,8 +403,10 @@ export class FrontlineHud {
       let x = (_v.x * 0.5 + 0.5) * w, y = (-_v.y * 0.5 + 0.5) * h;
       const behind = _v.z > 1;
       if (behind) { x = w - x; y = h - 30; }
-      x = Math.min(w - 30, Math.max(30, x)); y = Math.min(h - 30, Math.max(60, y));
-      el.style.transform = `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`;
+      const off = behind || x < 48 || x > w - 48 || y < 60 || y > h - 30;
+      x = Math.min(w - 48, Math.max(48, x)); y = Math.min(h - 30, Math.max(60, y));   // (inside the edge: its ATTACK and distance whole)
+      if (off) held.push({ el, x, y });
+      else el.style.transform = `translate(${x.toFixed(0)}px, ${y.toFixed(0)}px)`;
       el.style.color = p.owner >= 0 ? this.col(p.owner) : NEUTRAL;
       el.classList.toggle('contested', p.contested);
       const mine = sq?.objective === p.id;
@@ -414,6 +416,16 @@ export class FrontlineHud {
       el.querySelector('u').style.background = k > 0.01 ? `conic-gradient(${this.col(by)} ${(k * 360).toFixed(0)}deg, transparent 0)` : 'none';
       el.lastChild.textContent = `${dist.toFixed(0)}m`;
     }
+    // Markers held at the edge stack instead of piling up on each other (down the edge, then back
+    // up from the bottom).
+    const near = (a, b) => Math.abs(a.x - b.x) < 46 && Math.abs(a.y - b.y) < 46;
+    held.sort((a, b) => a.y - b.y);
+    for (let j = 1; j < held.length; j++) for (let k = 0; k < j; k++) if (near(held[k], held[j])) held[j].y = held[k].y + 46;
+    for (let j = held.length - 1; j >= 0; j--) {
+      held[j].y = Math.min(h - 30, held[j].y);
+      for (let k = j + 1; k < held.length; k++) if (near(held[k], held[j])) held[j].y = Math.min(held[j].y, held[k].y - 46);
+    }
+    for (const m of held) m.el.style.transform = `translate(${m.x.toFixed(0)}px, ${m.y.toFixed(0)}px)`;
     // ---- minimap
     this.#minimap(camYaw);
     // ---- reticles: camera centre, and where the gun really points
@@ -855,6 +867,17 @@ export class FrontlineHud {
       c.fillStyle = '#0b0d14d0'; c.strokeStyle = col; c.lineWidth = 2.5;
       c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.fill(); c.stroke();
       c.fillStyle = col; c.fillText(p.name, x, y + 1);
+    }
+    // Your side's pings (Pings): a diamond in the kind's colour, pinned to the rim when out of range.
+    const PC = { enemy: THEM, danger: '#ff8a3d', attack: AMBER, ammo: AMBER, medic: '#7fe0a0', regroup: '#7fe0a0' };
+    for (const pg of s.pings?.of(this.team) ?? []) {
+      const q = pg.target?.movement?.state.position;
+      let [x, y] = at(q ? q.x : pg.at[0], q ? q.z : pg.at[2]);
+      const dx = x - R, dy = y - R, d = Math.hypot(dx, dy), max = R - 10;
+      if (d > max) { x = R + (dx / d) * max; y = R + (dy / d) * max; }
+      c.globalAlpha = Math.min(1, Math.max(0, pg.until - s.pings.time));
+      c.fillStyle = PC[pg.kind] ?? US; c.strokeStyle = '#0b0d14'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(x, y - 7); c.lineTo(x + 6, y); c.lineTo(x, y + 7); c.lineTo(x - 6, y); c.closePath(); c.fill(); c.stroke();
     }
     c.globalAlpha = 1;
     c.restore();

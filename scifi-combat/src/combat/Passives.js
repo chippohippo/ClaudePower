@@ -60,6 +60,13 @@ export class PassiveSystem {
 
   dispose() { this.off.forEach((f) => f()); }
 
+  /** Take a soldier's passive away (he's changing class). */
+  detach(e) {
+    this.byId.delete(e.id);
+    this.list = this.list.filter((x) => x !== e);
+    e.passive = null; e.perks = {};
+  }
+
   /** Give a soldier his class's passive (null: none). */
   attach(e, id) {
     const def = this.defs[id] ?? null;

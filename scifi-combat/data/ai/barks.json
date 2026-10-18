@@ -134,6 +134,22 @@
       "solari": ["Everybody in! Take {place}, go, go, go!", "Storm it! Onto the point!", "On me! We take {place} now!"],
       "void": ["Now. Overrun them.", "Forward, all of you. Take {place}.", "Into them. No one stops."]
     },
+    "spotted": {
+      "solari": ["Eyes on!", "I see him!", "Got him!", "Target marked!"],
+      "void": ["Seen.", "Marked.", "I see it.", "Target."]
+    },
+    "onmark": {
+      "solari": ["Copy, moving to your mark!", "On it! {place}!", "Moving there now!", "Roger, we've got {place}!"],
+      "void": ["As you say. Moving.", "We go to {place}.", "Understood. {place}.", "Moving to the mark."]
+    },
+    "regroup": {
+      "solari": ["On you!", "Forming up on you!", "Coming back to you!"],
+      "void": ["We return.", "With you.", "Forming on you."]
+    },
+    "ack": {
+      "solari": ["Coming to you!", "On my way!", "Hang on, I'm coming!"],
+      "void": ["Coming.", "Hold. I come.", "On my way."]
+    },
     "endgame": {
       "solari": ["Clock's on our side. Hold what we have!", "Last minutes! Nobody moves off those points!", "Hold the line till the whistle!"],
       "void": ["Time favors us. Hold.", "Stand fast. The hour is ours.", "Hold until the end."]
