@@ -62,6 +62,7 @@ const POUND = 2.5;              // damage per kJ to the member it lands on
 const PUSH = 0.01;              // t·m/s a blast gives a body per unit of its power (at its heart)
 const TIRE = 0.1;               // a piece's joints tire past 10% of their strength (so what's left hanging comes down in a few seconds)
 const AWAKE_CAP = 160;          // bodies moving at once, past which nothing breaks up further
+const DEBRIS_CAP = 90;          // ...past which a blast throws no chunks (and it throws ten at most)
 const BODY_CAP = 480;           // bodies in all, past which the smallest at rest go to dust
 const METAL_KINDS = new Set(['hrail', 'brail', 'sstair']);
 const _p = new Vector3(), _q = new Vector3(), _v = new Float64Array(3), _w = new Float64Array(3);
@@ -151,6 +152,7 @@ export class StructureSystem {
     this.time = 0;
     this.list = [];
     this.creaking = [];          // { ms, S, at }: pieces coming away at `at`
+    this.chunks = 10;            // chunks the blast being worked out can still throw
     this.dirty = [];             // nav rects to redo [x0, z0, x1, z1]
     this.stats = { breaks: 0, holes: 0, falls: 0, bodies: 0, tears: 0, shatters: 0, crushed: 0, rubble: 0 };
     const T = world.terrain;
@@ -209,6 +211,7 @@ export class StructureSystem {
   blast(point, radius, weapon, { charge = false, by = null } = {}) {
     const P = structuralPower(weapon, { charge }), R = Math.max(1.2, radius * 0.9);
     if (P <= 0) return 0;
+    this.chunks = 10;
     if (this.rigid.bodies.length) this.#blastBodies(point, P, R);
     if (!this.list.length) return 0;
     const hit = [];
@@ -240,7 +243,7 @@ export class StructureSystem {
       }
     }
     st.hp -= dmg;
-    if (st.hp <= 0) this.#breakUp(m, point, []);
+    if (st.hp <= 0) { this.#breakUp(m, point, []); this.#debris(m, m, point, Math.min(3, 1 + Math.floor(vol(m)))); }
     else bus.emit('structure:hit', { at: [point.x, point.y, point.z], cover: m, mat: st.mat });
   }
 
@@ -261,6 +264,31 @@ export class StructureSystem {
     hb.min[u] = Math.max(m.min[u], hole[0]); hb.min[v] = Math.max(m.min[v], hole[1]); hb.max[u] = Math.min(m.max[u], hole[2]); hb.max[v] = Math.min(m.max[v], hole[3]);
     this.stats.holes++;
     this.#breakUp(m, point, frags, frac, [hb.min.x, hb.min.y, hb.min.z, hb.max.x, hb.max.y, hb.max.z]);
+    this.#debris(m, hb, point, Math.min(4, 1 + Math.round(2 * r)));
+  }
+
+  /**
+   * Chunks of member m thrown out of `region` (a hole, or the whole of it) by a blast at `point`: a
+   * few small bodies that bounce and roll and lie where they stop (too small to be cover, and the
+   * first to go to dust when there are too many lying about).
+   */
+  #debris(m, region, point, n) {
+    n = Math.min(n, this.chunks);
+    if (n <= 0 || this.rigid.awake.length >= DEBRIS_CAP) return;
+    this.chunks -= n;
+    const R = this.rand, mat = m.st.mat;
+    for (let i = 0; i < n; i++) {
+      const sx = 0.14 + R() * 0.22, sy = 0.1 + R() * 0.18, sz = 0.14 + R() * 0.22;
+      const x = region.min.x + R() * Math.max(0, region.max.x - region.min.x - sx), y = region.min.y + R() * Math.max(0, region.max.y - region.min.y - sy), z = region.min.z + R() * Math.max(0, region.max.z - region.min.z - sz);
+      let dx = x - point.x, dy = y - point.y, dz = z - point.z;
+      const l = Math.hypot(dx, dy, dz) || 1, sp = 3 + R() * 6;
+      dx /= l; dy /= l; dz /= l;
+      const b = this.rigid.addBody([{ min: new Vector3(x, y, z), max: new Vector3(x + sx, y + sy, z + sz), density: MATERIAL[mat].density, meta: { src: m, mat, kind: m.kind } }], {
+        v: [dx * sp + (R() - 0.5) * 2, dy * sp + 1 + R() * 3, dz * sp + (R() - 0.5) * 2], w: [(R() - 0.5) * 16, (R() - 0.5) * 16, (R() - 0.5) * 16], ignore: [...m.st.side.map((x) => x.b), ...m.st.up.map((x) => x.b)],
+        data: { S: m.st.S, by: m.st.by, mat, crush: new Map(), land: this.time, cover: null, debris: true },
+      });
+      void b;
+    }
   }
 
   /** Member m is gone (blown away, or all but `frags`, which take its place). */
@@ -583,7 +611,7 @@ export class StructureSystem {
   // ---------------------------------------------------------------- bodies
   /** A body hit something: a crash, the blow to what it hit, and it breaks up if it hit hard enough. */
   #hit({ b, energy, speed, at }, statics) {
-    if (b.removed || !b.data?.S) return;
+    if (b.removed || !b.data?.S || b.data.debris) return;
     const D = b.data, A = b.aabb;
     if (energy > 8 && this.time - D.land > 0.25) {
       D.land = this.time;
@@ -639,6 +667,7 @@ export class StructureSystem {
   /** Whoever a moving body runs into: crushed by how hard it's going, shoved if it's barely moving. */
   #crush() {
     for (const b of this.rigid.awake) {
+      if (b.data?.debris) continue;
       const vb = b.v, wb = b.w;
       if (Math.hypot(vb[0], vb[1], vb[2]) + Math.hypot(wb[0], wb[1], wb[2]) * b.r < CRUSH_V) continue;
       const A = b.aabb, D = b.data;
@@ -706,6 +735,7 @@ export class StructureSystem {
       if (d > R) continue;
       if (d < 0.05) { dx = b.x[0] - point.x; dy = b.x[1] - point.y; dz = b.x[2] - point.z; }
       const l = Math.hypot(dx, dy, dz) || 1, k = (1 - d / R) ** 1.5, J = Math.min(P * k * PUSH, b.m * 12);
+      if (b.asleep && J < b.m * 0.6) continue;   // (a heavy piece at rest it barely moves: it stays)
       dx /= l; dy = dy / l + 0.35; dz /= l;
       const l2 = Math.hypot(dx, dy, dz);
       RW.push(b, { x: cx, y: cy, z: cz }, { x: (dx / l2) * J, y: (dy / l2) * J, z: (dz / l2) * J });

@@ -343,8 +343,11 @@ export class BattleFx {
     for (let i = 0; i < 3; i++) this.dust.add(x + (R() - 0.5) * 0.6, y + (R() - 0.5) * 0.6, z + (R() - 0.5) * 0.6, (R() - 0.5) * 2, R() * 1.2, (R() - 0.5) * 2, 0.9 + R() * 0.6, 0.4, 1.6, mat === 'metal' ? SMOKE : CONCRETE, CONCRETE_END, 1.5, -0.05);
   }
 
-  /** A wall or a slab broken through: chunks thrown out of the hole, its dust bursting from it. `hole` = [x0, y0, z0, x1, y1, z1]. */
-  crumble(at, hole, mat = 'concrete', whole = false) {
+  /**
+   * A wall or a slab broken through: chunks thrown out of the hole, its dust bursting from it.
+   * `hole` = [x0, y0, z0, x1, y1, z1]; `dust` scales the cloud (a collapse rations it: CollapseViews).
+   */
+  crumble(at, hole, mat = 'concrete', whole = false, dust = 1) {
     const [x, y, z] = this.#at(at), R = this.rand;
     const [x0, y0, z0, x1, y1, z1] = hole ?? [x - 1, y - 1, z - 1, x + 1, y + 1, z + 1];
     const size = Math.cbrt(Math.max(0.05, (x1 - x0) * (y1 - y0) * (z1 - z0)) + 0.5), k = Math.min(2.2, size);
@@ -355,7 +358,7 @@ export class BattleFx {
       const dx = px - x, dz = pz - z, l = Math.hypot(dx, dz) || 1, v = 2 + R() * 6;
       this.matter.add(px, py, pz, (dx / l) * v + (R() - 0.5) * 2, 1 + R() * 4, (dz / l) * v + (R() - 0.5) * 2, 1.2 + R() * 0.8, 0.12 + R() * 0.2, 0.1 + R() * 0.15, mat === 'metal' ? SMOKE_DARK : CHUNK, CHUNK_END, 0.2, 14);
     }
-    for (let i = 0; i < Math.round(6 * k); i++) this.matter.add(cx + (R() - 0.5) * (x1 - x0), cy + (R() - 0.5) * (y1 - y0), cz + (R() - 0.5) * (z1 - z0), (R() - 0.5) * 3, R() * 1.5, (R() - 0.5) * 3, 2.5 + R() * 2, 1.2 * k, (3 + R() * 2) * k, CONCRETE, CONCRETE_END, 0.9, -0.05);
+    for (let i = 0; i < Math.round(6 * k * dust); i++) this.matter.add(cx + (R() - 0.5) * (x1 - x0), cy + (R() - 0.5) * (y1 - y0), cz + (R() - 0.5) * (z1 - z0), (R() - 0.5) * 3, R() * 1.5, (R() - 0.5) * 3, 2.5 + R() * 2, 1.2 * k, (3 + R() * 2) * k, CONCRETE, CONCRETE_END, 0.9, -0.05);
   }
 
   /** Where a building is about to go: dust sifting down. */
@@ -364,14 +367,17 @@ export class BattleFx {
     for (let i = 0; i < Math.round(8 * k); i++) this.dust.add(x + (R() - 0.5) * 3 * k, y + R() * 1.5, z + (R() - 0.5) * 3 * k, (R() - 0.5) * 0.4, -0.5 - R() * 1.5, (R() - 0.5) * 0.4, 1 + R() * 0.8, 0.15, 0.6, CONCRETE, CONCRETE_END, 0.4, 3);
   }
 
-  /** A piece coming down: dust rolling out along the ground from under it, bits bouncing off. `size` = [x, y, z] of what landed. */
-  collapseDust(at, size = [2, 0.3, 2], energy = 50, mat = 'concrete') {
+  /**
+   * A piece coming down: dust rolling out along the ground from under it, bits bouncing off.
+   * `size` = [x, y, z] of what landed; `dust` scales the cloud (a collapse rations it).
+   */
+  collapseDust(at, size = [2, 0.3, 2], energy = 50, mat = 'concrete', dust = 1) {
     const [x, y, z] = this.#at(at), R = this.rand;
-    const span = Math.max(size[0], size[2]), k = Math.min(2, 0.5 + Math.sqrt(energy) / 22);
-    const n = Math.round(4 + 7 * k);
+    const span = Math.min(6, Math.max(size[0], size[2])), k = Math.min(1.7, 0.5 + Math.sqrt(energy) / 26);
+    const n = Math.round((3 + 5 * k) * dust);
     for (let i = 0; i < n; i++) {
-      const a = R() * Math.PI * 2, r = R() * span * 0.5, v = (1.5 + R() * 3.5) * k;
-      this.matter.add(x + Math.cos(a) * r, y + 0.3, z + Math.sin(a) * r, Math.cos(a) * v, 0.3 + R() * 1.1, Math.sin(a) * v, 2.2 + R() * 2.2, 0.8 + R() * k, (2.4 + R() * 2.4) * k, CONCRETE, CONCRETE_END, 1.2, -0.04);
+      const a = R() * Math.PI * 2, r = R() * span * 0.5, v = (1.5 + R() * 3) * k;
+      this.matter.add(x + Math.cos(a) * r, y + 0.3, z + Math.sin(a) * r, Math.cos(a) * v, 0.3 + R() * 1.1, Math.sin(a) * v, 2 + R() * 2, 0.6 + R() * 0.6 * k, (1.6 + R() * 1.8) * k, CONCRETE, CONCRETE_END, 1.2, -0.04);
     }
     for (let i = 0; i < Math.round(5 * k); i++) {
       const a = R() * Math.PI * 2, v = 1 + R() * 3;

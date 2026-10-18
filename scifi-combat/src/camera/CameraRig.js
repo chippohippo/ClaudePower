@@ -109,9 +109,13 @@ export class CameraRig {
     bus.on('weapon:fire', (e) => e.id === this.targetId && this.addTrauma(e.shake ?? 0.05));
     bus.on('projectile:explode', (e) => this.#explosion(e));
     bus.on('stratagem:land', (e) => this.#explosion({ point: { x: e.at[0], y: e.at[1], z: e.at[2] }, radius: 3.5 }));   // a pod slamming in
-    bus.on('structure:land', (e) => {   // a building coming down near you: the ground shakes with each piece
+    bus.on('structure:land', (e) => {   // a building coming down near you: the ground shakes as it goes (the biggest piece in each 0.15 s)
       const p = this.camera.position, d = Math.hypot(e.at[0] - p.x, e.at[1] - p.y, e.at[2] - p.z);
-      if (d < 35) this.addTrauma(Math.min(0.35, Math.sqrt(e.energy) / 70) * (1 - d / 35));
+      if (d >= 35) return;
+      const now = performance.now() / 1000, k = Math.min(0.35, Math.sqrt(e.energy) / 70) * (1 - d / 35);
+      if (now - (this.landAt ?? -1) < 0.15 && k <= (this.landK ?? 0)) return;
+      this.addTrauma(Math.max(0, k - (now - (this.landAt ?? -1) < 0.15 ? this.landK : 0)));
+      this.landAt = now; this.landK = k;
     });
   }
 

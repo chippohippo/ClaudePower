@@ -24,7 +24,8 @@
 //    let go on three sides tears along its top first (bending pulls the top apart and presses the
 //    bottom together) and swings down on its bottom corners.
 //  * Bodies at rest sleep: they cost nothing, and touched hard, pushed by a blast or let go of,
-//    they wake. One still moving after MAX_T is put to sleep where it is.
+//    they wake. One that has hardly moved in a second and a half (a pile creeping, a chunk
+//    rocking on an edge) is at rest too, and one still moving after MAX_T is put to sleep where it is.
 // Units: m, s, t (tonnes), kN (so energies are in kJ).
 
 const G = 9.8;
@@ -34,14 +35,15 @@ const CAP = 0.012;               // m a contact corrects per substep at most: an
 const MU_S = 0.75, MU_D = 0.6;   // friction: concrete on concrete
 const BOUNCE = 0.12;
 const SLEEP_V = 0.1, SLEEP_W = 0.12, SLEEP_T = 0.45;
-const MAX_T = 20;                // s awake at most
+const CREEP_T = 1.5, CREEP_D = 0.25, CREEP_Q = 0.07;   // moved less than 0.25 m and turned less than 8° in 1.5 s: settled (a pile creeping, a chunk rocking)
+const MAX_T = 15;                // s awake at most
 const TIRE = 1.4;                // how fast an overloaded joint weakens (per s, per unit of load past its tiring share)
 const SHEAR = 0.6;               // a joint's load sheared across its face, against pulled straight off it
 const HUNG = 0.65;               // share of its weight its joints hold up, past which a body hangs (its joints tire, it doesn't sleep)
 const DAMP_V = 0.02, DAMP_W = 0.15, DAMP_HUNG = 1.5;   // per s; a body hanging from joints swings to a stop
 const ROLL = 1.5;                // per s: spin lost while resting on something (a chunk on two points doesn't rock for ever)
 const JOINT_DAMP = 40;           // per s: the stretch of a joint doesn't ring
-const EDGE = 1.5;                // m between the points along a box's edges that meet the terrain
+const EDGE = 2.5;                // m between the points along a box's edges that meet the terrain
 
 // ---------------------------------------------------------------- scratch (no allocation in the loops)
 const _cp = new Float64Array(9 * 8);    // contact points from obb(): pa, pb, n (from b to a)
@@ -376,6 +378,7 @@ export class RigidWorld {
     rot(b.q, cx, cy, cz, b.x);
     b.x[0] += o[0]; b.x[1] += o[1]; b.x[2] += o[2];
     b.rx.set(b.x); b.rq.set(b.q); b.px.set(b.x); b.pq.set(b.q);
+    b.creepT = 1e3;                            // (its first look at how far it's got is a baseline)
     this.#frame(b);
     this.bodies.push(b);
     this.awake.push(b);
@@ -400,7 +403,7 @@ export class RigidWorld {
 
   wake(b) {
     if (!b.asleep || b.removed) return;
-    b.asleep = false; b.sleepT = 0; b.age = Math.min(b.age, MAX_T * 0.5);
+    b.asleep = false; b.sleepT = 0; b.age = Math.min(b.age, MAX_T * 0.5); b.creepT = 1e3;
     this.awake.push(b);
     this.woke.push(b);
     for (const j of b.joints) { const o = j.a === b ? j.b : j.a; if (o?.asleep) this.wake(o); }
@@ -570,7 +573,20 @@ export class RigidWorld {
       // (Hanging, it stays awake: its joints tire until it comes down.)
       const still = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] < SLEEP_V * SLEEP_V && w[0] * w[0] + w[1] * w[1] + w[2] * w[2] < SLEEP_W * SLEEP_W;
       b.sleepT = still && !b.hung ? b.sleepT + dt : 0;
-      if (b.sleepT > SLEEP_T || b.age > MAX_T) this.#sleep(b, i);
+      // Every CREEP_T: has it got anywhere since?
+      let settled = false;
+      if ((b.creepT = (b.creepT ?? 0) + dt) >= CREEP_T) {
+        const c = b.creep ??= new Float64Array(7);
+        if (b.creepT < 1e3) {
+          const dq = Math.abs(c[3] * b.q[0] + c[4] * b.q[1] + c[5] * b.q[2] + c[6] * b.q[3]);
+          // (Slow now as well: a wall only starting to topple has barely moved, but it's gathering speed.)
+          settled = !b.hung && v[0] * v[0] + v[1] * v[1] + v[2] * v[2] < 0.36 && w[0] * w[0] + w[1] * w[1] + w[2] * w[2] < 0.25 &&
+            Math.hypot(b.x[0] - c[0], b.x[1] - c[1], b.x[2] - c[2]) < CREEP_D && 2 * Math.acos(Math.min(1, dq)) < CREEP_Q * 2;
+        }
+        c[0] = b.x[0]; c[1] = b.x[1]; c[2] = b.x[2]; c[3] = b.q[0]; c[4] = b.q[1]; c[5] = b.q[2]; c[6] = b.q[3];
+        b.creepT = 0;
+      }
+      if (b.sleepT > SLEEP_T || settled || b.age > MAX_T) this.#sleep(b, i);
     }
   }
 

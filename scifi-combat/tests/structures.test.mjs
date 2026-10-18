@@ -77,10 +77,12 @@ test('a howitzer round that takes out the bottom of a wall brings the wall above
   assert.equal(R.awake.length, 0, 'and comes to rest');
   assert.ok([...T.S.members].filter((m) => m.kind === 'hroof').length >= 1 && [...T.S.members].filter((m) => m.kind === 'hfloor').length >= 1, 'the floors and the roof stand');
   // It lies in the street in front of the house, and on the ground floor, as rubble.
-  const down = R.bodies.filter((b) => b.aabb[4] < 2);
-  const mass = R.bodies.reduce((a, b) => a + b.m, 0), low = down.reduce((a, b) => a + b.m, 0);
+  // (Not the chunks the shell threw: a blast outside a wall throws them into the house, as it should.)
+  const pieces = R.bodies.filter((b) => !b.data.debris), down = pieces.filter((b) => b.aabb[4] < 2);
+  const mass = pieces.reduce((a, b) => a + b.m, 0), low = down.reduce((a, b) => a + b.m, 0);
   assert.ok(low > mass * 0.8, `most of it is on the ground (${low.toFixed(0)} of ${mass.toFixed(0)} t)`);
   assert.ok(down.every((b) => b.aabb[2] < 3 && b.aabb[5] > -14), 'in front of the facade, and not thrown down the street');
+  assert.ok(R.bodies.some((b) => b.data.debris), 'and the shell threw chunks of it');
   const rubble = T.cover.list.filter((b) => b.kind === 'rubble');
   assert.ok(rubble.length >= 10 && rubble.every((r) => r.body), `it lies as rubble (${rubble.length} boxes)`);
   assert.ok(rubble.filter((r) => r.max.y - r.min.y <= 1).length >= rubble.length * 0.8, 'most of it low enough to climb over');

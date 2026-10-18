@@ -16,8 +16,9 @@
 //    lights in the burning wrecks nearest it.
 // One draw call per kind of thing; nothing per frame but the lights, the flicker and the fires.
 // Buildings that come apart (Structures.js): each piece of a house, scaffold or skybridge knows its
-// instance, so a piece shot away or fallen disappears from its mesh, the pieces left round a hole
-// take spare instances in the same mesh, and what comes down lies in a rubble mesh of its own.
+// instance, so a piece shot away or come away disappears from its mesh, the pieces left round a
+// hole take spare instances in the same mesh, and a piece that's been hit darkens with the damage
+// it's taken. What comes away is CollapseViews' to draw, moving and at rest.
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
@@ -30,6 +31,7 @@ const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vect
 const UP = new THREE.Vector3(0, 1, 0);
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 const RUBBLE_MAX = 1600;
+const SOOT = new THREE.Color('#231f1c');
 /** The colours structural pieces are drawn in (a house's walls take its facade's). */
 const PIECE = { hfloor: '#8e8a82', balcony: '#8e8a82', hroof: '#8e8a82', hstair: '#5e5c58', hrail: '#2a2c31', bridge: '#77736c', brail: '#3a3d44', ramp: '#5d5850', deck: '#7a6448', sstair: '#5f646c' };
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -74,6 +76,7 @@ export class CityRenderer {
     this.off = [
       bus.on('world:coverDestroyed', (e) => { if (e.structural) this.#hide(e.cover); }),
       bus.on('world:coverAdded', (e) => { if (e.structural) this.#show(e.cover); }),
+      bus.on('structure:hit', (e) => this.#wear(e.cover)),
     ];
     // The future: ad screens, flying traffic, cables over the streets (a planet's `city.future`).
     if (this.L.future) this.future = new CityFuture(this.group, map, { F: this.L.future, neon: this.L.neon, towers: this.megatowers, buildings: this.city.buildings, ground: this.ground });
@@ -465,10 +468,18 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     if (b.kind === 'rubble') _q.setFromEuler(_e.set((hash(b.min.x) - 0.5) * 0.08, (hash(b.min.z + 7) - 0.5) * 0.3, (hash(b.min.x + b.min.z) - 0.5) * 0.08));
     else _q.identity();
     mesh.setMatrixAt(i, _m.compose(_p, _q, _s));
-    mesh.setColorAt(i, _c.set(this.colorOf(b)));
     mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     this.slots.set(b, { mesh, i });
+    this.#wear(b);
+  }
+
+  /** A piece's colour, sooted and darkened by the damage it's taken (worn through, it's near black): you see what's about to go. */
+  #wear(b) {
+    const s = this.slots.get(b);
+    if (!s) return;
+    const k = b.st ? 1 - Math.max(0, b.st.hp / b.st.max) : 0;
+    s.mesh.setColorAt(s.i, _c.set(this.colorOf(b)).lerp(SOOT, Math.min(0.65, k * 0.9)));
+    if (s.mesh.instanceColor) s.mesh.instanceColor.needsUpdate = true;
   }
 
   /** The blocks' sidewalk slabs: paving, a kerb you can see. */

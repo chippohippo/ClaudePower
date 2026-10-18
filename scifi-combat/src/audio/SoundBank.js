@@ -586,9 +586,19 @@ function heartbeat(sr) {
  * creak: a building about to go: loaded concrete and rebar groaning (a slow pitch that drags and
  * catches), stick-slip crackle, a crack or two. crumble: a wall broken through: the break, then
  * chunks and grit pouring down, thinning out. crash: a piece of it landing: a deep thud with the
- * slab's slap in it, then the rubble settling.
+ * slab's slap in it, then the rubble settling. snap: a piece tearing loose from what held it: a
+ * hard crack, the rebar in it giving with a ping, grit after.
  */
 function structural(kind, r, sr) {
+  if (kind === 'snap') {
+    const len = 0.7, n = D.samples(len, sr), x = new Float32Array(n);
+    D.mix(x, noiseHit(n, r, { type: 'highpass', f: jit(r, 1300, 0.2), a: 0.0003, tau: 0.025 }, sr), 1.3);
+    D.mix(x, noiseHit(n, r, { type: 'bandpass', f: jit(r, 420, 0.2), q: 0.9, a: 0.001, tau: 0.06 }, sr), 0.8);
+    const f = jit(r, 1150, 0.25);
+    D.mix(x, D.mul(D.modes(n, [[f, 1, 0.18], [f * 2.76, 0.5, 0.09], [f * 5.4, 0.25, 0.05]], sr, r), D.envExp(n, 0.0006, 0.2, sr)), 0.35, 0.01, sr);
+    D.mix(x, D.bandpass(D.grains(n, r, 30, (q) => 0.04 + q() ** 1.6 * len * 0.8, 0.003, sr), 1600, 0.8, sr), 0.6);
+    return D.normalize2([x, Float32Array.from(x)], 0.7);
+  }
   if (kind === 'creak') {
     const len = 1.7, n = D.samples(len, sr), x = new Float32Array(n);
     const f0 = jit(r, 70, 0.2), ph = r() * 6.28, ph2 = r() * 6.28;
@@ -720,7 +730,7 @@ export function catalogue() {
   for (const k of ['hit', 'hit_head', 'hit_kill', 'hit_plink', 'hit_shieldbreak', 'hit_friendly', 'ability_hit', 'ready', 'super_ready', 'denied', 'stinger', 'empty', 'open', 'error', 'armed', 'beacon', 'beep', 'throw', 'grab', 'stim', 'repair', 'bp', 'buy', 'hero', 'smoke', 'revive', 'revived', 'down']) ids.push(`ui:${k}`);
   for (let k = 1; k <= 10; k++) ids.push(`arrow:${k}`);
   ids.push('whistle:ours', 'whistle:enemy', 'heartbeat', 'dig', 'amb:city', 'amb:trench');
-  ids.push('struct:creak', 'struct:crumble', 'struct:crash');
+  ids.push('struct:creak', 'struct:crumble', 'struct:crash', 'struct:snap');
   return ids;
 }
 /** An ability cue's id: its signature, its army, what it's doing. */

@@ -37,9 +37,13 @@ export class CollapseViews {
     this.free = [];
     this.n = 0;
     this.version = -1;
+    // Dust rationed: a shell holes a dozen pieces of wall at once, and a building coming down is
+    // dozens of pieces landing and smashing in a few seconds; a cloud for each would hide it all.
+    // A budget of big clouds, refilled over time.
+    this.dust = 6;
     this.off = [
-      bus.on('structure:break', (e) => this.fx?.crumble?.(e.at, e.hole, e.mat, e.fragments.length === 0)),
-      bus.on('structure:land', (e) => this.fx?.collapseDust?.(e.at, e.size, e.energy, e.mat)),
+      bus.on('structure:break', (e) => this.fx?.crumble?.(e.at, e.hole, e.mat, e.fragments.length === 0, this.#ration(e.impact ? 0.5 : 1))),
+      bus.on('structure:land', (e) => this.fx?.collapseDust?.(e.at, e.size, e.energy, e.mat, this.#ration(Math.min(1, 0.3 + Math.sqrt(e.energy) / 30)))),
       bus.on('structure:creak', (e) => this.fx?.trickle?.(e.at, e.n)),
       bus.on('structure:tear', (e) => this.fx?.trickle?.(e.at, 2)),
       bus.on('structure:hit', (e) => this.fx?.chips?.(e.at, e.mat)),
@@ -47,6 +51,13 @@ export class CollapseViews {
   }
 
   dispose() { this.off.forEach((f) => f()); this.mesh.removeFromParent(); }
+
+  /** How much of a cloud of size `want` (0 to 1) there's dust left for. */
+  #ration(want) {
+    const k = Math.max(0.15, Math.min(want, this.dust));
+    this.dust = Math.max(0, this.dust - k);
+    return k;
+  }
 
   /** How many bodies are drawn, and how many of them moving. */
   get drawn() { let n = 0, moving = 0; for (const [b] of this.slots) { n++; if (!b.asleep) moving++; } return { n, moving }; }
@@ -77,6 +88,7 @@ export class CollapseViews {
 
   /** @param {number} alpha how far the sim is from its last tick to the next (FixedLoop) */
   update(dt, alpha = 1) {
+    this.dust = Math.min(6, this.dust + dt * 3);
     const R = this.rigid;
     if (!R) return;
     if (R.version !== this.version) this.#sync();

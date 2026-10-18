@@ -326,12 +326,17 @@ export class AudioDirector {
     on('deployable:removed', (e) => e.reason === 'destroyed' && E.play('impact:metal', { pos: at(e.at), kind: 'impact', gain: 0.6 }));
     on('world:coverDestroyed', (e) => { if (!e.structural) E.play('boom:grenade:near', { pos: at(e.center), kind: 'boom', gain: 0.5, rate: 0.8 }); });   // (a building's pieces have their own sounds, below)
 
-    // ---- buildings coming apart (Structures.js): a groan before it goes, walls breaking, pieces landing
+    // ---- buildings coming apart (Structures.js): a groan before it goes, walls breaking, pieces tearing loose and landing
     on('structure:creak', (e) => E.play('struct:creak', { pos: at(e.at), kind: 'impact', gain: Math.min(1, 0.55 + e.n * 0.02), rate: 0.9 + Math.random() * 0.2 }));
     on('structure:break', (e) => {
       if (this.time - (this.lastBreak ?? -1) < 0.06) return;   // a blast breaks a dozen pieces at once: one crumble
       this.lastBreak = this.time;
       E.play('struct:crumble', { pos: at(e.at), kind: 'impact', gain: e.fragments?.length ? 0.6 : 0.8 });
+    });
+    on('structure:tear', (e) => {
+      if (this.time - (this.lastTear ?? -1) < 0.09) return;   // a piece tearing off along its edge: one snap
+      this.lastTear = this.time;
+      E.play('struct:snap', { pos: at(e.at), kind: 'impact', gain: 0.7, rate: 0.85 + Math.random() * 0.3 });
     });
     on('structure:land', (e) => {
       // A wall coming down is a stream of pieces landing: one crash every 80 ms at most, as loud as the biggest of them.
