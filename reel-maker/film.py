@@ -141,6 +141,40 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     return ",".join(f)
 
 
+def pick_window(seg, analysis_dir):
+    """seg["pick"] = [a, b]: choose the in-point inside [a, b] whose window is
+    sharpest and steadiest, with the couple in frame. Avoids blurry / whip-pan
+    moments so the edit can simply cut forward past them."""
+    rng = seg.get("pick")
+    p = os.path.join(analysis_dir or "", seg["clip"] + ".json")
+    if not rng or not analysis_dir or not os.path.exists(p):
+        return seg
+    d = json.load(open(p))
+    t = np.array(d["t"])
+    sharp = np.array(d["sharp"])
+    mot = np.array(d["motion"])
+    have = np.array([s is not None for s in d["subj"]], float)
+    speed = FILM["dream_speed"] if seg.get("tempo", "real") in ("dream", "step") else 1.0
+    L = seg["dur"] * speed
+    a, b = rng[0], min(rng[1], t.max()) - L
+    # normalise per clip: log sharpness vs clip median; motion vs clip median
+    ls = np.log(sharp + 1) - np.log(np.median(sharp) + 1)
+    mn = mot / (np.median(mot) + 0.5)
+    best, best_s = a, -1e9
+    for t0 in np.arange(a, max(a, b) + 1e-6, 0.25):
+        k = (t >= t0) & (t <= t0 + L)
+        if k.sum() < 2:
+            continue
+        # the window is judged by its worst moments, not just its average
+        score = (np.mean(ls[k]) + 0.5 * np.min(ls[k]) - 0.6 * np.mean(mn[k])
+                 - 0.4 * np.max(mn[k]) + (1.2 * np.mean(have[k]) if seg.get("couple", True) else 0))
+        if score > best_s:
+            best, best_s = t0, score
+    out = dict(seg)
+    out["in"] = round(float(best), 2)
+    return out
+
+
 def auto_frame(seg, analysis_dir):
     """Centre the 3:2 window between the bride and groom: x/x_end follow the
     detected couple across the segment, y keeps headroom, and the push-in is
@@ -378,7 +412,7 @@ def main():
     print(f"• {len(edl['segments'])} segments, {total // 60:.0f}:{total % 60:04.1f}")
     files = []
     adir = rel(edl["analysis_dir"]) if edl.get("analysis_dir") else None
-    edl["segments"] = [auto_frame(s, adir) for s in edl["segments"]]
+    edl["segments"] = [auto_frame(pick_window(s, adir), adir) for s in edl["segments"]]
     for i, s in enumerate(edl["segments"]):
         if args.only and i not in args.only:
             continue

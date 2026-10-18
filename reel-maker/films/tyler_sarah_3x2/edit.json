@@ -2,7 +2,7 @@
  "media_dir": "../../footage/tyler_sarah_all",
  "audio_dir": "../../footage/tyler_sarah_audio",
  "score": "score.wav",
- "output": "../../output/tyler_sarah_film_3x2.mp4",
+ "output": "../../output/tyler_sarah_film_3x2_3min.mp4",
  "grade": {
   "log_footage": true,
   "warmth": 0.9,
@@ -11,402 +11,441 @@
  },
  "segments": [
   {
-   "clip": "0440",
-   "in": 1.0,
-   "dur": 8.0,
-   "zoom": 0.03,
-   "audio": -14,
-   "fade_in": 2.0,
-   "saturation": 0.8
-  },
-  {
    "clip": "0437",
-   "in": 4.0,
-   "dur": 6.0,
-   "in_tr": "dissolve:1.5",
-   "audio": -8,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0438",
-   "in": 1.0,
-   "dur": 4.5,
-   "in_tr": "dissolve:1.0",
+   "in": 2,
+   "pick": [
+    2,
+    12
+   ],
+   "dur": 3.5,
    "audio": -10,
-   "zoom": 0.05,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0439",
-   "in": 3.0,
-   "dur": 5.0,
-   "in_tr": "dissolve:1.2",
-   "audio": -16,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0448",
-   "in": 0.2,
-   "dur": 5.5,
-   "in_tr": "dissolve:1.0",
-   "audio": -16,
-   "zoom": 0.02,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0441",
-   "in": 3.5,
-   "dur": 3.0,
-   "audio": -10,
-   "cue": "hands",
-   "saturation": 0.8
-  },
-  {
-   "clip": "0442",
-   "in": 1.0,
-   "dur": 2.5,
-   "audio": -10,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0442",
-   "in": 7.0,
-   "dur": 3.0,
-   "audio": -10,
-   "saturation": 0.8
-  },
-  {
-   "clip": "0450",
-   "in": 0.5,
-   "dur": 2.5,
-   "audio": -12,
-   "saturation": 0.8
+   "fade_in": 1.5,
+   "zoom": 0.03,
+   "couple": false,
+   "track": false
   },
   {
    "clip": "0444",
-   "in": 0.3,
-   "dur": 3.2,
+   "in": 0,
+   "pick": [
+    0,
+    3
+   ],
+   "dur": 2.8,
    "in_tr": "dissolve:0.8",
-   "audio": -14,
-   "cue": "roses",
-   "zoom": 0.05
-  },
-  {
-   "clip": "0445",
-   "in": 2.0,
-   "dur": 3.0,
-   "audio": -14
-  },
-  {
-   "clip": "0452",
-   "in": 1.0,
-   "dur": 3.5,
-   "audio": -8
+   "zoom": 0.05,
+   "cue": "hands",
+   "couple": false,
+   "track": false
   },
   {
    "clip": "0453",
-   "in": 6.0,
-   "dur": 3.0,
-   "audio": -10
+   "in": 5,
+   "pick": [
+    5,
+    14
+   ],
+   "dur": 2.6,
+   "couple": false,
+   "track": false
   },
   {
    "clip": "0457",
-   "in": 1.0,
-   "dur": 4.0,
-   "in_tr": "dissolve:1.0",
-   "audio": -14
-  },
-  {
-   "clip": "0455",
-   "in": 8.0,
-   "dur": 3.0,
-   "audio": -14
+   "in": 0,
+   "pick": [
+    0,
+    7
+   ],
+   "dur": 3.5,
+   "in_tr": "dissolve:0.8",
+   "couple": false,
+   "track": false
   },
   {
    "clip": "0456",
-   "in": 0.5,
-   "dur": 5.5,
-   "audio": -6,
-   "zoom": 0.03
+   "in": 0,
+   "pick": [
+    0,
+    13
+   ],
+   "dur": 4.0,
+   "cue": "roses",
+   "lock": true
   },
   {
    "clip": "0460",
-   "in": 0.5,
-   "dur": 4.0,
-   "audio": -14
+   "in": 0,
+   "pick": [
+    0,
+    8
+   ],
+   "dur": 3.0
   },
   {
    "clip": "0461",
-   "in": 100.0,
-   "dur": 4.0,
-   "in_tr": "dissolve:1.5",
-   "audio": -8,
+   "in": 379.0,
+   "dur": 15.0,
+   "in_tr": "dissolve:1.0",
+   "audio": -12,
    "stab": false,
    "zoom": 0,
+   "track": false,
    "cue": "wait"
   },
   {
    "clip": "0461",
-   "in": 210.0,
-   "dur": 4.0,
-   "in_tr": "dissolve:2.0",
-   "audio": -8,
-   "stab": false,
-   "zoom": 0
-  },
-  {
-   "clip": "0461",
-   "in": 300.0,
-   "dur": 4.0,
-   "in_tr": "dissolve:2.0",
-   "audio": -8,
-   "stab": false,
-   "zoom": 0
-  },
-  {
-   "clip": "0461",
-   "in": 378.0,
-   "dur": 16.0,
-   "in_tr": "dissolve:1.5",
-   "audio": -6,
-   "stab": false,
-   "zoom": 0
-  },
-  {
-   "clip": "0461",
    "in": 446.0,
-   "dur": 58.0,
-   "in_tr": "dissolve:1.0",
-   "audio": -2,
-   "x": 0.53,
-   "y": 0.6,
+   "dur": 15.0,
+   "in_tr": "dissolve:0.8",
+   "audio": -4,
    "zoom": [
-    1.35,
+    1.38,
     1.42
    ],
    "cue": "question"
   },
   {
    "clip": "0461",
-   "in": 596.0,
-   "dur": 6.0,
-   "in_tr": "black:0.6",
+   "in": 469.0,
+   "dur": 21.0,
+   "audio": -4,
+   "zoom": [
+    1.4,
+    1.44
+   ]
+  },
+  {
+   "clip": "0461",
+   "in": 493.0,
+   "dur": 9.0,
+   "audio": -4,
+   "zoom": [
+    1.42,
+    1.46
+   ]
+  },
+  {
+   "clip": "0461",
+   "in": 598.0,
+   "dur": 6.3,
+   "in_tr": "black:0.5",
    "audio": 0,
    "cue": "everyone"
   },
   {
    "clip": "0461",
-   "in": 602.0,
-   "dur": 5.0,
+   "in": 604,
+   "pick": [
+    604,
+    623
+   ],
+   "dur": 4.5,
    "audio": -2
   },
   {
-   "clip": "0461",
-   "in": 690.0,
-   "dur": 5.0,
-   "audio": -3
-  },
-  {
-   "clip": "0462",
-   "in": 20.0,
-   "dur": 4.0,
-   "audio": -6
-  },
-  {
    "clip": "0466",
-   "in": 3.0,
-   "dur": 3.5,
-   "audio": -6
+   "in": 0,
+   "pick": [
+    0,
+    8
+   ],
+   "dur": 3.0
   },
   {
    "clip": "0464",
-   "in": 20.0,
-   "dur": 3.0,
-   "audio": -8
-  },
-  {
-   "clip": "0469",
-   "in": 1.0,
-   "dur": 3.5,
-   "audio": -8
+   "in": 0,
+   "pick": [
+    0,
+    30
+   ],
+   "dur": 3.0
   },
   {
    "clip": "0470",
-   "in": 2.0,
-   "dur": 4.0,
-   "in_tr": "dissolve:1.0",
-   "cue": "them",
-   "tempo": "dream"
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ],
+   "dur": 3.0,
+   "in_tr": "dissolve:0.8",
+   "cue": "them"
   },
   {
    "clip": "0472",
-   "in": 0.5,
+   "in": 0,
+   "pick": [
+    0,
+    5
+   ],
    "dur": 3.0,
-   "tempo": "dream"
-  },
-  {
-   "clip": "0475",
-   "in": 0.5,
-   "dur": 3.5,
-   "tempo": "dream"
-  },
-  {
-   "clip": "0477",
-   "in": 0.0,
-   "dur": 3.0,
-   "tempo": "dream"
+   "lock": true
   },
   {
    "clip": "0474",
-   "in": 2.5,
-   "dur": 3.0,
-   "tempo": "dream"
+   "in": 0.0,
+   "dur": 4.0,
+   "audio": -8
+  },
+  {
+   "clip": "0475",
+   "in": 0,
+   "pick": [
+    0,
+    13
+   ],
+   "dur": 3.0
+  },
+  {
+   "clip": "0477",
+   "in": 0,
+   "pick": [
+    0,
+    12
+   ],
+   "dur": 3.0
+  },
+  {
+   "clip": "0473",
+   "in": 0,
+   "pick": [
+    0,
+    5
+   ],
+   "dur": 3.0
   },
   {
    "clip": "0479",
-   "in": 0.2,
-   "dur": 3.0,
-   "tempo": "step",
-   "in_tr": "dissolve:0.8"
+   "in": 0,
+   "pick": [
+    0,
+    2.3
+   ],
+   "dur": 2.2
   },
   {
    "clip": "0480",
-   "in": 0.5,
-   "dur": 4.0,
-   "in_tr": "dissolve:0.8",
-   "tempo": "dream"
+   "in": 2.8,
+   "dur": 2.4,
+   "audio": -6
+  },
+  {
+   "clip": "0478",
+   "in": 0,
+   "pick": [
+    0,
+    2.5
+   ],
+   "dur": 2.0,
+   "lock": true
   },
   {
    "clip": "0481",
-   "in": 20.0,
-   "dur": 5.0,
-   "tempo": "step",
-   "in_tr": "dissolve:0.8"
+   "in": 0,
+   "pick": [
+    0,
+    28
+   ],
+   "dur": 3.2,
+   "tempo": "dream",
+   "in_tr": "dissolve:0.6"
   },
   {
    "clip": "0482",
-   "in": 0.5,
-   "dur": 4.0,
-   "in_tr": "dissolve:0.8",
-   "tempo": "dream"
+   "in": 0,
+   "pick": [
+    0,
+    7
+   ],
+   "dur": 3.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:0.6"
   },
   {
    "clip": "0483",
-   "in": 5.5,
-   "dur": 4.0,
+   "in": 0,
+   "pick": [
+    0,
+    12
+   ],
+   "dur": 3.2,
    "tempo": "dream"
   },
   {
    "clip": "0485",
-   "in": 2.0,
+   "in": 0,
+   "pick": [
+    0,
+    7
+   ],
    "dur": 5.0,
    "tempo": "dream"
   },
   {
    "clip": "0489",
-   "in": 0.2,
-   "dur": 3.0,
-   "audio": -14,
-   "cue": "ring",
-   "tempo": "dream"
+   "in": 0,
+   "pick": [
+    0,
+    2.7
+   ],
+   "dur": 2.6,
+   "cue": "ring"
   },
   {
    "clip": "0490",
-   "in": 1.0,
-   "dur": 4.5,
-   "audio": -14,
-   "tempo": "dream"
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ],
+   "dur": 4.2
+  },
+  {
+   "clip": "0476",
+   "in": 0,
+   "pick": [
+    0,
+    17
+   ],
+   "dur": 3.0
+  },
+  {
+   "clip": "0462",
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ],
+   "dur": 3.0,
+   "lock": true
   },
   {
    "clip": "0486",
-   "in": 1.0,
+   "in": 0,
+   "pick": [
+    0,
+    12
+   ],
    "dur": 4.0,
-   "audio": -12,
-   "cue": "family"
+   "cue": "family",
+   "lock": true
   },
   {
    "clip": "0487",
-   "in": 1.5,
+   "in": 0,
+   "pick": [
+    0,
+    11
+   ],
    "dur": 3.0,
-   "audio": -12
+   "lock": true
   },
   {
    "clip": "0488",
-   "in": 8.0,
-   "dur": 3.0,
-   "audio": -8
+   "in": 0,
+   "pick": [
+    0,
+    14
+   ],
+   "dur": 2.6,
+   "lock": true
   },
   {
    "clip": "0492",
-   "in": 2.0,
+   "in": 0,
+   "pick": [
+    0,
+    11
+   ],
    "dur": 2.5,
-   "audio": -8
-  },
-  {
-   "clip": "0495",
-   "in": 1.0,
-   "dur": 2.5,
-   "audio": -8
+   "lock": true
   },
   {
    "clip": "0493",
-   "in": 1.0,
+   "in": 0,
+   "pick": [
+    0,
+    4.5
+   ],
    "dur": 2.5,
-   "audio": -8
+   "lock": true
   },
   {
    "clip": "0491",
-   "in": 20.0,
-   "dur": 5.0,
-   "in_tr": "dissolve:1.0",
-   "audio": -8
+   "in": 14,
+   "pick": [
+    14,
+    30
+   ],
+   "dur": 4.5,
+   "lock": true
   },
   {
    "clip": "0498",
-   "in": 1.0,
-   "dur": 6.0,
-   "tempo": "step",
-   "in_tr": "dissolve:1.5",
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ],
+   "dur": 4.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:1.0",
    "cue": "coda"
   },
   {
-   "clip": "0502",
-   "in": 3.0,
-   "dur": 3.5,
-   "in_tr": "dissolve:1.0",
-   "tempo": "dream"
+   "clip": "0499",
+   "in": 0,
+   "pick": [
+    0,
+    25
+   ],
+   "dur": 6.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:0.8"
   },
   {
-   "clip": "0499",
-   "in": 8.0,
-   "dur": 5.0,
-   "in_tr": "dissolve:1.0",
-   "tempo": "dream"
+   "clip": "0501",
+   "in": 0,
+   "pick": [
+    0,
+    12
+   ],
+   "dur": 3.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:0.6"
+  },
+  {
+   "clip": "0502",
+   "in": 0,
+   "pick": [
+    0,
+    11
+   ],
+   "dur": 3.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:0.8"
   },
   {
    "clip": "0500",
-   "in": 0.5,
-   "dur": 4.0,
-   "in_tr": "dissolve:1.2",
-   "tempo": "dream"
-  },
-  {
-   "clip": "0440",
-   "in": 0.0,
-   "dur": 6.8,
-   "in_tr": "dissolve:2.0",
-   "audio": -12,
-   "zoom": 0.03
+   "in": 0,
+   "pick": [
+    0,
+    0.9
+   ],
+   "dur": 5.0,
+   "tempo": "dream",
+   "in_tr": "dissolve:1.0"
   }
  ],
  "titles": [
   {
    "text": "Tyler & Sarah",
-   "start": 250.4,
-   "end": 255.6,
-   "y": 0.8,
+   "start": 175.2,
+   "end": 179.6,
+   "y": 0.82,
    "size": 0.042,
-   "fade": 1.8
+   "fade": 1.4
   }
- ]
+ ],
+ "analysis_dir": "../../footage/tyler_sarah_analysis"
 }
