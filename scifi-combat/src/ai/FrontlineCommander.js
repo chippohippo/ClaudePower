@@ -21,8 +21,10 @@
 //  * Standing orders: squads nobody has given an order (all of them, for the AI below veteran) are
 //    shared out every few seconds between the points of the sector in front of our line and our
 //    own points under attack. Priorities: points being captured from us, then enemy points we're
-//    closest to taking, then neutral ones; at least one squad per attack point; squads keep their
-//    orders unless the plan changed a lot (no thrashing).
+//    closest to taking, then neutral ones; at least one squad per attack point. Squads keep their
+//    tasks where they still fit, and one sent somewhere in the last `hold` s (20) stays while it's
+//    still wanted there, unless a point being taken from us needs it (no thrashing: a squad turned
+//    round goes back to its jump-off trench).
 //  * The line: points alone would draw every squad onto a few spots and leave the ground between
 //    them and out on the flanks empty. So about four squads in ten (fewer while one of our points
 //    is being taken) hold the front instead: it's cut into lanes across the map's whole width, and
@@ -52,7 +54,7 @@ export const CALLSIGNS = [
   ['Wraith', 'Hollow', 'Umbra', 'Vesper', 'Shade', 'Rift', 'Ebon', 'Gloam', 'Murk', 'Veil', 'Ashen', 'Sable', 'Hush', 'Omen', 'Null', 'Dusk'],
 ];
 /** What a command's difficulty sets (data/ai/personalities.json difficulty.*.command). */
-export const COMMAND = { obey: 0.85, interval: 4, mind: false, line: 0.4 };
+export const COMMAND = { obey: 0.85, interval: 4, mind: false, line: 0.4, hold: 20 };
 
 export class Squad {
   constructor(team, id, members = []) {
@@ -456,13 +458,28 @@ export class FrontlineCommander {
     }
     // Keep current orders where they still fit; then fill remaining slots with the nearest squads.
     const byId = new Map(wants.map((x) => [x.p.id, x]));
-    const free = [], out = [];
+    const free = [], out = [], held = [], hold = this.cfg.hold ?? 20;
     for (const s of squads) {
       const x = byId.get(s.objective);
-      if (x && x.slots > 0 && x.role === s.role) { x.slots--; out.push({ s, p: x.p, role: x.role }); continue; }
-      free.push(s);
+      if (x && x.slots > 0 && x.role === s.role) { x.slots--; x.got = (x.got ?? 0) + 1; out.push({ s, p: x.p, role: x.role }); continue; }
+      // Sent there a moment ago and still wanted there: it holds on (the shares shift with every
+      // glimpse of the enemy; a squad turned round each time, back to its jump-off trench, does nothing).
+      if (x && x.role === s.role && this.time - (s.since ?? -Infinity) < hold) held.push({ s, x });
+      else free.push(s);
     }
     const c = new Vector3();
+    const near = (pool, x) => { let b = null, bd = Infinity; for (const s of pool) { const d = this.eta(x.p, s.center(c) ?? this.mode.map.hq[team], build); if (d < bd) { bd = d; b = s; } } return b; };
+    // ...except for a point being taken from us: it gets its squads first, the free ones, else those holding on.
+    for (const x of wants) {
+      while (x.min && (x.got ?? 0) < x.min && x.slots > 0) {
+        const s = near(free, x) ?? near(held.map((h) => h.s), x);
+        if (!s) break;
+        const i = free.indexOf(s);
+        if (i >= 0) free.splice(i, 1); else held.splice(held.findIndex((h) => h.s === s), 1);
+        x.slots--; x.got = (x.got ?? 0) + 1; out.push({ s, p: x.p, role: x.role });
+      }
+    }
+    for (const { s, x } of held) { x.slots--; out.push({ s, p: x.p, role: x.role }); }
     for (const s of free) {
       const at = s.center(c) ?? this.mode.map.hq[team];
       let best = null, bd = Infinity;

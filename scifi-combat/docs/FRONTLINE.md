@@ -644,6 +644,24 @@ squads take the commander's orders the same way, and squads given none follow st
   attack as it goes in, below counter-battery fire: guns that fire too much get found and shelled
   (measured: when the AI ordered a mission every 12 s, the enemy's counter-battery killed 25 of its
   gun crews in five minutes, against 7).
+- **The AI commander** (`Strategist`, veteran and elite; recruit sides run on plain standing orders):
+  it plays the book, the standing orders' plan, and carries it out well. It re-shares the squads every
+  4 s (elite: 2.5 s) without turning them round on every glimpse of the enemy. It never leaves our own
+  sector to him while he's near it, or while it's our last line before the HQ (lose that and he's
+  through): the nearest squad not in a fight goes to the point he threatens most. Squads sent at an
+  enemy-held point together wait at a start line 70 m short of it until the last is close, then go in
+  at once, the guns preparing the point if we can see what's on it. Scouts (veteran one, elite two,
+  with squads to spare) get eyes on the points we'll attack and ours under threat that nobody's
+  watching. Elite squads also take orders more readily. Every order goes out on the radio.
+  It also has a forward model that plays 75 s of battle ahead against the enemy's possible answers and
+  searches for better plans (`search` > 0), but that's off at every level: in AI-vs-AI matches the
+  plans it chose did worse than the book it started from (12v12, 16 matches against standing orders:
+  4–12 departing from the book only for a big predicted gain, 8–8 on the book alone).
+  Measured as shipped, against standing orders (12v12, 16 matches each, both sides' soldiers
+  veteran): elite 7–9, veteran 6–10, both within the noise of an even match (recruit against itself:
+  8–8). Where it shows is in how it loses: before the home guard, two matches in sixteen ended with
+  the enemy breaking through to its HQ while all its squads attacked; in the 32 since, none (and the
+  veteran broke through twice itself).
 
 ## Squads and the commander
 
@@ -651,7 +669,11 @@ squads take the commander's orders the same way, and squads given none follow st
   splits its squads between attacking the points of the attacked sector (weighted toward neutral and
   half-taken points, at least one squad per point) and defending its own points under attack
   (weighted by enemies on the point and how far it has slipped; two squads for a point being taken
-  from us). Squads keep orders that still fit.
+  from us). Squads keep orders that still fit, and a squad sent somewhere in the last 20 s (`hold`)
+  stays there while it's still wanted there, unless a point being taken from us needs it. Without
+  that, the shares shifted with every glimpse of the enemy and squads were turned round again and
+  again (each time back to their jump-off trench): the side re-planning every 2.5 s instead of every
+  6 s lost 11 matches in 16; with the hold, it won 10 of 16.
 - **The line:** points alone drew every squad onto two or three spots and left the ground between
   them and the flanks empty. With four squads or more, about four in ten (a quarter while one of our
   points is being taken, and never the squads the points need) hold the front instead. It's cut into

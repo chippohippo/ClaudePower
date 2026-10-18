@@ -1,7 +1,24 @@
 // Strategist: the AI in the commander's seat (veteran and up; FrontlineCommander gives its orders).
-// It plays the front like a chess master: it reads the board, thinks its moves through against the
-// enemy's best answers, and plays the one that wins.
+// It plays the book, the way a good commander does: the standing orders' plan, carried out well.
 //
+//  * The plan: the standing orders' (the points in play by need, the line), as they go on from where
+//    the squads are, every few seconds (veteran 4 s, elite 2.5 s). Squads hold a task a while
+//    rather than turning round on every glimpse of the enemy (standing orders' `hold`).
+//  * Our own sector never left to him: while he's near it, or it's our last line before the HQ (lose
+//    it and he's through), at least a squad holds it: the nearest one not in a fight goes to the
+//    point he threatens most.
+//  * Attacks go in together: squads sent at an enemy-held point together wait short of it (70 m back
+//    along the way) until the last of them is close, then go in at once; the guns prepare the point
+//    as they go, if we can see what's on it.
+//  * Scouts (veteran one, elite two, with men to spare): eyes on the points we'll attack and ours
+//    under threat that nobody's watching; what they see, the guns can hit.
+//  * Elite squads take orders more readily, too (difficulty `obey`).
+//
+// Thinking further ahead (`search` > 0; off at every level as shipped): plans weighed by playing 75 s
+// of battle forward against the enemy's answers, departing from the book where that wins by a
+// margin for every squad moved. Measured against standing orders in AI-vs-AI matches it did worse
+// than the book it starts from (the forward model can't yet tell this sim's firefights apart well
+// enough), so it stays off until it can. What it weighs:
 //  * The board: the points in play (the sector we attack, and ours he attacks; in the opening the
 //    neutral middle, both), the lanes of the front, and every squad: where it is, how strong (its
 //    men up, the hurt counting for less, the dead coming back with the next wave), how long it
@@ -10,32 +27,22 @@
 //    on each point (anyone can see who's taking a point). The rest of his men, unseen, are on the
 //    points he'd hold or take and a few on the line, there once they could have walked up from his
 //    spawn since the front last moved (and not yet where we've looked lately and seen nobody).
-//    Lower commanders misjudge him more (`noise`).
-//  * Thinking a plan through: every squad sent to a point, a lane or the reserve; 75 s of battle
-//    played forward in 5 s steps. Squads join the fight when they get there; where both sides are,
-//    they wear each other down by the square law (a squad's fire falls on the enemy there; the side
-//    that owns the point fights from cover, nobody on a neutral one: so twice the men win with few
-//    losses, and squads fed in one at a time are beaten one at a time). A squad on a lane fires into
-//    the fights at the points beside it. A side that has a point (nearly) to itself takes it at the
-//    rules' speed.
-//    The score: the sector we attack taken (all its points: the front moves up; the sooner the
-//    better), ours lost (all of ours he attacks), the points held, men lost on each side (tickets),
-//    and every order changed (a squad turned round mid-fight wastes the fight).
-//  * Against his answers: each plan is played against how he might answer it (`responses`): his
-//    forces where they are; reinforcing the points we attack most; throwing his reserve at our
-//    weakest point; spreading out. A plan is only as good as its worst answer (and a little of the
-//    rest): no bet on a careless enemy.
-//  * Search: from the plan we're on, and the standing orders' (the book: the points and the line
-//    shared out), try sending each squad everywhere else, a squad at a time, keeping what scores
-//    better; and the big moves too: every attacking squad on one point (a concentrated blow).
-//    `search` evaluations a plan. A new plan only when it's clearly better than going on.
-//  * Playing it: orders for the squads whose task changed. Attacks are staged: squads sent at a
-//    point together wait short of it (70 m back along the way) until the last of them is close,
-//    then go in at once. A scout gets eyes on the points we'll attack and those under threat that
-//    nobody's watching (what he sees, the guns can hit); as an attack goes, the guns prepare the
-//    point if we can see what's there.
-//  * Elite keeps a reserve behind the line to throw at a breakthrough, thinks every 2.5 s, deeper
-//    and against more answers; veteran every 4 s.
+//    Readings are averaged over a few seconds; lower commanders misjudge him more (`noise`).
+//  * A plan played forward: every squad sent to a point, a lane or the reserve; 75 s of battle in
+//    5 s steps. Squads join the fight when they get there; where both sides are, they wear each other
+//    down by the square law (the side that owns the point fights from cover, nobody on a neutral
+//    one), the fallen coming back with the next wave (fast beside a side's own spawn). A squad on a
+//    lane fires into the fights at the points beside it. A side that has a point (nearly) to itself
+//    takes it at the rules' speed.
+//    The score: how near each side is to taking a sector (each point still to take a long way
+//    further), over the second half of what's played forward; lanes he holds and we don't; men lost
+//    on each side (tickets); every order changed (a squad turned round mid-fight wastes the fight).
+//  * Against his answers (`responses`): his forces where they are; reinforcing the points we attack
+//    most; throwing his reserve at our weakest point; spreading out. A plan is only as good as its
+//    worst answer (and a little of the rest).
+//  * Search: from the book, each squad sent everywhere else a squad at a time, and the big moves
+//    (every attacking squad on one point), `search` evaluations a plan, thought through a slice a
+//    tick.
 
 import { Vector3 } from 'three';
 import { mulberry32 } from '../../world/Terrain.js';
@@ -63,7 +70,7 @@ export class Strategist {
    */
   constructor(team, { world, mode, cfg = {}, seed = 1, wave = 6 }) {
     this.team = team; this.world = world; this.mode = mode; this.wave = wave;
-    this.cfg = { search: 120, responses: 2, noise: 0.15, stage: true, scout: 1, fire: true, reserve: false, margin: 0.5, screen: 0.1, ...cfg };
+    this.cfg = { search: 120, responses: 2, noise: 0.15, stage: true, scout: 1, fire: true, reserve: false, margin: 0.75, screen: 0.1, ...cfg };
     this.rand = mulberry32(seed * 7907 + team * 31 + 3);
     this.stages = new Map();     // point id -> { place, squads: Set, since, go }
     this.judge = new Map();      // objective id -> { f: how far off our reading of it is, t }
@@ -198,7 +205,13 @@ export class Strategist {
     }
     // Points: who holds them and how far the capture is (+1 ours, -1 theirs).
     for (const o of obj) o.held = o.kind === 'line' ? 0 : (team === 0 ? 1 : -1) * (o.p.progress ?? 0);
-    return { obj, P, sq, theirs, evals: 0, spawn };
+    // Our own sector under attack (not the middle: there we attack too): how badly we can lose it.
+    // The last line before our HQ is the battle: lose it and he's through.
+    const home = obj.some((o) => o.def && !o.atk);
+    const lastLine = home && M.map.sectors[M.front[team] - DIR[team]]?.kind === 'hq';
+    let threat = 0;
+    for (const o of obj) if (o.def && !o.atk) threat += o.e0 + o.e1;
+    return { obj, P, sq, theirs, evals: 0, spawn, home, lastLine, threat, lose: LOSE * (lastLine ? 3 : 1) };
   }
 
   /** Where a side's men come on: the middle of its front sector's spawns (its HQ, if the front's back there). */
@@ -220,10 +233,11 @@ export class Strategist {
     for (let i = 0; i < n; i++) { const k = B.obj.findIndex((o) => o.p.id === bk.get(B.sq[i].s)); book[i] = k >= 0 ? k : this.#nearest(B, i); }
     const assign = new Int32Array(n);
     for (let i = 0; i < n; i++) assign[i] = B.sq[i].cur >= 0 ? B.sq[i].cur : book[i];
+    this.#guard(B, book);
     const now = { assign: Int32Array.from(assign), score: this.#score(B, assign) };
     let best = now;
     const b = this.#score(B, book);
-    if (this.cfg.book) return { assign: book, score: b, book: true };   // (tuning: the book alone)
+    if (!(this.cfg.search > 0)) return { assign: book, score: b, book: true };   // (no departures from the book: see the header)
     if (b > best.score) best = { assign: book, score: b, book: true };
     const budget = this.cfg.search;
     // Big moves first: everything attacking on one point.
@@ -262,12 +276,40 @@ export class Strategist {
       }
     }
     // A new plan only if it's clearly better than going on with this one (no dithering).
-    // A new plan only if it's clearly better than going on with this one: by `margin` for every squad it moves (no dithering).
-    let moved = 0;
-    for (let i = 0; i < n; i++) if (best.assign[i] !== now.assign[i]) moved++;
-    const pick = moved && best.score > now.score + this.cfg.margin * moved ? best : now;
+    // The book (standing orders, as they'd go on from here) is the default: a plan that departs from
+    // it has to be worth `margin` more for every squad it sends elsewhere. The model sees a lot, but
+    // not everything, and a squad sent the wrong way costs more than one sent the usual way.
+    let off = 0;
+    for (let i = 0; i < n; i++) if (best.assign[i] !== book[i]) off++;
+    const pick = off && best.score > b + this.cfg.margin * off ? best : { assign: book, score: b, book: true };
     if (this.onPick) this.onPick({ B, now, best, book: { assign: book, score: b }, pick });   // (tuning: what it weighed)
     return pick;
+  }
+
+  /**
+   * Never our own sector left to him: while he's near it (or it's our last line before the HQ), at
+   * least a squad's worth holds it. The nearest squad not in a fight (and not on our own points
+   * already) goes to the point he threatens most.
+   */
+  #guard(B, assign) {
+    if (!B.home || !(B.lastLine || B.threat > 1)) return;
+    let on = 0, worst = -1, wv = -1;
+    for (let k = 0; k < B.P; k++) {
+      const o = B.obj[k];
+      if (!o.def || o.atk) continue;
+      const e = o.e0 + o.e1 + (o.held < 1 ? 2 : 0);   // (seen near it; or it's being taken)
+      if (e > wv) { wv = e; worst = k; }
+    }
+    for (let i = 0; i < assign.length; i++) { const k = assign[i]; if (k >= 0 && k < B.P && B.obj[k].def && !B.obj[k].atk) on += B.sq[i].str; }
+    if (on >= 1.5 || worst < 0) return;
+    let pick = -1, bd = Infinity;
+    for (let i = 0; i < assign.length; i++) {
+      const q = B.sq[i], k = assign[i];
+      if (q.str < 1 || (k >= 0 && k < B.P && B.obj[k].def && !B.obj[k].atk)) continue;
+      const d = q.eta[worst] + (q.busy ? 15 : 0);
+      if (d < bd) { bd = d; pick = i; }
+    }
+    if (pick >= 0) assign[pick] = worst;
   }
 
   #nearest(B, i) {
@@ -284,7 +326,14 @@ export class Strategist {
     // What changing orders costs: a squad turned round (worse in a fight, worse still just after it was sent).
     let churn = 0;
     for (let i = 0; i < assign.length; i++) { const q = B.sq[i]; if (assign[i] !== q.cur && q.cur >= 0) churn += q.committed ? 2 : q.busy ? 1 : 0.5; }
-    return 0.5 * worst + 0.5 * (sum / R) - churn;
+    // Never our own sector left to him: while he's near it (or it's our last line), a squad stays on it.
+    let guard = 0;
+    if (B.home && (B.lastLine || B.threat > 1)) {
+      let on = 0;
+      for (let i = 0; i < assign.length; i++) { const k = assign[i]; if (k >= 0 && k < B.P && B.obj[k].def && !B.obj[k].atk) on += B.sq[i].str; }
+      if (on < 1.5) guard = B.lastLine ? 4 : 2;
+    }
+    return 0.5 * worst + 0.5 * (sum / R) - churn - guard;
   }
 
   /**
@@ -380,7 +429,7 @@ export class Strategist {
           if (O[k].def) { anyD = true; dD += (1 + held[k]) / 2; }
         }
         if (anyA) v += (SECTOR * ODDS ** dA) / LATE;
-        if (anyD) v -= (LOSE * ODDS ** dD) / LATE;
+        if (anyD) v -= (B.lose * ODDS ** dD) / LATE;
       }
     }
     // A lane he holds and we don't: a way round our points, to our guns and our rear.
