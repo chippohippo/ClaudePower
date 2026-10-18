@@ -17,9 +17,11 @@
 //    doing, and under whose orders.
 //  * Orders to the selected squads: right-click the map to take the point there (hold it, if it's
 //    ours) or hold the ground there. Or arm one and left-click: T take, H hold, R scout (one man
-//    goes ahead to get eyes on it, for the guns). B falls back, X hands the squad back to standing
-//    orders (both at once). F arms a fire mission (no squad needed): every gun in range shells the
-//    spot; where nobody has eyes on it, the rounds scatter. Esc disarms.
+//    goes ahead to get eyes on it, for the guns). G storms: the squads go onto the point they're
+//    attacking at once, whatever's shooting (for when you have the men there to take it). B falls
+//    back, X hands the squad back to standing orders (these three at once). F arms a fire mission
+//    (no squad needed): every gun in range shells the spot; where nobody has eyes on it, the rounds
+//    scatter. Esc disarms.
 //  * The radio on the right: every order, refusal, report and fire mission.
 // The 3D view keeps the same fog of war: the crowd shows an enemy soldier only while the team sees
 // him (shows()).
@@ -32,7 +34,7 @@ const DIR = [1, -1];
 const PITCH = 1.05;             // rad below the horizon the view looks down
 const ZOOM = [60, 1400];        // m from the ground point looked at (out to about the whole map)
 const ARM = { KeyT: 'take', KeyH: 'hold', KeyR: 'scout', KeyF: 'fire' };
-const LABEL = { take: 'TAKE', hold: 'HOLD', scout: 'SCOUT', fire: 'FIRE MISSION', fallback: 'FALL BACK', auto: 'STANDING ORDERS', line: 'HOLD' };
+const LABEL = { take: 'TAKE', hold: 'HOLD', scout: 'SCOUT', fire: 'FIRE MISSION', fallback: 'FALL BACK', auto: 'STANDING ORDERS', storm: 'STORM', line: 'HOLD' };
 const PHASE = { follow: 'WITH YOU', advance: 'ADVANCING', contact: 'IN CONTACT', jumpoff: 'IN THE TRENCH', assault: 'ASSAULTING', clear: 'CLEARING', hold: 'HOLDING', charge: 'CHARGING', regroup: 'REGROUPING', down: 'ALL DOWN' };
 const RADIO = { order: US, fallback: GREY, refuse: AMBER, scout: SCOUT, eyes: SCOUT, secured: '#ffe08a', fire: THEM };
 const FIRE_R = 16;              // m: a fire mission's radius
@@ -459,6 +461,7 @@ export class CommandView {
     }
     const squads = [...this.selected].filter((s) => s.members.length);
     if (!squads.length) return;
+    if (kind === 'storm') { for (const s of squads) this.queue.push((cmd) => cmd.storm(s)); return; }
     if (kind === 'fallback' || kind === 'auto') { for (const s of squads) this.queue.push((cmd) => cmd.give(s, { kind, by: 'human' })); return; }
     if (!at) return;
     const what = this.#under(at);
@@ -492,7 +495,7 @@ export class CommandView {
     const left = Object.assign(document.createElement('div'), { id: 'cv-left', className: 'cv-panel' });
     left.innerHTML = `<h3>COMMAND · ${this.team === 0 ? 'SOLARI' : 'VOID'}</h3><div id="cv-squads"></div>`;
     const orders = Object.assign(document.createElement('div'), { id: 'cv-orders', className: 'cv-panel' });
-    const B = [['take', 'T', 'TAKE'], ['hold', 'H', 'HOLD'], ['scout', 'R', 'SCOUT'], ['fire', 'F', 'FIRE MISSION'], ['fallback', 'B', 'FALL BACK'], ['auto', 'X', 'STANDING ORDERS']];
+    const B = [['take', 'T', 'TAKE'], ['hold', 'H', 'HOLD'], ['scout', 'R', 'SCOUT'], ['storm', 'G', 'STORM'], ['fire', 'F', 'FIRE MISSION'], ['fallback', 'B', 'FALL BACK'], ['auto', 'X', 'STANDING ORDERS']];
     orders.innerHTML = B.map(([k, key, name]) => `<button data-k="${k}"><kbd>${key}</kbd>${name}</button>`).join('');
     const radio = Object.assign(document.createElement('div'), { id: 'cv-radio', className: 'cv-panel' });
     radio.innerHTML = '<h3>RADIO</h3><div id="cv-log"></div>';
@@ -514,7 +517,7 @@ export class CommandView {
       const b = e.target.closest('button');
       if (!b || b.disabled) return;
       const k = b.dataset.k;
-      if (k === 'fallback' || k === 'auto') this.#order(k, null); else this.#arm(k);
+      if (k === 'fallback' || k === 'auto' || k === 'storm') this.#order(k, null); else this.#arm(k);
     });
     // The map: select, order, pan, zoom.
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -556,6 +559,7 @@ export class CommandView {
       this.keys.add(e.code);
       if (ARM[e.code]) { this.#arm(ARM[e.code]); return; }
       if (e.code === 'KeyB') { this.#order('fallback', null); return; }
+      if (e.code === 'KeyG') { this.#order('storm', null); return; }
       if (e.code === 'KeyX') { this.#order('auto', null); return; }
       if (e.code === 'Home') { this.home(); return; }
       if (e.code === 'KeyA' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); for (const s of this.cmd.squads) this.selected.add(s); return; }

@@ -167,6 +167,21 @@ test('contact: bounding overwatch, one fire team covering while the other moves'
   s.dispose();
 });
 
+test('stormed: a squad fighting its way up to the point it attacks goes onto it at once, whatever is shooting', () => {
+  const s = new FrontlineSession(sessionData, { size: '12v12', seed: 4 });
+  const short = (q) => { const p = s.mode.points[q.objective]; return p && q.role === 'attack' && q.tactics.phase === 'contact' && Math.hypot(q.tactics.center.x - p.pos.x, q.tactics.center.z - p.pos.z) < 110; };
+  let sq = null;
+  for (let i = 0; i < 120 && !sq; i++) { run(s, 1); sq = s.squads.flat().find(short) ?? null; }
+  assert.ok(sq, 'a squad in contact short of its point');
+  sq.tactics.storm(20);
+  run(s, 0.6);
+  assert.equal(sq.tactics.phase, 'assault');
+  assert.equal(sq.tactics.why, 'storming the point');
+  const men = up(sq).filter((m) => m.brain);
+  assert.ok(men.length && men.every((m) => m.brain.order?.kind === 'assault'), 'every man sent onto it');
+  s.dispose();
+});
+
 test('hold: anchors stay on the point, the rest hold a line in cover toward the enemy', () => {
   const s = new FrontlineSession(sessionData, { size: '12v12', seed: 6 });
   for (const c of s.commanders) c.update = () => {};
@@ -207,6 +222,7 @@ test('holding the line: a squad sent to a stretch of the front strings out acros
 test('sweep and clear: stack on the doorway, enter, clear the room', () => {
   const s = new FrontlineSession(sessionData, { size: '4v4', seed: 5 });
   for (const c of s.commanders) c.update = () => {};
+  for (const q of s.squads.flat()) q.tactics.stormUntil = 0;   // (no commander: not the opening's rush onto the points either)
   const point = s.mode.points.find((p) => p.sector === 2);
   // A ruin room near the middle point with an exterior doorway.
   const R = s.tactical.rooms.find((r) => r.room.doors.some((d) => r.ruin.doors.includes(d)) && Math.hypot((r.room.min.x + r.room.max.x) / 2 - point.pos.x, (r.room.min.z + r.room.max.z) / 2 - point.pos.z) < 60);

@@ -192,6 +192,15 @@ first squad is ready (so others can get in), at most one wave every 18 s. Every 
 line goes over together; one that arrives within 3 s of the whistle goes with it; a squad left waiting
 30 s goes anyway. Your team's whistles and the enemy's are heard and bannered.
 
+### The storm (`SquadTactics.storm`)
+
+A squad attacking a point fights its way up to it cover by cover (bounding, flanking, clearing rooms),
+and against men dug in round it that can go on for minutes without anyone reaching the point. A storm
+cuts that short: for 20 s, from up to 120 m out, every man goes onto the point (the assault phase:
+cover inside its radius, at a sprint, firing as he goes), even over the top in the middle of the
+whistle's first rush. The AI commander storms where it has the men up close and the odds (src/ai/
+command/Strategist.js); a person in the commander's seat with **G**. The squad leader shouts it.
+
 ## Gun crews and supply drivers (`SupportCommand`, `CrewPilot`)
 
 At the start of a match each team sets aside one bot per gun and truck (plus a loader for each

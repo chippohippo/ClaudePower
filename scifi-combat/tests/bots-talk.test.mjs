@@ -95,8 +95,11 @@ test('frontline: squads flank and fall back as the fight goes, saying so', () =>
   // how a battle goes swings it (some never see one): run until one has, up to four minutes (at
   // least two and a half), and if that battle didn't, a second one.
   let s = null;
+  // (Squads under standing orders: the doctrine's commanders storm and keep their squads fighting below
+  // strength, and a squad with fewer than three men up doesn't flank: see docs/FRONTLINE.md, Command.)
+  const command = [data.ai.difficulty.recruit.command, data.ai.difficulty.recruit.command];
   for (const seed of [1, 2]) {
-    s = new FrontlineSession(sessionData, { size: '12v12', seed });
+    s = new FrontlineSession(sessionData, { size: '12v12', seed, command });
     for (let i = 0; i < 60 * 240 && (i < 60 * 150 || !ev.got.some((e) => e.type === 'squad:flank')); i++) s.step(1 / 60);
     s.dispose();
     if (ev.got.some((e) => e.type === 'squad:flank')) break;

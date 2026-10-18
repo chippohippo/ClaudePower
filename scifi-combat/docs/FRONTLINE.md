@@ -640,9 +640,10 @@ squads take the commander's orders the same way, and squads given none follow st
   the seat is off the field: he isn't one of his side's soldiers, and nobody can shoot him.
 - **Orders** (`FrontlineCommander.give`): select squads (click a marker or card, Shift for several,
   **1**–**9**, Ctrl+A for all) and right-click the map: take the point there (hold it, if it's ours), or
-  hold that ground. Or arm one and left-click: **T** take, **H** hold, **R** scout. **B** falls back to
-  our line and **X** hands the squad back to standing orders, both at once. **F** arms a fire mission
-  (no squad needed). A place can be anywhere: a crossroads, a building, a hill. It becomes a point the
+  hold that ground. Or arm one and left-click: **T** take, **H** hold, **R** scout. **G** storms: the
+  squads go onto the point they're attacking at once, whatever's shooting (for when you have the men
+  there to take it; `FrontlineCommander.storm`). **B** falls back to our line and **X** hands the squad
+  back to standing orders (these three at once). **F** arms a fire mission (no squad needed). A place can be anywhere: a crossroads, a building, a hill. It becomes a point the
   squad gets to and holds, clearing what's in the way, and the radio names it from the nearest point
   ("40 m past B2").
 - **Obedience** (`command.obey` per difficulty): out of contact a squad nearly always goes at once and
@@ -672,23 +673,59 @@ squads take the commander's orders the same way, and squads given none follow st
   (measured: when the AI ordered a mission every 12 s, the enemy's counter-battery killed 25 of its
   gun crews in five minutes, against 7).
 - **The AI commander** (`Strategist`, veteran and elite; recruit sides run on plain standing orders):
-  it plays the book, the standing orders' plan, and carries it out well. It re-shares the squads every
-  4 s (elite: 2.5 s) without turning them round on every glimpse of the enemy. It never leaves our own
-  sector to him while he's near it, or while it's our last line before the HQ (lose that and he's
-  through): the nearest squad not in a fight goes to the point he threatens most. Squads sent at an
-  enemy-held point together wait at a start line 70 m short of it until the last is close, then go in
-  at once, the guns preparing the point if we can see what's on it. Scouts (veteran one, elite two,
-  with squads to spare) get eyes on the points we'll attack and ours under threat that nobody's
-  watching. Elite squads also take orders more readily. Every order goes out on the radio.
-  It also has a forward model that plays 75 s of battle ahead against the enemy's possible answers and
-  searches for better plans (`search` > 0), but that's off at every level: in AI-vs-AI matches the
-  plans it chose did worse than the book it started from (12v12, 16 matches against standing orders:
-  4–12 departing from the book only for a big predicted gain, 8–8 on the book alone).
-  Measured as shipped, against standing orders (12v12, 16 matches each, both sides' soldiers
-  veteran): elite 7–9, veteran 6–10, both within the noise of an even match (recruit against itself:
-  8–8). Where it shows is in how it loses: before the home guard, two matches in sixteen ended with
-  the enemy breaking through to its HQ while all its squads attacked; in the 32 since, none (and the
-  veteran broke through twice itself).
+  it commands by a doctrine made from the rules of the game, re-made every 4 s (elite: 2.5 s).
+  - *The rules it plays to.* A sector is his only once he holds every point in it, so ours holds while
+    one point of it does; his is ours only with every point of it. Ahead on sectors the clock is on
+    our side, behind it's against us, and level at the end the tickets decide. Whoever takes the
+    neutral middle first nearly always keeps it (standing orders against themselves: every time).
+  - *The race for the middle.* The nearest squad onto every point of it at once, the rest where he's
+    strongest; the line's lanes wait until it's decided.
+  - *Ahead.* One point of our sector held come what may (the anchor: the one he isn't on, nearest our
+    spawn; up to half of us, more while he's on it), pickets on the others as he comes at them, the
+    lanes held (giving way to the points when he comes at them in strength). What's left attacks his
+    sector only where that's worth its men: his last line (taking it ends the match), or a point he's
+    left (nearly) empty; otherwise he comes to us and pays for it at our points. Near the end, no
+    attacks: everything holds.
+  - *Behind* (elite: all in). The sector ahead is the battle: every squad on its points at once, no
+    lanes, our own sector left to a guard only if it's our last line.
+  - *Attacks.* The main effort masses on the easiest of his points (fewest of his men round it,
+    nearest to taking) with the odds it wants, the points of that sector we've taken are guarded,
+    and the guns prepare it as our men close on it, lifting before they're on it.
+  - *Storms.* Squads sent at a point fight their way up to it cover by cover, and against men dug in
+    round it they can keep that up for minutes without one of them setting foot on it (seen: five
+    squads, 17 men, two minutes short of a point four men held). So where the men it has sent are
+    within 110 m and outnumber his round it by the odds (elite 1.6 to 1, veteran 2.5), or have been
+    stuck short of it for 30 s with the better of it, every squad there storms it at once: everyone
+    onto the point, whatever's shooting (`SquadTactics.storm`; you can order it too, **G**). Once
+    the middle is decided, the elite shells the point first where it can see men on it and its own
+    are clear, and storms as the shells land (in the race itself, the first men onto a point have it).
+  - *Rescue* (elite, once the middle is decided). His men on a point of ours, more than ours on it:
+    the nearest squads, whatever they're doing, go and throw him off before it's his.
+  - *Steady.* No task takes everything (he's weaker wherever he isn't massing), and a squad keeps its
+    task while it's still wanted there and for half a minute after it was sent: orders that change
+    every few seconds are worse than any plan, since each change starts the squad over (an early
+    version gave 159 orders in five minutes to 7 squads; it gives about 35).
+  - *On the radio.* Command tells its whole side the plan when it changes: the main effort ("All
+    squads, main effort C2!"), the point to hold, all in, hold to the end. You hear your own side's,
+    as COMMAND in the chatter. Squad leaders shout the storm.
+  - Scouts (veteran one, elite two, with squads to spare, one sent every 40 s at most) get eyes on the
+    points it will attack and ours under threat that nobody's watching. Elite squads also take
+    orders more readily, and it misjudges the enemy less (`noise`).
+  - *Measured* (AI against AI, both sides' soldiers veteran, each seed played from both sides; 7
+    minute matches at 32v32, 10 at 12v12). Against standing orders (recruit): veteran 15–1 (32v32
+    city); elite 11–5 (32v32 city), 13–3 (32v32 trenches), 29–3 (12v12 trenches, four of them
+    breakthroughs to the HQ). Elite against veteran: 12–4 (32v32 city). Whoever took the middle first
+    won nine matches in ten. It wins bloodier than standing orders do: at 32v32 it lost 10 to 45 more
+    men a match than the side it beat (attacks cost men, and so do the gun crews posted forward once
+    the front moves up), at 12v12 13 fewer. And its squads flank less: they storm instead, and are
+    often below the three men up a flank needs. Before the doctrine, the elite was even with
+    standing orders (12v12: 26–22 in 48).
+  - *How it got there.* The old AI played the standing orders' plan with extras (the home guard, staged
+    attacks, scouts) and measured even with plain standing orders (12v12: 26–22 in 48). Spreading
+    squads by need loses the race for the middle; massing without storms wins the race but not the
+    points (32v32 city: 9–7); the storm is what turned it (14–2). It also has a forward model that
+    plays 75 s of battle ahead against the enemy's possible answers (`search` > 0), off at every level:
+    in AI-vs-AI matches the plans it chose did worse than the plan it started from.
 
 ## Squads and the commander
 

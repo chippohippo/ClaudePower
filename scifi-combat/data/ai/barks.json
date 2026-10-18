@@ -1,5 +1,5 @@
 {
-  "_note": "Callouts (src/ai/Barks.js, docs/GAMEPLAY_PLAN.md §6): what soldiers shout, per kind and army, a few variants each; {name} is the soldier they mean, {dir} where (front, left, right, behind). gap: s a soldier waits between any two lines; same: s before he repeats a kind; squad: s before anyone in his squad repeats a kind; hear: m an enemy's lines carry (yours: your squad's at any range, others within it). The client speaks them (speechSynthesis) and subtitles them.",
+  "_note": "Callouts (src/ai/Barks.js, docs/GAMEPLAY_PLAN.md §6): what soldiers shout, per kind and army, a few variants each; {name} is the soldier they mean, {dir} where (front, left, right, behind). gap: s a soldier waits between any two lines; same: s before he repeats a kind; squad: s before anyone in his squad repeats a kind; hear: m an enemy's lines carry (yours: your squad's at any range, others within it). The client speaks them (speechSynthesis) and subtitles them. effort, anchor, allin, endgame: the commander on the radio (Barks.command), heard by his whole side.",
   "gap": 2.5,
   "same": 9,
   "squad": 4,
@@ -117,6 +117,26 @@
     "secured": {
       "solari": ["{place} secured! Awaiting orders.", "We hold {place}. What's next?", "{place} is ours!"],
       "void": ["{place} is taken.", "{place} held. Orders?", "We have {place}."]
+    },
+    "effort": {
+      "solari": ["All squads, main effort {place}! Hit it together!", "Command to all units: we're taking {place}. Converge!", "Everyone on {place}! Push, push, push!"],
+      "void": ["All hands: {place}. Crush it.", "Converge on {place}. Leave nothing standing.", "The blow falls on {place}. Go."]
+    },
+    "anchor": {
+      "solari": ["Hold {place} at all costs, it's the whole line!", "{place} is our anchor. Nobody gives it up!", "Dig in at {place}. That point does not fall!"],
+      "void": ["{place} is the line. It does not fall.", "Hold {place}. To the last.", "Nothing passes {place}."]
+    },
+    "allin": {
+      "solari": ["We're losing the clock! Everything on {place}, now!", "All squads, all in! Take {place} back!", "No reserves! Every squad on {place}!"],
+      "void": ["Everything forward. {place} is ours again.", "All of us. Now. {place}.", "No one stays behind. Take {place}."]
+    },
+    "storm": {
+      "solari": ["Everybody in! Take {place}, go, go, go!", "Storm it! Onto the point!", "On me! We take {place} now!"],
+      "void": ["Now. Overrun them.", "Forward, all of you. Take {place}.", "Into them. No one stops."]
+    },
+    "endgame": {
+      "solari": ["Clock's on our side. Hold what we have!", "Last minutes! Nobody moves off those points!", "Hold the line till the whistle!"],
+      "void": ["Time favors us. Hold.", "Stand fast. The hour is ours.", "Hold until the end."]
     }
   }
 }

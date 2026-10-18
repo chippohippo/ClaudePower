@@ -74,6 +74,22 @@ export class Barks {
     return text;
   }
 
+  /**
+   * The commander on the radio (an AI commander's plan: the main effort, the point to hold, all
+   * in, hold to the end): heard by his whole side wherever they are. Not the same kind twice in
+   * 20 s. Returns the line said, or null.
+   */
+  command(team, kind, vars = {}, at = null) {
+    const lines = this.data?.lines[kind]?.[ARMY[team]];
+    if (!lines?.length) return null;
+    const key = `cmd:${team}`, ks = this.squads.get(key) ?? new Map();
+    if (this.time - (ks.get(kind) ?? -1e9) < 20) return null;
+    ks.set(kind, this.time); this.squads.set(key, ks);
+    const text = fill(lines[Math.floor(this.#roll() * lines.length)], vars);
+    bus.emit('squad:bark', { id: null, team, squad: null, kind, text, name: 'Command', command: true, at: at ? [at.x, at.y ?? 0, at.z] : [0, 0, 0] });
+    return text;
+  }
+
   /** A line of `kind` as soldier e would say it, cooldowns or not (the commander's radio log); null if there's none. */
   line(e, kind, vars = {}) {
     const lines = this.data?.lines[kind]?.[e?.faction ?? ARMY[e?.team]];

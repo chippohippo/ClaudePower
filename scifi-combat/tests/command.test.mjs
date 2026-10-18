@@ -165,3 +165,51 @@ test('the AI strategist plans every squad, within its budget, and its orders rea
   assert.ok(Number.isFinite(ex.score));
   S.dispose();
 });
+
+/** Team `t` has taken the neutral middle sector: the front as it would stand then. */
+function middleTo(S, t) {
+  const M = S.mode, mid = M.attackSector(0), s = M.sectors[mid];
+  s.owner = t; M.front[t] = mid;
+  for (const id of s.points) { const p = M.points[id]; p.owner = t; p.progress = t === 0 ? 1 : -1; }
+}
+const DOCTRINE = H.ai.difficulty.elite.command;
+const big = (o = {}) => new FrontlineSession(DATA, { size: '32v32', seed: 7, map: 'trench', command: [DOCTRINE, H.ai.difficulty.recruit.command], ...o });
+const plan = (C) => { C.timer = 0; C.update(1 / 60); while (C.mind.thinking) C.mind.plan(C); return C.mind.posture; };
+
+test('the elite\'s doctrine: in the race for the middle a squad on every point and the lanes wait; behind, everything on the sector ahead; ahead, one point it holds come what may', () => {
+  const S = big(), C = S.commanders[0], M = S.mode;
+  assert.ok(C.mind && C.cfg.doctrine, 'elite: the doctrine');
+  const mid = M.objectives(0).attack.map((p) => p.name);
+  let q = plan(C);
+  assert.ok(q.opening && q.lead === 0);
+  assert.ok(mid.every((n) => q.assign.includes(n)), `every point of the middle has a squad (${q.assign.join(' ')})`);
+  assert.ok(q.assign.every((n) => mid.includes(n)), 'and none on the lanes yet');
+  // He has the middle: behind, so everything goes at it (no lanes; our own sector isn't our last line).
+  middleTo(S, 1);
+  q = plan(C);
+  assert.ok(q.lead < 0 && q.allin, 'behind: all in');
+  assert.ok(q.assign.every((n) => mid.includes(n)), `every squad on the middle (${q.assign.join(' ')})`);
+  assert.ok(C.log.some((e) => e.kind === 'allin' && e.callsign === 'Command'), 'and Command says so on the radio');
+  S.dispose();
+  // We have it: ahead, one point of it held strongly (the anchor), and it says which.
+  const T = big(), D = T.commanders[0];
+  middleTo(T, 0);
+  q = plan(D);
+  assert.ok(q.lead > 0 && q.anchor, 'ahead: an anchor');
+  const on = q.assign.filter((n) => n === q.anchor).length;
+  assert.ok(on >= 1, `a squad on it at least (${on})`);
+  assert.ok(D.log.some((e) => e.kind === 'anchor'), 'Hold it at all costs: on the radio');
+  T.dispose();
+});
+
+test('the doctrine doesn\'t turn squads round every few seconds, and storms a point it has the men at', () => {
+  const S = big(), C = S.commanders[0];
+  let orders = 0, storms = 0;
+  const off = [bus.on('command:order', (e) => { if (e.team === 0 && e.kind !== 'scout') orders++; }), bus.on('command:radio', (e) => { if (e.team === 0 && e.kind === 'storm') storms++; })];
+  run(S, 150);
+  off.forEach((f) => f());
+  const perSquadMinute = orders / C.squads.length / 2.5;
+  assert.ok(perSquadMinute < 2.5, `orders: ${orders} in 150 s for ${C.squads.length} squads (${perSquadMinute.toFixed(1)} a squad a minute)`);
+  assert.ok(storms >= 1, `it stormed (${storms})`);
+  S.dispose();
+});

@@ -1,24 +1,51 @@
 // Strategist: the AI in the commander's seat (veteran and up; FrontlineCommander gives its orders).
-// It plays the book, the way a good commander does: the standing orders' plan, carried out well.
+// It commands by the doctrine (`doctrine`): a plan made from the rules of the game, the way a good
+// commander plays them, re-made every few seconds (veteran 4 s, elite 2.5 s).
 //
-//  * The plan: the standing orders' (the points in play by need, the line), as they go on from where
-//    the squads are, every few seconds (veteran 4 s, elite 2.5 s). Squads hold a task a while
-//    rather than turning round on every glimpse of the enemy (standing orders' `hold`).
-//  * Our own sector never left to him: while he's near it, or it's our last line before the HQ (lose
-//    it and he's through), at least a squad holds it: the nearest one not in a fight goes to the
-//    point he threatens most.
-//  * Attacks go in together: squads sent at an enemy-held point together wait short of it (70 m back
-//    along the way) until the last of them is close, then go in at once; the guns prepare the point
-//    as they go, if we can see what's on it.
-//  * Scouts (veteran one, elite two, with men to spare): eyes on the points we'll attack and ours
-//    under threat that nobody's watching; what they see, the guns can hit.
-//  * Elite squads take orders more readily, too (difficulty `obey`).
+//  * The rules: a sector is his only once he holds every point in it, so ours holds while one point
+//    of it does; his is ours only with every point of it. Ahead on sectors, the clock is on our
+//    side; behind, against us; level at the end, the tickets decide. Whoever takes the neutral middle
+//    first nearly always keeps it (standing orders against themselves: every time, in 8 matches).
+//  * The race for the middle: the nearest squad onto every point of it at once, the rest where he's
+//    strongest; the line's lanes wait until it's decided.
+//  * Ahead: one point of our sector held come what may (the anchor: the one he isn't on, nearest our
+//    spawn; up to half of us, more while he's on it), pickets on the others as he comes at them, the
+//    lanes held. What's left attacks his sector only where that's worth its men: his last line
+//    (taking it ends the match), or a point he's left (nearly) empty; otherwise he comes to us and
+//    pays for it at our points. Near the end, no attacks: everything holds.
+//  * Behind (`allin`, elite): the sector ahead is the battle. Every squad on its points at once, no
+//    lanes; our own sector left to a guard only if it's our last line (lose it now or at the time
+//    limit: the same defeat).
+//  * Attacks: the main effort on the easiest of his points (fewest of his men round it, nearest to
+//    taking), with the odds wanted (`mass`), the points of that sector we've taken guarded, the rest
+//    after it. The guns prepare it as our men close on it, lifting before they're on it.
+//  * Storms (`storm`, the odds wanted): squads sent at a point fight their way up to it cover by
+//    cover, and against men dug in round it they can do that for minutes without one of them setting
+//    foot on it. Where the men we've sent are within 110 m and outnumber his round it by the odds (or
+//    have been stuck short of it for 30 s with the better of it), every squad there storms it at
+//    once (SquadTactics.storm: everyone onto the point, whatever's shooting). Once the middle is
+//    decided, the elite (`barrage`) shells the point first where it can see men on it, and storms as
+//    the shells land.
+//  * Rescue (`rescue`, elite, once the middle is decided): his men on a point of ours, more than ours
+//    on it, and the nearest squads, whatever they're doing, go and throw him off it.
+//  * No task takes everything (he's weaker wherever he isn't massing), and a squad keeps its task
+//    while it's still wanted there, and for half a minute after it was sent: orders that change every
+//    few seconds are worse than any plan (each change starts the squad over).
+//  * On the radio, when the plan changes: Command tells the whole side the main effort, the point
+//    to hold, all in, hold to the end (FrontlineCommander.announce); squad leaders shout the storm.
+//  * Scouts (veteran one, elite two, with squads to spare, one sent every 40 s at most): eyes on the
+//    points we'll attack and ours under threat that nobody's watching; what they see, the guns hit.
+//  * The elite also reads the enemy better (`noise`), re-plans more often (`interval`), and its
+//    squads take orders more readily (`obey`).
+//
+// Without the doctrine it plays the book: the standing orders' plan, carried out well (our own
+// sector guarded while he's near it, attacks staged at a start line 70 m short and sent in together).
 //
 // Thinking further ahead (`search` > 0; off at every level as shipped): plans weighed by playing 75 s
-// of battle forward against the enemy's answers, departing from the book where that wins by a
-// margin for every squad moved. Measured against standing orders in AI-vs-AI matches it did worse
-// than the book it starts from (the forward model can't yet tell this sim's firefights apart well
-// enough), so it stays off until it can. What it weighs:
+// of battle forward against the enemy's answers, departing from the plan it starts from (the
+// doctrine's, or the book's) where that wins by a margin for every squad moved. Measured against
+// standing orders in AI-vs-AI matches it did worse than the book it started from (the forward model
+// can't yet tell this sim's firefights apart well enough), so it stays off until it can. What it weighs:
 //  * The board: the points in play (the sector we attack, and ours he attacks; in the opening the
 //    neutral middle, both), the lanes of the front, and every squad: where it is, how strong (its
 //    men up, the hurt counting for less, the dead coming back with the next wave), how long it
@@ -104,6 +131,8 @@ export class Strategist {
     this.#play(cmd, B, best);
     const t2 = performance.now();
     this.#support(cmd, B, best);
+    if (this.cfg.storm) this.#storm(cmd, B, best);
+    if (this.cfg.doctrine) this.#announce(cmd);
     const ms = performance.now() - t0;
     J.split[1] = t1 - t0; J.split[2] = t2 - t1; J.split[3] = performance.now() - t2;   // (the board; the last slice; playing it; support)
     this.last = { score: best.score, evals: B.evals, ms: J.ms + ms, worst: Math.max(J.worst, ms), ticks: J.ticks + 1, split: J.split, book: best.book ?? false, objectives: B.obj.map((o) => ({ id: o.p.id, kind: o.kind, enemy: +(o.e0 + o.e1 + o.u).toFixed(2), name: o.p.name })), assign: best.assign.slice() };
@@ -227,10 +256,13 @@ export class Strategist {
   /** Search plans (an objective per squad) for the best against his answers (a generator: it yields every SLICE evaluations). */
   *#search(B, cmd) {
     const n = B.sq.length, m = B.obj.length;
-    // The book: where standing orders would send them.
+    // The book: where standing orders would send them (or the doctrine, where it's on).
     const book = new Int32Array(n);
-    const bk = new Map(cmd.standingPlan(B.sq.map((q) => q.s), false).map((x) => [x.s, x.p.id]));
-    for (let i = 0; i < n; i++) { const k = B.obj.findIndex((o) => o.p.id === bk.get(B.sq[i].s)); book[i] = k >= 0 ? k : this.#nearest(B, i); }
+    if (this.cfg.doctrine) book.set(this.#doctrine(B, cmd));
+    else {
+      const bk = new Map(cmd.standingPlan(B.sq.map((q) => q.s), false).map((x) => [x.s, x.p.id]));
+      for (let i = 0; i < n; i++) { const k = B.obj.findIndex((o) => o.p.id === bk.get(B.sq[i].s)); book[i] = k >= 0 ? k : this.#nearest(B, i); }
+    }
     const assign = new Int32Array(n);
     for (let i = 0; i < n; i++) assign[i] = B.sq[i].cur >= 0 ? B.sq[i].cur : book[i];
     this.#guard(B, book);
@@ -316,6 +348,135 @@ export class Strategist {
     let best = 0, bd = Infinity;
     for (let k = 0; k < B.P; k++) if (B.sq[i].eta[k] < bd) { bd = B.sq[i].eta[k]; best = k; }
     return best;
+  }
+
+  /**
+   * The doctrine (`doctrine` on): a plan made from the rules of the game, not the book's even shares.
+   * A sector is his only with every point in it, so ours holds while one point does: the anchor (the
+   * one nearest our spawn he isn't on), held strongly; the others get pickets. His sector is ours
+   * only with every point: the main effort masses on the easiest of them, the points taken are
+   * guarded, the rest wait their turn. Ahead on sectors, time is on our side: the defence comes
+   * first, attacks only where they're worth their men, and near the end everything holds. Behind,
+   * the attack comes first (all in, for the elite). Returns a task (objective index) for every squad.
+   */
+  #doctrine(B, cmd) {
+    const M = this.mode, c = this.cfg, team = this.team, enemy = 1 - team, O = B.obj, P = B.P, n = B.sq.length;
+    const assign = new Int32Array(n).fill(-1);
+    if (!n) return assign;
+    const own = [0, 1].map((t) => M.sectors.filter((s) => s.kind !== 'hq' && s.owner === t).length);
+    const late = M.cfg.timeLimit - M.time < (c.endgame ?? 150), tl = M.tickets[team] - M.tickets[enemy];
+    // Ahead or behind: on sectors, and level on them at the end, on tickets (they decide it then).
+    const lead = own[team] - own[enemy] || (late && Math.abs(tl) > 10 ? Math.sign(tl) : 0);
+    // (`allin`: behind, the sector ahead is the battle: every point of it at once, no lanes, our own
+    // sector left to a guard only if it's our last line. Behind on time, a sector more lost is no worse.)
+    const allin = lead < 0 && !!c.allin;
+    const mass = c.mass ?? 1.6, defend = c.defend ?? 1.1, garrison = c.garrison ?? 3, picket = c.picket ?? 0.5, guard = c.guard ?? 2;
+    // His strength at each objective, as we read it (the unseen only once they could be there).
+    const his = (k) => O[k].e0 + O[k].e1 + O[k].u * (O[k].tE < 20 ? 1 : 0.5);
+    const far = (k) => Math.hypot(B.spawn.x - O[k].p.pos.x, B.spawn.z - O[k].p.pos.z);
+    const soonest = (k) => B.sq.reduce((a, q) => Math.min(a, q.eta[k]), Infinity);
+    const tasks = [];
+    const want = (k, need, pri, why) => { if (k >= 0 && need > 0) tasks.push({ k, need, need0: need, pri, why }); };
+    const def = [], atk = [];
+    for (let k = 0; k < P; k++) { if (O[k].def && !O[k].atk) def.push(k); else if (O[k].atk) atk.push(k); }
+    const total = B.sq.reduce((a, q) => a + q.str + q.back * 0.5, 0), cap = (x, f) => Math.min(x, total * f);
+    // Our sector he attacks: the anchor, then pickets.
+    let anchor = -1;
+    const denying = def.filter((k) => O[k].held > -0.999);
+    if (denying.length) {
+      const score = (k) => his(k) - O[k].held * 1.5 + far(k) / 60;
+      anchor = denying.reduce((b, k) => (b < 0 || score(k) < score(b) ? k : b), -1);
+      const prev = denying.find((k) => O[k].p.id === this.anchorId);
+      if (prev !== undefined && score(prev) < score(anchor) + 1.5) anchor = prev;   // (no shuffling it round)
+      const near = def.reduce((a, k) => a + (k === anchor ? 0 : his(k)), 0);
+      // (No task takes everything: where he masses, he's weaker everywhere else. On it now, more.)
+      let need = cap(Math.max(his(anchor) > 0.5 || B.lastLine ? garrison : garrison * 0.6, (his(anchor) + (c.spill ?? 0.5) * near) * defend), O[anchor].e0 >= 1 ? 0.6 : lead > 0 ? 0.5 : 0.4);
+      // Behind at the end, losing it is no worse than losing on time.
+      if (lead < 0 && late) need = 0;
+      if (allin) need = B.lastLine ? Math.min(need, total * 0.25) : 0;
+      want(anchor, need, lead > 0 || B.lastLine ? 10 : 6, 'anchor');
+      for (const k of denying) if (k !== anchor && his(k) > 0.5) want(k, cap(his(k) * picket, 0.2), (lead > 0 ? 7 : 3) + (O[k].e0 > 0.5 ? 1 : 0), 'picket');
+    }
+    this.anchorId = anchor >= 0 ? O[anchor].p.id : null;
+    // His sector: the points we have guarded, the main effort on the easiest of the rest, then the next.
+    const targets = [];
+    for (const k of atk) {
+      if (O[k].held >= 0.999) want(k, cap(Math.max(guard, his(k) * defend), 0.3), lead > 0 ? 6 : allin ? 9 : 8, 'guard');
+      else targets.push(k);
+    }
+    const ease = (k) => his(k) * mass - O[k].held * 2 + soonest(k) / 30;
+    targets.sort((a, b) => ease(a) - ease(b));
+    const prev = targets.find((k) => O[k].p.id === this.effortId);
+    if (prev !== undefined && ease(prev) < ease(targets[0]) + 2) { targets.splice(targets.indexOf(prev), 1); targets.unshift(prev); }
+    this.effortId = targets.length ? O[targets[0]].p.id : null;
+    const opening = !def.length && atk.some((k) => O[k].def);
+    const go = lead > 0 && late ? 0 : 1;   // (ahead at the end: no attacks; what's spare holds)
+    // Ahead, an attack has to be worth its men: on his last line (taking it ends the match), or a point
+    // he's left (nearly) empty. Otherwise he comes to us, at our points, and pays for it there.
+    const hisLast = M.map.sectors[M.front[enemy] - DIR[enemy]]?.kind === 'hq';
+    let attacking = -1;
+    targets.forEach((k, r) => {
+      if (lead > 0 && !hisLast && his(k) > 1.5) return;
+      if (go && attacking < 0) attacking = k;
+      const need = cap(Math.max(c.minMass ?? 3.5, his(k) * mass + 1.5), allin ? 0.5 : r === 0 ? 0.7 : 0.4);
+      const pri = opening ? 8 - r * 0.5 : allin ? 9 - r * 0.3 : r === 0 ? (lead < 0 ? 9 : 5) : 4 - r * 0.5;
+      // (In the race for the middle every point gets its nearest squad first: he needs them all, and so do we.)
+      if (opening) want(k, Math.min(need, 3), 8.5, 'grab');
+      if (go) want(k, need, pri, r === 0 ? 'effort' : 'next');
+    });
+    // (`rescue`) He has men on a point of ours and more than we have on it: the nearest squads, whatever
+    // they're doing, go and throw him off it before it's his.
+    // (Not in the race for the middle: there the points are anyone's, and speed is everything.)
+    if (c.rescue && !opening) for (let k = 0; k < P; k++) {
+      const o = O[k];
+      if (o.held > 0 && o.e0 >= 1 && (o.p.counts?.[team] ?? 0) < o.e0) want(k, cap(Math.max(3, o.e0 * 2), 0.35), 11, 'rescue');
+    }
+    // The line: a share of the squads on its lanes (the flanks and the gaps first).
+    // (In the race for the middle, the points first.)
+    const lineN = n >= 4 && !allin ? Math.round(n * (c.lines ?? c.line ?? 0.4)) : 0;
+    const lanes = [];
+    for (let k = P; k < O.length; k++) lanes.push(k);
+    lanes.sort((a, b) => O[b].gap - O[a].gap);
+    // (He's coming at our points in strength: the points before the lanes.)
+    const pressure = def.reduce((a, k) => a + his(k), 0), linePri = opening ? 4.5 : lead > 0 && pressure > total * 0.4 ? 4 : 7.6;
+    for (let j = 0; j < Math.min(lineN, lanes.length); j++) want(lanes[j], 2.5, linePri, 'line');
+    // Squads to tasks, the most pressing first. A squad stays on its task while it's still wanted
+    // there (and for half a minute after it was sent, wanted or not): orders that change every few
+    // seconds are worse than any plan, since every change starts the squad over (its jump-off trench,
+    // its positions). Then the nearest free squads; then, for a pressing task still short, squads
+    // taken off the least pressing (not those just sent).
+    tasks.sort((a, b) => b.pri - a.pri);
+    const left = B.sq.map((q) => q.str + q.back * 0.5);
+    const free = new Set(B.sq.map((_, i) => i)), on = new Int32Array(n).fill(-1);
+    const take = (i, t) => { assign[i] = tasks[t].k; on[i] = t; tasks[t].need -= left[i]; free.delete(i); };
+    tasks.forEach((T, t) => { for (const i of free) if (B.sq[i].cur === T.k && (T.need > 0 || B.sq[i].committed)) take(i, t); });
+    const cost = (i, k) => { const q = B.sq[i]; return q.eta[k] + (q.cur >= 0 && q.committed ? 25 : 0) + (q.busy ? 10 : 0); };
+    tasks.forEach((T, t) => {
+      while (T.need > 0 && free.size) {
+        let pick = -1, bd = Infinity;
+        for (const i of free) { const d = cost(i, T.k); if (d < bd) { bd = d; pick = i; } }
+        take(pick, t);
+      }
+    });
+    tasks.forEach((T, t) => {
+      while (T.need > 0 && T.pri >= 8) {
+        let pick = -1, bd = Infinity;
+        for (let i = 0; i < n; i++) {
+          if (on[i] < 0 || tasks[on[i]].pri > T.pri - 2 || (B.sq[i].committed && T.why !== 'rescue')) continue;
+          const d = cost(i, T.k);
+          if (d < bd) { bd = d; pick = i; }
+        }
+        if (pick < 0) break;
+        tasks[on[pick]].need += left[pick];
+        take(pick, t);
+      }
+    });
+    // Squads to spare: on with what they're doing, if it's in the plan; else the main effort (with no
+    // attack on, the anchor; else wherever's nearest).
+    const spare = attacking >= 0 ? attacking : anchor >= 0 ? anchor : -1, planned = new Set(tasks.map((T) => T.k));
+    for (const i of free) assign[i] = planned.has(B.sq[i].cur) ? B.sq[i].cur : spare >= 0 ? spare : B.sq[i].cur >= 0 ? B.sq[i].cur : this.#nearest(B, i);
+    this.posture = { lead, late, allin, opening, anchor: anchor >= 0 ? O[anchor].p.name : null, effort: targets.length ? O[targets[0]].p.name : null, tasks: tasks.map((T) => `${T.why}:${O[T.k].p.name}:${T.need0.toFixed(1)}/${T.pri}`), his: O.slice(0, P).map((o, k) => `${o.p.name} ${o.e0.toFixed(1)}+${o.e1.toFixed(1)}+${o.u.toFixed(1)}=${his(k).toFixed(1)}`), assign: Array.from(assign).map((k) => O[k]?.p.name) };
+    return assign;
   }
 
   /** A plan's worth against his answers: the worst of them, and a little of the rest. */
@@ -502,6 +663,63 @@ export class Strategist {
     }
   }
 
+  /**
+   * The decisive push (`storm`, the odds wanted): squads sent at a point fight their way up to it
+   * cover by cover, and against men dug in round it they can do that for minutes without one of
+   * them setting foot on it. Where the men we've sent are up close (110 m) and outnumber his round
+   * it by the odds (or have been stuck short of it for 30 s with the better of it), every squad
+   * there storms it at once. Not the same point again for 25 s.
+   */
+  #storm(cmd, B, best) {
+    const odds = this.cfg.storm, I = this.world.intel?.[this.team], enemy = 1 - this.team;
+    if (!odds) return;
+    this.close ??= new Map(); this.stormed ??= new Map(); this.barrage ??= new Map();
+    for (let k = 0; k < B.P; k++) {
+      const p = B.obj[k].p, due = this.barrage.get(p.id);
+      if (due !== undefined && this.time < due) continue;   // (the shells still landing)
+      if (B.obj[k].held >= 0.999 || this.time - (this.stormed.get(p.id) ?? -1e9) < 25) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
+      let ours = 0;
+      const near = [];
+      for (let i = 0; i < B.sq.length; i++) {
+        if (best.assign[i] !== k) continue;
+        const s = B.sq[i].s;
+        let n = 0;
+        for (const m of s.members) {
+          if (m.health.dead || m.health.downed || m.detached || m.vehicle) continue;
+          const q = m.movement.state.position;
+          if (Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < 110) n++;
+        }
+        if (n) { ours += n; near.push(s); }
+      }
+      if (ours < 3) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
+      if (!this.close.has(p.id)) this.close.set(p.id, this.time);
+      // Nobody there that we know of: in the race for the middle, onto it at a run all the same (the first
+      // men onto a point have it); after that, no storm, they take it the careful way (clearing as they go).
+      const his = (p.counts?.[enemy] ?? 0) + (I ? I.near(p.pos.x, p.pos.z, p.radius + 35, 6) : 0);
+      if (due === undefined && his < 1 && !this.posture?.opening) continue;
+      const stuck = this.time - this.close.get(p.id) > 30 && ours >= his * 1.2 + 1;
+      if (due === undefined && ours < odds * his + 2 && !stuck) continue;
+      // (`barrage`) The guns on it first, where we can see men on it and ours are clear of the shells
+      // (they never fire danger close); the storm goes in as the last of them land.
+      // (Not in the race for the middle: there the first men onto it have it.)
+      if (due === undefined && this.cfg.barrage && !this.posture?.opening && cmd.support && I && I.near(p.pos.x, p.pos.z, p.radius + 15, 6) >= 2
+        && cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 4, by: 'ai', pri: 5 }).ok) { this.barrage.set(p.id, this.time + 9); this.lastFire = this.time; continue; }
+      for (const s of near) cmd.storm(s);
+      this.stormed.set(p.id, this.time); this.close.delete(p.id); this.barrage.delete(p.id);
+    }
+  }
+
+  /** The plan on the radio when it changes: everything on the sector ahead; the main effort; the point we hold; holding to the end. */
+  #announce(cmd) {
+    const q = this.posture, told = (this.told ??= {}), name = (id) => this.mode.points[id]?.name;
+    if (!q) return;
+    if (q.allin && !told.allin && this.effortId != null) cmd.announce('allin', { place: name(this.effortId) });
+    else if (!q.opening && !q.late && this.effortId != null && this.effortId !== told.effort && q.lead <= 0) cmd.announce('effort', { place: name(this.effortId) });
+    if (q.lead > 0 && !q.late && this.anchorId != null && this.anchorId !== told.anchor) cmd.announce('anchor', { place: name(this.anchorId) });
+    if (q.lead > 0 && q.late && !told.endgame) cmd.announce('endgame');
+    Object.assign(told, { allin: q.allin, effort: this.effortId, anchor: this.anchorId, endgame: q.lead > 0 && q.late });
+  }
+
   /** Where squads wait before going in together: 70 m short of the point, back along our way to it. */
   #stagePlace(cmd, p) {
     const team = this.team, back = DIR[team] * -70;
@@ -521,7 +739,8 @@ export class Strategist {
     // spare (a scout is a rifle out of the fight), and not in the opening race for the middle.
     const out = [...cmd.scouts.values()].filter((t) => !t.done).length;
     const allowed = Math.min(this.cfg.scout ?? 0, Math.floor(B.sq.length / 5));
-    if (allowed > 0 && out < allowed && this.time > 45) {
+    // (One sent at a time, a while apart: a scout cut short is soon replaced, but not every few seconds.)
+    if (allowed > 0 && out < allowed && this.time > 45 && this.time - (this.scoutAt ?? -1e9) > 40) {
       const want = B.obj.filter((o) => o.kind !== 'line' && o.stale > 25 && (o.kind === 'defend' || o.p.owner === 1 - this.team) && ![...cmd.scouts.values()].some((t) => Math.hypot(t.at.x - o.p.pos.x, t.at.z - o.p.pos.z) < 40))
         .sort((a, b) => (b.kind === 'attack') - (a.kind === 'attack') || b.stale - a.stale)[0];
       if (want) {
@@ -532,13 +751,20 @@ export class Strategist {
           const d = Math.hypot(q.at.x - want.p.pos.x, q.at.z - want.p.pos.z);
           if (d < bd) { bd = d; pick = q.s; }
         }
-        if (pick && bd < 260) cmd.give(pick, { kind: 'scout', at: { x: want.p.pos.x, z: want.p.pos.z }, name: want.p.name, by: 'ai' });
+        if (pick && bd < 260 && cmd.give(pick, { kind: 'scout', at: { x: want.p.pos.x, z: want.p.pos.z }, name: want.p.name, by: 'ai' }).ok) this.scoutAt = this.time;
       }
     }
     // (The guns fire on what we can see on their own: the batteries' commander shells every group
     // our soldiers and scouts spot, and answers the enemy's guns. Ours only add the preparation of
     // an attack, and never over his counter-battery: guns that fire too much get found.)
-    void best;
+    // The doctrine's main effort: the point shelled as our men close on it, lifting before they're
+    // on it (the guns never fire danger close).
+    if (!this.cfg.fire || !this.cfg.doctrine || this.effortId == null) return;
+    const k = B.obj.findIndex((o) => o.p.id === this.effortId);
+    if (k < 0 || B.obj[k].p.owner !== 1 - this.team) return;
+    let eta = Infinity;
+    for (let i = 0; i < B.sq.length; i++) if (best.assign[i] === k) eta = Math.min(eta, B.sq[i].eta[k]);
+    if (eta > 8 && eta < 40) this.#prep(cmd, B.obj[k].p);
   }
 
   /** Before an attack goes in: shell the point if we can see what's on it (not more than every 20 s). */

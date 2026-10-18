@@ -4,7 +4,8 @@
 // bright, the Void low and slow), quieter with distance, and written up as radio chatter at the
 // bottom left (the reference clips' style): your squad's lines on an amber rule with the
 // speaker's rank and name (your squad leader is the sergeant), anyone else's dimmer, named in
-// his side's colour (yours blue, theirs red). One voice at a time: your squad's lines cut in
+// his side's colour (yours blue, theirs red). Your side's commander (the AI's plan: the main
+// effort, the point to hold) comes over the radio to everyone, as COMMAND. One voice at a time: your squad's lines cut in
 // ahead of the rest; at most two wait. ?voices=off keeps the chatter and drops the voices.
 
 import { bus } from '../core/EventBus.js';
@@ -46,22 +47,23 @@ export class BarkVoices {
     const me = this.player, p = me.movement.state.position;
     const d = Math.hypot(e.at[0] - p.x, e.at[2] - p.z);
     const mine = e.team === me.team && me.squad && e.squad === me.squad.id;
-    if (!mine && d > this.hear) return;
+    const hq = !!e.command && e.team === me.team;   // our commander, on the radio to every squad
+    if (!mine && !hq && d > this.hear) return;
     // The radio line.
     const el = document.createElement('div');
-    if (!mine) el.className = 'far';
+    if (!mine && !hq) el.className = 'far';
     const rank = mine ? (me.squad.leader?.id === e.id ? 'SGT ' : 'PVT ') : '';
-    el.innerHTML = `<b style="color:${mine ? AMBER : e.team === me.team ? US : THEM}">${rank}${e.name ?? '?'}</b>${e.text}`;
+    el.innerHTML = `<b style="color:${mine || hq ? AMBER : e.team === me.team ? US : THEM}">${rank}${hq ? 'COMMAND' : e.name ?? '?'}</b>${e.text}`;
     this.el.appendChild(el);
     this.lines.push({ el, until: this.time + 2.6 + e.text.length * 0.03 });
     while (this.lines.length > 3) this.lines.shift().el.remove();
     // The voice.
     if (!this.synth) return;
     const u = new SpeechSynthesisUtterance(e.text), V = VOICE[e.team] ?? VOICE[0];
-    u.pitch = V.pitch; u.rate = V.rate; u.volume = mine ? 0.9 : Math.max(0.15, 0.85 * (1 - d / this.hear));
+    u.pitch = V.pitch; u.rate = V.rate; u.volume = mine || hq ? 0.9 : Math.max(0.15, 0.85 * (1 - d / this.hear));
     const voices = this.synth.getVoices().filter((v) => v.lang?.startsWith('en'));
-    if (voices.length) u.voice = voices[(e.team * 3 + (e.id % 2)) % voices.length];
-    if (mine) { this.queue = this.queue.filter((q) => q.mine); this.queue.unshift({ u, mine }); }
+    if (voices.length) u.voice = voices[(e.team * 3 + (hq ? 2 : e.id % 2)) % voices.length];
+    if (mine || hq) { this.queue = this.queue.filter((q) => q.mine); this.queue.unshift({ u, mine: true }); }
     else this.queue.push({ u, mine });
     this.queue.length = Math.min(this.queue.length, 2);
   }

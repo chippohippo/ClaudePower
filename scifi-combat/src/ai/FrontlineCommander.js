@@ -270,8 +270,16 @@ export class FrontlineCommander {
     this.#log(squad, kind, text);
   }
 
-  #log(squad, kind, text) {
-    const e = { t: this.time, squad: squad?.id ?? null, callsign: squad?.callsign ?? 'Guns', kind, text };
+  /** The commander to every squad (the AI's plan): on the log, and the whole side hears it. Null when it's been said lately. */
+  announce(kind, vars = {}) {
+    const B = this.world?.barks;
+    const text = B?.data ? B.command(this.team, kind, vars, this.mode.map.hq[this.team]) : DEFAULT[kind]?.(vars) ?? null;
+    if (text) this.#log(null, kind, text, 'Command');
+    return text;
+  }
+
+  #log(squad, kind, text, callsign = null) {
+    const e = { t: this.time, squad: squad?.id ?? null, callsign: callsign ?? squad?.callsign ?? 'Guns', kind, text };
     this.log.push(e);
     if (this.log.length > 60) this.log.shift();
     bus.emit('command:radio', { team: this.team, ...e });
@@ -342,6 +350,14 @@ export class FrontlineCommander {
   }
 
   // ---------------------------------------------------------------- over the top
+  /** Storm it: the squad goes onto the point it's attacking at once, whatever's shooting (the AI's decisive push). */
+  storm(squad, seconds = 20) {
+    if (!squad?.tactics?.storm) return false;
+    squad.tactics.storm(seconds);
+    this.#radio(squad, 'storm', { place: this.target(squad.objective)?.name ?? 'the point' });
+    return true;
+  }
+
   /** A squad is in position in trench T: it goes with the next whistle on that line. */
   readyAtTrench(tactics, T) {
     let w = this.waves.get(T.id);
@@ -526,4 +542,9 @@ const DEFAULT = {
   scout: (v) => `${v.name ?? 'Scout'} going forward to get eyes on ${v.place}.`,
   eyes: (v) => `Eyes on ${v.place}: ${v.n} hostiles in sight.`,
   secured: (v) => `${v.place} secured. Awaiting orders.`,
+  effort: (v) => `All squads, main effort ${v.place}.`,
+  anchor: (v) => `Hold ${v.place} at all costs.`,
+  allin: (v) => `All squads, everything on ${v.place}.`,
+  endgame: () => 'Hold what we have.',
+  storm: (v) => `Storming ${v.place}!`,
 };

@@ -12,7 +12,9 @@
 //                holds cover and suppresses what the squad has seen while the other bounds 15-22 m
 //                to the next cover (craters, walls, ruins), then they swap. Nobody runs across
 //                open ground alone while the enemy is free to shoot.
-//  * assault   - the objective is close: rush onto the point, take cover inside its radius.
+//  * assault   - the objective is close: rush onto the point, take cover inside its radius. Also
+//                when the commander storms it (storm(): he has the men there to take it, so
+//                everyone goes in at once from up to 120 m out, whatever's shooting).
 //  * clear     - enemies in a building or trench bay, or rooms right at the objective: stack on a
 //                doorway (two flanking it, two covering), frag out if anyone has a grenade, enter
 //                and split to the corners, sweep, mark the room cleared, move to the next.
@@ -91,6 +93,9 @@ export class SquadTactics {
     this.plan();
   }
 
+  /** The commander's storm: for `seconds`, every man of the squad onto the point it's attacking, whatever's shooting. */
+  storm(seconds = 20) { this.stormUntil = this.time + seconds; this.next = 0; }
+
   /** The whistle: the commander sends this squad over the top (the rush starts at once). */
   overTheTop() {
     if (!this.jump) return;
@@ -124,7 +129,7 @@ export class SquadTactics {
       this.rushDue = false;
       if (phase !== 'charge') { this.rush = { until: this.time + 9, targets: this.#boundTargets(up, obj, up) }; this.#setPhase('contact', 'over the top'); this.#rushOrders(up); return; }
     }
-    if (this.rush && phase !== 'contact' && phase !== 'charge' && this.time < this.rush.until) { this.#rushOrders(up); return; }
+    if (this.rush && phase !== 'contact' && phase !== 'charge' && !(this.stormUntil > this.time) && this.time < this.rush.until) { this.#rushOrders(up); return; }
     switch (phase) {
       case 'charge': this.#chargeOrders(up, obj); break;
       case 'hold': this.#hold(up, obj); break;
@@ -243,6 +248,8 @@ export class SquadTactics {
       if (this.jump?.T !== T) this.jump = { T, ready: false, gone: false, since: this.time, at: 0, positions: new Map() };
       this.why = 'in the jump-off trench'; return 'jumpoff';
     }
+    // Stormed (the commander has the men here to take it): onto the point, now, rooms or no rooms.
+    if (this.stormUntil > this.time && dPoint < 120) { this.why = 'storming the point'; return 'assault'; }
     if (this.#roomToClear(obj)) { this.why = 'clearing'; return 'clear'; }
     if (dPoint < obj.radius + 22) { this.why = 'on the objective'; return 'assault'; }
     if (near < CONTACT || this.#suppressed(up) > 0.35) { this.why = near < CONTACT ? 'contact' : 'under fire'; return 'contact'; }
