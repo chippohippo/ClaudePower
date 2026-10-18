@@ -29,6 +29,10 @@
       "solari": ["Incoming!", "Strike inbound, take cover!", "Down, down, incoming!"],
       "void": ["From the sky!", "Incoming, down!", "Strike, scatter!"]
     },
+    "collapse": {
+      "solari": ["It's coming down, move!", "Building's going, get clear!", "Out from under, now!"],
+      "void": ["It falls, run!", "Clear the walls!", "Out, it's coming down!"]
+    },
     "down": {
       "solari": ["Man down! {name}'s down!", "{name}'s hit!", "We've got a man down!"],
       "void": ["{name} has fallen!", "{name} is down!", "We lost {name}!"],

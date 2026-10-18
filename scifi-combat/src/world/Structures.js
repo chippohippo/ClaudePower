@@ -152,6 +152,7 @@ export class StructureSystem {
     this.time = 0;
     this.list = [];
     this.creaking = [];          // { ms, S, at }: pieces coming away at `at`
+    this.falling = [];           // { x0, z0, x1, z1, until }: ground where pieces are about to come down (bots get out from under: dangerAt)
     this.chunks = 10;            // chunks the blast being worked out can still throw
     this.dirty = [];             // nav rects to redo [x0, z0, x1, z1]
     this.stats = { breaks: 0, holes: 0, falls: 0, bodies: 0, tears: 0, shatters: 0, crushed: 0, rubble: 0 };
@@ -535,6 +536,12 @@ export class StructureSystem {
       for (const ms of this.#islands(unheld)) this.creaking.push({ ms, S, at: this.time + CREAK * (0.6 + 0.8 * this.rand()) });
       const n = unheld.length;
       bus.emit('structure:creak', { at: [cx / n, cy / n, cz / n], n, structure: S.id });
+      // Where it'll come down: under it, and round it as far as a third of its height (walls topple
+      // out), until it's had time to fall and settle.
+      let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity, top = -Infinity, low = Infinity;
+      for (const m of unheld) { x0 = Math.min(x0, m.min.x); z0 = Math.min(z0, m.min.z); x1 = Math.max(x1, m.max.x); z1 = Math.max(z1, m.max.z); top = Math.max(top, m.max.y); low = Math.min(low, m.min.y); }
+      const g = this.world.terrain?.height((x0 + x1) / 2, (z0 + z1) / 2) ?? 0, h = Math.max(1, top - Math.min(low, g)), r = Math.min(24, 1.5 + h / 3);
+      this.falling.push({ x0: x0 - r, z0: z0 - r, x1: x1 + r, z1: z1 + r, until: this.time + CREAK * 1.4 + Math.sqrt(2 * h / 9.8) + 1.5 });
     }
     // Other structures resting on or hanging from this one's members (a skybridge on a house).
     for (const T of S.near) {
@@ -812,6 +819,22 @@ export class StructureSystem {
       }
       this.dirty.length = 0;
     }
+  }
+
+  /**
+   * Standing where something is about to come down (or coming down)? out: the shortest way out of
+   * it (a unit vector on the ground).
+   */
+  dangerAt(x, z, out) {
+    for (let i = this.falling.length - 1; i >= 0; i--) {
+      const F = this.falling[i];
+      if (F.until < this.time) { this.falling.splice(i, 1); continue; }
+      if (x < F.x0 || x > F.x1 || z < F.z0 || z > F.z1) continue;
+      const w = x - F.x0, e = F.x1 - x, n = z - F.z0, s = F.z1 - z, m = Math.min(w, e, n, s);
+      out.set(m === w ? -1 : m === e ? 1 : 0, 0, m === w || m === e ? 0 : m === n ? -1 : 1);
+      return true;
+    }
+    return false;
   }
 
   /** Is anything still coming down? */

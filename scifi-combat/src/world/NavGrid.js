@@ -6,7 +6,9 @@
 // when cover is built or blown away, each field whose search reached that far repairs itself in
 // place (only the cells whose routes ran through the change are solved again), sliced across ticks
 // by a work budget. Locally, bots still steer, take cover and fight; the field only answers "which
-// way is the objective from here, around the walls".
+// way is the objective from here, around the walls". A route walked with path() is checked against
+// what has been blocked since it was planned (cut()), so rubble landing across it means a new
+// route at once, not a walk into the pile.
 //
 // Cells: steep terrain (> maxSlope) and cover taller than vaultHeight are blocked; vaultable
 // cover is passable at extra cost (bots vault it with the hold-to-climb input), and cost zones
@@ -24,6 +26,7 @@ const BIG = 150000;          // cells: past this a map is big (see above)
 const REACH = 900;           // m of route a big map's field covers around its goal
 const MAX_FIELDS = 24;       // fields a big map keeps
 const MAX_CHANGES = 8000;    // changed cells a field collects before rebuilding it is cheaper than repairing it
+const CUTS = 48;             // blocking changes kept for checking walked routes against (cut())
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DZ = [0, 0, 1, -1, 1, -1, 1, -1];
 const LEN = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
@@ -60,6 +63,8 @@ export class NavGrid {
     this.mark = null; this.gen = 0;
     this.pool = [];                                   // big maps: the arrays of evicted fields, for the next build
     this.stats = { builds: 0, repairs: 0, cells: 0 };
+    this.cuts = [];                                   // recent changes that blocked ground or made it dearer: { x0, z0, x1, z1, n }
+    this.cutN = 0;                                    // how many there have been (a route remembers the count it was planned at)
     this.#rebuild(0, 0, this.nx - 1, this.nz - 1);
   }
 
@@ -97,6 +102,7 @@ export class NavGrid {
       else if (now < was) (better ??= []).push(i);
     }
     if (!worse && !better) return;
+    if (worse) { this.cuts.push({ x0: minX, z0: minZ, x1: maxX, z1: maxZ, n: ++this.cutN }); if (this.cuts.length > CUTS) this.cuts.shift(); }
     const hits = (b) => b[0] <= x1 && b[2] >= x0 && b[1] <= z1 && b[3] >= z0;
     let any = false;
     for (const [key, f] of this.fields) if (hits(f.box)) { this.#note(f, worse, better); this.stale.add(key); any = true; }
@@ -594,6 +600,28 @@ export class NavGrid {
     }
     if (reached) pts.push(gx, gz); else if (cells.length > 1) pts.push(cx(best), cz(best));
     return { pts, reached };
+  }
+
+  /**
+   * Has ground blocked since `since` (a cutN) cut what's left of a route? The legs from (x, z) on
+   * through pts[from…] ([x, z, …]) that pass a changed area are walked again; a leg that has been
+   * blocked means plan again (one only made dearer, rubble low enough to vault, still goes).
+   */
+  cut(pts, from, x, z, since) {
+    if (since >= this.cutN) return false;
+    const all = !this.cuts.length || since < this.cuts[0].n - 1;   // more changes than are kept: every leg is walked
+    let ax = x, az = z;
+    for (let i = from; i + 1 < pts.length; i += 2) {
+      const bx = pts[i], bz = pts[i + 1];
+      let near = all;
+      for (let k = this.cuts.length - 1; !near && k >= 0 && this.cuts[k].n > since; k--) {
+        const C = this.cuts[k];
+        near = Math.max(ax, bx) >= C.x0 - 1 && Math.min(ax, bx) <= C.x1 + 1 && Math.max(az, bz) >= C.z0 - 1 && Math.min(az, bz) <= C.z1 + 1;
+      }
+      if (near && !this.lineClear(ax, az, bx, bz, 1e9)) return true;
+      ax = bx; az = bz;
+    }
+    return false;
   }
 
   /** Is the straight segment walkable through cells no costlier than `maxCost`? (grid DDA) */

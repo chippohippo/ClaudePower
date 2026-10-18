@@ -327,9 +327,17 @@ export class CombatBotBrain {
    * out from under it.
    */
   #incoming() {
+    const p = this.self.movement.state.position;
+    // A building coming down round us: up and out from under it, the shortest way.
+    const S = this.world.structures;
+    if (S?.falling.length && S.dangerAt(p.x, p.z, _a)) {
+      if (!this.podDodge || this.time >= this.podDodge.until + 1) this.world.barks?.say(this.self, 'collapse');
+      this.podDodge = { x: _a.x, z: _a.z, until: this.time + 0.4 };
+      this.dirtUntil = -1e9;
+      this.#stance('stand');
+    }
     const G = this.world.vehicles.guns;
     if (!G.incoming.length) return;
-    const p = this.self.movement.state.position;
     for (const r of G.incoming) {
       if (r.kind !== 'pod') continue;
       const left = r.at - G.time, dx = p.x - r.x, dz = p.z - r.z, d = hyp(dx, dz);
@@ -944,11 +952,15 @@ export class CombatBotBrain {
     else if (nav && !(follow && d < 18 && nav.lineClear(me.x, me.z, p.x, p.z, 1.5))) {
       let R = this.route;
       const moved = R ? hyp(R.gx - p.x, R.gz - p.z) : Infinity;
-      if (!R || (moved > 1.5 && this.time - R.at > 0.8) || moved > 5 || this.time - R.at > 6 || this.stuck.repath) {
+      // A new route when the goal moves, now and then, when stuck, and at once when something has
+      // come down across this one (rubble, a wall blown into the street: nav.cut).
+      if (!R || (moved > 1.5 && this.time - R.at > 0.8) || moved > 5 || this.time - R.at > 6 || this.stuck.repath
+        || (R.cut !== nav.cutN && nav.cut(R.pts, R.i, me.x, me.z, R.cut ?? 0))) {
         const res = nav.path(me.x, me.z, p.x, p.z, { maxExpand: d > 80 ? 6000 : 2500 });
         R = this.route = { pts: res?.pts?.length ? res.pts : [p.x, p.z], i: 0, gx: p.x, gz: p.z, at: this.time };
         this.stuck.repath = false;
       }
+      R.cut = nav.cutN;
       while (R.i < R.pts.length - 2 && hyp(R.pts[R.i] - me.x, R.pts[R.i + 1] - me.z) < 1.4) R.i += 2;
       const wx = R.pts[R.i], wz = R.pts[R.i + 1], l = hyp(wx - me.x, wz - me.z);
       if (l > 0.05) { dir.set((wx - me.x) / l, 0, (wz - me.z) / l); steered = true; }

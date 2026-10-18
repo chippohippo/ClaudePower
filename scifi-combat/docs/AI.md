@@ -82,6 +82,16 @@ muzzle, and after 14 s, or with nowhere left to look, calls the contact lost and
 - **Feelers** along the way it's actually going, whatever it's aiming at: climb what can be climbed
   (low cover, parapets, crates, rocks, dug positions) with hold-to-climb, slide along anything taller
   following the wall toward where it wanted to go.
+- **The ground changing under the plan:** the nav grid hears of everything built, blown away or
+  come down (cover, holes, rubble settling: `NavGrid.updateRegion`), keeps a log of what blocked
+  ground, and repairs the flow fields that ran through it. A route being walked is checked against
+  that log each tick (`NavGrid.cut`): rubble landing across what's left of it (too tall to climb)
+  means a new route at once, not a walk into the pile until stuck. Rubble low enough to climb over
+  stays a way through.
+- **Things coming down:** a building that starts to fall marks the ground it will come down on (under
+  it, and round it a third of its height, until it has fallen and settled: `Structures.dangerAt`).
+  A soldier standing there gets up and runs out the shortest way, shouting it ("It's coming down,
+  move!"), whatever he was doing.
 - **Unsticking:** no progress for 1 s, hold climb; 2 s, re-plan the route; 3 s, sidestep out of the
   corner.
 - **Stance from the position** (with the player's inputs: crouch tap and hold, prone key, jump):
