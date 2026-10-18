@@ -46,7 +46,11 @@ import { mulberry32 } from '../world/Terrain.js';
 import { ScoutTask } from './command/Scout.js';
 
 const DIR = [1, -1];
-const CALLSIGNS = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'X-ray', 'Yankee', 'Zulu'];
+/** Squad callsigns per army (the forge's sons; the dark's): the radio's, the HUD's and the command view's. */
+export const CALLSIGNS = [
+  ['Anvil', 'Rivet', 'Forge', 'Ember', 'Flint', 'Cinder', 'Brand', 'Torch', 'Spark', 'Temper', 'Bellows', 'Lantern', 'Beacon', 'Gilt', 'Halo', 'Crucible'],
+  ['Wraith', 'Hollow', 'Umbra', 'Vesper', 'Shade', 'Rift', 'Ebon', 'Gloam', 'Murk', 'Veil', 'Ashen', 'Sable', 'Hush', 'Omen', 'Null', 'Dusk'],
+];
 /** What a command's difficulty sets (data/ai/personalities.json difficulty.*.command). */
 export const COMMAND = { obey: 0.85, interval: 4, mind: false, line: 0.4 };
 
@@ -58,8 +62,8 @@ export class Squad {
     this.since = 0;
     this.order = null;        // the order it's under: { kind, obj, role, by, issued } (null: standing orders)
     this.pending = null;      // an order it hasn't been able to carry out yet: { order, at, tries }
-    const n = Math.floor(id / CALLSIGNS.length);
-    this.callsign = CALLSIGNS[id % CALLSIGNS.length] + (n ? ` ${n + 1}` : '');
+    const list = CALLSIGNS[team === 1 ? 1 : 0], n = Math.floor(id / list.length);
+    this.callsign = list[id % list.length] + (n ? ` ${n + 1}` : '');
   }
   get leader() { return this.members.find((m) => !m.health.dead && !m.health.downed && !m.detached) ?? this.members.find((m) => !m.health.dead && !m.health.downed) ?? null; }
   get alive() { let n = 0; for (const m of this.members) if (!m.health.dead) n++; return n; }
@@ -156,7 +160,7 @@ export class FrontlineCommander {
       this.#radio(squad, order.kind === 'fallback' ? 'fallback' : 'order', { place: order.obj.name ?? 'the objective' });
       return { ok: true };
     }
-    squad.pending = { order, at: this.time + v.delay, tries: tries + 1 };
+    squad.pending = { order, at: this.time + v.delay, tries: tries + 1, why: v.why };
     this.#radio(squad, 'refuse', { why: v.why });
     return { ok: false, why: v.why, delay: v.delay };
   }
@@ -374,10 +378,11 @@ export class FrontlineCommander {
     for (const s of this.squads) if (s.pending && this.time >= s.pending.at) { if (s.order === s.pending.order) this.#tryOrder(s, s.pending.order, s.pending.tries); else s.pending = null; }
     for (const [sq, task] of this.scouts) { task.update(dt); if (task.done) this.scouts.delete(sq); }
     this.timer -= dt;
+    if (this.mind?.thinking) this.mind.plan(this);   // a plan being thought through: a slice of it a tick
     if (this.timer > 0) return;
     this.timer = this.interval;
     this.#upkeep();
-    if (this.mind) this.mind.plan(this);
+    if (this.mind && !this.mind.thinking) this.mind.plan(this);
     this.#standing(this.squads.filter((s) => !s.order));
     // Refresh the per-bot orders (members change as they respawn into squads; lanes move with the front).
     for (const s of this.squads) { if (s.pending) continue; const p = this.target(s.objective); if (p) this.#order(s, p, s.role, true); }
@@ -404,8 +409,8 @@ export class FrontlineCommander {
     for (const { s, p, role } of this.standingPlan(squads)) this.#order(s, p, role);
   }
 
-  /** Where standing orders would send these squads: [{ s: squad, p: point or lane, role }]. */
-  standingPlan(squads) {
+  /** Where standing orders would send these squads: [{ s: squad, p: point or lane, role }] (`build`: as eta()). */
+  standingPlan(squads, build = true) {
     if (!squads.length) return [];
     const { attack, defend } = this.mode.objectives(this.team);
     const team = this.team;
@@ -463,7 +468,7 @@ export class FrontlineCommander {
       let best = null, bd = Infinity;
       for (const x of wants) {
         if (x.slots <= 0) continue;
-        const d = this.eta(x.p, at);
+        const d = this.eta(x.p, at, build);
         if (d < bd) { bd = d; best = x; }
       }
       if (!best) best = pointWants.reduce((a, b) => (b.w > a.w ? b : a), pointWants[0] ?? wants[0]);
@@ -473,12 +478,18 @@ export class FrontlineCommander {
     return out;
   }
 
-  /** How far (m, along the routes where there's a field) a squad at `at` is from point or place p. */
-  eta(p, at) {
+  /**
+   * How far (m, along the routes where there's a field) a squad at `at` is from point or place p.
+   * `build` false: only a route already worked out (a guess from the straight line otherwise), so
+   * asking about everywhere doesn't solve a field for everywhere at once.
+   */
+  eta(p, at, build = true) {
     // A lane on a shared field: that's the way to the nearest lane, not this one: as the crow flies.
-    const f = p.shared ? null : this.nav?.want(p.field ?? `pt:${p.id}`, p.pos.x, p.pos.z, p.radius * 0.6);
+    const key = p.field ?? `pt:${p.id}`;
+    const f = p.shared ? null : build ? this.nav?.want(key, p.pos.x, p.pos.z, p.radius * 0.6) : this.nav?.fields.get(key) ?? null;
     const r = f ? this.nav.distance(f, at.x, at.z) : Infinity;
-    return r < Infinity ? r : Math.hypot(at.x - p.pos.x, at.z - p.pos.z);   // beyond a big map's field: as the crow flies
+    if (r < Infinity) return r;
+    return Math.hypot(at.x - p.pos.x, at.z - p.pos.z) * (f || build || p.shared ? 1 : 1.25);   // beyond a big map's field: as the crow flies (routes wind)
   }
 
   #order(squad, point, role, refresh = false) {

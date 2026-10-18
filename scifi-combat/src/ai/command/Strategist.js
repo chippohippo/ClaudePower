@@ -50,35 +50,56 @@ const SECTOR = 2.5, LOSE = 3;    // the sector we attack taken; ours lost
 const ODDS = 0.4;                // ...the odds of it falling, for each point still to take
 const RESERVE = -1;              // (a squad's assignment: the reserve)
 const COMMIT = 30;               // s an order stands (turning a squad round sooner costs more)
+const SLICE = 40;                // evaluations thought through a tick
+const NS = Math.floor(H / STEP) + 1;   // steps played forward
+let LATE = 0;                          // ...of them in the second half (the sectors are judged over those)
+for (let t = 0; t <= H; t += STEP) if (t >= H / 2) LATE++;
 const _c = new Vector3();
 
 export class Strategist {
   /**
    * @param {number} team
-   * @param {object} o { world, mode, cfg: the difficulty's `command` ({ search, responses, noise, stage, scout, fire, reserve }), seed }
+   * @param {object} o { world, mode, cfg: the difficulty's `command` ({ search, responses, noise, stage, scout, fire, reserve, margin, screen }), seed, wave: s between reinforcement waves }
    */
-  constructor(team, { world, mode, cfg = {}, seed = 1 }) {
-    this.team = team; this.world = world; this.mode = mode;
-    this.cfg = { search: 120, responses: 2, noise: 0.15, stage: true, scout: 1, fire: true, reserve: false, ...cfg };
+  constructor(team, { world, mode, cfg = {}, seed = 1, wave = 6 }) {
+    this.team = team; this.world = world; this.mode = mode; this.wave = wave;
+    this.cfg = { search: 120, responses: 2, noise: 0.15, stage: true, scout: 1, fire: true, reserve: false, margin: 0.5, screen: 0.1, ...cfg };
     this.rand = mulberry32(seed * 7907 + team * 31 + 3);
     this.stages = new Map();     // point id -> { place, squads: Set, since, go }
     this.judge = new Map();      // objective id -> { f: how far off our reading of it is, t }
+    this.reading = new Map();    // objective id -> { e0, e1, u, t }: the enemy there, averaged over time
     this.lastFire = -1e9;
     this.time = 0;
     this.frontKey = null; this.frontT = 0;   // when the front last moved (everyone walking up since)
     this.last = null;            // the last plan's numbers (for the command view and tests): { score, evals, objectives, assign }
   }
 
-  /** Think, and give the orders (called by the commander every few seconds). */
+  /** Still thinking a plan through (the commander calls plan() every tick until it's done). */
+  get thinking() { return !!this.job; }
+
+  /**
+   * Think, and give the orders: started by the commander every few seconds, thought through a slice
+   * at a time (SLICE evaluations a tick: no hitch however deep it looks), played when it's done.
+   */
   plan(cmd) {
     const t0 = performance.now();
+    if (!this.job) {
+      this.time = cmd.time;
+      const board = this.#board(cmd);
+      if (!board) return;
+      this.job = { board, it: this.#search(board, cmd), ms: 0, worst: 0, ticks: 0, split: [performance.now() - t0, 0, 0, 0] };
+    }
+    const J = this.job, r = J.it.next();
+    if (!r.done) { const ms = performance.now() - t0; J.ms += ms; J.worst = Math.max(J.worst, ms); J.ticks++; return; }
+    this.job = null;
     this.time = cmd.time;
-    const board = this.#board(cmd);
-    if (!board) return;
-    const best = this.#search(board, cmd);
-    this.#play(cmd, board, best);
-    this.#support(cmd, board, best);
-    this.last = { score: best.score, evals: board.evals, ms: performance.now() - t0, book: best.book ?? false, objectives: board.obj.map((o) => ({ id: o.p.id, kind: o.kind, enemy: +(o.e0 + o.e1 + o.u).toFixed(2), name: o.p.name })), assign: best.assign.slice() };
+    const best = r.value, B = J.board, t1 = performance.now();
+    this.#play(cmd, B, best);
+    const t2 = performance.now();
+    this.#support(cmd, B, best);
+    const ms = performance.now() - t0;
+    J.split[1] = t1 - t0; J.split[2] = t2 - t1; J.split[3] = performance.now() - t2;   // (the board; the last slice; playing it; support)
+    this.last = { score: best.score, evals: B.evals, ms: J.ms + ms, worst: Math.max(J.worst, ms), ticks: J.ticks + 1, split: J.split, book: best.book ?? false, objectives: B.obj.map((o) => ({ id: o.p.id, kind: o.kind, enemy: +(o.e0 + o.e1 + o.u).toFixed(2), name: o.p.name })), assign: best.assign.slice() };
   }
 
   // ---------------------------------------------------------------- the board
@@ -103,6 +124,7 @@ export class Strategist {
       for (let i = 0; i < P; i++) d.push([Math.hypot(obj[i].p.pos.x - L.x, obj[i].p.pos.z - L.z), i]);
       d.sort((a, b) => a[0] - b[0]);
       obj[k].adj = d.filter(([x], j) => x < 160 && (j === 0 || x < d[0][0] * 1.35)).slice(0, 2).map(([, i]) => i);
+      obj[k].gap = d.length ? d[0][0] : 100;   // (how far from any point: the gaps and the flanks)
     }
     // Squads: strength now (the hurt count for less), and when the dead come back.
     const spawn = this.#spawn(team);
@@ -123,7 +145,7 @@ export class Strategist {
     });
     // How long each squad takes to each objective (along the routes; in a fight, it has to break off first).
     for (const q of sq) {
-      for (let k = 0; k < obj.length; k++) q.eta[k] = cmd.eta(obj[k].p, q.at) / RUN + (q.busy ? 8 : 0);
+      for (let k = 0; k < obj.length; k++) q.eta[k] = cmd.eta(obj[k].p, q.at, false) / RUN + (q.busy ? 8 : 0);
       q.cur = obj.findIndex((o) => o.p.id === q.s.objective);
       const st = [...this.stages.values()].find((g) => g.squads.has(q.s));
       if (st) q.cur = obj.findIndex((o) => o.p.id === st.point);
@@ -147,15 +169,32 @@ export class Strategist {
     }
     // (Many of his men are elsewhere: walking up, dead, behind his line.)
     const unseen = Math.max(0, theirs - seen) * 0.6;
-    let ws = 0;
-    for (const o of obj) ws += o.kind === 'line' ? 0.25 : 1;
-    for (const o of obj) o.u = (unseen * (o.kind === 'line' ? 0.25 : 1)) / ws;
+    // (His line, like ours, holds the gaps and the flanks first: the lanes furthest from any point.)
+    let gs = 0, nl = 0, ws = 0;
+    for (const o of obj) if (o.kind === 'line') { gs += o.gap; nl++; }
+    const wt = (o) => (o.kind === 'line' ? 0.25 * (nl ? (o.gap * nl) / gs : 1) : 1);
+    for (const o of obj) ws += wt(o);
+    for (const o of obj) o.u = (unseen * wt(o)) / ws;
+    // Readings of the enemy change with every glimpse: each objective's is kept as a running average
+    // (over about 8 s), so the plan follows what he does, not who happened to be seen this second.
+    for (const o of obj) {
+      let r = this.reading.get(o.p.id);
+      const k = r ? 1 - Math.exp(-(this.time - r.t) / 8) : 1;
+      if (!r) this.reading.set(o.p.id, (r = { e0: 0, e1: 0, u: 0, t: this.time }));
+      r.e0 += (o.e0 - r.e0) * k; r.e1 += (o.e1 - r.e1) * k; r.u += (o.u - r.u) * k; r.t = this.time;
+      o.e0 = Math.max(r.e0, o.p.counts?.[enemy] ?? 0); o.e1 = r.e1; o.u = r.u;   // (who's on the point counts at once)
+    }
     // Misjudgement: a reading of each objective that's off by up to `noise`, and stays off a while (30 s).
     const nz = this.cfg.noise;
     for (const o of obj) {
       let j = this.judge.get(o.p.id);
       if (!j || this.time - j.t > 30) this.judge.set(o.p.id, (j = { f: 1 + (this.rand() * 2 - 1) * nz, t: this.time }));
       o.e0 = Math.max(0, o.e0 * j.f); o.e1 = Math.max(0, o.e1 * j.f); o.u = Math.max(0, o.u * j.f);
+    }
+    // The dead come back: the next wave, then the walk from the side's spawn (fast beside his own line).
+    for (const o of obj) {
+      o.backA = Math.ceil((this.wave / 2 + 4 + (Math.hypot(spawn.x - o.p.pos.x, spawn.z - o.p.pos.z) * 1.15) / RUN) / STEP);
+      o.backE = Math.ceil((this.wave / 2 + 4 + (Math.hypot(his.x - o.p.pos.x, his.z - o.p.pos.z) * 1.15) / RUN) / STEP);
     }
     // Points: who holds them and how far the capture is (+1 ours, -1 theirs).
     for (const o of obj) o.held = o.kind === 'line' ? 0 : (team === 0 ? 1 : -1) * (o.p.progress ?? 0);
@@ -172,12 +211,12 @@ export class Strategist {
   }
 
   // ---------------------------------------------------------------- thinking it through
-  /** Search plans (an objective per squad) for the best against his answers. */
-  #search(B, cmd) {
+  /** Search plans (an objective per squad) for the best against his answers (a generator: it yields every SLICE evaluations). */
+  *#search(B, cmd) {
     const n = B.sq.length, m = B.obj.length;
     // The book: where standing orders would send them.
     const book = new Int32Array(n);
-    const bk = new Map(cmd.standingPlan(B.sq.map((q) => q.s)).map((x) => [x.s, x.p.id]));
+    const bk = new Map(cmd.standingPlan(B.sq.map((q) => q.s), false).map((x) => [x.s, x.p.id]));
     for (let i = 0; i < n; i++) { const k = B.obj.findIndex((o) => o.p.id === bk.get(B.sq[i].s)); book[i] = k >= 0 ? k : this.#nearest(B, i); }
     const assign = new Int32Array(n);
     for (let i = 0; i < n; i++) assign[i] = B.sq[i].cur >= 0 ? B.sq[i].cur : book[i];
@@ -196,22 +235,26 @@ export class Strategist {
       const s = this.#score(B, a);
       if (s > best.score) best = { assign: a, score: s };
     }
+    let slice = B.evals + SLICE;
+    if (B.evals >= slice - SLICE / 2) { yield; slice = B.evals + SLICE; }
     // Then a squad at a time: everywhere else (and the reserve, for elite).
     const options = [];
     for (let k = 0; k < m; k++) options.push(k);
     if (this.cfg.reserve && n >= 8) options.push(RESERVE);
     let i = Math.floor(this.rand() * Math.max(1, n));
     while (B.evals < budget && n > 0) {
-      const a = Int32Array.from(best.assign), was = a[i];
+      const a = Int32Array.from(best.assign), was = a[i], onLane = was >= B.P;
       let improved = false;
       for (const k of options) {
         if (k === was || B.evals >= budget) continue;
+        if (onLane && k >= B.P) continue;   // (from one stretch of the line to the next: nothing gained)
         a[i] = k;
         const s = this.#score(B, a);
         if (s > best.score + 1e-6) { best = { assign: Int32Array.from(a), score: s }; improved = true; }
       }
       a[i] = best.assign[i];
       i = (i + 1) % n;
+      if (B.evals >= slice) { yield; slice = B.evals + SLICE; }
       if (!improved && B.evals > budget * 0.75 && this.rand() < 0.3) {
         // Swap two squads (a closer one for a further one).
         const j = Math.floor(this.rand() * n), k2 = Math.floor(this.rand() * n);
@@ -219,7 +262,12 @@ export class Strategist {
       }
     }
     // A new plan only if it's clearly better than going on with this one (no dithering).
-    return best.score > now.score + 0.25 ? best : now;
+    // A new plan only if it's clearly better than going on with this one: by `margin` for every squad it moves (no dithering).
+    let moved = 0;
+    for (let i = 0; i < n; i++) if (best.assign[i] !== now.assign[i]) moved++;
+    const pick = moved && best.score > now.score + this.cfg.margin * moved ? best : now;
+    if (this.onPick) this.onPick({ B, now, best, book: { assign: book, score: b }, pick });   // (tuning: what it weighed)
+    return pick;
   }
 
   #nearest(B, i) {
@@ -235,7 +283,7 @@ export class Strategist {
     for (let r = 0; r < R; r++) { const v = this.#play75(B, assign, r); worst = Math.min(worst, v); sum += v; }
     // What changing orders costs: a squad turned round (worse in a fight, worse still just after it was sent).
     let churn = 0;
-    for (let i = 0; i < assign.length; i++) { const q = B.sq[i]; if (assign[i] !== q.cur && q.cur >= 0) churn += q.committed ? 1.2 : q.busy ? 0.5 : 0.25; }
+    for (let i = 0; i < assign.length; i++) { const q = B.sq[i]; if (assign[i] !== q.cur && q.cur >= 0) churn += q.committed ? 2 : q.busy ? 1 : 0.5; }
     return 0.5 * worst + 0.5 * (sum / R) - churn;
   }
 
@@ -246,8 +294,9 @@ export class Strategist {
   #play75(B, assign, answer) {
     B.evals++;
     const O = B.obj, m = O.length, n = assign.length, P = B.P;
-    if (!this.A || this.A.length !== m) for (const k of ['A', 'E', 'E1', 'U', 'L', 'held', 'extra', 'w', 'FA', 'FE']) this[k] = new Float64Array(m);
-    const { A, E, E1, U, L, held, extra, w, FA, FE } = this;
+    if (!this.A || this.A.length !== m) { for (const k of ['A', 'E', 'E1', 'U', 'L', 'RA', 'held', 'extra', 'w', 'FA', 'FE']) this[k] = new Float64Array(m); this.RET = new Float64Array(2 * m * NS); }
+    const { A, E, E1, U, L, RA, RET, held, extra, w, FA, FE } = this;
+    RET.fill(0); RA.fill(0);
     let lostA = 0, lostE = 0;
     for (let k = 0; k < m; k++) { E[k] = O[k].e0; E1[k] = O[k].e1; U[k] = O[k].u; held[k] = O[k].held; L[k] = 0; extra[k] = 0; w[k] = 0; }
     // His answer: where his free men go (some of what he has, 20 s from now).
@@ -271,8 +320,10 @@ export class Strategist {
       for (let k = 0; k < P; k++) extra[k] = free / P;
     }
     const capRate = 1 / (this.mode.cfg.captureTime || 10);
-    let reserveTo = -1, v = 0, end = false;
-    for (let t = 0; t <= H && !end; t += STEP) {
+    let reserveTo = -1, v = 0;
+    for (let si = 0, t = 0; t <= H; si++, t += STEP) {
+      // The fallen of this fight coming back to it (each side's at its own pace).
+      for (let k = 0; k < m; k++) { RA[k] += RET[k * NS + si]; E[k] += RET[(m + k) * NS + si]; }
       // Ours as they get there (the dead back after the next wave); the reserve where it's worst at 25 s, 15 s later.
       A.fill(0);
       for (let i = 0; i < n; i++) {
@@ -281,6 +332,7 @@ export class Strategist {
         if (t >= q.eta[k]) A[k] += q.str;
         if (t >= q.eta[k] + 12) A[k] += q.back * 0.7;
       }
+      for (let k = 0; k < m; k++) A[k] += RA[k];
       if (t === 25 && reserveTo < 0) {
         let wv = Infinity;
         for (let k = 0; k < P; k++) { const x = A[k] - L[k] - E[k] - E1[k] - U[k]; if (x < wv) { wv = x; reserveTo = k; } }
@@ -308,34 +360,32 @@ export class Strategist {
           const da = Math.min(a, (K * fe * STEP) / ca), de = Math.min(e, (K * fa * STEP) / ce);
           L[k] += da; E[k] = e - de;
           lostA += da; lostE += de;
+          // ...and come back later, the dead (most of the fallen) with the next wave.
+          if (si + O[k].backA < NS) RET[k * NS + si + O[k].backA] += da * 0.8;
+          if (si + O[k].backE < NS) RET[(m + k) * NS + si + O[k].backE] += de * 0.8;
         }
         if (k >= P) continue;
         // A side with the point (nearly) to itself pushes it its way.
         const ap = Math.max(0, A[k] - L[k]), ep = E[k], diff = Math.max(-3, Math.min(3, ap - ep));
         if (Math.abs(diff) > 0.3 && Math.min(ap, ep) < Math.max(0.3, 0.25 * Math.max(ap, ep))) held[k] = Math.max(-1, Math.min(1, held[k] + diff * capRate * STEP));
       }
-      // The sector we attack, all ours: taken (the sooner the better). Ours he attacks, all his: lost.
-      let allA = true, allD = true, anyA = false, anyD = false;
-      for (let k = 0; k < P; k++) {
-        if (O[k].atk) { anyA = true; if (held[k] < 1) allA = false; }
-        if (O[k].def) { anyD = true; if (held[k] > -1) allD = false; }
+      // Where it leaves the sectors, over the second half of what's played forward (the longer the
+      // better): each point he still has to take is a long way further from his taking ours, each we
+      // still have to take one further from our taking his (a point given away is a point he no
+      // longer needs; a sector all ours or all his is as good as taken or lost).
+      if (t >= H / 2) {
+        let dA = 0, dD = 0, anyA = false, anyD = false;
+        for (let k = 0; k < P; k++) {
+          if (O[k].atk) { anyA = true; dA += (1 - held[k]) / 2; }
+          if (O[k].def) { anyD = true; dD += (1 + held[k]) / 2; }
+        }
+        if (anyA) v += (SECTOR * ODDS ** dA) / LATE;
+        if (anyD) v -= (LOSE * ODDS ** dD) / LATE;
       }
-      const soon = 1 + (0.4 * (H - t)) / H;
-      if (anyA && allA) { v += SECTOR * soon; end = true; }
-      else if (anyD && allD) { v -= LOSE * soon; end = true; }
     }
-    if (!end) {
-      // Where it leaves the sectors: each point he still has to take is a long way further from his
-      // taking ours, each we still have to take one further from our taking his (a point given
-      // away is a point he no longer needs).
-      let dA = 0, dD = 0, anyA = false, anyD = false;
-      for (let k = 0; k < P; k++) {
-        if (O[k].atk) { anyA = true; dA += (1 - held[k]) / 2; }
-        if (O[k].def) { anyD = true; dD += (1 + held[k]) / 2; }
-      }
-      if (anyA) v += SECTOR * ODDS ** dA;
-      if (anyD) v -= LOSE * ODDS ** dD;
-    }
+    // A lane he holds and we don't: a way round our points, to our guns and our rear.
+    const sc = this.cfg.screen;
+    if (sc) for (let k = P; k < m; k++) { const e = E[k] - Math.max(0, A[k] - L[k]); if (e > 0) v -= sc * Math.min(2, e); }
     if (this.debug) this.debug.push({ answer, v, lostA, lostE, held: Array.from(held), A: Array.from(A), L: Array.from(L), E: Array.from(E), U: Array.from(U) });
     return v + (lostE - lostA) * 0.1;   // (tickets)
   }

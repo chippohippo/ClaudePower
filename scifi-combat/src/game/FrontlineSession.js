@@ -110,7 +110,7 @@ export class FrontlineSession {
       const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav, world: this.world, tmap: this.tactical, cfg, seed });
       c.squads = this.squads[t];
       c.human = this.fighters.some((f) => f.team === t && f.commander);
-      if (!c.human && c.cfg.mind) c.mind = new Strategist(t, { world: this.world, mode: this.mode, cfg: c.cfg, seed });
+      if (!c.human && c.cfg.mind) c.mind = new Strategist(t, { world: this.world, mode: this.mode, cfg: c.cfg, seed, wave: this.waveInterval });
       return c;
     });
     this.suppression = new Suppression(this.world);
@@ -149,7 +149,9 @@ export class FrontlineSession {
     for (const f of this.fighters) if (f.duty) this.#deploy(f, true);   // crews start beside their guns and trucks
     for (const f of this.fighters) if (f.offField) f.movement.reset(this.map.hq[f.team].clone(), 0);
     this.world.refreshSpatial();
-    for (const c of this.commanders) c.update(0);
+    // The first plans now, at load (they're thought through a slice a tick in play): the opening
+    // orders are ready for the first tick, and the planner has warmed up before the battle starts.
+    for (const c of this.commanders) { c.update(0); while (c.mind?.thinking) c.mind.plan(c); }
   }
 
   dispose() {

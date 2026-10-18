@@ -1,5 +1,6 @@
 // Frontline: a Battlefront-style battle against bots, on a map built for the match size.
 // URL: ?size=4v4|12v12|32v32|64v64|200v200 (or ?players=N) &seed=N &class=dawnblade &team=0|1 &difficulty=recruit|veteran|elite
+//      (&class=commander: the commander's seat, the battle from above: CommandView)
 //      &map=trench|city (the trench war, or the city) &planet=scorched|duskcity|nightcity (data/art/palette.json;
 //      the city defaults to duskcity, the snowfall at dusk, nightcity is its aurora night)
 //      &fx=low|off (post-processing quality)
@@ -35,6 +36,7 @@ import { AudioDirector } from './audio/AudioDirector.js';
 import { SoundEngine } from './audio/SoundEngine.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
+import { CommandView } from './ui/CommandView.js';
 import { BattleFx } from './vfx/BattleFx.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
 import { Atmosphere, installFog } from './render/Atmosphere.js';
@@ -91,7 +93,9 @@ const { world, map, mode } = session;
 const players = session.players;
 document.title = `Emberfall Frontline · ${map.name} (${session.size})`;
 const player = session.fighters.find((f) => f.id === PLAYER_ID);
-player.name = 'You';
+const commanding = !!player.commander;   // in the commander's seat: no soldier of yours on the field
+let commandView = null;                    // (its view: below, with the HUD)
+player.name = commanding ? 'Command' : 'You';
 
 // ---------------------------------------------------------------- scene
 // The player's options (the [Esc] menu, the start menu's Settings); ?fx=low or ?fx=off override for a run.
@@ -125,7 +129,7 @@ const anim = new AnimationSystem(humanoid, { getEntity: (id) => world.entity(id)
 // Each fighter wears its role's kit in its army's paint, with its own stencilled number. The
 // city's people wear street clothes (their number picks their colours; a raider's, his gang's).
 for (const f of session.fighters) {
-  anim.add(f);
+  if (!f.offField) anim.add(f);
   const people = f.team === CIVILIAN ? 'civilian' : f.team === BANDIT ? 'bandit' : null;
   f.look = {
     team: f.team, status: null, flame: new THREE.Color(), highlight: f === player,
@@ -133,7 +137,7 @@ for (const f of session.fighters) {
     number: f.gang ? f.gang.id * 10 + (f.id % 10) : (f.id * 37 + 11) % 100,
   };
 }
-anim.focusId = PLAYER_ID;
+anim.focusId = commanding ? null : PLAYER_ID;
 const crowd = new CrowdRenderer(scene, { max: players + anim.maxCorpses + 8, palette });
 const tracers = new TracerPool(scene, { getEntity: (id) => world.entity(id), look: planet.fx?.bolts, localTeam: myTeam, muzzle: (id, p) => gunFx.muzzleAt(id, p) });   // (gunFx: below)
 const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
@@ -156,7 +160,7 @@ const groundOrCover = (o, d, max) => {
 };
 const rig = new CameraRig({ raycast: groundOrCover, settings: { baseFov: settings.fov, shakeScale: settings.shake, bobScale: settings.bob, reducedMotion: settings.reducedMotion } });
 rig.camera.far = 1500; rig.camera.updateProjectionMatrix();
-const resize = () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.setOptions({ scale: renderScale() }); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); };
+const resize = () => { renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.setOptions({ scale: renderScale() }); rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix(); commandView?.resize(innerWidth / innerHeight); };
 addEventListener('resize', resize);
 // The graphics driver gave up (a GPU too busy for too long resets, and the page's WebGL with it):
 // say so and come back with lighter effects instead of sitting on a frozen frame.
@@ -206,8 +210,17 @@ for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sound.re
 sound.setVolume(settings.volume);
 
 const hud = new FrontlineHud(document.getElementById('hud'), session, player, { letterbox: post.enabled ? post.letterbox : 0 });
+// The commander's seat: the map from above, the squads and their orders (the soldier's panels hide).
+if (commanding) commandView = new CommandView(document.getElementById('hud'), { session, team: myTeam, aspect: innerWidth / innerHeight });
 // The controls card: up for the first 25 s of the match, F1 hides it or brings it back.
 const helpCard = document.getElementById('help');
+if (commanding && helpCard) {
+  Object.assign(helpCard.style, { zIndex: 6, top: 'auto', bottom: '96px', maxWidth: '440px' });   // above the map, clear of the squad cards
+  helpCard.innerHTML = `<b>Command</b> <small style="opacity:.7">(F1 hides and shows this)</small> · you command your side: the squads go where you send them (most of the time: one in a firefight or pinned down may finish it first, and says so). Squads you give no orders follow standing orders; <b>X</b> hands a squad back to them.<br>
+    Select: click a squad's marker or card (Shift: several; <b>1</b>-<b>9</b>; Ctrl+A all). <b>Right-click</b> the map: take the point there (hold it, if it's ours), or hold that ground.<br>
+    <b>T</b> take · <b>H</b> hold · <b>R</b> scout (one man goes ahead to get eyes on it: the guns can hit what he sees) · <b>B</b> fall back · <b>F</b> fire mission (click the spot; blind where nobody has eyes on it, the rounds scatter) · Esc disarms.<br>
+    <b>WASD</b> or the arrows pan, the wheel zooms, the middle button drags the map, <b>Home</b> goes back to the front. Darkened ground: nobody's watched it lately; red rings: where enemies were last seen.`;
+}
 const helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000);
 addEventListener('keydown', (e) => { if (e.code !== 'F1' || !helpCard) return; e.preventDefault(); clearTimeout(helpTimer); helpCard.classList.toggle('gone'); });
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
@@ -224,7 +237,7 @@ let wasLocked = false, started = false;   // (the battle loop is built further d
 const options = new OptionsMenu(document.body, {
   inGame: true,
   onChange: (o, key) => applyOptions(o, key),
-  onClose: () => { loop.paused = false; sound.resume(); renderer.domElement.requestPointerLock?.(); },
+  onClose: () => { loop.paused = false; sound.resume(); if (!commanding) renderer.domElement.requestPointerLock?.(); },
   onQuit: () => { location.href = 'start.html'; },
 });
 const openOptions = () => { if (options.isOpen || !started) return; loop.paused = true; sound.ctx.suspend?.(); options.open(); };
@@ -233,7 +246,7 @@ document.addEventListener('pointerlockchange', () => {
   if (wasLocked && !locked && !player.health.dead) openOptions();
   wasLocked = locked;
 });
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && !document.pointerLockElement) { if (options.isOpen) options.close(); else openOptions(); } });
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && !document.pointerLockElement) { if (options.isOpen) options.close(); else if (!commandView?.escape()) openOptions(); } });
 async function applyOptions(o, key) {
   Object.assign(settings, o);
   rig.settings.baseFov = o.fov; rig.settings.shakeScale = o.shake; rig.settings.bobScale = o.bob; rig.settings.reducedMotion = visor.reducedMotion = o.reducedMotion;
@@ -277,6 +290,14 @@ const _yaw = (a, b) => Math.atan2(-(b.x - a.x), -(b.z - a.z));
 const loop = new FixedLoop({
   hz: 60,
   sim(dt, tick) {
+    if (commanding) {
+      // The commander's seat: the orders given since the last tick go out, the battle goes on.
+      commandView.tick();
+      session.focus[0] = commandView.target;
+      anim.snapshot();
+      session.step(dt);
+      return;
+    }
     if (hitStop > 0) { hitStop -= dt; return; }        // input waits too: no press is lost
     const cmd = fireControl.command(input.sample(tick, dt), input, player);   // at a gun: the mouse moves the fire mission's mark
     if (cmd.buttons.togglePOV?.pressed) rig.togglePOV();
@@ -290,9 +311,10 @@ const loop = new FixedLoop({
   },
   render(alpha) {
     // Paused behind the options: the frame as it stands (the options' changes show on it live).
-    if (loop.paused) { const c = fireControl.active ? fireControl.camera : rig.camera; post.render(scene, c, atmo.sunScreen(c, sunScreen), 0); return; }
+    if (loop.paused) { const c = commanding ? commandView.camera : fireControl.active ? fireControl.camera : rig.camera; post.render(scene, c, atmo.sunScreen(c, sunScreen), 0); return; }
     const dt = loop.frameDt;   // the real frame time: the camera, the animation and the effects keep their timing at any refresh rate
     for (const f of session.fighters) {
+      if (f.offField) continue;
       const s = f.movement.state, st = f.status, tf = f.transform;
       f.look.status = s.invulnerable ? STATUS_GLOW.iframes : f.melee.vulnerable ? STATUS_GLOW.vulnerable : tf ? STATUS_GLOW[tf.def.aura] ?? null
         : st.has('scorch') ? STATUS_GLOW.scorch : st.has('volatile') || st.has('weaken') ? STATUS_GLOW.weaken
@@ -301,25 +323,30 @@ const loop = new FixedLoop({
       // A civilian's rim is neutral, red while he's fighting your side.
       if (f.team === CIVILIAN) f.look.rim = civilianEngaging(world, f, myTeam) ? crowd.rimHostile : null;
     }
-    // At an indirect-fire gun the overhead fire-control view takes over the screen.
-    const view = fireControl.active ? fireControl.camera : rig.camera;
+    // At an indirect-fire gun the overhead fire-control view takes over the screen; in the commander's seat, the command view.
+    if (commanding) commandView.update(dt);
+    const view = commanding ? commandView.camera : fireControl.active ? fireControl.camera : rig.camera;
     anim.update(dt, alpha, view.position);
-    const w = player.weapons, pv = player.vehicle?.veh;
-    const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
-    const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
-    const ph = anim.get(PLAYER_ID);
-    rig.update(dt, {
-      target: player, pos: anim.record(PLAYER_ID).root, yaw: lookYaw, pitch: lookPitch,
-      ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current?.s.ads?.fov,
-      vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
-      eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
-      thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll',
-    });
-    const cam = fireControl.update(dt, player, rig.camera);
+    let cam = view;
+    if (!commanding) {
+      const w = player.weapons, pv = player.vehicle?.veh;
+      const lookYaw = input.yaw + (player.mode === 'gun' ? w.recoilYaw : 0);
+      const lookPitch = Math.max(-1.45, Math.min(1.45, input.pitch + (player.mode === 'gun' ? w.recoilPitch : 0)));
+      const ph = anim.get(PLAYER_ID);
+      rig.update(dt, {
+        target: player, pos: anim.record(PLAYER_ID).root, yaw: lookYaw, pitch: lookPitch,
+        ads: player.mode === 'gun' ? w.ads : player.melee.guarding ? 0.3 : 0, adsFov: w.current?.s.ads?.fov,
+        vehicle: pv ? pv.def.camera : null, scale: silhouetteScale(player),
+        eye: ph ? eyeOf(ph, _eye) : null, sight: ph?.prop.kind === 'gun' ? sightOf(ph, _sight) : null,
+        thirdPerson: player.health.dead || player.movement.state.mode === 'ragdoll',
+      });
+      cam = fireControl.update(dt, player, rig.camera);
+    }
     crowd.begin(cam);
     for (const r of anim.list) {
       const f = r.e, s = f.movement.state;
       if (f.vehicle && !f.vehicle.exposed && !f.vehicle.shown) continue;   // inside a hull: unseen (an open car's driver is seen)
+      if (commanding && !commandView.shows(f)) continue;                  // the commander's fog of war: enemies only while we see them
       if (r.lod < 2) crowd.drawRig(r.h, f.look, r.lod, f === player && rig.firstPerson ? FIRST_PERSON : null);
       else crowd.drawImpostor(r.root, { yaw: s.bodyYaw, scale: silhouetteScale(f), height: s.stance === 'crouch' ? 1.2 : 1.8, lying: LYING.has(s.mode) || s.stance === 'prone' || s.downed || s.slide?.kind === 'belly' || f.health.dead }, f.look);
     }
@@ -330,7 +357,7 @@ const loop = new FixedLoop({
       else crowd.drawImpostor(c.root, { yaw: _yaw(c.j.pelvis, c.j.neck), scale: c.scale, height: 1.8, lying: true }, c.look);
     }
     crowd.end();
-    const root = anim.record(PLAYER_ID).root;
+    const root = commanding ? commandView.target : anim.record(PLAYER_ID).root;
     atmo.update(dt, cam, fireControl.active ? cam.position : root);
     battlefield.update(mode, session.time, cam.position);
     city?.update(dt, cam, root);
@@ -343,8 +370,9 @@ const loop = new FixedLoop({
     collapse?.update(dt, alpha);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
-    audio.update(dt, player.movement.state.position, input.yaw);
-    hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active });
+    audio.update(dt, commanding ? commandView.target : player.movement.state.position, commanding ? commandView.listenYaw : input.yaw);
+    hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active && !commanding });
+    if (commanding) return;
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
     visor.update(dt, cam);
@@ -353,7 +381,7 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
+window.__frontline = { session, player, commandView, anim, crowd, rig, hud, renderer, scene, battlefield, city, collapse, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.

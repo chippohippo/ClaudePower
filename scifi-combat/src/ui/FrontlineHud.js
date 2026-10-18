@@ -54,11 +54,6 @@ const DOLL = `<g fill="currentColor" fill-opacity=".14" stroke="currentColor" st
   <rect x="19" y="69" width="9" height="27" rx="2"/><rect x="32" y="69" width="9" height="27" rx="2"/>
   <rect x="18" y="98" width="10" height="16" rx="2"/><rect x="32" y="98" width="10" height="16" rx="2"/>
 </g>`;
-// Squad callsigns per army (the forge's sons; the dark's).
-const CALLSIGNS = [
-  ['ANVIL', 'RIVET', 'FORGE', 'EMBER', 'FLINT', 'CINDER', 'BRAND', 'TORCH', 'SPARK', 'TEMPER', 'BELLOWS', 'LANTERN', 'BEACON', 'GILT', 'HALO', 'CRUCIBLE'],
-  ['WRAITH', 'HOLLOW', 'UMBRA', 'VESPER', 'SHADE', 'RIFT', 'EBON', 'GLOAM', 'MURK', 'VEIL', 'ASHEN', 'SABLE', 'HUSH', 'OMEN', 'NULL', 'DUSK'],
-];
 const ROLE_TAG = { assault: 'TRP', juggernaut: 'HVY', infiltrator: 'RCN', engineer: 'ENG', medic: 'MED', marksman: 'MKS', flameKnight: 'BLD', pilot: 'PLT', tech: 'TCH', demolitionist: 'DEM' };
 const PHASE = { follow: 'ON YOU', advance: 'ADVANCING', contact: 'IN CONTACT · BOUNDING', jumpoff: 'IN THE TRENCH · WAITING', assault: 'ASSAULTING', clear: 'CLEARING A BUILDING', hold: 'HOLDING', charge: 'CHARGE', regroup: 'REGROUPING', down: 'SQUAD DOWN' };
 const SHORT = { ammo: 'AMMO', shells: 'SHELLS', sandbags: 'SANDBAGS', tank: 'TANKS', hoverbike: 'BIKES', howitzer: 'GUNS', rockets: 'ROCKETS', at: 'AT GUNS' };
@@ -662,7 +657,7 @@ export class FrontlineHud {
     if (this.squadT && this.time - this.squadT < 0.2) return;   // 5 Hz is plenty for text
     this.squadT = this.time;
     const T = sq.tactics, mode = this.s.mode, obj = sq.objective !== null && sq.objective !== undefined ? this.s.commanders?.[sq.team]?.target(sq.objective) ?? mode.points[sq.objective] : null;
-    const name = CALLSIGNS[sq.team === 1 ? 1 : 0][sq.id % 16];
+    const name = (sq.callsign ?? '').toUpperCase();   // (the squads' callsigns: FrontlineCommander's)
     const now = T?.time ?? 0, recent = T ? T.losses.filter((t) => now - t < 20).length : 0;
     const morale = T?.broken ? ['BROKEN', THEM] : recent ? ['SHAKEN', AMBER] : ['CONFIDENT', '#6bd88f'];
     const phase = T?.broken ? 'FALLING BACK' : `${PHASE[T?.phase] ?? ''}${obj && /^(ADVANCING|ASSAULTING|HOLDING)$/.test(PHASE[T?.phase] ?? '') ? ` ${obj.name}` : ''}`;

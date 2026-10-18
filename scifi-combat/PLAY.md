@@ -29,7 +29,9 @@ In the start menu:
 
 1. Pick the battlefield: **Dusk City** (civilians and gangs included), Night City, or The Trenches.
 2. Pick the battle size, your side, your class, the bots' skill, the graphics (Low, Medium, High,
-   Ultra, or **Settings…** for everything) and the map seed.
+   Ultra, or **Settings…** for everything) and the map seed. **Commander** (last in the class list)
+   puts you in your side's command seat instead: the battle from above, and your squads go where you
+   send them (when nobody takes the seat, the AI commands).
 3. Press **Deploy**, or Enter.
 
 Click in the game to capture the mouse. **Esc** frees it and opens the options: the battle waits

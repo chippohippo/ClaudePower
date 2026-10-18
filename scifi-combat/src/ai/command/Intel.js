@@ -20,13 +20,13 @@ export class Intel {
    * @param {object} o { bounds: { minX, maxX, minZ, maxZ } (the map), memory: s a contact is kept, sight: m a soldier watches }
    */
   constructor(team, { bounds, memory = 45, sight = 60 } = {}) {
-    this.team = team; this.memory = memory; this.sight = sight;
+    this.team = team; this.memory = memory; this.sight = sight; this.cell = CELL;
     this.contacts = new Map();            // enemy id -> { e, x, y, z, t, by, scout }
     this.watchers = new Map();            // scout on watch -> range (m)
     const b = bounds ?? { minX: -500, maxX: 500, minZ: -500, maxZ: 500 };
     this.x0 = b.minX - CELL; this.z0 = b.minZ - CELL;
     this.nx = Math.ceil((b.maxX - b.minX) / CELL) + 3; this.nz = Math.ceil((b.maxZ - b.minZ) / CELL) + 3;
-    this.cells = new Float64Array(this.nx * this.nz).fill(-1e9);   // last time each cell was watched
+    this.cells = new Float64Array(this.nx * this.nz).fill(-Infinity);   // last time each cell was watched
     this.time = 0; this.next = 0;
   }
 

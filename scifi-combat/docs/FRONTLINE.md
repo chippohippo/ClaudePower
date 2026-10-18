@@ -2,11 +2,12 @@
 
 Code: `src/game/frontline/` (MapSizes, FrontlineMap, Trenches, Ruins, City, Fortify, FrontlineMode,
 Logistics) · `src/combat/Stratagems.js` · `src/game/BattlePoints.js` · `src/combat/SupportItems.js`, `Passives.js` · `src/game/FrontlineSession.js` · `src/ai/FrontlineCommander.js` · `src/ai/tactics/`
-(squads: see [AI.md](AI.md)) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
+(squads: see [AI.md](AI.md)) · `src/ai/command/` (Intel, Scout, Strategist: the commander) · `src/ai/SupportCommand.js`, `CrewPilot.js` (gun crews and drivers) ·
 `src/vehicles/FieldGuns.js` (see [VEHICLES.md](VEHICLES.md)) · `src/world/` (Terrain, CoverIndex,
 EntityGrid, NavGrid, WireField) · client: `index.html` → `src/frontline.js`,
 `src/render/BattlefieldRenderer.js`, `TerrainChunks.js`, `CoverTextures.js`, `CityRenderer.js`, `CityKit.js`, `StratagemKit.js`, `src/ui/FrontlineHud.js`,
-`FireControl.js`, `StratagemPanel.js`, `BattlePointsHud.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`FireControl.js`, `CommandView.js`, `StratagemPanel.js`, `BattlePointsHud.js`, `src/vfx/BattleFx.js`, `StratagemViews.js` · tests: `tests/maps.test.mjs`, `tests/squads.test.mjs`,
+`tests/command.test.mjs`,
 `tests/frontline.test.mjs`, `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`,
 `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`,
 `tests/warfront.test.mjs`, `tests/stratagems.test.mjs`, `tests/friendly-fire.test.mjs`, `tests/battle-points.test.mjs`,
@@ -43,7 +44,7 @@ folder any way you like and open `index.html` with these parameters:
 | `planet` | (by map) | the sky and look: `scorched` (trenches), `duskcity` (the city's default), `nightcity` |
 | `fx` | (the options) | for one run: `low` (the low preset) or `off` (no post-processing); otherwise the saved options apply |
 | `team` | 0 | 0 = Solari (attacks east), 1 = Void (attacks west) |
-| `class` | lancer / reaver | any class id from `data/classes/*.json` |
+| `class` | lancer / reaver | any class id from `data/classes/*.json`, or `commander`: the commander's seat (below) |
 | `difficulty` | veteran | recruit, veteran or elite bot aim and reactions |
 | `voices` | on | `off`: the soldiers' callouts as subtitles only |
 
@@ -593,6 +594,57 @@ map and the renderer, and blasts and tanks knock the sandbags down. Each team ma
 120 positions (4v4 → 200v200), and with logistics every sandbag wall costs supplies from the forward
 depot. Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
 
+## Command
+
+Each side has one commander. A person can take the seat (start menu: **Commander**, or
+`class=commander`); when nobody does, the AI commands (`Strategist`, veteran and elite). Either way the
+squads take the commander's orders the same way, and squads given none follow standing orders.
+
+- **The commander's seat** (`CommandView`): the front from above at 60°, your side at the bottom of the
+  screen. WASD or the arrows pan, the wheel zooms (from 60 m out to the whole map), the middle button drags the map, Home goes
+  back to the front. On the map: the capture points (owner's colour, capture ring, CONTESTED), both
+  front lines, your soldiers, each squad's marker (its number and men up; amber while it hasn't gone
+  yet, grey while it falls back) with a line to where it was sent (white: your order), your scouts and
+  the ground they watch, fire missions and shells landing. Ground nobody has watched lately is darkened
+  (the fog of war), and enemies show only where the team sees them now, with rings where they were
+  last seen, fading over 30 s. The 3D view keeps the same fog of war: an enemy soldier is drawn only
+  while the team sees him. The squad cards on the left say what each squad is doing and under whose
+  orders. The radio on the right logs every order, refusal, report and fire mission. The person in
+  the seat is off the field: he isn't one of his side's soldiers, and nobody can shoot him.
+- **Orders** (`FrontlineCommander.give`): select squads (click a marker or card, Shift for several,
+  **1**–**9**, Ctrl+A for all) and right-click the map: take the point there (hold it, if it's ours), or
+  hold that ground. Or arm one and left-click: **T** take, **H** hold, **R** scout. **B** falls back to
+  our line and **X** hands the squad back to standing orders, both at once. **F** arms a fire mission
+  (no squad needed). A place can be anywhere: a crossroads, a building, a hill. It becomes a point the
+  squad gets to and holds, clearing what's in the way, and the radio names it from the nearest point
+  ("40 m past B2").
+- **Obedience** (`command.obey` per difficulty): out of contact a squad nearly always goes at once and
+  acknowledges. In a firefight it may finish it first; pinned down it mostly can't move yet; falling
+  back, it regroups first. A squad that can't go says why ("Negative, pinned down. Will comply when we
+  can."), tries again a few seconds later, and goes by the third try. Holding where it already is,
+  it always obeys.
+- **Intel** (`Intel`, one per side, `world.intel[team]`): whatever any soldier of ours sees, the team
+  knows. Bots report what their sight finds as they pick targets, a squad under fire reports who shot
+  it, and a scout on watch sweeps a wider circle. A contact unseen for a moment is a last known
+  position, and it's forgotten after 45 s or when he dies. The map is also kept in 24 m cells marked
+  with when one of ours last watched them: where we've looked lately and seen nobody, there's nobody.
+  The guns fire on groups our soldiers can see (observed fire), and the commander's view, the AI's
+  reading of the enemy and fire missions all read the same intel.
+- **Scouts** (`ScoutTask`): the squad's marksman (or its infiltrator, or whoever isn't leading) goes
+  ahead to a vantage point 60–110 m short of the place, on our side of it, with a clear line of sight
+  to it and away from enemies we know of (in cover, if there's any). He runs there and fires only at an
+  enemy right on top of him. Then he goes low facing the place and keeps watch for 75 s: everything he
+  can see within 130 m goes into the team's intel twice a second, and his ground counts as watched. He
+  reports what he sees on the radio ("Eyes on B2: 4 hostiles!"), and comes back when his watch is over,
+  when he's hit or an enemy gets within 20 m.
+- **Fire missions** (`commander.fire`, `SupportCommand.request`): every gun in range shells the spot.
+  Where we have eyes on it (fresh contacts, or ground watched in the last 10 s) the rounds land on the
+  mark; fired blind, the aim is off by 10–25 m and the rounds scatter twice as wide. A person's call
+  outranks everything the guns do on their own, even danger close. The AI's own fire only prepares an
+  attack as it goes in, below counter-battery fire: guns that fire too much get found and shelled
+  (measured: when the AI ordered a mission every 12 s, the enemy's counter-battery killed 25 of its
+  gun crews in five minutes, against 7).
+
 ## Squads and the commander
 
 - **Commander** (`FrontlineCommander`): one per team, re-plans every 4 s and when a sector falls. It
@@ -807,6 +859,14 @@ inside them.
   - a wall breaks into pieces that carry on as it was going;
   - the same fall comes out the same every time, a hundred falling costing about a millisecond
     a tick.
+- `tests/command.test.mjs`: intel (what one soldier sees the team knows, stale contacts forgotten,
+  watched ground, groups for the guns); the commander's seat (off the field, in no squad, his side's
+  orders his, the other side's the AI's); orders (taken at once out of contact and acknowledged; a
+  pinned squad says why and goes within three tries; places anywhere; back to standing orders); a
+  scout (a vantage on our side with the place in reach, on watch, the place watched for the team,
+  called back); fire missions (a battery takes the commander's, blind ones aimed off and twice as
+  wide, the AI's below counter-battery); the AI strategist (a task for every squad within its search
+  budget, its orders reaching every man, a plan in a few milliseconds).
 - `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander (every
   attack point covered, two squads for a point being taken, four squads in ten on lanes spread across
   the map, flanks and gaps first, pushed forward with the attack and back behind our line), and a
