@@ -76,8 +76,11 @@ export function crackPath(cx, cy, R, size = 1) {
   return d;
 }
 
-/** A blood splat at (cx, cy) thrown toward angle `a`: a ragged blob, droplets, a drip. Returns path data. */
-export function splatPath(cx, cy, a, R, size = 60) {
+/**
+ * A blood splat at (cx, cy) thrown toward angle `a`: a ragged blob, droplets, a drip. Returns path data.
+ * o: { drops: how many droplets [min, max] (0 for none), reach: how far out they land (in sizes), drip }
+ */
+export function splatPath(cx, cy, a, R, size = 60, { drops = [3, 6], reach = [1.0, 1.5], drip = true } = {}) {
   const n = 18, p1 = R() * 6, p2 = R() * 6, rad = [];
   for (let i = 0; i < n; i++) {
     const t = (i / n) * Math.PI * 2;
@@ -91,12 +94,12 @@ export function splatPath(cx, cy, a, R, size = 60) {
   d += 'Z';
   // Droplets thrown out along a.
   const circle = (x, y, r) => `M${f1(x - r)} ${f1(y)}a${f1(r)} ${f1(r)} 0 1 0 ${f1(2 * r)} 0a${f1(r)} ${f1(r)} 0 1 0 ${f1(-2 * r)} 0Z`;
-  for (let k = 0, m = 5 + Math.floor(R() * 6); k < m; k++) {
-    const t = a + (R() - 0.5) * 1.3, r = size * (1.05 + R() * 1.3);
-    d += circle(cx + Math.cos(t) * r, cy + Math.sin(t) * r, size * (0.04 + R() * 0.11));
+  for (let k = 0, m = drops[0] + Math.floor(R() * (drops[1] - drops[0] + 1)); k < m; k++) {
+    const t = a + (R() - 0.5) * 1.1, r = size * (reach[0] + R() * (reach[1] - reach[0]));
+    d += circle(cx + Math.cos(t) * r, cy + Math.sin(t) * r, size * (0.03 + R() * 0.06));
   }
   // A drip running down from the blob's lower edge.
-  if (R() < 0.7) {
+  if (drip && R() < 0.6) {
     const x = cx + (R() - 0.5) * size * 0.8, y = cy + size * 0.55, len = size * (0.6 + R() * 1.2), w = size * (0.06 + R() * 0.05);
     d += `M${f1(x - w)} ${f1(y)}L${f1(x - w * 0.7)} ${f1(y + len)}a${f1(w * 1.3)} ${f1(w * 1.3)} 0 1 0 ${f1(w * 1.4)} 0L${f1(x + w)} ${f1(y)}Z`;
   }
@@ -117,13 +120,16 @@ export function bloodFrame(R) {
     if (u < 2 * W + H) return [W - (u - W - H), H, -Math.PI / 2];
     return [0, H - (u - 2 * W - H), 0];
   };
-  for (let k = 0; k < 46; k++) {
-    const t = (k + R() * 0.8) / 46;
-    const [x, y, inward] = along(t), heavy = y === 0 || x === 0 ? 1.25 : 0.9;
-    const size = (45 + R() * 85) * heavy, back = size * (0.35 + R() * 0.35);
+  // Round the border, the blobs' centres off screen: only their ragged inner edges show, deepest
+  // into the corners. No droplets: nothing lands in the middle of the view.
+  const flat = { drops: [0, 0], drip: false };
+  for (let k = 0; k < 52; k++) {
+    const t = (k + R() * 0.8) / 52;
+    const [x, y, inward] = along(t), corner = Math.min(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y)) < 260 ? 1.35 : 1;
+    const size = (40 + R() * 60) * corner, back = size * (0.62 + R() * 0.25);
     const cx = x - Math.cos(inward) * back, cy = y - Math.sin(inward) * back;
-    dark += splatPath(cx, cy, inward + (R() - 0.5) * 0.6, R, size);
-    if (R() < 0.7) bright += splatPath(cx + Math.cos(inward) * size * 0.1, cy + Math.sin(inward) * size * 0.1, inward, R, size * 0.72);
+    dark += splatPath(cx, cy, inward + (R() - 0.5) * 0.6, R, size, flat);
+    if (R() < 0.7) bright += splatPath(cx - Math.cos(inward) * size * 0.08, cy - Math.sin(inward) * size * 0.08, inward, R, size * 0.8, flat);
   }
   return `<path d="${dark}" fill="rgba(96, 2, 2, .78)"/><path d="${bright}" fill="rgba(196, 26, 20, .7)"/>`;
 }
@@ -182,8 +188,8 @@ export class VisorDamage {
   /** A spot near the screen's edge, on `side` (-1 left, 1 right, 0 either; never the middle). */
   #edge(margin) {
     const R = this.R, side = this.side || (R() < 0.5 ? -1 : 1);
-    const x = side < 0 ? 150 + R() * margin : W - 150 - R() * margin;
-    const y = R() < 0.5 ? 70 + R() * 230 : H - 70 - R() * 230;
+    const x = side < 0 ? 40 + R() * margin : W - 40 - R() * margin;
+    const y = R() < 0.5 ? 40 + R() * 200 : H - 40 - R() * 200;
     return [x, y];
   }
 
@@ -208,7 +214,7 @@ export class VisorDamage {
   }
 
   #splat() {
-    const R = this.R, [cx, cy] = this.#edge(320), size = 34 + R() * 46;
+    const R = this.R, [cx, cy] = this.#edge(150), size = 26 + R() * 30;
     // Thrown in from the edge toward the middle.
     const a = Math.atan2(H / 2 - cy, W / 2 - cx) + (R() - 0.5) * 0.8;
     const g = document.createElementNS(NS, 'g');

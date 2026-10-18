@@ -21,8 +21,14 @@ import * as THREE from 'three';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 const QUAD_VERT = `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+// A pixel that went NaN or infinite somewhere in the scene (a degenerate normal, a half-float
+// overflow) is one black dot; but the god rays march across the screen through it and the bloom
+// blurs it through every mip, and it comes out as big black blocks and streaks that flicker as
+// it comes and goes. Every pass that spreads light reads the scene through this first.
+const SAFE = `vec3 safe(vec3 x) { return any(isnan(x)) || any(isinf(x)) ? vec3(0.0) : clamp(x, 0.0, 512.0); }`;
 
 const RAYS_FRAG = `
+${SAFE}
 uniform sampler2D tColor, tDepth;
 uniform vec2 sun;
 uniform float density, decay, weight, ahead;
@@ -39,7 +45,7 @@ void main() {
     uv -= delta;
     vec2 c = clamp(uv, 0.0, 1.0);
     float sky = step(0.99995, texture2D(tDepth, c).r);
-    vec3 s = texture2D(tColor, c).rgb * sky;
+    vec3 s = safe(texture2D(tColor, c).rgb) * sky;
     acc += max(s - 0.35, 0.0) * illum * weight;     // only what's brighter than the haze casts rays
     illum *= decay;
   }
@@ -48,6 +54,7 @@ void main() {
 }`;
 
 const FINAL_FRAG = `
+${SAFE}
 uniform sampler2D tColor, tRays, tDepth;
 uniform vec3 rayColor, lift, gamma, gain, inkColor;
 uniform float rayStrength, exposure, saturation, contrast, vignette, grain, aberration, time;
@@ -60,9 +67,9 @@ vec3 tc(vec3 x) { return x / (1.0 + x); }
 vec3 itc(vec3 y) { return y / max(vec3(1.0) - y, vec3(1e-4)); }
 vec3 casColor(vec2 uv) {
   vec2 t = 1.0 / resolution;
-  vec3 a = tc(texture2D(tColor, uv + vec2(0.0, -t.y)).rgb), b = tc(texture2D(tColor, uv + vec2(-t.x, 0.0)).rgb);
-  vec3 c = tc(texture2D(tColor, uv).rgb);
-  vec3 d = tc(texture2D(tColor, uv + vec2(t.x, 0.0)).rgb), e = tc(texture2D(tColor, uv + vec2(0.0, t.y)).rgb);
+  vec3 a = tc(safe(texture2D(tColor, uv + vec2(0.0, -t.y)).rgb)), b = tc(safe(texture2D(tColor, uv + vec2(-t.x, 0.0)).rgb));
+  vec3 c = tc(safe(texture2D(tColor, uv).rgb));
+  vec3 d = tc(safe(texture2D(tColor, uv + vec2(t.x, 0.0)).rgb)), e = tc(safe(texture2D(tColor, uv + vec2(0.0, t.y)).rgb));
   vec3 mn = min(min(min(a, b), min(d, e)), c), mx = max(max(max(a, b), max(d, e)), c);
   vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
   vec3 w = amp * mix(-0.125, -0.2, sharpen);
@@ -84,9 +91,9 @@ void main() {
   float r2 = dot(d, d);
   // Chromatic aberration: red out, blue in, toward the edges.
   vec2 off = d * aberration * r2 * 4.0;
-  vec3 c = sharpen > 0.0 ? casColor(vUv) : texture2D(tColor, vUv).rgb;
-  if (aberration > 0.0) { c.r = texture2D(tColor, vUv + off).r; c.b = texture2D(tColor, vUv - off).b; }
-  c += texture2D(tRays, vUv).rgb * rayColor * rayStrength;
+  vec3 c = sharpen > 0.0 ? casColor(vUv) : safe(texture2D(tColor, vUv).rgb);
+  if (aberration > 0.0) { c.r = safe(texture2D(tColor, vUv + off).rgb).r; c.b = safe(texture2D(tColor, vUv - off).rgb).b; }
+  c += safe(texture2D(tRays, vUv).rgb) * rayColor * rayStrength;
   // Ink: a kink in 1/depth across the pixel (zero on any flat surface), on the near side only.
   if (ink > 0.0) {
     vec2 px = vec2(max(2.0, floor(resolution.y / 540.0 + 0.5))) / resolution;   // whole pixels: 2 up to 1080p
@@ -152,6 +159,9 @@ export class PostFX {
     this.quadScene = new THREE.Scene(); this.quadScene.add(this.quad);
     this.quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(W, H), post.bloom.strength, post.bloom.radius, post.bloom.threshold);
+    const hp = this.bloom.materialHighPassFilter;          // (its bright-pass: where the blur starts)
+    hp.fragmentShader = `${SAFE}\n` + hp.fragmentShader.replace('vec4 texel = texture2D( tDiffuse, vUv );', 'vec4 texel = texture2D( tDiffuse, vUv ); texel.rgb = safe( texel.rgb );');
+    hp.needsUpdate = true;
     this.time = 0;
   }
 

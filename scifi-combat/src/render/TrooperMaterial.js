@@ -216,7 +216,7 @@ export function trooperMaterials(palette, bones, factionKeys = FACTIONS) {
       .replace('#include <common>', `#include <common>\n${VERT_COMMON}`)
       .replace('#include <beginnormal_vertex>', `mat4 bM = tkBone();
         vec3 bS2 = vec3(dot(bM[0].xyz, bM[0].xyz), dot(bM[1].xyz, bM[1].xyz), dot(bM[2].xyz, bM[2].xyz));
-        vec3 objectNormal = normalize(mat3(bM) * (normal / bS2));`)
+        vec3 objectNormal = normalize(mat3(bM) * (normal / max(bS2, vec3(1e-10))));   // (a bone collapsed to nothing: hidden, no NaN)`)
       .replace('#include <begin_vertex>', `vec3 transformed = (bM * vec4(position, 1.0)).xyz;\n${VARYINGS}`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${fragCommon(factionKeys.length)}`)

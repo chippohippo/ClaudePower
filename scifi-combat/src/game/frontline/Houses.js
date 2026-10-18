@@ -3,10 +3,11 @@
 // Deterministic per map seed; every piece is a cover box (it blocks, you stand on it, it stops
 // bullets), drawn by CityRenderer (`render: 'city'`).
 //
-//  * Walls 0.3 m thick, built from full-height piers between the window bays and horizontal bands
-//    (sills, lintels, the floor edges, the parapet) along each whole side: a window is the gap
-//    between two piers and two bands, so you see, shoot and vault through it. Doors on the street
-//    faces at ground level; some upper bays open onto a balcony instead.
+//  * Walls 0.3 m thick, built from piers between the window bays (a storey at a time, each on the
+//    one below) and horizontal bands (sills, lintels, the floor edges, the parapet) along each
+//    whole side: a window is the gap between two piers and two bands, so you see, shoot and vault
+//    through it. Doors on the street faces at ground level; some upper bays open onto a balcony
+//    instead.
 //  * Floors: slabs you walk on and under, with the stairwell cut out of them.
 //  * Stairs: 0.3 m steps (a fighter steps up 0.35 m), in two lanes along the back wall switching
 //    back storey to storey, each step solid down to the floor it stands on. The last flight comes
@@ -136,7 +137,9 @@ export function buildHouse(b, { id, x0, z0, x1, z1, base, storeys, street = [], 
         else q.open[k] = [k === 0 && onStreet ? 0.6 : SILL, HEAD, onStreet && k === 0 ? Math.min(bay - 0.7, 2.4) : WIN];
       }
     }
-    // Piers: between the openings, full height (an opening's width is the widest it gets up the stack).
+    // Piers: between the openings (an opening's width is the widest it gets up the stack), a storey
+    // at a time: each stands on the one below, so a shell that takes out a ground-floor pier leaves
+    // the wall above it with nothing under it (Structures.js).
     const edges = [sd.a, sd.bnd];
     const cuts = [];
     for (const q of bays) {
@@ -146,8 +149,9 @@ export function buildHouse(b, { id, x0, z0, x1, z1, base, storeys, street = [], 
     let s = edges[0];
     const T0 = sd.at - (sd.n[0] + sd.n[1] > 0 ? T : 0), T1 = T0 + T;
     const wallBox = (u0, u1, y0, y1) => (sd.axis === 'x' ? box(u0, T0, u1, T1, y0, y1, 'hwall', parts.wall) : box(T0, u0, T1, u1, y0, y1, 'hwall', parts.wall));
-    for (const [c0, c1] of cuts) { if (c0 > s + 0.05) wallBox(s, c0, base - 0.25, top); s = c1; }
-    if (edges[1] > s + 0.05) wallBox(s, edges[1], base - 0.25, top);
+    const pier = (u0, u1) => { for (let k = 0; k < storeys; k++) wallBox(u0, u1, k === 0 ? base - 0.25 : yOf(k), k === storeys - 1 ? top : yOf(k + 1)).role = 'pier'; };
+    for (const [c0, c1] of cuts) { if (c0 > s + 0.05) pier(s, c0); s = c1; }
+    if (edges[1] > s + 0.05) pier(s, edges[1]);
     // Bands: below each storey's openings and above them, merged along the side where they agree.
     for (let k = 0; k <= storeys; k++) {
       // The band from storey k-1's heads up to storey k's sills (k = storeys: up to the parapet top).
@@ -163,7 +167,7 @@ export function buildHouse(b, { id, x0, z0, x1, z1, base, storeys, street = [], 
       for (let i = 0; i < spans.length;) {
         let j = i;
         while (j + 1 < spans.length && Math.abs(spans[j + 1][2] - spans[i][2]) < 1e-6 && Math.abs(spans[j + 1][3] - spans[i][3]) < 1e-6) j++;
-        if (spans[i][3] - spans[i][2] > 0.04) wallBox(spans[i][0], spans[j][1], spans[i][2], spans[i][3]);
+        if (spans[i][3] - spans[i][2] > 0.04) wallBox(spans[i][0], spans[j][1], spans[i][2], spans[i][3]).role = 'band';   // a beam between piers
         i = j + 1;
       }
     }
@@ -200,7 +204,7 @@ export function buildHouse(b, { id, x0, z0, x1, z1, base, storeys, street = [], 
     const pieces = [[frontLo, g - DOOR / 2], [g + DOOR / 2, frontHi]];
     for (const [v0, v1] of pieces) if (v1 - v0 > 0.2) {
       const [a0, c0, a1, c1] = rectUV(split - T / 2, split + T / 2, v0, v1);
-      box(a0, c0, a1, c1, base - 0.25, yOf(1) - SLAB, 'hwall', parts.wall);
+      box(a0, c0, a1, c1, base - 0.25, yOf(1) - SLAB, 'hwall', parts.wall).role = 'pier';
     }
     const door = alongX ? { x: split, z: g, nx: 1, nz: 0 } : { x: g, z: split, nx: 0, nz: 1 };
     const r0 = alongX ? { min: { x: x0 + T, z: z0 + T }, max: { x: split, z: z1 - T } } : { min: { x: x0 + T, z: z0 + T }, max: { x: x1 - T, z: split } };

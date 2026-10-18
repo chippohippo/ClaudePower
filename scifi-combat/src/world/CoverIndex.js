@@ -64,7 +64,11 @@ export class CoverIndex {
   add(b) {
     b._stamp = 0;
     this.list.push(b);
-    this.#place(b);
+    // A piece of a group built at run time (what's left of a wall a shell holed) joins its group
+    // when it lies inside the group's bounds; anything else is placed on its own.
+    const g = b.group && this.groups.get(b.group);
+    if (g && b.min.x >= g.min.x && b.min.z >= g.min.z && b.max.x <= g.max.x && b.max.z <= g.max.z) { g.boxes.push(b); g.min.y = Math.min(g.min.y, b.min.y); g.max.y = Math.max(g.max.y, b.max.y); }
+    else this.#place(b);
     return b;
   }
 
@@ -73,7 +77,7 @@ export class CoverIndex {
     if (i < 0) return false;
     this.list.splice(i, 1);
     const g = b.group && this.groups.get(b.group);
-    if (g) { const j = g.boxes.indexOf(b); if (j >= 0) g.boxes.splice(j, 1); return true; }
+    if (g) { const j = g.boxes.indexOf(b); if (j >= 0) { g.boxes.splice(j, 1); return true; } }
     const [x0, z0, x1, z1] = this.#range(b.min.x, b.min.z, b.max.x, b.max.z);
     for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) {
       const cell = this.cells.get(KEY(ix, iz));
