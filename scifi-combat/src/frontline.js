@@ -25,6 +25,7 @@ import { ZoneDeployableViews } from './vfx/ZoneDeployableViews.js';
 import { StratagemViews } from './vfx/StratagemViews.js';
 import { StratagemPanel } from './ui/StratagemPanel.js';
 import { HitFeedback } from './ui/HitFeedback.js';
+import { VisorDamage } from './ui/VisorDamage.js';
 import { BattlePointsHud } from './ui/BattlePointsHud.js';
 import { MeleeTells } from './ui/MeleeTells.js';
 import { BarkVoices } from './ui/BarkVoices.js';
@@ -209,6 +210,7 @@ const helpTimer = setTimeout(() => helpCard?.classList.add('gone'), 25000);
 addEventListener('keydown', (e) => { if (e.code !== 'F1' || !helpCard) return; e.preventDefault(); clearTimeout(helpTimer); helpCard.classList.toggle('gone'); });
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
 const hitFx = new HitFeedback(document.getElementById('hud'), { player, rig, world });   // hit markers, damage direction, flinch
+const visor = new VisorDamage(document.getElementById('hud'), { player, reducedMotion: settings.reducedMotion });   // red edges, cracks, blood when hurt
 const bpHud = new BattlePointsHud(document.getElementById('hud'), { player, world });     // "+100 TAKEDOWN"
 const tells = new MeleeTells(document.getElementById('hud'), { player, world });         // chevrons for swings coming at you
 const voices = new BarkVoices(document.getElementById('hud'), { player, world, hear: barks.hear, voices: params.get('voices') !== 'off' && settings.voices });   // the soldiers' callouts
@@ -232,7 +234,7 @@ document.addEventListener('pointerlockchange', () => {
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && !document.pointerLockElement) { if (options.isOpen) options.close(); else openOptions(); } });
 async function applyOptions(o, key) {
   Object.assign(settings, o);
-  rig.settings.baseFov = o.fov; rig.settings.shakeScale = o.shake; rig.settings.bobScale = o.bob; rig.settings.reducedMotion = o.reducedMotion;
+  rig.settings.baseFov = o.fov; rig.settings.shakeScale = o.shake; rig.settings.bobScale = o.bob; rig.settings.reducedMotion = visor.reducedMotion = o.reducedMotion;
   rig.fov.set(o.fov); rig.camera.fov = o.fov; rig.camera.updateProjectionMatrix();
   input.mouseSens = 0.0022 * o.sens;
   sound.setVolume(o.volume);
@@ -342,12 +344,13 @@ const loop = new FixedLoop({
     hud.update(dt, cam, { firstPerson: rig.firstPerson && !fireControl.active });
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
+    visor.update(dt, cam);
     bpHud.update(dt);
     tells.update(dt, cam);
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices, dropViews, sound, audio, bus };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, visor, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.

@@ -12,7 +12,7 @@ import { bus } from '../core/EventBus.js';
 const US = '#5ab4ff', THEM = '#ff4d4d', AMBER = '#ffc94d';
 const VOICE = [{ pitch: 1.05, rate: 1.12 }, { pitch: 0.55, rate: 0.92 }];
 const CSS = `
-#bark-subs { position: absolute; left: 24px; bottom: calc(var(--lb, 0px) + 16px + 80px * var(--hz, 1)); pointer-events: none; text-align: left; max-width: 46vw;
+#bark-subs { position: absolute; left: 24px; bottom: calc(var(--lb, 0px) + 16px + 132px * var(--hz, 1)); pointer-events: none; text-align: left; max-width: 46vw;
   transform: scale(var(--hz, 1)); transform-origin: bottom left;
   font: 600 16px var(--text, system-ui); letter-spacing: .02em; text-shadow: 0 1px 2px #000c, 0 0 8px #0008; color: #f4f1e8; }
 #bark-subs div { margin-top: 6px; padding: 1px 0 1px 10px; border-left: 2px solid ${AMBER}; transition: opacity .3s; }

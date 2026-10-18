@@ -41,6 +41,7 @@ export class AudioDirector {
     this.time = 0;
     this.head = { x: 0, y: 0, z: 0 };
     this.lastShot = new Map();          // shooter -> time (far rapid fire thinned)
+    this.lastBrass = -1;                // the last casing that rang (an SMG drops fifteen a second)
     this.projectiles = new Set();       // bolts in flight (a near pass buzzes)
     this.beeps = new WeakMap(); this.whistled = new WeakSet();
     this.charging = new Map();
@@ -186,6 +187,13 @@ export class AudioDirector {
     on('weapon:ventStart', (e) => handle(e.id, 'mech:vent', 0.4));
     on('weapon:overheat', (e) => handle(e.id, 'mech:overheat', 0.5));
     on('weapon:perfectVent', (e) => mine(e) && E.play('ui:ready', { ui: true, gain: 0.4 }));
+    // Spent brass landing round you (GunFx throws the casings): a tink, dull on dirt, muffled in snow.
+    on('fx:brass', (e) => {
+      if (this.time - this.lastBrass < 0.035 || this.#dist(e) > 12) return;
+      this.lastBrass = this.time;
+      const s = SURFACE[e.surface] ?? 'concrete', soft = s === 'dirt' || s === 'snow' || s === 'flesh';
+      E.play(`brass:${this.snow && soft ? 'snow' : soft ? 'dirt' : 'hard'}`, { pos: { x: e.x, y: e.y, z: e.z }, kind: 'foley', gain: 0.2, jitter: 0.08 });
+    });
     on('weapon:chargeStart', (e) => {
       const v = e.id === this.listenerId ? E.play(`charge:${this.#army(e.id)}`, { gain: 0.45 }) : E.play(`charge:${this.#army(e.id)}`, { pos: this.posOf(e.id), kind: 'ability', gain: 0.5 });
       if (v) this.charging.set(e.id, v);

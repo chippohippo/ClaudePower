@@ -9,14 +9,90 @@
 //    timber, grey chips off concrete, sparks off metal and vehicles (and armor plate), a dark mist
 //    off flesh. Only within 90 m of the camera: beyond that nobody can see them.
 //  * Bullet holes: 256 pooled decals on whatever was hit (not on people), the oldest going first.
+//  * Brass: every kinetic round (not lasers or plasma) throws its spent casing out of the
+//    ejection port, to the right and up, carried along at the shooter's speed; it tumbles, bounces
+//    off whatever is under it (the ground, a rooftop, a sandbag) and lies there a while. Shotguns
+//    and bolt guns throw theirs when they're pumped or cycled. Within 30 m of the camera (they're
+//    a few centimetres long); 160 at once, the oldest going first; one draw call. The first
+//    bounce near the camera rings (fx:brass, for the sound).
 
 import * as THREE from 'three';
 import { bus } from '../core/EventBus.js';
 import { DEFAULT_PALETTE } from '../render/CrowdRenderer.js';
+import { weaponDesign } from '../audio/SoundBank.js';
 
 const SEEN = 90;                 // m: no effects past this from the camera
 const HOLES = 256;
+const BRASS = 160, BRASS_SEEN = 30, BRASS_LIE = 25;   // casings at once; m from the camera; s on the ground
+const G = 9.8;
 const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _d2 = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3();
+const _r = new THREE.Vector3(), _u = new THREE.Vector3(), _v = new THREE.Vector3(), _ax = new THREE.Vector3(), X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0);
+/** Casing sizes by gun: [half length, radius] in m (a touch bigger than life, so they read). */
+const CASE = { rifle: [0.03, 0.0075], heavy: [0.038, 0.009], shell: [0.036, 0.012] };
+
+/**
+ * BrassField: spent casings in flight and on the ground. Pure (no scene): GunFx throws them in
+ * and draws them. Each one tumbles under gravity, comes down on the highest surface under it as
+ * it falls (`floor(x, y, z)`: the ground, a rooftop, a crate; off a roof's edge, the street), bounces at most three times,
+ * losing most of its fall and some of its slide each time, and comes to rest lying on its side.
+ * The first bounce calls `onRing(x, y, z)` (the tink). The oldest goes when the field is full.
+ */
+export class BrassField {
+  constructor(max = BRASS, { floor = () => 0, onRing = null, rand = Math.random } = {}) {
+    this.max = max; this.floor = floor; this.onRing = onRing; this.rand = rand;
+    this.at = 0; this.n = 0;
+    this.p = new Float32Array(max * 3); this.v = new Float32Array(max * 3); this.axis = new Float32Array(max * 3);
+    this.q = Array.from({ length: max }, () => new THREE.Quaternion());
+    this.spin = new Float32Array(max); this.size = new Float32Array(max * 2); this.ground = new Float32Array(max);
+    this.age = new Float32Array(max); this.rest = new Float32Array(max); this.bounces = new Uint8Array(max); this.shell = new Uint8Array(max);
+  }
+
+  /** Throw a casing from p at velocity v, leaving along `dir` (unit), [half length, radius]; returns its slot. */
+  throw(p, v, dir, [len, rad], shell = false) {
+    const R = this.rand, i = this.at, i3 = i * 3;
+    this.p[i3] = p.x; this.p[i3 + 1] = p.y; this.p[i3 + 2] = p.z;
+    this.v[i3] = v.x; this.v[i3 + 1] = v.y; this.v[i3 + 2] = v.z;
+    this.q[i].setFromUnitVectors(X, dir);                       // it leaves along the barrel...
+    _ax.set(R() - 0.5, R() - 0.5, R() - 0.5).normalize();
+    this.axis[i3] = _ax.x; this.axis[i3 + 1] = _ax.y; this.axis[i3 + 2] = _ax.z;
+    this.spin[i] = 20 + R() * 18;                               // ...tumbling end over end
+    this.size[i * 2] = len; this.size[i * 2 + 1] = rad; this.shell[i] = shell ? 1 : 0;
+    this.ground[i] = this.floor(p.x, p.y, p.z);
+    this.age[i] = 0; this.rest[i] = -1; this.bounces[i] = 0;
+    this.at = (i + 1) % this.max; this.n = Math.min(this.max, this.n + 1);
+    return i;
+  }
+
+  /** How much of casing i is left (it shrinks away after lying BRASS_LIE s). */
+  left(i) { return this.rest[i] < 0 || this.age[i] - this.rest[i] <= BRASS_LIE ? 1 : Math.max(0, 1 - (this.age[i] - this.rest[i] - BRASS_LIE)); }
+
+  step(dt) {
+    for (let i = 0; i < this.n; i++) {
+      this.age[i] += dt;
+      if (this.rest[i] >= 0) continue;
+      const i3 = i * 3, rad = this.size[i * 2 + 1], P = this.p, V = this.v, y0 = P[i3 + 1];
+      V[i3 + 1] -= G * dt;
+      P[i3] += V[i3] * dt; P[i3 + 1] += V[i3 + 1] * dt; P[i3 + 2] += V[i3 + 2] * dt;
+      // Falling: what's under it now, from the height it fell from (so a top it just passed counts).
+      if (V[i3 + 1] < 0) this.ground[i] = this.floor(P[i3], y0, P[i3 + 2]);
+      _ax.set(this.axis[i3], this.axis[i3 + 1], this.axis[i3 + 2]);
+      this.q[i].premultiply(_q.setFromAxisAngle(_ax, this.spin[i] * dt));
+      if (P[i3 + 1] >= this.ground[i] + rad) continue;
+      P[i3 + 1] = this.ground[i] + rad;
+      if (-V[i3 + 1] > 0.9 && this.bounces[i] < 3) {
+        // A bounce: most of the fall lost, skidding on; it rings the first time.
+        if (this.bounces[i] === 0) this.onRing?.(P[i3], P[i3 + 1], P[i3 + 2]);
+        V[i3 + 1] *= -0.3; V[i3] *= 0.45; V[i3 + 2] *= 0.45; this.spin[i] *= 0.5;
+        this.bounces[i]++;
+      } else {
+        // At rest, lying on its side, turned whichever way it skidded.
+        this.rest[i] = this.age[i];
+        V[i3] = V[i3 + 1] = V[i3 + 2] = 0;
+        this.q[i].setFromAxisAngle(Y, this.rand() * Math.PI * 2);
+      }
+    }
+  }
+}
 
 const lin = (hex, a = 1) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b, a]; };
 const MAG = [0.03, 0.03, 0.035, 1];
@@ -61,8 +137,25 @@ export class GunFx {
     this.holes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(this.holes);
     this.holeAt = 0;
+    // Spent brass: a casing along local x (scaled per round: a shotgun shell is fatter and red).
+    const case_ = new THREE.CylinderGeometry(1, 1, 1, 7, 1).rotateZ(Math.PI / 2);
+    // Lit by the scene and a little by itself, so it still glints gold on a night street.
+    const brassCol = new THREE.Color(V.brass ?? '#d4a94e');
+    this.brass = new THREE.InstancedMesh(case_, new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: 0.55, roughness: 0.3, emissive: brassCol.clone().multiplyScalar(0.32) }), BRASS);
+    this.brass.count = 0; this.brass.frustumCulled = false;
+    this.brass.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.brass.setColorAt(0, brassCol);   // (makes instanceColor before the shaders are compiled)
+    scene.add(this.brass);
+    this.brassCol = { brass: brassCol, shell: new THREE.Color(V.shell ?? '#9a2e20') };
+    // (The floor: the highest surface at (x, z) at or below y.)
+    this.casings = new BrassField(BRASS, {
+      rand: this.rand,
+      floor: (x, y, z) => (this.world.groundHeight ? this.world.groundHeight(_v.set(x, y - 1.5, z)) : 0),
+      onRing: (x, y, z) => { if ((x - this.eye.x) ** 2 + (z - this.eye.z) ** 2 < 12 * 12) bus.emit('fx:brass', { x, y, z, surface: this.world.surfaceAt?.(x, y - 0.02, z) }); },
+    });
     this.off = [
       bus.on('weapon:fire', (e) => this.#muzzle(e)),
+      bus.on('weapon:chamber', (e) => { const a = this.world.entity(e.id)?.weapons?.current?.s.archetype; if (a === 'shotgun' || a === 'sniper') this.#eject(e.id, a); }),
       bus.on('weapon:impact', (e) => this.#impact(e.point, e.normal, e.surface)),
       bus.on('weapon:hit', (e) => this.#hit(e)),
       bus.on('weapon:magOut', (e) => this.#magOut(e)),
@@ -99,6 +192,42 @@ export class GunFx {
     this.fx.glow.add(_p.x + _d.x * 0.12, _p.y + _d.y * 0.12, _p.z + _d.z * 0.12, _d.x * 6, _d.y * 6, _d.z * 6, 0.03, 0.06 * big, 0.18 * big, C.flash, fade(C.flash), 0, 0);
     if (!e.suppressed) this.fx.dust.add(_p.x + _d.x * 0.2, _p.y + _d.y * 0.2, _p.z + _d.z * 0.2, _d.x * 1.5 + (R() - 0.5) * 0.3, _d.y * 1.5 + 0.25, _d.z * 1.5 + (R() - 0.5) * 0.3, 0.6, 0.06 * big, 0.3 * big, C.smoke, fade(C.smoke), 2.2, -0.15);
     if (ent === this.player && !e.suppressed) { this.light.position.copy(_p); this.light.intensity = 5 * big; this.lightT = 0.035; }
+    const spec = ent?.weapons?.current?.s;
+    if (spec && spec.archetype !== 'shotgun' && spec.archetype !== 'sniper' && weaponDesign(spec)[0] === 'gun') this.#eject(e.id, spec.archetype);
+  }
+
+  // ---------------------------------------------------------------- brass
+  /** Throw fighter `id`'s spent casing out of the gun's ejection port (only a gun the rig is holding, near the camera). */
+  #eject(id, archetype) {
+    const rec = this.anim?.record(id), pr = rec?.lod <= 1 ? rec.h?.prop : null, ent = this.world.entity(id);
+    if (pr?.kind !== 'gun' || !ent?.movement) return;
+    _p.copy(pr.base).addScaledVector(pr.dir, pr.length * 0.42);
+    if ((_p.x - this.eye.x) ** 2 + (_p.y - this.eye.y) ** 2 + (_p.z - this.eye.z) ** 2 > BRASS_SEEN * BRASS_SEEN) return;
+    const R = this.rand, sv = ent.movement.state.velocity;
+    _r.crossVectors(pr.dir, pr.up).normalize();                 // the gun's right: the ejection port's side
+    _u.crossVectors(_r, pr.dir);
+    _p.addScaledVector(_r, 0.035).addScaledVector(_u, 0.03);
+    const out = 2 + R() * 0.9, up = 1.8 + R() * 0.8, back = 0.3 + R() * 0.4;
+    _d.copy(_r).multiplyScalar(out).addScaledVector(_u, up).addScaledVector(pr.dir, -back);
+    _d.x += sv.x; _d.y += Math.max(0, sv.y); _d.z += sv.z;      // carried along at the shooter's speed
+    const shell = archetype === 'shotgun';
+    const i = this.casings.throw(_p, _d, pr.dir, shell ? CASE.shell : archetype === 'sniper' ? CASE.heavy : CASE.rifle, shell);
+    this.brass.setColorAt(i, shell ? this.brassCol.shell : this.brassCol.brass);
+    this.brass.instanceColor.needsUpdate = true;
+  }
+
+  #brassUpdate(dt) {
+    const C = this.casings, n = C.n;
+    if (!n) return;
+    C.step(dt);
+    for (let i = 0; i < n; i++) {
+      const k = C.left(i), len = C.size[i * 2], rad = C.size[i * 2 + 1];
+      _p.set(C.p[i * 3], C.p[i * 3 + 1], C.p[i * 3 + 2]);
+      _m.compose(_p, C.q[i], _s.set(len * 2 * k, rad * k, rad * k));
+      this.brass.setMatrixAt(i, _m);
+    }
+    this.brass.count = n;
+    this.brass.instanceMatrix.needsUpdate = true;
   }
 
   // ---------------------------------------------------------------- impacts
@@ -180,6 +309,7 @@ export class GunFx {
   update(dt, camera) {
     this.eye.copy(camera.position);
     if (this.lightT > 0) { this.lightT -= dt; if (this.lightT <= 0) this.light.intensity = 0; }
+    this.#brassUpdate(dt);
   }
 }
 

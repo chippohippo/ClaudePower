@@ -103,12 +103,14 @@ scifi-combat/
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
 │  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
-│  │        GunFx.js (muzzle flashes at the rig's barrel, impacts by surface, bullet holes)
+│  │        GunFx.js (muzzle flashes at the rig's barrel, impacts by surface, bullet holes, spent brass)
 │  │        Particles.js  Decals.js  Tracers.js (InstancedMesh pools)
 │  └─ ui/   FrontlineHud.js  FireControl.js (artillery view)  StratagemPanel.js (call-in panel, beacon markers)
 │           HitFeedback.js (hit markers, damage direction, the camera's hit flinch)
+│           VisorDamage.js (red edges, cracks, corner streaks and blood when you're hurt)
 │           BattlePointsHud.js ("+100 TAKEDOWN" lines under the crosshair)  MeleeTells.js (windup chevrons)
 │           BarkVoices.js (callouts spoken and subtitled)
+│           OptionsMenu.js  Settings.js (graphics presets, render scale, toggles, camera, audio; saved in the browser)
 │           HUD.js  store.js (zustand/vanilla)  menus/
 └─ server/
    ├─ index.js  rooms/BattleRoom.js  LagCompensation.js  Validation.js

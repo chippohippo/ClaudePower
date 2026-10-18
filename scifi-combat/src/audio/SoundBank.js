@@ -433,6 +433,19 @@ function mech(kind, r, sr) {
   return D.normalize2(D.stereo(x, side, side, 1), 0.8);
 }
 
+/** A spent casing landing: brass ringing at its inharmonic modes, bouncing twice; dull on dirt, all but gone in snow. */
+function brass(surface, r, sr) {
+  const n = D.samples(0.4, sr), x = new Float32Array(n);
+  const damp = surface === 'snow' ? 0.15 : surface === 'dirt' ? 0.35 : 1, f = jit(r, 3700, 0.12);
+  // The tick of it striking: bright off something hard, a soft pat in dirt or snow.
+  const tick = surface === 'snow' ? { type: 'lowpass', f: 700 } : surface === 'dirt' ? { type: 'bandpass', f: 1400, q: 0.8 } : { type: 'highpass', f: 2500 };
+  for (const [at, a] of [[0, 1], [0.06 + r() * 0.05, 0.42], [0.14 + r() * 0.06, 0.16]]) {
+    D.mix(x, noiseHit(D.samples(0.03, sr), r, { ...tick, a: 0.0001, tau: surface === 'hard' ? 0.0015 : 0.004 }, sr), a * (surface === 'hard' ? 0.5 : 1.2), at, sr);
+    D.mix(x, D.modes(D.samples(0.3, sr), [[f, 1, 0.09 * damp], [f * 2.32, 0.5, 0.05 * damp], [f * 4.07, 0.22, 0.028 * damp], [f * 0.61, 0.3, 0.04 * damp]], sr, r), a * 0.5 * damp, at, sr);
+  }
+  return D.normalize2([x, Float32Array.from(x)], 0.7);
+}
+
 // ---------------------------------------------------------------- engines, fire
 function engine(model, r, sr) {
   const len = 3, n = D.samples(len, sr), x = new Float32Array(n);
@@ -666,6 +679,7 @@ export function catalogue() {
   for (const s of FOOT_SURFACES) ids.push(`foot:${s}`);
   ids.push('rattle', 'cloth', 'body:heavy', 'body:hands', 'body:slide');
   for (const k of ['magout', 'magin', 'bolt', 'pump', 'dry', 'swap', 'vent', 'overheat']) ids.push(`mech:${k}`);
+  for (const s of ['hard', 'dirt', 'snow']) ids.push(`brass:${s}`);
   ids.push('beam:sol', 'beam:void', 'charge:sol', 'charge:void');
   for (const m of ['tracked', 'car', 'hover', 'flyer']) ids.push(`engine:${m}`);
   ids.push('fire');
@@ -716,6 +730,7 @@ function design(id, variant, sr) {
     case 'cloth': return cloth(r, sr);
     case 'body': return body(p[1], r, sr);
     case 'mech': return mech(p[1], r, sr);
+    case 'brass': return brass(p[1], r, sr);
     case 'engine': return engine(p[1], r, sr);
     case 'fire': return fireLoop(r, sr);
     case 'melee': return melee(p[1], r, sr);

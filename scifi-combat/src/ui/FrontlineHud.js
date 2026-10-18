@@ -33,6 +33,27 @@ import { CIVILIAN, BANDIT, civilianEngaging } from '../combat/Teams.js';
 
 const US = '#5ab4ff', THEM = '#ff4d4d', NEUTRAL = '#aab1bd', AMBER = '#ffc94d', CIV = '#d8d4cc', GANG = '#ff8a4d';
 const TEAM_NAME = ['SOLARI', 'VOID'];
+/** The weapon panel's silhouettes (side views in outline, like the reference's), by archetype. */
+const GUN_ICON = Object.fromEntries(Object.entries({
+  rifle: 'M8 22h22l6-5h40l4-3h22v3h40v6h-40v3h-12l-4 3H82l-3 14h-9l2-14H50l-6 6h-8l2-6H22l-8 7H6l3-10z M84 14v-4h20v4',
+  smg: 'M20 20h18l4-4h44v3h28v6H86v4H66l-2 16h-8l2-16H48l-5 4h-7l2-5H28l-7 6h-6l3-10z M60 16v-4h16v4',
+  shotgun: 'M4 22h24l6-5h36v3h86v6H70v3H62l-3 4H48l2-4H40l-8 7h-9l-1-7H8z M72 27h40v5H72z',
+  sniper: 'M4 22h24l6-6h30v3h92v4H64v4H56l-3 13h-7l2-13H40l-8 7H22l-1-7H7z M46 16v-6h36v6 M120 23l8 14 M126 23l-6 14',
+  energy: 'M10 24c0-6 6-9 12-9h40l8-5h34c8 0 12 4 12 9v2h34v5h-34v3c0 4-4 6-9 6H80l-3 9h-9l2-9H44l-8 7h-9l3-9h-8c-6 0-12-3-12-9z M78 19h24 M78 26h24',
+  blade: 'M10 25h22v-4h8v10h-8v-4H10z M40 23h106l10 3-10 3H40z',
+}).map(([k, d]) => [k, `<path d="${d}" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>`]));
+const ICON_OF = { assaultRifle: 'rifle', smg: 'smg', shotgun: 'shotgun', sniper: 'sniper', pulseRifle: 'energy', beam: 'energy' };
+const FIRE_MODE = { auto: 'AUTO', semi: 'SEMI', burst: 'BURST', pump: 'PUMP', bolt: 'BOLT', charge: 'CHARGE', spool: 'SPOOL' };
+/** The armour doll (bottom left): a trooper in outline, in the readout's colour. */
+const DOLL = `<g fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+  <rect x="22" y="3" width="16" height="15" rx="4"/><path d="M26 11h8"/>
+  <path d="M15 24h30l-3 34H18z"/><path d="M22 32h16M23 42h14"/>
+  <rect x="6" y="21" width="11" height="10" rx="2"/><rect x="43" y="21" width="11" height="10" rx="2"/>
+  <rect x="8" y="33" width="7" height="24" rx="2"/><rect x="45" y="33" width="7" height="24" rx="2"/>
+  <rect x="19" y="59" width="22" height="8" rx="1"/>
+  <rect x="19" y="69" width="9" height="27" rx="2"/><rect x="32" y="69" width="9" height="27" rx="2"/>
+  <rect x="18" y="98" width="10" height="16" rx="2"/><rect x="32" y="98" width="10" height="16" rx="2"/>
+</g>`;
 // Squad callsigns per army (the forge's sons; the dark's).
 const CALLSIGNS = [
   ['ANVIL', 'RIVET', 'FORGE', 'EMBER', 'FLINT', 'CINDER', 'BRAND', 'TORCH', 'SPARK', 'TEMPER', 'BELLOWS', 'LANTERN', 'BEACON', 'GILT', 'HALO', 'CRUCIBLE'],
@@ -119,28 +140,58 @@ const CSS = `
 #fl-reticle i:nth-child(4) { top: -1px; left: var(--gap); height: 2px; width: var(--len); }
 #fl-reticle b { position: absolute; left: -1.5px; top: -1.5px; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 1px #0009; }
 #fl-gun { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px; border: 1.5px solid #ffffffa0; border-radius: 50%; box-shadow: 0 0 0 1px #0007; }
-#fl-status { position: absolute; left: 24px; bottom: calc(var(--lb) + 16px); width: 340px; transform: scale(var(--hz)); transform-origin: bottom left; }
-#fl-status .stn { font: 700 10px var(--disp); letter-spacing: 3px; color: #ffffff85; margin-bottom: 4px; }
-#fl-status .hp { display: flex; align-items: center; gap: 12px; }
-#fl-status .hb { flex: 1; height: 6px; background: #ffffff1c; position: relative; box-shadow: 0 0 0 1px #0004; }
-#fl-status .hb i { position: absolute; left: 0; top: 0; bottom: 0; }
-#fl-status .num { font: 700 20px/1 var(--disp); width: 52px; text-align: right; }
-#fl-status .thin { height: 2px; background: #ffffff14; margin-top: 3px; width: calc(100% - 64px); }
+#fl-status { position: absolute; left: 24px; bottom: calc(var(--lb) + 16px); width: 330px; box-sizing: border-box; transform: scale(var(--hz)); transform-origin: bottom left; display: flex; align-items: flex-end; gap: 14px; --tone: var(--us); background: linear-gradient(180deg, #0a0d16b0, #0a0d16d8); border: 1px solid #ffffff12; border-radius: 4px; padding: 10px 14px 12px; }
+#fl-status.mid { --tone: var(--amber); }
+#fl-status.low { --tone: #ff3b30; }
+#fl-status .doll { width: 46px; height: 92px; color: var(--tone); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--tone) 45%, transparent)); flex: none; }
+#fl-status .col { flex: 1; min-width: 0; }
+#fl-status .arm { display: flex; align-items: baseline; gap: 10px; }
+#fl-status .lbl { font: 700 10px var(--disp); letter-spacing: 3px; color: var(--tone); opacity: .85; }
+#fl-status .pct { font: 800 30px/1 var(--disp); color: var(--tone); text-shadow: 0 0 10px color-mix(in srgb, var(--tone) 40%, transparent); }
+#fl-status.low .pct { animation: fl-pulse .87s ease-in-out infinite; }
+@keyframes fl-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { #fl-status.low .pct { animation: none; } }
+#fl-status .seg { display: flex; gap: 3px; margin: 5px 0 6px; width: 170px; }
+#fl-status .seg i { flex: 1; height: 7px; background: #ffffff1a; box-shadow: 0 0 0 1px #0004; }
+#fl-status .seg i.on { background: var(--tone); }
+#fl-status .seg i.part { background: color-mix(in srgb, var(--tone) 45%, #ffffff10); }
+#fl-status .stn { font: 700 10px var(--disp); letter-spacing: 3px; color: #ffffffb0; margin: 2px 0 3px; }
+#fl-status .thin { height: 2px; background: #ffffff14; margin-top: 3px; width: 170px; }
 #fl-status .thin i { display: block; height: 100%; }
-#fl-status .kit { font: 700 11px var(--text); letter-spacing: 1px; color: #9fd3ff; margin-top: 5px; }
+#fl-status .kit { font: 700 11px var(--text); letter-spacing: 1px; color: #9fd3ff; margin-top: 5px; white-space: nowrap; }
 #fl-status .kit .bp { color: #ffe14d; }
 #fl-right { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px); display: flex; flex-direction: column; align-items: flex-end; transform: scale(var(--hz)); transform-origin: bottom right; }
 #fl-map { width: 200px; height: 200px; }
-#fl-weapon { text-align: right; }
-#fl-weapon .pov { font: 700 9px var(--disp); letter-spacing: 3px; color: #ffffff5c; margin-top: 8px; }
-#fl-weapon .wn { font: 700 12px var(--disp); letter-spacing: 3px; color: #c9d2e3; margin-top: 10px; }
-#fl-weapon .am { font: 800 46px/1.05 var(--disp); }
-#fl-weapon .am small { font-size: 18px; color: #9aa3b5; margin-left: 8px; }
+#fl-weapon { width: 330px; margin-top: 10px; background: linear-gradient(180deg, #0a0d16b0, #0a0d16d8); border: 1px solid #ffffff12; border-radius: 4px; padding: 10px 14px 12px; box-sizing: border-box; }
+#fl-weapon .top { display: flex; justify-content: space-between; align-items: baseline; }
+#fl-weapon .wn { font: 700 11px var(--disp); letter-spacing: 3px; color: #c9d2e3; }
+#fl-weapon .fm { font: 700 10px var(--disp); letter-spacing: 3px; color: #ffffffb0; }
+#fl-weapon .mid { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; margin-top: 4px; }
+#fl-weapon .gun { width: 150px; height: 46px; color: #e8eef8; flex: none; }
+#fl-weapon .am { font: 800 46px/1 var(--disp); text-align: right; white-space: nowrap; }
+#fl-weapon .am small { font-size: 18px; color: #9aa3b5; margin-left: 6px; }
 #fl-weapon .am.low { color: #ff8a6b; } #fl-weapon .am.out { color: var(--them); }
-#fl-weapon .rl { font: 700 10px var(--disp); letter-spacing: 2px; color: var(--amber); }
-#fl-weapon .gr { font: 700 9px var(--disp); letter-spacing: 3px; color: #ffffff85; margin-top: 2px; }
+#fl-weapon .mb { height: 4px; background: #ffffff1a; margin-top: 7px; }
+#fl-weapon .mb i { display: block; height: 100%; background: #eef2f8; }
+#fl-weapon .mb.low i { background: #ff8a6b; }
+#fl-weapon .pov { font: 700 9px var(--disp); letter-spacing: 3px; color: #ffffff5c; margin-top: 5px; text-align: right; }
+#fl-weapon .rl { font: 700 10px var(--disp); letter-spacing: 2px; color: var(--amber); text-align: right; margin-top: 3px; }
+#fl-weapon .sec { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ffffff14; margin-top: 9px; padding-top: 8px; }
+#fl-weapon .key { font: 700 9px var(--disp); letter-spacing: 2px; color: #ffffff70; }
+#fl-weapon .gr { text-align: right; }
+#fl-weapon .gr b { display: block; font: 700 10px var(--disp); letter-spacing: 3px; color: var(--amber); }
+#fl-weapon .gr i { display: inline-block; width: 11px; height: 17px; margin-left: 4px; margin-top: 5px; background: var(--amber); clip-path: polygon(50% 0, 100% 28%, 100% 100%, 0 100%, 0 28%); }
+#fl-weapon .gr i.e { background: none; box-shadow: inset 0 0 0 1.5px #ffffff40; clip-path: none; }
 #fl-weapon .gr i { font-style: normal; color: #7fe7ff; margin-left: 4px; letter-spacing: 1px; } #fl-weapon .gr i.e { color: #ffffff30; }
 #fl-banner { position: absolute; top: 26%; width: 100%; text-align: center; font: 800 max(15px, 2.4vh) var(--disp); letter-spacing: .2em; text-shadow: 0 0 14px #000, 0 0 3px #000; opacity: 0; transition: opacity .3s; }
+#fl-kill { position: absolute; top: 37%; width: 100%; text-align: center; font: 700 max(12px, 1.6vh) var(--disp); letter-spacing: .34em; color: #f2f4fa; text-shadow: 0 0 10px #000c, 0 0 2px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+#fl-kill.dn { color: #f2f4fab0; }
+#fl-dead { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) scale(calc(var(--hz) * 1.12)); opacity: 0; transition: opacity .25s, transform .3s cubic-bezier(.2, .9, .3, 1); text-align: center; white-space: nowrap; }
+#fl-dead.show { opacity: 1; transform: translate(-50%, -50%) scale(var(--hz)); }
+#fl-dead .row { display: flex; align-items: center; gap: 12px; }
+#fl-dead .bar { width: 84px; height: 14px; background: repeating-linear-gradient(-55deg, #ff4438d0 0 4px, transparent 4px 8px); }
+#fl-dead .txt { font: 800 30px/1 var(--disp); letter-spacing: .2em; color: #ffe1dd; background: linear-gradient(90deg, #b3120a90, #d61d12b0, #b3120a90); padding: 7px 10px 7px 16px; text-shadow: 0 0 14px #ff3b30; box-shadow: 0 0 24px #ff3b3040; }
+#fl-dead small { display: block; margin-top: 8px; font: 700 13px var(--text); letter-spacing: 3px; color: #ffb4ad; text-shadow: 0 0 6px #000; }
 #fl-respawn { position: absolute; top: 58%; width: 100%; text-align: center; font: 700 18px var(--disp); letter-spacing: 3px; display: none; }
 #fl-respawn small { font: 600 14px var(--text); letter-spacing: 1px; opacity: .85; }
 #fl-prompt { position: absolute; top: 64%; width: 100%; text-align: center; font: 700 17px var(--text); letter-spacing: 1.5px; text-transform: uppercase; }
@@ -153,7 +204,7 @@ const CSS = `
 #fl-foes .fm { position: absolute; left: 0; top: 0; margin: -26px 0 0 -60px; width: 120px; text-align: center; white-space: nowrap; color: var(--them);
   font: 700 11px var(--disp); letter-spacing: 1.5px; }
 #fl-foes .fm i { display: block; font: 700 10px/1 var(--disp); font-style: normal; }
-#fl-supply { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px + 304px * var(--hz)); font: 700 13px var(--text); letter-spacing: 1px; line-height: 1.5; text-align: right; transform: scale(var(--hz)); transform-origin: bottom right; }
+#fl-supply { position: absolute; right: 24px; bottom: calc(var(--lb) + 16px + 384px * var(--hz)); font: 700 13px var(--text); letter-spacing: 1px; line-height: 1.5; text-align: right; transform: scale(var(--hz)); transform-origin: bottom right; }
 #fl-supply:empty { display: none; }
 #fl-supply b { font-family: var(--disp); }
 #fl-suppress { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 45%, #0b0c0ecc 100%); opacity: 0; transition: opacity .15s; }
@@ -189,6 +240,8 @@ export class FrontlineHud {
       <div id="fl-status"></div>
       <div id="fl-right"><canvas id="fl-map" width="400" height="400"></canvas><div id="fl-weapon"></div></div>
       <div id="fl-banner"></div>
+      <div id="fl-kill"></div>
+      <div id="fl-dead"><div class="row"><i class="bar"></i><span class="txt">ELIMINATED</span><i class="bar"></i></div><small></small></div>
       <div id="fl-respawn"></div>
       <div id="fl-prompt"></div>
       <div id="fl-downs"></div>
@@ -238,6 +291,9 @@ export class FrontlineHud {
         // A civilian who wasn't shooting at the side that killed him.
         const v = fighter(e.id), innocent = vt === CIVILIAN && kt !== CIVILIAN && kt >= 0 && !(v && civilianEngaging(session.world, v, kt));
         this.#feedLine(`<span style="color:${this.col(kt)}">${who(e.by)}</span> ▸ <span style="color:${this.col(vt)}">${who(e.id)}</span>${tk ? `<b style="color:${THEM}">TEAMKILL</b>` : innocent ? `<b style="color:${GANG}">CIVILIAN</b>` : ''}`);
+        // Your kills: ELIMINATED and the name, over the crosshair. Your death: the red banner.
+        if (e.by === player.id && e.id !== player.id && !tk && !innocent) this.#confirm(`ELIMINATED ${name(e.id).toUpperCase()}`, false);
+        if (e.id === player.id) this.killedBy = !e.by ? '' : e.by === player.id ? 'BY YOUR OWN FIRE' : `${tk ? 'TEAMKILLED' : 'KILLED'} BY ${name(e.by).toUpperCase()}`;
         if (tk && e.by === player.id) this.#say('tk', 'TEAMKILL · CHECK YOUR FIRE', THEM, 2, 4);
         if (innocent && e.by === player.id) this.#say('civ', 'CIVILIAN KILLED · CHECK YOUR FIRE', THEM, 2, 4);
       }),
@@ -252,6 +308,7 @@ export class FrontlineHud {
         if (vt < 0) return;
         const kt = teamOf(e.by);
         this.#feedLine(`<span class="dn"><span style="color:${this.col(kt)}">${who(e.by)}</span> ◆ <span style="color:${this.col(vt)}">${who(e.id)}</span></span>`);
+        if (e.by === player.id && e.id !== player.id && kt !== vt && vt !== CIVILIAN) this.#confirm(`DOWNED ${name(e.id).toUpperCase()}`, true);
       }),
       bus.on('mode:point', (e) => {
         const p = session.mode.points[e.point];
@@ -302,6 +359,13 @@ export class FrontlineHud {
     if (this.time - (this.saidAt.get(kind) ?? -1e9) < every) return;
     this.saidAt.set(kind, this.time);
     this.banner(text, color, seconds);
+  }
+
+  /** A kill (or a down) of yours, over the crosshair for a moment. */
+  #confirm(text, down) {
+    this.el.kill.textContent = text; this.el.kill.className = down ? 'dn' : '';
+    this.el.kill.style.opacity = 1;
+    this.killUntil = this.time + (down ? 1.2 : 1.8);
   }
 
   banner(text, color, seconds = 2) {
@@ -399,6 +463,14 @@ export class FrontlineHud {
     this.#downMarkers(camera, w, h);
     this.#foeMarkers(camera, w, h);
     if (this.time > this.bannerUntil) this.el.banner.style.opacity = 0;
+    if (this.time > (this.killUntil ?? 0) && this.el.kill.style.opacity !== '0') this.el.kill.style.opacity = 0;
+    // Dead: ELIMINATED, and who did it, until you deploy again.
+    const deadNow = hp.dead && mode.winner < 0;
+    if (deadNow !== this.deadShown) {
+      this.deadShown = deadNow;
+      this.el.dead.classList.toggle('show', deadNow);
+      if (deadNow) { this.el.dead.lastChild.textContent = this.killedBy ?? ''; this.el.kill.style.opacity = 0; }
+    }
   }
 
   // ---------------------------------------------------------------- top: score, sectors, clock
@@ -461,16 +533,27 @@ export class FrontlineHud {
   // ---------------------------------------------------------------- bottom left: you
   #status(me, s) {
     const hp = me.health, st = me.movement.state;
-    const stance = hp.downed ? 'DOWNED' : me.vehicle ? 'IN VEHICLE' : st.mode === 'slide' ? 'SLIDE' : st.mode === 'dive' ? 'DIVE' : st.mode === 'air' ? 'AIRBORNE'
-      : st.mode === 'mantle' ? 'CLIMB' : st.sprinting ? 'SPRINT' : st.stance.toUpperCase();
-    const k = hp.hp / hp.max, col = k < 0.3 ? 'linear-gradient(90deg,#ff4d4d,#ff8a6b)' : 'linear-gradient(90deg,#8fd0ff,#e2f2ff)';
-    const shield = hp.maxShield ? `<div class="thin"><i style="width:${(hp.shield / hp.maxShield * 100).toFixed(0)}%;background:#7fe7ff"></i></div>` : '';
-    const stam = `<div class="thin"><i style="width:${st.stamina.toFixed(0)}%;background:${st.exhausted ? '#ff6b6b' : '#c8d47a'}"></i></div>`;
+    // Built once: the armour doll, the readout, the segments; then only what changed is written.
+    if (!this.st) {
+      this.el.status.innerHTML = `<svg class="doll" viewBox="0 0 60 120">${DOLL}</svg><div class="col"><div class="arm"><span class="lbl">ARMOUR</span><span class="pct"></span></div>`
+        + `<div class="seg">${'<i></i>'.repeat(10)}</div><div class="sh"></div><div class="stn"></div><div class="thin"><i></i></div><div class="kit"></div></div>`;
+      const q = (c) => this.el.status.querySelector(c);
+      this.st = { tone: null, pct: q('.pct'), seg: [...q('.seg').children], sh: q('.sh'), stn: q('.stn'), stam: q('.thin i'), kit: q('.kit'), lit: -1 };
+    }
+    const S = this.st, k = Math.max(0, hp.hp / hp.max);
+    const tone = k < 0.3 || hp.downed ? 'low' : k < 0.6 ? 'mid' : '';
+    if (S.tone !== tone) { this.el.status.className = tone; S.tone = tone; }
+    this.#set(S.pct, `${Math.ceil(k * 100)}%`);
+    const lit = Math.round(k * 20);                   // in half segments
+    if (lit !== S.lit) { S.lit = lit; S.seg.forEach((e, i) => { e.className = lit >= (i + 1) * 2 ? 'on' : lit === i * 2 + 1 ? 'part' : ''; }); }
+    this.#set(S.sh, hp.maxShield ? `<div class="thin"><i style="width:${(hp.shield / hp.maxShield * 100).toFixed(0)}%;background:#7fe7ff"></i></div>` : '');
+    this.#set(S.stn, hp.downed ? 'DOWNED' : me.vehicle ? 'IN VEHICLE' : st.mode === 'slide' ? 'SLIDE' : st.mode === 'dive' ? 'DIVE' : st.mode === 'air' ? 'AIRBORNE'
+      : st.mode === 'mantle' ? 'CLIMB' : st.sprinting ? 'SPRINT' : st.stance.toUpperCase());
+    const w = `${st.stamina.toFixed(0)}%`, c = st.exhausted ? '#ff6b6b' : '#c8d47a';
+    if (S.stam.style.width !== w) S.stam.style.width = w;
+    if (S.stamC !== c) { S.stamC = c; S.stam.style.background = c; }
     const bp = s.bp ? `<span class="bp">★ ${s.bp.points(me)} BP</span>` : '';
-    const kit = this.#kit(me), extra = [kit, bp].filter(Boolean).join(' · ');
-    this.#set(this.el.status, `<div class="stn">${stance}</div>
-      <div class="hp"><div class="hb"><i style="width:${(k * 100).toFixed(1)}%;background:${col}"></i></div><div class="num">${Math.ceil(hp.hp)}</div></div>
-      ${shield}${stam}${extra ? `<div class="kit">${extra}</div>` : ''}`);
+    this.#set(S.kit, [this.#kit(me), bp].filter(Boolean).join(' · '));
   }
 
   /** Your class passive and your items (stims, ammo packs). */
@@ -486,20 +569,23 @@ export class FrontlineHud {
     const w = me.weapons, cw = w.current, st = me.movement.state;
     const pov = `<div class="pov">${view.firstPerson ? '1ST' : '3RD'} PERSON [V]</div>`;
     const g = me.abilities?.slots?.grenade, nades = g ? Math.max(1, g.maxCharges ?? g.def?.charges ?? 1) : 0;
-    const gren = g ? `<div class="gr">GRENADES${Array.from({ length: nades }, (_, i) => `<i class="${i < g.charges ? '' : 'e'}">◆</i>`).join('')}</div>` : '';
+    const gren = g ? `<div class="sec"><span class="key">[G]</span><span class="gr"><b>${g.charges > 0 ? 'GRENADES READY' : 'GRENADES OUT'}</b>${Array.from({ length: nades }, (_, i) => `<i class="${i < g.charges ? '' : 'e'}"></i>`).join('')}</span></div>` : '';
     if (me.mode !== 'gun') {
       const m = me.melee;
-      this.#set(this.el.weapon, `${pov}<div class="wn">${(m.w.name ?? 'SWORD').toUpperCase()}</div><div class="am">${m.heat.toFixed(0)}<small>HEAT</small></div>${gren}`);
+      this.#set(this.el.weapon, `<div class="top"><span class="wn">${(m.w.name ?? 'SWORD').toUpperCase()}</span><span class="fm">BLADE</span></div><div class="mid"><svg class="gun" viewBox="0 0 160 50">${GUN_ICON.blade}</svg><div class="am">${m.heat.toFixed(0)}<small>HEAT</small></div></div>${pov}${gren}`);
       return;
     }
     if (!cw) { this.#set(this.el.weapon, `${pov}${gren}`); return; }
     const per = cw.s.mag ?? 30;
-    let big, small, cls = '';
-    if (cw.usesHeat) { big = `${cw.heat.toFixed(0)}`; small = '% HEAT'; cls = cw.heat > 80 ? 'low' : ''; }
-    else if (cw.usesBattery) { big = `${cw.battery.toFixed(0)}`; small = '%'; cls = cw.battery < 20 ? 'low' : ''; }
-    else { big = cw.magOut ? '--' : `${cw.mag}`; small = `${cw.reserve}`; cls = cw.mag === 0 ? 'out' : cw.mag <= per * 0.25 ? 'low' : ''; }
+    let big, small, cls = '', frac;
+    if (cw.usesHeat) { big = `${cw.heat.toFixed(0)}`; small = '% HEAT'; cls = cw.heat > 80 ? 'low' : ''; frac = 1 - cw.heat / 100; }
+    else if (cw.usesBattery) { big = `${cw.battery.toFixed(0)}`; small = '%'; cls = cw.battery < 20 ? 'low' : ''; frac = cw.battery / 100; }
+    else { big = cw.magOut ? '--' : `${cw.mag}`; small = `${cw.reserve}`; cls = cw.mag === 0 ? 'out' : cw.mag <= per * 0.25 ? 'low' : ''; frac = cw.magOut ? 0 : cw.mag / per; }
     const reloading = w.phase === 'reloading' ? `<div class="rl">${st.sprinting ? 'RELOAD HELD' : `RELOADING ${Math.min(99, Math.round((w.phaseTime / Math.max(0.01, w.phaseDuration)) * 100))}%`}</div>` : '';
-    this.#set(this.el.weapon, `${pov}<div class="wn">${(cw.s.name ?? '').toUpperCase()}</div><div class="am ${cls}">${big}<small>${small}</small></div>${reloading}${gren}`);
+    const icon = GUN_ICON[ICON_OF[cw.s.archetype] ?? (cw.usesHeat || cw.usesBattery ? 'energy' : 'rifle')];
+    this.#set(this.el.weapon, `<div class="top"><span class="wn">${(cw.s.name ?? '').toUpperCase()}</span><span class="fm">${FIRE_MODE[cw.s.fireMode] ?? 'AUTO'}</span></div>`
+      + `<div class="mid"><svg class="gun" viewBox="0 0 160 50">${icon}</svg><div class="am ${cls}">${big}<small>${small}</small></div></div>`
+      + `<div class="mb ${cls ? 'low' : ''}"><i style="width:${(Math.max(0, Math.min(1, frac)) * 100).toFixed(0)}%"></i></div>${reloading}${pov}${gren}`);
   }
 
   /** A medic with stims facing a hurt or downed teammate in reach. */
