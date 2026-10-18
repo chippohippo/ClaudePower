@@ -157,9 +157,12 @@ stylized look: snow, lavender light, ink outlines, faceted smoke, laser bolts; `
 | 32v32 | Neon District | | | |
 
 - **Streets** run with the front: avenues 14 m wide along X (one down the middle of the map, then
-  every 40–72 m across the depth), cross streets 11 m wide every 42–58 m. The ground is flat.
+  every 40–72 m across the depth), cross streets 11 m wide every 42–58 m. The ground is graded
+  (`Terrain.grade`): each block flat at its own level, each street running straight across from one
+  block's level to the next, the park left rolling.
 - **Blocks** stand between the streets on a sidewalk slab 0.16 m high, a kerb soldiers step up and
-  a sliding car trips on. Lots along their faces hold one of five things:
+  a sliding car trips on, the same height all the way round (on the rolling ground under them, a
+  quarter of the kerbs used to stand up to 1.7 m proud of the street: walls you ran into). Lots along their faces hold one of five things:
   - a building: a solid box (cover nobody gets through), 3–8 storeys, a few towers of 12–22; the
     map's edge is a wall of them;
   - a house you can go into (`Houses.js`, about four in ten of the lots that fit one): two to five

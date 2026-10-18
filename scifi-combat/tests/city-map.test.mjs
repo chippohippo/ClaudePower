@@ -86,6 +86,25 @@ test('the streets stay open: every point, every street reachable from both HQs, 
   }
 });
 
+test('a kerb is a step all the way round every block: the streets are graded to the blocks, never a wall to run into', () => {
+  for (const size of SIZES) {
+    const m = cityOf(size), T = m.terrain;
+    let worst = 0, at = null;
+    for (const b of m.cover.list.filter((q) => q.kind === 'kerb')) {
+      const edge = [];
+      for (let x = b.min.x; x <= b.max.x; x += 1) edge.push([x, b.min.z - 0.35], [x, b.max.z + 0.35]);
+      for (let z = b.min.z; z <= b.max.z; z += 1) edge.push([b.min.x - 0.35, z], [b.max.x + 0.35, z]);
+      for (const [x, z] of edge) {
+        // A shell crater dug beside the kerb can make it taller: that's the crater, not the street.
+        if ((m.city.craters ?? []).some((c) => Math.hypot(c.x - x, c.z - z) < (c.r ?? 3) + 1)) continue;
+        const h = b.max.y - T.height(x, z);
+        if (h > worst) { worst = h; at = [x, z]; }
+      }
+    }
+    assert.ok(worst <= 0.35, `${size}: a kerb ${worst.toFixed(2)} m above the street at ${at?.map((v) => v.toFixed(0))} (a step is 0.35)`);
+  }
+});
+
 test('lamps stand on the sidewalks, wrecks in the street, the park in the middle with its fountain on the point', () => {
   for (const size of SIZES) {
     const m = cityOf(size), C = m.city;

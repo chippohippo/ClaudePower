@@ -39,6 +39,9 @@ export const Gait = Object.freeze({ IDLE: 'idle', WALK: 'walk', JOG: 'jog', SPRI
 
 const DEG = Math.PI / 180;
 const UP = new Vector3(0, 1, 0);
+const SLIP = 0.1;           // m beyond a body's radius within which it slips round a box's corner instead of stopping on its face
+const STEP_EASE = 0.07;     // s: what's seen of a step up or down (a kerb, a stair) eases over this (FlatGroundBody.step)
+const SLIP_KEEP = 0.97;     // speed kept each tick rounding a corner (a scrape, not a stop)
 const DOWN = new Vector3(0, -1, 0);
 const NO_BOXES = Object.freeze([]);
 const NO_BUTTONS = Object.freeze({});
@@ -130,6 +133,7 @@ export class MovementController {
       locks: { sprint: 0, move: 0, jump: 0 },
       speedScale: 1,            // guarding 0.55, ADS ~0.65, casting slows, statuses
       forced: null,             // { x, z, time }: ability dashes that input acceleration must not fight
+      stepOff: 0,               // m: what's seen of the body lags a step it just took (eases to 0; presentation only)
     };
   }
 
@@ -305,7 +309,7 @@ export class MovementController {
   /** Respawn or teleport: standing still at `pos`, every transient state cleared. */
   reset(pos, yaw = this.state.bodyYaw) {
     const s = this.state;
-    s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0);
+    s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0); s.stepOff = 0;
     s.mode = MoveState.GROUND; s.modeTime = 0; s.stance = Stance.STAND;
     s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.stagger = null; s.roll = null;
     s.supine = false; s.downed = false; s.sprinting = false; s.pivoting = false;
@@ -407,11 +411,14 @@ export class MovementController {
     const res = this.body.move(_delta, s.grounded && s.mode !== MoveState.AIR && s.mode !== MoveState.DIVE);
     s.position.add(res.delta);
     if (res.push) s.position.add(res.push);
+    // A kerb or a stair moved the body in one tick: what's seen eases over it (presentation only; #post eases it out).
+    s.stepOff = Math.max(-0.45, Math.min(0.45, s.stepOff - (res.step ?? 0)));
     if (dt > 0) {
-      // Velocity into surfaces we hit is removed: no sticky walls, no ceiling hang.
+      // Velocity into surfaces we hit is removed: no sticky walls, no ceiling hang. Rounding a
+      // corner (res.slip: the axis it blocked) keeps the run going, with a scrape.
       const rx = res.delta.x / dt, rz = res.delta.z / dt, ry = res.delta.y / dt;
-      if (Math.abs(rx - s.velocity.x) > 0.01) s.velocity.x = rx;
-      if (Math.abs(rz - s.velocity.z) > 0.01) s.velocity.z = rz;
+      if (res.slip === 'x') s.velocity.x *= SLIP_KEEP; else if (Math.abs(rx - s.velocity.x) > 0.01) s.velocity.x = rx;
+      if (res.slip === 'z') s.velocity.z *= SLIP_KEEP; else if (Math.abs(rz - s.velocity.z) > 0.01) s.velocity.z = rz;
       if (s.velocity.y > 0 && ry < s.velocity.y - 0.01) s.velocity.y = ry;
     }
     this.#updateGrounded(res, dt);
@@ -1107,6 +1114,7 @@ export class MovementController {
   #post(dt, prevVx, prevVz, prevBodyYaw) {
     const s = this.state, t = this.t;
     s.speed = this.#hspeed();
+    s.stepOff *= Math.exp(-dt / STEP_EASE);
     if (dt > 0) {
       // Smoothed horizontal acceleration and body turn rate feed animation lean and bank.
       const ax = (s.velocity.x - prevVx) / dt, az = (s.velocity.z - prevVz) / dt;
@@ -1245,6 +1253,10 @@ export class RapierBody {
  * Zero-dependency body: ground (flat y = 0, or a terrain with height(x, z) and normal(x, z, out))
  * plus axis-aligned cover boxes. Resolves each axis separately, so you slide along walls instead
  * of sticking. Steps up anything at or below `stepHeight` and lands on box tops.
+ * The body is round where it counts: pushing into a box's face within a body's width of its corner
+ * slips round the corner (a lamp post, a wreck's bumper, a doorframe) instead of stopping dead on it,
+ * unless the corner is only a seam in a longer wall. Reports `step`, the height stepped up (+) or
+ * down (-) beyond the lie of the ground (a kerb, a stair), for the animation to ease over.
  * `boxes` can be a plain array or a CoverIndex (anything with queryAABB(minX, minZ, maxX, maxZ, cb)).
  */
 export class FlatGroundBody {
@@ -1255,7 +1267,7 @@ export class FlatGroundBody {
     this.r = radius;
     this.step = stepHeight;
     this.h = 1.8;
-    this._out = { delta: new Vector3(), push: new Vector3(), grounded: false, groundNormal: new Vector3(0, 1, 0) };
+    this._out = { delta: new Vector3(), push: new Vector3(), grounded: false, groundNormal: new Vector3(0, 1, 0), step: 0, slip: null };
     this._near = [];
   }
 
@@ -1305,19 +1317,40 @@ export class FlatGroundBody {
     }
   }
 
+  /**
+   * Blocked along `axis` by box b near its edge: the sideways shift this move that rounds its
+   * corner, as a round body would (0: well inside a face, or a seam in a longer wall).
+   */
+  #slip(axis, x, z, along, across, b, y, near) {
+    const o = axis === 'x' ? 'z' : 'x', at = axis === 'x' ? z : x;
+    const up = b.max[o] + this.r - at, down = at - (b.min[o] - this.r);   // how far to go each way to clear it
+    const s = up < down ? 1 : -1, m = Math.min(up, down) + 0.002;
+    if (m > this.r + SLIP || Math.abs(along) < 1e-5) return 0;
+    if (Math.abs(across) > Math.abs(along) * 0.5 && Math.sign(across) !== s) return 0;   // sliding the other way along it already
+    // A real corner: past it the way on is open (not the next box of the same wall), and the sidestep is free.
+    const fx = axis === 'x' ? x + along : x + s * m, fz = axis === 'x' ? z + s * m : z + along;
+    if (this.#blocking(fx, fz, y, near)) return 0;
+    const shift = s * Math.min(m, Math.abs(along) * 0.9);
+    if (this.#blocking(axis === 'x' ? x : x + shift, axis === 'x' ? z + shift : z, y, near)) return 0;
+    return shift;
+  }
+
   /** @param {boolean} snapGround keep contact within step height (walking over crests and down steps) */
   move(d, snapGround = false) {
-    const p = this.p, near = this.#gather(p.x, p.z, p.x + d.x, p.z + d.z);
-    const ox = p.x, oz = p.z;
+    const p = this.p, near = this.#gather(Math.min(p.x, p.x + d.x) - SLIP, Math.min(p.z, p.z + d.z) - SLIP, Math.max(p.x, p.x + d.x) + SLIP, Math.max(p.z, p.z + d.z) + SLIP);
+    const ox = p.x, oz = p.z, out = this._out;
     this.#depenetrate(near);
-    this._out.push.set(p.x - ox, 0, p.z - oz); // moved out of a wall: position only, not velocity
-    let x = p.x, z = p.z, y = p.y + d.y, stepped = -Infinity;
-    // Horizontal, one axis at a time (slide along walls), stepping up low edges.
+    out.push.set(p.x - ox, 0, p.z - oz); // moved out of a wall: position only, not velocity
+    out.slip = null;
+    let x = p.x, z = p.z, y = p.y + d.y, stepped = -Infinity, sx = 0, sz = 0;
+    // Horizontal, one axis at a time (slide along walls), stepping up low edges, rounding corners.
     for (const axis of ['x', 'z']) {
       const nx = axis === 'x' ? x + d.x : x, nz = axis === 'z' ? z + d.z : z;
       const hit = this.#blocking(nx, nz, Math.max(y, p.y), near);
       if (!hit) { x = nx; z = nz; continue; }
-      if (hit.max.y - Math.max(y, p.y) <= this.step && !this.#blocking(nx, nz, hit.max.y + 0.01, near)) { x = nx; z = nz; y = Math.max(y, hit.max.y); stepped = Math.max(stepped, hit.max.y); }
+      if (hit.max.y - Math.max(y, p.y) <= this.step && !this.#blocking(nx, nz, hit.max.y + 0.01, near)) { x = nx; z = nz; y = Math.max(y, hit.max.y); stepped = Math.max(stepped, hit.max.y); continue; }
+      const k = this.#slip(axis, x, z, axis === 'x' ? d.x : d.z, axis === 'x' ? d.z : d.x, hit, Math.max(y, p.y), near);
+      if (k) { if (axis === 'x') { z += k; sz += k; } else { x += k; sx += k; } out.slip = axis; }
     }
     // Vertical: terrain or box tops under us.
     let floor = this.groundAt(x, z);
@@ -1338,8 +1371,12 @@ export class FlatGroundBody {
     // hill crests and down steps instead of skipping into the air. Ledges higher than a step fall.
     const snap = snapGround ? this.step : 0.06;
     if (y <= floor || ((d.y <= 0 || snapGround) && y - floor < snap)) { y = floor; grounded = true; }
-    const out = this._out;
-    out.delta.set(x - p.x, y - p.y, z - p.z);
+    // A step: walking (on the ground before and after), the height changed more than the ground's lie did.
+    const step = snapGround && grounded ? (y - p.y) - (this.groundAt(x, z) - this.groundAt(p.x, p.z)) : 0;
+    out.step = Math.abs(step) > 0.03 ? step : 0;
+    // The corner's sidestep moves the body, not its velocity (like the push out of a wall).
+    out.delta.set(x - p.x - sx, y - p.y, z - p.z - sz);
+    out.push.x += sx; out.push.z += sz;
     out.grounded = grounded;
     if (grounded && this.terrain && floor === this.groundAt(x, z)) this.terrain.normal(x, z, out.groundNormal);
     else out.groundNormal.set(0, 1, 0);

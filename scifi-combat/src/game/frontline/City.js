@@ -99,8 +99,11 @@ export function buildCity(b, ctx) {
     blocks.push({ x0, z0, x1, z1, edge: i === 0 || j === 0 || i === xs.length - 2 || j === zs.length - 2 });
   }
 
-  // ---- the ground: flat city streets, the park gently rolling
-  for (const blk of blocks) terrain.flatten((blk.x0 + blk.x1) / 2, (blk.z0 + blk.z1) / 2, Math.max(blk.x1 - blk.x0, blk.z1 - blk.z0) * 0.62, null, 0.35);
+  // ---- the ground: every block flat at its own level, the streets graded between the blocks on
+  // either side (so a kerb is a kerb's height all the way round: on rolling ground a flat slab stood
+  // up to 1.7 m proud of the street at its low corners, a wall you couldn't step up), the park
+  // gently rolling.
+  terrain.grade(blocks.map((q) => ({ x0: q.x0, z0: q.z0, x1: q.x1, z1: q.z1, y: terrain.height((q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2) })));
 
   // Sidewalk slabs: the whole block raised a kerb's height (buildings stand on it).
   for (const blk of blocks) {

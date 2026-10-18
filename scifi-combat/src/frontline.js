@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { bus } from './core/EventBus.js';
 import { FixedLoop } from './core/FixedLoop.js';
 import { InputManager } from './input/InputManager.js';
-import { CameraRig, eyeOf, sightOf } from './camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf, cameraSolid } from './camera/CameraRig.js';
 import { FrontlineSession } from './game/FrontlineSession.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
@@ -149,7 +149,7 @@ const input = new InputManager(renderer.domElement);
 input.mouseSens = 0.0022 * settings.sens;
 input.yaw = myTeam === 0 ? -Math.PI / 2 : Math.PI / 2; // face the enemy's side of the map
 const groundOrCover = (o, d, max) => {
-  const a = world.raycastStatic(o, d, max), b = world.raycastGround(o, d, max);
+  const a = world.raycastStatic(o, d, max, { filter: cameraSolid }), b = world.raycastGround(o, d, max);
   return !a ? b : !b ? a : a.distance < b.distance ? a : b;
 };
 const rig = new CameraRig({ raycast: groundOrCover, settings: { baseFov: settings.fov, shakeScale: settings.shake, bobScale: settings.bob, reducedMotion: settings.reducedMotion } });
@@ -289,7 +289,7 @@ const loop = new FixedLoop({
   render(alpha) {
     // Paused behind the options: the frame as it stands (the options' changes show on it live).
     if (loop.paused) { const c = fireControl.active ? fireControl.camera : rig.camera; post.render(scene, c, atmo.sunScreen(c, sunScreen), 0); return; }
-    const dt = 1 / 60;
+    const dt = loop.frameDt;   // the real frame time: the camera, the animation and the effects keep their timing at any refresh rate
     for (const f of session.fighters) {
       const s = f.movement.state, st = f.status, tf = f.transform;
       f.look.status = s.invulnerable ? STATUS_GLOW.iframes : f.melee.vulnerable ? STATUS_GLOW.vulnerable : tf ? STATUS_GLOW[tf.def.aura] ?? null

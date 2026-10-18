@@ -1,5 +1,8 @@
 // Fixed-timestep simulation with interpolated rendering ("Fix Your Timestep").
-// sim(dt, tick) runs at a constant rate; render(alpha) gets the blend factor between ticks.
+// sim(dt, tick) runs at a constant rate; render(alpha) gets the blend factor between ticks, and
+// presentation (camera springs, animation blends, bob, effects) steps by `frameDt`: the real time
+// since the last frame, so it keeps its designed timing on a 144 Hz screen (2.4 frames a tick) and
+// on a slow one alike. Capped at 50 ms: a hitch slows it for a frame rather than jumping it.
 // A computer that can't keep up runs the battle in slow motion rather than freezing: at most
 // maxSteps ticks per frame, and time it couldn't simulate is dropped (no spiral of death, where
 // each frame owes more ticks than the last). Paused (the options menu), it keeps drawing frames
@@ -15,6 +18,7 @@ export class FixedLoop {
     this.acc = 0;
     this.tick = 0;
     this.last = 0;
+    this.frameDt = this.dt;
     this.running = false;
     this.paused = false;
   }
@@ -26,6 +30,7 @@ export class FixedLoop {
       if (!this.running) return;
       const now = performance.now() / 1000;
       this.acc += Math.min(now - this.last, this.maxFrame);
+      this.frameDt = Math.min(Math.max(now - this.last, 0), 0.05);
       this.last = now;
       if (this.paused) { this.acc = 0; this.behind = 0; this.render(1, now); requestAnimationFrame(frame); return; }
       let steps = 0;

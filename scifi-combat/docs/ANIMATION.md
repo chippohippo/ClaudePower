@@ -147,6 +147,11 @@ show a cut. Beyond the crossfades:
   up on the sprint-to-fire tick.
 - **Knees:** a pole that runs along the leg (a knee pulled up close to the hip) leaves the knee's
   side undecided, so last frame's knee breaks the tie.
+- **Steps:** the sim steps a kerb or a stair in one tick; the rig's root carries the movement's
+  `stepOff` (interpolated with the tick), so the body rises or drops over ~70 ms while the planted
+  feet stay on the real ground: the legs take the step.
+- **Timing:** `AnimationSystem.update` gets the real frame time (`FixedLoop.frameDt`), so every
+  spring and blend keeps its designed speed at 60, 144 or 40 frames a second.
 
 ## Upper body
 

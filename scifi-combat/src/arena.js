@@ -19,7 +19,7 @@ import { buildWeapon } from './combat/weapons/WeaponDefs.js';
 import { AbilityComponent } from './combat/AbilitySystem.js';
 import { StatusComponent } from './combat/StatusSystem.js';
 import { Health } from './combat/Health.js';
-import { CameraRig, eyeOf, sightOf } from './camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf, cameraSolid } from './camera/CameraRig.js';
 import { CombatBotBrain } from './ai/CombatBotBrain.js';
 import { buildFighter } from './game/FighterFactory.js';
 import { routeCommand } from './core/routing.js';
@@ -209,7 +209,7 @@ bus.on('entity:death', (e) => {
 
 // ---------------------------------------------------------------- systems
 const input = new InputManager(renderer.domElement);
-const rig = new CameraRig({ raycast: (o, d, max) => world.raycastStatic(o, d, max) });
+const rig = new CameraRig({ raycast: (o, d, max) => world.raycastStatic(o, d, max, { filter: cameraSolid }) });
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
   rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix();
@@ -368,7 +368,7 @@ const loop = new FixedLoop({
     melee.resolve();
   },
   render(alpha, now) {
-    const dt = 1 / 60;
+    const dt = loop.frameDt;   // the real frame time (FixedLoop): presentation keeps its timing at any refresh rate
     // Per-fighter look: status readability on the body (blue = i-frames, red = vulnerable,
     // orange = Scorch, violet = Volatile/Weaken, transform auras), flame color with heat.
     for (const e of entities) {

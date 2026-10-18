@@ -230,11 +230,11 @@ export class CombatWorld {
     return best;
   }
 
-  /** Line-of-sight test: cover plus deployable walls. Ignores characters. */
-  raycastStatic(o, d, max, { includeWalls = true } = {}) {
+  /** Line-of-sight test: cover plus deployable walls. Ignores characters. `filter(box)` false skips a box. */
+  raycastStatic(o, d, max, { includeWalls = true, filter = null } = {}) {
     let best = null;
     if (this.cover.raycast) {
-      best = this.cover.raycast(o, d, max);
+      best = this.cover.raycast(o, d, max, filter);
       if (includeWalls) {
         // Walls only: a turret's ray starts inside its own sphere, which would otherwise be the
         // nearest hit and mask a wall behind it.
@@ -245,6 +245,7 @@ export class CombatWorld {
     }
     // Same slab test as CoverIndex: a ray that starts inside cover is blocked at once.
     for (const b of this.cover) {
+      if (filter && !filter(b)) continue;
       const h = rayBox(o, d, b, best ? best.distance : max);
       if (!h) continue;
       const normal = new Vector3(); normal.setComponent(h.axis, h.sign);

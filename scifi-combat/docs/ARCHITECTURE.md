@@ -138,7 +138,7 @@ and bots can run server-side for free.
 
 ## 2. Simulation timing
 
-- Fixed **60 Hz** sim step (`FixedLoop`), render interpolates between last two sim states.
+- Fixed **60 Hz** sim step (`FixedLoop`), render interpolates between last two sim states; presentation (camera, animation, effects) steps by the real frame time (`loop.frameDt`, capped at 50 ms), so it keeps its timing at any refresh rate.
 - Server sim 60 Hz, snapshot send 20–30 Hz, input send every tick (bundled with last 3 for loss).
 - **Hit-stop** is a *presentation* time-scale on the attacker/victim's animation + camera, plus a
   tiny sim pause for the two combatants only (≤ 6 ticks). Never freezes the global sim online.

@@ -55,7 +55,7 @@ export class AnimationSystem {
     const r = {
       e, slot: this.list.length,
       h: this.#rig(e),
-      prevPos: s.position.clone(), prevYaw: s.bodyYaw, prevAim: e.weapons?.aimYaw ?? s.yaw, prevPitch: e.weapons?.aimPitch ?? 0,
+      prevPos: s.position.clone(), prevStep: s.stepOff ?? 0, prevYaw: s.bodyYaw, prevAim: e.weapons?.aimYaw ?? s.yaw, prevPitch: e.weapons?.aimPitch ?? 0,
       root: s.position.clone(), lod: 0, dist: 0, acc: 0,
     };
     this.rigs.set(e.id, r);
@@ -106,6 +106,7 @@ export class AnimationSystem {
     for (const r of this.list) {
       const s = r.e.movement.state;
       r.prevPos.copy(s.position);
+      r.prevStep = s.stepOff ?? 0;
       r.prevYaw = s.bodyYaw;
       r.prevAim = r.e.weapons?.aimYaw ?? s.yaw;
       r.prevPitch = r.e.weapons?.aimPitch ?? 0;
@@ -126,6 +127,7 @@ export class AnimationSystem {
     for (const r of this.list) {
       const e = r.e, s = e.movement.state;
       r.root.lerpVectors(r.prevPos, s.position, alpha);
+      r.root.y += r.prevStep + ((s.stepOff ?? 0) - r.prevStep) * alpha;   // a kerb or a stair, eased (MovementController.stepOff)
       r.dist = camPos ? r.root.distanceTo(camPos) : 0;
       const lod = e.id === this.focusId ? 0 : r.dist < L.near ? 0 : r.dist < L.mid ? 1 : 2;
       if (lod === 2) { r.lod = 2; r.acc = 0; st.far++; continue; }

@@ -108,6 +108,44 @@ export class Terrain {
   }
 
   /**
+   * Grade the ground to level rectangles (a city's blocks): flat at its own `y` under each one, and
+   * between them (the streets) a blend of the levels nearby weighted by 1 / distance^power (power 1:
+   * straight across a street from one block's level to the other's), so the ground meets every
+   * rectangle's edge at that rectangle's level. More than `near` metres from any of them it eases
+   * back to the ground as it was, by `far`.
+   * @param {Array<{x0, z0, x1, z1, y}>} rects
+   */
+  grade(rects, { near = 16, far = 30, power = 1 } = {}) {
+    const C = 32, cells = new Map(), key = (i, j) => i * 100003 + j;
+    for (const r of rects) {
+      for (let i = Math.floor((r.x0 - far) / C); i <= Math.floor((r.x1 + far) / C); i++) {
+        for (let j = Math.floor((r.z0 - far) / C); j <= Math.floor((r.z1 + far) / C); j++) {
+          const k = key(i, j);
+          (cells.get(k) ?? cells.set(k, []).get(k)).push(r);
+        }
+      }
+    }
+    for (let iz = 0; iz < this.nz; iz++) for (let ix = 0; ix < this.nx; ix++) {
+      const x = this.minX + ix * this.res, z = this.minZ + iz * this.res;
+      const list = cells.get(key(Math.floor(x / C), Math.floor(z / C)));
+      if (!list) continue;
+      let ws = 0, ys = 0, dmin = Infinity;
+      for (const r of list) {
+        const d = Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1));
+        if (d >= far) continue;
+        if (d === 0) { ws = 1; ys = r.y; dmin = 0; break; }
+        const w = 1 / d ** power;
+        ws += w; ys += w * r.y; dmin = Math.min(dmin, d);
+      }
+      if (!ws) continue;
+      const i = iz * this.nx + ix, k = dmin <= near ? 1 : 1 - (dmin - near) / (far - near), t = k * k * (3 - 2 * k);
+      this.h[i] += (ys / ws - this.h[i]) * t;
+      if (this.h[i] > this.maxHeight) this.maxHeight = this.h[i];
+    }
+    this.dirty.push([this.minX, this.minZ, this.minX + this.width, this.minZ + this.depth]);
+  }
+
+  /**
    * Dig a rectangle `depth` metres into the ground as it lies (the floor follows the terrain),
    * with walls that slope out over `edge` metres: trench floors and their exits.
    * Digging the same place twice doesn't dig deeper than `depth`.

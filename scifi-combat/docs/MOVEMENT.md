@@ -132,6 +132,25 @@ Ground steeper than 48° makes you lose footing.
 - **Belly slide (after a dive lands):** 75% of the landing speed, 9 m/s² friction, 35°/s steering.
   It ends prone. Sprint or jump while it slows = fast get-up (0.45 s).
 
+## Collision and steps (`FlatGroundBody`)
+
+- **Round where it counts:** the body collides as a square, one axis at a time (so it slides along
+  walls), but pushed into a box's face within its own width of a corner (0.1 m past its radius) it
+  slips round the corner, as a capsule would, keeping its speed (3% scraped off a tick) instead of
+  stopping dead on a lamp post, a wreck's bumper or a doorframe. A seam between two boxes of one wall
+  isn't a corner: that stops you like the wall.
+- **Steps without the pop:** kerbs, stairs and box tops up to 0.35 m are stepped in one tick (the
+  sim stays exact), but what's seen eases over the step in ~70 ms (`state.stepOff`, read by the
+  animation's root and so by the camera): the legs take the step instead of the whole body jumping
+  16 cm in one frame, up or down. Slopes don't count as steps (only height beyond the ground's lie).
+
+## Presentation timing
+
+The sim is a fixed 60 Hz; everything shown (camera springs, bob, animation blends, effects) steps
+by the real time since the last frame (`FixedLoop.frameDt`, capped at 50 ms). It used to step a
+fixed 1/60 s per drawn frame, which ran presentation 2.4× fast on a 144 Hz screen (a buzzing bob,
+stiff camera, poses snapping) and in slow motion when the frame rate dipped (a floaty camera).
+
 ## Deliberate deviations from HD2 (genre requirements)
 
 | Deviation | Why | Toggle |
@@ -162,7 +181,9 @@ pose (tested), so what you see is what you hit:
   soldier's head just left of and below the crosshair, the body filling the lower middle).
   - Stand: 0.48, 0.16, 2.0 m. Crouch: 0.45, 0.2, 1.85 m. Prone: 0.42, 0.38, 1.9 m.
   - Sprint pulls back 0.3 m. ADS: 0.42, 0.12, 1.2 m.
-  - Collision pulls in instantly and eases out.
+  - Collision pulls in instantly and eases out. Thin things standing free (lamp posts, sign poles,
+    tree trunks: under 0.8 m across) don't count (`cameraSolid`): passing through one for a moment
+    beats a snap in on every post. A building's pieces always count, however narrow.
 - **Bob:** event-driven. Each `anim:footstep` (planted by the animation rig) kicks a stiff spring
   down (ω 26, ζ 0.45, so a thud with a small rebound) plus an alternating roll. Footstep intensity scales
   with gait and stance (sprint thuds, prone barely moves). It never wanders like a sine wave.

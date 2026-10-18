@@ -43,6 +43,14 @@ const FRAMING = {
 };
 const EYE = { stand: 1.62, crouch: 1.12, prone: 0.45, slide: 0.9, dive: 0.85, knockdown: 0.5, seated: 1.6 };
 
+/**
+ * What the camera's collision ray minds: not the thin things standing free (lamp posts, sign poles,
+ * tree trunks, under 0.8 m across). Snapping in on every post you run past is a jolt; passing
+ * through one for a moment is what every shoulder camera does. A building's pieces always count,
+ * however narrow (the pier between two windows is still the wall).
+ */
+export const cameraSolid = (b) => !!b.group || Math.max(b.max.x - b.min.x, b.max.z - b.min.z) >= 0.8;
+
 /** The eyes of an animated rig (world, first person): the front of the head, a little up. */
 export function eyeOf(h, out) {
   const F = h.F.head, sc = h.scale;

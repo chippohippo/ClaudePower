@@ -318,3 +318,68 @@ test('hitboxes follow the stance: prone and diving soldiers present a low profil
   const dv = mk(); dv.tap('dodge'); dv.step(3);
   assert.ok(head(dv) < 1.2, 'diving body is horizontal');
 });
+
+test('a round body: pushed into a box near its corner it slips round and keeps running; a flat face or a seam stops it', () => {
+  const post = { min: v(3, 0, -0.3), max: v(3.6, 2, 0.3) };
+  const run = (boxes, z) => {
+    const r = rig({ boxes, pos: v(0, 0, z) });
+    r.input.yaw = -Math.PI / 2; r.input.moveY = 1;   // toward +x
+    let slowest = Infinity;
+    for (let i = 0; i < 90; i++) { r.step(1); if (r.s.position.x > 2 && r.s.position.x < 4.2) slowest = Math.min(slowest, speed(r.s)); }
+    return { x: r.s.position.x, slowest };
+  };
+  const corner = run([post], 0.45);   // the body's edge 0.2 m over the post's corner
+  assert.ok(corner.x > 5, `round it and on (x ${corner.x.toFixed(2)})`);
+  assert.ok(corner.slowest > T.speeds.jog * 0.6, `at a run past it (slowest ${corner.slowest.toFixed(2)} m/s)`);
+  const face = run([post], 0);
+  assert.ok(face.x < 3 - 0.34, `square into its face: stopped (x ${face.x.toFixed(2)})`);
+  // The same corner as a seam in a longer wall (the wall goes on past it): no corner to round.
+  const wall = [post, { min: v(3, 0, 0.3), max: v(3.6, 2, 3) }];
+  const seam = run(wall, 0.45);
+  assert.ok(seam.x < 3 - 0.34, `a seam in a wall stops you like the wall (x ${seam.x.toFixed(2)})`);
+});
+
+test('a kerb or a stair: the body steps it in one tick, what is seen eases over it (no pop, up or down)', () => {
+  const kerb = { min: v(2, 0, -5), max: v(8, 0.16, 5) };
+  const r = rig({ boxes: [kerb] });
+  r.input.yaw = -Math.PI / 2; r.input.moveY = 1;
+  let worst = 0, seen = 0, up = false, down = false;
+  for (let i = 0; i < 150; i++) {
+    r.step(1);
+    const now = r.s.position.y + r.s.stepOff;
+    worst = Math.max(worst, Math.abs(now - seen)); seen = now;
+    if (r.s.position.y > 0.15) up = true;
+    if (up && r.s.position.y < 0.01) down = true;
+  }
+  assert.ok(up && down, 'up the kerb and off the far side');
+  assert.ok(worst < 0.05, `what's seen moves at most ${(worst * 100).toFixed(1)} cm a tick (the body steps 16 cm in one)`);
+  assert.ok(Math.abs(r.s.stepOff) < 0.005, 'settled');
+});
+
+test('presentation runs on the real frame time: a 144 Hz and a 40 fps screen keep the same timing, the sim stays 60 Hz', async () => {
+  const { FixedLoop } = await import('../src/core/FixedLoop.js');
+  const realNow = performance.now, realRaf = globalThis.requestAnimationFrame;
+  let now = 0;
+  const queue = [];
+  performance.now = () => now;
+  globalThis.requestAnimationFrame = (f) => queue.push(f);
+  try {
+    for (const hz of [144, 40]) {
+      let ticks = 0, shown = 0;
+      const loop = new FixedLoop({ hz: 60, sim: () => ticks++, render: () => { shown += loop.frameDt; } });
+      loop.start();
+      for (let i = 0; i < hz * 2; i++) { now += 1000 / hz; queue.shift()(); }
+      loop.stop(); queue.length = 0;
+      assert.ok(Math.abs(ticks - 120) <= 1, `${hz} Hz: ${ticks} sim ticks in 2 s`);
+      assert.ok(Math.abs(shown - 2) < 0.02, `${hz} Hz: the camera, animation and effects saw ${shown.toFixed(3)} s of 2`);
+    }
+    // A hitch: a 300 ms frame steps presentation by 50 ms at most (a frame's slow-down, not a jump).
+    const loop = new FixedLoop({ hz: 60, sim: () => {}, render: () => {} });
+    loop.start();
+    now += 300; queue.shift()();
+    assert.equal(loop.frameDt, 0.05);
+    loop.stop();
+  } finally {
+    performance.now = realNow; globalThis.requestAnimationFrame = realRaf;
+  }
+});

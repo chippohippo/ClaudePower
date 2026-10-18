@@ -12,7 +12,7 @@ import { MovementController, FlatGroundBody } from '../src/movement/MovementCont
 import { AnimationSystem } from '../src/anim/AnimationSystem.js';
 import { ClipAnimationController } from '../src/anim/ClipAnimationController.js';
 import { CrowdRenderer } from '../src/render/CrowdRenderer.js';
-import { CameraRig, eyeOf, sightOf } from '../src/camera/CameraRig.js';
+import { CameraRig, eyeOf, sightOf, cameraSolid } from '../src/camera/CameraRig.js';
 import { hitSpheres } from '../src/movement/Hitboxes.js';
 import { table, angleDelta } from '../src/anim/ik.js';
 import { makeWorld, data, DT, v } from './harness.mjs';
@@ -467,6 +467,25 @@ function runStation(st, onFrame) {
   }
   sys.dispose();
 }
+
+test("the shoulder camera passes lamp posts and tree trunks; walls, and a building's narrow piers, still pull it in", async () => {
+  const { CoverIndex } = await import('../src/world/CoverIndex.js');
+  // Standing at the origin facing -Z: the camera sits behind (+Z) over the right shoulder (+X),
+  // and its ray from the head crosses x 0.25 at z 1.05.
+  const target = { id: 7, movement: { state: { mode: 'ground', stance: 'stand', speed: 0, bodyTurnRate: 0 } } };
+  const dist = (box) => {
+    const cover = new CoverIndex(box ? [box] : [], { cell: 8 });
+    const cam = new CameraRig({ aspect: 16 / 9, raycast: (o, d, max) => cover.raycast(o, d, max, cameraSolid) });
+    for (let i = 0; i < 60; i++) cam.update(1 / 60, { target, pos: new Vector3(0, 0, 0), yaw: 0, pitch: 0 });
+    return cam.collisionDist;
+  };
+  const open = dist(null);
+  assert.ok(open > 1.9, `nothing behind: the full ${open.toFixed(2)} m`);
+  assert.ok(Math.abs(dist({ min: new Vector3(0.1, 0, 0.9), max: new Vector3(0.4, 6, 1.2), kind: 'pole' }) - open) < 1e-6, 'a lamp post: passed');
+  assert.ok(Math.abs(dist({ min: new Vector3(0, 0, 0.8), max: new Vector3(0.55, 4, 1.35), kind: 'tree' }) - open) < 1e-6, 'a tree trunk: passed');
+  assert.ok(dist({ min: new Vector3(-2, 0, 0.9), max: new Vector3(2, 3, 1.2), kind: 'wall' }) < 1, 'a wall pulls it in');
+  assert.ok(dist({ min: new Vector3(0.1, 0, 0.9), max: new Vector3(0.4, 3, 1.2), kind: 'hwall', group: { house: 1 } }) < 1, "a house's pier between two windows is still the wall");
+});
 
 test('first person [V]: the camera sits at the eyes and on the sight line when aiming; your head is hidden; ragdolls go third person', () => {
   const r = rig();
