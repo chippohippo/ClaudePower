@@ -2,7 +2,8 @@
 //  * Every body that came off a building (physics/RigidWorld.js), falling, swinging on what still
 //    holds it, tumbling, or lying as rubble, is drawn box by box at its pose, blended between the
 //    sim's last two ticks (so it moves smoothly on any screen), in the colour of the piece it came
-//    from, a little dustier. The piece's own instance is gone from its building's mesh by then.
+//    from, a little dustier. The piece's own instance is gone from its building's mesh by then. A
+//    tower's pieces are drawn as the tower was (CityRenderer.facadePieces: its windows, its colour).
 //  * Dust and debris (BattleFx): chips off a wall a blast didn't break, chunks thrown from a hole
 //    or where a piece smashes, a trickle where a building is about to go, a puff where a joint
 //    tears, and a cloud rolling out where a piece lands.
@@ -22,10 +23,12 @@ export class CollapseViews {
   /**
    * @param {THREE.Scene} scene
    * @param {object} o { fx: BattleFx, colorOf(box): the colour it's drawn in (CityRenderer.colorOf),
-   *   rigid: the structures' RigidWorld, snow: the planet's snow (it settles on rubble too) }
+   *   rigid: the structures' RigidWorld, snow: the planet's snow (it settles on rubble too),
+   *   facade: { mesh, cap, set(i, box) } instances for a tower's pieces (CityRenderer.facadePieces) }
    */
-  constructor(scene, { fx = null, colorOf = () => '#77736c', rigid = null, snow = null, anisotropy = 4 } = {}) {
-    this.fx = fx; this.colorOf = colorOf; this.rigid = rigid;
+  constructor(scene, { fx = null, colorOf = () => '#77736c', rigid = null, snow = null, anisotropy = 4, facade = null } = {}) {
+    this.fx = fx; this.colorOf = colorOf; this.rigid = rigid; this.facade = facade;
+    this.ffree = []; this.fn = 0;
     const tex = concreteTexture(); tex.anisotropy = anisotropy;
     const mat = triplanar(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 }), tex, 0.4, 0.5);
     this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), snow ? snowCover(mat, snow) : mat, MAX);
@@ -65,23 +68,27 @@ export class CollapseViews {
   /** Bodies made and gone since the last look: instances for the new ones, the gone ones' freed. */
   #sync() {
     const R = this.rigid, mesh = this.mesh;
+    const FM = this.facade?.mesh;
     for (const [b, s] of this.slots) {
       if (!b.removed) continue;
-      for (const i of s.i) { mesh.setMatrixAt(i, ZERO); this.free.push(i); }
+      s.i.forEach((i, k) => { if (s.f[k]) { FM.setMatrixAt(i, ZERO); this.ffree.push(i); } else { mesh.setMatrixAt(i, ZERO); this.free.push(i); } });
       this.slots.delete(b);
     }
     for (const b of R.bodies) {
       if (this.slots.has(b)) continue;
-      const ids = [];
+      const ids = [], fac = [];
       for (const k of b.boxes) {
-        const i = this.free.length ? this.free.pop() : this.n < MAX ? this.n++ : -1;
+        const tower = !!(FM && k.meta?.kind === 'tower');
+        const i = tower ? (this.ffree.length ? this.ffree.pop() : this.fn < this.facade.cap ? this.fn++ : -1) : this.free.length ? this.free.pop() : this.n < MAX ? this.n++ : -1;
         if (i < 0) break;
-        ids.push(i);
-        mesh.setColorAt(i, _c.set(this.colorOf(k.meta?.src ?? { kind: 'rubble', min: { x: b.x[0], z: b.x[2] } })).lerp(DUST, 0.22));
+        ids.push(i); fac.push(tower);
+        if (tower) this.facade.set(i, k.meta.src);
+        else mesh.setColorAt(i, _c.set(this.colorOf(k.meta?.src ?? { kind: 'rubble', min: { x: b.x[0], z: b.x[2] } })).lerp(DUST, 0.22));
       }
-      this.slots.set(b, { i: ids, still: false });
+      this.slots.set(b, { i: ids, f: fac, still: false });
     }
     mesh.count = this.n;
+    if (FM) FM.count = this.fn;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     this.version = R.version;
   }
@@ -101,12 +108,12 @@ export class CollapseViews {
       for (let k = 0; k < s.i.length; k++) {
         const bx = b.boxes[k];
         _o.set(bx.c[0], bx.c[1], bx.c[2]).applyQuaternion(_q).add(_p);
-        this.mesh.setMatrixAt(s.i[k], _m.compose(_o, _q, _s.set(2 * bx.h[0], 2 * bx.h[1], 2 * bx.h[2])));
+        (s.f[k] ? this.facade.mesh : this.mesh).setMatrixAt(s.i[k], _m.compose(_o, _q, _s.set(2 * bx.h[0], 2 * bx.h[1], 2 * bx.h[2])));
       }
       s.still = b.asleep;
       dirty = true;
     }
     this.drawnVersion = this.version;
-    if (dirty) this.mesh.instanceMatrix.needsUpdate = true;
+    if (dirty) { this.mesh.instanceMatrix.needsUpdate = true; if (this.facade) this.facade.mesh.instanceMatrix.needsUpdate = true; }
   }
 }

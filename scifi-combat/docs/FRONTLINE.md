@@ -272,6 +272,33 @@ smash, tumble and pile up as rubble you can climb.
   - It hammers the member it lands on (2.5 damage per kJ it loses), so a floor coming down can
     hole the one below or take it with it.
   - Blasts throw bodies, and wake the rubble they throw.
+- **Towers** (the city's solid blocks, 3 to 22 storeys) have no members: each is one whole with hit
+  points (16000 for a 300 m² floor plan 40 m tall, more with the square roots of its footprint and
+  height: about 20 howitzer rounds at the foot of a 60 m tower).
+  - Blasts wear it down, in full in its lowest 30%, a fifth of that above. It leans toward where it
+    was hurt.
+  - Anything heavy crashing into it (another tower's pieces, a house front) wears it down by 0.4
+    per kJ, and leans it the way it was struck.
+  - Worn through, it comes down. The half of its foot on the side it's going turns to dust; the
+    other half stands, held to the ground. The rest topples that way as a stack of bodies two to
+    four storeys tall (`density` 0.3 t/m³: storeys are mostly air), each jointed at its corners to
+    the one under it, the joints holding 0.9 times the weight above them. They tear as it bends, so
+    it breaks up as it falls.
+  - Its pieces hit hard break up as other pieces do, but never below 400 m³: a tower comes apart
+    in big pieces, a pile of storeys, not gravel. They're drawn as the tower was (its facade and
+    colour, its lights out, no shopfronts); its signs, roof beacon and ad screens go with it.
+  - It falls across the street and onto whatever's there. What it hits hard enough breaks:
+    houses hole and come down, another tower may come down in its turn, the way it was struck.
+  - Cars it comes down on are smashed by how hard (they burn, then blow) and shoved; one smashed
+    past four fifths of its hit points won't drive. Soldiers under it are crushed, outright, and
+    a survivor is knocked flying. A big piece landing shakes the ground round it (up to 14 m):
+    people are thrown off their feet, or stumble, and knocked about a little.
+  - In a city battle, some way in (25 to 55% of the time limit), the tallest tower near the fighting
+    that the shelling has worn down most comes down (`FrontlineSession`). It groans and sheds dust
+    for 3.5 s first, the ground it will cover marked: bots run out from under it, shouting, and
+    the HUD tells you to get clear.
+  - A tower and the one it brings down cost 2-7 ms a tick while their pieces fall (about 100-140
+    bodies), then settle as rubble the bots route round.
 - **At rest it's rubble:** a body that's still (or has hardly moved in 1.5 s, or has been moving
   15 s) sleeps. It's then cover: boxes stepped to the lie of each piece, so a slab leaning on a
   wall is a stair you can walk up (if it isn't too steep), and you can climb over the rest and

@@ -337,7 +337,8 @@ export class VehicleSystem {
   #car(v, cmd, dt, stalled, driver) {
     const s = v.movement.state, C = v.car;
     if (s.position.distanceToSquared(C.base) > 1e-4) C.teleport(s.position);   // somebody moved it
-    const res = C.step(this.#carWorld, { throttle: cmd.moveY, steer: cmd.moveX, handbrake: !!cmd.buttons.jump?.down, dead: stalled || !!v.wreck || !driver }, dt, driver?.perks?.handling ?? 1);
+    // (Smashed past a fifth of its HP, its engine's gone: it rolls, it doesn't drive.)
+    const res = C.step(this.#carWorld, { throttle: cmd.moveY, steer: cmd.moveX, handbrake: !!cmd.buttons.jump?.down, dead: stalled || !!v.wreck || !driver || v.health.hp < v.health.max * 0.2 }, dt, driver?.perks?.handling ?? 1);
     s.position.copy(C.base); s.velocity.copy(C.vel); v.yaw = C.yaw;
     s.grounded = res.grounded;
     const gunner = v.seats.find((q) => q.def.role === 'gunner');

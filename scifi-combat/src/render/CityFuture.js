@@ -275,7 +275,7 @@ export class CityFuture {
       const f = faceToward(box, mx + dir[0] * 1000, mz + dir[1] * 1000);
       const w = Math.min(f.w * 0.6, 7 + r() * 7), h = Math.min(w * (1.4 + r()), H - 10);
       if (h < 6) continue;
-      list.push({ ...f, y: B.min.y + 7 + h / 2 + r() * Math.max(0, H - h - 12), w, h });
+      list.push({ ...f, y: B.min.y + 7 + h / 2 + r() * Math.max(0, H - h - 12), w, h, on: B });
     }
     if (!list.length) return;
     const geo = new THREE.PlaneGeometry(1, 1);
@@ -317,7 +317,15 @@ export class CityFuture {
     geo.setAttribute('aAd', new THREE.InstancedBufferAttribute(aAd, 4));
     mesh.frustumCulled = false;
     this.screens = mesh;
+    this.screenOn = list.map((q) => q.on ?? null);   // the building each screen is on (none: a megatower's)
     this.group.add(mesh);
+  }
+
+  /** A building come down: its screens go with it. */
+  buildingGone(box) {
+    if (!this.screens) return;
+    this.screenOn.forEach((b, i) => { if (b === box) this.screens.setMatrixAt(i, _m.makeScale(0, 0, 0)); });
+    this.screens.instanceMatrix.needsUpdate = true;
   }
 
   // ---------------------------------------------------------------- flying traffic

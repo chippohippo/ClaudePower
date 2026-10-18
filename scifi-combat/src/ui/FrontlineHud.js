@@ -445,7 +445,11 @@ export class FrontlineHud {
     const D = this.dig && this.time - this.dig.t < 0.25 ? this.dig : this.dig?.stage === -1 && this.time - this.dig.t < 1.5 ? this.dig : null;
     const sup = s.world.support, fixing = me.repairing?.target;
     const fin = me.reviveJob?.finish ? me.reviveJob : null, victim = !fin && !patient && !myJob && !hp.downed && !hp.dead ? rv.victimFor?.(me) : null;
-    this.#set(this.el.prompt, myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
+    // Under something coming down (a tower going, a house front): get clear.
+    const ST = s.world.structures, at = me.movement.state.position;
+    const under = !hp.dead && ST?.falling.length && ST.dangerAt(at.x, at.z, (this.clear ??= { x: 0, z: 0, set(x, y, z) { this.x = x; this.z = z; return this; } }));
+    this.#set(this.el.prompt, under ? `<span style="color:${THEM}">IT'S COMING DOWN</span> · GET CLEAR`
+      : myJob ? `REVIVING ${bar(myJob.t / myJob.need, '#7fffb0')}`
       : fin ? `<span style="color:${THEM}">FINISHING</span> ${bar(fin.t / fin.need, THEM)}`
       : victim ? `HOLD <b>X</b> TO FINISH ${(victim.name ?? '').toUpperCase()}`
       : fixing ? `REPAIRING ${bar(fixing.health.hp / fixing.health.max, '#9fd3ff')}`

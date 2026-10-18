@@ -148,7 +148,7 @@ const footFx = new FootFx({ fx, world, camera: () => viewCam, snow: !!planet.sno
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
-const collapse = city ? new CollapseViews(scene, { fx, colorOf: (b) => city.colorOf(b), rigid: session.structures?.rigid, snow: planet.snow, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;   // buildings coming apart
+const collapse = city ? new CollapseViews(scene, { fx, colorOf: (b) => city.colorOf(b), rigid: session.structures?.rigid, snow: planet.snow, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()), facade: city.facadePieces() }) : null;   // buildings coming apart (a tower's pieces in its facade)
 // A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });

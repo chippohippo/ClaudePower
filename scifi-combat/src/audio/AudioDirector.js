@@ -328,6 +328,12 @@ export class AudioDirector {
 
     // ---- buildings coming apart (Structures.js): a groan before it goes, walls breaking, pieces tearing loose and landing
     on('structure:creak', (e) => E.play('struct:creak', { pos: at(e.at), kind: 'impact', gain: Math.min(1, 0.55 + e.n * 0.02), rate: 0.9 + Math.random() * 0.2 }));
+    // A tower going: a long groan from deep in it, a rumble under it, and the groan again as it starts to lean.
+    on('structure:tower', (e) => {
+      E.play('struct:creak', { pos: at(e.at), kind: 'boom', gain: 1, rate: 0.5 });
+      E.play('boom:shell:far', { pos: at(e.at), kind: 'boom', gain: 0.7, rate: 0.45 });
+      setTimeout(() => E.play('struct:creak', { pos: at(e.at), kind: 'boom', gain: 1, rate: 0.4 }), Math.max(0, (e.warn ?? 3) - 1) * 1000);
+    });
     on('structure:break', (e) => {
       if (this.time - (this.lastBreak ?? -1) < 0.06) return;   // a blast breaks a dozen pieces at once: one crumble
       this.lastBreak = this.time;

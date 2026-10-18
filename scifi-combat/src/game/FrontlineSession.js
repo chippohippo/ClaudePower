@@ -154,6 +154,28 @@ export class FrontlineSession {
     for (const c of this.commanders) { c.update(0); while (c.mind?.thinking) c.mind.plan(c); }
   }
 
+  /**
+   * A city battle: some way in, a tower near the fighting that the shelling has been at comes down
+   * (across its street, onto whatever's there), with its warning (Structures.bringDown).
+   */
+  #towerFall() {
+    const S = this.structures, M = this.mode;
+    if (this.towerFallAt === undefined) this.towerFallAt = M.cfg.timeLimit * (0.25 + 0.3 * S.rand());
+    if (this.towerFell || M.time < this.towerFallAt) return;
+    this.towerFell = true;
+    const pts = [...M.objectives(0).attack, ...M.objectives(1).attack].map((p) => p.pos);
+    let best = null, score = -Infinity;
+    for (const T of S.towers) {
+      if (T.down || T.going || T.h < 25) continue;
+      const B = T.box, cx = (B.min.x + B.max.x) / 2, cz = (B.min.z + B.max.z) / 2;
+      const d = pts.length ? Math.min(...pts.map((p) => Math.hypot(p.x - cx, p.z - cz))) : 0;
+      if (d > 220) continue;
+      const s = T.h - d * 0.25 + (1 - T.hp / T.max) * 40;
+      if (s > score) { score = s; best = T; }
+    }
+    if (best) S.bringDown(best);
+  }
+
   dispose() {
     this.off.forEach((f) => f());
     this.bp.dispose(); this.barks.dispose(); this.neutrals?.dispose();
@@ -255,6 +277,7 @@ export class FrontlineSession {
     }
     w.update(dt);
     this.structures?.update(dt);
+    if (this.structures?.towers.length) this.#towerFall();
     this.melee.resolve();
     this.logistics?.update(dt, this.fighters);
     this.neutrals?.update(dt);

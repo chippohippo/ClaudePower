@@ -74,7 +74,7 @@ export class CityRenderer {
     this.#outskirts();
     this.#rubble();
     this.off = [
-      bus.on('world:coverDestroyed', (e) => { if (e.structural) this.#hide(e.cover); }),
+      bus.on('world:coverDestroyed', (e) => { if (e.tower !== undefined) this.#towerGone(e.cover); else if (e.structural) this.#hide(e.cover); }),
       bus.on('world:coverAdded', (e) => { if (e.structural) this.#show(e.cover); }),
       bus.on('structure:hit', (e) => this.#wear(e.cover)),
     ];
@@ -183,7 +183,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     // Storey lines and grime streaks under the windows.
     diffuseColor.rgb *= wall > 0.5 ? (1.0 - 0.18 * step(0.97, f.y) - 0.12 * step(f.x, 0.15) * step(0.5, cityHash(cell + 5.3))) : 0.55;
     // Shopfronts: a lit band in some ground floors.
-    float bayS = floor(u / 6.0), shop = wall * step(0.4, v) * step(v, 3.0) * step(0.18, fract(u / 6.0)) * step(fract(u / 6.0), 0.9);
+    float bayS = floor(u / 6.0), shop = wall * step(0.4, v) * step(v, 3.0) * step(0.18, fract(u / 6.0)) * step(fract(u / 6.0), 0.9) * step(-0.5, vF.x);   // (none on a fallen tower's pieces: vF.x -1)
     float shopLit = shop * step(0.55, cityHash(vec2(bayS + face, vB.x * 0.003)));
     vec3 wc = mix(${glsl(warm)}, ${glsl(cool)}, step(0.62, cityHash(cell + 3.1 + face)));
     totalEmissiveRadiance += wc * lit * (0.55 + 0.6 * cityHash(cell + 7.7)) * vB.w;
@@ -223,8 +223,10 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
       aB.set([seed % 1000, lit, dmg, glow], i * 4);   // a small seed: the shader hashes it, and an interpolated big one jitters per pixel
       aF.set(f, i * 4);
     };
+    this.buildingAt = new Map();   // a building's box -> its instance (a tower that comes down is taken out of the mesh)
     C.buildings.forEach((bd, i) => {
       const B = bd.box;
+      this.buildingAt.set(B, i);
       put(i, B.min.x, B.min.y + 0.25, B.min.z, B.max.x, B.max.y, B.max.z, STYLE[bd.style], bd.seed, (bd.damaged ? bd.lit * 0.5 : bd.lit) * winShare, bd.damaged ? 1 : 0, 1, bd.damaged ? [0, 0, 0, 0] : trim(false));
     });
     sky.forEach((t, k) => {
@@ -242,6 +244,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
     this.group.add(mesh);
     this.buildingMesh = mesh;
+    this.buildingAttrs = { aB, aF, mat, colors: C.buildings.map((bd) => STYLE[bd.style]) };
     this.skylineTops = sky.map((t) => ({ x: t.x, y: this.ground(Math.max(b.minX, Math.min(b.maxX, t.x)), Math.max(b.minZ, Math.min(b.maxZ, t.z))) + t.h, z: t.z, tall: t.h > 90 }));
     for (const t of mega) if (t.top) this.skylineTops.push({ x: t.x, y: t.y0 + t.h, z: t.z, tall: true });
     this.megatowers = [...new Set(mega.map((t) => t.whole))];
@@ -449,6 +452,47 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     }
   }
 
+  /** A tower come down: gone from the skyline, with its signs, its roof beacon and its screens (its pieces are bodies now). */
+  #towerGone(box) {
+    const i = this.buildingAt?.get(box);
+    if (i === undefined) return;
+    this.buildingMesh.setMatrixAt(i, ZERO);
+    this.buildingMesh.instanceMatrix.needsUpdate = true;
+    if (this.signMesh && this.signList) {
+      this.signList.forEach((sg, k) => { if (sg.building?.box === box) this.signMesh.setMatrixAt(k, ZERO); });
+      this.signMesh.instanceMatrix.needsUpdate = true;
+    }
+    const bi = this.beaconAt?.get(box);
+    if (bi !== undefined) { this.beacons.mesh.setMatrixAt(bi, ZERO); this.beacons.mesh.instanceMatrix.needsUpdate = true; }
+    this.future?.buildingGone?.(box);
+  }
+
+  /**
+   * Instances for a fallen tower's pieces, drawn as the tower was (its facade, its colour), its
+   * lights out and windows blown, no shopfronts: { mesh, cap, set(i, box) } (CollapseViews draws them).
+   */
+  facadePieces(cap = 600) {
+    if (this.pieceMesh) return this.pieceMesh;
+    const A = this.buildingAttrs;
+    if (!A) return null;
+    const geo = new THREE.BoxGeometry(1, 1, 1), aB = new Float32Array(cap * 4), aF = new Float32Array(cap * 4);
+    geo.setAttribute('aB', new THREE.InstancedBufferAttribute(aB, 4));
+    geo.setAttribute('aF', new THREE.InstancedBufferAttribute(aF, 4));
+    const mesh = new THREE.InstancedMesh(geo, A.mat, cap);
+    mesh.count = 0; mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
+    mesh.setColorAt(0, _c.set('#777777'));
+    this.group.add(mesh);
+    const set = (i, box) => {
+      const b = this.buildingAt.get(box) ?? 0;
+      aB.set([A.aB[b * 4], A.aB[b * 4 + 1] * 0.25, 1, A.aB[b * 4 + 3]], i * 4);
+      aF.set([-1, 0, 0, 0], i * 4);
+      mesh.setColorAt(i, _c.set(A.colors[b] ?? STYLE[0]).lerp(SOOT, 0.2));
+      geo.attributes.aB.needsUpdate = true; geo.attributes.aF.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    };
+    return (this.pieceMesh = { mesh, cap, set });
+  }
+
   /** A piece shot away or fallen: gone from its mesh (its instance free for another). */
   #hide(b) {
     const s = this.slots.get(b);
@@ -645,6 +689,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
     const F = this.L.future, S = F ? [...this.city.signs, ...streetSigns(this.city.buildings, F.signs ?? 0.6, this.map.seed ?? 1)] : this.city.signs, colors = (this.L.neon ?? ['#2ef2ff', '#ff3fb4', '#ffb030', '#a65cff', '#5cff9a']).map((c) => new THREE.Color(c));
     const tex = signAtlas();
     if (!S.length || !tex) return;
+    this.signList = S;
     const geo = new THREE.PlaneGeometry(1, 1);
     const aSign = new Float32Array(S.length * 2);
     const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
@@ -694,8 +739,10 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
 
   /** Red lights on the tall roofs (the city's own and the skyline's), blinking out of step. */
   #beacons() {
+    const tall = this.city.buildings.filter((b) => b.storeys >= 10);
+    this.beaconAt = new Map(tall.map((b, i) => [b.box, i]));
     const tops = [
-      ...this.city.buildings.filter((b) => b.storeys >= 10).map((b) => ({ x: (b.box.min.x + b.box.max.x) / 2, y: b.box.max.y + 0.4, z: (b.box.min.z + b.box.max.z) / 2 })),
+      ...tall.map((b) => ({ x: (b.box.min.x + b.box.max.x) / 2, y: b.box.max.y + 0.4, z: (b.box.min.z + b.box.max.z) / 2 })),
       ...this.skylineTops.filter((t) => t.tall),
     ];
     if (!tops.length) { this.beacons = null; return; }
