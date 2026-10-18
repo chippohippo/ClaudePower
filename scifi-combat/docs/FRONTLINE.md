@@ -722,24 +722,31 @@ difficulty, working round their orders and never overriding them (at recruit, st
     orders more readily, and it misjudges the enemy less (`noise`).
   - *Measured* (AI against AI, both sides' soldiers veteran, each seed played from both sides; 7 minute
     matches at 32v32, 10 at 12v12). 32v32 in the city, 16 matches each: veteran against standing orders
-    (recruit) 12–4, elite against veteran 12–4, elite against recruit 12–4; in the trenches, elite
+    (recruit) 13–3, elite against veteran 13–3, elite against recruit 12–4; in the trenches, elite
     against recruit 12–4. 12v12 in the trenches, 32 each: veteran against recruit 19–13, elite against
-    recruit 27–5 (six breakthroughs to the HQ, against one), elite against veteran 17–15: with only
-    three squads a side there's little to command, and the two play much alike. Whoever took the
-    middle first won nine matches in ten. It wins bloodier than standing orders: at 32v32 the elite
-    lost about 40 more men a match than the recruit it beat, the veteran about 12 more (their attacks,
-    and the gun crews posted forward once the front moves up), elite and veteran even against each
-    other; at 12v12 the elite lost 15 fewer. And its squads flank less: they storm instead, and are
-    often below the three men up a flank needs.
+    recruit 26–6 (six breakthroughs to the HQ, against one), elite against veteran 19–13: with only
+    three squads a side there's less to command, and the two play much alike. At 32v32 whoever took
+    the middle first won 60 matches of 62; at 12v12, four in five. Losses: at 32v32 the veteran lost
+    as many men as the recruit it beat, and elite and veteran as many as each other, but the elite
+    about 40 more a match than the recruit in the city and 60 more in the trenches (its attacks, and
+    the gun crews posted forward once the front moves up); at 12v12 the elite lost 14 fewer than the
+    recruit. And its squads flank less: they storm instead, and are often below the three men up a
+    flank needs.
   - *How it got there.* The old AI played the standing orders' plan with extras (the home guard, staged
     attacks, scouts) and measured even with plain standing orders (12v12: 26–22 in 48). Spreading
     squads by need loses the race for the middle; massing without storms wins the race but not the
     points (32v32 city: 9–7); the storm is what turned it (14–2). Standing orders with storms alone are
     no better than without (32v32 city: 8–8): it takes the doctrine as well. Between two doctrine
     commanders the race decides, and the elite's rush onto the points (with all in, the barrage and
-    the rescue) is its edge over the veteran. It also has a forward model that
-    plays 75 s of battle ahead against the enemy's possible answers (`search` > 0), off at every level:
-    in AI-vs-AI matches the plans it chose did worse than the plan it started from.
+    the rescue) is its edge over the veteran. Holding storms back (not a squad down to its last man,
+    a longer wait after one that fails) costs the race: held back there as well, and with its fire
+    missions spaced to 30 s, the elite lost races to the veteran it had won (9–7; with the 30 s
+    spacing alone, 9–7 again; with neither, 13–3). So it holds back only once the middle is decided,
+    where it makes little difference: the elite kept 227 tickets to the recruit's 265, as before (226
+    to 264), and the veteran as many as the recruit (248 each, where it had kept 12 fewer). It also
+    has a forward model that plays 75 s of battle ahead against the enemy's possible answers
+    (`search` > 0), off at every level: in AI-vs-AI matches the plans it chose did worse than the
+    plan it started from.
 
 ## Squads and the commander
 
