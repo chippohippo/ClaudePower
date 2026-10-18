@@ -156,6 +156,8 @@ export class StructureSystem {
     this.dirty = [];             // nav rects to redo [x0, z0, x1, z1]
     this.stats = { breaks: 0, holes: 0, falls: 0, bodies: 0, tears: 0, shatters: 0, crushed: 0, rubble: 0 };
     const T = world.terrain;
+    // A piece coming away is a floor you're carried down on (the movement bodies ask the cover).
+    world.cover.platforms = (x, z, below) => this.topAt(x, z, below);
     this.rigid = new RigidWorld({
       ground: T ? (x, z) => T.height(x, z) : null,
       normal: T ? (x, z, out) => { T.normal(x, z, _q); out[0] = _q.x; out[1] = _q.y; out[2] = _q.z; } : null,
@@ -201,6 +203,22 @@ export class StructureSystem {
 
   /** The structure a cover box belongs to, if any. */
   of(b) { return b?.st?.S ?? null; }
+
+  /** The top of a piece on the move over (x, z), at or below `below`, or -Infinity: something to stand on as it goes. */
+  topAt(x, z, below) {
+    let top = -Infinity;
+    for (const b of this.rigid.awake) {
+      const A = b.aabb;
+      if (x < A[0] || x > A[3] || z < A[2] || z > A[5] || A[1] > below) continue;
+      for (const k of b.boxes) {
+        const e = k.bb;
+        if (x < e[0] || x > e[3] || z < e[2] || z > e[5]) continue;
+        const hi = column(k.wc, b.ax, k.h, x, z)?.[1];
+        if (hi !== undefined && hi <= below && hi > top) top = hi;
+      }
+    }
+    return top;
+  }
 
   // ---------------------------------------------------------------- damage
   /**
@@ -664,7 +682,7 @@ export class StructureSystem {
     bus.emit('structure:break', { cover: null, fragments: [], at, hole: [Math.max(A[0], at[0] - r), Math.max(A[1], at[1] - 0.5), Math.max(A[2], at[2] - r), Math.min(A[3], at[0] + r), Math.min(A[4], at[1] + r), Math.min(A[5], at[2] + r)], mat: D.mat, structure: D.S.id, impact: true });
   }
 
-  /** Whoever a moving body runs into: crushed by how hard it's going, shoved if it's barely moving. */
+  /** Whoever a moving body runs into: crushed by how hard it comes at them (no harm under a slow one, or one they're riding). */
   #crush() {
     for (const b of this.rigid.awake) {
       if (b.data?.debris) continue;
@@ -675,9 +693,15 @@ export class StructureSystem {
         if (e.health?.dead || e.vehicle || !e.movement) return;
         const q = e.movement.state.position;
         if (q.x < A[0] - 0.4 || q.x > A[3] + 0.4 || q.z < A[2] - 0.4 || q.z > A[5] + 0.4 || q.y > A[4] + 0.2 || q.y + 1.8 < A[1]) return;
+        const fv = e.movement.state.velocity;
         for (const up of [0.3, 0.9, 1.5]) {
-          if (!this.rigid.boxAt(b, q.x, q.y + up, q.z, 0.3)) continue;
-          const v = b.velocityAt(q.x, q.y + up, q.z, _v), sp = Math.hypot(v[0], v[1], v[2]);
+          const k = this.rigid.boxAt(b, q.x, q.y + up, q.z, 0.3);
+          if (!k) continue;
+          if ((column(k.wc, b.ax, k.h, q.x, q.z)?.[1] ?? Infinity) < q.y + 0.25) return;   // (under his feet: the floor he's riding)
+          // How fast it's coming at him (riding a floor down as it goes is no harm).
+          const v = b.velocityAt(q.x, q.y + up, q.z, _v);
+          if (fv) { v[0] -= fv.x; v[1] -= fv.y; v[2] -= fv.z; }
+          const sp = Math.hypot(v[0], v[1], v[2]);
           if (sp < CRUSH_V || this.time - (D.crush.get(e.id) ?? -9) < 0.5) return;
           D.crush.set(e.id, this.time);
           const dmg = Math.min(5000, 0.5 * Math.min(b.m, 20) * sp * sp * CRUSH);
@@ -908,6 +932,21 @@ function groups(boxes, n) {
   return out;
 }
 
+/** How high an oriented box (centre c, axes: three unit rows, half sizes h) is over (x, z): [underside, top], or null. */
+function column(c, ax, h, x, z) {
+  let lo = -Infinity, hi = Infinity;
+  const dx = x - c[0], dz = z - c[2];
+  for (let k = 0; k < 3; k++) {
+    const o = ax[k * 3] * dx + ax[k * 3 + 2] * dz, u = ax[k * 3 + 1];
+    if (Math.abs(u) < 1e-6) { if (Math.abs(o) > h[k]) return null; continue; }
+    let t0 = (-h[k] - o) / u, t1 = (h[k] - o) / u;
+    if (t0 > t1) { const t = t0; t0 = t1; t1 = t; }
+    if (t0 > lo) lo = t0;
+    if (t1 < hi) hi = t1;
+  }
+  return hi - lo > 0.05 ? [c[1] + lo, c[1] + hi] : null;
+}
+
 /**
  * Cover for a box lying askew (centre c, axes: three unit rows, half sizes h): emit(x0, y0, z0, x1,
  * y1, z1) for each axis-aligned box standing in for it. Square to the world (within 10°), it's one;
@@ -933,19 +972,7 @@ export function restingBoxes(c, ax, h, emit) {
     const nx = Math.max(1, Math.round((2 * ext[0]) / cs)), nz = Math.max(1, Math.round((2 * ext[2]) / cs));
     const sx = (2 * ext[0]) / nx, sz = (2 * ext[2]) / nz, X0 = c[0] - ext[0], Z0 = c[2] - ext[2];
     // How high the box is over the middle of each cell (its underside and top), or nothing.
-    const col = (x, z) => {
-      let lo = -Infinity, hi = Infinity;
-      const dx = x - c[0], dz = z - c[2];
-      for (let k = 0; k < 3; k++) {
-        const o = ax[k * 3] * dx + ax[k * 3 + 2] * dz, u = ax[k * 3 + 1];
-        if (Math.abs(u) < 1e-6) { if (Math.abs(o) > h[k]) return null; continue; }
-        let t0 = (-h[k] - o) / u, t1 = (h[k] - o) / u;
-        if (t0 > t1) { const t = t0; t0 = t1; t1 = t; }
-        if (t0 > lo) lo = t0;
-        if (t1 < hi) hi = t1;
-      }
-      return hi - lo > 0.05 ? [c[1] + lo, c[1] + hi] : null;
-    };
+    const col = (x, z) => column(c, ax, h, x, z);
     // Rows of cells along x, merged where they match; then rows merged along z.
     const runs = [];
     for (let j = 0; j < nz; j++) {

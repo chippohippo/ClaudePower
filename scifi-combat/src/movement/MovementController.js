@@ -1257,7 +1257,8 @@ export class RapierBody {
  * slips round the corner (a lamp post, a wreck's bumper, a doorframe) instead of stopping dead on it,
  * unless the corner is only a seam in a longer wall. Reports `step`, the height stepped up (+) or
  * down (-) beyond the lie of the ground (a kerb, a stair), for the animation to ease over.
- * `boxes` can be a plain array or a CoverIndex (anything with queryAABB(minX, minZ, maxX, maxZ, cb)).
+ * `boxes` can be a plain array or a CoverIndex (anything with queryAABB(minX, minZ, maxX, maxZ, cb));
+ * its `platforms(x, z, below)`, if it has one, is the top of anything moving there to stand on.
  */
 export class FlatGroundBody {
   constructor(position, boxes = [], { terrain = null, radius = 0.35, stepHeight = 0.35 } = {}) {
@@ -1352,12 +1353,15 @@ export class FlatGroundBody {
       const k = this.#slip(axis, x, z, axis === 'x' ? d.x : d.z, axis === 'x' ? d.z : d.x, hit, Math.max(y, p.y), near);
       if (k) { if (axis === 'x') { z += k; sz += k; } else { x += k; sx += k; } out.slip = axis; }
     }
-    // Vertical: terrain or box tops under us.
+    // Vertical: terrain or box tops under us (or a moving piece of a building: the cover's
+    // `platforms`, Structures.topAt, so you ride a floor down as it gives way under you).
     let floor = this.groundAt(x, z);
     const r = this.r * 0.7;
     for (const b of near) {
       if (x > b.min.x - r && x < b.max.x + r && z > b.min.z - r && z < b.max.z + r && b.max.y <= Math.max(p.y, y) + 0.05) floor = Math.max(floor, b.max.y);
     }
+    const moving = this.boxes?.platforms?.(x, z, Math.max(p.y, y) + this.step);
+    if (moving > floor) floor = moving;
     // A step climbed this move holds us up while we're only on its edge (walking slowly onto a
     // stair, the body reaches the step's edge before its middle is over it: snapped back down,
     // it was pushed out again, and stuck at the foot of the stairs for good).

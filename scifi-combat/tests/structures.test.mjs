@@ -182,6 +182,36 @@ test('a falling floor crushes whoever is under it, pounds what it lands on, and 
   void canopy;
 });
 
+test('a soldier on a floor that gives way is carried down on it, unhurt by it', () => {
+  // A canopy on four pillars; he stands on it; the two pillars on one side go.
+  const P = (x, z, h) => ({ min: v(x - 0.2, 0, z - 0.2), max: v(x + 0.2, h, z + 0.2), kind: 'pillar', surface: 'concrete', role: 'pier' });
+  const pillars = [P(0.2, 0.2, 3), P(0.2, 5.8, 3), P(5.8, 0.2, 3), P(5.8, 5.8, 3)];
+  const slab = { min: v(0, 3, 0), max: v(6, 3.3, 6), kind: 'slab', surface: 'concrete' };
+  const cover = new CoverIndex([...pillars, slab], { cell: 8 });
+  const w = makeWorld(cover);
+  const st = new StructureSystem(w.world, {});
+  w.world.structures = st;
+  st.register('canopy', [...pillars, slab]);
+  const e = w.fighter(1, 0, v(4, 3.35, 3), 'monolith');
+  const tick = () => { w.step(1); st.update(1 / 60); };
+  for (let i = 0; i < 30; i++) tick();
+  assert.ok(Math.abs(e.movement.state.position.y - 3.3) < 0.05, 'on top of it');
+  st.knockOut(pillars[2]); st.knockOut(pillars[3]);
+  let rode = 0, moving = 0, gap = 0;
+  for (let i = 0; i < 120; i++) {
+    tick();
+    const q = e.movement.state.position, top = st.topAt(q.x, q.z, q.y + 0.35);
+    if (top === -Infinity) continue;
+    moving++;
+    gap = Math.max(gap, q.y - top);
+    if (e.movement.state.grounded && Math.abs(q.y - top) < 0.12) rode++;
+  }
+  assert.ok(moving >= 20, `the floor went down under him (${moving} ticks)`);
+  assert.ok(rode >= moving * 0.7, `and he went down standing on it (${rode} of ${moving} ticks)`);
+  assert.ok(e.movement.state.position.y < 3, `down (${e.movement.state.position.y.toFixed(2)})`);
+  assert.equal(st.stats.crushed, 0, 'it never hit him: he was riding it');
+});
+
 test('a skybridge comes down when the house holding one end of it does', () => {
   const map = generateFrontlineMap({ seed: 7, size: '32v32', theme: 'city' });
   const world = new CombatWorld({ cover: map.cover, terrain: map.terrain, nav: map.nav });
