@@ -9,7 +9,9 @@
 //    (relax.lower), then the trunk (relax.upper), so a shot man folds at the knees, drops and
 //    topples instead of falling like a plank. A head shot or a mangling hit is lights-out: limp
 //    at once.
-//  * Thrown, still alive, in the air: arms windmill, legs pedal, the chin tucks.
+//  * Thrown, still alive, in the air: arms windmill, legs pedal, the chin tucks. Falling on purpose
+//    (brace: a dive off a drop), the arms go out ahead and down for the ground instead and the legs
+//    hold together.
 //  * Going down, still alive (catchFall): both hands reach for the ground ahead of the fall, the
 //    elbows give, the head stays up off the ground.
 //  * On the ground, still alive (writhe): knees draw up in turn, one hand presses on the wound,
@@ -42,16 +44,18 @@ export class RagdollDrive {
     this.tone = 0;               // 0..1: muscle at the start (dead bodies fade from it)
     this.limp = false;           // lights out: no muscle at all
     this.wound = null;           // { anchor: C | P, local: [r, d, n], side: -1 | 1, arm: bool }
+    this.brace = false;          // it saw the fall coming: arms out for the ground, no flailing
     this.phase = 'shock';
   }
 
   /**
    * A body goes limp (Ragdoll.init has just placed it).
    * @param {Ragdoll} rd
-   * @param {object} o { pose: rows [right, up, forward], vital, limp (lights out), wound: { x, y, z, site } (world point) }
+   * @param {object} o { pose: rows [right, up, forward], vital, limp (lights out), wound: { x, y, z, site } (world point),
+   *                    brace: falling on purpose (a dive off a drop) }
    */
-  start(rd, { pose, vital = 'dead', limp = false, wound = null } = {}) {
-    this.on = true; this.pose = pose; this.vital = vital; this.limp = limp;
+  start(rd, { pose, vital = 'dead', limp = false, wound = null, brace = false } = {}) {
+    this.on = true; this.pose = pose; this.rel = holdOffsets(pose); this.vital = vital; this.limp = limp; this.brace = brace && !limp;
     this.t = 0; this.deadT = vital === 'dead' ? 0 : -1; this.groundT = 0; this.airT = 0; this.landed = false;
     this.tone = limp ? 0 : vital === 'dead' ? this.cfg.tone.dead : this.cfg.tone.alive;
     this.phase = 'shock';
@@ -109,14 +113,16 @@ export class RagdollDrive {
         if (!this.landed && rd.grounded && chestUp < cfg.catch.down && chestVy > -0.6) this.landed = true;
         if (this.landed && this.airT > 0.15 && chestUp > cfg.catch.height) { this.landed = false; this.groundT = 0; }
         if (this.landed) this.groundT += dt;
-        const settle = this.groundT > W.time ? clamp(1 - (this.groundT - W.time) / cfg.settle, 0, 1) : 1;
-        this.phase = this.t < cfg.shock ? 'shock'
+        // (A braced fall is a man who's landed, not a wounded one: he gets his breath and gets up.)
+        const wt = this.brace ? W.time * 0.25 : W.time;
+        const settle = this.groundT > wt ? clamp(1 - (this.groundT - wt) / cfg.settle, 0, 1) : 1;
+        this.phase = this.t < cfg.shock && !this.brace ? 'shock'
           : !this.landed && this.airT > 0.08 && chestUp > cfg.catch.height ? 'air'
           : !this.landed ? 'catch'
           : settle < 1 ? 'settle' : 'writhe';
         const down = this.phase === 'writhe' || this.phase === 'settle';
-        spine = k * settle * (down ? 0.3 : this.phase === 'air' ? 0.4 : 0.6);
-        legs = k * settle * (down ? 0.06 : this.phase === 'catch' ? 0.25 : 0.3);   // lying: the legs lie where they fall
+        spine = k * settle * (down ? 0.3 : this.phase === 'air' ? (this.brace ? 0.6 : 0.4) : 0.6);
+        legs = k * settle * (down ? 0.06 : this.phase === 'catch' ? 0.25 : this.brace ? 0.45 : 0.3);   // lying: the legs lie where they fall
         head = k * settle * 0.8;
         arms = this.phase === 'shock' ? k * 0.5 : 0;
         // Both hands break the fall (the reflex beats the wound); then one goes back to it.
@@ -127,13 +133,14 @@ export class RagdollDrive {
     const gain = cfg.gain;
 
     // ---- hold the shape it fell in (relative to the pelvis and chest frames)
-    const pose = this.pose;
+    const rel = this.rel ?? (this.rel = holdOffsets(this.pose));
     const firstLeg = this.deadT >= 0 ? (this.first < 0 ? KL : KR) : -1, firstAnkle = this.deadT >= 0 ? (this.first < 0 ? AL : AR) : -1;
-    for (const [i, a, fr, grp] of HOLD) {
+    for (let h = 0; h < HOLD.length; h++) {
+      const [i, a, fr, grp] = HOLD[h];
       const s = grp === 'spine' ? spine : grp === 'legs' ? (i === firstLeg || i === firstAnkle ? this.legsFirst : legs) : grp === 'arms' ? arms : head;
       if (s <= 0) continue;
       const F = fr === 'p' ? f.pelvis : f.chest;
-      const lr = pose[i][0] - pose[a][0], lu = pose[i][1] - pose[a][1], lf = pose[i][2] - pose[a][2], sc = rd.scale;
+      const [lr, lu, lf] = rel[h], sc = rd.scale;
       pull(rd, i, a,
         x[a] + (F.r[0] * lr + F.d[0] * lu + F.n[0] * lf) * sc,
         y[a] + (F.r[1] * lr + F.d[1] * lu + F.n[1] * lf) * sc,
@@ -143,7 +150,30 @@ export class RagdollDrive {
     // ---- the living: what the arms and legs do
     if (this.deadT < 0 && !this.limp) {
       const k = this.tone, Fc = f.chest, Fp = f.pelvis, sc = rd.scale;
-      if (this.phase === 'air') {
+      if (this.phase === 'air' && this.brace && cfg.brace) {
+        // Braced for it: both arms out ahead of the shoulders the way it's going and down toward
+        // the ground, a little apart, elbows nearly straight; the chin up off the ground to come.
+        const Bc = cfg.brace, s = Bc.strength * k * gain;
+        let dx = rd.x[C] - rd.px[C], dz = rd.z[C] - rd.pz[C];
+        const l = Math.hypot(dx, dz);
+        if (l > 1e-4) { dx /= l; dz /= l; } else { dx = Fc.n[0]; dz = Fc.n[2]; const m = Math.hypot(dx, dz) || 1; dx /= m; dz /= m; }
+        const reach = Bc.reach * sc, down = Bc.down * sc, spread = Bc.spread * sc;
+        // The trunk held out along the way it's going, the nose dipping as it falls (a man diving
+        // off a wall goes down head first onto his hands, not end over end).
+        const a = Math.min(Bc.dip, this.airT * Bc.dipRate), ca = Math.cos(a), sa = Math.sin(a);
+        const tl = Math.hypot(x[C] - x[P], y[C] - y[P], z[C] - z[P]);
+        pull(rd, C, P, x[P] + dx * ca * tl, y[P] - sa * tl, z[P] + dz * ca * tl, Bc.level * k * gain);
+        // Held steady: the trunk's and the legs' swing about the hips bleeds off (no wobble end to end).
+        steady(rd, C, P, Bc.steady * k); steady(rd, KL, P, Bc.steady * k); steady(rd, KR, P, Bc.steady * k);
+        for (const side of [-1, 1]) {
+          const sh = side < 0 ? SL : SR, el = side < 0 ? EL : ER, hand = side < 0 ? WL : WR;
+          pull(rd, hand, sh, x[sh] + dx * reach + Fc.r[0] * side * spread, y[sh] - down, z[sh] + dz * reach + Fc.r[2] * side * spread, s);
+          const mx = (x[sh] + x[hand]) * 0.5, my = (y[sh] + y[hand]) * 0.5, mz = (z[sh] + z[hand]) * 0.5, b = 0.04 * sc;
+          pull(rd, el, sh, mx + Fc.r[0] * side * b, my + b, mz + Fc.r[2] * side * b, s * 0.8);
+        }
+        const hl = 0.21 * sc, ux = Fc.d[0] * 0.55, uy = Fc.d[1] * 0.55 + 0.45, uz = Fc.d[2] * 0.55, ul = Math.hypot(ux, uy, uz) || 1;
+        pull(rd, H, NK, x[NK] + (ux / ul) * hl, y[NK] + (uy / ul) * hl, z[NK] + (uz / ul) * hl, head * gain);
+      } else if (this.phase === 'air') {
         // Windmill the arms (each hand round its shoulder, half a turn apart), pedal the legs.
         const A = cfg.air, s = A.strength * k * gain;
         for (const side of [-1, 1]) {
@@ -213,9 +243,46 @@ export class RagdollDrive {
   }
 
   serialize() {
-    return { on: this.on, pose: this.pose, vital: this.vital, t: this.t, deadT: this.deadT, groundT: this.groundT, airT: this.airT, landed: this.landed, tone: this.tone, limp: this.limp, wound: this.wound, phase: this.phase, first: this.first, legsFirst: this.legsFirst };
+    return { on: this.on, pose: this.pose, vital: this.vital, t: this.t, deadT: this.deadT, groundT: this.groundT, airT: this.airT, landed: this.landed, tone: this.tone, limp: this.limp, wound: this.wound, brace: this.brace, phase: this.phase, first: this.first, legsFirst: this.legsFirst };
   }
-  restore(o) { Object.assign(this, o); }
+  restore(o) { Object.assign(this, o); this.rel = this.pose ? holdOffsets(this.pose) : null; }
+}
+
+/**
+ * Each held joint's offset from its anchor, as the hold maps it through the body's pelvis or chest
+ * frame. The pose rows are [right, up, forward] about a root standing on the ground: for an upright
+ * pose that's the body's own frame near enough (a slight lean the drive's tuning counts on), so the
+ * rows are used as they are. A lying pose's spine runs along "forward", so its rows are re-expressed
+ * in its own pelvis and chest frames, built the way Ragdoll builds the body's (right: hip to hip or
+ * shoulder to shoulder; up: the spine); taken as they are, they'd curl the body over onto its face.
+ */
+function holdOffsets(pose) {
+  const W = (j) => [pose[j][0], pose[j][1], -pose[j][2]];   // as world axes at yaw 0 (forward is -z)
+  const frame = (r0, r1, u0, u1) => {
+    const a = W(r0), b = W(r1), c = W(u0), e = W(u1);
+    let ux = e[0] - c[0], uy = e[1] - c[1], uz = e[2] - c[2], l = Math.hypot(ux, uy, uz) || 1;
+    ux /= l; uy /= l; uz /= l;
+    let rx = b[0] - a[0], ry = b[1] - a[1], rz = b[2] - a[2];
+    const k = rx * ux + ry * uy + rz * uz;
+    rx -= ux * k; ry -= uy * k; rz -= uz * k; l = Math.hypot(rx, ry, rz) || 1;
+    rx /= l; ry /= l; rz /= l;
+    return { r: [rx, ry, rz], d: [ux, uy, uz], n: [uy * rz - uz * ry, uz * rx - ux * rz, ux * ry - uy * rx] };
+  };
+  const Fp = frame(HL, HR, P, C), Fc = frame(SL, SR, C, NK);
+  if (Fp.d[1] > 0.7) return HOLD.map(([i, a]) => [pose[i][0] - pose[a][0], pose[i][1] - pose[a][1], pose[i][2] - pose[a][2]]);
+  const dot = (v, w) => v[0] * w[0] + v[1] * w[1] + v[2] * w[2];
+  return HOLD.map(([i, a, fr]) => {
+    const F = fr === 'p' ? Fp : Fc, p = W(i), q = W(a), d = [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+    return [dot(d, F.r), dot(d, F.d), dot(d, F.n)];
+  });
+}
+
+/** Bleed off `k` of joint i's velocity relative to joint a (shared by mass: momentum is kept). */
+function steady(rd, i, a, k) {
+  const rvx = (rd.x[i] - rd.px[i]) - (rd.x[a] - rd.px[a]), rvy = (rd.y[i] - rd.py[i]) - (rd.y[a] - rd.py[a]), rvz = (rd.z[i] - rd.pz[i]) - (rd.z[a] - rd.pz[a]);
+  const wi = rd.w[i] / (rd.w[i] + rd.w[a]), wa = rd.w[a] / (rd.w[i] + rd.w[a]);
+  rd.px[i] += rvx * k * wi; rd.py[i] += rvy * k * wi; rd.pz[i] += rvz * k * wi;
+  rd.px[a] -= rvx * k * wa; rd.py[a] -= rvy * k * wa; rd.pz[a] -= rvz * k * wa;
 }
 
 /**

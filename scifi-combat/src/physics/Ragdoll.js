@@ -341,6 +341,8 @@ export class Ragdoll {
   }
   /** Velocity of a particle over the last tick (m/s). */
   velocity(i, out, dt = 1 / 60) { return out.set((this.x[i] - this.px[i]) / dt, (this.y[i] - this.py[i]) / dt, (this.z[i] - this.pz[i]) / dt); }
+  /** Put it to rest where it lies now (a living body that gets up before every limb is still). */
+  sleepNow() { this.asleep = true; for (let i = 0; i < N; i++) { this.px[i] = this.x[i]; this.py[i] = this.y[i]; this.pz[i] = this.z[i]; } }
   /** Lowest point of the body (bottom of its lowest particle). */
   lowest() { let m = Infinity; for (let i = 0; i < N; i++) m = Math.min(m, this.y[i] - this.r[i]); return m; }
   /** Facing up (on its back)? The chest's front points to the sky. */

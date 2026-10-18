@@ -4,7 +4,7 @@
 //    running, three sprinting thrown back behind the runner (his own speed), next to none crouched.
 //  * A body meeting the ground: a ring of dirt rolling out from it, its size by how hard it hit (a
 //    heavy landing off a height, a dive coming down on its belly, a drop to prone, a knockdown, a
-//    ragdoll's trunk thumping down, a dead man falling), a smaller kick off the hands on a vault.
+//    ragdoll's trunk thumping down, a dead man falling, a roll's shoulder), a smaller kick off the hands on a vault.
 //  * By surface: snow powder (white, where the planet has snow), dust on dirt and sand, grey grit on
 //    concrete and asphalt; nothing off metal, wood or water.
 // Near the camera only (the rig only emits foley up close anyway), and kept light: a few particles
@@ -18,7 +18,7 @@ const end = (c, k = 1.1) => [Math.min(1, c[0] * k), Math.min(1, c[1] * k), Math.
 const FAR = 60;                 // m from the camera past which nothing is kicked up
 const NONE = new Set(['metal', 'vehicle', 'wood', 'timber', 'glass', 'water', 'flesh', 'hardlight', 'dome']);   // (surfaces as CombatWorld.surfaceAt names them)
 /** The rig's impacts: how big a ring each throws (× its intensity). */
-const RING = { land: 1, diveLand: 1.15, proneDrop: 0.7, body: 1.1, ragdoll: 0.9, slide: 0.55, hands: 0.3 };
+const RING = { land: 1, diveLand: 1.15, proneDrop: 0.7, body: 1.1, ragdoll: 0.9, slide: 0.55, roll: 0.8, hands: 0.3 };
 
 export class FootFx {
   /**

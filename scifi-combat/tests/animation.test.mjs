@@ -533,16 +533,20 @@ test('first person [V]: the camera sits at the eyes and on the sight line when a
 test('every rig-lab move: finite pose, planted feet always reached, no body pops in crossfades', () => {
   const finite = (p) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z);
   for (const st of STATIONS) {
-    let worstReach = 0, worstPop = 0;
+    let worstReach = 0, worstPop = 0, wasLimp = false;
     const lastPelvis = new Vector3(), lastRoot = new Vector3();
     let frames = 0;
     runStation(st, (h, e, rec) => {
+      // (A ragdoll's frames are its physics' own: its root, the lowest point of the body, lands
+      // before its pelvis does. Going limp and getting up again are still checked.)
+      const limp = e.movement.state.mode === 'ragdoll', skip = limp && wasLimp;
+      wasLimp = limp;
       const j = h.j;
       for (const p of [j.pelvis, j.neck, j.head, ...j.hip, ...j.knee, ...j.ankle, ...j.shoulder, ...j.elbow, ...j.hand, h.prop.base]) assert.ok(finite(p), `${st.id}: finite joints`);
       assert.ok(Math.abs(h.prop.dir.length() - 1) < 1e-3, `${st.id}: unit weapon direction`);
       if (h.planterLive && h.w.loco > 0.999) for (let i = 0; i < 2; i++) if (h.planter.feet[i].planted) worstReach = Math.max(worstReach, j.ankle[i].distanceTo(h.pose.foot[i]));
       // The body never teleports relative to the root: pose changes are crossfades, not cuts.
-      if (frames++ > 0) worstPop = Math.max(worstPop, new Vector3().subVectors(j.pelvis, lastPelvis).sub(new Vector3().subVectors(rec.root, lastRoot)).length());
+      if (frames++ > 0 && !skip) worstPop = Math.max(worstPop, new Vector3().subVectors(j.pelvis, lastPelvis).sub(new Vector3().subVectors(rec.root, lastRoot)).length());
       lastPelvis.copy(j.pelvis); lastRoot.copy(rec.root);
     });
     assert.ok(worstReach < 0.002, `${st.id}: planted foot missed by ${(worstReach * 1000).toFixed(1)} mm`);
@@ -565,7 +569,8 @@ function smoothness() {
       if (hist.length > 3) hist.shift();
       if (hist.length < 3 || hist.some((x) => x.limp)) return;
       const [a, b, c] = hist.map((x) => x.ch);
-      for (const k of Object.keys(c)) worst[k] = Math.max(worst[k] ?? 0, k.startsWith('yaw') ? Math.abs(angleDelta(b[k], c[k]) - angleDelta(a[k], b[k])) : d2(a[k], b[k], c[k]));
+      // (Yaws and pitches are angles: a forward roll's pitch goes right round.)
+      for (const k of Object.keys(c)) worst[k] = Math.max(worst[k] ?? 0, k.startsWith('yaw') || k.startsWith('pitch') ? Math.abs(angleDelta(b[k], c[k]) - angleDelta(a[k], b[k])) : d2(a[k], b[k], c[k]));
     },
   };
 }

@@ -1338,6 +1338,10 @@
    "downed": [
     0.3,
     "smooth"
+   ],
+   "roll": [
+    0.08,
+    "out"
    ]
   },
   "knockPhase": 0.12,
@@ -1345,6 +1349,34 @@
   "slideImpact": 0.11,
   "ragdollIn": 0.1,
   "ragdollOut": 0.35
+ },
+ "roll": {
+  "_note": "Forward roll (a slide off a ledge, come down rolling): the body curls into a ball that turns a full circle over `over` of the roll (as a share of its time) and is mixed in and out of the crouch over the first and last `curl`. The ball's middle sits `ball` m up, `drop` higher as the feet land and `rise` higher coming up. In the ball (right, up, front, m): the pelvis below and behind its middle, the feet tucked under it, the hands on the shins; pitches are added to the ball's turn.",
+  "over": [
+   0.1,
+   0.85
+  ],
+  "curl": 0.18,
+  "ball": 0.42,
+  "drop": 0.12,
+  "rise": 0.1,
+  "pelvis": [
+   -0.08,
+   -0.12
+  ],
+  "foot": [
+   0.11,
+   -0.27,
+   0.06
+  ],
+  "hand": [
+   0.17,
+   0.02,
+   0.3
+  ],
+  "pitchP": 0.8,
+  "pitchC": 1.25,
+  "footPitch": -0.5
  },
  "body": {
   "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim. Every locomotion signal is smoothed once per frame: the hips swivel on a spring (hipOmega, rad/s) and only flip between facing a strafe and backpedalling it past hipFlip (radians off the aim: [to back, to forward], hysteresis); the lean and bank follow the acceleration on springs (leanOmega, leanZeta); the side-step and backpedal stride blend (gaitBlendRate, 1/s) and the posture speed (postureRate) ease in. popLimit: the pop absorber's limits on how fast a pose channel's speed may change (pelvis m/s², yaw and angle rad/s²); anything sharper springs out over a few frames (omega, rad/s).",

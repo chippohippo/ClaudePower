@@ -41,9 +41,9 @@ measured fact. The procedure for locking them to the real game is in the next se
 | Jog strafe switch | ≤ 0.2 s to 90% lateral speed | ≤ 0.2 s | Frames from strafe input to steady strafe |
 | Sprint duration | ~14 s (7/s drain) | ≤ 15 s | Stopwatch from full stamina |
 | Stamina back to sprint | ~1.75 s | 1–2.5 s | Exhaustion until sprint resumes |
-| Dive airtime | ~0.41 s from sprint | 0.3–0.55 s | Takeoff to belly impact |
-| Dive travel (from sprint) | ~5.8 m incl. belly slide | 4–6.5 m | Takeoff point to rest |
-| Dive i-frames | 0.04–0.32 s | ≥ 0.2 s | *Unverified*: HD2 may rely on its low profile rather than true i-frames (see deviations) |
+| Dive airtime | ~0.5 s from sprint, 0.46 m up (HD2's ~0.41 s raised on request) | 0.45–0.6 s | Takeoff to belly impact |
+| Dive travel (from sprint) | ~7.5 m incl. belly slide (4.7 m in the air) | 6.5–8.5 m | Takeoff point to rest |
+| Dive i-frames | 0.04–0.36 s | ≥ 0.2 s | *Unverified*: HD2 may rely on its low profile rather than true i-frames (see deviations) |
 | Dive direction | forward out of a sprint; side past 55°, back past 125° from the aim | — | Dive sideways/backward while aiming: body orientation and landing side (we land on the back after a back dive and keep aiming) |
 | Drop to prone | 0.50 s | ±0.05 s | Frames of the drop |
 | Prone → stand | 0.62 s (0.45 s within 1.5 s of a dive) | fast < normal | Frames of the get-up |
@@ -131,6 +131,29 @@ Ground steeper than 48° makes you lose footing.
     a parapet. Event `move:slideDrop`; the rig plays the prone drop and its thump.
 - **Belly slide (after a dive lands):** 75% of the landing speed, 9 m/s² friction, 35°/s steering.
   It ends prone. Sprint or jump while it slows = fast get-up (0.45 s).
+- **Off a ledge mid-slide (`roll`):** the slide becomes a fall, and the landing decides what follows.
+  - A step down (landing under 6 m/s, about 0.8 m): the same slide goes on, no second entry boost.
+  - A real drop: a forward roll (a parachute landing fall), mode `roll`, 0.62 s. The body goes down
+    onto a shoulder, over its back and up crouched, carrying 80% of its speed plus 12% of the fall's
+    (up to 7.5 m/s), easing to 2.6 m/s. No stumble, no knockdown; the roll takes 3 m/s off the
+    landing, so fall damage only starts past about 7 m. The gun is down and nothing is cast while
+    rolling; in first person the view dips with the body instead of going round with the head.
+  - Too high to roll out of (21 m/s, about 10 m): the legs fold and the body goes down as a ragdoll,
+    taking the whole fall.
+  - Events `move:landRoll`, `move:landRollEnd`; the rig's roll sends a foot plant, the shoulder's
+    `roll` impact (dust, thud) and the feet coming back under.
+
+## Falls
+
+- **Diving off a drop:** once what's below would land at 9 m/s or harder (a drop of about 2.5 m),
+  the dive goes limp into a ragdoll braced for it (`startRagdoll(…, { brace: true })`): the arms go
+  out ahead and down, the trunk is held out the way it's going with its nose dipping as it falls, the
+  legs hold together, and both hands reach the ground first. The landing costs 75% of what it would
+  on your feet, and a braced man gets up as soon as his trunk stops (well under a second), not
+  after lying winded.
+- **Any living ragdoll landing hard** takes fall damage as a soldier on his feet would from the same
+  height (its lighter ragdoll gravity is allowed for): a body thrown off a roof by a blast is hurt
+  by the landing too.
 
 ## Collision and steps (`FlatGroundBody`)
 
@@ -157,7 +180,9 @@ stiff camera, poses snapping) and in slow motion when the frame rate dipped (a f
 |---|---|---|
 | Space hops when no ledge is ahead | Battlefront genre needs a hop. It's short and heavy (5 m/s up, 22 m/s² gravity), with **no** coyote time or jump buffer | `jump.enabled` |
 | Feet-first slide from sprint + crouch | Requested slide fantasy. It uses the same committed-slide model as HD2's belly slide | — |
-| Dive i-frames (0.04–0.32 s) | Requested. HD2's dive protection may come mostly from its low profile, which we also have (prone/dive hitboxes) | `dive.iframeStart/End` |
+| Dive i-frames (0.04–0.36 s) | Requested. HD2's dive protection may come mostly from its low profile, which we also have (prone/dive hitboxes) | `dive.iframeStart/End` |
+| A higher, longer dive (0.5 s, 0.46 m up) | Requested: more air and a little more distance | `dive.upVelocity`, `dive.gravity` |
+| Slides roll off ledges; dives off drops brace as ragdolls | Requested | `roll`, `dive.braceAt`, `ragdoll.drive.brace` |
 | Melee-class evades (`flameStep`, `ashStep`, `shoulderBash`) | A dive to prone would end every sword duel | class `movement.dodgeStyle` |
 | Wall-running | Disabled (HD2 has none) | `wallRun.enabled` |
 

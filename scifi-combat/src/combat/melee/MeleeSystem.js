@@ -107,7 +107,7 @@ export class MeleeComponent {
     if (ms.diveStarted || ms.knockStarted) {
       if (this.busy || this.phase === MeleePhase.GUARD || this.phase === MeleePhase.CHARGING) { this.attack = null; this.queued = null; this.#setPhase(MeleePhase.IDLE); }
     }
-    if (ms.mode === 'knockdown' || ms.mode === 'ragdoll' || ms.downed || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'vehicle') { this.queued = null; return; }
+    if (ms.mode === 'knockdown' || ms.mode === 'ragdoll' || ms.downed || ms.mode === 'mantle' || ms.mode === 'dive' || ms.mode === 'roll' || ms.mode === 'vehicle') { this.queued = null; return; }
 
     // The gunner's quick melee: from rest with a gun out (the sword has its own attacks).
     if (b.bash?.pressed && this.owner.mode === 'gun' && this.phase === MeleePhase.IDLE) {

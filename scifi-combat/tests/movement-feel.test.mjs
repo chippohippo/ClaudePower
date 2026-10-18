@@ -95,16 +95,17 @@ test('jog strafe: lateral input reaches 90% lateral speed within 0.2 s (third-pe
   assert.ok(Math.abs(angleDelta(r.s.bodyYaw, 0)) < 0.01, 'body stays on the aim while strafing');
 });
 
-test('dive: low committed leap with i-frames, belly landing, belly slide, ends prone', () => {
+test('dive: committed leap with i-frames (half a metre up, half a second), belly landing, belly slide, ends prone', () => {
   const r = rig();
   r.input.moveY = 1; r.hold('sprint'); r.seconds(1.5);
   const z0 = r.s.position.z;
   r.tap('dodge'); r.step(1);
   assert.equal(r.s.mode, 'dive');
   assert.equal(r.s.diveStarted, true);
-  let iframeTicks = 0, air = 0;
-  while (r.s.mode === 'dive' && air < 2) { r.step(1); air += DT; if (r.s.invulnerable) iframeTicks++; }
-  assert.ok(air >= 0.3 && air <= 0.55, `airtime ${air.toFixed(3)} s`);
+  let iframeTicks = 0, air = 0, apex = 0;
+  while (r.s.mode === 'dive' && air < 2) { r.step(1); air += DT; apex = Math.max(apex, r.s.position.y); if (r.s.invulnerable) iframeTicks++; }
+  assert.ok(air >= 0.45 && air <= 0.6, `airtime ${air.toFixed(3)} s`);
+  assert.ok(apex >= 0.42 && apex <= 0.6, `apex ${apex.toFixed(2)} m`);
   assert.ok(iframeTicks * DT >= 0.2, `i-frames ${(iframeTicks * DT).toFixed(3)} s`);
   assert.equal(r.s.mode, 'slide');
   assert.equal(r.s.slide.kind, 'belly');
@@ -112,7 +113,7 @@ test('dive: low committed leap with i-frames, belly landing, belly slide, ends p
   r.until(() => r.s.mode === 'ground');
   assert.equal(r.s.stance, 'prone');
   const dist = Math.abs(r.s.position.z - z0);
-  assert.ok(dist >= 4 && dist <= 6.5, `dive travel ${dist.toFixed(2)} m`);
+  assert.ok(dist >= 6.5 && dist <= 8.5, `dive travel ${dist.toFixed(2)} m`);
 });
 
 test('dive from a standstill goes forward; diving is impossible while prone', () => {

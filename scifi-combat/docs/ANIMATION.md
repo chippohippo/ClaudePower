@@ -110,6 +110,7 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | **Dive (side)** | The body stays on the aim and leans into the dive, stretched out: head leading, legs trailing (as the hitboxes lie). It lands on the side and rolls onto the belly over `dive.belly.rollTime`, the same timer the hitboxes use. |
 | **Dive (back)** | Falls back onto the shoulders, lands on the back (**supine**) and keeps aiming between the feet. Supine crawling scoots on the heels; the back get-up sits up first. |
 | **Slide** | The hip drops (`slide` impact on contact), the torso leans back, the lead leg extends and the other folds under. It steers with a lean, the ground rattles the body, and the weapon stays up (combat slide). |
+| **Forward roll** (a slide off a ledge) | The body curls into a ball that turns a full circle about the hips' axis (`roll` in the data): down onto a shoulder, over the back, up into the crouch it's mixed in and out of; knees drawn to the chest, hands on the shins, the gun down. The pitches are angles, so the turn passes straight through the pop absorber. A foot plant as it lands, the shoulder's `roll` impact, the feet coming back under. |
 | **Hop / fall** | Push-off going up, tuck at the peak, legs reaching for the ground coming down. Landings plant both feet with a compression kick; heavy landings stumble (`land` impact). |
 | **Vault** | One hand plants on the obstacle (world-fixed, `hands` impact), the legs swing over to the side, and forward momentum never stops. |
 | **Climb** | Both hands plant on the lip (world-fixed), then a pull-up with the chest over the edge and a knee coming up. Feet plant on top with footsteps at 72% and 90%. |
@@ -224,11 +225,19 @@ acts between a joint and the joint it hangs from, so muscles bend the body but n
   elbows braced, so the arms take the chest's weight, and the chin comes up. Going over backward,
   the hands go down low and wide beside the hips.
 - **Thrown alive:** the arms windmill and the legs pedal while it's in the air.
+- **Braced** (a dive off a drop: it saw the fall coming): no flailing. Both arms go out ahead of the
+  shoulders the way it's going and down toward the ground, the legs hold together, the trunk is held
+  out along the travel with its nose dipping as it falls (its swing about the hips damped), and the
+  hands take the ground first. Down and still in the trunk, he gets up (no writhing: he's landed,
+  not been hit).
 - **On the ground, alive** (writhe): on the back, the knees draw up in turn. Then the muscles let go
   (`settle`) so the downed crawl or the get-up can take over.
 - **Clutch:** the hand on the wound's side (the other hand for a wounded arm) goes to the wound at
   the hit, and back to it on the ground. A wound in the back, or one the body is lying on, is out
   of reach, so the hand doesn't try.
+- A lying pose (prone, supine) is held in its own pelvis and chest frames (right: hip to
+  hip or shoulder to shoulder; up: the spine), the same way the body's are built, so a body that
+  goes limp lying down (a dive, prone) keeps its shape instead of curling over onto its face.
 - The drive is plain deterministic arithmetic and serializes with the body.
 
 **What throws a body** (all tuning in `data/movement.json` `ragdoll`):
@@ -289,7 +298,7 @@ The hitboxes sit on the particles the whole time, so you shoot the body where it
 | Event | Payload | Fired | Consumers |
 |---|---|---|---|
 | `anim:footstep` | `id, foot (0 L / 1 R), gait (walk/jog/sprint/crouch/crawl/shuffle/land), stance, intensity, surface, x, y, z, speed` | Heel strike (planted on that frame), crawl contacts, landings, transition plants | CameraRig bob (local player), AudioDirector foley, FootFx dust |
-| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands / ragdoll), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), FootFx dirt ring |
+| `anim:impact` | `id, kind (diveLand / slide / proneDrop / body / land / hands / ragdoll / roll), intensity, surface, x, y, z` | When the body or hands visibly hit | Audio thud, camera (via `move:*`), FootFx dirt ring |
 | `anim:cloth` | `id, kind (dive / slide / stance / mantle / knockdown / getup / sprint / raise / swing), intensity, x, y, z` | Start of big motions | Audio rustle and gear |
 
 - **Intensity** comes from the gait table × stance (stand 1, crouch 0.45, prone 0.3) × armor (light 0.85, heavy 1.25) × size.

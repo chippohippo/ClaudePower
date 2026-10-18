@@ -41,7 +41,7 @@ const FRAMING = {
   ads:    { right: 0.42, up: 0.12, dist: 1.20 },
   finisher: { right: 1.05, up: 0.55, dist: 3.3 },   // out and to the side: both of you in the frame
 };
-const EYE = { stand: 1.62, crouch: 1.12, prone: 0.45, slide: 0.9, dive: 0.85, knockdown: 0.5, seated: 1.6 };
+const EYE = { stand: 1.62, crouch: 1.12, prone: 0.45, slide: 0.9, dive: 0.85, knockdown: 0.5, seated: 1.6, roll: 0.6 };
 
 /**
  * What the camera's collision ray minds: not the thin things standing free (lamp posts, sign poles,
@@ -175,6 +175,7 @@ export class CameraRig {
     else if (mode === 'dive') { f = FRAMING.dive; eye = EYE.dive; }
     else if (mode === 'slide') { f = st.slide?.kind === 'belly' ? FRAMING.prone : FRAMING.slide; eye = st.slide?.kind === 'belly' ? EYE.prone : EYE.slide; }
     else if (mode === 'knockdown' || mode === 'ragdoll') { f = FRAMING.dive; eye = EYE.knockdown; }
+    else if (mode === 'roll') { f = FRAMING.slide; eye = EYE.roll; }
     else if (o.target.reviveJob?.finish) { f = FRAMING.finisher; eye = EYE.crouch; }
     else {
       const stance = st.stanceT ? (st.stanceT.t / st.stanceT.dur > 0.5 ? st.stanceT.to : st.stanceT.from) : st.stance;
@@ -228,6 +229,8 @@ export class CameraRig {
     let fp = pivot;
     if (o.eye && this.pov.x > 1e-3) {
       _fp.copy(o.eye);
+      // Rolling over: the view dips with the body instead of going round with the head.
+      if (mode === 'roll') _fp.set(o.pos.x, o.pos.y + this.eye.x, o.pos.z);
       if (o.sight && ads > 0) _fp.lerp(o.sight, ads);
       _fp.sub(o.pos);
       if (!this.fpLive) { this.fpX.set(_fp.x); this.fpY.set(_fp.y); this.fpZ.set(_fp.z); this.fpLive = true; }

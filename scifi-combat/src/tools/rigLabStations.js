@@ -103,6 +103,22 @@ export const STATIONS = [
     },
   },
   {
+    id: 'diveDrop', name: 'Dive off a 4 m drop: braced for it, hands for the ground, up again', length: 5,
+    start: [0, 4, 3], boxes: [{ min: [-2, 0, -2], max: [2, 4, 4] }],
+    script(t, c, e) {
+      if (!e._went) { c.move(0, 1); c.hold('sprint', t > 0.2); }
+      if (!e._went && e.movement.state.position.z < -0.6) { e._went = true; c.press('dodge'); }
+    },
+  },
+  {
+    id: 'rollDrop', name: 'Slide off a 3 m ledge into a forward roll', length: 4.5,
+    start: [0, 3, 3], boxes: [{ min: [-2, 0, -2], max: [2, 3, 4] }],
+    script(t, c, e) {
+      if (!e._went) { c.move(0, 1); c.hold('sprint', t > 0.2); }
+      if (!e._went && e.movement.state.position.z < -0.3) { e._went = true; c.press('crouch'); }
+    },
+  },
+  {
     id: 'knock', name: 'Explosions: thrown as a ragdoll from behind, then from the front', length: 7,
     script(t, c, e) {
       if (between(t, 0.8, 0.82) && !e._k1) { e._k1 = true; e.movement.impulse(0, 3.5, 9, { cause: 'explosion' }); }

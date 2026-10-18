@@ -109,17 +109,19 @@
   "dropCarry": 0.9
  },
  "dive": {
-  "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Out of a sprint you dive the way you face; otherwise the body stays on your aim: inputs past sideAngle dive sideways (land on the side, roll to the belly), past backAngle dive backward (land on your back and keep shooting). Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part.",
+  "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Out of a sprint you dive the way you face; otherwise the body stays on your aim: inputs past sideAngle dive sideways (land on the side, roll to the belly), past backAngle dive backward (land on your back and keep shooting). Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part. The arc is higher and longer than HD2's (0.5 s, half a metre up). Diving off a drop: once the fall below it would land at braceAt m/s or harder (about a 2.5 m drop), the body goes limp into a ragdoll braced for it (arms out ahead and down, then both hands for the ground), and the landing costs braceDamage of what it would on your feet.",
   "minSpeed": 4.8,
   "boost": 1.4,
   "maxSpeed": 8.6,
-  "upVelocity": 3.1,
-  "gravity": 15,
+  "upVelocity": 3.6,
+  "gravity": 14,
   "airControl": 2.0,
   "iframeStart": 0.04,
-  "iframeEnd": 0.32,
+  "iframeEnd": 0.36,
   "staminaCost": 0,
   "landSpeedKeep": 0.75,
+  "braceAt": 9,
+  "braceDamage": 0.75,
   "sideAngle": 55,
   "backAngle": 125,
   "belly": {
@@ -176,6 +178,17 @@
   "knockdownAt": 15,
   "fallDamagePerMs": 9
  },
+ "roll": {
+  "_note": "A feet slide off a ledge comes down into a forward roll (a parachute landing fall): landing at minImpact m/s or harder (about an 0.8 m drop), the body goes down onto a shoulder, rolls across its back and comes up crouched over `time` s, carrying keep of its speed plus convert of the fall's speed forward (up to maxSpeed), easing to exitSpeed. The roll takes absorb m/s off the landing: no stumble, no knockdown, fall damage only past the knockdown speed plus absorb (a drop of about 7 m). From maxImpact (about 10 m) it can't be rolled out: the body crumples into a ragdoll and takes the whole fall. Landing softer than minImpact, the slide just goes on.",
+  "minImpact": 6,
+  "time": 0.62,
+  "keep": 0.8,
+  "convert": 0.12,
+  "maxSpeed": 7.5,
+  "exitSpeed": 2.6,
+  "absorb": 3,
+  "maxImpact": 21
+ },
  "knockdown": {
   "_note": "Ragdoll-lite: explosions, rams and big shoves throw you, you tumble and slide, then get up (~0.85 s). Prone soldiers need 1.8x the impulse.",
   "threshold": 6,
@@ -217,7 +230,7 @@
   "hitLift": 1.2,
   "hitFocus": 0.6,
   "drive": {
-   "_note": "Muscles (src/physics/RagdollDrive.js; Euphoria / RDR2 the model). gain: how far a full-strength muscle pulls its joint toward the target per tick. tone: starting strength, dead or alive. relax: seconds for a dying body's legs (lower) and trunk (upper) to let go, so it folds at the knees and topples. shock: seconds the hit snaps the body before anything else. clutch: a hand pressed to the wound. catch: going down alive, both hands reach the ground `reach` ahead of the chest, `spread` apart, once the chest is under `height`, the elbows braced (`brace`) so the arms take the weight, until the chest is `down` (m) and still. air: thrown alive, arms windmill and legs pedal (rad/s). writhe: alive on the ground, knees draw up in turn for `time` s (`rate` rad/s); settle: then the muscles let go over this long so the body can rest.",
+   "_note": "Muscles (src/physics/RagdollDrive.js; Euphoria / RDR2 the model). gain: how far a full-strength muscle pulls its joint toward the target per tick. tone: starting strength, dead or alive. relax: seconds for a dying body's legs (lower) and trunk (upper) to let go, so it folds at the knees and topples. shock: seconds the hit snaps the body before anything else. clutch: a hand pressed to the wound. catch: going down alive, both hands reach the ground `reach` ahead of the chest, `spread` apart, once the chest is under `height`, the elbows braced (`brace`) so the arms take the weight, until the chest is `down` (m) and still. air: thrown alive, arms windmill and legs pedal (rad/s). brace: falling on purpose (a dive off a drop), the arms go out ahead of the shoulders `reach` along the way it is going and `down` below them, `spread` apart, and the legs hold together, instead of the windmill; the trunk is held out the way it is going (`level`), its nose dipping `dipRate` rad/s up to `dip` rad as it falls, and `steady` of the trunk's and legs' swing about the hips bled off each tick. writhe: alive on the ground, knees draw up in turn for `time` s (`rate` rad/s); settle: then the muscles let go over this long so the body can rest.",
    "gain": 0.32,
    "tone": { "dead": 0.6, "alive": 0.75 },
    "relax": { "upper": 0.75, "lower": 0.3 },
@@ -225,6 +238,7 @@
    "clutch": 0.45,
    "catch": { "strength": 0.9, "brace": 1.6, "reach": 0.38, "spread": 0.2, "height": 1.15, "down": 0.42 },
    "air": { "strength": 0.45, "windmill": 9, "pedal": 7 },
+   "brace": { "strength": 0.55, "reach": 0.6, "down": 0.65, "spread": 0.16, "level": 0.9, "dip": 0.7, "dipRate": 0.9, "steady": 0.3 },
    "writhe": { "time": 1.1, "strength": 0.35, "rate": 2.6 },
    "settle": 0.35
   },

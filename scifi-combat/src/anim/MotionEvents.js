@@ -26,7 +26,7 @@ export class MotionEvents {
 
   reset() {
     this.mode = null; this.stanceKey = null; this.stanceU = 0; this.slideT = 0; this.mantleU = 0;
-    this.knockPhase = null; this.sprinting = false; this.airVy = 0; this.mantleSteps = 0; this.deadSeen = false;
+    this.knockPhase = null; this.sprinting = false; this.airVy = 0; this.mantleSteps = 0; this.deadSeen = false; this.rollU = 0;
   }
 
   /**
@@ -45,6 +45,7 @@ export class MotionEvents {
       if (mode === 'slide' && s.slide?.kind === 'feet') { h.cloth('slide', 0.7); this.slideT = 0; }
       if (mode === 'mantle') { h.cloth('mantle', 0.6); this.mantleU = 0; this.mantleSteps = 0; }
       if (mode === 'knockdown') h.cloth('knockdown', 1);
+      if (mode === 'roll') { h.step(0, 'land', 'crouch', 0.7, root, { impact: 5 }); h.cloth('dive', 0.8); this.rollU = 0; }
       if (prev === 'air' && (mode === 'ground' || mode === 'land')) {
         const impact = -this.airVy;
         if (mode === 'land') h.impact('land', clamp(impact / 12, 0.6, 1.2), { heavy: true, impact });
@@ -67,6 +68,13 @@ export class MotionEvents {
       const at = cfg.blend.slideImpact;
       if (this.slideT < at && s.slide.t >= at) h.impact('slide', 0.7);
       this.slideT = s.slide.t;
+    }
+    // A landing roll: the shoulder meets the ground, then the feet come back under the body.
+    if (mode === 'roll' && s.landRoll) {
+      const u = s.landRoll.t / s.landRoll.dur;
+      if (this.rollU < 0.3 && u >= 0.3) h.impact('roll', 0.8);
+      if (this.rollU < 0.88 && u >= 0.88) h.step(1, 'walk', 'crouch', 0.5, root);
+      this.rollU = u;
     }
     // Ledge hand plants, then the feet arriving on top of a climb.
     if (mode === 'mantle' && s.mantle) {

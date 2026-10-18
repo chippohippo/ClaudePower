@@ -12,10 +12,11 @@
 //  * Speed has a curve: 0 to jog is near-instant, jog to sprint is a long ramp, and letting go of
 //    a sprint skids about a metre.
 //  * Stance changes take real time and limit movement while they play (getting up from prone is a commitment).
-//  * The dive is a committed, low, fast leap with i-frames. It lands on the belly, belly-slides,
-//    and leaves you prone, where you can shoot immediately or get up fast.
+//  * The dive is a committed, fast leap with i-frames. It lands on the belly, belly-slides,
+//    and leaves you prone, where you can shoot immediately or get up fast. Diving off a drop that
+//    would land too hard, the body goes limp and braces for it (a ragdoll reaching for the ground).
 //  * The slide (sprint + crouch) is committed for 0.45 s, carries far on a friction curve that
-//    ramps up, and can be steered at 80 deg/s.
+//    ramps up, and can be steered at 80 deg/s. Off a ledge it comes down into a forward roll.
 //  * No coyote time and no jump buffer: HD2 has no such leniency.
 //  * Heavy landings stumble you and big falls knock you down with a real get-up. Blasts, critical
 //    hits, downs and deaths throw you as a full ragdoll (physics/Ragdoll.js): no control until the
@@ -33,6 +34,7 @@ import { hyp } from '../core/geom.js';
 export const MoveState = Object.freeze({
   GROUND: 'ground', AIR: 'air', SLIDE: 'slide', DIVE: 'dive', DODGE: 'dodge', MANTLE: 'mantle',
   LAND: 'land', KNOCKDOWN: 'knockdown', WALLRUN: 'wallrun', VEHICLE: 'vehicle', RAGDOLL: 'ragdoll', STAGGER: 'stagger',
+  ROLL: 'roll',
 });
 export const Stance = Object.freeze({ STAND: 'stand', CROUCH: 'crouch', PRONE: 'prone' });
 export const Gait = Object.freeze({ IDLE: 'idle', WALK: 'walk', JOG: 'jog', SPRINT: 'sprint' });
@@ -83,6 +85,7 @@ export class MovementController {
      */
     this.hooks = { fallDamage: null, vital: null, scale: null };
     this.ragdoll = null;          // physics/Ragdoll, created on the first throw and reused
+    this.fall = null;             // { vy, brace } while limp: how fast it's coming down (a hard landing hurts)
 
     this.state = {
       mode: MoveState.GROUND,
@@ -120,6 +123,8 @@ export class MovementController {
       knock: null,              // { phase: 'air' | 'ground' | 'getup', t, rest, supine }
       stagger: null,            // { t, dur, dx, dz, speed, kind: 'stagger' | 'buckle', side, fall }: rocked by a hit
       roll: null,               // { t, to: supine? }: downed, rolling onto the back or the belly
+      landRoll: null,           // { t, dur, dirYaw, speed }: a slide off a ledge, come down into a forward roll
+      tuck: null,               // { slideT }: in the air off a ledge mid-slide (lands in a roll, or slides on)
       downed: false,            // at 0 HP but not dead: the wounded crawl (Health drives this)
       lastDiveLand: -99,
       wallRunsLeft: tuning.wallRun.perAirtime,
@@ -176,22 +181,25 @@ export class MovementController {
    * (m/s). Casts and swings are interrupted (knockStarted); no control until it comes to rest.
    * Its muscles (RagdollDrive) take it from there: a dying body folds and drops, a living one
    * flails, reaches for the ground and clutches `wound` ({ x, y, z, site }: where it was hit);
-   * `limp` is lights-out (a head shot, a mangling hit): no muscle at all.
+   * `limp` is lights-out (a head shot, a mangling hit): no muscle at all; `brace`: it saw the fall
+   * coming (a dive off a drop): arms out ahead for the ground instead of flailing, and the landing
+   * hurts less. A living body landing hard takes fall damage as a soldier on his feet would.
    * @returns {boolean} false in a vehicle
    */
-  startRagdoll(x = 0, y = 0, z = 0, { at = null, focus = null, cause = 'impulse', wound = null, limp = false } = {}) {
+  startRagdoll(x = 0, y = 0, z = 0, { at = null, focus = null, cause = 'impulse', wound = null, limp = false, brace = false } = {}) {
     const s = this.state, R = this.t.ragdoll;
     if (s.mode === MoveState.VEHICLE) return false;
     if (s.mode !== MoveState.RAGDOLL) {
       const lying = s.stance === Stance.PRONE || s.mode === MoveState.DIVE || (s.mode === MoveState.SLIDE && s.slide?.kind === 'belly')
         || (s.mode === MoveState.KNOCKDOWN && s.knock?.phase !== 'getup');
       const supine = s.mode === MoveState.KNOCKDOWN ? !!s.knock?.supine : s.supine || (s.mode === MoveState.SLIDE && s.slide?.from === 'back') || s.dive?.kind === 'back';
-      const pose = lying ? (supine ? 'supine' : 'prone') : s.stance === Stance.CROUCH || s.mode === MoveState.SLIDE ? 'crouch' : 'stand';
+      const pose = lying ? (supine ? 'supine' : 'prone') : s.stance === Stance.CROUCH || s.mode === MoveState.SLIDE || s.mode === MoveState.ROLL ? 'crouch' : 'stand';
       const rd = this.#rag();
       rd.init(pose, s.position, s.bodyYaw, this.hooks.scale?.() ?? 1, s.velocity, this.body);
-      rd.drive?.start(rd, { pose: local(R.poses[pose] ?? R.poses.stand), vital: this.hooks.vital?.() ?? 'alive', limp, wound });
+      rd.drive?.start(rd, { pose: local(R.poses[pose] ?? R.poses.stand), vital: this.hooks.vital?.() ?? 'alive', limp, wound, brace });
+      this.fall = { vy: s.grounded ? 0 : Math.min(0, s.velocity.y), brace };   // (the landing's fall damage: #ragdollTick)
       s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null;
-      s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null;
+      s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.landRoll = null; s.tuck = null;
       this.#setInvulnerable(false);
       this.#setMode(MoveState.RAGDOLL);
       s.knockStarted = true;
@@ -312,6 +320,7 @@ export class MovementController {
     s.position.copy(pos); this.body.teleport(pos); s.velocity.set(0, 0, 0); s.stepOff = 0;
     s.mode = MoveState.GROUND; s.modeTime = 0; s.stance = Stance.STAND;
     s.stanceT = null; s.stanceQueued = null; s.crouchPress = null; s.slide = null; s.dive = null; s.mantle = null; s.knock = null; s.forced = null; s.stagger = null; s.roll = null;
+    s.landRoll = null; s.tuck = null;
     s.supine = false; s.downed = false; s.sprinting = false; s.pivoting = false;
     s.yaw = s.bodyYaw = s.aimYaw = yaw;
     s.stamina = this.t.stamina.max; s.exhausted = false; s.staminaRegenTimer = 0;
@@ -326,7 +335,7 @@ export class MovementController {
     const s = this.state;
     s.mode = MoveState.VEHICLE; s.modeTime = 0;
     s.velocity.set(0, 0, 0);
-    s.slide = null; s.dive = null; s.knock = null; s.stanceT = null; s.mantle = null;
+    s.slide = null; s.dive = null; s.knock = null; s.stanceT = null; s.mantle = null; s.landRoll = null; s.tuck = null;
     s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand);
     this.#setInvulnerable(false);
     s.sprinting = false; s.forced = null;
@@ -392,7 +401,8 @@ export class MovementController {
         case MoveState.LAND:      this.#ground(cmd, dt, wishMag); break;
         case MoveState.AIR:       this.#air(cmd, dt, wishMag); break;
         case MoveState.SLIDE:     this.#slide(cmd, dt, wishMag); break;
-        case MoveState.DIVE:      this.#dive(cmd, dt, wishMag); break;
+        case MoveState.DIVE:      if (this.#dive(cmd, dt, wishMag)) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } break;   // (true: it went limp over a drop)
+        case MoveState.ROLL:      this.#landRoll(cmd, dt); break;
         case MoveState.DODGE:     this.#dodge(cmd, dt); break;
         case MoveState.KNOCKDOWN: this.#knockdown(cmd, dt); break;
         case MoveState.STAGGER:   if (this.#staggerTick(cmd, dt, wishMag)) { this.#post(dt, prevVx, prevVz, prevBodyYaw); return; } break;   // (true: it ended in a fall)
@@ -723,6 +733,7 @@ export class MovementController {
     bus.emit('move:dive', { id: this.id, dir: dir.toArray(), speed: hs });
   }
 
+  /** @returns {boolean} true when the dive went limp over a drop (a ragdoll now) */
   #dive(cmd, dt, wishMag) {
     const s = this.state, d = this.t.dive;
     s.dive.t += dt;
@@ -732,6 +743,16 @@ export class MovementController {
     this.#setInvulnerable(s.dive.t >= d.iframeStart && s.dive.t <= d.iframeEnd);
     if (s.dive.kind === 'forward') s.bodyYaw = turnToward(s.bodyYaw, s.dive.dirYaw, this.t.turnRates.dive * DEG * dt);
     else s.bodyYaw = turnToward(s.bodyYaw, s.yaw, this.t.turnRates.jog * DEG * dt);
+    // Gone out over a drop: once what's below would land too hard, the body goes limp and braces
+    // for it (arms out ahead for the ground), like a man who's seen the fall coming.
+    if (s.velocity.y < 0 && d.braceAt) {
+      const p = s.position, below = p.y - (this.body.floorBelow?.(p.x, p.z, p.y) ?? this.body.groundAt?.(p.x, p.z) ?? p.y);
+      if (s.velocity.y * s.velocity.y + 2 * d.gravity * Math.max(0, below) >= d.braceAt * d.braceAt) {
+        this.startRagdoll(0, 0, 0, { cause: 'fall', brace: true });
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Ground evades for melee classes (flameStep, ashStep) and the heavy shoulder bash. */
@@ -883,9 +904,9 @@ export class MovementController {
       s.timeSinceGrounded += dt;
       if (s.mode === MoveState.GROUND || s.mode === MoveState.LAND) this.#setMode(MoveState.AIR);
       else if (s.mode === MoveState.SLIDE && s.timeSinceGrounded > 0.08) {
-        // Off a ledge mid-slide: feet slides become a fall, belly slides become a dive.
+        // Off a ledge mid-slide: feet slides become a fall (tucked: it lands in a roll), belly slides become a dive.
         if (s.slide.kind === 'belly') { s.dive = { dirYaw: s.slide.dirYaw ?? s.bodyYaw, t: this.t.dive.iframeEnd, kind: s.slide.from ?? 'forward' }; s.slide = null; this.#setMode(MoveState.DIVE); }
-        else { s.slide = null; s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); this.#setMode(MoveState.AIR); }
+        else { s.tuck = { slideT: s.slide.t }; s.slide = null; s.stance = Stance.STAND; this.body.setHeight(this.t.heights.stand); this.#setMode(MoveState.AIR); }
       }
     }
   }
@@ -910,8 +931,27 @@ export class MovementController {
       case MoveState.SLIDE:
       case MoveState.DODGE:
       case MoveState.MANTLE:
+      case MoveState.ROLL:
         return;
-      default:
+      default: {
+        // Off a ledge mid-slide: a drop worth the name comes down into a roll; a step down slides on.
+        const tuck = s.tuck;
+        s.tuck = null;
+        if (tuck && s.mode === MoveState.AIR) {
+          if (impact >= this.t.roll.maxImpact) {
+            // Too far to roll out of: the legs fold and the body goes down in a heap.
+            if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
+            this.startRagdoll(0, 0.5, 0, { cause: 'fall' });
+            return;
+          }
+          if (impact >= this.t.roll.minImpact) { this.#startLandRoll(impact); return; }
+          if (this.#hspeed() > this.t.slide.exitSpeed) {
+            const vx = s.velocity.x, vz = s.velocity.z;
+            this.#startSlide('feet');
+            s.velocity.x = vx; s.velocity.z = vz; s.slide.t = tuck.slideT;   // the same slide: no second boost
+            return;
+          }
+        }
         if (impact >= L.knockdownAt) {
           this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs);
           s.knock = { phase: 'ground', t: 0, rest: 0, supine: false };
@@ -929,6 +969,49 @@ export class MovementController {
           if (s.mode !== MoveState.GROUND) this.#setMode(MoveState.GROUND);
           if (impact > 1) bus.emit('move:land', { id: this.id, impact, heavy: false });
         }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- landing roll (a slide off a ledge)
+  /**
+   * Come down off a ledge mid-slide: a forward roll (a parachute landing fall). The fall's speed
+   * goes partly into the roll; the roll takes `absorb` off what the landing costs.
+   */
+  #startLandRoll(impact) {
+    const s = this.state, R = this.t.roll, L = this.t.landing;
+    const hurt = impact - R.absorb;
+    if (hurt >= L.knockdownAt) this.hooks.fallDamage?.((hurt - L.knockdownAt) * L.fallDamagePerMs);
+    const hs = this.#hspeed();
+    const dirYaw = hs > 0.5 ? yawOf(s.velocity.x, s.velocity.z) : s.bodyYaw;
+    const speed = Math.min(R.maxSpeed * this.mods.speedMul, hs * R.keep + impact * R.convert);
+    forwardOf(dirYaw, _dir);
+    s.velocity.set(_dir.x * speed, 0, _dir.z * speed);
+    s.landRoll = { t: 0, dur: R.time, dirYaw, speed };
+    s.stance = Stance.CROUCH; s.sprinting = false; s.stanceT = null; s.stanceQueued = null; s.crouchPress = null;
+    this.body.setHeight(this.t.heights.slide);
+    this.#setMode(MoveState.ROLL);
+    bus.emit('move:landRoll', { id: this.id, impact, speed });
+    bus.emit('move:land', { id: this.id, impact, heavy: false, roll: true });
+  }
+
+  #landRoll(cmd, dt) {
+    const s = this.state, R = s.landRoll, cfg = this.t.roll;
+    R.t += dt;
+    const u = Math.min(1, R.t / R.dur);
+    // Over and up: the speed bleeds off toward a crouched walk as the body comes up out of it.
+    const sp = lerp(R.speed, Math.min(R.speed, cfg.exitSpeed), u * u);
+    forwardOf(R.dirYaw, _dir);
+    s.velocity.x = _dir.x * sp; s.velocity.z = _dir.z * sp;
+    s.velocity.y -= this.t.gravity * dt;
+    s.bodyYaw = turnToward(s.bodyYaw, R.dirYaw, this.t.turnRates.dive * DEG * dt);
+    // Rolled off another edge: it's a fall again.
+    if (!s.grounded && s.timeSinceGrounded > 0.1) { s.landRoll = null; this.body.setHeight(this.t.heights.crouch); this.#setMode(MoveState.AIR); return; }
+    if (u >= 1) {
+      s.landRoll = null;
+      this.body.setHeight(this.t.heights.crouch);
+      this.#setMode(MoveState.GROUND);
+      bus.emit('move:landRollEnd', { id: this.id });
     }
   }
 
@@ -965,12 +1048,26 @@ export class MovementController {
   /** The root rides the body: under the pelvis, at the lowest point of the body. */
   #ragdollTick(dt) {
     const s = this.state, rd = this.ragdoll;
-    if (rd.drive) rd.drive.vital = this.hooks.vital?.() ?? 'alive';
+    const vital = this.hooks.vital?.() ?? 'alive';
+    if (rd.drive) rd.drive.vital = vital;
     rd.step(dt, this.body);
     rd.get(J.PELVIS, _tmp);
     s.position.set(_tmp.x, rd.lowest(), _tmp.z);
     this.body.teleport(s.position);
     rd.velocity(J.PELVIS, s.velocity, dt);
+    // Coming down hard: a living body takes what a man landing on his feet from the same height
+    // would (the ragdoll falls under its own, lighter gravity), less if it braced for it.
+    const F = this.fall;
+    if (F) {
+      if (rd.grounded && !s.grounded && F.vy < 0 && vital !== 'dead') {
+        const L = this.t.landing, impact = -F.vy * Math.sqrt(this.t.gravity / this.t.ragdoll.gravity);
+        if (impact >= L.knockdownAt) this.hooks.fallDamage?.((impact - L.knockdownAt) * L.fallDamagePerMs * (F.brace ? this.t.dive.braceDamage : 1));
+      }
+      F.vy = rd.grounded ? 0 : s.velocity.y;
+      // A braced landing: down and his trunk stopped, he gets up (without waiting for every limb to lie still).
+      const ph = rd.drive?.phase;
+      if (F.brace && vital === 'alive' && (ph === 'settle' || ph === 'dead') && s.velocity.lengthSq() < 0.64 && rd.velocity(J.CHEST, _tmp, dt).lengthSq() < 0.64) rd.sleepNow();
+    }
     s.grounded = rd.grounded;
     s.timeSinceGrounded = rd.grounded ? 0 : s.timeSinceGrounded + dt;
     s.bodyYaw = rd.headYaw();
@@ -1131,8 +1228,8 @@ export class MovementController {
     const limp = s.mode === MoveState.RAGDOLL || s.mode === MoveState.KNOCKDOWN;
     // Stumbling: the gun's off target for the first part of it (and for all of a fall).
     const rocked = s.mode === MoveState.STAGGER && s.stagger && (s.stagger.fall || s.stagger.t < s.stagger.dur * t.stagger.gunOff);
-    s.weaponReady = !(limp || rocked || s.mode === MoveState.MANTLE || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
-    s.busy = limp || s.mode === MoveState.STAGGER || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
+    s.weaponReady = !(limp || rocked || s.mode === MoveState.MANTLE || s.mode === MoveState.ROLL || (s.mode === MoveState.VEHICLE && !s.armedSeat) || proneTransition || s.sprinting || s.downed);
+    s.busy = limp || s.mode === MoveState.STAGGER || s.mode === MoveState.MANTLE || s.mode === MoveState.DIVE || s.mode === MoveState.ROLL || s.mode === MoveState.VEHICLE || !!proneTransition || s.downed;
     const low = s.stamina < t.stamina.lowAt;
     if (low !== s.lowStamina) { s.lowStamina = low; bus.emit('move:lowStamina', { id: this.id, on: low }); }
   }
@@ -1164,6 +1261,7 @@ export class MovementController {
     const s = this.state;
     s.mode = mode;
     s.modeTime = 0;
+    if (mode !== MoveState.AIR) s.tuck = null;   // (a slide's fall only rolls if it's still a fall when it lands)
   }
 
   // ---------------------------------------------------------------- netcode
@@ -1178,10 +1276,11 @@ export class MovementController {
       tsg: s.timeSinceGrounded, grounded: s.grounded, wr: s.wallRunsLeft,
       stanceT: s.stanceT && { ...s.stanceT }, stanceQueued: s.stanceQueued, crouchPress: s.crouchPress && { ...s.crouchPress },
       slide: s.slide && { ...s.slide }, dive: s.dive && { ...s.dive }, knock: s.knock && { ...s.knock }, stagger: s.stagger && { ...s.stagger }, roll: s.roll && { ...s.roll },
+      landRoll: s.landRoll && { ...s.landRoll }, tuck: s.tuck && { ...s.tuck },
       dodgeDir: s.dodgeDir.toArray(), dodgeStyle: s.dodgeStyle, lastDiveLand: s.lastDiveLand, supine: s.supine,
       mantle: s.mantle && { ...s.mantle, from: v3(s.mantle.from), to: v3(s.mantle.to), edge: v3(s.mantle.edge), exitVelocity: v3(s.mantle.exitVelocity) },
       invulnerable: s.invulnerable, sprinting: s.sprinting, downed: s.downed,
-      rag: s.mode === MoveState.RAGDOLL ? this.ragdoll.serialize() : null,
+      rag: s.mode === MoveState.RAGDOLL ? this.ragdoll.serialize() : null, fall: s.mode === MoveState.RAGDOLL && this.fall ? { ...this.fall } : null,
     };
   }
 
@@ -1194,13 +1293,15 @@ export class MovementController {
       timeSinceGrounded: snap.tsg, grounded: snap.grounded, wallRunsLeft: snap.wr,
       stanceT: snap.stanceT && { ...snap.stanceT }, stanceQueued: snap.stanceQueued, crouchPress: snap.crouchPress && { ...snap.crouchPress },
       slide: snap.slide && { ...snap.slide }, dive: snap.dive && { ...snap.dive }, knock: snap.knock && { ...snap.knock }, stagger: snap.stagger ? { ...snap.stagger } : null, roll: snap.roll ? { ...snap.roll } : null,
+      landRoll: snap.landRoll ? { ...snap.landRoll } : null, tuck: snap.tuck ? { ...snap.tuck } : null,
       dodgeStyle: snap.dodgeStyle, lastDiveLand: snap.lastDiveLand, invulnerable: snap.invulnerable, sprinting: snap.sprinting, supine: !!snap.supine, downed: !!snap.downed,
       mantle: snap.mantle && { ...snap.mantle, from: v3(snap.mantle.from), to: v3(snap.mantle.to), edge: v3(snap.mantle.edge), exitVelocity: v3(snap.mantle.exitVelocity) },
     });
     s.position.fromArray(snap.p); s.velocity.fromArray(snap.v); s.dodgeDir.fromArray(snap.dodgeDir);
     const h = this.t.heights;
     if (snap.rag) this.#rag().restore(snap.rag);
-    this.body.setHeight(s.mode === MoveState.DIVE ? h.dive : s.mode === MoveState.SLIDE ? (s.slide?.kind === 'feet' ? h.slide : h.prone) : s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.RAGDOLL ? h.prone : h[s.stance]);
+    this.fall = snap.fall ? { ...snap.fall } : null;
+    this.body.setHeight(s.mode === MoveState.DIVE ? h.dive : s.mode === MoveState.SLIDE ? (s.slide?.kind === 'feet' ? h.slide : h.prone) : s.mode === MoveState.ROLL ? h.slide : s.mode === MoveState.KNOCKDOWN || s.mode === MoveState.RAGDOLL ? h.prone : h[s.stance]);
     this.body.teleport?.(s.position);
   }
 }
@@ -1239,6 +1340,8 @@ export class RapierBody {
   teleport(p) { this.body.setTranslation({ x: p.x, y: p.y, z: p.z }, true); }
   /** Ground height for ragdoll particles (a ray down from above; Rapier colliders aren't boxes to hand out). */
   groundAt(x, z) { const hit = this.probe(_tmp.set(x, this.body.translation().y + 50, z), DOWN, 200); return hit ? hit.point.y : -Infinity; }
+  /** The first thing under (x, y, z) to come down on. */
+  floorBelow(x, z, y) { const hit = this.probe(_tmp.set(x, y + 0.05, z), DOWN, 400); return hit ? hit.point.y : -Infinity; }
   nearBoxes() { return NO_BOXES; }
   probe(origin, dir, dist) {
     const ray = new this.R.Ray(origin, dir);
@@ -1284,6 +1387,14 @@ export class FlatGroundBody {
   }
 
   groundAt(x, z) { return this.terrain ? this.terrain.height(x, z) : 0; }
+  /** The first thing under (x, y, z) to come down on: the ground, or the top of a box (or a moving floor) below. */
+  floorBelow(x, z, y) {
+    let floor = this.groundAt(x, z);
+    const r = this.r * 0.7;
+    for (const b of this.#gather(x, z, x, z)) if (x > b.min.x - r && x < b.max.x + r && z > b.min.z - r && z < b.max.z + r && b.max.y <= y + 0.05) floor = Math.max(floor, b.max.y);
+    const moving = this.boxes?.platforms?.(x, z, y + 0.05);
+    return moving > floor ? moving : floor;
+  }
   /** Cover boxes overlapping a ground rectangle, for ragdoll collision (a reused array: don't keep it). */
   nearBoxes(x0, z0, x1, z1) { return this.#gather(x0, z0, x1, z1); }
 

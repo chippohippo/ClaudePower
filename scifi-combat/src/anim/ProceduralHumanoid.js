@@ -57,7 +57,7 @@ const _b = new Vector3();
 const _c = new Vector3();
 const _d = new Vector3();
 const _pole = new Vector3();
-const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'dead', 'downed'];
+const KEYS = ['loco', 'slide', 'belly', 'dive', 'air', 'mantle', 'knock', 'seated', 'dodge', 'roll', 'dead', 'downed'];
 const JOINT_ARRAYS = ['hip', 'knee', 'ankle', 'shoulder', 'elbow', 'hand'];
 const JOINT_POINTS = ['pelvis', 'neck', 'neckTop', 'head', 'chestC'];
 const newJoints = () => ({
@@ -209,6 +209,7 @@ export class ProceduralHumanoid {
       footYaw: [0, 0], footPitch: [0, 0],
     };
     this.F = { pelvis: makeFrame(), chest: makeFrame(), head: makeFrame() };
+    this.rollF = makeFrame();   // the ball a forward roll turns
     this.prop = { kind: null, base: v3(), dir: new Vector3(0, 0, -1), up: new Vector3(0, 1, 0), length: 0.8, glow: 0, twoHanded: false };
     this.handT = [v3(), v3()];
     this.cape = Array.from({ length: (cfg.cape?.links ?? 3) + 1 }, v3);
@@ -236,7 +237,7 @@ export class ProceduralHumanoid {
     const pl = B.popLimit;
     this.pops = new PopAbsorber(
       [pl.pelvis, pl.pelvis, pl.pelvis, pl.yaw, pl.yaw, pl.angle, pl.angle, pl.angle, pl.angle, pl.angle, pl.angle],
-      [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0], pl.omega);
+      [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0], pl.omega);   // (pitches are angles: a roll turns the body right over)
     this.twistPop = new PopAbsorber([pl.yaw], [0], pl.omega);
     this.root = v3();
     this.yaw = 0;
@@ -654,6 +655,7 @@ export class ProceduralHumanoid {
       case 'mantle': return s.mantle ? 'mantle' : 'loco';
       case 'knockdown': return s.knock ? 'knock' : 'loco';
       case 'dodge': return s.dodgeStyle === 'shoulderBash' ? 'loco' : 'dodge';
+      case 'roll': return 'roll';
       default: return 'loco';
     }
   }
@@ -671,6 +673,7 @@ export class ProceduralHumanoid {
       case 'downed': return this.#downedPose(out);
       case 'seated': return this.#seatedPose(out);
       case 'dodge': return this.#dodgePose(out);
+      case 'roll': return this.#rollPose(out);
       case 'dead': { this.#keyPose(this.deathBack ? 'lyingBack' : 'lying', out, root, yaw); out.headW = 0; out.aimW = 0; out.gunUp = 0; return out; }
       default: return this.#restStance(out, 0);
     }
@@ -1000,7 +1003,7 @@ export class ProceduralHumanoid {
     else { this.#keyPose('diveLaunch', this.pc, this.root, this.yaw); this.#keyPose('dive', out, this.root, this.yaw); }
     const k = ease(t / launch);
     if (k < 1) { this.pa.copy(this.pc).mix(out, k); out.copy(this.pa); }
-    if (d.kind === 'forward') out.pitchC += 0.15 * smoothstep(0.1, 0.4, t);
+    if (d.kind === 'forward') out.pitchC += 0.15 * smoothstep(0.12, 0.5, t);
     // Trailing legs flutter a little in the air.
     const fl = Math.sin(t * 19) * 0.035 * this.scale;
     out.foot[0].y += fl; out.foot[1].y -= fl;
@@ -1135,6 +1138,42 @@ export class ProceduralHumanoid {
     const driver = v?.veh?.seats?.[v.seat]?.def?.role === 'driver';
     if (!driver) { out.handW[0] = 0; out.handW[1] = 0; out.gunUp = 1; }
     out.aimW = driver ? 0.35 : 1;
+    return out;
+  }
+
+  /**
+   * A slide off a ledge come down into a forward roll: the body curls into a ball, goes over a
+   * shoulder and across its back, and comes up crouched, carried on by the sim's speed. The ball
+   * turns a full circle (θ) about the hips' axis; it's mixed with the crouch it comes from and
+   * goes back into.
+   */
+  #rollPose(out) {
+    const s = this.e.movement.state, R = s.landRoll, sc = this.scale, yaw = this.yaw, Q = this.cfg.roll;
+    this.#restStance(out, 1);
+    out.aimW = 0; out.headW = 0; out.gunUp = 0;
+    if (!R) return out;
+    const u = clamp((R.t - this.lag) / R.dur, 0, 1);
+    const th = TAU * smoothstep(Q.over[0], Q.over[1], u);
+    const w = smoothstep(0, Q.curl, u) * (1 - smoothstep(1 - Q.curl, 1, u));
+    // The ball's middle: dropping onto the shoulder, rolling low, rising into the crouch.
+    const hc = (Q.ball + Q.drop * (1 - smoothstep(0, 0.25, u)) + Q.rise * smoothstep(0.8, 1, u)) * sc;
+    const B = bodyFrame(yaw, th, 0, 0, this.rollF);
+    _c.set(this.root.x, this.root.y + hc, this.root.z);
+    const at = (r, d, n, o) => frameToWorld(B, _c, r * sc, d * sc, n * sc, o);
+    // Angles mixed the short way round from the crouch's (the ball's are a full turn on at the end).
+    const near = (a, ref) => ref + angleDelta(ref, a);
+    out.pelvis.lerp(at(0, Q.pelvis[0], Q.pelvis[1], _a), w);
+    out.pitchP = lerp(out.pitchP, near(th + Q.pitchP, out.pitchP), w);
+    out.pitchC = lerp(out.pitchC, near(th + Q.pitchC, out.pitchC), w);
+    for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? -1 : 1;
+      out.foot[i].lerp(at(side * Q.foot[0], Q.foot[1], Q.foot[2], _a), w);
+      out.footPitch[i] = lerp(out.footPitch[i], near(th + Q.footPitch, 0), w);
+      // Knees drawn up to the chest, hands on the shins.
+      out.knee[i].lerp(_b.copy(B.n).addScaledVector(B.d, 0.4).addScaledVector(B.r, side * 0.15), w);
+      at(side * Q.hand[0], Q.hand[1], Q.hand[2], out.hand[i]);
+      out.handW[i] = w;
+    }
     return out;
   }
 
