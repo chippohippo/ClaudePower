@@ -140,7 +140,7 @@ const fx = new BattleFx(scene, { fog: scene.fog, look: planet.fx });
 const vehicleViews = new VehicleViews(scene, world, { localTeam: myTeam, far: Math.min(1100, atmo.reach), palette, fx });
 // The night city: its buildings, streets, lamps, wrecks and neon, and the lights near you.
 const city = map.city ? new CityRenderer(scene, map, { planet, palette, fx, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;
-const collapse = city ? new CollapseViews(scene, { fx, colorOf: (b) => city.colorOf(b) }) : null;   // buildings coming apart
+const collapse = city ? new CollapseViews(scene, { fx, colorOf: (b) => city.colorOf(b), rigid: session.structures?.rigid, snow: planet.snow, anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) }) : null;   // buildings coming apart
 // A stratagem's sentry is drawn on its pod by StratagemViews, not as a class turret.
 const zoneViews = new ZoneDeployableViews(scene, world, { localTeam: myTeam, skip: (e) => !!world.stratagems.defs[e.ability] });
 const stratViews = new StratagemViews(scene, world, { palette, fx, anim, groundY: (x, z) => map.terrain.height(x, z) });
@@ -340,7 +340,7 @@ const loop = new FixedLoop({
     stratViews.update(dt, cam, alpha);
     gunFx.update(dt, cam);
     dropViews.update(dt);
-    collapse?.update(dt);
+    collapse?.update(dt, alpha);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
     audio.update(dt, player.movement.state.position, input.yaw);

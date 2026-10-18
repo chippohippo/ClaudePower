@@ -453,6 +453,7 @@ float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3
 
   /** A piece left round a hole, or one lying as rubble: drawn in its mesh (in a free instance). */
   #show(b) {
+    if (b.render === 'body') return;   // (a body at rest's stand-in: CollapseViews draws the body)
     const mesh = this.#meshFor(b);
     if (!mesh || this.slots.has(b)) return;
     const free = mesh.userData.free ?? [];

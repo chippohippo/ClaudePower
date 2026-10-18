@@ -60,22 +60,49 @@ test('a grenade chips a wall, a tank shell holes it, and what is left of the wal
   assert.ok(T.S.members.size >= n0, 'the house stands');
 });
 
-test('a howitzer round that takes out the bottom of a wall brings the wall above it down; the floors, held by the other walls, stay up', () => {
+test('a howitzer round that takes out the bottom of a wall brings the wall above it down: it creaks, hangs on, tears loose and comes down in pieces; the floors, held by the other walls, stay up', () => {
   const T = town({ storeys: 3 });
-  const ev = { fall: [], land: [], creak: 0 };
-  const offs = [bus.on('structure:fall', (e) => ev.fall.push(e)), bus.on('structure:land', (e) => ev.land.push(e)), bus.on('structure:creak', () => ev.creak++)];
+  const ev = { tear: [], land: [], creak: 0, smash: 0 };
+  const offs = [bus.on('structure:tear', (e) => ev.tear.push(e)), bus.on('structure:land', (e) => ev.land.push(e)), bus.on('structure:creak', () => ev.creak++), bus.on('structure:break', (e) => { if (e.impact) ev.smash++; })];
   T.world.explode(v(8, 1, -0.6), 9, SHELL, NOBODY);
-  T.run(6);
-  offs.forEach((f) => f());
+  T.run(0.5);
+  const R = T.st.rigid;
   assert.ok(ev.creak >= 1, 'it creaks first');
-  assert.ok(ev.fall.length >= 4, `the wall over the hole comes down (${ev.fall.length} pieces)`);
+  assert.ok(R.bodies.length >= 3 && R.joints.some((j) => !j.broken), `then comes away in pieces still fixed on (${R.bodies.length} pieces)`);
   assert.equal(south(T, (m) => m.role === 'pier' && m.min.y > 3 && m.min.x > 5 && m.max.x < 11).length, 0, 'no pier left standing over the hole');
-  const toppled = ev.fall.filter((e) => e.topple);
-  assert.ok(toppled.length >= 2 && toppled.every((e) => e.to[2] <= 0.31 && e.to[4] - e.to[1] <= 0.31), 'walls topple outward into the street and lie flat');
-  assert.ok([...T.S.members].filter((m) => m.kind === 'hroof').length >= 1, 'the roof stands');
-  assert.equal(ev.land.length, ev.fall.length, 'everything that fell landed');
+  T.run(9.5);
+  offs.forEach((f) => f());
+  assert.ok(ev.tear.length >= 6, `it tears loose (${ev.tear.length} joints)`);
+  assert.ok(ev.land.length >= 4 && ev.smash >= 2, `comes down (${ev.land.length} crashes) and smashes (${ev.smash})`);
+  assert.equal(R.awake.length, 0, 'and comes to rest');
+  assert.ok([...T.S.members].filter((m) => m.kind === 'hroof').length >= 1 && [...T.S.members].filter((m) => m.kind === 'hfloor').length >= 1, 'the floors and the roof stand');
+  // It lies in the street in front of the house, and on the ground floor, as rubble.
+  const down = R.bodies.filter((b) => b.aabb[4] < 2);
+  const mass = R.bodies.reduce((a, b) => a + b.m, 0), low = down.reduce((a, b) => a + b.m, 0);
+  assert.ok(low > mass * 0.8, `most of it is on the ground (${low.toFixed(0)} of ${mass.toFixed(0)} t)`);
+  assert.ok(down.every((b) => b.aabb[2] < 3 && b.aabb[5] > -14), 'in front of the facade, and not thrown down the street');
   const rubble = T.cover.list.filter((b) => b.kind === 'rubble');
-  assert.ok(rubble.length >= 3 && rubble.every((r) => r.max.y - r.min.y <= 0.45), `it lies as rubble, low enough to step and climb over (${rubble.length})`);
+  assert.ok(rubble.length >= 10 && rubble.every((r) => r.body), `it lies as rubble (${rubble.length} boxes)`);
+  assert.ok(rubble.filter((r) => r.max.y - r.min.y <= 1).length >= rubble.length * 0.8, 'most of it low enough to climb over');
+});
+
+test('a floor let go on three sides hangs from the wall left, tears, and comes down on the floor below: flat, or leaning on the wall as a ramp', () => {
+  const T = town({ storeys: 2 });
+  for (const m of [...T.S.members].filter((q) => (q.role && q.min.z < 10.6) || q.kind === 'hstair')) T.st.knockOut(m);
+  T.run(0.6);
+  const R = T.st.rigid;
+  const slabs = R.bodies.filter((b) => b.boxes.some((k) => k.meta?.kind === 'hfloor' || k.meta?.kind === 'hroof'));
+  assert.ok(slabs.length >= 2, 'the floor and the roof came away');
+  T.run(8);
+  assert.equal(R.awake.length, 0, 'at rest');
+  const tilt = (b) => (2 * Math.acos(Math.min(1, Math.abs(b.q[3]))) * 180) / Math.PI;
+  const lying = R.bodies.filter((b) => b.boxes.some((k) => k.meta?.kind === 'hfloor' || k.meta?.kind === 'hroof'));
+  assert.ok(lying.some((b) => tilt(b) < 8), 'some lie flat');
+  const ramps = lying.filter((b) => tilt(b) > 15 && tilt(b) < 65 && b.aabb[4] > 2);
+  assert.ok(ramps.length >= 1, `some lean from the ground up against the wall left standing (${lying.map((b) => tilt(b).toFixed(0)).join(', ')}°)`);
+  // A ramp's rubble steps you can walk up.
+  const r = ramps.sort((a, b) => b.aabb[4] - a.aabb[4])[0], steps = T.cover.list.filter((c) => c.body === r.id);
+  assert.ok(steps.length >= 3, `the ramp is a stair of ${steps.length} boxes`);
 });
 
 test('what holds what: a lintel carries the wall over one missing pier, not over a gap wider than it spans; a floor with one wall left under it falls', () => {
@@ -188,7 +215,7 @@ test('the same blasts bring down the same pieces, and a shell on a house costs a
   assert.ok(b.first < 20 && b.second < 20, `a shell on a house: ${b.first.toFixed(1)} ms, then ${b.second.toFixed(1)} ms`);
 });
 
-test('what you see: a piece gone is gone from its mesh, the pieces round a hole are drawn, rubble lies where it fell, and falls are animated', async () => {
+test('what you see: a piece gone is gone from its mesh, the pieces round a hole are drawn, and every piece coming away is drawn as it moves and where it lies', async () => {
   const { Scene, Matrix4, Vector3 } = await import('three');
   const { CityRenderer } = await import('../src/render/CityRenderer.js');
   const { CollapseViews } = await import('../src/vfx/CollapseViews.js');
@@ -197,28 +224,37 @@ test('what you see: a piece gone is gone from its mesh, the pieces round a hole 
   const st = new StructureSystem(world, map);
   world.structures = st;
   const R = new CityRenderer(new Scene(), map, { planet: { city: { lights: 2 } } });
-  const V = new CollapseViews(new Scene(), { colorOf: (b) => R.colorOf(b) });
+  const V = new CollapseViews(new Scene(), { colorOf: (b) => R.colorOf(b), rigid: st.rigid });
   const h = map.city.houses.slice().sort((a, b) => b.storeys - a.storeys)[0];
   const S = st.list.find((q) => q.house === h);
-  const walls0 = R.houseMeshes.walls.count;
   const gone = [];
-  const off = bus.on('world:coverDestroyed', (e) => { if (e.structural) gone.push(e.cover); });
+  const off = bus.on('world:coverDestroyed', (e) => { if (e.structural && !e.cover.body) gone.push(e.cover); });
   world.explode(new Vector3((h.min.x + h.max.x) / 2, h.base + 1, h.min.z - 0.6), 9, SHELL, NOBODY);
-  let drawnFalling = 0;
-  for (let i = 0; i < 60 * 5; i++) { st.update(1 / 60); V.update(1 / 60); drawnFalling = Math.max(drawnFalling, V.falling.length); }
+  let moving = 0;
+  const m = new Matrix4();
+  for (let i = 0; i < 60 * 10; i++) {
+    st.update(1 / 60); V.update(1 / 60, 0.5);
+    moving = Math.max(moving, V.drawn.moving);
+    if (i === 90) {
+      // Each body drawn, box by box, where it is.
+      for (const b of st.rigid.bodies) {
+        const s = V.slots.get(b);
+        assert.ok(s && s.i.length === b.boxes.length, 'every body is drawn, every box of it');
+        V.mesh.getMatrixAt(s.i[0], m);
+        const p = new Vector3().setFromMatrixPosition(m), k = b.boxes[0];
+        const c = new Vector3(k.c[0], k.c[1], k.c[2]).applyQuaternion({ x: b.q[0], y: b.q[1], z: b.q[2], w: b.q[3], isQuaternion: true }).add(new Vector3(b.x[0], b.x[1], b.x[2]));
+        assert.ok(p.distanceTo(c) < 0.6, `at its pose (${p.distanceTo(c).toFixed(2)} m off)`);
+      }
+    }
+  }
   off();
   assert.ok(gone.length >= 5 && S.members.size > 0, `pieces gone (${gone.length})`);
-  const m = new Matrix4();
   for (const b of gone) assert.ok(!R.slots.has(b), 'a gone piece has no instance');
-  const wall = R.houseMeshes.walls;
-  const hidden = [];
-  for (let i = 0; i < wall.count; i++) { wall.getMatrixAt(i, m); if (m.elements[0] === 0 && m.elements[5] === 0) hidden.push(i); }
-  assert.ok(hidden.length >= 1 && wall.userData.free.length + (wall.count - walls0) >= 0, 'its instance is hidden (and free for the next fragment)');
-  // Every piece still standing has an instance; every piece of rubble is drawn in the rubble mesh.
   for (const b of S.members) assert.ok(R.slots.has(b), `${b.kind} still standing is drawn`);
+  assert.ok(moving >= 3, `pieces drawn moving (${moving} at once)`);
+  assert.equal(st.rigid.awake.length, 0, 'all at rest');
+  assert.equal(V.drawn.n, st.rigid.bodies.length, 'and every one still drawn, where it lies');
   const rubble = map.cover.list.filter((b) => b.kind === 'rubble');
-  assert.ok(rubble.length >= 3 && rubble.every((b) => R.slots.get(b)?.mesh === R.rubbleMesh), `the rubble is drawn (${rubble.length})`);
-  assert.equal(R.rubbleMesh.count, rubble.length);
-  assert.ok(drawnFalling >= 3 && V.falling.length === 0, `falls animated (${drawnFalling} at once), all landed`);
+  assert.ok(rubble.length >= 3 && rubble.every((b) => !R.slots.has(b)), `its rubble is cover, not drawn twice (${rubble.length})`);
   R.dispose(); V.dispose();
 });

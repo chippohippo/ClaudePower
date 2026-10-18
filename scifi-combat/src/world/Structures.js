@@ -18,19 +18,30 @@
 //    wall above, the one over an eight-metre hole breaks and the wall above comes down). A skybridge
 //    is a welded frame between its two houses: it stands while they hold both ends (or it stands on
 //    its ramp), and goes down whole.
-//  * What's left unheld creaks for a moment, then falls: a wall topples and lies flat, a slab drops,
-//    landing on whatever is below (the street, the rubble, the floor under it). It crushes whoever
-//    it lands on, hammers the member it lands on (a floor falling on the one below can take that
-//    with it), and stays there as rubble to climb over and hide behind.
+//  * What's left unheld creaks for a moment and comes away as a body (physics/RigidWorld.js): each
+//    piece of it that hangs together is one rigid body, still fixed to what stands by elastic
+//    joints at the corners of every face it touched it by. The joints between them hold as much as
+//    `c` times its weight (c drawn for each piece, 0.5 to 2.5: some tear straight off, some hang on),
+//    shared out by the faces' areas. So it sags, then tears where it's pulled hardest: a floor let
+//    go on three sides tears along its top and swings down on its bottom edge into a ramp onto the
+//    floor below, or hangs there, swaying, until the joints tire and it drops; a wall over a hole
+//    peels away from the floors it was fixed to. Joints are fixed to members: when one goes, what
+//    hung from it is let go; when one comes away itself, what hung from it hangs from it still.
+//  * What hits something hard enough breaks up (a wall into slabs, a slab into chunks), each piece
+//    carrying on as it was going; it crushes whoever it comes down on (by its energy), pounds the
+//    member it lands on (a floor falling on the one below can hole it, or take it down too), and is
+//    thrown by blasts. At rest it's rubble: cover you climb over and hide behind, boxes stepped to
+//    the lie of each piece (a slab leaning on a wall is a ramp of steps). A blast throws it again.
 //
 // Simulation only (deterministic). Events: structure:hit {at, cover}, structure:break {cover,
-// fragments, at, hole}, structure:creak {at, n}, structure:fall {cover, to, topple, time, mat},
-// structure:land {at, energy, size, mat}; and world:coverDestroyed / world:coverAdded with
-// `structural: true` for everything that stops or starts being cover (TacticalMap, the renderers).
+// fragments, at, hole}, structure:creak {at, n}, structure:tear {at, mat}, structure:land {at,
+// energy, size, mat}; and world:coverDestroyed / world:coverAdded with `structural: true` for
+// everything that stops or starts being cover (TacticalMap, the renderers).
 
 import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { mulberry32 } from './Terrain.js';
+import { RigidWorld } from '../physics/RigidWorld.js';
 
 export const MATERIAL = {
   // density t/m³, hp per m³, patch: the blast a 0.3 m slab of it takes per m² before it breaks
@@ -42,13 +53,17 @@ export const MATERIAL = {
 };
 const E = 0.06;                 // m: touching
 const G = 9.8;
-const CREAK = 0.35;             // s of creaking before the first piece goes
-const RUBBLE_CAP = 90;          // rubble boxes a structure leaves (the rest is dust)
+const CREAK = 0.25;             // s of creaking before a piece comes away (more or less)
 const RUBBLE_MIN = 0.12;        // m³: smaller pieces are dust, not cover
-const CRUSH = 6;                // damage per kJ to whoever a falling piece lands on
+const CRUSH = 6;                // damage per kJ to whoever a falling piece hits
+const CRUSH_V = 2.5;            // m/s: slower than this it only shoves
 const POUND = 2.5;              // damage per kJ to the member it lands on
+const PUSH = 0.01;              // t·m/s a blast gives a body per unit of its power (at its heart)
+const TIRE = 0.1;               // a piece's joints tire past 10% of their strength (so what's left hanging comes down in a few seconds)
+const AWAKE_CAP = 160;          // bodies moving at once, past which nothing breaks up further
+const BODY_CAP = 480;           // bodies in all, past which the smallest at rest go to dust
 const METAL_KINDS = new Set(['hrail', 'brail', 'sstair']);
-const _p = new Vector3();
+const _p = new Vector3(), _q = new Vector3(), _v = new Float64Array(3), _w = new Float64Array(3);
 
 /** What a blast does to buildings: its damage, scaled by how it goes off. */
 export function structuralPower(weapon, { charge = false } = {}) {
@@ -134,11 +149,15 @@ export class StructureSystem {
     this.rand = mulberry32(seed * 7919 + 17);
     this.time = 0;
     this.list = [];
-    this.creaking = [];          // { m, at } members coming down at `at`
-    this.falls = [];             // { m, S, t, T, to, from, E, topple, by }
+    this.creaking = [];          // { ms, S, at }: pieces coming away at `at`
     this.dirty = [];             // nav rects to redo [x0, z0, x1, z1]
-    this.rubbleCount = 0;
-    this.stats = { breaks: 0, holes: 0, falls: 0, crushed: 0, rubble: 0 };
+    this.stats = { breaks: 0, holes: 0, falls: 0, bodies: 0, tears: 0, shatters: 0, crushed: 0, rubble: 0 };
+    const T = world.terrain;
+    this.rigid = new RigidWorld({
+      ground: T ? (x, z) => T.height(x, z) : null,
+      normal: T ? (x, z, out) => { T.normal(x, z, _q); out[0] = _q.x; out[1] = _q.y; out[2] = _q.z; } : null,
+      statics: (x0, z0, x1, z1, cb) => world.coverIn(x0, z0, x1, z1, cb),
+    });
     const C = map.city;
     for (const h of C?.houses ?? []) this.register('house', [...h.parts.wall, ...h.parts.floor, ...h.parts.stair, ...h.parts.rail], { id: h.id, house: h });
     for (const sc of C?.scaffolds ?? []) this.register('scaffold', [...sc.parts.deck, ...sc.parts.stair]);
@@ -171,7 +190,7 @@ export class StructureSystem {
   #member(m, S, frac = 1) {
     const mat = METAL_KINDS.has(m.kind) || m.surface === 'metal' ? 'metal' : m.surface === 'wood' ? 'wood' : 'concrete', M = MATERIAL[mat], v = vol(m);
     const max = Math.max(25, v * M.hp);
-    m.st = { S, mat, max, hp: max * frac, mass: v * M.density, up: [], down: [], side: [], ext: [], doomed: false, gone: false, by: null };
+    m.st = { id: this.nextMember = (this.nextMember ?? 0) + 1, S, mat, max, hp: max * frac, mass: v * M.density, up: [], down: [], side: [], ext: [], doomed: false, gone: false, by: null };
     S.members.add(m);
     S.min.min(m.min); S.max.max(m.max);
     return m;
@@ -188,7 +207,9 @@ export class StructureSystem {
    */
   blast(point, radius, weapon, { charge = false, by = null } = {}) {
     const P = structuralPower(weapon, { charge }), R = Math.max(1.2, radius * 0.9);
-    if (P <= 0 || !this.list.length) return 0;
+    if (P <= 0) return 0;
+    if (this.rigid.bodies.length) this.#blastBodies(point, P, R);
+    if (!this.list.length) return 0;
     const hit = [];
     this.world.coverIn(point.x - R, point.z - R, point.x + R, point.z + R, (b) => { if (b.st && !b.st.gone && !b.st.doomed && boxDist(point, b) < R) hit.push(b); });
     if (!hit.length) return 0;
@@ -244,6 +265,7 @@ export class StructureSystem {
   /** Member m is gone (blown away, or all but `frags`, which take its place). */
   #breakUp(m, point, frags, frac = 1, hole = null) {
     const S = m.st.S, by = m.st.by;
+    this.#handOver(m, frags);
     this.#remove(m);
     this.stats.breaks++;
     for (const f of frags) {
@@ -265,6 +287,7 @@ export class StructureSystem {
       min[axis] = a; max[axis] = b;
       return { min, max, surface: m.surface, kind: m.kind, destructible: m.destructible, render: m.render, house: m.house, group: m.group, role: m.role };
     });
+    this.#handOver(m, pieces);
     this.#remove(m);
     for (const f of pieces) {
       this.#member(f, S, frac);
@@ -277,12 +300,23 @@ export class StructureSystem {
     return pieces.find((f) => f.min[axis] >= u0 - 1e-6 && f.max[axis] <= u1 + 1e-6) ?? null;
   }
 
-  /** Out of the cover (and the structure): the routes and the cover spots round it change. */
+  /** What hung from m by joints hangs from whichever of the pieces that take its place the joint is on (if any). */
+  #handOver(m, pieces) {
+    if (!pieces.length) return;
+    for (const j of this.rigid.joints) {
+      if (j.broken || j.box !== m) continue;
+      const [x, y, z] = j.lb;
+      j.box = pieces.find((f) => x >= f.min.x - 0.1 && x <= f.max.x + 0.1 && y >= f.min.y - 0.1 && y <= f.max.y + 0.1 && z >= f.min.z - 0.1 && z <= f.max.z + 0.1) ?? m;
+    }
+  }
+
+  /** Out of the cover (and the structure): the routes and the cover spots round it change, and whatever hung from it is let go. */
   #remove(m) {
     const st = m.st;
     if (st.gone) return;
     st.gone = true;
     st.S.members.delete(m);
+    this.rigid.unanchor(m);
     if (this.world.cover.remove) this.world.cover.remove(m); else { const i = this.world.cover.indexOf(m); if (i >= 0) this.world.cover.splice(i, 1); }
     this.dirty.push([m.min.x, m.min.z, m.max.x, m.max.z]);
     bus.emit('world:coverDestroyed', { cover: m, by: st.by ?? undefined, center: [(m.min.x + m.max.x) / 2, (m.min.y + m.max.y) / 2, (m.min.z + m.max.z) / 2], structural: true });
@@ -445,14 +479,13 @@ export class StructureSystem {
     }
     const unheld = [...broke, ...[...S.members].filter((m) => !m.st.doomed && !stand.has(m))];
     if (unheld.length) {
-      const base = Math.min(...unheld.map((m) => m.min.y));
       let cx = 0, cy = 0, cz = 0;
       for (const m of unheld) {
         m.st.doomed = true;   // (the broken middle of a beam already is)
-        // Lowest first, the rest a beat behind: what's above rides down on what's below.
-        this.creaking.push({ m, at: this.time + CREAK * (0.6 + 0.8 * this.rand()) + (m.min.y - base) * 0.03 });
         cx += (m.min.x + m.max.x) / 2; cy += m.max.y; cz += (m.min.z + m.max.z) / 2;
       }
+      // Each piece that hangs together creaks a moment, then comes away.
+      for (const ms of this.#islands(unheld)) this.creaking.push({ ms, S, at: this.time + CREAK * (0.6 + 0.8 * this.rand()) });
       const n = unheld.length;
       bus.emit('structure:creak', { at: [cx / n, cy / n, cz / n], n, structure: S.id });
     }
@@ -464,88 +497,218 @@ export class StructureSystem {
     }
   }
 
-  // ---------------------------------------------------------------- falling
-  /** How a falling member lies once down: a wall topples (away from its building's middle) and lies flat; anything else drops. */
-  #pose(m) {
-    const [dx, dy, dz] = dims(m), S = m.st.S;
-    const tall = dy > 1.2 && dy > 2.5 * Math.min(dx, dz);
-    if (!tall) return { box: { min: m.min.clone(), max: m.max.clone() }, topple: null };
-    const ax = dx < dz ? 'x' : 'z';              // it's thin along ax: it topples that way
-    const mid = (S.min[ax] + S.max[ax]) / 2, at = (m.min[ax] + m.max[ax]) / 2;
-    const dir = Math.abs(at - mid) < 0.5 ? (this.rand() < 0.5 ? -1 : 1) : Math.sign(at - mid);
-    const min = m.min.clone(), max = m.max.clone();
-    const t = m.max[ax] - m.min[ax];
-    if (dir > 0) { min[ax] = m.max[ax]; max[ax] = m.max[ax] + dy; } else { max[ax] = m.min[ax]; min[ax] = m.min[ax] - dy; }
-    max.y = min.y + t;
-    return { box: { min, max }, topple: { axis: ax, dir } };
+  // ---------------------------------------------------------------- coming away
+  /** The unheld members in the pieces that hang together (touching one another). */
+  #islands(ms) {
+    const set = new Set(ms), seen = new Set(), out = [];
+    for (const m of ms) {
+      if (seen.has(m)) continue;
+      const part = [], q = [m];
+      seen.add(m);
+      while (q.length) {
+        const a = q.pop();
+        part.push(a);
+        for (const list of [a.st.up, a.st.down, a.st.side]) for (const { b } of list) if (set.has(b) && !seen.has(b)) { seen.add(b); q.push(b); }
+      }
+      out.push(part);
+    }
+    return out;
   }
 
-  /** The top of what's under a footprint, below `under` (the ground, or cover still standing). */
-  #floorUnder(x0, z0, x1, z1, under) {
-    const t = this.world.terrain;
-    let top = -Infinity;
-    if (t) for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1], [(x0 + x1) / 2, (z0 + z1) / 2]]) top = Math.max(top, t.height(x, z));
-    else top = 0;
-    this.world.coverIn(x0, z0, x1, z1, (b) => {
-      if (b.st?.gone || b.st?.doomed) return;
-      if (b.max.x <= x0 || b.min.x >= x1 || b.max.z <= z0 || b.min.z >= z1) return;
-      if (b.max.y <= under + 0.05 && b.max.y > top) top = b.max.y;
-    });
-    return top;
+  /**
+   * A piece comes away: its members in bodies of a few each (those that sit together), joined to
+   * one another, and to what still stands, by joints at the corners of every face they touched by:
+   * the joints to what stands hold as much as c times the body's weight (c drawn for the piece,
+   * shared out by the faces' areas), those between its bodies as much as k times the lighter's
+   * (k drawn for each face). So it sags and comes apart where it's pulled hardest, in chunks. A
+   * welded frame (a skybridge) is one body. Each body is free of colliding with what it was beside
+   * until it's clear of it; whatever hung from its members by joints hangs from it.
+   */
+  #release(ms, S) {
+    ms = ms.filter((m) => !m.st.gone);
+    if (!ms.length) return [];
+    const parts = S.welded ? [ms] : chunks(ms), bodyOf = new Map(), bodies = [];
+    const c = 0.5 + 2 * this.rand();
+    for (const part of parts) {
+      const set = new Set(part), boxes = [], ignore = new Set(), faces = [];
+      const mats = { concrete: 0, metal: 0, wood: 0 };
+      let by = null;
+      for (const m of part) {
+        const st = m.st;
+        boxes.push({ min: m.min, max: m.max, density: MATERIAL[st.mat].density, meta: { src: m, mat: st.mat, kind: m.kind } });
+        mats[st.mat] += st.mass;
+        by ??= st.by;
+        const touch = (b, r, type) => {
+          if (set.has(b) || (b.st && (b.st.gone || b.st.doomed))) return;
+          if (type === 'side') ignore.add(b);
+          faces.push(face(m, b, r, type));
+        };
+        for (const { b, r } of st.down) touch(b, r, 'below');
+        for (const { b, r } of st.up) touch(b, r, 'above');
+        for (const { b, r } of st.side) touch(b, r, 'side');
+        for (const x of st.ext) touch(x.b, x.r, x.type);
+      }
+      const mat = mats.metal > mats.concrete && mats.metal > mats.wood ? 'metal' : mats.wood > mats.concrete ? 'wood' : 'concrete';
+      const body = this.rigid.addBody(boxes, { ignore: [...ignore], data: { S, by, mat, crush: new Map(), land: -1, cover: null } });
+      const W = body.m * G;
+      let area = 0;
+      for (const f of faces) area += f.area;
+      for (const f of faces) for (const p of f.pts) this.rigid.joint(body, p, null, { strength: (c * W * f.area) / (area * f.pts.length), stretch: 0.015, normal: f.n, tire: TIRE, box: f.b });
+      for (const m of part) bodyOf.set(m, body);
+      bodies.push(body);
+    }
+    // Between its bodies: the faces their members touched by.
+    const done = new Set();
+    for (const m of ms) {
+      const A = bodyOf.get(m);
+      for (const [list, type] of [[m.st.down, 'below'], [m.st.up, 'above'], [m.st.side, 'side']]) for (const { b, r } of list) {
+        const B = bodyOf.get(b);
+        if (!B || B === A) continue;
+        this.rigid.apart(A, B);
+        const key = m.st.id < b.st.id ? `${m.st.id}:${b.st.id}` : `${b.st.id}:${m.st.id}`;
+        if (done.has(key)) continue;
+        done.add(key);
+        const f = face(m, b, r, type), k = 0.6 + this.rand(), F = k * Math.min(A.m, B.m) * G;
+        for (const p of f.pts) this.rigid.joint(A, p, B, { strength: F / f.pts.length, stretch: 0.015, normal: f.n, tire: TIRE });
+      }
+    }
+    // Whatever was fixed to these members is fixed to the body each is in now.
+    for (const m of ms) this.rigid.reanchor(m, bodyOf.get(m));
+    for (const m of ms) this.#remove(m);
+    this.stats.falls += ms.length; this.stats.bodies += bodies.length;
+    return bodies;
   }
 
-  #fall(m) {
-    const st = m.st, S = st.S;
-    this.#remove(m);
-    const { box, topple } = this.#pose(m);
-    // What it comes down on: below where it was (not the last support it slid off, level with it);
-    // a toppled wall can come down on the kerb it stood beside.
-    const y = this.#floorUnder(box.min.x, box.min.z, box.max.x, box.max.z, topple ? m.min.y + 0.4 : m.min.y - 0.3);
-    const drop = Math.max(0, m.min.y - y), h = box.max.y - box.min.y;
-    box.min.y = y; box.max.y = y + h;
-    const T = Math.max(0.2, Math.sqrt((2 * drop) / G) + (topple ? 0.35 : 0));
-    const energy = (st.mass * G * Math.max(drop, topple ? (m.max.y - m.min.y) / 2 : 0)) / 1;   // kJ (t · m/s² · m)
-    this.falls.push({ m, S, t: 0, T, to: box, from: { min: m.min.clone(), max: m.max.clone() }, energy, topple, by: st.by, mat: st.mat });
-    this.stats.falls++;
-    bus.emit('structure:fall', { cover: m, to: [box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z], topple, time: T, mat: st.mat, structure: S.id });
+  // ---------------------------------------------------------------- bodies
+  /** A body hit something: a crash, the blow to what it hit, and it breaks up if it hit hard enough. */
+  #hit({ b, energy, speed, at }, statics) {
+    if (b.removed || !b.data?.S) return;
+    const D = b.data, A = b.aabb;
+    if (energy > 8 && this.time - D.land > 0.25) {
+      D.land = this.time;
+      bus.emit('structure:land', { at, energy, speed, size: [A[3] - A[0], A[4] - A[1], A[5] - A[2]], mat: D.mat, structure: D.S.id });
+    }
+    // What it hit takes the blow (a floor coming down on the one below can take that too).
+    const under = statics ? [...statics].filter((c) => c.st && !c.st.gone && !c.st.doomed) : [];
+    if (under.length && energy > 4) {
+      const touched = new Set(), p = _p.set(at[0], at[1], at[2]);
+      for (const c of under) { c.st.by = D.by; touched.add(c.st.S); this.#damage(c, (energy * POUND) / under.length, p); }
+      for (const S of touched) this.#settle(S);
+    }
+    if (this.rigid.awake.length < AWAKE_CAP) this.#shatter(b, energy / b.m, at);
   }
 
-  #land(f) {
-    const b = f.to, at = centerOf(b, new Vector3());
-    // Whoever is under it.
-    const crush = Math.min(5000, f.energy * CRUSH);
-    if (crush >= 1) {
-      const R = Math.hypot(b.max.x - b.min.x, b.max.z - b.min.z) / 2 + 0.6;
-      this.world.fightersNear?.(at, R, (e) => {
-        if (e.health?.dead || e.vehicle) return;
+  /** Hit hard (e kJ a tonne): a body of many pieces breaks into a few, a big slab into chunks. */
+  #shatter(b, e, at) {
+    let pieces;
+    if (b.boxes.length > 1) {
+      if (e < 4) return;
+      pieces = groups(b.boxes, Math.min(b.boxes.length, 2 + Math.floor(e / 6), 8));
+    } else {
+      const k = b.boxes[0], [hx, hy, hz] = k.h, long = 2 * Math.max(hx, hy, hz);
+      if (e < 9 || long < 1.4 || 8 * hx * hy * hz < 0.35) return;
+      const ax = hx >= hy && hx >= hz ? 0 : hy >= hz ? 1 : 2, n = e > 25 && long > 3 ? 3 : 2;
+      // Cut across its length at (seeded) random places, no piece under a third of an even share.
+      const cuts = [];
+      for (let i = 1; i < n; i++) cuts.push((i + (this.rand() - 0.5) * 0.6) / n);
+      pieces = [];
+      let from = 0;
+      for (const t of [...cuts, 1]) {
+        const c = k.c.slice(), h = k.h.slice();
+        c[ax] = k.c[ax] - k.h[ax] + 2 * k.h[ax] * (from + t) / 2;
+        h[ax] = k.h[ax] * (t - from);
+        pieces.push([{ c, h, rho: k.rho, meta: k.meta }]);
+        from = t;
+      }
+    }
+    const D = b.data, A = b.aabb;
+    const out = this.rigid.fracture(b, pieces, { hit: (boxes) => boxes.some((k) => k.hit !== false) });
+    for (const p of out) p.data = { ...D, crush: new Map(), cover: null };
+    this.stats.shatters++;
+    const r = 1.2;
+    bus.emit('structure:break', { cover: null, fragments: [], at, hole: [Math.max(A[0], at[0] - r), Math.max(A[1], at[1] - 0.5), Math.max(A[2], at[2] - r), Math.min(A[3], at[0] + r), Math.min(A[4], at[1] + r), Math.min(A[5], at[2] + r)], mat: D.mat, structure: D.S.id, impact: true });
+  }
+
+  /** Whoever a moving body runs into: crushed by how hard it's going, shoved if it's barely moving. */
+  #crush() {
+    for (const b of this.rigid.awake) {
+      const vb = b.v, wb = b.w;
+      if (Math.hypot(vb[0], vb[1], vb[2]) + Math.hypot(wb[0], wb[1], wb[2]) * b.r < CRUSH_V) continue;
+      const A = b.aabb, D = b.data;
+      this.world.fightersNear?.(_p.set(b.x[0], b.x[1], b.x[2]), b.r + 1, (e) => {
+        if (e.health?.dead || e.vehicle || !e.movement) return;
         const q = e.movement.state.position;
-        if (q.x < b.min.x - 0.3 || q.x > b.max.x + 0.3 || q.z < b.min.z - 0.3 || q.z > b.max.z + 0.3) return;
-        if (q.y < b.min.y - 0.6 || q.y > f.from.min.y + 0.3) return;
-        e.health.damage(crush, { kind: 'crush', noDown: crush >= 200, from: [at.x, b.max.y + 2, at.z] }, this.world.entity?.(f.by) ?? null);
-        this.stats.crushed++;
+        if (q.x < A[0] - 0.4 || q.x > A[3] + 0.4 || q.z < A[2] - 0.4 || q.z > A[5] + 0.4 || q.y > A[4] + 0.2 || q.y + 1.8 < A[1]) return;
+        for (const up of [0.3, 0.9, 1.5]) {
+          if (!this.rigid.boxAt(b, q.x, q.y + up, q.z, 0.3)) continue;
+          const v = b.velocityAt(q.x, q.y + up, q.z, _v), sp = Math.hypot(v[0], v[1], v[2]);
+          if (sp < CRUSH_V || this.time - (D.crush.get(e.id) ?? -9) < 0.5) return;
+          D.crush.set(e.id, this.time);
+          const dmg = Math.min(5000, 0.5 * Math.min(b.m, 4) * sp * sp * CRUSH);
+          e.health.damage(dmg, { kind: 'crush', noDown: dmg >= 200, from: [q.x - v[0], q.y + up - v[1], q.z - v[2]] }, this.world.entity?.(D.by) ?? null);
+          this.stats.crushed++;
+          return;
+        }
       });
     }
-    // What it lands on takes the blow (a floor coming down on the one below can take that too).
-    const under = [];
-    this.world.coverIn(b.min.x, b.min.z, b.max.x, b.max.z, (c) => { if (c.st && !c.st.gone && !c.st.doomed && Math.abs(c.max.y - b.min.y) < 0.3 && c.max.x > b.min.x && c.min.x < b.max.x && c.max.z > b.min.z && c.min.z < b.max.z) under.push(c); });
-    const touched = new Set();
-    for (const c of under) { c.st.by = f.by; touched.add(c.st.S); this.#damage(c, (f.energy * POUND) / under.length, at); }
-    for (const S of touched) this.#settle(S);
-    // Rubble where it lies (stacked on any that came down there before it).
-    if (vol(b) >= RUBBLE_MIN && f.S.rubble < RUBBLE_CAP) {
-      let y = b.min.y;
-      const pile = [];
-      this.world.coverIn(b.min.x, b.min.z, b.max.x, b.max.z, (c) => { if (c.kind === 'rubble' && c.max.x > b.min.x && c.min.x < b.max.x && c.max.z > b.min.z && c.min.z < b.max.z) pile.push(c); });
-      pile.sort((p, q) => p.min.y - q.min.y);
-      for (const c of pile) if (c.min.y <= y + 0.1 && c.max.y > y) y = c.max.y;
-      const lift = y - b.min.y, h = b.max.y - b.min.y;
-      const r = { min: new Vector3(b.min.x, b.min.y + lift, b.min.z), max: new Vector3(b.max.x, b.min.y + lift + h, b.max.z), kind: 'rubble', surface: f.mat === 'metal' ? 'metal' : 'concrete', destructible: true, render: 'city', rubble: f.mat };
+  }
+
+  /** A body at rest: rubble, cover to climb and hide behind (boxes stepped to the lie of each piece). */
+  #cover(b) {
+    if (b.removed || !b.asleep || b.data.cover) return;
+    const out = [];
+    for (const k of b.boxes) {
+      if (8 * k.h[0] * k.h[1] * k.h[2] < RUBBLE_MIN) continue;   // dust
+      const mat = k.meta?.mat ?? 'concrete';
+      restingBoxes(k.wc, b.ax, k.h, (x0, y0, z0, x1, y1, z1) => out.push({ min: new Vector3(x0, y0, z0), max: new Vector3(x1, y1, z1), kind: 'rubble', surface: mat === 'metal' ? 'metal' : 'concrete', destructible: false, render: 'body', rubble: mat, body: b.id }));
+    }
+    b.data.cover = out;
+    for (const r of out) {
       this.world.cover.add ? this.world.cover.add(r) : this.world.cover.push(r);
-      f.S.rubble++; this.stats.rubble++;
       this.dirty.push([r.min.x, r.min.z, r.max.x, r.max.z]);
       bus.emit('world:coverAdded', { cover: r, structural: true });
     }
-    bus.emit('structure:land', { at: [at.x, b.min.y, at.z], energy: f.energy, size: [b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z], mat: f.mat, structure: f.S.id });
+    this.stats.rubble += out.length;
+  }
+
+  /** Moving again: no longer cover where it lay. */
+  #uncover(b) {
+    const out = b.data?.cover;
+    if (!out) return;
+    b.data.cover = null;
+    for (const r of out) {
+      if (this.world.cover.remove) this.world.cover.remove(r); else { const i = this.world.cover.indexOf(r); if (i >= 0) this.world.cover.splice(i, 1); }
+      this.dirty.push([r.min.x, r.min.z, r.max.x, r.max.z]);
+      bus.emit('world:coverDestroyed', { cover: r, center: [(r.min.x + r.max.x) / 2, (r.min.y + r.max.y) / 2, (r.min.z + r.max.z) / 2], structural: true });
+      // Bodies lying on it wake up and fall.
+      this.world.fightersNear?.(centerOf(r, _p), Math.max(r.max.x - r.min.x, r.max.z - r.min.z) / 2 + 1, (e) => {
+        const rd = e.movement?.ragdoll, q = e.movement?.state.position;
+        if (rd?.asleep && q && q.x > r.min.x - 0.5 && q.x < r.max.x + 0.5 && q.z > r.min.z - 0.5 && q.z < r.max.z + 0.5 && q.y > r.max.y - 0.6) { rd.asleep = false; rd.restT = 0; }
+      });
+    }
+  }
+
+  /** A blast throws the bodies it reaches (asleep or not), and weakens the joints near it. */
+  #blastBodies(point, P, R) {
+    const RW = this.rigid;
+    for (const b of [...RW.bodies]) {
+      const A = b.aabb;
+      const cx = Math.max(A[0], Math.min(A[3], point.x)), cy = Math.max(A[1], Math.min(A[4], point.y)), cz = Math.max(A[2], Math.min(A[5], point.z));
+      let dx = cx - point.x, dy = cy - point.y, dz = cz - point.z;
+      const d = Math.hypot(dx, dy, dz);
+      if (d > R) continue;
+      if (d < 0.05) { dx = b.x[0] - point.x; dy = b.x[1] - point.y; dz = b.x[2] - point.z; }
+      const l = Math.hypot(dx, dy, dz) || 1, k = (1 - d / R) ** 1.5, J = Math.min(P * k * PUSH, b.m * 12);
+      dx /= l; dy = dy / l + 0.35; dz /= l;
+      const l2 = Math.hypot(dx, dy, dz);
+      RW.push(b, { x: cx, y: cy, z: cz }, { x: (dx / l2) * J, y: (dy / l2) * J, z: (dz / l2) * J });
+    }
+    for (const j of RW.joints) {
+      if (j.broken) continue;
+      const p = j.b ? j.b.toWorld(j.lb[0], j.lb[1], j.lb[2], _w) : j.lb;
+      const d = Math.hypot(p[0] - point.x, p[1] - point.y, p[2] - point.z);
+      if (d < R) j.S *= 1 - 0.7 * (1 - d / R);
+    }
   }
 
   // ---------------------------------------------------------------- per tick
@@ -553,14 +716,29 @@ export class StructureSystem {
     this.time += dt;
     if (this.creaking.length) {
       this.creaking.sort((a, b) => a.at - b.at);
-      while (this.creaking.length && this.creaking[0].at <= this.time) this.#fall(this.creaking.shift().m);
+      while (this.creaking.length && this.creaking[0].at <= this.time) { const c = this.creaking.shift(); this.#release(c.ms, c.S); }
     }
-    for (let i = this.falls.length - 1; i >= 0; i--) {
-      const f = this.falls[i];
-      f.t += dt;
-      if (f.t < f.T) continue;
-      this.falls.splice(i, 1);
-      this.#land(f);
+    const RW = this.rigid;
+    RW.step(dt);
+    // Torn: a crack, a puff of dust (a few a tick at most: a wall tearing off is one sound).
+    let n = 0;
+    for (const j of RW.torn) {
+      this.stats.tears++;
+      if (n++ >= 3 || !j.a.data) continue;
+      const p = j.a.toWorld(j.la[0], j.la[1], j.la[2], _w);
+      bus.emit('structure:tear', { at: [p[0], p[1], p[2]], mat: j.a.data.mat, structure: j.a.data.S?.id });
+    }
+    RW.torn.length = 0;
+    const hits = RW.hits.splice(0);
+    for (const h of hits) this.#hit(h, h.statics);
+    this.#crush();
+    for (const b of RW.woke) this.#uncover(b);
+    for (const b of RW.slept) this.#cover(b);
+    RW.woke.length = 0; RW.slept.length = 0;
+    // Too many lying about: the smallest at rest go to dust.
+    if (RW.bodies.length > BODY_CAP) {
+      const still = RW.bodies.filter((b) => b.asleep).sort((p, q) => p.m - q.m || p.id - q.id);
+      for (const b of still) { if (RW.bodies.length <= BODY_CAP * 0.9) break; this.#uncover(b); RW.remove(b); }
     }
     // The routes round whatever changed, redone once a tick.
     if (this.dirty.length) {
@@ -576,5 +754,148 @@ export class StructureSystem {
   }
 
   /** Is anything still coming down? */
-  get busy() { return this.creaking.length > 0 || this.falls.length > 0; }
+  get busy() { return this.creaking.length > 0 || this.rigid.awake.length > 0; }
+}
+
+/**
+ * The face member m touched b by (contact r = [x0, z0, x1, z1, y0, y1], of `type` from m's side):
+ * its area, its normal (out of b into m), and the points to fix m on at: its corners, and every
+ * 3 m along it.
+ */
+function face(m, b, r, type) {
+  const [x0, z0, x1, z1, y0, y1] = r, pts = [];
+  let n, area;
+  const along = (a0, a1, f) => { const k = Math.max(1, Math.ceil((a1 - a0) / 3)); for (let i = 0; i <= k; i++) f(a0 + ((a1 - a0) * i) / k); };
+  if (type === 'below' || type === 'above') {
+    const y = type === 'below' ? m.min.y : m.max.y;
+    n = { x: 0, y: type === 'below' ? 1 : -1, z: 0 };
+    area = Math.max(0.01, (x1 - x0) * (z1 - z0));
+    for (const z of [z0, z1]) along(x0, x1, (x) => pts.push(new Vector3(x, y, z)));
+  } else {
+    const ox = x1 - x0, oz = z1 - z0, h = Math.max(0.05, y1 - y0);
+    if (ox <= oz) {
+      const x = (x0 + x1) / 2;
+      n = { x: (m.min.x + m.max.x) / 2 >= (b.min.x + b.max.x) / 2 ? 1 : -1, y: 0, z: 0 };
+      area = Math.max(0.01, oz * h);
+      for (const y of [y0, y1]) along(z0, z1, (z) => pts.push(new Vector3(x, y, z)));
+    } else {
+      const z = (z0 + z1) / 2;
+      n = { x: 0, y: 0, z: (m.min.z + m.max.z) / 2 >= (b.min.z + b.max.z) / 2 ? 1 : -1 };
+      area = Math.max(0.01, ox * h);
+      for (const y of [y0, y1]) along(x0, x1, (x) => pts.push(new Vector3(x, y, z)));
+    }
+  }
+  return { b, n, area, pts };
+}
+
+/**
+ * Unheld members in chunks of a few that sit together: halved along their longest spread until
+ * each is at most four members and 4 m across, then split into what touches what.
+ */
+function chunks(ms) {
+  const out = [], todo = [ms];
+  while (todo.length) {
+    const g = todo.pop();
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (const m of g) { x0 = Math.min(x0, m.min.x); y0 = Math.min(y0, m.min.y); z0 = Math.min(z0, m.min.z); x1 = Math.max(x1, m.max.x); y1 = Math.max(y1, m.max.y); z1 = Math.max(z1, m.max.z); }
+    if (g.length > 1 && (g.length > 4 || Math.max(x1 - x0, y1 - y0, z1 - z0) > 4)) {
+      const a = x1 - x0 >= y1 - y0 && x1 - x0 >= z1 - z0 ? 'x' : y1 - y0 >= z1 - z0 ? 'y' : 'z';
+      const sorted = g.slice().sort((p, q) => p.min[a] + p.max[a] - q.min[a] - q.max[a] || p.st.id - q.st.id), mid = sorted.length >> 1;
+      todo.push(sorted.slice(mid), sorted.slice(0, mid));
+      continue;
+    }
+    // (Members that only sit near each other are pieces of their own.)
+    const set = new Set(g), seen = new Set();
+    for (const m of g) {
+      if (seen.has(m)) continue;
+      const part = [], q = [m];
+      seen.add(m);
+      while (q.length) {
+        const a = q.pop();
+        part.push(a);
+        for (const list of [a.st.up, a.st.down, a.st.side]) for (const { b } of list) if (set.has(b) && !seen.has(b)) { seen.add(b); q.push(b); }
+      }
+      out.push(part);
+    }
+  }
+  return out;
+}
+
+/** A body's boxes split into n groups that sit together (halved along their longest spread, biggest group first). */
+function groups(boxes, n) {
+  const out = [boxes.slice()];
+  while (out.length < n) {
+    let gi = 0;
+    for (let i = 1; i < out.length; i++) if (out[i].length > out[gi].length) gi = i;
+    const g = out[gi];
+    if (g.length < 2) break;
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (const k of g) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], k.c[a]); hi[a] = Math.max(hi[a], k.c[a]); }
+    const a = hi[0] - lo[0] >= hi[1] - lo[1] && hi[0] - lo[0] >= hi[2] - lo[2] ? 0 : hi[1] - lo[1] >= hi[2] - lo[2] ? 1 : 2;
+    const sorted = g.slice().sort((p, q) => p.c[a] - q.c[a]), mid = sorted.length >> 1;
+    out.splice(gi, 1, sorted.slice(0, mid), sorted.slice(mid));
+  }
+  return out;
+}
+
+/**
+ * Cover for a box lying askew (centre c, axes: three unit rows, half sizes h): emit(x0, y0, z0, x1,
+ * y1, z1) for each axis-aligned box standing in for it. Square to the world (within 10°), it's one;
+ * otherwise columns over the ground it covers, each as high as the box is there, merged where they
+ * match: a slab leaning on a wall is a ramp of steps you can walk up (if it isn't too steep).
+ */
+export function restingBoxes(c, ax, h, emit) {
+  // Its half size along each of the world's axes, and how square to them it lies.
+  let square = true;
+  const ext = [0, 0, 0], perm = [0, 0, 0];
+  for (let w = 0; w < 3; w++) {
+    let best = 0;
+    for (let k = 0; k < 3; k++) {
+      const a = Math.abs(ax[k * 3 + w]);
+      ext[w] += a * h[k];
+      if (a > best) { best = a; perm[w] = k; }
+    }
+    if (best < 0.985) square = false;
+  }
+  if (square) { emit(c[0] - h[perm[0]], c[1] - h[perm[1]], c[2] - h[perm[2]], c[0] + h[perm[0]], c[1] + h[perm[1]], c[2] + h[perm[2]]); return 1; }
+  let cs = Math.max(0.45, Math.max(ext[0], ext[2]) / 6), count = 0;
+  for (let tries = 0; tries < 4; tries++, cs *= 1.5) {
+    const nx = Math.max(1, Math.round((2 * ext[0]) / cs)), nz = Math.max(1, Math.round((2 * ext[2]) / cs));
+    const sx = (2 * ext[0]) / nx, sz = (2 * ext[2]) / nz, X0 = c[0] - ext[0], Z0 = c[2] - ext[2];
+    // How high the box is over the middle of each cell (its underside and top), or nothing.
+    const col = (x, z) => {
+      let lo = -Infinity, hi = Infinity;
+      const dx = x - c[0], dz = z - c[2];
+      for (let k = 0; k < 3; k++) {
+        const o = ax[k * 3] * dx + ax[k * 3 + 2] * dz, u = ax[k * 3 + 1];
+        if (Math.abs(u) < 1e-6) { if (Math.abs(o) > h[k]) return null; continue; }
+        let t0 = (-h[k] - o) / u, t1 = (h[k] - o) / u;
+        if (t0 > t1) { const t = t0; t0 = t1; t1 = t; }
+        if (t0 > lo) lo = t0;
+        if (t1 < hi) hi = t1;
+      }
+      return hi - lo > 0.05 ? [c[1] + lo, c[1] + hi] : null;
+    };
+    // Rows of cells along x, merged where they match; then rows merged along z.
+    const runs = [];
+    for (let j = 0; j < nz; j++) {
+      let cur = null;
+      for (let i = 0; i < nx; i++) {
+        const v = col(X0 + (i + 0.5) * sx, Z0 + (j + 0.5) * sz);
+        if (cur && v && Math.abs(v[0] - cur.lo) < 0.12 && Math.abs(v[1] - cur.hi) < 0.12) { cur.i1 = i; cur.lo = Math.min(cur.lo, v[0]); cur.hi = Math.max(cur.hi, v[1]); continue; }
+        if (cur) runs.push(cur);
+        cur = v ? { i0: i, i1: i, j0: j, j1: j, lo: v[0], hi: v[1] } : null;
+      }
+      if (cur) runs.push(cur);
+    }
+    const boxes = [];
+    for (const r of runs) {
+      const above = boxes.find((q) => q.j1 === r.j0 - 1 && q.i0 === r.i0 && q.i1 === r.i1 && Math.abs(q.lo - r.lo) < 0.12 && Math.abs(q.hi - r.hi) < 0.12);
+      if (above) { above.j1 = r.j1; above.lo = Math.min(above.lo, r.lo); above.hi = Math.max(above.hi, r.hi); } else boxes.push(r);
+    }
+    if (boxes.length > 24 && tries < 3) continue;
+    for (const q of boxes) { emit(X0 + q.i0 * sx, q.lo, Z0 + q.j0 * sz, X0 + (q.i1 + 1) * sx, q.hi, Z0 + (q.j1 + 1) * sz); count++; }
+    return count;
+  }
+  return count;
 }

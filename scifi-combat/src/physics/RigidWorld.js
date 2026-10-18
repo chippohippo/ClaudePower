@@ -16,8 +16,11 @@
 //  * Joints: elastic ball joints from a body to the world or to another body, each with a
 //    compliance (how far it stretches per kN) and a strength (the pull it tears at). They tear
 //    pulled apart or sheared across the face they hold (`normal`, out of what they're fixed to),
-//    never pressed together: concrete takes that. Loaded past 40% of its strength a joint tires
-//    and gets weaker. Set at the corners of where a piece was fixed on, they make hinges: a floor
+//    never pressed together: concrete takes that. Loaded past its `tire` share of its strength
+//    (40%, unless said otherwise) a joint tires and gets weaker while what it holds hangs (its
+//    joints carry most of its weight): a body hanging doesn't sleep, so it comes down in the end;
+//    one resting on something as well (a ramp onto the floor below) does, and stays.
+//    Set at the corners of where a piece was fixed on, they make hinges: a floor
 //    let go on three sides tears along its top first (bending pulls the top apart and presses the
 //    bottom together) and swings down on its bottom corners.
 //  * Bodies at rest sleep: they cost nothing, and touched hard, pushed by a blast or let go of,
@@ -32,8 +35,9 @@ const MU_S = 0.75, MU_D = 0.6;   // friction: concrete on concrete
 const BOUNCE = 0.12;
 const SLEEP_V = 0.1, SLEEP_W = 0.12, SLEEP_T = 0.45;
 const MAX_T = 20;                // s awake at most
-const TIRE = 1.4;                // how fast an overloaded joint weakens (per s, per unit of load past 40% of its strength)
+const TIRE = 1.4;                // how fast an overloaded joint weakens (per s, per unit of load past its tiring share)
 const SHEAR = 0.6;               // a joint's load sheared across its face, against pulled straight off it
+const HUNG = 0.65;               // share of its weight its joints hold up, past which a body hangs (its joints tire, it doesn't sleep)
 const DAMP_V = 0.02, DAMP_W = 0.15, DAMP_HUNG = 1.5;   // per s; a body hanging from joints swings to a stop
 const JOINT_DAMP = 40;           // per s: the stretch of a joint doesn't ring
 const EDGE = 1.5;                // m between the points along a box's edges that meet the terrain
@@ -95,7 +99,9 @@ class Body {
     this.asleep = false; this.sleepT = 0; this.age = 0;
     this.joints = [];
     this.ignore = null;                        // static boxes it doesn't collide with (what it was fixed to, until it's clear of them)
+    this.skip = null;                          // bodies it doesn't collide with (the pieces it came away with, until it's clear of them)
     this.ke0 = 0; this.vn = 0;                 // energy before the tick; fastest it hit anything this tick
+    this.lift = 0; this.hung = false;          // how hard its joints held it up this tick (summed over substeps); hanging from them
     this.removed = false;
     this.data = null;                          // the host's
   }
@@ -376,10 +382,14 @@ export class RigidWorld {
     return b;
   }
 
+  /** a and b don't collide while they touch (they were one piece): they're held together by joints, if anything. */
+  apart(a, b) { (a.skip ??= new Set()).add(b); (b.skip ??= new Set()).add(a); }
+
   /** Take a body out (and the joints on it). */
   remove(b) {
     if (b.removed) return;
     b.removed = true;
+    if (b.skip) for (const o of b.skip) o.skip?.delete(b);
     for (const j of b.joints) this.#drop(j);
     b.joints.length = 0;
     const i = this.bodies.indexOf(b); if (i >= 0) this.bodies.splice(i, 1);
@@ -418,6 +428,7 @@ export class RigidWorld {
       rot(b.rq, L[0], L[1], L[2], p.rx); p.rx[0] += b.rx[0]; p.rx[1] += b.rx[1]; p.rx[2] += b.rx[2];
       p.rq.set(b.rq);
       if (b.ignore) p.ignore = new Set(b.ignore);
+      if (b.skip) for (const o of b.skip) this.apart(p, o);
       p.data = b.data; p.age = b.age;
       out.push(p);
     }
@@ -446,14 +457,14 @@ export class RigidWorld {
    * An elastic ball joint at world point p between body a and body b (null: the world, there).
    * @param {object} o { strength: kN it tears at, stretch: m it stretches before it does (its
    *   compliance), normal: {x, y, z} out of what it's fixed to into a (none: any pull tears it),
-   *   box: the static box it's fixed to }
+   *   tire: the share of its strength past which it tires, box: the static box it's fixed to }
    */
-  joint(a, p, b = null, { strength = 100, stretch = 0.02, normal = null, box = null, data = null } = {}) {
+  joint(a, p, b = null, { strength = 100, stretch = 0.02, normal = null, tire = 0.4, box = null, data = null } = {}) {
     const la = a.toLocal(p.x, p.y, p.z, new Float64Array(3));
     const lb = b ? b.toLocal(p.x, p.y, p.z, new Float64Array(3)) : new Float64Array([p.x, p.y, p.z]);
     // The face's normal, kept in b's frame (it turns with b) or the world's.
     const n = normal ? (b ? b.toLocal(b.x[0] + normal.x, b.x[1] + normal.y, b.x[2] + normal.z, new Float64Array(3)) : new Float64Array([normal.x, normal.y, normal.z])) : null;
-    const j = { a, la, b, lb, n, S: strength, S0: strength, alpha: stretch / Math.max(strength, 1e-6), F: 0, load: 0, peak: 0, box, broken: false, data };
+    const j = { a, la, b, lb, n, S: strength, S0: strength, alpha: stretch / Math.max(strength, 1e-6), F: 0, load: 0, peak: 0, tire, box, broken: false, data };
     a.joints.push(j);
     b?.joints.push(j);
     this.joints.push(j);
@@ -512,7 +523,7 @@ export class RigidWorld {
     for (const b of awake) {
       b.rx.set(b.x); b.rq.set(b.q); b.v0.set(b.v); b.w0.set(b.w);
       this.#frame(b);
-      b.ke0 = b.energy; b.vn = 0; b.age += dt;
+      b.ke0 = b.energy; b.vn = 0; b.age += dt; b.lift = 0;
       for (const k of b.boxes) k.hit = false;
     }
     this.#collide(dt);
@@ -533,11 +544,12 @@ export class RigidWorld {
       for (let i = nc - 1; i >= 0; i--) if (cs[i].lam > 0) this.#friction(cs[i], h, 0.5);
       for (const j of js) if (!j.broken) this.#jointDamp(j, h);
     }
-    // Joints loaded past 40% of their strength tire.
+    // What hangs from its joints (they hold up most of its weight); and those joints tire.
+    for (const b of awake) b.hung = b.joints.length > 0 && b.lift / this.sub > HUNG * b.m * G;
     for (const j of js) {
-      if (j.broken) continue;
+      if (j.broken || !(j.a.hung || j.b?.hung)) continue;
       const load = j.peak / j.S;
-      if (load > 0.4) j.S -= dt * TIRE * j.S * (load - 0.4);
+      if (load > j.tire) j.S -= dt * TIRE * j.S * (load - j.tire);
     }
     if (js.length > 64 && js.some((j) => j.broken)) this.joints = js.filter((j) => !j.broken);
     // What hit what hard enough to matter: the energy it lost this tick.
@@ -551,10 +563,10 @@ export class RigidWorld {
     for (let i = awake.length - 1; i >= 0; i--) {
       const b = awake[i], v = b.v, w = b.w;
       if (b.x[1] < -300) { this.remove(b); continue; }
-      const loaded = b.joints.some((j) => j.peak > 0.4 * j.S);
+      // (Hanging, it stays awake: its joints tire until it comes down.)
       const still = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] < SLEEP_V * SLEEP_V && w[0] * w[0] + w[1] * w[1] + w[2] * w[2] < SLEEP_W * SLEEP_W;
-      b.sleepT = still && !loaded ? b.sleepT + dt : 0;
-      if (b.sleepT > SLEEP_T || (b.age > MAX_T && !loaded)) this.#sleep(b, i);
+      b.sleepT = still && !b.hung ? b.sleepT + dt : 0;
+      if (b.sleepT > SLEEP_T || b.age > MAX_T) this.#sleep(b, i);
     }
   }
 
@@ -715,6 +727,10 @@ export class RigidWorld {
         if (A.asleep && B.asleep) continue;
         const a = A.aabb, c = B.aabb;
         if (c[1] > a[4] + m || c[4] < a[1] - m || c[2] > a[5] + m || c[5] < a[2] - m) continue;
+        if (A.skip?.has(B)) {
+          if (c[0] > a[3] + 0.02 || c[3] < a[0] - 0.02 || c[1] > a[4] + 0.02 || c[4] < a[1] - 0.02 || c[2] > a[5] + 0.02 || c[5] < a[2] - 0.02) { A.skip.delete(B); B.skip?.delete(A); }
+          else continue;
+        }
         // (A body is never against itself; one asleep stays asleep under a light touch.)
         let P = A, Q = B;
         if (P.asleep) { P = B; Q = A; }
@@ -840,12 +856,17 @@ export class RigidWorld {
     if (b) shove(b, rbx, rby, rbz, -dl * nx, -dl * ny, -dl * nz);
     j.F = -dl / (h * h);
     // What tears it: the pull straight off its face, and some of the shear across it.
-    let load = j.F;
+    let load = j.F, hang = 1;
     if (j.n) {
       if (B) rot(B.q, j.n[0], j.n[1], j.n[2], _qb); else { _qb[0] = j.n[0]; _qb[1] = j.n[1]; _qb[2] = j.n[2]; }
-      const cos = nx * _qb[0] + ny * _qb[1] + nz * _qb[2];
-      load = j.F * (Math.max(cos, 0) + SHEAR * Math.sqrt(Math.max(0, 1 - cos * cos)));
+      const cos = nx * _qb[0] + ny * _qb[1] + nz * _qb[2], sin = Math.sqrt(Math.max(0, 1 - cos * cos));
+      load = j.F * (Math.max(cos, 0) + SHEAR * sin);
+      if (cos < 0) hang = sin;
     }
+    // How much it holds them up by hanging on (pressed together, it's only something to stand on).
+    const up = (dl * ny * hang) / (h * h);
+    if (a) a.lift += up;
+    if (b) b.lift -= up;
     j.load = load;
     if (load > j.peak) j.peak = load;
     if (load > j.S) this.tear(j);
