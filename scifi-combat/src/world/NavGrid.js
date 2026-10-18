@@ -53,6 +53,7 @@ export class NavGrid {
     this.job = null;                                  // the build or repair maintain() is part-way through
     this.clock = 0;                                   // maintain() calls: fields remember when they were last asked for
     this.pending = new Map();                         // big maps: fields asked for with want(), built in maintain()
+    this.multi = new Map();                           // key -> the goal discs of a field with several (a front line: a disc per lane)
     this.syncHeap = new MinHeap(this.nx * this.nz);   // shared search heaps: no 1.6 MB of garbage per solve
     this.jobHeap = new MinHeap(this.nx * this.nz);
     this.queue = null;                                // a repair's cut-off cells, and their stamps (made on the first repair)
@@ -180,15 +181,27 @@ export class NavGrid {
    * to an A* route or a straight line for those few seconds.
    * @param {object} o  { reach: metres of route the field covers (default: all of a small map,
    *                      REACH on a big one), from: {x, z} — or only the trip from there (a box
-   *                      around both ends, with room to go around what's in between) }
+   *                      around both ends, with room to go around what's in between),
+   *                      goals: [{ x, z, r }] — several goal discs (routes go to the nearest);
+   *                      the first ask with goals sets them for the key, and anyone may then ask
+   *                      for that field by its key alone, whatever goal they pass }
    */
   want(key, gx, gz, radius = 4, o = {}) {
     if (!this.big) return this.field(key, gx, gz, radius, o);
-    const f = this.fields.get(key);
-    if (f && f.gx === gx && f.gz === gz) return this.#use(key, f);
-    if (!this.pending.has(key) && this.job?.key !== key) this.pending.set(key, { gx, gz, radius, reach: o.reach ?? REACH, from: o.from ? { x: o.from.x, z: o.from.z } : null });
+    const f = this.fields.get(key), goals = this.#goals(key, o.goals);
+    if (f && this.#same(f, gx, gz, goals)) return this.#use(key, f);
+    if (!this.pending.has(key) && this.job?.key !== key) this.pending.set(key, { gx, gz, radius, reach: o.reach ?? REACH, from: o.from ? { x: o.from.x, z: o.from.z } : null, goals });
     return null;
   }
+
+  /** The goal discs a key was first asked for with (null: a field with one goal). */
+  #goals(key, g) {
+    if (g && !this.multi.has(key)) this.multi.set(key, g);
+    return this.multi.get(key) ?? null;
+  }
+
+  /** Is cached field f the one asked for? One goal: the same spot. Several: the same discs (the key's). */
+  #same(f, gx, gz, goals) { return goals ? f.goals === goals : !f.goals && f.gx === gx && f.gz === gz; }
 
   /**
    * Flow field toward a goal disc, cached by key. A new key is solved at once; a cached field
@@ -197,8 +210,9 @@ export class NavGrid {
    */
   field(key, gx, gz, radius = 4, o = {}) {
     let f = this.fields.get(key);
-    if (f && f.gx === gx && f.gz === gz) return this.#use(key, f);
-    const job = this.#begin(gx, gz, radius, o.reach ?? (this.big ? REACH : Infinity), o.from ? { x: o.from.x, z: o.from.z } : null, this.syncHeap);
+    const goals = this.#goals(key, o.goals);
+    if (f && this.#same(f, gx, gz, goals)) return this.#use(key, f);
+    const job = this.#begin(gx, gz, radius, o.reach ?? (this.big ? REACH : Infinity), o.from ? { x: o.from.x, z: o.from.z } : null, this.syncHeap, goals);
     this.#advance(job, Infinity);
     f = this.#finish(job, key);
     f.used = this.clock;
@@ -240,13 +254,13 @@ export class NavGrid {
           // A field someone asked for (want()) comes before routes that only got better.
           const [k, g] = this.pending.entries().next().value;
           this.pending.delete(k);
-          this.job = this.#begin(g.gx, g.gz, g.radius, g.reach, g.from, this.jobHeap);
+          this.job = this.#begin(g.gx, g.gz, g.radius, g.reach, g.from, this.jobHeap, g.goals);
           this.job.key = k; this.job.hard = true; this.job.fresh = true;
         } else {
           if (key === undefined) return;
           this.stale.delete(key);
           const f = this.fields.get(key);
-          if (f.rebuild) { this.job = this.#begin(f.gx, f.gz, f.radius, f.reach, f.from, this.jobHeap); this.job.key = key; this.job.hard = true; }
+          if (f.rebuild) { this.job = this.#begin(f.gx, f.gz, f.radius, f.reach, f.from, this.jobHeap, f.goals); this.job.key = key; this.job.hard = true; }
           else this.job = this.#repairJob(key, f);
         }
       }
@@ -260,7 +274,7 @@ export class NavGrid {
         // Install unless field() re-solved this key for a moved goal in the meantime. Cells that
         // changed while it was being built come with it, to be repaired next.
         const cur = this.fields.get(job.key);
-        if (job.fresh || (cur && cur.gx === job.gx && cur.gz === job.gz)) {
+        if (job.fresh || (cur && this.#same(cur, job.gx, job.gz, job.goals))) {
           const f = this.#finish(job, job.key);
           f.used = cur?.used ?? this.clock;
           this.fields.set(job.key, f);
@@ -286,22 +300,28 @@ export class NavGrid {
   /** A big map's field arrays are 3 MB: a dropped field's go to the next build instead of the GC. */
   #recycle(f) { if (this.pool.length < 3) this.pool.push({ dist: f.dist, dir: f.dir }); }
 
-  /** Starts a Dijkstra from the goal disc: seeds the goal cells, nothing expanded yet. */
-  #begin(gx, gz, radius, reach, from, heap) {
+  /** Starts a Dijkstra from the goal disc (or discs): seeds the goal cells, nothing expanded yet. */
+  #begin(gx, gz, radius, reach, from, heap, goals = null) {
     const n = this.nx * this.nz, nx = this.nx, nz = this.nz, cost = this.cost;
     const a = this.pool.pop();
     const dist = a ? a.dist.fill(Infinity) : new Float32Array(n).fill(Infinity);
     const dir = a ? a.dir.fill(-1) : new Int8Array(n).fill(-1);
     heap.size = 0;
-    const c = this.cell, r = Math.max(radius, c * 0.75);
-    const x0 = Math.max(0, Math.floor((gx - r - this.minX) / c)), x1 = Math.min(nx - 1, Math.floor((gx + r - this.minX) / c));
-    const z0 = Math.max(0, Math.floor((gz - r - this.minZ) / c)), z1 = Math.min(nz - 1, Math.floor((gz + r - this.minZ) / c));
-    for (let iz = z0; iz <= z1; iz++) for (let ix = x0; ix <= x1; ix++) {
-      const i = iz * nx + ix;
-      if (cost[i] === Infinity) continue;
-      if (Math.hypot(this.minX + (ix + 0.5) * c - gx, this.minZ + (iz + 0.5) * c - gz) > r) continue;
-      dist[i] = 0; heap.push(i, 0);
+    const c = this.cell;
+    let x0 = nx, x1 = -1, z0 = nz, z1 = -1;
+    for (const g of goals ?? [{ x: gx, z: gz, r: radius }]) {
+      const r = Math.max(g.r ?? radius, c * 0.75);
+      const gx0 = Math.max(0, Math.floor((g.x - r - this.minX) / c)), gx1 = Math.min(nx - 1, Math.floor((g.x + r - this.minX) / c));
+      const gz0 = Math.max(0, Math.floor((g.z - r - this.minZ) / c)), gz1 = Math.min(nz - 1, Math.floor((g.z + r - this.minZ) / c));
+      x0 = Math.min(x0, gx0); x1 = Math.max(x1, gx1); z0 = Math.min(z0, gz0); z1 = Math.max(z1, gz1);
+      for (let iz = gz0; iz <= gz1; iz++) for (let ix = gx0; ix <= gx1; ix++) {
+        const i = iz * nx + ix;
+        if (cost[i] === Infinity || dist[i] === 0) continue;
+        if (Math.hypot(this.minX + (ix + 0.5) * c - g.x, this.minZ + (iz + 0.5) * c - g.z) > r) continue;
+        dist[i] = 0; heap.push(i, 0);
+      }
     }
+    if (x1 < x0) { x0 = x1 = Math.max(0, Math.min(nx - 1, Math.floor((gx - this.minX) / c))); z0 = z1 = Math.max(0, Math.min(nz - 1, Math.floor((gz - this.minZ) / c))); }
     // The search stays in `box` (cells), and changes outside it don't concern the field. A trip
     // (`from`): both ends, with a margin to go around what's in between. Otherwise route costs
     // are in cells (x terrain cost) and every step costs at least one: nothing more than `cap`
@@ -317,7 +337,7 @@ export class NavGrid {
       box = [Math.max(0, x0 - span), Math.max(0, z0 - span), Math.min(nx - 1, x1 + span), Math.min(nz - 1, z1 + span)];
     }
     this.stats.builds++;
-    return { gx, gz, radius, reach, from, cap, box, dist, dir, heap, key: null, worse: [], better: [] };
+    return { gx, gz, radius, reach, from, goals, cap, box, dist, dir, heap, key: null, worse: [], better: [] };
   }
 
   /** Expands up to `budget` cells: returns the unused budget when the search completes, -1 if it ran out first. */
@@ -345,8 +365,15 @@ export class NavGrid {
 
   // dir[j] stores the neighbour index pointing back toward i (the step toward the goal).
   #finish(job, key) {
-    const { dist, dir, gx, gz, radius, reach, from, cap, box, worse, better } = job;
-    return { dist, dir, key, gx, gz, radius, reach, from, cap, box, worse, better, rebuild: !!job.rebuild, used: 0 };
+    const { dist, dir, gx, gz, radius, reach, from, goals, cap, box, worse, better } = job;
+    return { dist, dir, key, gx, gz, radius, reach, from, goals, cap, box, worse, better, rebuild: !!job.rebuild, used: 0 };
+  }
+
+  /** Is (x, z) in one of field f's goal discs? */
+  #inGoal(f, x, z) {
+    const m = this.cell * 0.75;
+    if (!f.goals) return Math.hypot(x - f.gx, z - f.gz) <= Math.max(f.radius, m);
+    return f.goals.some((g) => Math.hypot(x - g.x, z - g.z) <= Math.max(g.r ?? f.radius, m));
   }
 
   // ---------------------------------------------------------------- repair
@@ -435,13 +462,13 @@ export class NavGrid {
       job.phase = 3; job.k = 0;
     }
     if (job.phase === 3) {
-      const c = this.cell, r = Math.max(f.radius, c * 0.75);
+      const c = this.cell;
       for (; job.k < job.better.length; job.k++) {
         if (budget-- <= 0) return -1;
         const b = job.better[job.k], bx = b % nx, bz = (b - bx) / nx;
         if (cost[b] === Infinity) continue;
         // A goal cell that opened up (or got cheaper) is a goal again.
-        if (Math.hypot(this.minX + (bx + 0.5) * c - f.gx, this.minZ + (bz + 0.5) * c - f.gz) <= r) { dist[b] = 0; dir[b] = -1; }
+        if (this.#inGoal(f, this.minX + (bx + 0.5) * c, this.minZ + (bz + 0.5) * c)) { dist[b] = 0; dir[b] = -1; }
         if (dist[b] !== Infinity) heap.push(b, dist[b]);
         for (let k = 0; k < 8; k++) {
           const jx = bx + DX[k], jz = bz + DZ[k];

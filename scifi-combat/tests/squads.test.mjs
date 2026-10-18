@@ -184,6 +184,26 @@ test('hold: anchors stay on the point, the rest hold a line in cover toward the 
   s.dispose();
 });
 
+test('holding the line: a squad sent to a stretch of the front strings out across it and holds it', () => {
+  const s = new FrontlineSession(sessionData, { size: '32v32', seed: 6 });
+  for (const c of s.commanders) c.update = () => {};
+  const cmd = s.commanders[0], sq = s.squads[0][1];
+  const L = [...cmd.lanes.values()].sort((a, b) => Math.abs(a.pos.z) - Math.abs(b.pos.z))[0];
+  sq.objective = L.id; sq.role = 'line';
+  // From its jump-off trench (no whistle with the commanders off: it goes on its own after 30 s), over and up to the lane.
+  const phases = new Set();
+  run(s, 90, (i) => { if (i % 30 === 0) phases.add(sq.tactics.phase); });
+  const u = up(sq).filter((m) => m.brain);
+  assert.ok(u.length >= 2, `${u.length} still up`);
+  assert.equal(sq.tactics.phase, 'hold', `holding (went through ${[...phases].join(', ')})`);
+  assert.ok(u.every((m) => m.brain.order?.kind === 'hold' && !m.brain.order.anchor), 'nobody anchored on a point: the whole squad is the line');
+  const near = u.filter((m) => Math.hypot(P(m).x - L.pos.x, P(m).z - L.pos.z) < L.radius + 15);
+  assert.ok(near.length >= u.length - 1, `${near.length}/${u.length} at the lane`);
+  const zs = u.map((m) => m.brain.order.pos.z);
+  assert.ok(Math.max(...zs) - Math.min(...zs) >= 4 * (u.length - 1), `strung out across it (${(Math.max(...zs) - Math.min(...zs)).toFixed(0)} m)`);
+  s.dispose();
+});
+
 test('sweep and clear: stack on the doorway, enter, clear the room', () => {
   const s = new FrontlineSession(sessionData, { size: '4v4', seed: 5 });
   for (const c of s.commanders) c.update = () => {};

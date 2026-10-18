@@ -516,18 +516,21 @@ export class FrontlineHud {
     const h0 = ((hd % 360) + 360) % 360;
     this.el.compass.firstChild.style.transform = `translateX(${(COMPASS_W / 2 - h0 * k).toFixed(1)}px)`;
     let n = 0;
-    for (const p of mode.points) {
-      if (!mode.capturable(p)) continue;
+    const mark = (p, mine) => {
       const rel = wrap180(headingOf(p.pos.x - mp.x, p.pos.z - mp.z) - hd);
-      if (Math.abs(rel) > COMPASS_SPAN / 2 - 6) continue;
+      if (Math.abs(rel) > COMPASS_SPAN / 2 - 6) return;
       const el = this.compassMarks[n] ?? this.el.compass.appendChild(Object.assign(document.createElement('div'), { className: 'mk' }));
       this.compassMarks[n++] = el;
       el.style.display = 'grid';
       el.style.left = `${(COMPASS_W / 2 + rel * k).toFixed(1)}px`;
       el.style.color = p.owner >= 0 ? this.col(p.owner) : NEUTRAL;
-      el.classList.toggle('obj', sq?.objective === p.id);
+      el.classList.toggle('obj', mine);
       if (el.textContent !== p.name) el.textContent = p.name;
-    }
+    };
+    for (const p of mode.points) if (mode.capturable(p)) mark(p, sq?.objective === p.id);
+    // Your squad holding a stretch of the front: that lane on the compass too.
+    const lane = sq ? this.s.commanders?.[sq.team]?.lanes?.get(sq.objective) : null;
+    if (lane) mark(lane, true);
     for (let i = n; i < this.compassMarks.length; i++) this.compassMarks[i].style.display = 'none';
   }
 
@@ -658,13 +661,13 @@ export class FrontlineHud {
     if (!sq || sq.members.length < 2) { this.#set(this.el.squad, ''); return; }
     if (this.squadT && this.time - this.squadT < 0.2) return;   // 5 Hz is plenty for text
     this.squadT = this.time;
-    const T = sq.tactics, mode = this.s.mode, obj = sq.objective !== null && sq.objective !== undefined ? mode.points[sq.objective] : null;
+    const T = sq.tactics, mode = this.s.mode, obj = sq.objective !== null && sq.objective !== undefined ? this.s.commanders?.[sq.team]?.target(sq.objective) ?? mode.points[sq.objective] : null;
     const name = CALLSIGNS[sq.team === 1 ? 1 : 0][sq.id % 16];
     const now = T?.time ?? 0, recent = T ? T.losses.filter((t) => now - t < 20).length : 0;
     const morale = T?.broken ? ['BROKEN', THEM] : recent ? ['SHAKEN', AMBER] : ['CONFIDENT', '#6bd88f'];
     const phase = T?.broken ? 'FALLING BACK' : `${PHASE[T?.phase] ?? ''}${obj && /^(ADVANCING|ASSAULTING|HOLDING)$/.test(PHASE[T?.phase] ?? '') ? ` ${obj.name}` : ''}`;
     const mp = me.movement.state.position;
-    const order = obj ? `ORDER: ${sq.role === 'attack' ? 'TAKE' : 'HOLD'} ${obj.name} · ${mp.distanceTo(obj.pos).toFixed(0)} M` : '';
+    const order = obj ? `ORDER: ${sq.role === 'attack' ? 'TAKE' : 'HOLD'} ${obj.name} · ${mp.distanceTo(obj.pos).toFixed(0)} M` : '';   // a lane reads HOLD LINE 3
     const leader = sq.leader;
     const row = (m) => {
       const h = m.health, o = m.brain?.order, you = m === me;

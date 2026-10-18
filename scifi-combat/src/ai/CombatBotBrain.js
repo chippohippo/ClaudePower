@@ -821,7 +821,9 @@ export class CombatBotBrain {
     const o = this.objective, me = this.self.movement.state.position, nav = this.world.nav;
     const ang = (o.slot / Math.max(1, o.of)) * Math.PI * 2 + (o.id ?? 0) * 1.3;
     const slotR = o.radius * (o.role === 'defend' ? 0.75 : 0.5);
-    const sx = o.pos.x + Math.cos(ang) * slotR, sz = o.pos.z + Math.sin(ang) * slotR;
+    // A stretch of the front: slots strung across the lane, not round a point.
+    const across = o.role === 'line' ? (o.slot - (o.of - 1) / 2) * Math.min(8, (o.radius * 2) / Math.max(1, o.of - 1)) : null;
+    const sx = across !== null ? o.pos.x : o.pos.x + Math.cos(ang) * slotR, sz = across !== null ? o.pos.z + across : o.pos.z + Math.sin(ang) * slotR;
     const toPoint = hyp(me.x - o.pos.x, me.z - o.pos.z);
     const dir = this.moveDir;
     if (toPoint < o.radius * 1.8) {
@@ -834,7 +836,7 @@ export class CombatBotBrain {
         return;
       }
       dir.divideScalar(l);
-    } else if (!(nav && this.#sampleField(o.field, o.pos, o.radius * 0.6, dir))) {
+    } else if (!(nav && !(o.shared && Math.abs(me.x - o.pos.x) < 40) && this.#sampleField(o.field, o.pos, o.radius * 0.6, dir))) {   // a shared line field leads to the nearest lane: not along the line to ours
       dir.set(o.pos.x - me.x, 0, o.pos.z - me.z).normalize();
     }
     cmd.yaw = Math.atan2(-dir.x, -dir.z); cmd.pitch = 0; this.aimYaw = cmd.yaw;

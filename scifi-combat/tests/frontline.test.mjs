@@ -128,6 +128,42 @@ test('the commander covers every attack point and reinforces a point being taken
   cmd.dispose();
 });
 
+test('the commander holds the front: squads the points can spare spread along the line, flanks first', () => {
+  const mode = new FrontlineMode(map);
+  const mk = (n) => Array.from({ length: n }, (_, i) => ({ id: i, brain: {}, health: { dead: false }, movement: { state: { position: map.hq[0].clone() } } }));
+  const squads = Array.from({ length: 10 }, (_, i) => new Squad(0, i, mk(4)));
+  const cmd = new FrontlineCommander(0, mode, { nav: map.nav });
+  cmd.squads = squads;
+  cmd.update(0);
+  const line = squads.filter((s) => s.role === 'line'), lanes = line.map((s) => cmd.target(s.objective));
+  assert.equal(line.length, 4, 'four squads in ten hold the line');
+  for (const p of middle(mode)) assert.ok(squads.some((s) => s.objective === p.id), `attack point ${p.name} still has a squad`);
+  // Spread: the lanes held cover the map's width, between the points, on open ground.
+  const zs = lanes.map((L) => L.pos.z), depth = map.bounds.maxZ - map.bounds.minZ;
+  assert.equal(new Set(lanes).size, 4, 'a lane each');
+  assert.ok(Math.max(...zs) - Math.min(...zs) > depth * 0.4, `across ${(Math.max(...zs) - Math.min(...zs)).toFixed(0)} m of ${depth} m`);
+  const gap = (L) => Math.min(...mode.points.filter((p) => mode.capturable(p)).map((p) => Math.abs(p.pos.z - L.pos.z)));
+  const unheld = [...cmd.lanes.values()].filter((L) => !lanes.includes(L));
+  assert.ok(Math.min(...lanes.map(gap)) >= Math.max(...unheld.map(gap)) - 1e-6, 'the lanes furthest from any point first');
+  for (const L of lanes) assert.ok(!map.nav.blocked(L.pos.x, L.pos.z), `${L.name} on open ground`);
+  // The middle is neutral: our attack is going, so the line is pushed into it with the assault.
+  const own = map.sectors[mode.front[0]], atk = map.sectors[mode.attackSector(0)];
+  for (const L of lanes) assert.ok(L.going && L.pos.x > own.x1 && L.pos.x < atk.x1, `${L.name} out in the sector we attack (x ${L.pos.x.toFixed(0)})`);
+  assert.ok(squads.every((s) => s.members.every((m) => m.brain.objective?.id === s.objective && m.brain.objective.field)), 'orders, with a route, reach every member');
+  // Void holds the whole middle: our line pulls back behind our own line and waits.
+  for (const p of middle(mode)) { p.owner = 1; p.progress = -1; }
+  mode.sectors[3].owner = 1;
+  cmd.update(5);
+  for (const s of squads.filter((q) => q.role === 'line')) { const L = cmd.target(s.objective); assert.ok(!L.going && L.pos.x < own.x1, `${L.name} holds behind our line`); }
+  // And when one of our points is being taken, the line gives up squads to it.
+  const target = mode.points.find((p) => p.sector === 2);
+  mode.front[1] = 3; target.counts[1] = 3; target.progress = 0.2;
+  cmd.update(5);
+  assert.ok(squads.filter((s) => s.role === 'line').length < 4, 'fewer on the line');
+  assert.ok(squads.filter((s) => s.objective === target.id && s.role === 'defend').length >= 2, 'two squads for the point being taken');
+  cmd.dispose();
+});
+
 test('headless battle: 64 bots fight over the line, capture points, die and reinforce', (t) => {
   const data = {
     movement: H.movement, weaponFiles: [H.ballistic, H.energy], attachments: H.attachments, recoil: H.recoil, statuses: H.statuses,

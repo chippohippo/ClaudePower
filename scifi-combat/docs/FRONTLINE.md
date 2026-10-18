@@ -495,13 +495,28 @@ depot. Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
 - **Commander** (`FrontlineCommander`): one per team, re-plans every 4 s and when a sector falls. It
   splits its squads between attacking the points of the attacked sector (weighted toward neutral and
   half-taken points, at least one squad per point) and defending its own points under attack
-  (weighted by enemies on the point and how far it has slipped). Squads keep orders that still fit.
+  (weighted by enemies on the point and how far it has slipped; two squads for a point being taken
+  from us). Squads keep orders that still fit.
+- **The line:** points alone drew every squad onto two or three spots and left the ground between
+  them and the flanks empty. With four squads or more, about four in ten (a quarter while one of our
+  points is being taken, and never the squads the points need) hold the front instead. It's cut into
+  lanes across the map: the city's avenues, or evenly across the ground the trenches span (clear of
+  the berms), every lane's spot snapped to open ground. They're manned the furthest from any point
+  first: the gaps, then the flanks. While our attack on the sector ahead is going (a point of it ours,
+  or none of it theirs yet) the line stands a third of the way into it, going over the top with the
+  wave; when the enemy holds all of it, the line pulls back just behind our own (into our trench where
+  there is one). A lane is an objective like a point (role `line`, ids from 1000, `commander.target(id)`);
+  on big maps the lanes share one flow field to the whole line (a field there is 1–3 MB and they're
+  capped at 24). Measured at 64v64 (living bots binned into eighths of the map's depth over two
+  minutes): before, two eighths held 65% of them; with the line, every eighth between the berms holds
+  12–18%.
 - **The whistle:** squads attacking across their own trench man it and report ready. The commander
   blows one whistle per trench line (waiting 6 s for other squads to get in, at most one wave every
   18 s) and every ready squad goes over the top together. Event `squad:whistle`.
 - **Squad tactics** (`SquadTactics`, per squad, twice a second): advance in a wedge, bounding
-  overwatch under contact, sweep and clear, assault, hold the line with anchors on the point, dig in,
-  charge only when desperate, follow a human leader. See [AI.md](AI.md).
+  overwatch under contact, sweep and clear, assault, hold the line with anchors on the point, hold a
+  lane of the front strung out across it, dig in, charge only when desperate, follow a human leader.
+  See [AI.md](AI.md).
 
 ## Vehicles on the Western Front
 
@@ -667,14 +682,17 @@ inside them.
   into a wall gets out, and a soldier on a trench floor can climb out. (`MAP_SEED=n` re-runs them on
   another seed.)
 - `tests/squads.test.mjs`: cover spots, routes, suppression, over the top on the whistle, wedge
-  spacing, bounding overwatch, hold the line, sweep and clear, charges only when desperate, a human
+  spacing, bounding overwatch, hold the line, holding a lane of the front, sweep and clear, charges only when desperate, a human
   leader, digging in, and armor crossing trenches and wire with the motor pool following the front.
-- `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander, and a
+- `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander (every
+  attack point covered, two squads for a point being taken, four squads in ten on lanes spread across
+  the map, flanks and gaps first, pushed forward with the attack and back behind our line), and a
   64-bot headless battle (bots close on their objectives at over 2 m/s en route, points change hands,
   under 8 ms per tick).
 - `tests/scale.test.mjs`, `tests/down.test.mjs`, `tests/ragdoll.test.mjs`: the spatial indexes,
   terrain and flow fields (repairs match a fresh solve through 40 rounds of random walls built and
-  blown, big-map fields build in the background and reach REACH metres); downs, revives and
+  blown, big-map fields build in the background and reach REACH metres, a field with several goals
+  routes to the nearest and repairs exactly); downs, revives and
   give-ups; the ragdoll.
 - `tests/artillery.test.mjs`, `tests/logistics.test.mjs`, `tests/support.test.mjs`: setting up and
   packing up, laying, indirect fire landing on the mark with range-scaled scatter, rocket salvos, AT

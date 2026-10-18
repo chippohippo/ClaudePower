@@ -192,9 +192,12 @@ export class SquadTactics {
   }
 
   #objective() {
-    const sq = this.squad, p = this.mode.points[sq.objective];
+    const sq = this.squad, p = this.cmdr?.target(sq.objective) ?? this.mode.points[sq.objective];
     if (!p) return null;
-    return { point: p, pos: p.pos, radius: p.radius, role: sq.role, field: `pt:${p.id}` };
+    // A field the whole line shares leads to the nearest lane: once we're up at the line, our own
+    // lane is along it (A* and straight lines from here).
+    const field = p.shared && Math.abs(this.center.x - p.pos.x) < 40 ? null : p.field ?? `pt:${p.id}`;
+    return { point: p, pos: p.pos, radius: p.radius, role: sq.role, field };
   }
 
   /** No contacts: the threat is where the enemy has to come from. */
@@ -213,6 +216,21 @@ export class SquadTactics {
     if (why) { this.charge = { why, until: this.time + 8 }; this.why = why; return 'charge'; }
     if (this.phase === 'charge' && this.charge && this.time < this.charge.until && near < 25) { this.why = this.charge.why; return 'charge'; }
     this.charge = null;
+    // A stretch of the front line: get there (over the top with the wave, where our trench is in
+    // the way), then hold it. No point to take: it holds the ground between the points.
+    if (obj.role === 'line') {
+      const T = this.#jumpTrench(obj);
+      if (T && !(this.jump?.gone && this.jump.T === T)) {
+        if (this.jump?.T !== T) this.jump = { T, ready: false, gone: false, since: this.time, at: 0, positions: new Map() };
+        this.why = 'in the jump-off trench'; return 'jumpoff';
+      }
+      if (dPoint < obj.radius + (this.phase === 'hold' ? 30 : 15)) { this.why = 'holding the line'; return 'hold'; }
+      if (near < CONTACT || this.#suppressed(up) > 0.35) { this.why = near < CONTACT ? 'contact' : 'under fire'; return 'contact'; }
+      if (this.phase === 'contact' && this.time - this.since < 4) { this.why = 'contact'; return 'contact'; }
+      if (this.#roomToClear(obj)) { this.why = 'clearing'; return 'clear'; }
+      if (this.#scattered(up) && near > CONTACT * 1.5) { this.why = 'scattered'; return 'regroup'; }
+      this.why = 'moving up to the line'; return 'advance';
+    }
     // Defending, or the point is ours: hold it; counter-attack if the enemy is on it.
     if (obj.role === 'defend' || p.owner === team) {
       if (p.counts[enemy] > 0 && dPoint < 70) { this.why = 'enemy on our point'; return 'assault'; }
@@ -267,7 +285,7 @@ export class SquadTactics {
   // ---------------------------------------------------------------- routes
   /** A point `dist` metres along the route from `from` toward the objective (flow field). */
   #ahead(from, obj, dist, out) {
-    const nav = this.world.nav, f = nav?.want(obj.field, obj.pos.x, obj.pos.z, obj.radius * 0.6);
+    const nav = this.world.nav, f = obj.field ? nav?.want(obj.field, obj.pos.x, obj.pos.z, obj.radius * 0.6) : null;
     out.set(from.x, 0, from.z);
     if (!f) { _v.set(obj.pos.x - from.x, 0, obj.pos.z - from.z).normalize(); return out.addScaledVector(_v, dist); }
     for (let walked = 0; walked < dist; walked += 2) {
@@ -561,9 +579,12 @@ export class SquadTactics {
     });
   }
 
-  /** Defend: anchors on the point, the rest a line out toward the enemy. */
+  /**
+   * Defend: anchors on the point, the rest a line out toward the enemy. A stretch of the front
+   * (role 'line'): no anchors, the whole squad strung out across its lane on the line itself.
+   */
   #hold(up, obj) {
-    const P = obj.pos, now = this.time, T = this.threat;
+    const P = obj.pos, now = this.time, T = this.threat, front = obj.role === 'line';
     let tx = T.x - P.x, tz = T.z - P.z;
     const tl = Math.hypot(tx, tz);
     if (tl < 5) { tx = DIR[this.team]; tz = 0; } else { tx /= tl; tz /= tl; }
@@ -575,17 +596,22 @@ export class SquadTactics {
     else F.off = 0;
     tx = this.holdFrame.tx; tz = this.holdFrame.tz;
     const px = -tz, pz = tx;
-    const anchors = up.length >= 3 ? 2 : 1;
-    // A trench line out toward the enemy is the line to hold.
-    const line = this.map.trenches?.find((q) => { const ahead = (q.cx - P.x) * Math.sign(tx || 1); return Math.abs(tx) > 0.6 && ahead > 8 && ahead < 45 && P.z > q.z0 && P.z < q.z1; });
+    const anchors = front ? 0 : up.length >= 3 ? 2 : 1;
+    // A trench line out toward the enemy is the line to hold (on the front: one at the lane or just ahead of it).
+    const line = this.map.trenches?.find((q) => {
+      const ahead = (q.cx - P.x) * Math.sign(tx || 1);
+      return Math.abs(tx) > 0.6 && (front ? ahead > -6 && ahead < 25 : ahead > 8 && ahead < 45) && P.z > q.z0 && P.z < q.z1;
+    });
     const taken = [];
     const lane = ((this.squad.id % 3) - 1) * 9;   // squads on the same point spread out
+    // On the front the squad spans its lane; out from a point, 7 m apart and 30 m out.
+    const gap = front ? Math.max(5, Math.min(9, (obj.radius * 2) / Math.max(1, up.length - 1))) : 7, out = front ? 0 : 30;
     up.forEach((m, k) => {
-      const anchor = k < anchors;
+      const anchor = k < anchors, along = (k - anchors - (up.length - anchors - 1) / 2) * gap + lane;
       let want;   // eslint-disable-line prefer-const (a dig place below replaces it)
       if (anchor) want = { x: P.x + px * (k - (anchors - 1) / 2) * 4 + tx * 2, z: P.z + pz * (k - (anchors - 1) / 2) * 4 + tz * 2 };
-      else if (line) want = { x: line.cx, z: P.z + (k - anchors - (up.length - anchors - 1) / 2) * 7 + lane };
-      else want = { x: P.x + tx * 30 + px * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane), z: P.z + tz * 30 + pz * ((k - anchors - (up.length - anchors - 1) / 2) * 7 + lane) };
+      else if (line) want = { x: line.cx, z: P.z + along };
+      else want = { x: P.x + tx * out + px * along, z: P.z + tz * out + pz * along };
       let s = this.holdSpots.get(m);
       const reach = anchor ? obj.radius : line ? 12 : 6;   // the line keeps its shape: dig in rather than wander off for cover
       // A place picked to dig in stays this soldier's place (until the line turns).

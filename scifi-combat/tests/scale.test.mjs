@@ -228,6 +228,36 @@ test('NavGrid on a big map: fields build in the background, reach REACH metres, 
   for (let i = 0; i < f.dist.length; i++) if (capped.dist[i] <= f.cap) assert.ok(Math.abs(f.dist[i] - capped.dist[i]) < 1e-3 * Math.max(1, capped.dist[i]), 'the capped one, inside its reach');
 });
 
+test('NavGrid: a field with several goals routes to the nearest, is known by its key, and repairs exactly', () => {
+  // A front line: three lanes' goal discs; every route goes to the nearest of them.
+  const cover = new CoverIndex(randomBoxes(300, 400));
+  const grid = { minX: -250, minZ: -120, width: 500, depth: 240, cell: 2 };
+  const nav = new NavGrid(grid, { cover });
+  const goals = [{ x: 100, z: -80, r: 4 }, { x: 100, z: 0, r: 4 }, { x: 100, z: 80, r: 4 }];
+  const f = nav.field('line', 100, -80, 4, { goals });
+  const nearest = (G, c) => { const one = goals.map((g, i) => G.field(`g${i}`, g.x, g.z, g.r)); const d = new Float32Array(f.dist.length); for (let i = 0; i < d.length; i++) d[i] = Math.min(...one.map((o) => o.dist[i])); return { dist: d, c }; };
+  sameField(f, nearest(new NavGrid(grid, { cover })), 'the nearest goal');
+  // Anyone asks for it by its key, whichever lane they're headed for.
+  assert.equal(nav.field('line', 100, 80, 4), f, 'by key, from another lane');
+  assert.equal(nav.want('line', 37, 5, 9), f);
+  const route = nav.trace(f, -200, 70), end = route.pts.at(-1);
+  assert.ok(route.reached && Math.hypot(end.x - 100, end.z - 80) < 8, 'from the south, to the south lane');
+  // A box dropped on a goal and then blown away again: repaired, and the goal is a goal again.
+  const b = { min: v(95, 0, -5), max: v(105, 3, 5) };
+  cover.add(b); nav.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z);
+  for (let i = 0; i < 10000 && (nav.job || nav.stale.size); i++) nav.maintain(4000);
+  sameField(f, new NavGrid(grid, { cover }).field('line', 0, 0, 4, { goals }), 'repaired with a goal covered');
+  cover.remove(b); nav.updateRegion(b.min.x, b.min.z, b.max.x, b.max.z);
+  for (let i = 0; i < 10000 && (nav.job || nav.stale.size); i++) nav.maintain(4000);
+  sameField(f, new NavGrid(grid, { cover }).field('line', 0, 0, 4, { goals }), 'repaired with it open again');
+  // A big map builds it in the background, then serves it by key too.
+  const big = new NavGrid({ minX: -1000, minZ: -200, width: 2000, depth: 400, cell: 2 }, { cover });
+  assert.equal(big.want('line', 100, -80, 4, { goals }), null);
+  for (let i = 0; i < 10000 && !big.want('line', 1, 2, 3); i++) big.maintain(4000);
+  const g = big.want('line', 1, 2, 3);
+  assert.ok(g && g.goals === goals && g.dist[big.index(100, 80)] === 0, 'built with all its goals');
+});
+
 test('CombatWorld with spatial indexes answers exactly like the brute-force world', () => {
   const boxes = randomBoxes(600, 200);
   const terrain = Terrain.generate({ seed: 9, minX: -250, minZ: -150, width: 500, depth: 300, amp: 4 });
