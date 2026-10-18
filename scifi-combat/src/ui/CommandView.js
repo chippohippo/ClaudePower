@@ -19,9 +19,11 @@
 //    ours) or hold the ground there. Or arm one and left-click: T take, H hold, R scout (one man
 //    goes ahead to get eyes on it, for the guns). G storms: the squads go onto the point they're
 //    attacking at once, whatever's shooting (for when you have the men there to take it). B falls
-//    back, X hands the squad back to standing orders (these three at once). F arms a fire mission
-//    (no squad needed): every gun in range shells the spot; where nobody has eyes on it, the rounds
-//    scatter. Esc disarms.
+//    back, X hands the squad back (these three at once). F arms a fire mission (no squad needed):
+//    every gun in range shells the spot; where nobody has eyes on it, the rounds scatter. Esc disarms.
+//  * Your staff (veteran and up: the same AI that commands when nobody's in the seat, at the match's
+//    difficulty) runs every squad you haven't given an order, and one you hand back with X, round
+//    the ones you have; it never overrides yours. At recruit, they're on standing orders.
 //  * The radio on the right: every order, refusal, report and fire mission.
 // The 3D view keeps the same fog of war: the crowd shows an enemy soldier only while the team sees
 // him (shows()).
@@ -495,7 +497,8 @@ export class CommandView {
     const left = Object.assign(document.createElement('div'), { id: 'cv-left', className: 'cv-panel' });
     left.innerHTML = `<h3>COMMAND · ${this.team === 0 ? 'SOLARI' : 'VOID'}</h3><div id="cv-squads"></div>`;
     const orders = Object.assign(document.createElement('div'), { id: 'cv-orders', className: 'cv-panel' });
-    const B = [['take', 'T', 'TAKE'], ['hold', 'H', 'HOLD'], ['scout', 'R', 'SCOUT'], ['storm', 'G', 'STORM'], ['fire', 'F', 'FIRE MISSION'], ['fallback', 'B', 'FALL BACK'], ['auto', 'X', 'STANDING ORDERS']];
+    // (X hands a squad back: to your staff where there is one, veteran and up; else to standing orders.)
+    const B = [['take', 'T', 'TAKE'], ['hold', 'H', 'HOLD'], ['scout', 'R', 'SCOUT'], ['storm', 'G', 'STORM'], ['fire', 'F', 'FIRE MISSION'], ['fallback', 'B', 'FALL BACK'], ['auto', 'X', this.cmd.mind?.staff ? 'TO STAFF' : 'STANDING ORDERS']];
     orders.innerHTML = B.map(([k, key, name]) => `<button data-k="${k}"><kbd>${key}</kbd>${name}</button>`).join('');
     const radio = Object.assign(document.createElement('div'), { id: 'cv-radio', className: 'cv-panel' });
     radio.innerHTML = '<h3>RADIO</h3><div id="cv-log"></div>';
@@ -581,7 +584,7 @@ export class CommandView {
     this.#set(this.el.squads, cmd.squads.map((s, i) => {
       const o = cmd.target(s.objective), T = s.tactics, sel = this.selected.has(s);
       const scout = cmd.scouts.get(s), broken = T?.broken && T.time < T.broken.until;
-      const what = s.order ? `${LABEL[s.order.kind] ?? 'HOLD'} ${s.order.obj.name ?? ''}${s.order.by === 'human' ? '' : ' · AI'}` : `STANDING ORDERS · ${o ? `${s.role === 'attack' ? 'TAKE' : 'HOLD'} ${o.name}` : '—'}`;
+      const what = s.order ? `${LABEL[s.order.kind] ?? 'HOLD'} ${s.order.obj.name ?? ''}${s.order.by === 'human' ? '' : s.order.by === 'staff' ? ' · STAFF' : ' · AI'}` : `STANDING ORDERS · ${o ? `${s.role === 'attack' ? 'TAKE' : 'HOLD'} ${o.name}` : '—'}`;
       const state = !s.alive ? 'ALL DOWN · REINFORCING' : broken ? 'FALLING BACK · REGROUPING' : PHASE[T?.phase] ?? '';
       const wait = s.pending ? `<div class="wait">${(s.pending.why ?? 'busy').toUpperCase()} · WILL GO WHEN ABLE</div>` : '';
       const sc = scout && !scout.done ? `<div class="st" style="color:${SCOUT}">SCOUT ${scout.state === 'watching' ? `WATCHING ${scout.at.name ?? ''} · ${scout.seen} SEEN` : scout.state === 'going' ? `GOING TO ${scout.at.name ?? 'THE VANTAGE'}` : 'COMING BACK'}</div>` : '';

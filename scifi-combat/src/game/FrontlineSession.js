@@ -110,7 +110,8 @@ export class FrontlineSession {
       const c = new FrontlineCommander(t, this.mode, { nav: this.map.nav, world: this.world, tmap: this.tactical, cfg, seed });
       c.squads = this.squads[t];
       c.human = this.fighters.some((f) => f.team === t && f.commander);
-      if (!c.human && c.cfg.mind) c.mind = new Strategist(t, { world: this.world, mode: this.mode, cfg: c.cfg, seed, wave: this.waveInterval });
+      // (A person in the seat has the same AI as their staff: it runs the squads they haven't given an order.)
+      if (c.cfg.mind) c.mind = new Strategist(t, { world: this.world, mode: this.mode, cfg: c.cfg, seed, wave: this.waveInterval, staff: c.human });
       return c;
     });
     this.suppression = new Suppression(this.world);

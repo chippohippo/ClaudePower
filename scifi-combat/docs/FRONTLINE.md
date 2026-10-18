@@ -625,7 +625,9 @@ depot. Engineers dig 1.5× faster. Events: `fort:dig`, `fort:built`.
 
 Each side has one commander. A person can take the seat (start menu: **Commander**, or
 `class=commander`); when nobody does, the AI commands (`Strategist`, veteran and elite). Either way the
-squads take the commander's orders the same way, and squads given none follow standing orders.
+squads take the commander's orders the same way. Squads a person in the seat gives no order are run
+by their staff: at veteran and elite the same AI that commands an empty seat, at the match's
+difficulty, working round their orders and never overriding them (at recruit, standing orders).
 
 - **The commander's seat** (`CommandView`): the front from above at 60°, your side at the bottom of the
   screen. WASD or the arrows pan, the wheel zooms (from 60 m out to the whole map), the middle button drags the map, Home goes
@@ -643,7 +645,7 @@ squads take the commander's orders the same way, and squads given none follow st
   hold that ground. Or arm one and left-click: **T** take, **H** hold, **R** scout. **G** storms: the
   squads go onto the point they're attacking at once, whatever's shooting (for when you have the men
   there to take it; `FrontlineCommander.storm`). **B** falls back to our line and **X** hands the squad
-  back to standing orders (these three at once). **F** arms a fire mission (no squad needed). A place can be anywhere: a crossroads, a building, a hill. It becomes a point the
+  back to your staff (these three at once). **F** arms a fire mission (no squad needed). A place can be anywhere: a crossroads, a building, a hill. It becomes a point the
   squad gets to and holds, clearing what's in the way, and the radio names it from the nearest point
   ("40 m past B2").
 - **Obedience** (`command.obey` per difficulty): out of contact a squad nearly always goes at once and
@@ -671,7 +673,7 @@ squads take the commander's orders the same way, and squads given none follow st
   outranks everything the guns do on their own, even danger close. The AI's own fire only prepares an
   attack as it goes in, below counter-battery fire: guns that fire too much get found and shelled
   (measured: when the AI ordered a mission every 12 s, the enemy's counter-battery killed 25 of its
-  gun crews in five minutes, against 7).
+  gun crews in five minutes, against 7). It orders one every 30 s at most.
 - **The AI commander** (`Strategist`, veteran and elite; recruit sides run on plain standing orders):
   it commands by a doctrine made from the rules of the game, re-made every 4 s (elite: 2.5 s).
   - *The rules it plays to.* A sector is his only once he holds every point in it, so ours holds while
@@ -698,7 +700,10 @@ squads take the commander's orders the same way, and squads given none follow st
     squads, 17 men, two minutes short of a point four men held). So where the men it has sent are
     within 110 m and outnumber his round it by the odds (elite 1.6 to 1, veteran 2.5), or have been
     stuck short of it for 30 s with the better of it, every squad there storms it at once: everyone
-    onto the point, whatever's shooting (`SquadTactics.storm`; you can order it too, **G**). Once
+    onto the point, whatever's shooting (`SquadTactics.storm`; you can order it too, **G**). Not a
+    squad down to its last man (he waits for the rest to come back), and after a storm that didn't
+    take the point the next waits longer (25 s, then 50, then 75): men thrown at the same guns again
+    die the same way. Once
     the middle is decided, the elite shells the point first where it can see men on it and its own
     are clear, and storms as the shells land (in the race itself, the first men onto a point have it).
   - *Rescue* (elite, once the middle is decided). His men on a point of ours, more than ours on it:
@@ -955,11 +960,15 @@ inside them.
 - `tests/command.test.mjs`: intel (what one soldier sees the team knows, stale contacts forgotten,
   watched ground, groups for the guns); the commander's seat (off the field, in no squad, his side's
   orders his, the other side's the AI's); orders (taken at once out of contact and acknowledged; a
-  pinned squad says why and goes within three tries; places anywhere; back to standing orders); a
+  pinned squad says why and goes within three tries; places anywhere; back to the staff); a
   scout (a vantage on our side with the place in reach, on watch, the place watched for the team,
   called back); fire missions (a battery takes the commander's, blind ones aimed off and twice as
   wide, the AI's below counter-battery); the AI strategist (a task for every squad within its search
-  budget, its orders reaching every man, a plan in a few milliseconds).
+  budget, its orders reaching every man, a plan in a few milliseconds); the elite's doctrine (a squad
+  on every point of the middle and no lanes in the race; behind, every squad on the sector ahead and
+  all in on the radio; ahead, an anchor held and named); no order churn, and storms; a person's staff
+  (their orders stand, the rest under the staff, silent on the radio, a squad handed back taken up).
+  `tests/squads.test.mjs` also has a stormed squad going onto its point at once.
 - `tests/frontline.test.mjs`: capture rules, the moving front, victory, spawns, the commander (every
   attack point covered, two squads for a point being taken, four squads in ten on lanes spread across
   the map, flanks and gaps first, pushed forward with the attack and back behind our line), and a

@@ -25,7 +25,8 @@
 //    cover, and against men dug in round it they can do that for minutes without one of them setting
 //    foot on it. Where the men we've sent are within 110 m and outnumber his round it by the odds (or
 //    have been stuck short of it for 30 s with the better of it), every squad there storms it at
-//    once (SquadTactics.storm: everyone onto the point, whatever's shooting). Once the middle is
+//    once (SquadTactics.storm: everyone onto the point, whatever's shooting); not a squad down to its
+//    last man, and after a storm that didn't take it, the next waits longer. Once the middle is
 //    decided, the elite (`barrage`) shells the point first where it can see men on it, and storms as
 //    the shells land.
 //  * Rescue (`rescue`, elite, once the middle is decided): his men on a point of ours, more than ours
@@ -87,6 +88,7 @@ const ODDS = 0.4;                // ...the odds of it falling, for each point st
 const RESERVE = -1;              // (a squad's assignment: the reserve)
 const COMMIT = 30;               // s an order stands (turning a squad round sooner costs more)
 const SLICE = 40;                // evaluations thought through a tick
+const FIRE_EVERY = 30;           // s between the AI's own fire missions at least (guns that fire too often get found)
 const NS = Math.floor(H / STEP) + 1;   // steps played forward
 let LATE = 0;                          // ...of them in the second half (the sectors are judged over those)
 for (let t = 0; t <= H; t += STEP) if (t >= H / 2) LATE++;
@@ -97,8 +99,12 @@ export class Strategist {
    * @param {number} team
    * @param {object} o { world, mode, cfg: the difficulty's `command` ({ search, responses, noise, stage, scout, fire, reserve, margin, screen }), seed, wave: s between reinforcement waves }
    */
-  constructor(team, { world, mode, cfg = {}, seed = 1, wave = 6 }) {
+  constructor(team, { world, mode, cfg = {}, seed = 1, wave = 6, staff = false }) {
     this.team = team; this.world = world; this.mode = mode; this.wave = wave;
+    // A person in the commander's seat: this is their staff, running the squads they haven't given
+    // an order (or have handed back), round the ones they have. Never theirs; no plan of its own on
+    // the radio.
+    this.staff = staff; this.by = staff ? 'staff' : 'ai';
     this.cfg = { search: 120, responses: 2, noise: 0.15, stage: true, scout: 1, fire: true, reserve: false, margin: 0.75, screen: 0.1, ...cfg };
     this.rand = mulberry32(seed * 7907 + team * 31 + 3);
     this.stages = new Map();     // point id -> { place, squads: Set, since, go }
@@ -134,7 +140,7 @@ export class Strategist {
     const t2 = performance.now();
     this.#support(cmd, B, best);
     if (this.cfg.storm) this.#storm(cmd, B, best);
-    if (this.cfg.doctrine) this.#announce(cmd);
+    if (this.cfg.doctrine && !this.staff) this.#announce(cmd);
     const ms = performance.now() - t0;
     J.split[1] = t1 - t0; J.split[2] = t2 - t1; J.split[3] = performance.now() - t2;   // (the board; the last slice; playing it; support)
     this.last = { score: best.score, evals: B.evals, ms: J.ms + ms, worst: Math.max(J.worst, ms), ticks: J.ticks + 1, split: J.split, book: best.book ?? false, objectives: B.obj.map((o) => ({ id: o.p.id, kind: o.kind, enemy: +(o.e0 + o.e1 + o.u).toFixed(2), name: o.p.name })), assign: best.assign.slice() };
@@ -179,7 +185,8 @@ export class Strategist {
       const busy = s.tactics?.phase === 'contact' || s.tactics?.phase === 'clear' || s.tactics?.phase === 'charge';
       // An order stands a while: a squad sent somewhere and turned round before it's done anything has wasted the trip.
       const committed = !!s.pending || (!!s.order && this.time - s.order.issued < COMMIT);
-      return { s, str, back, at, busy, committed, cur: -2, eta: new Float64Array(obj.length) };
+      const mine = (s.pending?.order ?? s.order)?.by === 'human';   // (a person's order: hands off)
+      return { s, str, back, at, busy, committed, mine, cur: -2, eta: new Float64Array(obj.length) };
     });
     // How long each squad takes to each objective (along the routes; in a fight, it has to break off first).
     for (const q of sq) {
@@ -451,6 +458,13 @@ export class Strategist {
     const left = B.sq.map((q) => q.str + q.back * 0.5);
     const free = new Set(B.sq.map((_, i) => i)), on = new Int32Array(n).fill(-1);
     const take = (i, t) => { assign[i] = tasks[t].k; on[i] = t; tasks[t].need -= left[i]; free.delete(i); };
+    // (A person's orders stand: their squads stay where they were sent, and count there.)
+    for (let i = 0; i < n; i++) {
+      if (!B.sq[i].mine) continue;
+      free.delete(i); assign[i] = B.sq[i].cur;
+      const T = tasks.find((x) => x.k === B.sq[i].cur);
+      if (T) T.need -= left[i];
+    }
     tasks.forEach((T, t) => { for (const i of free) if (B.sq[i].cur === T.k && (T.need > 0 || B.sq[i].committed)) take(i, t); });
     const cost = (i, k) => { const q = B.sq[i]; return q.eta[k] + (q.cur >= 0 && q.committed ? 25 : 0) + (q.busy ? 10 : 0); };
     tasks.forEach((T, t) => {
@@ -621,24 +635,25 @@ export class Strategist {
     best.assign.forEach((k, i) => { if (k >= 0) (byObj.get(k) ?? byObj.set(k, []).get(k)).push(i); });
     for (const [pid, st] of this.stages) {
       const k = B.obj.findIndex((o) => o.p.id === pid);
-      const still = k >= 0 ? (byObj.get(k) ?? []).map((i) => B.sq[i].s) : [];
+      const still = k >= 0 ? (byObj.get(k) ?? []).filter((i) => !B.sq[i].mine).map((i) => B.sq[i].s) : [];
       if (!still.length) { this.stages.delete(pid); continue; }
       st.squads = new Set(still);
       // Go when the last is near its staging place (or it's been long enough).
       const ready = still.every((s) => { const c = s.center(_c); return !c || Math.hypot(c.x - st.place.pos.x, c.z - st.place.pos.z) < 40; });
       if (!st.go && (ready || this.time - st.since > 20)) {
         st.go = true;
-        for (const s of still) cmd.give(s, { kind: 'take', point: pid, by: 'ai' });
+        for (const s of still) cmd.give(s, { kind: 'take', point: pid, by: this.by });
         if (this.cfg.fire && st.prep !== false) this.#prep(cmd, B.obj[k].p);
       }
       if (st.go && this.time - st.since > 120) this.stages.delete(pid);
     }
     for (let i = 0; i < B.sq.length; i++) {
       const q = B.sq[i], k = best.assign[i], s = q.s;
+      if (q.mine) continue;   // (where a person sent it)
       if (k === RESERVE) {
         // The reserve: behind the line, central.
         const at = this.#reservePlace(B);
-        if (!s.order || s.order.obj?.id !== at.id) cmd.give(s, { kind: 'hold', at: { x: at.pos.x, z: at.pos.z }, by: 'ai' });
+        if (!s.order || s.order.obj?.id !== at.id) cmd.give(s, { kind: 'hold', at: { x: at.pos.x, z: at.pos.z }, by: this.by });
         continue;
       }
       const o = B.obj[k];
@@ -647,21 +662,21 @@ export class Strategist {
       if (staged && !staged.go && staged.point === o.p.id) continue;   // waiting for the others
       if (s.objective === o.p.id && s.order) continue;                 // already on it
       if (s.pending?.order.obj.id === o.p.id) continue;                // told, going when they can
-      if (o.kind === 'line') { cmd.give(s, { kind: 'hold', lane: o.p.id, by: 'ai' }); continue; }
-      if (o.kind === 'defend') { cmd.give(s, { kind: 'hold', point: o.p.id, by: 'ai' }); continue; }
+      if (o.kind === 'line') { cmd.give(s, { kind: 'hold', lane: o.p.id, by: this.by }); continue; }
+      if (o.kind === 'defend') { cmd.give(s, { kind: 'hold', point: o.p.id, by: this.by }); continue; }
       // An attack: staged when two or more go in together and they'd get there far apart.
-      const group = (byObj.get(k) ?? []).map((j) => B.sq[j]);
+      const group = (byObj.get(k) ?? []).map((j) => B.sq[j]).filter((g) => !g.mine);
       const spread = group.length > 1 ? Math.max(...group.map((g) => g.eta[k])) - Math.min(...group.map((g) => g.eta[k])) : 0;
       // (Not in a race for a neutral point: there, whoever's first holds it.)
       if (this.cfg.stage && group.length > 1 && spread > 15 && o.p.owner === 1 - team && !this.stages.has(o.p.id)) {
         const place = this.#stagePlace(cmd, o.p);
         this.stages.set(o.p.id, { point: o.p.id, place, squads: new Set(group.map((g) => g.s)), since: this.time, go: false });
-        for (const g of group) cmd.give(g.s, { kind: 'hold', at: { x: place.pos.x, z: place.pos.z }, by: 'ai' });
+        for (const g of group) cmd.give(g.s, { kind: 'hold', at: { x: place.pos.x, z: place.pos.z }, by: this.by });
         continue;
       }
       const st = this.stages.get(o.p.id);
-      if (st && !st.go) { st.squads.add(s); cmd.give(s, { kind: 'hold', at: { x: st.place.pos.x, z: st.place.pos.z }, by: 'ai' }); continue; }
-      cmd.give(s, { kind: 'take', point: o.p.id, by: 'ai' });
+      if (st && !st.go) { st.squads.add(s); cmd.give(s, { kind: 'hold', at: { x: st.place.pos.x, z: st.place.pos.z }, by: this.by }); continue; }
+      cmd.give(s, { kind: 'take', point: o.p.id, by: this.by });
     }
   }
 
@@ -675,15 +690,18 @@ export class Strategist {
   #storm(cmd, B, best) {
     const odds = this.cfg.storm, I = this.world.intel?.[this.team], enemy = 1 - this.team;
     if (!odds) return;
-    this.close ??= new Map(); this.stormed ??= new Map(); this.barrage ??= new Map();
+    this.close ??= new Map(); this.stormed ??= new Map(); this.barrage ??= new Map(); this.tries ??= new Map();
     for (let k = 0; k < B.P; k++) {
       const p = B.obj[k].p, due = this.barrage.get(p.id);
       if (due !== undefined && this.time < due) continue;   // (the shells still landing)
-      if (B.obj[k].held >= 0.999 || this.time - (this.stormed.get(p.id) ?? -1e9) < 25) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
+      if (B.obj[k].held >= 0.999) this.tries.delete(p.id);
+      // A storm that didn't take it: the next one waits longer (men thrown at the same guns again die the same way).
+      const wait = 25 * (1 + Math.min(2, this.tries.get(p.id) ?? 0));
+      if (B.obj[k].held >= 0.999 || this.time - (this.stormed.get(p.id) ?? -1e9) < wait) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
       let ours = 0;
       const near = [];
       for (let i = 0; i < B.sq.length; i++) {
-        if (best.assign[i] !== k) continue;
+        if (best.assign[i] !== k || B.sq[i].mine) continue;
         const s = B.sq[i].s;
         let n = 0;
         for (const m of s.members) {
@@ -691,7 +709,7 @@ export class Strategist {
           const q = m.movement.state.position;
           if (Math.hypot(q.x - p.pos.x, q.z - p.pos.z) < 110) n++;
         }
-        if (n) { ours += n; near.push(s); }
+        if (n >= 2) { ours += n; near.push(s); }   // (a squad down to its last man waits for the rest to come back)
       }
       if (ours < 3) { this.close.delete(p.id); this.barrage.delete(p.id); continue; }
       if (!this.close.has(p.id)) this.close.set(p.id, this.time);
@@ -705,10 +723,11 @@ export class Strategist {
       // (`barrage`) The guns on it first, where we can see men on it and ours are clear of the shells
       // (they never fire danger close); the storm goes in as the last of them land.
       // (Not in the race for the middle: there the first men onto it have it.)
-      if (due === undefined && this.cfg.barrage && !this.posture?.opening && cmd.support && I && I.near(p.pos.x, p.pos.z, p.radius + 15, 6) >= 2
-        && cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 4, by: 'ai', pri: 5 }).ok) { this.barrage.set(p.id, this.time + 9); this.lastFire = this.time; continue; }
+      if (due === undefined && this.cfg.barrage && !this.posture?.opening && cmd.support && this.time - this.lastFire >= FIRE_EVERY && I && I.near(p.pos.x, p.pos.z, p.radius + 15, 6) >= 2
+        && cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 4, by: this.by, pri: 5 }).ok) { this.barrage.set(p.id, this.time + 9); this.lastFire = this.time; continue; }
       for (const s of near) cmd.storm(s);
       this.stormed.set(p.id, this.time); this.close.delete(p.id); this.barrage.delete(p.id);
+      if (his >= 1) this.tries.set(p.id, (this.tries.get(p.id) ?? 0) + 1);
     }
   }
 
@@ -750,11 +769,11 @@ export class Strategist {
         // The nearest squad not in a fight, not already scouting.
         let pick = null, bd = Infinity;
         for (const q of B.sq) {
-          if (q.busy || cmd.scouts.has(q.s) || q.str < 1.2) continue;
+          if (q.busy || q.mine || cmd.scouts.has(q.s) || q.str < 1.2) continue;
           const d = Math.hypot(q.at.x - want.p.pos.x, q.at.z - want.p.pos.z);
           if (d < bd) { bd = d; pick = q.s; }
         }
-        if (pick && bd < 260 && cmd.give(pick, { kind: 'scout', at: { x: want.p.pos.x, z: want.p.pos.z }, name: want.p.name, by: 'ai' }).ok) this.scoutAt = this.time;
+        if (pick && bd < 260 && cmd.give(pick, { kind: 'scout', at: { x: want.p.pos.x, z: want.p.pos.z }, name: want.p.name, by: this.by }).ok) this.scoutAt = this.time;
       }
     }
     // (The guns fire on what we can see on their own: the batteries' commander shells every group
@@ -770,12 +789,12 @@ export class Strategist {
     if (eta > 8 && eta < 40) this.#prep(cmd, B.obj[k].p);
   }
 
-  /** Before an attack goes in: shell the point if we can see what's on it (not more than every 20 s). */
+  /** Before an attack goes in: shell the point if we can see what's on it (not more than every FIRE_EVERY s). */
   #prep(cmd, p) {
     const I = this.world.intel?.[this.team];
-    if (!I || !cmd.support || this.time - this.lastFire < 20) return;
+    if (!I || !cmd.support || this.time - this.lastFire < FIRE_EVERY) return;
     if (I.near(p.pos.x, p.pos.z, p.radius + 20, 10) < 2) return;
-    const r = cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 3, by: 'ai', pri: 5 });
+    const r = cmd.fire({ x: p.pos.x, z: p.pos.z, r: p.radius + 6, rounds: 3, by: this.by, pri: 5 });
     if (r.ok) this.lastFire = this.time;
   }
 }

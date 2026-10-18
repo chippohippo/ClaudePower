@@ -50,13 +50,13 @@ test('the commander\'s seat: a person commands his side from off the field; the 
   assert.ok(me.commander && me.offField, 'off the field');
   assert.ok(!S.squads[0].some((s) => s.members.includes(me)), 'in no squad');
   assert.ok(!S.world.entity(1), 'not in the world: nobody can shoot him');
-  assert.ok(C.human && !C.mind, 'his side: his orders, no AI plan');
+  assert.ok(C.human && C.mind?.staff, 'their side: their orders, and their staff for the squads they give none');
   assert.ok(S.commanders[1].mind, 'the other side: the AI (veteran)');
   // His side still fields all its soldiers.
   const other = session();
   assert.equal(S.fighters.filter((f) => f.team === 0 && !f.offField).length, other.fighters.filter((f) => f.team === 0).length);
   run(S, 3);
-  assert.ok(C.squads.every((s) => s.objective !== null), 'squads under no order follow standing orders');
+  assert.ok(C.squads.every((s) => s.objective !== null), 'squads under no order of theirs are run by their staff');
   S.dispose(); other.dispose();
 });
 
@@ -211,5 +211,23 @@ test('the doctrine doesn\'t turn squads round every few seconds, and storms a po
   const perSquadMinute = orders / C.squads.length / 2.5;
   assert.ok(perSquadMinute < 2.5, `orders: ${orders} in 150 s for ${C.squads.length} squads (${perSquadMinute.toFixed(1)} a squad a minute)`);
   assert.ok(storms >= 1, `it stormed (${storms})`);
+  S.dispose();
+});
+
+test('a person in the seat: their orders stand; their staff runs the squads they give none, the AI of the match\'s difficulty, and takes back one they hand back', () => {
+  const S = big({ humans: [{ id: 1, team: 0, classId: 'commander' }], command: null });
+  const C = S.commanders[0], atk = S.mode.objectives(0).attack;
+  assert.ok(C.human && C.mind?.staff && C.mind.cfg.doctrine, 'their staff: the doctrine (veteran)');
+  const a = C.squads[0], to = atk[atk.length - 1];
+  assert.ok(C.give(a, { kind: 'take', point: to.id, by: 'human' }).ok);
+  run(S, 40);
+  assert.ok(a.order?.by === 'human' && a.objective === to.id, 'their order stands');
+  const rest = C.squads.slice(1).filter((s) => s.members.some((m) => !m.health.dead));
+  assert.ok(rest.length && rest.every((s) => s.order?.by === 'staff'), `the rest under their staff (${rest.map((s) => s.order?.by).join(' ')})`);
+  assert.ok(!C.log.some((e) => e.callsign === 'Command'), 'their staff doesn\'t speak for them on the radio');
+  // Handed back (X): their staff has it at its next plan.
+  C.give(a, { kind: 'auto', by: 'human' });
+  run(S, 6);
+  assert.equal(a.order?.by, 'staff');
   S.dispose();
 });

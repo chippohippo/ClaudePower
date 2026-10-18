@@ -199,7 +199,9 @@ and against men dug in round it that can go on for minutes without anyone reachi
 cuts that short: for 20 s, from up to 120 m out, every man goes onto the point (the assault phase:
 cover inside its radius, at a sprint, firing as he goes), even over the top in the middle of the
 whistle's first rush. The AI commander storms where it has the men up close and the odds (src/ai/
-command/Strategist.js); a person in the commander's seat with **G**. The squad leader shouts it.
+command/Strategist.js), not with a squad down to its last man, and waits longer after each storm
+that didn't take the point; a person in the commander's seat storms with **G**. The squad leader
+shouts it.
 
 ## Gun crews and supply drivers (`SupportCommand`, `CrewPilot`)
 
