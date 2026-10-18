@@ -42,6 +42,7 @@ import { Vector3 } from 'three';
 import { bus } from '../core/EventBus.js';
 import { mulberry32 } from './Terrain.js';
 import { RigidWorld } from '../physics/RigidWorld.js';
+import { CoverIndex } from './CoverIndex.js';
 
 export const MATERIAL = {
   // density t/m³, hp per m³, patch: the blast a 0.3 m slab of it takes per m² before it breaks
@@ -162,8 +163,8 @@ export class StructureSystem {
     for (const h of C?.houses ?? []) this.register('house', [...h.parts.wall, ...h.parts.floor, ...h.parts.stair, ...h.parts.rail], { id: h.id, house: h });
     for (const sc of C?.scaffolds ?? []) this.register('scaffold', [...sc.parts.deck, ...sc.parts.stair]);
     for (const br of C?.bridges ?? []) this.register('bridge', [...br.parts.deck, ...br.parts.rail, ...br.parts.ramp], { welded: true });
-    // Work one out now, so the first shell to hit a building mid-match doesn't pay for compiling all this.
-    if (this.list.length) { this.#adjacency(this.list[0]); this.#standing(this.list[0]); }
+    // Bring a building down off stage first, so the first shell to hit one mid-match doesn't pay for compiling all this.
+    if (this.list.length) { rehearse(); this.#adjacency(this.list[0]); this.#standing(this.list[0]); }
   }
 
   /**
@@ -623,7 +624,13 @@ export class StructureSystem {
     }
     const D = b.data, A = b.aabb;
     const out = this.rigid.fracture(b, pieces, { hit: (boxes) => boxes.some((k) => k.hit !== false) });
-    for (const p of out) p.data = { ...D, crush: new Map(), cover: null };
+    for (const p of out) {
+      p.data = { ...D, crush: new Map(), cover: null };
+      // Nothing breaks clean: each piece goes off a little its own way, turning.
+      const k = Math.min(1.2, 0.15 * Math.sqrt(e));
+      p.w[0] += (this.rand() - 0.5) * 2 * k; p.w[2] += (this.rand() - 0.5) * 2 * k; p.w[1] += (this.rand() - 0.5) * k;
+      p.v[0] += (this.rand() - 0.5) * k; p.v[2] += (this.rand() - 0.5) * k;
+    }
     this.stats.shatters++;
     const r = 1.2;
     bus.emit('structure:break', { cover: null, fragments: [], at, hole: [Math.max(A[0], at[0] - r), Math.max(A[1], at[1] - 0.5), Math.max(A[2], at[2] - r), Math.min(A[3], at[0] + r), Math.min(A[4], at[1] + r), Math.min(A[5], at[2] + r)], mat: D.mat, structure: D.S.id, impact: true });
@@ -644,7 +651,7 @@ export class StructureSystem {
           const v = b.velocityAt(q.x, q.y + up, q.z, _v), sp = Math.hypot(v[0], v[1], v[2]);
           if (sp < CRUSH_V || this.time - (D.crush.get(e.id) ?? -9) < 0.5) return;
           D.crush.set(e.id, this.time);
-          const dmg = Math.min(5000, 0.5 * Math.min(b.m, 4) * sp * sp * CRUSH);
+          const dmg = Math.min(5000, 0.5 * Math.min(b.m, 20) * sp * sp * CRUSH);
           e.health.damage(dmg, { kind: 'crush', noDown: dmg >= 200, from: [q.x - v[0], q.y + up - v[1], q.z - v[2]] }, this.world.entity?.(D.by) ?? null);
           this.stats.crushed++;
           return;
@@ -755,6 +762,39 @@ export class StructureSystem {
 
   /** Is anything still coming down? */
   get busy() { return this.creaking.length > 0 || this.rigid.awake.length > 0; }
+}
+
+let rehearsed = false;
+/**
+ * Once a run: a small three-storey frame (piers, bands, floors) in a world of its own, shelled, left
+ * to come down, and its rubble shelled again, with nothing heard. Everything a collapse runs is
+ * compiled by then, so the first one in a match doesn't stall the game.
+ */
+function rehearse() {
+  if (rehearsed) return;
+  rehearsed = true;
+  const V = (x, y, z) => new Vector3(x, y, z), boxes = [];
+  const add = (x0, y0, z0, x1, y1, z1, o) => { const b = { min: V(x0, y0, z0), max: V(x1, y1, z1), surface: 'concrete', ...o }; boxes.push(b); return b; };
+  for (let k = 0; k < 3; k++) {
+    const y0 = k * 3.4, y1 = y0 + 3.4;
+    for (const [z0, z1] of [[0, 0.3], [7.7, 8]]) {
+      for (let x = 0; x < 12; x += 3) add(x, y0, z0, x + 0.8, y0 + 2.6, z1, { kind: 'hwall', role: 'pier' });
+      add(0, y0 + 2.6, z0, 12, y1, z1, { kind: 'hwall', role: 'band' });
+    }
+    for (const [x0, x1] of [[0, 0.3], [11.7, 12]]) add(x0, y0, 0.3, x1, y1, 7.7, { kind: 'hwall', role: 'pier' });
+    add(0.3, y1 - 0.3, 0.3, 11.7, y1, 7.7, { kind: 'hfloor' });
+  }
+  const cover = new CoverIndex(boxes, { cell: 8 });
+  const world = { cover, terrain: null, nav: null, coverIn: (x0, z0, x1, z1, cb) => cover.queryAABB(x0, z0, x1, z1, cb) };
+  bus.hush(() => {
+    const st = new StructureSystem(world, {}, { seed: 1 });
+    st.register('house', boxes);
+    const shell = { damage: { base: 320 }, artillery: {} };
+    st.blast(V(6, 1, -0.6), 9, shell);
+    for (let i = 0; i < 120; i++) st.update(1 / 60);
+    st.blast(V(6, 0.5, -1.5), 6, shell);
+    for (let i = 0; i < 30; i++) st.update(1 / 60);
+  });
 }
 
 /**

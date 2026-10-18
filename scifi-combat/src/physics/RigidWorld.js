@@ -6,7 +6,7 @@
 //  * Bodies are boxes, or compounds of boxes fixed together (a wall's piers and bands), each with
 //    its mass and full inertia tensor from its boxes' sizes and densities.
 //  * XPBD (Müller et al. 2020, "Detailed Rigid Body Simulation with Extended Position Based
-//    Dynamics"): substeps (8 a tick), one constraint pass each; positions are corrected directly
+//    Dynamics"): substeps (6 a tick), a constraint pass each; positions are corrected directly
 //    and velocities derived from them, then a velocity pass adds friction and bounce.
 //  * Contacts: box on box by separating axes (the incident face clipped against the reference
 //    face, up to four points; or edge on edge), for bodies against each other and against the
@@ -28,7 +28,7 @@
 // Units: m, s, t (tonnes), kN (so energies are in kJ).
 
 const G = 9.8;
-const SUB = 8;                   // substeps a tick
+const SUB = 6;                   // substeps a tick (fewer when a lot is moving)
 const SLOP = 0.001;              // m of penetration left alone (resting contacts don't jitter)
 const CAP = 0.012;               // m a contact corrects per substep at most: an overlap comes apart gently, not explosively
 const MU_S = 0.75, MU_D = 0.6;   // friction: concrete on concrete
@@ -39,6 +39,7 @@ const TIRE = 1.4;                // how fast an overloaded joint weakens (per s,
 const SHEAR = 0.6;               // a joint's load sheared across its face, against pulled straight off it
 const HUNG = 0.65;               // share of its weight its joints hold up, past which a body hangs (its joints tire, it doesn't sleep)
 const DAMP_V = 0.02, DAMP_W = 0.15, DAMP_HUNG = 1.5;   // per s; a body hanging from joints swings to a stop
+const ROLL = 1.5;                // per s: spin lost while resting on something (a chunk on two points doesn't rock for ever)
 const JOINT_DAMP = 40;           // per s: the stretch of a joint doesn't ring
 const EDGE = 1.5;                // m between the points along a box's edges that meet the terrain
 
@@ -150,7 +151,7 @@ function shove(b, rx, ry, rz, px, py, pz) {
   q[1] = qy + oy * qw + oz * qx - ox * qz;
   q[2] = qz + oz * qw + ox * qy - oy * qx;
   q[3] = qw - ox * qx - oy * qy - oz * qz;
-  normalize(q);
+  // (Not normalized here: these turns are small, and #velocities normalizes once a substep.)
 }
 /** A velocity impulse p at world offset r. */
 function kick(b, rx, ry, rz, px, py, pz) {
@@ -527,9 +528,12 @@ export class RigidWorld {
       for (const k of b.boxes) k.hit = false;
     }
     this.#collide(dt);
-    const h = dt / this.sub, cs = this.cs, nc = this.nc, js = this.joints;
+    // Fewer substeps when a lot is moving at once (a building coming down all over): softer, but the tick stays cheap.
+    const sub = Math.max(4, Math.min(this.sub, this.sub - Math.floor((awake.length - 40) / 40)));
+    const h = dt / sub, cs = this.cs, nc = this.nc, js = this.joints;
+    this.substeps = sub;
     for (const j of js) j.peak = 0;
-    for (let s = 0; s < this.sub; s++) {
+    for (let s = 0; s < sub; s++) {
       // How fast each contact was closing before this substep (for the bounce).
       for (let i = 0; i < nc; i++) this.#closing(cs[i]);
       for (const b of awake) this.#integrate(b, h);
@@ -545,7 +549,7 @@ export class RigidWorld {
       for (const j of js) if (!j.broken) this.#jointDamp(j, h);
     }
     // What hangs from its joints (they hold up most of its weight); and those joints tire.
-    for (const b of awake) b.hung = b.joints.length > 0 && b.lift / this.sub > HUNG * b.m * G;
+    for (const b of awake) b.hung = b.joints.length > 0 && b.lift / sub > HUNG * b.m * G;
     for (const j of js) {
       if (j.broken || !(j.a.hung || j.b?.hung)) continue;
       const load = j.peak / j.S;
@@ -608,6 +612,7 @@ export class RigidWorld {
 
   #integrate(b, h) {
     b.px.set(b.x); b.pq.set(b.q);
+    b.resting = false;
     const v = b.v, w = b.w, hung = b.joints.length > 0;
     v[1] -= G * h;
     const dv = 1 / (1 + h * DAMP_V), dw = 1 / (1 + h * (hung ? DAMP_HUNG : DAMP_W));
@@ -638,18 +643,19 @@ export class RigidWorld {
 
   #velocities(b, h) {
     const x = b.x, px = b.px, v = b.v, w = b.w, q = b.q, p = b.pq;
+    normalize(q);
     v[0] = (x[0] - px[0]) / h; v[1] = (x[1] - px[1]) / h; v[2] = (x[2] - px[2]) / h;
     // dq = q ⊗ conj(p)
     const ax = q[0], ay = q[1], az = q[2], aw = q[3], bx = -p[0], by = -p[1], bz = -p[2], bw = p[3];
     const dx = aw * bx + ax * bw + ay * bz - az * by, dy = aw * by - ax * bz + ay * bw + az * bx, dz = aw * bz + ax * by - ay * bx + az * bw, dw = aw * bw - ax * bx - ay * by - az * bz;
-    const s = (dw < 0 ? -2 : 2) / h;
+    const s = ((dw < 0 ? -2 : 2) / h) / (b.resting ? 1 + h * ROLL : 1);
     w[0] = dx * s; w[1] = dy * s; w[2] = dz * s;
   }
 
   // ---------------------------------------------------------------- contacts
   #slot() {
     let c = this.cs[this.nc];
-    if (!c) this.cs.push((c = { a: null, b: null, la: new Float64Array(3), lb: new Float64Array(3), n: new Float64Array(3), lam: 0, vn0: 0, ka: 0, sb: null, sleeper: null }));
+    if (!c) this.cs.push((c = { a: null, b: null, la: new Float64Array(3), lb: new Float64Array(3), n: new Float64Array(3), p0: new Float64Array(6), lam: 0, vn0: 0, ka: 0, sb: null, sleeper: null }));
     this.nc++;
     c.lam = 0; c.vn0 = 0; c.sb = null; c.sleeper = null;
     return c;
@@ -756,13 +762,16 @@ export class RigidWorld {
     }
   }
 
+  /** Before the substep: how fast the contact is closing (for the bounce), and where its two points are (for friction). */
   #closing(c) {
-    const A = c.a, B = c.b, n = c.n;
+    const A = c.a, B = c.b, n = c.n, p = c.p0;
     rot(A.q, c.la[0], c.la[1], c.la[2], _ra);
     let vx = A.v[0] + A.w[1] * _ra[2] - A.w[2] * _ra[1], vy = A.v[1] + A.w[2] * _ra[0] - A.w[0] * _ra[2], vz = A.v[2] + A.w[0] * _ra[1] - A.w[1] * _ra[0];
+    p[0] = A.x[0] + _ra[0]; p[1] = A.x[1] + _ra[1]; p[2] = A.x[2] + _ra[2];
     if (B) {
       rot(B.q, c.lb[0], c.lb[1], c.lb[2], _rb);
       vx -= B.v[0] + B.w[1] * _rb[2] - B.w[2] * _rb[1]; vy -= B.v[1] + B.w[2] * _rb[0] - B.w[0] * _rb[2]; vz -= B.v[2] + B.w[0] * _rb[1] - B.w[1] * _rb[0];
+      p[3] = B.x[0] + _rb[0]; p[4] = B.x[1] + _rb[1]; p[5] = B.x[2] + _rb[2];
     }
     c.vn0 = vx * n[0] + vy * n[1] + vz * n[2];
   }
@@ -780,6 +789,7 @@ export class RigidWorld {
     const wa = invMass(A, rax, ray, raz, nx, ny, nz), wb = invMass(B, rbx, rby, rbz, nx, ny, nz);
     const dl = corr / (wa + wb);
     c.lam += dl;
+    A.resting = true; if (B) B.resting = true;
     shove(A, rax, ray, raz, dl * nx, dl * ny, dl * nz);
     if (B) shove(B, rbx, rby, rbz, -dl * nx, -dl * ny, -dl * nz);
     // Who and where for the host: the hardest hit of the tick.
@@ -788,12 +798,12 @@ export class RigidWorld {
     if (c.sb && -c.vn0 > 1.5) (A.hitStatics ??= new Set()).add(c.sb);
     if (B && -c.vn0 > B.vn) { B.vn = -c.vn0; B.hitAt = [pbx, pby, pbz]; }
     // Static friction: undo the sliding of the two points this substep, if the push holds it.
+    const p0 = c.p0;
     rot(A.q, c.la[0], c.la[1], c.la[2], _ra);
-    rot(A.pq, c.la[0], c.la[1], c.la[2], _qa);
-    let dx = A.x[0] + _ra[0] - A.px[0] - _qa[0], dy = A.x[1] + _ra[1] - A.px[1] - _qa[1], dz = A.x[2] + _ra[2] - A.px[2] - _qa[2];
+    let dx = A.x[0] + _ra[0] - p0[0], dy = A.x[1] + _ra[1] - p0[1], dz = A.x[2] + _ra[2] - p0[2];
     if (B) {
-      rot(B.q, c.lb[0], c.lb[1], c.lb[2], _rb); rot(B.pq, c.lb[0], c.lb[1], c.lb[2], _qb);
-      dx -= B.x[0] + _rb[0] - B.px[0] - _qb[0]; dy -= B.x[1] + _rb[1] - B.px[1] - _qb[1]; dz -= B.x[2] + _rb[2] - B.px[2] - _qb[2];
+      rot(B.q, c.lb[0], c.lb[1], c.lb[2], _rb);
+      dx -= B.x[0] + _rb[0] - p0[3]; dy -= B.x[1] + _rb[1] - p0[4]; dz -= B.x[2] + _rb[2] - p0[5];
     }
     const dn = dx * nx + dy * ny + dz * nz;
     dx -= dn * nx; dy -= dn * ny; dz -= dn * nz;

@@ -174,7 +174,7 @@ test('a falling floor crushes whoever is under it, pounds what it lands on, and 
   const r = rubble.sort((a, b) => vol(b) - vol(a))[0];
   const f = w.fighter(2, 0, v(r.min.x - 1.2, 0, (r.min.z + r.max.z) / 2), 'monolith');
   w.aim(f, -Math.PI / 2); w.move(f, 0, 1);
-  for (let i = 0; i < 90 && f.movement.state.position.x < r.min.x + 1; i++) { w.step(1); st.update(1 / 60); }
+  for (let i = 0; i < 90 && f.movement.state.position.x < (r.min.x + r.max.x) / 2; i++) { w.step(1); st.update(1 / 60); }
   w.move(f, 0, 0); w.step(10);
   assert.ok(Math.abs(f.movement.state.position.y - r.max.y) < 0.05, `up on the rubble (y ${f.movement.state.position.y.toFixed(2)}, its top ${r.max.y.toFixed(2)})`);
   void canopy;
