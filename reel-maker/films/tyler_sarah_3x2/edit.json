@@ -84,7 +84,7 @@
   {
    "clip": "0461",
    "in": 379.0,
-   "dur": 15.0,
+   "dur": 16.0,
    "in_tr": "dissolve:1.0",
    "audio": -12,
    "stab": false,
@@ -139,7 +139,7 @@
     604,
     623
    ],
-   "dur": 4.5,
+   "dur": 5.5,
    "audio": -2
   },
   {
@@ -152,40 +152,25 @@
    "dur": 3.0
   },
   {
-   "clip": "0464",
-   "in": 0,
-   "pick": [
-    0,
-    30
-   ],
-   "dur": 3.0
-  },
-  {
-   "clip": "0470",
-   "in": 0,
-   "pick": [
-    0,
-    6
-   ],
-   "dur": 3.0,
-   "in_tr": "dissolve:0.8",
-   "cue": "them"
-  },
-  {
    "clip": "0472",
    "in": 0,
    "pick": [
     0,
     5
    ],
-   "dur": 3.0,
-   "lock": true
+   "dur": 5.0,
+   "lock": true,
+   "cue": "them",
+   "in_tr": "dissolve:0.8"
   },
   {
    "clip": "0474",
    "in": 0.0,
    "dur": 4.0,
-   "audio": -8
+   "audio": -8,
+   "track": false,
+   "x": 0.45,
+   "zoom": 0.0
   },
   {
    "clip": "0475",
@@ -194,7 +179,7 @@
     0,
     13
    ],
-   "dur": 3.0
+   "dur": 4.0
   },
   {
    "clip": "0477",
@@ -203,7 +188,7 @@
     0,
     12
    ],
-   "dur": 3.0
+   "dur": 4.0
   },
   {
    "clip": "0473",
@@ -212,7 +197,10 @@
     0,
     5
    ],
-   "dur": 3.0
+   "dur": 3.0,
+   "track": false,
+   "x": 0.55,
+   "zoom": 0.0
   },
   {
    "clip": "0479",
@@ -236,7 +224,7 @@
     0,
     2.5
    ],
-   "dur": 2.0,
+   "dur": 3.0,
    "lock": true
   },
   {
@@ -246,7 +234,7 @@
     0,
     28
    ],
-   "dur": 3.2,
+   "dur": 4.0,
    "tempo": "dream",
    "in_tr": "dissolve:0.6"
   },
@@ -268,7 +256,7 @@
     0,
     12
    ],
-   "dur": 3.2,
+   "dur": 4.0,
    "tempo": "dream"
   },
   {
@@ -278,7 +266,7 @@
     0,
     7
    ],
-   "dur": 5.0,
+   "dur": 6.0,
    "tempo": "dream"
   },
   {
@@ -296,18 +284,9 @@
    "in": 0,
    "pick": [
     0,
-    6
+    2.0
    ],
-   "dur": 4.2
-  },
-  {
-   "clip": "0476",
-   "in": 0,
-   "pick": [
-    0,
-    17
-   ],
-   "dur": 3.0
+   "dur": 5.0
   },
   {
    "clip": "0462",
@@ -316,19 +295,9 @@
     0,
     10
    ],
-   "dur": 3.0,
-   "lock": true
-  },
-  {
-   "clip": "0486",
-   "in": 0,
-   "pick": [
-    0,
-    12
-   ],
-   "dur": 4.0,
-   "cue": "family",
-   "lock": true
+   "dur": 3.7,
+   "lock": true,
+   "cue": "family"
   },
   {
    "clip": "0487",
@@ -337,7 +306,7 @@
     0,
     11
    ],
-   "dur": 3.0,
+   "dur": 4.0,
    "lock": true
   },
   {
@@ -377,7 +346,7 @@
     14,
     30
    ],
-   "dur": 4.5,
+   "dur": 5.5,
    "lock": true
   },
   {
@@ -387,10 +356,17 @@
     0,
     6
    ],
-   "dur": 4.0,
+   "dur": 5.0,
    "tempo": "dream",
    "in_tr": "dissolve:1.0",
-   "cue": "coda"
+   "cue": "coda",
+   "track": false,
+   "x": 0.57,
+   "y": 0.56,
+   "zoom": [
+    1.5,
+    1.58
+   ]
   },
   {
    "clip": "0499",
@@ -399,41 +375,26 @@
     0,
     25
    ],
-   "dur": 6.0,
+   "dur": 8.0,
    "tempo": "dream",
-   "in_tr": "dissolve:0.8"
+   "in_tr": "dissolve:0.8",
+   "track": false,
+   "x": 0.58,
+   "y": 0.56,
+   "zoom": [
+    1.4,
+    1.5
+   ]
   },
   {
-   "clip": "0501",
+   "clip": "0486",
    "in": 0,
    "pick": [
     0,
-    12
+    6
    ],
-   "dur": 3.0,
-   "tempo": "dream",
-   "in_tr": "dissolve:0.6"
-  },
-  {
-   "clip": "0502",
-   "in": 0,
-   "pick": [
-    0,
-    11
-   ],
-   "dur": 3.0,
-   "tempo": "dream",
-   "in_tr": "dissolve:0.8"
-  },
-  {
-   "clip": "0500",
-   "in": 0,
-   "pick": [
-    0,
-    0.9
-   ],
-   "dur": 5.0,
-   "tempo": "dream",
+   "dur": 6.5,
+   "lock": true,
    "in_tr": "dissolve:1.0"
   }
  ],
