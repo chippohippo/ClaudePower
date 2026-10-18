@@ -1,5 +1,5 @@
 # THE GARDEN, BEFORE AND AFTER
-### Tyler & Sarah · an engagement film · 3:2 · 4:18
+### Tyler & Sarah · an engagement film · 3:2 · 4:16
 
 *Director's treatment, written for the footage that exists: Sony FX3, S-Log3, 3840×2160 at 29.97p, shot on 31 July 2026 in a redwood-and-oak garden. The garden has a stone waterfall, terraced ivy, brick paths, hydrangeas and Edison string lights hanging from the oaks. The camera clip numbers (`0437`–`0503`) are used throughout, so an editor can pull every shot directly.*
 
@@ -137,7 +137,7 @@ Everything in this act plays in the **dream tempo**, at 80 %.
 | 5.2 | `0488`, `0492`–`0497` | Family portraits, real time, with the jostling and laughter left in. Never posed stillness. | Grounded, everyday joy. | 35–40 | soft | 2–3 s each | rhythmic cuts |
 | 5.3 | `0491` | Everyone, six across, held. | The village. | 28 | soft | 4–5 s | slow dissolve |
 
-### CODA · *After* (3:56–4:18)
+### CODA · *After* (3:56–4:16)
 
 | # | Clip | Shot | Purpose | Lens feel | Light | Dur | Transition |
 |---|---|---|---|---|---|---|---|
@@ -161,7 +161,7 @@ Everything in this act plays in the **dream tempo**, at 80 %.
 3:29     ↳ the ring                         MUSIC DROPS OUT: breath + laugh only
 3:36  ▓▓ V  · family, the path rhymes       theme returns brighter, an octave up
 3:56  ░░ CODA · the kneel remembered        piano alone; harp, final D♭ chord
-4:11     title over the canopy · fade       ends 4:18
+4:11     title over the canopy · fade       ends 4:16
 ```
 
 - **Opening hook:** no faces for 38 seconds. The hook is *sound and patience*. The first red, on the roses at 0:34, lands like a heartbeat because we've been starved of colour.
