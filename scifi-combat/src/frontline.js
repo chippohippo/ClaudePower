@@ -29,7 +29,8 @@ import { BattlePointsHud } from './ui/BattlePointsHud.js';
 import { MeleeTells } from './ui/MeleeTells.js';
 import { BarkVoices } from './ui/BarkVoices.js';
 import { GunFx } from './vfx/GunFx.js';
-import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
+import { AudioDirector } from './audio/AudioDirector.js';
+import { SoundEngine } from './audio/SoundEngine.js';
 import { FrontlineHud } from './ui/FrontlineHud.js';
 import { FireControl } from './ui/FireControl.js';
 import { BattleFx } from './vfx/BattleFx.js';
@@ -155,14 +156,40 @@ renderer.domElement.addEventListener('webglcontextlost', (e) => {
   setTimeout(() => location.replace(`${location.pathname}?${next}`), 1800);
 });
 
-let audio = null;
-renderer.domElement.addEventListener('mousedown', () => {
-  if (audio) return;
-  audio = new AudioDirector(new SynthBackend(), {
-    listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns, strats: world.stratagems,
-    getEntity: (id) => { const e = world.entity(id); return e && { team: e.team, position: e.movement.state.position, perks: e.perks }; },
-  });
+// The sound (SoundBank: designed in code, rendered in a worker while you load; SoundEngine: played
+// with depth, the city answering, walls muffling). Browsers only let it start on your first click
+// or key; until then it's silent.
+const _so = new THREE.Vector3(), _sd = new THREE.Vector3(), occCache = new Map();
+const sound = new SoundEngine({
+  environment: mapTheme === 'city' ? 'city' : 'open',
+  // Is there a wall between you and it? (cover only; a cached answer per 4 m cell for a third of a second)
+  occluder: (p) => {
+    const key = `${Math.round(p.x / 4)}|${Math.round(p.y / 4)}|${Math.round(p.z / 4)}`, now = performance.now(), c = occCache.get(key);
+    if (c && now - c.t < 330) return c.v;
+    const L = sound.listener; _so.set(L.x, L.y, L.z); _sd.set(p.x - L.x, p.y - L.y, p.z - L.z);
+    const len = _sd.length(); _sd.divideScalar(len || 1);
+    const v = len > 2 && world.raycastStatic(_so, _sd, len - 1, { includeWalls: false }) ? 1 : 0;
+    if (occCache.size > 600) occCache.clear();
+    occCache.set(key, { t: now, v });
+    return v;
+  },
 });
+const audio = new AudioDirector(sound, {
+  listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns, strats: world.stratagems,
+  snow: !!planet.snow?.amount, environment: mapTheme === 'city' ? 'city' : 'trench',
+  getEntity: (id) => {
+    const e = world.entity(id);
+    if (!e) return null;
+    const v = e.movement.state.velocity, W = e.weapons;
+    return {
+      team: e.team, position: e.movement.state.position, perks: e.perks, speed: v ? Math.hypot(v.x, v.z) : 0,
+      weapon: W?.current?.s ?? null, loadout: W?.loadout?.map((x) => x.s) ?? [], shield: e.health?.shield ?? 0,
+      hpFrac: e.health && !e.isVehicle ? e.health.hp / e.health.max : 1, flame: e.mode === 'sword' && !!e.melee?.w?.visual?.flameColor,
+    };
+  },
+  onNearMiss: (k) => rig.addTrauma(k * 0.22),       // a round past your ear: the camera flinches
+});
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sound.resume());
 
 const hud = new FrontlineHud(document.getElementById('hud'), session, player);
 const callIn = new StratagemPanel(document.getElementById('hud'), { world, player, colors: palette.stratagem });
@@ -252,7 +279,7 @@ const loop = new FixedLoop({
     dropViews.update(dt);
     vehicleViews.update(dt, cam);
     post.render(scene, cam, atmo.sunScreen(cam, sunScreen), dt);
-    audio?.update(dt, rig.camera.position, player.movement.state.yaw);
+    audio.update(dt, player.movement.state.position, input.yaw);
     hud.update(dt, cam);
     callIn.update(dt, cam);
     hitFx.update(dt, cam);
@@ -261,7 +288,7 @@ const loop = new FixedLoop({
     voices.update(dt);
   },
 });
-window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices, dropViews };
+window.__frontline = { session, player, anim, crowd, rig, hud, renderer, scene, battlefield, city, loop, fx, tracers, fireControl, input, atmo, post, stratViews, callIn, gunFx, hitFx, bpHud, tells, voices, dropViews, sound, audio, bus };
 // Every shader compiled now, before the battle starts: a material drawn for the first time mid-fight
 // stalls the game while the driver compiles it (on Windows, up to seconds). Then one frame drawn
 // through the whole post chain, so its passes and the shadow pass are compiled too.

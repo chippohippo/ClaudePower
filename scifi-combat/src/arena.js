@@ -23,7 +23,8 @@ import { CameraRig } from './camera/CameraRig.js';
 import { CombatBotBrain } from './ai/CombatBotBrain.js';
 import { buildFighter } from './game/FighterFactory.js';
 import { routeCommand } from './core/routing.js';
-import { AudioDirector, SynthBackend } from './audio/AudioDirector.js';
+import { AudioDirector } from './audio/AudioDirector.js';
+import { SoundEngine } from './audio/SoundEngine.js';
 import { AnimationSystem } from './anim/AnimationSystem.js';
 import { CrowdRenderer } from './render/CrowdRenderer.js';
 import { silhouetteScale } from './movement/Hitboxes.js';
@@ -212,16 +213,19 @@ addEventListener('resize', () => {
   rig.camera.aspect = innerWidth / innerHeight; rig.camera.updateProjectionMatrix();
 });
 
-// Audio needs a user gesture before an AudioContext can start.
-let audio = null;
-renderer.domElement.addEventListener('mousedown', () => {
-  if (audio) return;
-  audio = new AudioDirector(new SynthBackend(), {
-    listenerId: 1, abilityIndex,
-    getEntity: (id) => { const e = world.entity(id); return e && { team: e.team, position: e.movement.state.position }; },
-    onSuperWarning: ({ ability }) => log(`ENEMY SUPER: ${abilityIndex.get(ability)?.name ?? ability}`, '#c9a0ff'),
-  });
-}, { once: false });
+// The sound (SoundEngine): rendered while you look round, started by your first click or key.
+const sound = new SoundEngine({ environment: 'open' });
+const audio = new AudioDirector(sound, {
+  listenerId: 1, abilityIndex, environment: 'trench',
+  getEntity: (id) => {
+    const e = world.entity(id);
+    if (!e) return null;
+    const v = e.movement.state.velocity, W = e.weapons;
+    return { team: e.team, position: e.movement.state.position, perks: e.perks, speed: v ? Math.hypot(v.x, v.z) : 0, weapon: W?.current?.s ?? null, loadout: W?.loadout?.map((x) => x.s) ?? [], shield: e.health?.shield ?? 0, hpFrac: e.health && !e.isVehicle ? e.health.hp / e.health.max : 1 };
+  },
+  onSuperWarning: ({ ability }) => log(`ENEMY SUPER: ${abilityIndex.get(ability)?.name ?? ability}`, '#c9a0ff'),
+});
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sound.resume());
 
 // Hit-stop: freeze the sim for a few ticks on impactful events (offline only; see ARCHITECTURE §2).
 let hitStop = 0;
@@ -407,7 +411,7 @@ const loop = new FixedLoop({
     views.update(dt);
     vehicleViews.update(dt, rig.camera);
     renderer.render(scene, rig.camera);
-    audio?.update(dt, rig.camera.position, ps.yaw);
+    audio.update(dt, ps.position, ps.yaw);
 
     // Focused enemy: the living enemy closest to the centre of the screen within 60 m.
     const camFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(rig.camera.quaternion);
