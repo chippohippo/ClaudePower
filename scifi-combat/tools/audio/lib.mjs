@@ -139,7 +139,8 @@ export function encode(b, file, { stereo = true, sr = SR, q = 4 } = {}) {
   mkdirSync(dirname(file), { recursive: true });
   const args = ['-v', 'error', '-y', '-f', 'f32le', '-ar', String(SR), '-ac', '2', '-i', '-'];
   if (!stereo) args.push('-ac', '1');
-  args.push('-ar', String(sr), '-c:a', 'libvorbis', '-q:a', String(q), file);
+  // (Bit-exact: no random stream serial, so the same sound always writes the same file.)
+  args.push('-ar', String(sr), '-fflags', '+bitexact', '-flags:a', '+bitexact', '-c:a', 'libvorbis', '-q:a', String(q), file);
   const r = spawnSync('ffmpeg', args, { input: Buffer.from(join2(b).buffer), maxBuffer: 1 << 30 });
   if (r.status) throw new Error(`encode ${file}: ${r.stderr}`);
 }

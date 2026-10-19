@@ -11,7 +11,8 @@ import { readFileSync, existsSync, statSync, openSync, readSync, closeSync } fro
 import { layerWeights, distanceShape, loudness, SoundEngine, LAYERS, KINDS } from '../src/audio/SoundEngine.js';
 import { Ambience, MAPS } from '../src/audio/Ambience.js';
 import { weaponDesign } from '../src/audio/SoundBank.js';
-import { rng } from '../src/audio/dsp.js';
+import { rng, fft } from '../src/audio/dsp.js';
+import { atmos } from '../tools/audio/atmos.mjs';
 import { data as H } from './harness.mjs';
 
 const ROOT = new URL('../audio/', import.meta.url);
@@ -83,6 +84,44 @@ test('forge: each map has its own atmosphere: beds that exist, spots of its own'
   }
   const only = (map) => new Set(Object.entries(M).filter(([, e]) => e.kind === 'spot' && e.spot.maps.length === 1 && e.spot.maps[0] === map).map(([id]) => id));
   assert.ok(only('trench').size >= 3 && only('city').size >= 2 && only('night').size >= 3, 'every map has things only it has');
+});
+
+/**
+ * The strongest held line in a sound (dB): its long-term spectrum's highest peak between 300 Hz and
+ * 8 kHz (and not 40 dB under its loudest, where it'd go unheard) over the median of the third of an
+ * octave round it. Noise, crackle and rumble come out at 2 to 4 dB; a pure tone at 30 or more.
+ */
+function held(x, sr) {
+  const n = 4096, P = new Float64Array(n / 2), re = new Float64Array(n), im = new Float64Array(n);
+  for (let a = 0; a + n <= x.length; a += n / 2) {
+    for (let i = 0; i < n; i++) { re[i] = x[a + i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / n)); im[i] = 0; }
+    fft(re, im);
+    for (let k = 0; k < n / 2; k++) P[k] += re[k] * re[k] + im[k] * im[k];
+  }
+  const lo = Math.ceil((300 * n) / sr), hi = Math.floor((8000 * n) / sr);
+  let top = 0, best = 0;
+  for (let k = lo; k <= hi; k++) top = Math.max(top, P[k]);
+  for (let k = lo; k <= hi; k++) {
+    if (P[k] < P[k - 1] || P[k] < P[k + 1] || P[k] < top * 1e-4) continue;
+    const round = Array.from(P.subarray(Math.floor(k / 1.26), Math.ceil(k * 1.26) + 1)).sort((a, b) => a - b);
+    best = Math.max(best, 10 * Math.log10(P[k] / round[round.length >> 1]));
+  }
+  return best;
+}
+
+test('forge: nothing in the atmosphere whines: no held tone in a spot or in the singing wind; the alarms are horns, not beeps', () => {
+  // (Every spot comes back again and again through a match, and the night's singing wind never stops:
+  // a tone held in any of them is the one sound you'd want gone. The sirens and the klaxon are meant
+  // to be heard as notes, far off, but rough ones: the old klaxon, a pure beep, held a line 60 dB up.)
+  const R = atmos((id) => id.startsWith('spot:') || id === 'amb:night:sing');
+  assert.ok(Object.keys(R).length >= 15, 'every spot');
+  for (const [id, e] of Object.entries(R)) {
+    const max = /siren|raid|klaxon/.test(id) ? 36 : 12;
+    for (const [i, b] of e.takes.entries()) {
+      const db = held(b.L, 48000);
+      assert.ok(db < max, `${id} take ${i + 1}: a line held ${db.toFixed(1)} dB over what's round it`);
+    }
+  }
 });
 
 test('distance: quieter, later, duller and more room the further off; the far layer takes over as the crack goes first', () => {

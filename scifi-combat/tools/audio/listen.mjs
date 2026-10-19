@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const [kind = 'battle', out = 'battle.wav', ...rest] = process.argv.slice(2);
 const opt = Object.fromEntries(rest.map((a) => a.split('=')));
 const q = new URLSearchParams({ render: kind, ...opt });
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const ROOT = process.env.EMBERFALL_ROOT ?? fileURLToPath(new URL('../..', import.meta.url));   // (another checkout's sound: EMBERFALL_ROOT)
 const port = 8900 + Math.floor(Math.random() * 90);
 
 const server = spawn(process.execPath, ['tools/serve.mjs', String(port), '--no-open'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'] });

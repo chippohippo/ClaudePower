@@ -53,7 +53,7 @@ export const KINDS = {
  * and gone by `end`; a far layer [from, to] comes in from `from` m, whole by `to`. Equal power.
  */
 export const LAYERS = {
-  gun: { crack: [8, 45], mech: [4, 15], low: [25, 100], body: [80, 250], far: [70, 200] },
+  gun: { crack: [8, 45], mech: [4, 15], low: [25, 100], body: [70, 220], far: [60, 180] },
   boom: { crack: [15, 60], debris: [20, 60], low: [45, 150], body: [50, 170], far: [45, 150] },
   report: { crack: [40, 160], low: [120, 400], body: [300, 1200] },
 };
@@ -83,7 +83,7 @@ const HERO_HOLD = { gun: 0.08, boom: 0.35, report: 0.3, near: 0.2, incoming: 0.6
  * is a hero (it plays as it is, and a new loudest ducks the rest); one `cull` under the loudest isn't
  * played. The window's top falls `release` dB a second. At most `lows` low layers at once.
  */
-export const HDR = { hero: -16, heroRange: 6, cull: 32, release: 18, maxDuck: 12, maxHeroDuck: 9, lows: 3 };
+export const HDR = { hero: -16, heroRange: 6, cull: 30, release: 18, maxDuck: 12, maxHeroDuck: 9, lows: 3 };
 
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const dbToGain = (db) => 10 ** (db / 20);
@@ -124,7 +124,7 @@ export class SoundEngine {
    *                     maxVoices, worker: false to render the bank on this thread, recorded: false for the bank only,
    *                     offline: an OfflineAudioContext (the Audio Lab's recordings) }
    */
-  constructor({ ctx = null, environment = 'city', occluder = null, maxVoices = 64, worker = true, recorded = true, offline = false } = {}) {
+  constructor({ ctx = null, environment = 'city', occluder = null, maxVoices = 40, worker = true, recorded = true, offline = false } = {}) {
     const AC = globalThis.AudioContext ?? globalThis.webkitAudioContext;
     this.ctx = ctx ?? new AC({ latencyHint: 'interactive' });
     const c = this.ctx, sr = c.sampleRate;
@@ -431,7 +431,10 @@ export class SoundEngine {
     const hero = !o.ui && !o.amb && (o.hero ?? (view === '1p' || (L > HDR.hero && L > top - HDR.heroRange)));
     if (!hero && !o.ui && K.prio < 3 && L < top - HDR.cull) { this.stats.culled++; return null; }
     // Voices: steal the quietest if this one is louder (priority breaks ties toward what matters).
+    // Footsteps and handling share a few of them (a squad's boots shouldn't take a gunshot's voice).
     this.voices = this.voices.filter((v) => !v.done);
+    const small = kindName === 'foley' || kindName === 'impact';
+    if (small && this.voices.filter((v) => v.small).length >= 10) { this.stats.dropped++; return null; }
     if (this.voices.length >= this.maxVoices) {
       let q = null;
       for (const v of this.voices) if (!q || v.level * (1 + v.prio) < q.level * (1 + q.prio)) q = v;
@@ -455,10 +458,11 @@ export class SoundEngine {
     }
     // The voice: the layers into a mix (and the low ones beside it, out of the room), the air's
     // low-pass, the pan, the bus; a send into the room.
-    const v = { srcs: [], level, prio: K.prio, done: false, end: t, L };
+    const v = { srcs: [], level, prio: K.prio, done: false, end: t, L, small };
     const mix = c.createGain(); mix.gain.value = level;
-    const lowMix = c.createGain(); lowMix.gain.value = level;
-    if (view !== '1p') for (const m of [mix, lowMix]) { m.channelCount = 1; m.channelCountMode = 'explicit'; }   // out in the world: a point
+    const lowMix = picks.some((p) => p.low) ? c.createGain() : null;     // (only when there's a low layer to keep out of the room)
+    if (lowMix) lowMix.gain.value = level;
+    if (view !== '1p') for (const m of [mix, lowMix]) if (m) { m.channelCount = 1; m.channelCountMode = 'explicit'; }   // out in the world: a point
     let node = mix;
     if (pl.shape.cutoff < 19000) { const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = pl.shape.cutoff; lp.Q.value = 0.5; mix.connect(lp); node = lp; }
     // A hero is a hero for its attack: after it (a shot's first 80 ms, a blast's first 350), its body
@@ -474,8 +478,8 @@ export class SoundEngine {
     }
     if (o.pos && view !== '1p' && !o.ui && c.createStereoPanner) {
       const p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pl.pan));
-      node.connect(p); lowMix.connect(p); p.connect(bus);
-    } else { node.connect(bus); lowMix.connect(bus); }
+      node.connect(p); lowMix?.connect(p); p.connect(bus);
+    } else { node.connect(bus); lowMix?.connect(bus); }
     if (!o.ui) { const send = c.createGain(); send.gain.value = pl.shape.wet * (view === '1p' ? 0.8 : 1); node.connect(send); send.connect(this.reverbIn); }
     v.out = mix; v.lowOut = lowMix;
     const r = (o.rate ?? 1) * (1 + (Math.random() * 2 - 1) * Math.max(o.jitter ?? 0.02, base ? 0.02 : 0));
@@ -487,7 +491,7 @@ export class SoundEngine {
       const off = Math.min(o.offset ?? 0, p.buf.duration - 0.01);
       s.start(t + (p.at ?? 0), off);
       v.srcs.push(s); v.end = Math.max(v.end, t + (p.at ?? 0) + (p.buf.duration - off) / s.playbackRate.value);
-      s.onended = () => { s.ended = true; if (v.srcs.every((x) => x.ended)) { v.done = true; mix.disconnect(); lowMix.disconnect(); } };
+      s.onended = () => { s.ended = true; if (v.srcs.every((x) => x.ended)) { v.done = true; mix.disconnect(); lowMix?.disconnect(); } };
     }
     this.voices.push(v);
     this.stats.played++;
@@ -524,7 +528,7 @@ export class SoundEngine {
     for (const name of names) {
       if (view === '1p' && name === 'far') continue;
       const w = W ? W[plain(name)] : 1;
-      if (w < 0.02) continue;
+      if (w < 0.05) continue;                         // (a layer that faint adds nothing but cost)
       const low = name === 'low';
       if (low && !lowOk) { this.stats.lowsSkipped++; continue; }
       const b = name === 'far' ? this.#deal(E.far, 'far') : this.#deal(base, name);

@@ -223,7 +223,7 @@ async function record(kind, o) {
     let i = 0;
     const C = engine.comps;
     log.comp = [];
-    const next = () => { i++; if (i * dt < secs - 0.05) ctx.suspend(i * dt).then(() => { B.step(dt); if (C && i % 6 === 0) log.comp.push([+(i * dt).toFixed(2), +C.low.reduction.toFixed(1), 0, +C.limit.reduction.toFixed(1), +engine.bedDuck.gain.value.toFixed(2), +engine.heroDuck.gain.value.toFixed(2)]); next(); ctx.resume(); }); };
+    const next = () => { i++; if (i * dt < secs - 0.05) ctx.suspend(i * dt).then(() => { B.step(dt); if (C && i % 6 === 0) log.comp.push([+(i * dt).toFixed(2), +C.low.reduction.toFixed(1), 0, +C.limit.reduction.toFixed(1), +engine.bedDuck.gain.value.toFixed(2), +engine.heroDuck.gain.value.toFixed(2), engine.voices.filter((v) => !v.done).length, engine.voices.reduce((a, v) => a + (v.done ? 0 : v.srcs.length), 0)]); next(); ctx.resume(); }); };
     B.step(dt);     // (the first tick, at 0)
     next();
   }

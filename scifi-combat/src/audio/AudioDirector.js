@@ -143,9 +143,10 @@ export class AudioDirector {
       const pos = ent?.position;
       if (!pos) return;
       const d = this.#dist(pos);
-      // Far off and firing fast: every other round is enough (they blur together at range anyway).
+      // Far off and firing fast: every other round is enough (they blur together at range anyway),
+      // past 200 m one in three.
       const last = this.lastShot.get(e.id) ?? -1;
-      if (d > 70 && this.time - last < 0.09) return;
+      if ((d > 70 && this.time - last < 0.09) || (d > 200 && this.time - last < 0.16)) return;
       this.lastShot.set(e.id, this.time);
       const rel = this.relation(e.id), quiet = (e.audioRadius ?? 1) < 1;
       _p.x = pos.x; _p.y = pos.y + 1.5; _p.z = pos.z;

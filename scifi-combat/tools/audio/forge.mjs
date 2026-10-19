@@ -115,8 +115,7 @@ for (const [id, { kind, takes }] of Object.entries(foley())) {
 }
 
 // ---------------------------------------------------------------- each map's atmosphere
-for (const [id, e] of Object.entries(atmos())) {
-  if (!want(id)) continue;
+for (const [id, e] of Object.entries(atmos(want))) {
   say(id);
   manifest.sounds[id] = { kind: e.kind, ...(e.spot ? { spot: e.spot } : {}), takes: write(`${id.replace(/:/g, '/')}/take`, e.level === false ? e.takes : lv(e.takes, e.level ?? -20, 0.4), ENC[e.enc ?? 'bed']) };
 }

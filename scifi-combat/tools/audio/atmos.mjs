@@ -85,7 +85,7 @@ function singing(r, n) {
   const len = n / SR, x = new Float32Array(n);
   for (let k = 0; k < 4; k++) {
     const f0 = jit(r, [520, 760, 1080, 1460][k], 0.1), gl = drift(r, len, jit(r, 9, 0.3), 0.92, 1.08), a = drift(r, len, jit(r, 11, 0.3), 0, 1);
-    const s = D.bandpass(D.noise(n, r), (t) => f0 * gl(t), 28, SR);
+    const s = D.bandpass(D.noise(n, r), (t) => f0 * gl(t), 12, SR);      // (narrow enough to sing, wide enough to breathe: not a whistle held all night)
     for (let i = 0; i < n; i++) s[i] *= a(i / SR) ** 3;
     D.mix(x, D.normalize(s, 1), 0.5);
   }
@@ -129,55 +129,81 @@ function siren(r, kind = 'wail') {
   for (let i = 0; i < n; i++) { const t = i / SR; x[i] *= Math.min(1, t / 0.8, (len - t) / 1.2); }
   return B.st(D.normalize(x, 0.7));
 }
-/** A PA klaxon somewhere in the towers: two tones, three times. */
+/**
+ * A PA klaxon somewhere in the towers: two notes, three times. A horn, not a beep: two reeds a
+ * little apart (they beat), their pitch never quite steady, the diaphragm rattling with them.
+ */
 function klaxon(r) {
   const n = D.samples(3.2, SR), x = new Float32Array(n), a = jit(r, 392, 0.06), b = a * 1.26;
   for (let k = 0; k < 3; k++) for (const [f, t0] of [[a, k * 1.0], [b, k * 1.0 + 0.45]]) {
-    const m = D.samples(0.42, SR), s = D.osc(m, f, 'tri', SR);
+    const m = D.samples(0.42, SR), wob = drift(r, 0.5, 0.04, -1, 1), s = new Float32Array(m);
+    for (const det of [1, 1.012]) D.mix(s, D.osc(m, (t) => f * det * (1 + 0.008 * wob(t)), 'saw', SR, r()), 0.5);
+    const rattle = D.noise(m, r);
+    for (let i = 0; i < m; i++) rattle[i] *= 0.6 + 0.4 * s[i];
+    D.mix(s, D.bandpass(rattle, 1100, 0.8, SR), 0.5);
+    D.bandpass(s, 850, 0.6, SR);
     D.mul(s, D.envSwell(m, 0.02, 0.42, 0.05, SR, 1));
     D.mix(x, s, 0.5, t0, SR);
   }
   return B.st(D.normalize(D.lowpass(D.lowpass(D.highpass(x, 250, 0.7, SR), 1600, 0.7, SR), 1600, 0.7, SR), 0.6));
 }
-/** A patrol drone going over: rotor thrum and a motor whine dropping as it passes. */
+/**
+ * A patrol drone going over: its rotors' thrum, and its fans' rush, a band of noise (pitched, never
+ * a tone) dropping as it passes.
+ */
 function drone(r) {
   const len = jit(r, 5, 0.2), n = D.samples(len, SR), tp = len * jit(r, 0.5, 0.15);
   const thrum = D.lowpass(D.noise(n, r, 'pink'), 900, 0.7, SR);
   D.tremolo(thrum, jit(r, 95, 0.15), 0.7, SR);
-  const whine = D.osc(n, (t) => jit(r, 1350, 0.15) * (1 + 0.06 * Math.tanh((tp - t) / 0.5)), 'tri', SR);
+  const f0 = jit(r, 1100, 0.15), f = (t) => f0 * (1 + 0.06 * Math.tanh((tp - t) / 0.5));
+  const fan = D.bandpass(D.bandpass(D.noise(n, r), f, 2.5, SR), f, 2.5, SR);
   const x = new Float32Array(n);
-  D.mix(x, D.normalize(thrum, 1), 1); D.mix(x, whine, 0.05);
+  D.mix(x, D.normalize(thrum, 1), 1); D.mix(x, D.normalize(fan, 1), 0.3);
   for (let i = 0; i < n; i++) { const t = i / SR; x[i] *= Math.exp(-(((t - tp) / (len * 0.3)) ** 2)); }
   return B.st(D.normalize(x, 0.7));
 }
-/** Something big flying over far up: the roar swelling and fading, a turbine's whine dropping. */
+/** Something big flying over far up: the roar swelling and fading, its turbines' hiss dropping. */
 function flyover(r, big = 1) {
   const len = jit(r, 8, 0.2), n = D.samples(len, SR), tp = len * jit(r, 0.5, 0.1);
   const roar = D.lowpass(D.noise(n, r, 'pink'), (t) => 500 + 900 * Math.exp(-(((t - tp) / 1.5) ** 2)), 0.6, SR);
   D.mix(roar, D.lowpass(D.noise(n, r, 'brown'), 140, 0.7, SR), 2 * big);
-  const whine = D.lowpass(D.osc(n, (t) => jit(r, 760, 0.15) * (1 + 0.12 * Math.tanh((tp - t) / 1.2)), 'saw', SR), 1600, 0.7, SR);
+  const f0 = jit(r, 760, 0.15), f = (t) => f0 * (1 + 0.12 * Math.tanh((tp - t) / 1.2));
+  const hiss = D.bandpass(D.bandpass(D.noise(n, r), f, 3, SR), f, 3, SR);
   const x = new Float32Array(n);
-  D.mix(x, D.normalize(roar, 1), 1); D.mix(x, D.normalize(whine, 1), 0.06);
+  D.mix(x, D.normalize(roar, 1), 1); D.mix(x, D.normalize(hiss, 1), 0.12);
   for (let i = 0; i < n; i++) { const t = i / SR; x[i] *= Math.exp(-(((t - tp) / (len * 0.28)) ** 2)); }
   return B.st(D.normalize(x, 0.7));
 }
-/** A searchlight turning on its mount: the servo's whine, a clunk where it stops. */
+/**
+ * A searchlight turning on its mount: the servo's whirr (a band of noise rising with its speed, the
+ * gears ticking faster, never quite evenly), a clunk where it stops.
+ */
 function searchlight(r) {
   const len = jit(r, 2.2, 0.2), n = D.samples(len, SR), run = len * jit(r, 0.7, 0.1);
-  const f = (t) => jit(r, 520, 0.1) * (1 + 0.25 * Math.sin(Math.PI * Math.min(1, t / run)));
-  const x = D.mul(D.osc(n, f, 'saw', SR), D.envSwell(n, 0.15, run, 0.25, SR, 1));
-  D.lowpass(x, 1800, 0.7, SR);
+  const sp = (t) => Math.sin(Math.PI * Math.min(1, t / run)), f0 = jit(r, 520, 0.1), f = (t) => f0 * (1 + 0.25 * sp(t));
+  const whirr = D.normalize(D.bandpass(D.bandpass(D.noise(n, r), f, 2.5, SR), f, 2.5, SR), 1);
+  D.mul(whirr, D.envSwell(n, 0.15, run, 0.25, SR, 1));
+  const gears = new Float32Array(n);
+  for (let t = 0.03; t < run - 0.05; t += (0.75 + r() * 0.5) / (30 + 50 * sp(t))) gears[Math.floor(t * SR)] = (0.4 + 0.6 * r()) * (0.3 + 0.7 * sp(t));
+  const x = new Float32Array(n);
+  D.mix(x, whirr, 1); D.mix(x, D.normalize(D.bandpass(gears, 1500, 1.5, SR), 1), 0.35);
+  D.lowpass(x, 2200, 0.7, SR);
   D.mix(x, D.mul(D.bandpass(D.noise(n, r), 900, 2, SR), D.envExp(n, 0.001, 0.03, SR, run)), 3);
   return B.st(D.normalize(x, 0.6));
 }
-/** A transformer arcing: a buzz and a burst of crackle. */
+/** Noise in sharp bursts `f` times a second: a discharge's buzz, with the mains' rhythm but no harmonic to whine on. */
+function buzz(n, r, f, sharp = 8) {
+  const x = D.noise(n, r), w = (2 * Math.PI * f) / SR;
+  for (let i = 0; i < n; i++) x[i] *= (0.5 + 0.5 * Math.cos(w * i)) ** sharp;
+  return x;
+}
+/** A transformer arcing: a growling buzz and a burst of crackle. */
 function arc(r) {
-  const len = jit(r, 1.4, 0.3), n = D.samples(len, SR), on = (t) => (Math.sin(t * jit(r, 9, 0.4)) > -0.2 ? 1 : 0) * Math.min(1, (len - t) / 0.2);
-  const buzz = D.osc(n, 100, 'saw', SR);
-  D.lowpass(buzz, 900, 0.7, SR);
-  for (let i = 0; i < n; i++) buzz[i] *= on(i / SR);
+  const len = jit(r, 1.4, 0.3), n = D.samples(len, SR), rate = jit(r, 9, 0.4), on = (t) => (Math.sin(t * rate) > -0.2 ? 1 : 0) * Math.min(1, (len - t) / 0.2);
+  const b = D.lowpass(D.lowpass(buzz(n, r, 100, 6), 1400, 0.7, SR), 1400, 0.7, SR), hum = D.osc(n, 100, 'sine', SR);
+  for (let i = 0; i < n; i++) { const g = on(i / SR); b[i] *= g; hum[i] *= g; }
   const x = new Float32Array(n);
-  D.mix(x, buzz, 0.25); D.mix(x, D.highpass(D.crackle(n, r, 300, on, SR), 1200, 0.7, SR), 1);
+  D.mix(x, D.normalize(b, 1), 0.35); D.mix(x, hum, 0.1); D.mix(x, D.highpass(D.crackle(n, r, 300, on, SR), 1200, 0.7, SR), 1);
   return B.st(D.normalize(x, 0.6));
 }
 function snowSlide(r) {
@@ -186,10 +212,26 @@ function snowSlide(r) {
   D.mix(x, D.mul(D.lowpass(D.noise(m, r, 'brown'), 300, 0.7, SR), D.envExp(m, 0.004, 0.08, SR)), 3, len - 0.35, SR);
   return B.st(D.normalize(x, 0.6));
 }
+/**
+ * A neon sign on the blink: the tube's buzz (its discharge striking 120 times a second) over the
+ * ballast's low hum, and the flicker: it stutters, drops out, and catches again with a tick.
+ */
 function neon(r) {
-  const len = jit(r, 1.5, 0.3), n = D.samples(len, SR), x = D.osc(n, 120, 'saw', SR);
-  D.bandpass(x, 1100, 0.8, SR);
-  for (let i = 0; i < n; i++) { const t = i / SR; x[i] *= (Math.sin(t * 37) + Math.sin(t * 11.3) > -0.6 ? 1 : 0.1) * Math.min(1, t / 0.05, (len - t) / 0.1); }
+  const len = jit(r, 1.6, 0.3), n = D.samples(len, SR), gate = new Float32Array(n), ticks = new Float32Array(n);
+  for (let t = 0, was = 0; t < len;) {
+    const d = 0.03 + r() ** 2 * 0.3, k = r() < 0.65 ? 1 : r() < 0.5 ? 0.3 : 0, a = Math.floor(t * SR);
+    gate.fill(k, a, Math.min(n, Math.floor((t + d) * SR)));
+    if (k > was + 0.2) ticks[a] = 0.6 + 0.4 * r();
+    was = k; t += d;
+  }
+  const c = 1 - Math.exp(-1 / (0.0015 * SR));
+  for (let i = 0, g = 0; i < n; i++) { g += (gate[i] - g) * c; gate[i] = g * Math.min(1, i / (0.03 * SR), (n - i) / (0.08 * SR)); }
+  const f = jit(r, 120, 0.004), b = D.highpass(buzz(n, r, f), 250, 0.7, SR), hum = D.osc(n, f, 'sine', SR);
+  D.lowpass(D.lowpass(b, 2400, 0.7, SR), 2400, 0.7, SR);
+  D.mix(hum, D.osc(n, 2 * f, 'sine', SR), 0.35);
+  for (let i = 0; i < n; i++) { b[i] *= gate[i]; hum[i] *= gate[i]; }
+  const x = new Float32Array(n);
+  D.mix(x, D.normalize(b, 1), 1); D.mix(x, hum, 0.25); D.mix(x, D.bandpass(ticks, 2600, 1.2, SR), 1.5);
   return B.st(D.normalize(x, 0.4));
 }
 
@@ -197,11 +239,12 @@ function neon(r) {
 /**
  * id -> { kind: 'amb' (a bed: Ambience loops it) | 'spot' (Ambience places it round you), takes,
  * level (the takes' punch, dBFS over 0.4 s), enc, spot: { every: [s, s], dist: [m, m], gain } }.
+ * Only the ids `want` says yes to are made.
  */
-export function atmos() {
+export function atmos(want = () => true) {
   const R = {};
-  const bedOf = (id, len, fn, level) => { R[id] = { kind: 'amb', takes: [bed(id, len, fn)], level, enc: 'bed' }; };
-  const spotOf = (id, fn, k, spot, level = -18) => { R[id] = { kind: 'spot', takes: Array.from({ length: k }, (_, i) => fn(seeded(id, i))), level, enc: 'spot', spot }; };
+  const bedOf = (id, len, fn, level) => { if (want(id)) R[id] = { kind: 'amb', takes: [bed(id, len, fn)], level, enc: 'bed' }; };
+  const spotOf = (id, fn, k, spot, level = -18) => { if (want(id)) R[id] = { kind: 'spot', takes: Array.from({ length: k }, (_, i) => fn(seeded(id, i))), level, enc: 'spot', spot }; };
   // The Trenches
   bedOf('amb:trench:wind', 37, (r, n) => wind(r, n, { lo: 160, hi: 1100, gust: 5, floor: 0.2 }), -24);
   bedOf('amb:trench:front', 31, frontRumble, -26);
