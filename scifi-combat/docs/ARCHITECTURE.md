@@ -105,7 +105,9 @@ scifi-combat/
 │  │          BattlefieldRenderer.js  TerrainChunks.js  ArtTextures.js  CoverTextures.js  ScorchField.js
 │  │          SandbagTops.js  TracerPool.js
 │  │          chunked terrain, triplanar cover, trenches, wire, objectives; pooled tracers
-│  ├─ audio/ AudioManager.js  MusicDirector.js
+│  ├─ audio/ SoundEngine.js (depth, layers by distance, the loudness-window mix)  Acoustics.js (each map's room)
+│  │         Ambience.js (each map's atmosphere)  AudioDirector.js (sim events to sound)
+│  │         SoundBank.js  bankWorker.js  dsp.js (what's designed in code)  → docs/AUDIO.md
 │  ├─ net/  NetworkManager.js  Prediction.js  Interpolation.js  protocol.js
 │  ├─ vfx/  VehicleViews.js  ZoneDeployableViews.js  BattleFx.js (shell bursts, smoke, trails)
 │  │        StratagemViews.js (beacons and their beams, danger fences, strike streaks, the jet, pods, the sentry)
@@ -139,7 +141,7 @@ scifi-combat/
 | NetworkManager | prediction, reconciliation, interpolation | sim snapshots | — |
 | AnimationSystem + rigs | pose solve per fighter (procedural or clip), foot planting, LOD | sim state (read-only), combat events | `anim:footstep`, `anim:impact`, `anim:cloth` |
 | CameraRig | 1P/3P blend, collision, shake, FOV | movement state, events | — |
-| AudioManager / Juice | spatial SFX, hit-stop, rumble | events | — |
+| AudioDirector + SoundEngine | sound in the world: layered shots by distance, each map's room and atmosphere, the mix | sim and anim events (read-only) | — |
 
 AI produces the same `Command` struct as humans → bots get identical movement & melee feel,
 and bots can run server-side for free.

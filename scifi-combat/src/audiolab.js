@@ -9,8 +9,8 @@
 //
 // An offline recording (tools/audio/listen.mjs drives it in a headless browser) leaves its result
 // in window.__audiolab: { done, error, wav (base64, 16-bit stereo), log (what played, when, from
-// how far, how loud) }. A battle is heard by one soldier of the first side (his gun is "yours");
-// when he falls, the nearest living comrade takes over, as a spectator would.
+// how far, how loud) }. A battle is heard by one soldier of the first side (their gun is "yours");
+// when they fall, the nearest living comrade takes over, as a spectator would.
 
 import { bus } from './core/EventBus.js';
 import { FrontlineSession } from './game/FrontlineSession.js';
@@ -278,7 +278,7 @@ function board(data) {
   }));
 
   const bat = section('Battle');
-  const note = h('p', { textContent: 'A 32 v 32 battle heard from inside it, by a soldier of the Solari (his gun is yours). Takes a few seconds to build.' });
+  const note = h('p', { textContent: 'A 32 v 32 battle heard from inside it, by a soldier of the Solari (their gun is yours). Takes a few seconds to build.' });
   bat.append(note, h('button', {
     textContent: 'Listen to a battle',
     onclick: async () => {
