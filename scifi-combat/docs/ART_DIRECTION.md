@@ -259,6 +259,7 @@ sky and light, to model against and to screenshot:
 | `people` | the city's people in a 32v32 city (`duskcity`): `lineup` (civilians under a street lamp), `close` (faces), `gangs` (two gangs' raiders), `cower` (a family down in the street, an armed neighbour firing), `drops` (guns lying in the street) |
 | `vehicles` | `solari`, `void`, `tank`, `guns`, `trucks` |
 | `cars` | the recon cars (the real sim run to each moment): `parked`, `kestrel`, `jackal`, `rear`, `drift`, `roll`, `over`, `thrown`, `burning` |
+| `bikes` | the speeders and their riders (the real sim): `parked`, `sunrunner`, `skiff` (close up), `behind`, `front`, `turn` (carving a left-hander, banked), `chase` (the same from the rider camera) |
 | `city` | the city (a 32v32 city map, `duskcity` sky; `&planet=nightcity` for the aurora night): `street` (down an avenue), `squad` (under a street lamp), `fire` (a burning wreck), `barricade`, `crossing`, `park` (the fountain), `aurora`, `above` |
 | `scene` | a composed front-line moment: `hero` (the fire step, into the sun), `over`, `across` (from no-man's-land), `side` (down the trench) |
 | `gunfx` | `impacts` (rounds landing on sandbags, timber, metal, concrete and dirt), `muzzle` (a trooper firing) |

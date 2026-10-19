@@ -15,20 +15,20 @@
   }
  },
  "speeds": {
-  "_note": "HD2 has no walk key: full stick/keys = jog. Analog stick below 55% = walk. ADS scales via the weapon's ads.moveMul.",
-  "walk": 1.9,
-  "jog": 4.5,
-  "sprint": 7.2,
-  "crouch": 2.4,
-  "prone": 0.95,
+  "_note": "HD2 has no walk key: full stick/keys = jog. Analog stick below 55% = walk. ADS scales via the weapon's ads.moveMul. Every speed is 11% under the first HD2 calibration (walk 1.9, jog 4.5, sprint 7.2, crouch 2.4, crawl 0.95): on foot it read a little fast; the response (the 0.13 s start and stop, the sprint ramp's time) is unchanged.",
+  "walk": 1.7,
+  "jog": 4.0,
+  "sprint": 6.4,
+  "crouch": 2.1,
+  "prone": 0.85,
   "analogWalkBelow": 0.55
  },
  "accel": {
-  "_note": "The weight lives here, never in input latency. toJog is near-instant (0 to 90% jog in ~0.12 s); jogToSprint is the long, heavy sprint ramp (~0.55 s); sprintStop is the skid when you let go of a sprint (~1.1 m overrun).",
-  "toJog": 34,
-  "jogToSprint": 4.8,
-  "stop": 38,
-  "sprintStop": 18,
+  "_note": "The weight lives here, never in input latency. toJog is near-instant (0 to 90% jog in ~0.15 s); jogToSprint is the long, heavy sprint ramp (~0.5 s); sprintStop is the skid when you let go of a sprint (~1 m overrun). Scaled with the speeds (11% under the first calibration), so every start, ramp and skid takes the time it did.",
+  "toJog": 30,
+  "jogToSprint": 4.3,
+  "stop": 34,
+  "sprintStop": 16,
   "air": 5.0
  },
  "turnRates": {
@@ -93,7 +93,7 @@
  "slide": {
   "_note": "Committed, feet-first combat slide from sprint + crouch. Friction ramps from low to high, so the slide carries far and then stops decisively. Steerable at 80 deg/s. Slopes add gravity along the surface. HD2's own slide is the belly slide after a dive (see dive.belly), and both use this model. Slide into prone: the prone key (or a second crouch tap after dropAfter s) drops you flat mid-slide, keeping dropCarry of the speed (a belly slide that ends prone).",
   "minEntrySpeed": 5.6,
-  "entryBoost": 1.12,
+  "entryBoost": 1.2,
   "maxEntrySpeed": 8.6,
   "frictionStart": 4.5,
   "frictionEnd": 9.5,
@@ -110,8 +110,8 @@
  },
  "dive": {
   "_note": "HD2 dive: a low, fast, committed leap in any direction (no input = forward), belly landing, belly slide, then prone. Out of a sprint you dive the way you face; otherwise the body stays on your aim: inputs past sideAngle dive sideways (land on the side, roll to the belly), past backAngle dive backward (land on your back and keep shooting). Firing is allowed throughout; ADS drops. The i-frames cover most of the airborne part. The arc is higher and longer than HD2's (0.5 s, half a metre up). Diving off a drop: once the fall below it would land at braceAt m/s or harder (about a 2.5 m drop), the body goes limp into a ragdoll braced for it (arms out ahead and down, then both hands for the ground), and the landing costs braceDamage of what it would on your feet.",
-  "minSpeed": 4.8,
-  "boost": 1.4,
+  "minSpeed": 4.0,
+  "boost": 2.2,
   "maxSpeed": 8.6,
   "upVelocity": 3.6,
   "gravity": 14,
@@ -203,7 +203,7 @@
   "reach": 2.2,
   "minHeight": 0.85,
   "highAt": 1.45,
-  "moveSpeed": 2.2,
+  "moveSpeed": 1.95,
   "snapSpeed": 6,
   "edge": 0.5,
   "peekOut": 0.55,

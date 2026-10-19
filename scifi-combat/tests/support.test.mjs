@@ -120,6 +120,9 @@ test('soldiers hit the dirt when a round is about to land on them', () => {
   G.incoming.push({ x: p.x + 2, y: p.y, z: p.z, at: G.time + 2, radius: 9, team: 1 - f.team, kind: 'howitzer', gun: -1 });
   run(s, 1.2);
   assert.equal(f.movement.state.stance, 'prone', 'down before it lands');
+  // And still down when it does (a man who was sprinting lets go of it: sprint gets you up off your belly).
+  run(s, 0.75);
+  assert.ok(f.movement.state.stance === 'prone' && !f.movement.state.stanceT, 'still flat when it lands');
   s.dispose();
 });
 

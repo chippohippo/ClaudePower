@@ -294,6 +294,8 @@ export class CombatBotBrain {
   /** The command's last touches: round the bodies in the way (or out of a teammate's), then the buttons' edges. */
   #out(cmd, ignore = null) {
     this.#avoidBodies(cmd, ignore);
+    // Down for a round about to land: nothing that stands us back up (sprint or jump, prone, does).
+    if (this.time < this.dirtUntil) for (const k of ['sprint', 'jump']) { this.btn.down.delete(k); this.btn.queued.delete(k); }
     this.btn.finalize(cmd);
     return cmd;
   }

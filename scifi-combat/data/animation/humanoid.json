@@ -16,29 +16,29 @@
   "foreArm": 0.28
  },
  "gait": {
-  "_note": "Tables are [[speed m/s, value], ...]. stride = metres per full cycle (two steps). duty = fraction of the cycle a foot is planted (below 0.5 gives a flight phase). Cadence = speed / stride, so feet never slide at any speed. maxAimSpeed: how fast (m/s, plus a quarter per m/s of body speed) a swinging foot's landing point may move when the prediction jumps (a sprint reversal, a sudden stop).",
+  "_note": "Tables are [[speed m/s, value], ...]. stride = metres per full cycle (two steps). duty = fraction of the cycle a foot is planted (below 0.5 gives a flight phase). Cadence = speed / stride, so feet never slide at any speed. maxAimSpeed: how fast (m/s, plus a quarter per m/s of body speed) a swinging foot's landing point may move when the prediction jumps (a sprint reversal, a sudden stop). Keyed to the speeds in movement.json (walk 1.7, jog 4.0, sprint 6.4, crouch 2.1): when those were slowed 11%, the keys moved with them (a jog still looks like a jog) and the strides shortened 6%, the cadence dropping 6% with them, as a person slowing down does.",
   "maxAimSpeed": 6,
   "stand": {
    "stride": [
     [
      0.4,
-     0.9
+     0.85
     ],
     [
-     1.9,
-     1.7
+     1.7,
+     1.6
     ],
     [
-     4.5,
-     2.9
+     4.0,
+     2.73
     ],
     [
-     7.2,
-     4.2
+     6.4,
+     3.96
     ],
     [
-     9.0,
-     4.9
+     8.0,
+     4.62
     ]
    ],
    "duty": [
@@ -47,19 +47,19 @@
      0.66
     ],
     [
-     1.9,
+     1.7,
      0.6
     ],
     [
-     4.5,
+     4.0,
      0.37
     ],
     [
-     7.2,
+     6.4,
      0.25
     ],
     [
-     9.0,
+     8.0,
      0.23
     ]
    ],
@@ -69,15 +69,15 @@
      0.008
     ],
     [
-     1.9,
+     1.7,
      0.02
     ],
     [
-     4.5,
+     4.0,
      0.036
     ],
     [
-     7.2,
+     6.4,
      0.045
     ]
    ],
@@ -87,15 +87,15 @@
      0.05
     ],
     [
-     1.9,
+     1.7,
      0.09
     ],
     [
-     4.5,
+     4.0,
      0.18
     ],
     [
-     7.2,
+     6.4,
      0.27
     ]
    ],
@@ -105,15 +105,15 @@
      0.15
     ],
     [
-     1.9,
+     1.7,
      0.35
     ],
     [
-     4.5,
+     4.0,
      0.62
     ],
     [
-     7.2,
+     6.4,
      1.0
     ]
    ],
@@ -123,15 +123,15 @@
      0
     ],
     [
-     1.9,
+     1.7,
      0.01
     ],
     [
-     4.5,
+     4.0,
      0.06
     ],
     [
-     7.2,
+     6.4,
      0.085
     ]
    ],
@@ -141,15 +141,15 @@
      0.02
     ],
     [
-     1.9,
+     1.7,
      0.04
     ],
     [
-     4.5,
+     4.0,
      0.09
     ],
     [
-     7.2,
+     6.4,
      0.27
     ]
    ],
@@ -163,15 +163,15 @@
    "stride": [
     [
      0.4,
-     0.7
+     0.65
     ],
     [
-     2.4,
-     1.55
+     2.1,
+     1.45
     ],
     [
-     3.2,
-     1.8
+     2.8,
+     1.68
     ]
    ],
    "duty": [
@@ -180,11 +180,11 @@
      0.68
     ],
     [
-     2.4,
+     2.1,
      0.58
     ],
     [
-     3.2,
+     2.8,
      0.55
     ]
    ],
@@ -194,7 +194,7 @@
      0.006
     ],
     [
-     2.4,
+     2.1,
      0.018
     ]
    ],
@@ -204,7 +204,7 @@
      0.04
     ],
     [
-     2.4,
+     2.1,
      0.1
     ]
    ],
@@ -214,7 +214,7 @@
      0.1
     ],
     [
-     2.4,
+     2.1,
      0.28
     ]
    ],
@@ -224,7 +224,7 @@
      0
     ],
     [
-     2.4,
+     2.1,
      0.02
     ]
    ],
@@ -234,7 +234,7 @@
      0
     ],
     [
-     2.4,
+     2.1,
      0.06
     ]
    ],

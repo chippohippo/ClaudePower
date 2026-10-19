@@ -33,7 +33,8 @@ code at d482136, measured headless at 60 Hz.
 | Secondary motion | Packs, slung weapons and clothes swing with every turn and stop | The cape only (its damping is per rendered frame: stiffer at 144 Hz); everything else rigid |
 | Hit by gunfire (you) | A flinch, a short camera jolt | A camera flinch of up to 3° (fine); no trauma from bullets; blasts give the rig no flinch |
 
-What stays (the Helldivers 2 foundation, kept by `tests/movement-feel.test.mjs`): 0.13 s to jog,
+What stays (the Helldivers 2 foundation, kept by `tests/movement-feel.test.mjs`; the on-foot speeds
+were later brought down 11%, with the same times: [MOVEMENT.md](MOVEMENT.md#speed-curve)): 0.13 s to jog,
 0.13 s to stop, the 720°/s body turn, the sprint ramp and skid, the dive and belly slide, the
 slide. The Last of Us Part II is as immediate as that (it starts moving on the press); its weight
 is in the body, which is where this pass puts it.

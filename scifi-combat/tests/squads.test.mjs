@@ -147,7 +147,8 @@ test('contact: bounding overwatch, one fire team covering while the other moves'
   const s = new FrontlineSession(sessionData, { size: '12v12', seed: 4 });
   let samples = 0, allMoving = 0, flips = 0, covering = 0;
   const last = new Map();
-  run(s, 75, (i) => {
+  // (85 s: the fronts meet a little later since soldiers were slowed 11%: docs/MOVEMENT.md)
+  run(s, 85, (i) => {
     if (i % 15) return;
     for (const team of [0, 1]) for (const sq of s.squads[team]) {
       const T = sq.tactics;

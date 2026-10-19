@@ -30,12 +30,12 @@ measured fact. The procedure for locking them to the real game is in the next se
 
 | Quantity | Current value | Test band | How to measure in HD2 |
 |---|---|---|---|
-| Jog speed | 4.5 m/s | — | Distance per second between markers, stick fully forward |
-| 0 → 90% jog | ~0.12 s (accel 34 m/s²) | ≤ 0.15 s | Frames from input to steady-speed footfalls |
-| Stop from jog | ~0.12 s (38 m/s²) | ≤ 0.15 s | Frames from release to rest |
-| Sprint speed | 7.2 m/s | — | As jog, holding sprint |
-| Jog → 95% sprint | ~0.6 s (4.8 m/s²) | 0.45–0.75 s | Frames from sprint press to top speed |
-| Sprint-release skid | ~1.1 m | 0.8–1.6 m | Overrun distance after letting go of everything |
+| Jog speed | 4.0 m/s (was 4.5) | — | Distance per second between markers, stick fully forward |
+| 0 → 90% jog | ~0.15 s (accel 30 m/s²) | ≤ 0.15 s | Frames from input to steady-speed footfalls |
+| Stop from jog | ~0.13 s (34 m/s²) | ≤ 0.15 s | Frames from release to rest |
+| Sprint speed | 6.4 m/s (was 7.2) | — | As jog, holding sprint |
+| Jog → 95% sprint | ~0.5 s (4.3 m/s²) | 0.45–0.75 s | Frames from sprint press to top speed |
+| Sprint-release skid | ~1.0 m | 0.8–1.6 m | Overrun distance after letting go of everything |
 | Sprint turn rate | 270°/s, carving | 0.28–0.45 s for 90° | Arc radius on a hard camera turn |
 | Sprint reversal | plant-and-pivot (26 m/s² skid, 720°/s swing) | speed dips < 50% | Frames of the reversal |
 | Jog strafe switch | ≤ 0.2 s to 90% lateral speed | ≤ 0.2 s | Frames from strafe input to steady strafe |
@@ -47,7 +47,7 @@ measured fact. The procedure for locking them to the real game is in the next se
 | Dive direction | forward out of a sprint; side past 55°, back past 125° from the aim | — | Dive sideways/backward while aiming: body orientation and landing side (we land on the back after a back dive and keep aiming) |
 | Drop to prone | 0.50 s | ±0.05 s | Frames of the drop |
 | Prone → stand | 0.62 s (0.45 s within 1.5 s of a dive) | fast < normal | Frames of the get-up |
-| Crawl speed | 0.95 m/s | ±0.1 | As jog, prone |
+| Crawl speed | 0.85 m/s (was 0.95) | ±0.1 | As jog, prone |
 | Prone turn | 110°/s | 0.7–1.0 s for 90° | Frames to rotate prone |
 | Climb 2 m | 0.62 s | ±0.05 s | Frames of a chest-high climb |
 | Heavy landing / knockdown | 9.5 m/s (~2 m) / 15 m/s (~5 m) | — | Drop heights that cause a stumble / a knockdown with fall damage |
@@ -113,16 +113,25 @@ Other systems read per-tick flags the controller sets first in every tick:
 
 ## Speed curve
 
-Accelerating toward jog speed is near-instant (34 m/s²). From jog to sprint is a long, heavy ramp
-(4.8 m/s²). Slowing from above jog speed is the sprint skid (18 m/s²); slowing below it is a crisp
-stop (38 m/s²). Armor scales every speed (light ×1.1, heavy ×0.9) and stamina regen (light ×1.25,
+On foot: walk 1.7, jog 4.0, sprint 6.4, crouch-walk 2.1 and crawl 0.85 m/s. That's 11% under the
+first HD2 calibration (1.9, 4.5, 7.2, 2.4, 0.95), because on foot it read a little fast. The
+accelerations came down with the speeds, so every start, ramp, stop and skid takes the time it did;
+only the ground covered is less. The gait tables (`humanoid.json` `gait`) moved their speed keys
+with them, so a jog still looks like a jog and a sprint like a full sprint, on 6% shorter strides
+at a 6% lower cadence. The dive's launch (`dive.minSpeed` 4.0, `boost` 2.2) keeps its old speeds:
+7.5 m from a sprint, 4.3 m from a standstill. The slide (`entryBoost` 1.2) carries 4.3 m, where it
+carried 4.7 m.
+
+Accelerating toward jog speed is near-instant (30 m/s²). From jog to sprint is a long, heavy ramp
+(4.3 m/s²). Slowing from above jog speed is the sprint skid (16 m/s²); slowing below it is a crisp
+stop (34 m/s²). Armor scales every speed (light ×1.1, heavy ×0.9) and stamina regen (light ×1.25,
 heavy ×0.5). Slopes slow you uphill (−35% at 45°) and speed you up a little downhill (+12%).
 Ground steeper than 48° makes you lose footing.
 
 ## Slides
 
 - **Feet-first combat slide (sprint + crouch):**
-  - Entry is ×1.12 sprint speed, capped at 8.6 m/s.
+  - Entry is ×1.2 sprint speed, capped at 8.6 m/s.
   - It's committed for 0.45 s and lasts at most 1.35 s.
   - Friction ramps from 4.5 to 9.5 m/s² over 0.9 s: it carries far, then stops decisively.
   - Steering turns the velocity at 80°/s, and slope gravity adds speed downhill.

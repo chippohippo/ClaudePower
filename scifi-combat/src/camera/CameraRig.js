@@ -262,7 +262,9 @@ export class CameraRig {
     // ---- FOV: sprint speed, slides and dives widen; kicks decay; ADS narrows to the weapon's ADS FOV
     let fov = s.baseFov;
     if (s.fovEffects && !s.reducedMotion) {
-      const sprintK = st.sprinting ? MathUtils.clamp(((st.speed ?? 0) - 4.5) / 2.7, 0, 1) : 0;
+      // (from his jog to his sprint speed, whatever they're tuned to: movement.json speeds)
+      const sp = o.target.movement.t?.speeds, jog = sp?.jog ?? 4, sprint = sp?.sprint ?? 6.4;
+      const sprintK = st.sprinting ? MathUtils.clamp(((st.speed ?? 0) - jog) / Math.max(0.5, sprint - jog), 0, 1) : 0;
       fov += 6 * sprintK + (mode === 'slide' ? 8 : 0) + (mode === 'dive' ? 10 : 0) + this.fovKick;
     }
     this.fovKick = MathUtils.damp(this.fovKick, 0, 5, dt);

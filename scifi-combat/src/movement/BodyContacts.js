@@ -207,7 +207,7 @@ export class BodyContacts {
     const list = this.list, B = this.B, s = f.movement.state, p = s.position;
     if (!list.length) return out;
     const myR = (B.radius[f.movement.armor] ?? B.radius.medium) + (s.stance === 'crouch' ? B.crouchExtra : 0);
-    const look = Math.min(3.4, 1 + Math.max(1.5, s.speed) * 0.35);
+    const look = Math.min(3.4, 1 + Math.max(1.5, s.speed) * 0.4);   // (2.6 m at a jog)
     const rx = -dz, rz = dx;   // (right of the way he's going)
     const q = ++this.qn, st = this.stamp;
     let acc = 0;

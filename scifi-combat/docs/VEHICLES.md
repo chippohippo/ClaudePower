@@ -6,7 +6,8 @@ Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vehicles/CarPhysics.js` (the
 `src/render/VehicleKit.js` · bot drivers: `src/ai/VehiclePilot.js`, gun crews and truck drivers:
 `src/ai/CrewPilot.js` · fire control: `src/ui/FireControl.js` · data: `data/vehicles.json` · tests:
 `tests/vehicles.test.mjs`, `tests/vehicles-car.test.mjs`, `tests/artillery.test.mjs` (and
-`tests/squads.test.mjs` for armor in the trench war) · art lab: `?station=cars`.
+`tests/squads.test.mjs` for armor in the trench war), `tests/speeder.test.mjs` · art lab: `?station=cars`,
+`?station=bikes`.
 
 ## Roster
 
@@ -23,6 +24,25 @@ Code: `src/vehicles/VehicleSystem.js` (sim) · `src/vehicles/CarPhysics.js` (the
 | Lance AT Gun / Spike Cannon | Solari / Void | towed AT gun | 700 / 650 | commander, loader | 460 antitank slug (×2.2 on armor), 20 rounds | Low and slow to swing (14°/s past its 30° arc); shell it or flank it |
 | Hauler / Crawler Supply Truck | Solari / Void | truck | 1000 | driver, 2 passengers | 150 supplies | Its cargo burns with it: interdict the road |
 | Kestrel Recon Car / Jackal Raider | Solari / Void | car | 1600 / 1400 | driver, ring gunner (exposed), 3 passengers (exposed, own guns) | Ring-Mount HMG (heat) | The gunner and passengers are in the open; trip it on a kerb or rubble at speed, or put a blast beside it, and it rolls and throws them all out |
+
+## Speeders (hover bikes)
+
+- **Steering:** point and go. The bike turns toward where its rider looks, at up to 150°/s; W/S are
+  throttle and brake, A/D slide it sideways.
+- **Lean:** the hull banks into the sideways g it pulls, as a bike leans, up to 34° (`lean.max`
+  0.6 rad, settling at 8/s). It noses up on the throttle and dips on the brake, up to 4.6°
+  (`pitchMax`); a steady carve holds the nose level. Bank and pitch are sim state (`v.bank`,
+  `v.pitch`, in the netcode snapshot), not a view effect.
+- **The rider sits the bike.** The driver seat's `offset` is its seat point, on top of the saddle
+  (0.85 m up on the Sunrunner). It had been 1.5 m up, and riders floated over their bikes. The
+  seat also says where the rider's hands go (`grips`) and his feet (`pegs`). The model
+  (`VehicleKit` `bike`) builds its saddle, handlebar grips and footpegs at those points, and the
+  rig's `ride` pose reaches the same points: crouched over the bars, square to them, the head free
+  to look.
+- **Tilting with the hull:** the seat point (`seatOnTilted`), the whole rider (his skeleton turned
+  rigidly about the seat, his head half as far, so his eyes stay nearer level) and his hit spheres
+  (the `ride` layout) all tilt with the hull. They stay within 3 cm of each other through a hard
+  carve (`tests/speeder.test.mjs`).
 
 ## Recon cars (`CarPhysics`)
 

@@ -21,7 +21,7 @@ exactly like players: cooldowns, cast times, recoil, telegraphs, vehicles and co
 | Safety | Sidesteps (and rolls) out of telegraphed line and circle casts aimed at it, walks out of hostile zones while they arm, and retreats at low HP. |
 | Squad orders (frontline) | Its squad's `SquadTactics` hands it an order (below): move, bound, overwatch, man a trench, hold, stack, enter, grenade, assault or charge. The brain walks there, takes the stance the position allows and fights from it. Without a squad (the arena) it falls back to the commander's objective and free fighting. |
 | Downs | Downed: crawls toward help, lies still while being revived, gives up when nobody's coming. Up: revives downed teammates nearby (medics go further), one reviver per patient, and finishes a revive once it's well under way. |
-| Shellfire | A round about to land within a few metres (the guns' `incoming` list, the same one the audio whistles from): drop prone until just after it lands. A drop pod about to land on it: sprint out from under it (prone is how you get crushed). |
+| Shellfire | A round about to land within a few metres (the guns' `incoming` list, the same one the audio whistles from): drop prone until just after it lands, letting go of sprint and jump meanwhile (either gets a man up off his belly, so one who was sprinting stood straight back up). A drop pod about to land on it: sprint out from under it (prone is how you get crushed). |
 | Call-ins | `CallInPlanner` (below): strikes, supply drops, smoke and sentries, typed and thrown like a player's. Short of ammo with one of our supply pods within 30 m, it walks over and takes its mags. |
 | Duty (frontline, 12v12 and up) | Gun crews and truck drivers (below) get to their gun or truck and take their seat; `CrewPilot` drives it. They fight as infantry only when an enemy is in their face or their vehicle isn't back yet. |
 
@@ -207,7 +207,7 @@ shouts it.
 
 Soldiers are solid (docs/MOVEMENT.md, "Bodies"), and the bots move like men who know it. Every
 command a bot sends has its stick turned, last thing, round the bodies ahead of where it's going
-(from the bodies of the last tick, within 1.5 to 3.4 m by speed):
+(from the bodies of the last tick, within 1.6 to 3.4 m by speed: 2.6 m at a jog):
 
 - **Round a man in the way:** standing there, or coming at it; off to the side he isn't, and dead
   ahead (or coming straight at it) to the right, as he'll do too, so two men meeting pass each other.
