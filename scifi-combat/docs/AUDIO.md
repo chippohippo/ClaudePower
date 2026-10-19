@@ -193,13 +193,14 @@ What it measures to (45 s of a 32 v 32 battle, seed 3, on each map):
 
 | | Before | After |
 |---|---|---|
-| Loudness range (momentary, p10 to p95) | 3.4–3.9 dB | 11–12.7 dB |
+| Loudness range (momentary, p10 to p95) | 3.4–3.9 dB | 10.5–12.3 dB |
 | Integrated loudness | about −12 LUFS | about −20 LUFS |
-| Your own first shot, over what came before it | −0.3 to 1.1 dB | 7.4 to 12.6 dB |
-| A blast within 60 m, peak rise (the Trenches) | 8.8 dB | 12.2 dB |
-| A round cracking past you, peak rise | 9.9–10.2 dB | 11.7–12.9 dB |
-| Punch of each band (crest, p95 over median) | 4–6 dB | 10–13 dB |
-| Held whines | at 1.1 and 3.2 kHz (vehicle loops) | none |
+| Your own first shot, over what came before it | −0.3 to 1.1 dB | 7.8 to 12.7 dB |
+| A blast within 60 m, peak over what came before it | 8.6–9.1 dB | 12.5–14.3 dB |
+| A gun within 30 m, peak over what came before it | 7.5–8.3 dB | 8.7–10.4 dB |
+| A round cracking past you, peak over what came before it | 9.9–10.5 dB | 11.4–13.0 dB |
+| Punch of the bass and the mids (crest, p95 over median) | 4–6 dB | 10–13 dB |
+| Held whines | 3.2 kHz for 1.2–1.9 s on every map, 1.1 kHz in both cities (vehicle loops) | none longer than 0.45 s (your shield ringing as you're shot) |
 
 ## Nothing that grates
 
