@@ -145,6 +145,10 @@ export function biquad(x, type, f, q = 0.707, gainDb = 0, sr = SR) {
     if (type === 'peak') {
       const A = 10 ** (gainDb / 40);
       n0 = 1 + al * A; n1 = -2 * c; n2 = 1 - al * A; d0 = 1 + al / A; d1 = -2 * c; d2 = 1 - al / A;
+    } else if (type === 'lowshelf' || type === 'highshelf') {
+      const A = 10 ** (gainDb / 40), sq = 2 * Math.sqrt(A) * al, k = type === 'lowshelf' ? 1 : -1;
+      n0 = A * ((A + 1) - k * (A - 1) * c + sq); n1 = 2 * k * A * ((A - 1) - k * (A + 1) * c); n2 = A * ((A + 1) - k * (A - 1) * c - sq);
+      d0 = (A + 1) + k * (A - 1) * c + sq; d1 = -2 * k * ((A - 1) + k * (A + 1) * c); d2 = (A + 1) + k * (A - 1) * c - sq;
     } else { d0 = 1 + al; d1 = -2 * c; d2 = 1 - al; }
     b0 = n0 / d0; b1 = n1 / d0; b2 = n2 / d0; a1 = d1 / d0; a2 = d2 / d0;
   };
@@ -160,6 +164,146 @@ export function biquad(x, type, f, q = 0.707, gainDb = 0, sr = SR) {
 export const lowpass = (x, f, q = 0.707, sr = SR) => biquad(x, 'lowpass', f, q, 0, sr);
 export const highpass = (x, f, q = 0.707, sr = SR) => biquad(x, 'highpass', f, q, 0, sr);
 export const bandpass = (x, f, q = 1, sr = SR) => biquad(x, 'bandpass', f, q, 0, sr);
+/** EQ in place: a list of [type, Hz, dB, q] (peak, lowshelf, highshelf) or [lowpass|highpass, Hz, q]. */
+export function eq(x, bands, sr = SR) {
+  for (const [type, f, a, b] of bands) {
+    if (type === 'lowpass' || type === 'highpass') biquad(x, type, f, a ?? 0.707, 0, sr);
+    else biquad(x, type, f, b ?? (type === 'peak' ? 1 : 0.707), a, sr);
+  }
+  return x;
+}
+
+// ---------------------------------------------------------------- the physics of a shot
+/**
+ * A blast wave (the Friedlander waveform): a near-instant rise, the positive phase falling through
+ * zero at `tPos` s into the negative phase, and back. What a muzzle or a charge does to the air;
+ * the shorter the positive phase, the higher and sharper the pop (a rifle's ~1 ms, a shell's ~15).
+ */
+export function friedlander(n, tPos, b = 1.6, rise = 0.00004, sr = SR) {
+  const out = new Float32Array(n), r = Math.max(1, rise * sr);
+  for (let i = 0; i < n; i++) {
+    const t = i / sr, up = Math.min(1, i / r);
+    out[i] = up * (1 - t / tPos) * Math.exp((-b * t) / tPos);
+  }
+  return out;
+}
+
+/**
+ * Dispersion: a cascade of first-order allpasses (coefficient a, -1 < a < 0: the highs come out
+ * first and the lows last). A click through it becomes a falling chirp: the slinky, the stretched
+ * spring, the "pew" of a blaster. The more stages, the longer the fall (~N * (1-a)/(1+a) samples for
+ * the lowest notes).
+ */
+export function disperse(x, stages, a, k = 1) {
+  const out = Float32Array.from(x);
+  if (k > 1) {
+    // Stretched: each section (a + z^-k) / (1 + a z^-k): the dispersion repeats k times across the
+    // band, k chirps falling together (a spring's metallic twang).
+    const xs = new Float32Array(k), ys = new Float32Array(k);
+    for (let s = 0; s < stages; s++) {
+      xs.fill(0); ys.fill(0);
+      for (let i = 0, j = 0; i < out.length; i++, j = (j + 1) % k) { const v = out[i], y = a * v + xs[j] - a * ys[j]; xs[j] = v; ys[j] = y; out[i] = y; }
+    }
+    return out;
+  }
+  for (let s = 0; s < stages; s++) {
+    let x1 = 0, y1 = 0;
+    for (let i = 0; i < out.length; i++) { const v = out[i], y = a * v + x1 - a * y1; x1 = v; y1 = y; out[i] = y; }
+  }
+  return out;
+}
+
+/** Played k times faster (pitch and length together), by cubic (Hermite) interpolation. */
+export function resample(x, k) {
+  const n = Math.max(1, Math.floor((x.length - 1) / k)), out = new Float32Array(n);
+  const at = (i) => x[Math.max(0, Math.min(x.length - 1, i))];
+  for (let j = 0; j < n; j++) {
+    const p = j * k, i = Math.floor(p), f = p - i;
+    const y0 = at(i - 1), y1 = at(i), y2 = at(i + 1), y3 = at(i + 2);
+    const c1 = 0.5 * (y2 - y0), c2 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3, c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
+    out[j] = ((c3 * f + c2) * f + c1) * f + y1;
+  }
+  return out;
+}
+
+/** Warm saturation: tanh with a bias, so it adds even harmonics too (bass you hear on small speakers). */
+export function warm(a, drive = 2, bias = 0.2) {
+  const k = Math.tanh(drive * (1 + bias)) - Math.tanh(drive * bias);
+  const z = Math.tanh(drive * bias);
+  for (let i = 0; i < a.length; i++) a[i] = (Math.tanh(drive * (a[i] + bias)) - z) / k;
+  return a;
+}
+
+/** Transient shaper: the attack pushed up by `amount` (0..2), from the gap between a fast and a slow envelope. */
+export function transient(x, amount = 1, sr = SR) {
+  const fa = Math.exp(-1 / (0.0007 * sr)), sa = Math.exp(-1 / (0.02 * sr));
+  let f = 0, s = 0;
+  for (let i = 0; i < x.length; i++) {
+    const v = Math.abs(x[i]);
+    f = Math.max(v, f * fa); s = s * sa + v * (1 - sa);
+    x[i] *= 1 + amount * Math.max(0, Math.min(3, f / (s + 1e-6) - 1)) * 0.5;
+  }
+  return x;
+}
+
+/** Electric crackle: sparse arcs (clicks of random size and sign), `rate` a second, under `env(t)`. */
+export function crackle(n, r, rate, env = () => 1, sr = SR) {
+  const out = new Float32Array(n);
+  let t = 0;
+  while (true) {
+    t += -Math.log(1 - r() * 0.999) / rate;
+    const at = Math.floor(t * sr);
+    if (at >= n) break;
+    const a = env(t) * (0.2 + r() ** 2 * 0.8) * (r() < 0.5 ? -1 : 1), len = 2 + Math.floor(r() * sr * 0.0008);
+    for (let i = 0; i < len && at + i < n; i++) out[at + i] += a * (1 - i / len) * (i % 2 ? -0.6 : 1);
+  }
+  return out;
+}
+
+/** A stereo pair from a mono sound: the right a few ms late and a little duller (wide, still solid in mono). */
+export function haas(x, ms = 9, sr = SR) {
+  const d = Math.round((ms / 1000) * sr), R = new Float32Array(x.length + d);
+  R.set(x, d);
+  lowpass(R, 9000, 0.707, sr);
+  const L = new Float32Array(R.length); L.set(x);
+  return [L, R];
+}
+
+// ---------------------------------------------------------------- FFT (offline convolution, analysis)
+/** In-place radix-2 FFT of (re, im), length a power of two. inverse: the inverse transform, scaled by 1/n. */
+export function fft(re, im, inverse = false) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (TAU / len) * (inverse ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+  if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+}
+/** x convolved with h (FFT), the full length (x.length + h.length - 1). */
+export function convolve(x, h) {
+  const m = x.length + h.length - 1;
+  let n = 1; while (n < m) n <<= 1;
+  const ar = new Float64Array(n), ai = new Float64Array(n), br = new Float64Array(n), bi = new Float64Array(n);
+  ar.set(x); br.set(h);
+  fft(ar, ai); fft(br, bi);
+  for (let i = 0; i < n; i++) { const r = ar[i] * br[i] - ai[i] * bi[i]; ai[i] = ar[i] * bi[i] + ai[i] * br[i]; ar[i] = r; }
+  fft(ar, ai, true);
+  return Float32Array.from(ar.subarray(0, m));
+}
 
 /** Echoes: copies of x (each low-passed at its own cutoff) at [[seconds, gain, lowpassHz], ...], into a longer buffer. */
 export function echoes(x, taps, tail = 0, sr = SR) {

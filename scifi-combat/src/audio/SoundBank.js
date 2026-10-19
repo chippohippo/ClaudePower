@@ -199,32 +199,34 @@ function laser(P, view, r, sr) {
   return out;
 }
 
-/** A beam, held: a seamless loop. Solari: a harmonic hum, shimmering; Void: a throbbing growl. */
+/**
+ * A beam, held: a seamless loop. The air burning along it (a band of noise, breathing), arcs
+ * crackling off it, a throb under it; Solari hard light a little brighter and steadier, Void a darker
+ * throb. No sustained pure tones: a beam held for seconds must never whine.
+ */
 function beam(faction, r, sr) {
   const len = 2.4, n = D.samples(len, sr), sol = faction === 'sol';
-  const base = sol ? 110 : 55;
-  const hum = D.osc(n, (t) => base * (1 + 0.004 * Math.sin(t * 5.3)), 'saw', sr);
-  D.bandpass(hum, (t) => (sol ? 900 : 380) * (1 + 0.25 * Math.sin(t * 2.6)), 1.2, sr);
-  const shimmer = D.tremolo(D.osc(n, sol ? 3300 : 1650, 'sine', sr), sol ? 13 : 7, 0.7, sr);
-  const sub = D.osc(n, base / (sol ? 2 : 1), 'sine', sr);
-  const crackle = D.bandpass(D.grains(n, r, 140, (q) => q() * len, 0.0015, sr), 4000, 0.8, sr);
-  const core = new Float32Array(n);
-  D.mix(core, hum, 1.2); D.mix(core, shimmer, sol ? 0.25 : 0.12); D.mix(core, sub, sol ? 0.4 : 0.8); D.mix(core, crackle, 0.6);
-  if (!sol) D.tremolo(core, 6, 0.35, sr);
-  D.saturate(core, 1.6);
-  const out = D.loopify(core, 0.2, sr);
-  return D.normalize2([out, Float32Array.from(out)], 0.8);
+  const burn = D.bandpass(D.noise(n, r, 'pink'), (t) => (sol ? 1500 : 650) * (1 + 0.12 * Math.sin(t * 2 * Math.PI * (sol ? 1.25 : 0.83))), 2.2, sr);
+  const arcs = D.bandpass(D.crackle(n, r, sol ? 220 : 140, () => 1, sr), sol ? 3200 : 1800, 0.8, sr);
+  const throb = D.lowpass(D.noise(n, r, 'brown'), sol ? 180 : 110, 0.8, sr);
+  D.tremolo(throb, sol ? 12.5 : 7.5, 0.55, sr);
+  const core = new Float32Array(n), side = new Float32Array(n);
+  D.mix(core, D.normalize(burn, 1), 1); D.mix(core, D.normalize(throb, 1), sol ? 0.8 : 1.2);
+  D.mix(side, D.normalize(arcs, 1), 0.45);
+  if (!sol) D.ring(core, 47, 0.3, sr);
+  D.saturate(core, 1.5);
+  const [L, R] = D.stereo(core, side, D.scale(Float32Array.from(side), -1), 1);
+  return D.normalize2([D.loopify(L, 0.2, sr), D.loopify(R, 0.2, sr)], 0.8);
 }
 
-/** A charge building (the plasma gun): rising tone and hiss over 1.2 s, tremolo quickening. */
+/** A charge building (the plasma gun): a rising band of noise, crackle thickening, a low swell; the tremolo quickening. */
 function charge(faction, r, sr) {
-  const len = 1.3, n = D.samples(len, sr);
-  const f = D.sweep(faction === 'sol' ? 300 : 160, faction === 'sol' ? 2400 : 900, 1.2);
-  const tone = D.osc(n, f, faction === 'sol' ? 'tri' : 'saw', sr);
-  if (faction !== 'sol') D.lowpass(tone, 1800, 0.8, sr);
-  const hiss = D.highpass(D.noise(n, r), (t) => 2000 + t * 4000, 0.7, sr);
+  const len = 1.3, n = D.samples(len, sr), sol = faction === 'sol';
+  const rise = D.bandpass(D.noise(n, r, 'pink'), D.sweep(sol ? 400 : 220, sol ? 2600 : 1100, 1.2), 3, sr);
+  const arcs = D.highpass(D.crackle(n, r, 300, (t) => Math.min(1, t / 1.1) ** 2, sr), 1800, 0.7, sr);
+  const swell = D.lowpass(D.noise(n, r, 'brown'), D.sweep(80, 300, 1.2), 0.8, sr);
   const core = new Float32Array(n);
-  D.mix(core, tone, 0.7); D.mix(core, hiss, 0.15);
+  D.mix(core, D.normalize(rise, 1), 1); D.mix(core, D.normalize(arcs, 1), 0.3); D.mix(core, D.normalize(swell, 1), 0.6);
   for (let i = 0; i < n; i++) { const t = i / sr; core[i] *= Math.min(1, t / 1.1) * (0.75 + 0.25 * Math.sin(2 * Math.PI * (6 + t * 18) * t)); }
   D.fadeOut(core, 0.05, sr);
   return D.normalize2([core, Float32Array.from(core)], 0.7);
@@ -447,32 +449,49 @@ function brass(surface, r, sr) {
 }
 
 // ---------------------------------------------------------------- engines, fire
+/**
+ * Engine loops (their pitch follows the speed at runtime). No pure tones: what whines in a machine is
+ * a narrow band of noise, not a sine, so even a long drive past never rings in your ears.
+ *  tracked  a diesel's firing pulses through the exhaust, the tracks' links clanking over the sprockets
+ *  car      a growl of pulses and intake roar
+ *  hover    a speeder's turbine: a rushing band of noise, a darker breath under it, a hum
+ *  flyer    a gunship's jets: roar, a noisy whine, the low thrum of its lift
+ */
 function engine(model, r, sr) {
-  const len = 3, n = D.samples(len, sr), x = new Float32Array(n);
+  const len = 3, n = D.samples(len, sr), x = new Float32Array(n), side = new Float32Array(n);
   if (model === 'tracked' || model === 'car') {
-    const f0 = model === 'car' ? 52 : 36;
-    // Firing pulses (a jittery pulse train) through the exhaust's low-pass, and the tracks' clatter.
+    const f0 = model === 'car' ? 46 : 33;
+    // Firing pulses (a little irregular), each a short decaying thump through the exhaust.
     const pulses = new Float32Array(n);
     let next = 0;
-    for (let i = 0; i < n; i++) { if (i >= next) { pulses[i] = 0.7 + r() * 0.3; next = i + Math.round(sr / (f0 * (1 + (r() - 0.5) * 0.04))); } }
-    D.mix(x, D.lowpass(pulses, model === 'car' ? 700 : 420, 0.9, sr), 6);
-    D.mix(x, D.lowpass(D.noise(n, r, 'brown'), 300, 0.7, sr), 0.6);
-    if (model === 'tracked') for (let k = 0; k < len * 11; k++) D.mix(x, D.bandpass(D.grains(D.samples(0.03, sr), r, 3, (q) => q() * 0.01, 0.002, sr), 1600, 1, sr), 0.6, k / 11 + r() * 0.01, sr);
-    D.mix(x, D.osc(n, model === 'car' ? 330 : 220, 'saw', sr).map((v) => v * 0.04));
+    for (let i = 0; i < n; i++) { if (i >= next) { pulses[i] = 0.6 + r() * 0.4; next = i + Math.round(sr / (f0 * (1 + (r() - 0.5) * 0.06))); } }
+    const ex = D.lowpass(D.lowpass(pulses, model === 'car' ? 520 : 300, 1.2, sr), model === 'car' ? 900 : 600, 0.7, sr);
+    D.mix(x, D.normalize(ex, 1), 1);
+    D.mix(x, D.lowpass(D.noise(n, r, 'brown'), 240, 0.7, sr), 0.5);
+    D.mix(side, D.bandpass(D.noise(n, r, 'pink'), model === 'car' ? 1400 : 900, 0.7, sr), 0.12);
+    if (model === 'tracked') {
+      // The tracks: links clanking over the sprockets, eleven a second at a crawl.
+      for (let k = 0; k < len * 11; k++) {
+        const m = D.samples(0.04, sr), hit = D.modes(m, [[jit(r, 900, 0.15), 0.5, 0.01], [jit(r, 2100, 0.15), 0.3, 0.006]], sr, r);
+        D.mix(side, hit, 0.35 + r() * 0.3, k / 11 + r() * 0.012, sr);
+      }
+      D.mix(side, D.bandpass(D.noise(n, r), 2600, 1.5, sr), 0.05);     // the gears' whine: a band of noise, not a tone
+    }
   } else if (model === 'hover') {
-    D.mix(x, D.osc(n, (t) => 1180 * (1 + 0.006 * Math.sin(t * 7)), 'sine', sr), 0.3);
-    D.mix(x, D.osc(n, 2360, 'sine', sr), 0.1);
-    D.mix(x, D.bandpass(D.noise(n, r, 'pink'), 600, 0.5, sr), 1.2);
-    D.mix(x, D.osc(n, 60, 'sine', sr), 0.25);
+    const rush = D.bandpass(D.noise(n, r, 'pink'), (t) => 720 * (1 + 0.03 * Math.sin(t * 2 * Math.PI * 0.7)), 2.5, sr);
+    D.mix(side, D.normalize(rush, 1), 0.35);
+    D.mix(x, D.bandpass(D.noise(n, r, 'pink'), 380, 1.2, sr), 0.9);
+    D.mix(x, D.lowpass(D.noise(n, r, 'brown'), 120, 0.7, sr), 0.9);
+    D.mix(x, D.mul(D.osc(n, 62, 'sine', sr), D.lowpass(D.noise(n, r), 2, 0.7, sr).map((v) => 0.7 + Math.min(0.3, Math.abs(v) * 12))), 0.12);
   } else {
-    D.mix(x, D.lowpass(D.noise(n, r, 'brown'), 1100, 0.7, sr), 1.4);
-    D.mix(x, D.bandpass(D.noise(n, r, 'pink'), 3000, 0.8, sr), 0.4);
-    D.mix(x, D.osc(n, (t) => 3400 * (1 + 0.004 * Math.sin(t * 3)), 'sine', sr), 0.06);
-    D.mix(x, D.osc(n, 45, 'sine', sr), 0.3);
+    D.mix(x, D.lowpass(D.noise(n, r, 'pink'), 1400, 0.7, sr), 1.2);
+    D.mix(side, D.bandpass(D.noise(n, r), 2600, 4, sr), 0.25);
+    D.mix(x, D.lowpass(D.noise(n, r, 'brown'), 90, 0.7, sr), 1.2);
+    D.tremolo(x, 14, 0.12, sr);                                          // the rotors' thrum
   }
   D.saturate(x, 1.3);
-  const out = D.loopify(x, 0.25, sr);
-  return D.normalize2([out, Float32Array.from(out)], 0.7);
+  const [L, R] = D.stereo(x, side, D.scale(Float32Array.from(side), -1), 1);
+  return D.normalize2([D.loopify(L, 0.25, sr), D.loopify(R, 0.25, sr)], 0.7);
 }
 function fireLoop(r, sr) {
   const len = 3, n = D.samples(len, sr), x = new Float32Array(n);
@@ -654,39 +673,101 @@ function skyfall(kind, r, sr) {
 const NOTE = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 export const noteHz = (n) => { const m = /^([A-G]#?)(-?\d)$/.exec(n ?? 'A4'); return m ? 440 * 2 ** ((NOTE[m[1]] + (+m[2] - 4) * 12 - 9) / 12) : 440; };
 const timbreClass = (t = '') =>
-  /bell|chime|crystal|glass|harp|ring|ping|sonar|tick/.test(t) ? 'bell'
-    : /brass|choir|organ|chord/.test(t) ? 'choir'
-      : /sub|boom|quake|grav|black|implosion|thrum|rumble|thump|stone/.test(t) ? 'sub'
-        : /hiss|sizzle|flare|smoke|whisper|flame|fire|jet|static|inhale|roar|slurp|suck/.test(t) ? 'air'
-          : /servo|tool|engine|mech|pump|chain|buzz|gnash|grind/.test(t) ? 'mech'
-            : /zap|laser|phase|beep|psi|shriek|whine/.test(t) ? 'zap' : 'choir';
+  /crystal|glass|prism|refract/.test(t) ? 'crystal'
+    : /bell|chime|harp|ring|forge/.test(t) ? 'ring'
+      : /sub|boom|quake|grav|black|implosion|thrum|rumble|thump|stone|tritone|dark_swell|hum_low|buzz_low|flak|heartbeat/.test(t) ? 'sub'
+        : /hiss|sizzle|flare|smoke|whisper|flame|fire|jet|static|inhale|roar|slurp|suck|vortex|wing|bloom|swell|whistle/.test(t) ? 'air'
+          : /servo|tool|engine|mech|pump|chain|gnash|grind|lift/.test(t) ? 'mech'
+            : /tick|beep|sonar|ping/.test(t) ? 'tick'
+              : /psi|shriek/.test(t) ? 'psi'
+                : /zap|laser|phase|whine|orbital/.test(t) ? 'zap' : 'surge';
 /**
- * An ability's cue from its signature (root note, timbre) and its army (Solari rises, bright;
- * Void falls, dark, ring-modulated). kind: cast | threat | loop | end | impact | zone | arming | place.
+ * An ability's cue: a piece of sci-fi kit going off, from its signature (the timbre names the
+ * texture; the root note only colours it: where its filters sit, never a tune) and its army (Solari
+ * hard light rises and glints; Void falls, darker, ring-modulated, reversed). Short, mostly noise and
+ * inharmonic metal, no sustained pure tones: in a battle a dozen of these go off a minute, and
+ * anything musical would turn into a jingle. kind: cast | threat | loop | end | impact | zone | arming.
  */
 function ability(root, timbre, faction, kind, r, sr) {
-  const f = noteHz(root), sol = faction !== 'void', cls = timbreClass(timbre), threat = kind === 'threat';
-  const len = kind === 'loop' || kind === 'zone' ? 2.4 : kind === 'arming' ? 1.2 : kind === 'end' ? 0.5 : threat ? 0.9 : 0.75;
-  const n = D.samples(len, sr), x = new Float32Array(n), side = new Float32Array(n);
-  const base = f * (threat ? 0.5 : 1), dir = sol ? 1.5 : 0.66;
-  const pitch = kind === 'loop' || kind === 'zone' ? (t) => base * (1 + 0.01 * Math.sin(t * 5)) : kind === 'arming' ? D.sweep(base * 0.7, base * 1.3, len) : D.sweep(base, base * dir, 0.3);
-  if (cls === 'bell') D.mix(x, D.modes(n, [[base, 0.6, 0.6], [base * 2.76, 0.3, 0.35], [base * 5.4, 0.15, 0.2]], sr, r), 1);
-  else if (cls === 'choir') for (const det of [0.995, 1, 1.006]) D.mix(x, D.bandpass(D.osc(n, (t) => pitch(t) * det, 'saw', sr), base * 3, 1.2, sr), 0.6);
-  else if (cls === 'sub') D.mix(x, D.osc(n, (t) => pitch(t) * 0.5, 'sine', sr), 1.2);
-  else if (cls === 'air') D.mix(side, D.bandpass(D.noise(n, r, 'pink'), (t) => pitch(t) * 3, 1.5, sr), 2);
-  else if (cls === 'mech') D.mix(x, D.lowpass(D.osc(n, (t) => pitch(t) * 0.5, 'square', sr), base * 4, 1, sr), 0.6);
-  else D.mix(x, D.fm(n, pitch, 2.01, 3, 0.15, sr), 0.8);
-  // A body under every cue: a breath of air, and a punch for impacts and threats.
-  D.mix(side, D.bandpass(D.noise(n, r), sol ? 2400 : 900, 0.8, sr), 0.25);
-  if (kind === 'impact' || threat) D.mix(x, thump(D.samples(0.4, sr), sol ? 160 : 90, sol ? 70 : 35, 0.08, sr), 1);
-  if (!sol) D.ring(x, 47 + (f % 23), 0.4, sr);
-  const env = kind === 'loop' || kind === 'zone' ? D.envSwell(n, 0.2, len, 0.2, sr, 1) : kind === 'arming' ? D.envSwell(n, len * 0.8, len, 0.1, sr, 2) : D.envExp(n, threat ? 0.002 : kind === 'end' ? 0.01 : 0.008, len * 0.3, sr);
-  D.mul(x, env); D.mul(side, env);
-  if (!sol && kind !== 'loop' && kind !== 'zone' && kind !== 'arming') { D.reverse(x); D.reverse(side); D.fadeIn(x, 0.01, sr); D.fadeIn(side, 0.01, sr); }   // the Void's reversed swells
-  D.saturate(x, threat ? 2.2 : 1.4);
-  let [L, R] = D.stereo(x, side, side, 0.7);
-  if (kind === 'loop' || kind === 'zone') { L = D.loopify(L, 0.2, sr); R = D.loopify(R, 0.2, sr); }
-  return D.normalize2([L, R], threat ? 0.95 : 0.8);
+  const sol = faction !== 'void', cls = timbreClass(timbre), threat = kind === 'threat', held = kind === 'loop' || kind === 'zone';
+  // The colour: the root note folded into 300-2400 Hz (a filter's place, not a pitch you hear).
+  let f = noteHz(root); while (f < 300) f *= 2; while (f > 2400) f /= 2;
+  if (threat) f *= 0.7;
+  const len = held ? 2.4 : kind === 'arming' ? 1.2 : kind === 'end' ? 0.35 : kind === 'impact' ? 0.45 : threat ? 0.8 : 0.6;
+  const n = D.samples(len, sr), core = new Float32Array(n), side = new Float32Array(n);
+  const rise = sol ? 1 : -1;
+  const sweepUp = (a, b) => (t) => a * (b / a) ** Math.min(1, t / len);
+  if (held && cls !== 'surge' && cls !== 'sub' && cls !== 'air' && cls !== 'psi') {
+    // Held (an ability running, a zone): the texture going on: hard light sparkling (struck again and
+    // again), a zap's arcs crackling over a buzz, a machine's whirr as noise: never one tone holding.
+    if (cls === 'crystal' || cls === 'ring') {
+      for (let t = r() * 0.2; t < len - 0.3; t += 0.18 + r() * 0.35) {
+        const f0 = f * (cls === 'crystal' ? 1.5 : 0.8) * (0.6 + r() * 1.0), m = D.samples(0.4, sr);
+        D.mix(side, D.modes(m, [[f0, 0.4, 0.12], [Math.min(7000, f0 * 2.32), 0.25, 0.08], [Math.min(7000, f0 * 4.25), 0.12, 0.05]], sr, r), 0.5 + r() * 0.5, t, sr);
+      }
+      D.mix(core, D.bandpass(D.noise(n, r, 'pink'), sol ? 3000 : 1300, 0.8, sr), 1.1);
+    } else if (cls === 'zap') {
+      D.mix(side, D.highpass(D.crackle(n, r, 260, () => 1, sr), 2000, 0.7, sr), 1);
+      const buzz = D.bandpass(D.noise(n, r, 'pink'), f, 2, sr);
+      D.tremolo(buzz, 15 + r() * 6, 0.6, sr);
+      D.mix(core, buzz, 1.4);
+    } else {
+      const whirr = D.bandpass(D.noise(n, r, 'pink'), f * 0.5, 2.5, sr);
+      D.tremolo(whirr, 22 + r() * 8, 0.5, sr);
+      D.mix(core, whirr, 1.6);
+      D.mix(core, D.lowpass(D.noise(n, r, 'brown'), 200, 0.7, sr), 0.6);
+    }
+  } else if (cls === 'crystal' || cls === 'ring') {
+    // Hard light forming (or metal struck): an inharmonic shimmer, quick to fade, over a swish of air.
+    const ratios = cls === 'crystal' ? [1, 2.32, 4.25, 6.63] : [1, 1.48, 2.76, 4.1];
+    const f0 = f * (cls === 'crystal' ? 1.5 : 0.8);
+    D.mix(side, D.modes(n, ratios.map((k, i) => [Math.min(7000, f0 * k * (1 + (r() - 0.5) * 0.02)), 0.5 / (i + 1), (held ? 0.6 : 0.18) / (1 + i * 0.6)]), sr, r), 0.7);
+    D.mix(core, noiseHit(n, r, { type: 'bandpass', f: sol ? 3600 : 1400, q: 0.9, a: 0.004, tau: len * 0.25 }, sr), 1.2);
+  } else if (cls === 'surge') {
+    // An energy surge: noise through a vowel's formants (the Solari's radiance, without the choir), a soft weight under it.
+    const fm = [0.55, 0.9, 2.1].map((k) => f * k);
+    for (const [i, c] of fm.entries()) D.mix(core, D.bandpass(D.noise(n, r, 'pink'), (t) => c * (1 + 0.12 * rise * Math.min(1, t / 0.3)), 2 + i, sr), 1.4 / (i + 1));
+    D.mix(core, noiseHit(n, r, { color: 'brown', type: 'lowpass', f: f / 2, a: 0.01, tau: 0.15 }, sr), 0.8);
+    D.mix(side, D.bandpass(D.crackle(n, r, 120, (t) => Math.exp(-t / 0.2), sr), sol ? 3000 : 1500, 0.8, sr), 0.4);
+  } else if (cls === 'sub') {
+    D.mix(core, thump(D.samples(Math.min(len, 0.6), sr), sol ? 120 : 90, sol ? 50 : 32, 0.12, sr, 0.004), 1.4);
+    D.mix(core, noiseHit(n, r, { color: 'brown', type: 'lowpass', f: 240, a: 0.03, tau: len * 0.4 }, sr), 2);
+  } else if (cls === 'air') {
+    D.mix(side, D.bandpass(D.noise(n, r, 'pink'), sweepUp(f * (sol ? 0.8 : 1.6), f * (sol ? 1.8 : 0.7)), 1.3, sr), 1.6);
+    D.mix(core, noiseHit(n, r, { color: 'brown', type: 'lowpass', f: 600, a: 0.02, tau: len * 0.3 }, sr), 1);
+  } else if (cls === 'mech') {
+    // A servo spinning up (or down) and the clunk of it locking.
+    const w = D.osc(n, sweepUp(f * (sol ? 0.25 : 0.5), f * (sol ? 0.5 : 0.25)), 'saw', sr);
+    D.mix(core, D.bandpass(w, f * 0.8, 1.2, sr), 0.5);
+    D.mix(core, D.modes(D.samples(0.12, sr), [[f * 0.6, 0.5, 0.02], [f * 1.7, 0.3, 0.012]], sr, r), 0.8, len * 0.6, sr);
+  } else if (cls === 'tick') {
+    // Electronic ticks: little resonant clicks, not beeps.
+    const count = kind === 'arming' ? 6 : held ? 9 : 2, gap = kind === 'arming' ? 0.18 : held ? len / count : 0.07;
+    for (let k = 0; k < count; k++) {
+      const at = k * gap + (held ? r() * gap * 0.5 : 0), click = noiseHit(D.samples(0.03, sr), r, { type: null, a: 0.0002, tau: 0.002 }, sr);
+      D.mix(core, D.bandpass(Float32Array.from(click), f * (1 + k * 0.08 * rise) * (0.85 + r() * 0.3), 4, sr), 2.5, at, sr);
+      D.mix(side, D.highpass(click, 2500, 0.7, sr), 0.35, at, sr);
+    }
+  } else if (cls === 'psi') {
+    const b = D.bandpass(D.noise(n, r), (t) => f * (1 + 0.3 * Math.sin(t * 2 * Math.PI * 9)), 5, sr);
+    D.ring(b, 31 + r() * 20, 0.7, sr);
+    D.mix(side, b, 1.6);
+  } else {
+    // A zap: a falling FM chirp and a spit of crackle.
+    D.mix(core, D.mul(D.fm(D.samples(0.2, sr), D.glide(f * 3, f * 0.7, 0.05), 1.41, 4, 0.06, sr), D.envExp(D.samples(0.2, sr), 0.0005, 0.04, sr)), 0.5);
+    D.mix(side, D.highpass(D.crackle(n, r, 500, (t) => Math.exp(-t / 0.08), sr), 2000, 0.7, sr), 0.8);
+  }
+  // A threat or a hit lands with weight.
+  if (kind === 'impact' || threat) D.mix(core, thump(D.samples(0.4, sr), sol ? 140 : 90, sol ? 60 : 35, 0.07, sr), threat ? 0.9 : 1.1);
+  if (!sol) D.ring(core, 41 + (f % 19), 0.35, sr);
+  const env = held ? D.envSwell(n, 0.25, len, 0.25, sr, 1) : kind === 'arming' ? D.envSwell(n, len * 0.85, len, 0.08, sr, 2) : D.envExp(n, threat ? 0.004 : kind === 'end' ? 0.02 : 0.008, len * 0.28, sr);
+  D.mul(core, env); D.mul(side, env);
+  if (!sol && !held && kind !== 'arming' && kind !== 'impact') { D.reverse(core); D.reverse(side); D.fadeIn(core, 0.01, sr); D.fadeIn(side, 0.01, sr); }   // the Void's reversed swells
+  D.lowpass(core, 7000, 0.7, sr); D.lowpass(side, 7500, 0.7, sr);
+  D.saturate(core, threat ? 1.8 : 1.3);
+  let [L, R] = D.stereo(core, side, D.scale(Float32Array.from(side), -0.6), 0.8);
+  if (held) { L = D.loopify(L, 0.25, sr); R = D.loopify(R, 0.25, sr); }
+  return D.normalize2([L, R], threat ? 0.9 : 0.75);
 }
 
 // ---------------------------------------------------------------- ambience

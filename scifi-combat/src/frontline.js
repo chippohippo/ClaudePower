@@ -204,8 +204,10 @@ renderer.domElement.addEventListener('webglcontextlost', (e) => {
 // with depth, the city answering, walls muffling). Browsers only let it start on your first click
 // or key; until then it's silent.
 const _so = new THREE.Vector3(), _sd = new THREE.Vector3(), occCache = new Map();
+// Each map its own room and atmosphere: the trench's open ground, the dusk city's snowy streets, the night city's cold clear air.
+const soundMap = mapTheme === 'city' ? (params.get('planet') === 'nightcity' ? 'night' : 'city') : 'trench';
 const sound = new SoundEngine({
-  environment: mapTheme === 'city' ? 'city' : 'open',
+  environment: soundMap === 'trench' ? 'open' : soundMap,
   // Is there a wall between you and it? (cover only; a cached answer per 4 m cell for a third of a second)
   occluder: (p) => {
     const key = `${Math.round(p.x / 4)}|${Math.round(p.y / 4)}|${Math.round(p.z / 4)}`, now = performance.now(), c = occCache.get(key);
@@ -220,7 +222,7 @@ const sound = new SoundEngine({
 });
 const audio = new AudioDirector(sound, {
   listenerId: PLAYER_ID, abilityIndex, guns: world.vehicles.guns, strats: world.stratagems,
-  snow: !!planet.snow?.amount, environment: mapTheme === 'city' ? 'city' : 'trench',
+  snow: !!planet.snow?.amount, environment: soundMap,
   getEntity: (id) => {
     const e = world.entity(id);
     if (!e) return null;

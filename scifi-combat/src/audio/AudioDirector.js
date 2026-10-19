@@ -17,6 +17,7 @@
 
 import { bus } from '../core/EventBus.js';
 import { weaponDesign, abilityId, catalogue } from './SoundBank.js';
+import { Ambience } from './Ambience.js';
 
 const _p = { x: 0, y: 0, z: 0 };
 const vec = (a) => (a ? (Array.isArray(a) ? { x: a[0], y: a[1], z: a[2] } : a) : null);
@@ -28,7 +29,8 @@ export class AudioDirector {
    * @param {SoundEngine} engine
    * @param {object} o { listenerId, getEntity(id) -> { team, position, perks, weapon (spec), shield, hpFrac, speed },
    *                     abilityIndex, guns (FieldGuns: rounds in the air), strats (StratagemSystem: beacons),
-   *                     snow (the ground is snow: the city at dusk), onSuperWarning, onNearMiss(k) }
+   *                     snow (the ground is snow: the city at dusk), environment (the map's atmosphere:
+   *                     'trench' | 'city' | 'night'; Ambience), onSuperWarning, onNearMiss(k) }
    */
   constructor(engine, { listenerId, getEntity, abilityIndex = new Map(), guns = null, strats = null, snow = false, environment = 'city', onSuperWarning = () => {}, onNearMiss = () => {} } = {}) {
     this.engine = engine;
@@ -45,7 +47,9 @@ export class AudioDirector {
     this.projectiles = new Set();       // bolts in flight (a near pass buzzes)
     this.beeps = new WeakMap(); this.whistled = new WeakSet();
     this.charging = new Map();
+    this.salvo = new Map();             // a rocket battery -> rockets it's fired (one roar in three)
     this.vehicles = new Map();          // vehicle id -> its engine loop's model
+    this.ambience = new Ambience(engine, environment);
     this.off = [];
     this.#wire();
     // The sounds: your own guns first, then every gun's near and far voice, then the rest.
@@ -54,7 +58,7 @@ export class AudioDirector {
     engine.prefetch([...own, ...all.filter((id) => /:(near|far)$/.test(id)), ...all]);
   }
 
-  dispose() { this.off.forEach((f) => f()); for (const k of [...this.engine.loops.keys()]) this.engine.stopLoop(k, 0.05); }
+  dispose() { this.off.forEach((f) => f()); this.ambience.dispose(); for (const k of [...this.engine.loops.keys()]) this.engine.stopLoop(k, 0.05); }
 
   relation(id) {
     if (id === this.listenerId) return 'self';
@@ -72,7 +76,7 @@ export class AudioDirector {
     if (listenerPos) { this.head.x = listenerPos.x; this.head.y = listenerPos.y + 1.6; this.head.z = listenerPos.z; }
     E.setListener(this.head, listenerYaw);
     if (!E.running) return;
-    if (!E.hasLoop('amb')) E.loop('amb', `amb:${this.environment}`, { amb: true, gain: 0.22 });
+    this.ambience.update(dt);
     // Incoming: a round about to land near you whistles down to it.
     const G = this.guns, L = this.head;
     if (G?.incoming.length) {
@@ -81,7 +85,7 @@ export class AudioDirector {
         const left = r.at - G.time;
         if (left > 2.8 || left < 0.25 || this.whistled.has(r) || Math.hypot(r.x - L.x, r.z - L.z) > 75) continue;
         this.whistled.add(r);
-        E.play('incoming', { pos: { x: r.x, y: r.y + 8, z: r.z }, kind: 'near', offset: 3 - left, gain: 0.8, delay: false, jitter: 0 });
+        E.play('incoming', { pos: { x: r.x, y: r.y + 8, z: r.z }, kind: 'incoming', offset: 3 - left, gain: 0.8, delay: false, jitter: 0, hero: true });
       }
     }
     // A planted beacon near you beeps, faster as its payload nears.
@@ -103,7 +107,7 @@ export class AudioDirector {
       else if (p.audioMin < 3.2 && !p.audioPassed) {
         p.audioPassed = true;
         E.play(`whizz:${p.team === 1 ? 'void' : 'sol'}`, { pos: { x: p.pos.x, y: p.pos.y, z: p.pos.z }, kind: 'near', gain: 0.7 * (1 - p.audioMin / 4), delay: false });
-        this.onNearMiss(1 - p.audioMin / 3.2);
+        this.onNearMiss(1 - p.audioMin / 3.2); E.suppress?.(1 - p.audioMin / 3.2);
       }
     }
     // Engines: each vehicle's loop follows it, its pitch with its speed.
@@ -111,7 +115,7 @@ export class AudioDirector {
       const v = this.getEntity(id);
       if (!v) { E.stopLoop(`veh:${id}`); this.vehicles.delete(id); continue; }
       const sp = Math.min(1, (v.speed ?? 0) / 18);
-      E.updateLoop(`veh:${id}`, { pos: v.position, rate: (model === 'flyer' ? 0.85 : 0.75) + sp * 0.55, gain: 0.35 + sp * 0.4 });
+      E.updateLoop(`veh:${id}`, { pos: v.position, rate: (model === 'flyer' ? 0.85 : 0.75) + sp * 0.55, gain: (0.35 + sp * 0.4) * 0.4 });
     }
     for (const [key] of E.loops) if (key.startsWith('beam:')) { const p = this.posOf(+key.slice(5)); if (p) E.updateLoop(key, { pos: p }); }
     // Hurt: the world dulls and your heart thumps.
@@ -135,7 +139,7 @@ export class AudioDirector {
       if (kind === 'gun' && e.suppressed && E.recordedId?.('gun:supp')) profile = 'supp';   // a suppressor: the silenced shot
       if (kind === 'beam') return;
       if (this.charging.has(e.id)) { E.stop(this.charging.get(e.id), 0.04); this.charging.delete(e.id); }
-      if (e.id === this.listenerId) { E.play(`${kind}:${profile}:1p`, { gain: kind === 'laser' ? 0.48 : 0.6, jitter: 0.015 }); return; }
+      if (e.id === this.listenerId) { E.play(`${kind}:${profile}:1p`, { gain: kind === 'laser' ? 0.75 : 0.85, jitter: 0.015 }); return; }
       const pos = ent?.position;
       if (!pos) return;
       const d = this.#dist(pos);
@@ -159,7 +163,7 @@ export class AudioDirector {
       const spec = this.getEntity(e.id)?.weapon, [kind] = weaponDesign(spec);
       const k = 1 - miss / 4;
       E.play(kind === 'laser' ? `whizz:${this.#army(e.id)}` : 'crack', { pos: { x: cx, y: cy, z: cz }, kind: 'near', gain: (kind === 'laser' ? 0.65 : 0.8) * (0.4 + 0.6 * k), delay: false });
-      this.onNearMiss(k);
+      this.onNearMiss(k); E.suppress?.(k);
     });
     on('projectile:spawn', (e) => { if (e.ref && e.ref.ownerId !== this.listenerId && !e.ref.spec?.splash) this.projectiles.add(e.ref); });
     // Rounds landing round you: chips off concrete, pings off metal, thuds in the snow; bolts sizzle.
@@ -190,7 +194,7 @@ export class AudioDirector {
     on('weapon:perfectVent', (e) => mine(e) && E.play('ui:ready', { ui: true, gain: 0.4 }));
     // Spent brass landing round you (GunFx throws the casings): a tink, dull on dirt, muffled in snow.
     on('fx:brass', (e) => {
-      if (this.time - this.lastBrass < 0.035 || this.#dist(e) > 12) return;
+      if (this.time - this.lastBrass < 0.09 || this.#dist(e) > 12) return;     // (an SMG's fifteen a second: a few of them are enough)
       this.lastBrass = this.time;
       const s = SURFACE[e.surface] ?? 'concrete', soft = s === 'dirt' || s === 'snow' || s === 'flesh';
       E.play(`brass:${this.snow && soft ? 'snow' : soft ? 'dirt' : 'hard'}`, { pos: { x: e.x, y: e.y, z: e.z }, kind: 'foley', gain: 0.2, jitter: 0.08 });
@@ -200,7 +204,7 @@ export class AudioDirector {
       if (v) this.charging.set(e.id, v);
     });
     on('weapon:chargeCancel', (e) => { E.stop(this.charging.get(e.id), 0.08); this.charging.delete(e.id); });
-    on('weapon:beamStart', (e) => E.loop(`beam:${e.id}`, `beam:${this.#army(e.id)}`, { pos: e.id === this.listenerId ? null : this.posOf(e.id), kind: 'ability', gain: e.id === this.listenerId ? 0.4 : 0.6 }));
+    on('weapon:beamStart', (e) => E.loop(`beam:${e.id}`, `beam:${this.#army(e.id)}`, { pos: e.id === this.listenerId ? null : this.posOf(e.id), kind: 'ability', gain: e.id === this.listenerId ? 0.3 : 0.35 }));
     on('weapon:beamEnd', (e) => E.stopLoop(`beam:${e.id}`, 0.12));
     on('projectile:deflect', (e) => E.play('melee:deflect', { pos: at(e.point), kind: 'impact', gain: 0.6 }));
 
@@ -208,6 +212,11 @@ export class AudioDirector {
     const blast = (p, radius, id, element = null) => {
       if (!p) return;
       const d = this.#dist(p), size = radius >= 7 ? 'bomb' : radius >= 4.5 ? 'shell' : radius >= 3 ? 'vehicle' : 'grenade';
+      // Far off, a barrage is one long thunder: a blast landing right on another's heels adds nothing
+      // but mush (past 80 m, one every third of a second; past 200, one a half second).
+      const gap = d > 200 ? 0.5 : d > 80 ? 0.3 : 0;
+      if (gap && this.time - (this.lastFarBlast ?? -1) < gap) return;
+      if (gap) this.lastFarBlast = this.time;
       E.play(`boom:${size}:near`, { pos: p, far: `boom:${size}:far`, kind: 'boom', gain: 1, jitter: 0.04 });
       // Void and plasma blasts crackle as they go off.
       if (element === 'void' || element === 'plasma') E.play('boom:emp', { pos: p, kind: 'boom', gain: 0.55, jitter: 0.05 });
@@ -220,7 +229,11 @@ export class AudioDirector {
     on('artillery:impact', (e) => blast(at(e.point), Math.max(5, e.radius ?? 6)));
     on('deployable:triggered', (e) => { if (/mine|charge|trip/.test(e.kind ?? '')) blast(at(e.point), e.radius ?? 3); });
     on('vehicle:destroyed', (e) => blast(at(e.at), 4));
-    on('gun:fire', (e) => E.play(`report:${e.kind === 'at' ? 'at' : e.kind === 'rockets' ? 'rocket' : 'howitzer'}`, { pos: at(e.from), kind: 'report', gain: e.kind === 'rockets' ? 0.7 : 0.95 }));
+    on('gun:fire', (e) => {
+      // A rocket battery's salvo: its rockets leave a few tenths apart, one roar for every three of them.
+      if (e.kind === 'rockets') { const n = (this.salvo.get(e.id) ?? 0) + 1; this.salvo.set(e.id, n); if (n % 3 !== 1) return; }
+      E.play(`report:${e.kind === 'at' ? 'at' : e.kind === 'rockets' ? 'rocket' : 'howitzer'}`, { pos: at(e.from), kind: 'report', gain: e.kind === 'rockets' ? 0.7 : 0.95 });
+    });
 
     // ---- vehicles
     const MODEL = { tracked: 'tracked', car: 'car', hover: 'hover', flyer: 'flyer' };
@@ -289,21 +302,24 @@ export class AudioDirector {
     on('melee:guardBreak', (e) => E.play('melee:guardbreak', { pos: meleePos(e.defender), kind: 'impact', gain: 0.9 }));
 
     // ---- abilities, by their signature and their army
+    // Abilities: yours in your head; anyone else's only near you (a battle's worth of them from all
+    // over the field is noise, not information), an enemy's a little louder than a friend's.
     const ab = (e, kind, gain = 0.5, extra = {}) => {
       const def = this.abilityIndex.get(e.ability), sig = e.audio?.sig ?? def?.audio?.sig;
       const p = e.id === this.listenerId ? null : extra.pos ?? this.posOf(e.id);
+      if (p && this.#dist(p) > (e.isSuper ? 120 : 45)) return null;
       return E.play(abilityId(sig, this.#army(e.id ?? e.owner), kind), { pos: p, kind: 'ability', gain, ...extra, ...(p ? {} : { pos: null }) });
     };
     on('ability:cast', (e) => {
       const rel = this.relation(e.id);
-      if (rel === 'enemy') { ab(e, 'threat', 0.75); if (e.isSuper) this.#announceSuper(e); }
-      else ab(e, 'cast', rel === 'self' ? 0.45 : 0.5);
+      if (rel === 'enemy') { ab(e, 'threat', 0.55); if (e.isSuper) this.#announceSuper(e); }
+      else ab(e, 'cast', rel === 'self' ? 0.45 : 0.35);
     });
     on('ability:activate', (e) => {
-      const def = this.abilityIndex.get(e.ability);
-      if (def?.duration > 1) E.loop(`abil:${e.id}:${e.slot}`, abilityId(def.audio?.sig ?? e.audio?.sig, this.#army(e.id), 'loop'), { pos: e.id === this.listenerId ? null : this.posOf(e.id), kind: 'ability', gain: 0.25 });
+      const def = this.abilityIndex.get(e.ability), p = e.id === this.listenerId ? null : this.posOf(e.id);
+      if (def?.duration > 1 && (!p || this.#dist(p) < 30)) E.loop(`abil:${e.id}:${e.slot}`, abilityId(def.audio?.sig ?? e.audio?.sig, this.#army(e.id), 'loop'), { pos: p, kind: 'ability', gain: 0.18 });
     });
-    on('ability:end', (e) => { E.stopLoop(`abil:${e.id}:${e.slot}`); ab(e, 'end', 0.35); });
+    on('ability:end', (e) => { E.stopLoop(`abil:${e.id}:${e.slot}`); ab(e, 'end', 0.25); });
     on('ability:hit', (e) => {
       if (e.victim === this.listenerId) E.play(abilityId(this.abilityIndex.get(e.ability)?.audio?.sig, this.#army(e.attacker), 'impact'), { gain: 0.7 });
       else if (e.attacker === this.listenerId) E.play('ui:ability_hit', { ui: true, gain: 0.3 });
@@ -323,7 +339,7 @@ export class AudioDirector {
     on('zone:arming', (e) => E.play(abilityId(sigOf(e.ability), teamArmy(e.team), 'arming'), { pos: at(e.center), kind: 'ability', gain: 0.6 }));
     on('zone:start', (e) => {
       E.play(abilityId(sigOf(e.ability), teamArmy(e.team), 'cast'), { pos: at(e.center), kind: 'ability', gain: 0.55 });
-      if (e.lifetime > 1.5) E.loop(`zone:${e.id}`, abilityId(sigOf(e.ability), teamArmy(e.team), 'zone'), { pos: at(e.center), kind: 'ability', gain: 0.22 });
+      if (e.lifetime > 1.5 && this.#dist(at(e.center)) < 60) E.loop(`zone:${e.id}`, abilityId(sigOf(e.ability), teamArmy(e.team), 'zone'), { pos: at(e.center), kind: 'ability', gain: 0.14 });
     });
     on('zone:end', (e) => E.stopLoop(`zone:${e.id}`));
     on('zone:blocked', (e) => E.play('impact:energy', { pos: at(e.point), kind: 'impact', gain: 0.4 }));

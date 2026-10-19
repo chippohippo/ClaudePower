@@ -1,1444 +1,2583 @@
 {
- "version": 1,
- "note": "Built by tools/audio/revamp.mjs from the recorded packs (the Audio Revamp).",
  "sounds": {
   "gun:ar_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/ar_sol/near-1.ogg",
-     "gun/ar_sol/near-2.ogg",
-     "gun/ar_sol/near-3.ogg",
-     "gun/ar_sol/near-4.ogg",
-     "gun/ar_sol/near-5.ogg",
-     "gun/ar_sol/near-6.ogg",
-     "gun/ar_sol/near-7.ogg",
-     "gun/ar_sol/near-8.ogg"
+   "mix": {
+    "crack": -4,
+    "body": 0,
+    "low": -3,
+    "mech": -9
+   },
+   "far": "far:rifle",
+   "layers": {
+    "crack": [
+     "gun/ar_sol/crack-1.ogg",
+     "gun/ar_sol/crack-2.ogg",
+     "gun/ar_sol/crack-3.ogg",
+     "gun/ar_sol/crack-4.ogg",
+     "gun/ar_sol/crack-5.ogg",
+     "gun/ar_sol/crack-6.ogg",
+     "gun/ar_sol/crack-7.ogg",
+     "gun/ar_sol/crack-8.ogg"
     ],
-    "mid": [
-     "gun/ar_sol/mid-1.ogg",
-     "gun/ar_sol/mid-2.ogg",
-     "gun/ar_sol/mid-3.ogg",
-     "gun/ar_sol/mid-4.ogg"
+    "body": [
+     "gun/ar_sol/body-1.ogg",
+     "gun/ar_sol/body-2.ogg",
+     "gun/ar_sol/body-3.ogg",
+     "gun/ar_sol/body-4.ogg",
+     "gun/ar_sol/body-5.ogg",
+     "gun/ar_sol/body-6.ogg",
+     "gun/ar_sol/body-7.ogg",
+     "gun/ar_sol/body-8.ogg",
+     "gun/ar_sol/body-9.ogg",
+     "gun/ar_sol/body-10.ogg"
     ],
-    "far": [
-     "gun/ar_sol/far-1.ogg",
-     "gun/ar_sol/far-2.ogg",
-     "gun/ar_sol/far-3.ogg"
+    "low": [
+     "gun/ar_sol/low-1.ogg",
+     "gun/ar_sol/low-2.ogg",
+     "gun/ar_sol/low-3.ogg",
+     "gun/ar_sol/low-4.ogg",
+     "gun/ar_sol/low-5.ogg",
+     "gun/ar_sol/low-6.ogg"
     ],
-    "1p": [
-     "gun/ar_sol/1p-1.ogg",
-     "gun/ar_sol/1p-2.ogg",
-     "gun/ar_sol/1p-3.ogg",
-     "gun/ar_sol/1p-4.ogg",
-     "gun/ar_sol/1p-5.ogg",
-     "gun/ar_sol/1p-6.ogg",
-     "gun/ar_sol/1p-7.ogg",
-     "gun/ar_sol/1p-8.ogg"
-    ]
-   }
-  },
-  "gun:ar_void": {
-   "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/ar_void/near-1.ogg",
-     "gun/ar_void/near-2.ogg",
-     "gun/ar_void/near-3.ogg",
-     "gun/ar_void/near-4.ogg",
-     "gun/ar_void/near-5.ogg",
-     "gun/ar_void/near-6.ogg",
-     "gun/ar_void/near-7.ogg",
-     "gun/ar_void/near-8.ogg"
-    ],
-    "mid": [
-     "gun/ar_void/mid-1.ogg",
-     "gun/ar_void/mid-2.ogg",
-     "gun/ar_void/mid-3.ogg",
-     "gun/ar_void/mid-4.ogg"
-    ],
-    "far": [
-     "gun/ar_void/far-1.ogg",
-     "gun/ar_void/far-2.ogg",
-     "gun/ar_void/far-3.ogg"
-    ],
-    "1p": [
-     "gun/ar_void/1p-1.ogg",
-     "gun/ar_void/1p-2.ogg",
-     "gun/ar_void/1p-3.ogg",
-     "gun/ar_void/1p-4.ogg",
-     "gun/ar_void/1p-5.ogg",
-     "gun/ar_void/1p-6.ogg",
-     "gun/ar_void/1p-7.ogg",
-     "gun/ar_void/1p-8.ogg"
+    "mech": [
+     "gun/ar_sol/mech-1.ogg",
+     "gun/ar_sol/mech-2.ogg",
+     "gun/ar_sol/mech-3.ogg",
+     "gun/ar_sol/mech-4.ogg",
+     "gun/ar_sol/mech-5.ogg",
+     "gun/ar_sol/mech-6.ogg"
     ]
    }
   },
   "gun:br_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/br_sol/near-1.ogg",
-     "gun/br_sol/near-2.ogg",
-     "gun/br_sol/near-3.ogg",
-     "gun/br_sol/near-4.ogg"
+   "mix": {
+    "crack": -3,
+    "body": 0,
+    "low": -2,
+    "mech": -8
+   },
+   "far": "far:heavy",
+   "layers": {
+    "crack": [
+     "gun/br_sol/crack-1.ogg",
+     "gun/br_sol/crack-2.ogg",
+     "gun/br_sol/crack-3.ogg",
+     "gun/br_sol/crack-4.ogg",
+     "gun/br_sol/crack-5.ogg",
+     "gun/br_sol/crack-6.ogg",
+     "gun/br_sol/crack-7.ogg",
+     "gun/br_sol/crack-8.ogg"
     ],
-    "mid": [
-     "gun/br_sol/mid-1.ogg",
-     "gun/br_sol/mid-2.ogg",
-     "gun/br_sol/mid-3.ogg",
-     "gun/br_sol/mid-4.ogg"
+    "body": [
+     "gun/br_sol/body-1.ogg",
+     "gun/br_sol/body-2.ogg",
+     "gun/br_sol/body-3.ogg",
+     "gun/br_sol/body-4.ogg",
+     "gun/br_sol/body-5.ogg",
+     "gun/br_sol/body-6.ogg",
+     "gun/br_sol/body-7.ogg",
+     "gun/br_sol/body-8.ogg",
+     "gun/br_sol/body-9.ogg",
+     "gun/br_sol/body-10.ogg"
     ],
-    "far": [
-     "gun/br_sol/far-1.ogg",
-     "gun/br_sol/far-2.ogg",
-     "gun/br_sol/far-3.ogg"
+    "low": [
+     "gun/br_sol/low-1.ogg",
+     "gun/br_sol/low-2.ogg",
+     "gun/br_sol/low-3.ogg",
+     "gun/br_sol/low-4.ogg",
+     "gun/br_sol/low-5.ogg",
+     "gun/br_sol/low-6.ogg"
     ],
-    "1p": [
-     "gun/br_sol/1p-1.ogg",
-     "gun/br_sol/1p-2.ogg",
-     "gun/br_sol/1p-3.ogg",
-     "gun/br_sol/1p-4.ogg"
+    "mech": [
+     "gun/br_sol/mech-1.ogg",
+     "gun/br_sol/mech-2.ogg",
+     "gun/br_sol/mech-3.ogg",
+     "gun/br_sol/mech-4.ogg",
+     "gun/br_sol/mech-5.ogg",
+     "gun/br_sol/mech-6.ogg"
     ]
    }
   },
-  "gun:hmg": {
+  "gun:ar_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/hmg/near-1.ogg",
-     "gun/hmg/near-2.ogg",
-     "gun/hmg/near-3.ogg",
-     "gun/hmg/near-4.ogg",
-     "gun/hmg/near-5.ogg",
-     "gun/hmg/near-6.ogg"
+   "mix": {
+    "crack": -5,
+    "body": 0,
+    "low": -2,
+    "mech": -9
+   },
+   "far": "far:rifle",
+   "layers": {
+    "crack": [
+     "gun/ar_void/crack-1.ogg",
+     "gun/ar_void/crack-2.ogg",
+     "gun/ar_void/crack-3.ogg",
+     "gun/ar_void/crack-4.ogg",
+     "gun/ar_void/crack-5.ogg",
+     "gun/ar_void/crack-6.ogg",
+     "gun/ar_void/crack-7.ogg",
+     "gun/ar_void/crack-8.ogg"
     ],
-    "mid": [
-     "gun/hmg/mid-1.ogg",
-     "gun/hmg/mid-2.ogg",
-     "gun/hmg/mid-3.ogg",
-     "gun/hmg/mid-4.ogg"
+    "body": [
+     "gun/ar_void/body-1.ogg",
+     "gun/ar_void/body-2.ogg",
+     "gun/ar_void/body-3.ogg",
+     "gun/ar_void/body-4.ogg",
+     "gun/ar_void/body-5.ogg",
+     "gun/ar_void/body-6.ogg",
+     "gun/ar_void/body-7.ogg",
+     "gun/ar_void/body-8.ogg",
+     "gun/ar_void/body-9.ogg",
+     "gun/ar_void/body-10.ogg"
     ],
-    "far": [
-     "gun/hmg/far-1.ogg",
-     "gun/hmg/far-2.ogg",
-     "gun/hmg/far-3.ogg"
+    "low": [
+     "gun/ar_void/low-1.ogg",
+     "gun/ar_void/low-2.ogg",
+     "gun/ar_void/low-3.ogg",
+     "gun/ar_void/low-4.ogg",
+     "gun/ar_void/low-5.ogg",
+     "gun/ar_void/low-6.ogg"
     ],
-    "1p": [
-     "gun/hmg/1p-1.ogg",
-     "gun/hmg/1p-2.ogg",
-     "gun/hmg/1p-3.ogg",
-     "gun/hmg/1p-4.ogg",
-     "gun/hmg/1p-5.ogg",
-     "gun/hmg/1p-6.ogg"
+    "mech": [
+     "gun/ar_void/mech-1.ogg",
+     "gun/ar_void/mech-2.ogg",
+     "gun/ar_void/mech-3.ogg",
+     "gun/ar_void/mech-4.ogg",
+     "gun/ar_void/mech-5.ogg",
+     "gun/ar_void/mech-6.ogg"
     ]
    }
   },
   "gun:smg_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/smg_sol/near-1.ogg",
-     "gun/smg_sol/near-2.ogg",
-     "gun/smg_sol/near-3.ogg",
-     "gun/smg_sol/near-4.ogg",
-     "gun/smg_sol/near-5.ogg",
-     "gun/smg_sol/near-6.ogg"
+   "mix": {
+    "crack": -4,
+    "body": 0,
+    "low": -5,
+    "mech": -10
+   },
+   "far": "far:light",
+   "layers": {
+    "crack": [
+     "gun/smg_sol/crack-1.ogg",
+     "gun/smg_sol/crack-2.ogg",
+     "gun/smg_sol/crack-3.ogg",
+     "gun/smg_sol/crack-4.ogg",
+     "gun/smg_sol/crack-5.ogg",
+     "gun/smg_sol/crack-6.ogg",
+     "gun/smg_sol/crack-7.ogg",
+     "gun/smg_sol/crack-8.ogg"
     ],
-    "mid": [
-     "gun/smg_sol/mid-1.ogg",
-     "gun/smg_sol/mid-2.ogg",
-     "gun/smg_sol/mid-3.ogg",
-     "gun/smg_sol/mid-4.ogg"
+    "body": [
+     "gun/smg_sol/body-1.ogg",
+     "gun/smg_sol/body-2.ogg",
+     "gun/smg_sol/body-3.ogg",
+     "gun/smg_sol/body-4.ogg",
+     "gun/smg_sol/body-5.ogg",
+     "gun/smg_sol/body-6.ogg",
+     "gun/smg_sol/body-7.ogg",
+     "gun/smg_sol/body-8.ogg",
+     "gun/smg_sol/body-9.ogg",
+     "gun/smg_sol/body-10.ogg"
     ],
-    "far": [
-     "gun/smg_sol/far-1.ogg",
-     "gun/smg_sol/far-2.ogg",
-     "gun/smg_sol/far-3.ogg"
+    "low": [
+     "gun/smg_sol/low-1.ogg",
+     "gun/smg_sol/low-2.ogg",
+     "gun/smg_sol/low-3.ogg",
+     "gun/smg_sol/low-4.ogg",
+     "gun/smg_sol/low-5.ogg",
+     "gun/smg_sol/low-6.ogg"
     ],
-    "1p": [
-     "gun/smg_sol/1p-1.ogg",
-     "gun/smg_sol/1p-2.ogg",
-     "gun/smg_sol/1p-3.ogg",
-     "gun/smg_sol/1p-4.ogg",
-     "gun/smg_sol/1p-5.ogg",
-     "gun/smg_sol/1p-6.ogg"
+    "mech": [
+     "gun/smg_sol/mech-1.ogg",
+     "gun/smg_sol/mech-2.ogg",
+     "gun/smg_sol/mech-3.ogg",
+     "gun/smg_sol/mech-4.ogg",
+     "gun/smg_sol/mech-5.ogg",
+     "gun/smg_sol/mech-6.ogg"
     ]
    }
   },
   "gun:smg_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/smg_void/near-1.ogg",
-     "gun/smg_void/near-2.ogg",
-     "gun/smg_void/near-3.ogg",
-     "gun/smg_void/near-4.ogg",
-     "gun/smg_void/near-5.ogg",
-     "gun/smg_void/near-6.ogg"
+   "mix": {
+    "crack": -5,
+    "body": 0,
+    "low": -4,
+    "mech": -10
+   },
+   "far": "far:light",
+   "layers": {
+    "crack": [
+     "gun/smg_void/crack-1.ogg",
+     "gun/smg_void/crack-2.ogg",
+     "gun/smg_void/crack-3.ogg",
+     "gun/smg_void/crack-4.ogg",
+     "gun/smg_void/crack-5.ogg",
+     "gun/smg_void/crack-6.ogg",
+     "gun/smg_void/crack-7.ogg",
+     "gun/smg_void/crack-8.ogg"
     ],
-    "mid": [
-     "gun/smg_void/mid-1.ogg",
-     "gun/smg_void/mid-2.ogg",
-     "gun/smg_void/mid-3.ogg",
-     "gun/smg_void/mid-4.ogg"
+    "body": [
+     "gun/smg_void/body-1.ogg",
+     "gun/smg_void/body-2.ogg",
+     "gun/smg_void/body-3.ogg",
+     "gun/smg_void/body-4.ogg",
+     "gun/smg_void/body-5.ogg",
+     "gun/smg_void/body-6.ogg",
+     "gun/smg_void/body-7.ogg",
+     "gun/smg_void/body-8.ogg",
+     "gun/smg_void/body-9.ogg",
+     "gun/smg_void/body-10.ogg"
     ],
-    "far": [
-     "gun/smg_void/far-1.ogg",
-     "gun/smg_void/far-2.ogg",
-     "gun/smg_void/far-3.ogg"
+    "low": [
+     "gun/smg_void/low-1.ogg",
+     "gun/smg_void/low-2.ogg",
+     "gun/smg_void/low-3.ogg",
+     "gun/smg_void/low-4.ogg",
+     "gun/smg_void/low-5.ogg",
+     "gun/smg_void/low-6.ogg"
     ],
-    "1p": [
-     "gun/smg_void/1p-1.ogg",
-     "gun/smg_void/1p-2.ogg",
-     "gun/smg_void/1p-3.ogg",
-     "gun/smg_void/1p-4.ogg",
-     "gun/smg_void/1p-5.ogg",
-     "gun/smg_void/1p-6.ogg"
+    "mech": [
+     "gun/smg_void/mech-1.ogg",
+     "gun/smg_void/mech-2.ogg",
+     "gun/smg_void/mech-3.ogg",
+     "gun/smg_void/mech-4.ogg",
+     "gun/smg_void/mech-5.ogg",
+     "gun/smg_void/mech-6.ogg"
     ]
    }
   },
   "gun:sg_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/sg_sol/near-1.ogg",
-     "gun/sg_sol/near-2.ogg",
-     "gun/sg_sol/near-3.ogg",
-     "gun/sg_sol/near-4.ogg",
-     "gun/sg_sol/near-5.ogg",
-     "gun/sg_sol/near-6.ogg"
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": -1,
+    "mech": -10
+   },
+   "far": "far:shotgun",
+   "layers": {
+    "crack": [
+     "gun/sg_sol/crack-1.ogg",
+     "gun/sg_sol/crack-2.ogg",
+     "gun/sg_sol/crack-3.ogg",
+     "gun/sg_sol/crack-4.ogg",
+     "gun/sg_sol/crack-5.ogg",
+     "gun/sg_sol/crack-6.ogg",
+     "gun/sg_sol/crack-7.ogg",
+     "gun/sg_sol/crack-8.ogg"
     ],
-    "mid": [
-     "gun/sg_sol/mid-1.ogg",
-     "gun/sg_sol/mid-2.ogg",
-     "gun/sg_sol/mid-3.ogg",
-     "gun/sg_sol/mid-4.ogg"
+    "body": [
+     "gun/sg_sol/body-1.ogg",
+     "gun/sg_sol/body-2.ogg",
+     "gun/sg_sol/body-3.ogg",
+     "gun/sg_sol/body-4.ogg",
+     "gun/sg_sol/body-5.ogg",
+     "gun/sg_sol/body-6.ogg",
+     "gun/sg_sol/body-7.ogg",
+     "gun/sg_sol/body-8.ogg",
+     "gun/sg_sol/body-9.ogg",
+     "gun/sg_sol/body-10.ogg"
     ],
-    "far": [
-     "gun/sg_sol/far-1.ogg",
-     "gun/sg_sol/far-2.ogg",
-     "gun/sg_sol/far-3.ogg"
+    "low": [
+     "gun/sg_sol/low-1.ogg",
+     "gun/sg_sol/low-2.ogg",
+     "gun/sg_sol/low-3.ogg",
+     "gun/sg_sol/low-4.ogg",
+     "gun/sg_sol/low-5.ogg",
+     "gun/sg_sol/low-6.ogg"
     ],
-    "1p": [
-     "gun/sg_sol/1p-1.ogg",
-     "gun/sg_sol/1p-2.ogg",
-     "gun/sg_sol/1p-3.ogg",
-     "gun/sg_sol/1p-4.ogg",
-     "gun/sg_sol/1p-5.ogg",
-     "gun/sg_sol/1p-6.ogg"
+    "mech": [
+     "gun/sg_sol/mech-1.ogg",
+     "gun/sg_sol/mech-2.ogg",
+     "gun/sg_sol/mech-3.ogg",
+     "gun/sg_sol/mech-4.ogg",
+     "gun/sg_sol/mech-5.ogg",
+     "gun/sg_sol/mech-6.ogg"
     ]
    }
   },
   "gun:sg_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/sg_void/near-1.ogg",
-     "gun/sg_void/near-2.ogg",
-     "gun/sg_void/near-3.ogg",
-     "gun/sg_void/near-4.ogg",
-     "gun/sg_void/near-5.ogg",
-     "gun/sg_void/near-6.ogg"
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": 0,
+    "mech": -10
+   },
+   "far": "far:shotgun",
+   "layers": {
+    "crack": [
+     "gun/sg_void/crack-1.ogg",
+     "gun/sg_void/crack-2.ogg",
+     "gun/sg_void/crack-3.ogg",
+     "gun/sg_void/crack-4.ogg",
+     "gun/sg_void/crack-5.ogg",
+     "gun/sg_void/crack-6.ogg",
+     "gun/sg_void/crack-7.ogg",
+     "gun/sg_void/crack-8.ogg"
     ],
-    "mid": [
-     "gun/sg_void/mid-1.ogg",
-     "gun/sg_void/mid-2.ogg",
-     "gun/sg_void/mid-3.ogg",
-     "gun/sg_void/mid-4.ogg"
+    "body": [
+     "gun/sg_void/body-1.ogg",
+     "gun/sg_void/body-2.ogg",
+     "gun/sg_void/body-3.ogg",
+     "gun/sg_void/body-4.ogg",
+     "gun/sg_void/body-5.ogg",
+     "gun/sg_void/body-6.ogg",
+     "gun/sg_void/body-7.ogg",
+     "gun/sg_void/body-8.ogg",
+     "gun/sg_void/body-9.ogg",
+     "gun/sg_void/body-10.ogg"
     ],
-    "far": [
-     "gun/sg_void/far-1.ogg",
-     "gun/sg_void/far-2.ogg",
-     "gun/sg_void/far-3.ogg"
+    "low": [
+     "gun/sg_void/low-1.ogg",
+     "gun/sg_void/low-2.ogg",
+     "gun/sg_void/low-3.ogg",
+     "gun/sg_void/low-4.ogg",
+     "gun/sg_void/low-5.ogg",
+     "gun/sg_void/low-6.ogg"
     ],
-    "1p": [
-     "gun/sg_void/1p-1.ogg",
-     "gun/sg_void/1p-2.ogg",
-     "gun/sg_void/1p-3.ogg",
-     "gun/sg_void/1p-4.ogg",
-     "gun/sg_void/1p-5.ogg",
-     "gun/sg_void/1p-6.ogg"
+    "mech": [
+     "gun/sg_void/mech-1.ogg",
+     "gun/sg_void/mech-2.ogg",
+     "gun/sg_void/mech-3.ogg",
+     "gun/sg_void/mech-4.ogg",
+     "gun/sg_void/mech-5.ogg",
+     "gun/sg_void/mech-6.ogg"
     ]
    }
   },
   "gun:sr_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/sr_sol/near-1.ogg",
-     "gun/sr_sol/near-2.ogg",
-     "gun/sr_sol/near-3.ogg",
-     "gun/sr_sol/near-4.ogg",
-     "gun/sr_sol/near-5.ogg",
-     "gun/sr_sol/near-6.ogg"
+   "mix": {
+    "crack": 1,
+    "body": 0,
+    "low": -1,
+    "mech": -9
+   },
+   "far": "far:sniper",
+   "layers": {
+    "crack": [
+     "gun/sr_sol/crack-1.ogg",
+     "gun/sr_sol/crack-2.ogg",
+     "gun/sr_sol/crack-3.ogg",
+     "gun/sr_sol/crack-4.ogg",
+     "gun/sr_sol/crack-5.ogg",
+     "gun/sr_sol/crack-6.ogg",
+     "gun/sr_sol/crack-7.ogg",
+     "gun/sr_sol/crack-8.ogg"
     ],
-    "mid": [
-     "gun/sr_sol/mid-1.ogg",
-     "gun/sr_sol/mid-2.ogg",
-     "gun/sr_sol/mid-3.ogg",
-     "gun/sr_sol/mid-4.ogg"
+    "body": [
+     "gun/sr_sol/body-1.ogg",
+     "gun/sr_sol/body-2.ogg",
+     "gun/sr_sol/body-3.ogg",
+     "gun/sr_sol/body-4.ogg",
+     "gun/sr_sol/body-5.ogg",
+     "gun/sr_sol/body-6.ogg",
+     "gun/sr_sol/body-7.ogg",
+     "gun/sr_sol/body-8.ogg",
+     "gun/sr_sol/body-9.ogg",
+     "gun/sr_sol/body-10.ogg"
     ],
-    "far": [
-     "gun/sr_sol/far-1.ogg",
-     "gun/sr_sol/far-2.ogg",
-     "gun/sr_sol/far-3.ogg"
+    "low": [
+     "gun/sr_sol/low-1.ogg",
+     "gun/sr_sol/low-2.ogg",
+     "gun/sr_sol/low-3.ogg",
+     "gun/sr_sol/low-4.ogg",
+     "gun/sr_sol/low-5.ogg",
+     "gun/sr_sol/low-6.ogg"
     ],
-    "1p": [
-     "gun/sr_sol/1p-1.ogg",
-     "gun/sr_sol/1p-2.ogg",
-     "gun/sr_sol/1p-3.ogg",
-     "gun/sr_sol/1p-4.ogg",
-     "gun/sr_sol/1p-5.ogg",
-     "gun/sr_sol/1p-6.ogg"
+    "mech": [
+     "gun/sr_sol/mech-1.ogg",
+     "gun/sr_sol/mech-2.ogg",
+     "gun/sr_sol/mech-3.ogg",
+     "gun/sr_sol/mech-4.ogg",
+     "gun/sr_sol/mech-5.ogg",
+     "gun/sr_sol/mech-6.ogg"
     ]
    }
   },
   "gun:sr_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/sr_void/near-1.ogg",
-     "gun/sr_void/near-2.ogg",
-     "gun/sr_void/near-3.ogg",
-     "gun/sr_void/near-4.ogg",
-     "gun/sr_void/near-5.ogg",
-     "gun/sr_void/near-6.ogg"
+   "mix": {
+    "crack": 1,
+    "body": 0,
+    "low": 0,
+    "mech": -9
+   },
+   "far": "far:sniper",
+   "layers": {
+    "crack": [
+     "gun/sr_void/crack-1.ogg",
+     "gun/sr_void/crack-2.ogg",
+     "gun/sr_void/crack-3.ogg",
+     "gun/sr_void/crack-4.ogg",
+     "gun/sr_void/crack-5.ogg",
+     "gun/sr_void/crack-6.ogg",
+     "gun/sr_void/crack-7.ogg",
+     "gun/sr_void/crack-8.ogg"
     ],
-    "mid": [
-     "gun/sr_void/mid-1.ogg",
-     "gun/sr_void/mid-2.ogg",
-     "gun/sr_void/mid-3.ogg",
-     "gun/sr_void/mid-4.ogg"
+    "body": [
+     "gun/sr_void/body-1.ogg",
+     "gun/sr_void/body-2.ogg",
+     "gun/sr_void/body-3.ogg",
+     "gun/sr_void/body-4.ogg",
+     "gun/sr_void/body-5.ogg",
+     "gun/sr_void/body-6.ogg",
+     "gun/sr_void/body-7.ogg",
+     "gun/sr_void/body-8.ogg",
+     "gun/sr_void/body-9.ogg",
+     "gun/sr_void/body-10.ogg"
     ],
-    "far": [
-     "gun/sr_void/far-1.ogg",
-     "gun/sr_void/far-2.ogg",
-     "gun/sr_void/far-3.ogg"
+    "low": [
+     "gun/sr_void/low-1.ogg",
+     "gun/sr_void/low-2.ogg",
+     "gun/sr_void/low-3.ogg",
+     "gun/sr_void/low-4.ogg",
+     "gun/sr_void/low-5.ogg",
+     "gun/sr_void/low-6.ogg"
     ],
-    "1p": [
-     "gun/sr_void/1p-1.ogg",
-     "gun/sr_void/1p-2.ogg",
-     "gun/sr_void/1p-3.ogg",
-     "gun/sr_void/1p-4.ogg",
-     "gun/sr_void/1p-5.ogg",
-     "gun/sr_void/1p-6.ogg"
+    "mech": [
+     "gun/sr_void/mech-1.ogg",
+     "gun/sr_void/mech-2.ogg",
+     "gun/sr_void/mech-3.ogg",
+     "gun/sr_void/mech-4.ogg",
+     "gun/sr_void/mech-5.ogg",
+     "gun/sr_void/mech-6.ogg"
+    ]
+   }
+  },
+  "gun:hmg": {
+   "kind": "gun",
+   "mix": {
+    "crack": -3,
+    "body": 0,
+    "low": -1,
+    "mech": -7
+   },
+   "far": "far:heavy",
+   "layers": {
+    "crack": [
+     "gun/hmg/crack-1.ogg",
+     "gun/hmg/crack-2.ogg",
+     "gun/hmg/crack-3.ogg",
+     "gun/hmg/crack-4.ogg",
+     "gun/hmg/crack-5.ogg",
+     "gun/hmg/crack-6.ogg",
+     "gun/hmg/crack-7.ogg",
+     "gun/hmg/crack-8.ogg"
+    ],
+    "body": [
+     "gun/hmg/body-1.ogg",
+     "gun/hmg/body-2.ogg",
+     "gun/hmg/body-3.ogg",
+     "gun/hmg/body-4.ogg",
+     "gun/hmg/body-5.ogg",
+     "gun/hmg/body-6.ogg",
+     "gun/hmg/body-7.ogg",
+     "gun/hmg/body-8.ogg",
+     "gun/hmg/body-9.ogg",
+     "gun/hmg/body-10.ogg"
+    ],
+    "low": [
+     "gun/hmg/low-1.ogg",
+     "gun/hmg/low-2.ogg",
+     "gun/hmg/low-3.ogg",
+     "gun/hmg/low-4.ogg",
+     "gun/hmg/low-5.ogg",
+     "gun/hmg/low-6.ogg"
+    ],
+    "mech": [
+     "gun/hmg/mech-1.ogg",
+     "gun/hmg/mech-2.ogg",
+     "gun/hmg/mech-3.ogg",
+     "gun/hmg/mech-4.ogg",
+     "gun/hmg/mech-5.ogg",
+     "gun/hmg/mech-6.ogg"
     ]
    }
   },
   "gun:autocannon": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/autocannon/near-1.ogg",
-     "gun/autocannon/near-2.ogg",
-     "gun/autocannon/near-3.ogg",
-     "gun/autocannon/near-4.ogg",
-     "gun/autocannon/near-5.ogg",
-     "gun/autocannon/near-6.ogg"
+   "mix": {
+    "crack": -3,
+    "body": 0,
+    "low": 0,
+    "mech": -6
+   },
+   "far": "far:cannon",
+   "layers": {
+    "crack": [
+     "gun/autocannon/crack-1.ogg",
+     "gun/autocannon/crack-2.ogg",
+     "gun/autocannon/crack-3.ogg",
+     "gun/autocannon/crack-4.ogg",
+     "gun/autocannon/crack-5.ogg",
+     "gun/autocannon/crack-6.ogg",
+     "gun/autocannon/crack-7.ogg",
+     "gun/autocannon/crack-8.ogg"
     ],
-    "mid": [
-     "gun/autocannon/mid-1.ogg",
-     "gun/autocannon/mid-2.ogg",
-     "gun/autocannon/mid-3.ogg",
-     "gun/autocannon/mid-4.ogg"
+    "body": [
+     "gun/autocannon/body-1.ogg",
+     "gun/autocannon/body-2.ogg",
+     "gun/autocannon/body-3.ogg",
+     "gun/autocannon/body-4.ogg",
+     "gun/autocannon/body-5.ogg",
+     "gun/autocannon/body-6.ogg",
+     "gun/autocannon/body-7.ogg",
+     "gun/autocannon/body-8.ogg",
+     "gun/autocannon/body-9.ogg",
+     "gun/autocannon/body-10.ogg"
     ],
-    "far": [
-     "gun/autocannon/far-1.ogg",
-     "gun/autocannon/far-2.ogg",
-     "gun/autocannon/far-3.ogg"
+    "low": [
+     "gun/autocannon/low-1.ogg",
+     "gun/autocannon/low-2.ogg",
+     "gun/autocannon/low-3.ogg",
+     "gun/autocannon/low-4.ogg",
+     "gun/autocannon/low-5.ogg",
+     "gun/autocannon/low-6.ogg"
     ],
-    "1p": [
-     "gun/autocannon/1p-1.ogg",
-     "gun/autocannon/1p-2.ogg",
-     "gun/autocannon/1p-3.ogg",
-     "gun/autocannon/1p-4.ogg",
-     "gun/autocannon/1p-5.ogg",
-     "gun/autocannon/1p-6.ogg"
+    "mech": [
+     "gun/autocannon/mech-1.ogg",
+     "gun/autocannon/mech-2.ogg",
+     "gun/autocannon/mech-3.ogg",
+     "gun/autocannon/mech-4.ogg",
+     "gun/autocannon/mech-5.ogg",
+     "gun/autocannon/mech-6.ogg"
     ]
    }
   },
   "gun:cannon": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/cannon/near-1.ogg",
-     "gun/cannon/near-2.ogg",
-     "gun/cannon/near-3.ogg"
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": 1,
+    "mech": -6
+   },
+   "far": "far:cannon",
+   "layers": {
+    "crack": [
+     "gun/cannon/crack-1.ogg",
+     "gun/cannon/crack-2.ogg",
+     "gun/cannon/crack-3.ogg",
+     "gun/cannon/crack-4.ogg",
+     "gun/cannon/crack-5.ogg",
+     "gun/cannon/crack-6.ogg",
+     "gun/cannon/crack-7.ogg",
+     "gun/cannon/crack-8.ogg"
     ],
-    "mid": [
-     "gun/cannon/mid-1.ogg",
-     "gun/cannon/mid-2.ogg",
-     "gun/cannon/mid-3.ogg"
+    "body": [
+     "gun/cannon/body-1.ogg",
+     "gun/cannon/body-2.ogg",
+     "gun/cannon/body-3.ogg",
+     "gun/cannon/body-4.ogg",
+     "gun/cannon/body-5.ogg",
+     "gun/cannon/body-6.ogg",
+     "gun/cannon/body-7.ogg",
+     "gun/cannon/body-8.ogg",
+     "gun/cannon/body-9.ogg",
+     "gun/cannon/body-10.ogg"
     ],
-    "far": [
-     "gun/cannon/far-1.ogg",
-     "gun/cannon/far-2.ogg",
-     "gun/cannon/far-3.ogg"
+    "low": [
+     "gun/cannon/low-1.ogg",
+     "gun/cannon/low-2.ogg",
+     "gun/cannon/low-3.ogg",
+     "gun/cannon/low-4.ogg",
+     "gun/cannon/low-5.ogg",
+     "gun/cannon/low-6.ogg"
     ],
-    "1p": [
-     "gun/cannon/1p-1.ogg",
-     "gun/cannon/1p-2.ogg",
-     "gun/cannon/1p-3.ogg"
+    "mech": [
+     "gun/cannon/mech-1.ogg",
+     "gun/cannon/mech-2.ogg",
+     "gun/cannon/mech-3.ogg",
+     "gun/cannon/mech-4.ogg",
+     "gun/cannon/mech-5.ogg",
+     "gun/cannon/mech-6.ogg"
     ]
    }
   },
   "gun:supp": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "gun/supp/near-1.ogg",
-     "gun/supp/near-2.ogg",
-     "gun/supp/near-3.ogg",
-     "gun/supp/near-4.ogg",
-     "gun/supp/near-5.ogg",
-     "gun/supp/near-6.ogg"
+   "mix": {
+    "crack": -14,
+    "body": 0,
+    "low": -8,
+    "mech": -4
+   },
+   "far": "far:quiet",
+   "layers": {
+    "crack": [
+     "gun/supp/crack-1.ogg",
+     "gun/supp/crack-2.ogg",
+     "gun/supp/crack-3.ogg",
+     "gun/supp/crack-4.ogg",
+     "gun/supp/crack-5.ogg",
+     "gun/supp/crack-6.ogg",
+     "gun/supp/crack-7.ogg",
+     "gun/supp/crack-8.ogg"
     ],
-    "mid": [
-     "gun/supp/mid-1.ogg",
-     "gun/supp/mid-2.ogg",
-     "gun/supp/mid-3.ogg",
-     "gun/supp/mid-4.ogg"
+    "body": [
+     "gun/supp/body-1.ogg",
+     "gun/supp/body-2.ogg",
+     "gun/supp/body-3.ogg",
+     "gun/supp/body-4.ogg",
+     "gun/supp/body-5.ogg",
+     "gun/supp/body-6.ogg",
+     "gun/supp/body-7.ogg",
+     "gun/supp/body-8.ogg",
+     "gun/supp/body-9.ogg",
+     "gun/supp/body-10.ogg"
     ],
-    "far": [
-     "gun/supp/far-1.ogg",
-     "gun/supp/far-2.ogg",
-     "gun/supp/far-3.ogg"
+    "low": [
+     "gun/supp/low-1.ogg",
+     "gun/supp/low-2.ogg",
+     "gun/supp/low-3.ogg",
+     "gun/supp/low-4.ogg",
+     "gun/supp/low-5.ogg",
+     "gun/supp/low-6.ogg"
     ],
-    "1p": [
-     "gun/supp/1p-1.ogg",
-     "gun/supp/1p-2.ogg",
-     "gun/supp/1p-3.ogg",
-     "gun/supp/1p-4.ogg",
-     "gun/supp/1p-5.ogg",
-     "gun/supp/1p-6.ogg"
+    "mech": [
+     "gun/supp/mech-1.ogg",
+     "gun/supp/mech-2.ogg",
+     "gun/supp/mech-3.ogg",
+     "gun/supp/mech-4.ogg",
+     "gun/supp/mech-5.ogg",
+     "gun/supp/mech-6.ogg"
     ]
    }
   },
   "laser:pulse_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/pulse_sol/near-1.ogg",
-     "laser/pulse_sol/near-2.ogg",
-     "laser/pulse_sol/near-3.ogg",
-     "laser/pulse_sol/near-4.ogg",
-     "laser/pulse_sol/near-5.ogg",
-     "laser/pulse_sol/near-6.ogg"
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": -7,
+    "mech": -10
+   },
+   "far": "far:rifle",
+   "layers": {
+    "crack": [
+     "laser/pulse_sol/crack-1.ogg",
+     "laser/pulse_sol/crack-2.ogg",
+     "laser/pulse_sol/crack-3.ogg",
+     "laser/pulse_sol/crack-4.ogg",
+     "laser/pulse_sol/crack-5.ogg",
+     "laser/pulse_sol/crack-6.ogg",
+     "laser/pulse_sol/crack-7.ogg",
+     "laser/pulse_sol/crack-8.ogg"
     ],
-    "mid": [
-     "laser/pulse_sol/mid-1.ogg",
-     "laser/pulse_sol/mid-2.ogg",
-     "laser/pulse_sol/mid-3.ogg",
-     "laser/pulse_sol/mid-4.ogg"
+    "body": [
+     "laser/pulse_sol/body-1.ogg",
+     "laser/pulse_sol/body-2.ogg",
+     "laser/pulse_sol/body-3.ogg",
+     "laser/pulse_sol/body-4.ogg",
+     "laser/pulse_sol/body-5.ogg",
+     "laser/pulse_sol/body-6.ogg",
+     "laser/pulse_sol/body-7.ogg",
+     "laser/pulse_sol/body-8.ogg",
+     "laser/pulse_sol/body-9.ogg",
+     "laser/pulse_sol/body-10.ogg"
     ],
-    "far": [
-     "laser/pulse_sol/far-1.ogg",
-     "laser/pulse_sol/far-2.ogg",
-     "laser/pulse_sol/far-3.ogg"
+    "low": [
+     "laser/pulse_sol/low-1.ogg",
+     "laser/pulse_sol/low-2.ogg",
+     "laser/pulse_sol/low-3.ogg",
+     "laser/pulse_sol/low-4.ogg",
+     "laser/pulse_sol/low-5.ogg",
+     "laser/pulse_sol/low-6.ogg"
     ],
-    "1p": [
-     "laser/pulse_sol/1p-1.ogg",
-     "laser/pulse_sol/1p-2.ogg",
-     "laser/pulse_sol/1p-3.ogg",
-     "laser/pulse_sol/1p-4.ogg",
-     "laser/pulse_sol/1p-5.ogg",
-     "laser/pulse_sol/1p-6.ogg"
+    "mech": [
+     "laser/pulse_sol/mech-1.ogg",
+     "laser/pulse_sol/mech-2.ogg",
+     "laser/pulse_sol/mech-3.ogg",
+     "laser/pulse_sol/mech-4.ogg",
+     "laser/pulse_sol/mech-5.ogg",
+     "laser/pulse_sol/mech-6.ogg"
     ]
    }
   },
   "laser:pulse_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/pulse_void/near-1.ogg",
-     "laser/pulse_void/near-2.ogg",
-     "laser/pulse_void/near-3.ogg",
-     "laser/pulse_void/near-4.ogg",
-     "laser/pulse_void/near-5.ogg",
-     "laser/pulse_void/near-6.ogg"
+   "mix": {
+    "crack": -6,
+    "body": 0,
+    "low": -6,
+    "mech": -10
+   },
+   "far": "far:rifle",
+   "layers": {
+    "crack": [
+     "laser/pulse_void/crack-1.ogg",
+     "laser/pulse_void/crack-2.ogg",
+     "laser/pulse_void/crack-3.ogg",
+     "laser/pulse_void/crack-4.ogg",
+     "laser/pulse_void/crack-5.ogg",
+     "laser/pulse_void/crack-6.ogg",
+     "laser/pulse_void/crack-7.ogg",
+     "laser/pulse_void/crack-8.ogg"
     ],
-    "mid": [
-     "laser/pulse_void/mid-1.ogg",
-     "laser/pulse_void/mid-2.ogg",
-     "laser/pulse_void/mid-3.ogg",
-     "laser/pulse_void/mid-4.ogg"
+    "body": [
+     "laser/pulse_void/body-1.ogg",
+     "laser/pulse_void/body-2.ogg",
+     "laser/pulse_void/body-3.ogg",
+     "laser/pulse_void/body-4.ogg",
+     "laser/pulse_void/body-5.ogg",
+     "laser/pulse_void/body-6.ogg",
+     "laser/pulse_void/body-7.ogg",
+     "laser/pulse_void/body-8.ogg",
+     "laser/pulse_void/body-9.ogg",
+     "laser/pulse_void/body-10.ogg"
     ],
-    "far": [
-     "laser/pulse_void/far-1.ogg",
-     "laser/pulse_void/far-2.ogg",
-     "laser/pulse_void/far-3.ogg"
+    "low": [
+     "laser/pulse_void/low-1.ogg",
+     "laser/pulse_void/low-2.ogg",
+     "laser/pulse_void/low-3.ogg",
+     "laser/pulse_void/low-4.ogg",
+     "laser/pulse_void/low-5.ogg",
+     "laser/pulse_void/low-6.ogg"
     ],
-    "1p": [
-     "laser/pulse_void/1p-1.ogg",
-     "laser/pulse_void/1p-2.ogg",
-     "laser/pulse_void/1p-3.ogg",
-     "laser/pulse_void/1p-4.ogg",
-     "laser/pulse_void/1p-5.ogg",
-     "laser/pulse_void/1p-6.ogg"
+    "mech": [
+     "laser/pulse_void/mech-1.ogg",
+     "laser/pulse_void/mech-2.ogg",
+     "laser/pulse_void/mech-3.ogg",
+     "laser/pulse_void/mech-4.ogg",
+     "laser/pulse_void/mech-5.ogg",
+     "laser/pulse_void/mech-6.ogg"
     ]
    }
   },
   "laser:light_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/light_sol/near-1.ogg",
-     "laser/light_sol/near-2.ogg",
-     "laser/light_sol/near-3.ogg",
-     "laser/light_sol/near-4.ogg",
-     "laser/light_sol/near-5.ogg",
-     "laser/light_sol/near-6.ogg"
+   "mix": {
+    "crack": -3,
+    "body": 0,
+    "low": -8,
+    "mech": -11
+   },
+   "far": "far:heavy",
+   "layers": {
+    "crack": [
+     "laser/light_sol/crack-1.ogg",
+     "laser/light_sol/crack-2.ogg",
+     "laser/light_sol/crack-3.ogg",
+     "laser/light_sol/crack-4.ogg",
+     "laser/light_sol/crack-5.ogg",
+     "laser/light_sol/crack-6.ogg",
+     "laser/light_sol/crack-7.ogg",
+     "laser/light_sol/crack-8.ogg"
     ],
-    "mid": [
-     "laser/light_sol/mid-1.ogg",
-     "laser/light_sol/mid-2.ogg",
-     "laser/light_sol/mid-3.ogg",
-     "laser/light_sol/mid-4.ogg"
+    "body": [
+     "laser/light_sol/body-1.ogg",
+     "laser/light_sol/body-2.ogg",
+     "laser/light_sol/body-3.ogg",
+     "laser/light_sol/body-4.ogg",
+     "laser/light_sol/body-5.ogg",
+     "laser/light_sol/body-6.ogg",
+     "laser/light_sol/body-7.ogg",
+     "laser/light_sol/body-8.ogg",
+     "laser/light_sol/body-9.ogg",
+     "laser/light_sol/body-10.ogg"
     ],
-    "far": [
-     "laser/light_sol/far-1.ogg",
-     "laser/light_sol/far-2.ogg",
-     "laser/light_sol/far-3.ogg"
+    "low": [
+     "laser/light_sol/low-1.ogg",
+     "laser/light_sol/low-2.ogg",
+     "laser/light_sol/low-3.ogg",
+     "laser/light_sol/low-4.ogg",
+     "laser/light_sol/low-5.ogg",
+     "laser/light_sol/low-6.ogg"
     ],
-    "1p": [
-     "laser/light_sol/1p-1.ogg",
-     "laser/light_sol/1p-2.ogg",
-     "laser/light_sol/1p-3.ogg",
-     "laser/light_sol/1p-4.ogg",
-     "laser/light_sol/1p-5.ogg",
-     "laser/light_sol/1p-6.ogg"
+    "mech": [
+     "laser/light_sol/mech-1.ogg",
+     "laser/light_sol/mech-2.ogg",
+     "laser/light_sol/mech-3.ogg",
+     "laser/light_sol/mech-4.ogg",
+     "laser/light_sol/mech-5.ogg",
+     "laser/light_sol/mech-6.ogg"
     ]
    }
   },
   "laser:light_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/light_void/near-1.ogg",
-     "laser/light_void/near-2.ogg",
-     "laser/light_void/near-3.ogg",
-     "laser/light_void/near-4.ogg",
-     "laser/light_void/near-5.ogg",
-     "laser/light_void/near-6.ogg"
+   "mix": {
+    "crack": -6,
+    "body": 0,
+    "low": -7,
+    "mech": -11
+   },
+   "far": "far:heavy",
+   "layers": {
+    "crack": [
+     "laser/light_void/crack-1.ogg",
+     "laser/light_void/crack-2.ogg",
+     "laser/light_void/crack-3.ogg",
+     "laser/light_void/crack-4.ogg",
+     "laser/light_void/crack-5.ogg",
+     "laser/light_void/crack-6.ogg",
+     "laser/light_void/crack-7.ogg",
+     "laser/light_void/crack-8.ogg"
     ],
-    "mid": [
-     "laser/light_void/mid-1.ogg",
-     "laser/light_void/mid-2.ogg",
-     "laser/light_void/mid-3.ogg",
-     "laser/light_void/mid-4.ogg"
+    "body": [
+     "laser/light_void/body-1.ogg",
+     "laser/light_void/body-2.ogg",
+     "laser/light_void/body-3.ogg",
+     "laser/light_void/body-4.ogg",
+     "laser/light_void/body-5.ogg",
+     "laser/light_void/body-6.ogg",
+     "laser/light_void/body-7.ogg",
+     "laser/light_void/body-8.ogg",
+     "laser/light_void/body-9.ogg",
+     "laser/light_void/body-10.ogg"
     ],
-    "far": [
-     "laser/light_void/far-1.ogg",
-     "laser/light_void/far-2.ogg",
-     "laser/light_void/far-3.ogg"
+    "low": [
+     "laser/light_void/low-1.ogg",
+     "laser/light_void/low-2.ogg",
+     "laser/light_void/low-3.ogg",
+     "laser/light_void/low-4.ogg",
+     "laser/light_void/low-5.ogg",
+     "laser/light_void/low-6.ogg"
     ],
-    "1p": [
-     "laser/light_void/1p-1.ogg",
-     "laser/light_void/1p-2.ogg",
-     "laser/light_void/1p-3.ogg",
-     "laser/light_void/1p-4.ogg",
-     "laser/light_void/1p-5.ogg",
-     "laser/light_void/1p-6.ogg"
+    "mech": [
+     "laser/light_void/mech-1.ogg",
+     "laser/light_void/mech-2.ogg",
+     "laser/light_void/mech-3.ogg",
+     "laser/light_void/mech-4.ogg",
+     "laser/light_void/mech-5.ogg",
+     "laser/light_void/mech-6.ogg"
     ]
    }
   },
   "laser:plasma_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/plasma_sol/near-1.ogg",
-     "laser/plasma_sol/near-2.ogg",
-     "laser/plasma_sol/near-3.ogg"
+   "mix": {
+    "crack": -4,
+    "body": 0,
+    "low": -4,
+    "mech": -8
+   },
+   "far": "far:shotgun",
+   "layers": {
+    "crack": [
+     "laser/plasma_sol/crack-1.ogg",
+     "laser/plasma_sol/crack-2.ogg",
+     "laser/plasma_sol/crack-3.ogg",
+     "laser/plasma_sol/crack-4.ogg",
+     "laser/plasma_sol/crack-5.ogg",
+     "laser/plasma_sol/crack-6.ogg",
+     "laser/plasma_sol/crack-7.ogg",
+     "laser/plasma_sol/crack-8.ogg"
     ],
-    "mid": [
-     "laser/plasma_sol/mid-1.ogg",
-     "laser/plasma_sol/mid-2.ogg",
-     "laser/plasma_sol/mid-3.ogg"
+    "body": [
+     "laser/plasma_sol/body-1.ogg",
+     "laser/plasma_sol/body-2.ogg",
+     "laser/plasma_sol/body-3.ogg",
+     "laser/plasma_sol/body-4.ogg",
+     "laser/plasma_sol/body-5.ogg",
+     "laser/plasma_sol/body-6.ogg",
+     "laser/plasma_sol/body-7.ogg",
+     "laser/plasma_sol/body-8.ogg",
+     "laser/plasma_sol/body-9.ogg",
+     "laser/plasma_sol/body-10.ogg"
     ],
-    "far": [
-     "laser/plasma_sol/far-1.ogg",
-     "laser/plasma_sol/far-2.ogg",
-     "laser/plasma_sol/far-3.ogg"
+    "low": [
+     "laser/plasma_sol/low-1.ogg",
+     "laser/plasma_sol/low-2.ogg",
+     "laser/plasma_sol/low-3.ogg",
+     "laser/plasma_sol/low-4.ogg",
+     "laser/plasma_sol/low-5.ogg",
+     "laser/plasma_sol/low-6.ogg"
     ],
-    "1p": [
-     "laser/plasma_sol/1p-1.ogg",
-     "laser/plasma_sol/1p-2.ogg",
-     "laser/plasma_sol/1p-3.ogg"
+    "mech": [
+     "laser/plasma_sol/mech-1.ogg",
+     "laser/plasma_sol/mech-2.ogg",
+     "laser/plasma_sol/mech-3.ogg",
+     "laser/plasma_sol/mech-4.ogg",
+     "laser/plasma_sol/mech-5.ogg",
+     "laser/plasma_sol/mech-6.ogg"
     ]
    }
   },
   "laser:lance_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/lance_sol/near-1.ogg",
-     "laser/lance_sol/near-2.ogg",
-     "laser/lance_sol/near-3.ogg"
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": -3,
+    "mech": -7
+   },
+   "far": "far:sniper",
+   "layers": {
+    "crack": [
+     "laser/lance_sol/crack-1.ogg",
+     "laser/lance_sol/crack-2.ogg",
+     "laser/lance_sol/crack-3.ogg",
+     "laser/lance_sol/crack-4.ogg",
+     "laser/lance_sol/crack-5.ogg",
+     "laser/lance_sol/crack-6.ogg",
+     "laser/lance_sol/crack-7.ogg",
+     "laser/lance_sol/crack-8.ogg"
     ],
-    "mid": [
-     "laser/lance_sol/mid-1.ogg",
-     "laser/lance_sol/mid-2.ogg",
-     "laser/lance_sol/mid-3.ogg"
+    "body": [
+     "laser/lance_sol/body-1.ogg",
+     "laser/lance_sol/body-2.ogg",
+     "laser/lance_sol/body-3.ogg",
+     "laser/lance_sol/body-4.ogg",
+     "laser/lance_sol/body-5.ogg",
+     "laser/lance_sol/body-6.ogg",
+     "laser/lance_sol/body-7.ogg",
+     "laser/lance_sol/body-8.ogg",
+     "laser/lance_sol/body-9.ogg",
+     "laser/lance_sol/body-10.ogg"
     ],
-    "far": [
-     "laser/lance_sol/far-1.ogg",
-     "laser/lance_sol/far-2.ogg",
-     "laser/lance_sol/far-3.ogg"
+    "low": [
+     "laser/lance_sol/low-1.ogg",
+     "laser/lance_sol/low-2.ogg",
+     "laser/lance_sol/low-3.ogg",
+     "laser/lance_sol/low-4.ogg",
+     "laser/lance_sol/low-5.ogg",
+     "laser/lance_sol/low-6.ogg"
     ],
-    "1p": [
-     "laser/lance_sol/1p-1.ogg",
-     "laser/lance_sol/1p-2.ogg",
-     "laser/lance_sol/1p-3.ogg"
+    "mech": [
+     "laser/lance_sol/mech-1.ogg",
+     "laser/lance_sol/mech-2.ogg",
+     "laser/lance_sol/mech-3.ogg",
+     "laser/lance_sol/mech-4.ogg",
+     "laser/lance_sol/mech-5.ogg",
+     "laser/lance_sol/mech-6.ogg"
     ]
    }
   },
   "laser:lance_void": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/lance_void/near-1.ogg",
-     "laser/lance_void/near-2.ogg",
-     "laser/lance_void/near-3.ogg"
+   "mix": {
+    "crack": -3,
+    "body": 0,
+    "low": -3,
+    "mech": -7
+   },
+   "far": "far:sniper",
+   "layers": {
+    "crack": [
+     "laser/lance_void/crack-1.ogg",
+     "laser/lance_void/crack-2.ogg",
+     "laser/lance_void/crack-3.ogg",
+     "laser/lance_void/crack-4.ogg",
+     "laser/lance_void/crack-5.ogg",
+     "laser/lance_void/crack-6.ogg",
+     "laser/lance_void/crack-7.ogg",
+     "laser/lance_void/crack-8.ogg"
     ],
-    "mid": [
-     "laser/lance_void/mid-1.ogg",
-     "laser/lance_void/mid-2.ogg",
-     "laser/lance_void/mid-3.ogg"
+    "body": [
+     "laser/lance_void/body-1.ogg",
+     "laser/lance_void/body-2.ogg",
+     "laser/lance_void/body-3.ogg",
+     "laser/lance_void/body-4.ogg",
+     "laser/lance_void/body-5.ogg",
+     "laser/lance_void/body-6.ogg",
+     "laser/lance_void/body-7.ogg",
+     "laser/lance_void/body-8.ogg",
+     "laser/lance_void/body-9.ogg",
+     "laser/lance_void/body-10.ogg"
     ],
-    "far": [
-     "laser/lance_void/far-1.ogg",
-     "laser/lance_void/far-2.ogg",
-     "laser/lance_void/far-3.ogg"
+    "low": [
+     "laser/lance_void/low-1.ogg",
+     "laser/lance_void/low-2.ogg",
+     "laser/lance_void/low-3.ogg",
+     "laser/lance_void/low-4.ogg",
+     "laser/lance_void/low-5.ogg",
+     "laser/lance_void/low-6.ogg"
     ],
-    "1p": [
-     "laser/lance_void/1p-1.ogg",
-     "laser/lance_void/1p-2.ogg",
-     "laser/lance_void/1p-3.ogg"
+    "mech": [
+     "laser/lance_void/mech-1.ogg",
+     "laser/lance_void/mech-2.ogg",
+     "laser/lance_void/mech-3.ogg",
+     "laser/lance_void/mech-4.ogg",
+     "laser/lance_void/mech-5.ogg",
+     "laser/lance_void/mech-6.ogg"
     ]
    }
   },
   "laser:rail_sol": {
    "kind": "gun",
-   "tiers": {
-    "near": [
-     "laser/rail_sol/near-1.ogg",
-     "laser/rail_sol/near-2.ogg",
-     "laser/rail_sol/near-3.ogg"
+   "mix": {
+    "crack": -1,
+    "body": 0,
+    "low": -2,
+    "mech": -6
+   },
+   "far": "far:cannon",
+   "layers": {
+    "crack": [
+     "laser/rail_sol/crack-1.ogg",
+     "laser/rail_sol/crack-2.ogg",
+     "laser/rail_sol/crack-3.ogg",
+     "laser/rail_sol/crack-4.ogg",
+     "laser/rail_sol/crack-5.ogg",
+     "laser/rail_sol/crack-6.ogg",
+     "laser/rail_sol/crack-7.ogg",
+     "laser/rail_sol/crack-8.ogg"
     ],
-    "mid": [
-     "laser/rail_sol/mid-1.ogg",
-     "laser/rail_sol/mid-2.ogg",
-     "laser/rail_sol/mid-3.ogg"
+    "body": [
+     "laser/rail_sol/body-1.ogg",
+     "laser/rail_sol/body-2.ogg",
+     "laser/rail_sol/body-3.ogg",
+     "laser/rail_sol/body-4.ogg",
+     "laser/rail_sol/body-5.ogg",
+     "laser/rail_sol/body-6.ogg",
+     "laser/rail_sol/body-7.ogg",
+     "laser/rail_sol/body-8.ogg",
+     "laser/rail_sol/body-9.ogg",
+     "laser/rail_sol/body-10.ogg"
     ],
+    "low": [
+     "laser/rail_sol/low-1.ogg",
+     "laser/rail_sol/low-2.ogg",
+     "laser/rail_sol/low-3.ogg",
+     "laser/rail_sol/low-4.ogg",
+     "laser/rail_sol/low-5.ogg",
+     "laser/rail_sol/low-6.ogg"
+    ],
+    "mech": [
+     "laser/rail_sol/mech-1.ogg",
+     "laser/rail_sol/mech-2.ogg",
+     "laser/rail_sol/mech-3.ogg",
+     "laser/rail_sol/mech-4.ogg",
+     "laser/rail_sol/mech-5.ogg",
+     "laser/rail_sol/mech-6.ogg"
+    ]
+   }
+  },
+  "far:light": {
+   "kind": "far",
+   "layers": {
     "far": [
-     "laser/rail_sol/far-1.ogg",
-     "laser/rail_sol/far-2.ogg",
-     "laser/rail_sol/far-3.ogg"
-    ],
-    "1p": [
-     "laser/rail_sol/1p-1.ogg",
-     "laser/rail_sol/1p-2.ogg",
-     "laser/rail_sol/1p-3.ogg"
+     "far/light-1.ogg",
+     "far/light-2.ogg",
+     "far/light-3.ogg",
+     "far/light-4.ogg",
+     "far/light-5.ogg"
+    ]
+   }
+  },
+  "far:rifle": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/rifle-1.ogg",
+     "far/rifle-2.ogg",
+     "far/rifle-3.ogg",
+     "far/rifle-4.ogg",
+     "far/rifle-5.ogg"
+    ]
+   }
+  },
+  "far:heavy": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/heavy-1.ogg",
+     "far/heavy-2.ogg",
+     "far/heavy-3.ogg",
+     "far/heavy-4.ogg",
+     "far/heavy-5.ogg"
+    ]
+   }
+  },
+  "far:shotgun": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/shotgun-1.ogg",
+     "far/shotgun-2.ogg",
+     "far/shotgun-3.ogg",
+     "far/shotgun-4.ogg",
+     "far/shotgun-5.ogg"
+    ]
+   }
+  },
+  "far:sniper": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/sniper-1.ogg",
+     "far/sniper-2.ogg",
+     "far/sniper-3.ogg",
+     "far/sniper-4.ogg",
+     "far/sniper-5.ogg"
+    ]
+   }
+  },
+  "far:cannon": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/cannon-1.ogg",
+     "far/cannon-2.ogg",
+     "far/cannon-3.ogg",
+     "far/cannon-4.ogg",
+     "far/cannon-5.ogg"
+    ]
+   }
+  },
+  "far:quiet": {
+   "kind": "far",
+   "layers": {
+    "far": [
+     "far/quiet-1.ogg",
+     "far/quiet-2.ogg",
+     "far/quiet-3.ogg",
+     "far/quiet-4.ogg",
+     "far/quiet-5.ogg"
     ]
    }
   },
   "boom:grenade": {
    "kind": "boom",
-   "tiers": {
-    "near": [
-     "boom/grenade/near-1.ogg",
-     "boom/grenade/near-2.ogg",
-     "boom/grenade/near-3.ogg",
-     "boom/grenade/near-4.ogg",
-     "boom/grenade/near-5.ogg",
-     "boom/grenade/near-6.ogg"
+   "mix": {
+    "crack": 2,
+    "body": 0,
+    "low": -1,
+    "debris@open": -4,
+    "debris@city": -4
+   },
+   "far": "far:boom:grenade",
+   "layers": {
+    "crack": [
+     "boom/grenade/crack-1.ogg",
+     "boom/grenade/crack-2.ogg",
+     "boom/grenade/crack-3.ogg",
+     "boom/grenade/crack-4.ogg",
+     "boom/grenade/crack-5.ogg",
+     "boom/grenade/crack-6.ogg"
     ],
-    "mid": [
-     "boom/grenade/mid-1.ogg",
-     "boom/grenade/mid-2.ogg",
-     "boom/grenade/mid-3.ogg",
-     "boom/grenade/mid-4.ogg"
+    "body": [
+     "boom/grenade/body-1.ogg",
+     "boom/grenade/body-2.ogg",
+     "boom/grenade/body-3.ogg",
+     "boom/grenade/body-4.ogg",
+     "boom/grenade/body-5.ogg",
+     "boom/grenade/body-6.ogg"
     ],
+    "low": [
+     "boom/grenade/low-1.ogg",
+     "boom/grenade/low-2.ogg",
+     "boom/grenade/low-3.ogg",
+     "boom/grenade/low-4.ogg",
+     "boom/grenade/low-5.ogg"
+    ],
+    "debris@open": [
+     "boom/grenade/debris-open-1.ogg",
+     "boom/grenade/debris-open-2.ogg",
+     "boom/grenade/debris-open-3.ogg",
+     "boom/grenade/debris-open-4.ogg"
+    ],
+    "debris@city": [
+     "boom/grenade/debris-city-1.ogg",
+     "boom/grenade/debris-city-2.ogg",
+     "boom/grenade/debris-city-3.ogg",
+     "boom/grenade/debris-city-4.ogg"
+    ]
+   }
+  },
+  "far:boom:grenade": {
+   "kind": "far",
+   "layers": {
     "far": [
-     "boom/grenade/far-1.ogg",
-     "boom/grenade/far-2.ogg",
-     "boom/grenade/far-3.ogg"
+     "far/boom-grenade-1.ogg",
+     "far/boom-grenade-2.ogg",
+     "far/boom-grenade-3.ogg",
+     "far/boom-grenade-4.ogg"
     ]
    }
   },
   "boom:vehicle": {
    "kind": "boom",
-   "tiers": {
-    "near": [
-     "boom/vehicle/near-1.ogg",
-     "boom/vehicle/near-2.ogg",
-     "boom/vehicle/near-3.ogg"
+   "mix": {
+    "crack": 2,
+    "body": 0,
+    "low": -1,
+    "debris@open": -4,
+    "debris@city": -4
+   },
+   "far": "far:boom:vehicle",
+   "layers": {
+    "crack": [
+     "boom/vehicle/crack-1.ogg",
+     "boom/vehicle/crack-2.ogg",
+     "boom/vehicle/crack-3.ogg",
+     "boom/vehicle/crack-4.ogg",
+     "boom/vehicle/crack-5.ogg",
+     "boom/vehicle/crack-6.ogg"
     ],
-    "mid": [
-     "boom/vehicle/mid-1.ogg",
-     "boom/vehicle/mid-2.ogg",
-     "boom/vehicle/mid-3.ogg"
+    "body": [
+     "boom/vehicle/body-1.ogg",
+     "boom/vehicle/body-2.ogg",
+     "boom/vehicle/body-3.ogg",
+     "boom/vehicle/body-4.ogg",
+     "boom/vehicle/body-5.ogg",
+     "boom/vehicle/body-6.ogg"
     ],
+    "low": [
+     "boom/vehicle/low-1.ogg",
+     "boom/vehicle/low-2.ogg",
+     "boom/vehicle/low-3.ogg",
+     "boom/vehicle/low-4.ogg",
+     "boom/vehicle/low-5.ogg"
+    ],
+    "debris@open": [
+     "boom/vehicle/debris-open-1.ogg",
+     "boom/vehicle/debris-open-2.ogg",
+     "boom/vehicle/debris-open-3.ogg",
+     "boom/vehicle/debris-open-4.ogg"
+    ],
+    "debris@city": [
+     "boom/vehicle/debris-city-1.ogg",
+     "boom/vehicle/debris-city-2.ogg",
+     "boom/vehicle/debris-city-3.ogg",
+     "boom/vehicle/debris-city-4.ogg"
+    ]
+   }
+  },
+  "far:boom:vehicle": {
+   "kind": "far",
+   "layers": {
     "far": [
-     "boom/vehicle/far-1.ogg",
-     "boom/vehicle/far-2.ogg",
-     "boom/vehicle/far-3.ogg"
+     "far/boom-vehicle-1.ogg",
+     "far/boom-vehicle-2.ogg",
+     "far/boom-vehicle-3.ogg",
+     "far/boom-vehicle-4.ogg"
     ]
    }
   },
   "boom:shell": {
    "kind": "boom",
-   "tiers": {
-    "near": [
-     "boom/shell/near-1.ogg",
-     "boom/shell/near-2.ogg",
-     "boom/shell/near-3.ogg"
+   "mix": {
+    "crack": 2,
+    "body": 0,
+    "low": -1,
+    "debris@open": -4,
+    "debris@city": -4
+   },
+   "far": "far:boom:shell",
+   "layers": {
+    "crack": [
+     "boom/shell/crack-1.ogg",
+     "boom/shell/crack-2.ogg",
+     "boom/shell/crack-3.ogg",
+     "boom/shell/crack-4.ogg",
+     "boom/shell/crack-5.ogg",
+     "boom/shell/crack-6.ogg"
     ],
-    "mid": [
-     "boom/shell/mid-1.ogg",
-     "boom/shell/mid-2.ogg",
-     "boom/shell/mid-3.ogg"
+    "body": [
+     "boom/shell/body-1.ogg",
+     "boom/shell/body-2.ogg",
+     "boom/shell/body-3.ogg",
+     "boom/shell/body-4.ogg",
+     "boom/shell/body-5.ogg",
+     "boom/shell/body-6.ogg"
     ],
+    "low": [
+     "boom/shell/low-1.ogg",
+     "boom/shell/low-2.ogg",
+     "boom/shell/low-3.ogg",
+     "boom/shell/low-4.ogg",
+     "boom/shell/low-5.ogg"
+    ],
+    "debris@open": [
+     "boom/shell/debris-open-1.ogg",
+     "boom/shell/debris-open-2.ogg",
+     "boom/shell/debris-open-3.ogg",
+     "boom/shell/debris-open-4.ogg"
+    ],
+    "debris@city": [
+     "boom/shell/debris-city-1.ogg",
+     "boom/shell/debris-city-2.ogg",
+     "boom/shell/debris-city-3.ogg",
+     "boom/shell/debris-city-4.ogg"
+    ]
+   }
+  },
+  "far:boom:shell": {
+   "kind": "far",
+   "layers": {
     "far": [
-     "boom/shell/far-1.ogg",
-     "boom/shell/far-2.ogg",
-     "boom/shell/far-3.ogg"
+     "far/boom-shell-1.ogg",
+     "far/boom-shell-2.ogg",
+     "far/boom-shell-3.ogg",
+     "far/boom-shell-4.ogg"
     ]
    }
   },
   "boom:bomb": {
    "kind": "boom",
-   "tiers": {
-    "near": [
-     "boom/bomb/near-1.ogg",
-     "boom/bomb/near-2.ogg",
-     "boom/bomb/near-3.ogg"
+   "mix": {
+    "crack": 2,
+    "body": 0,
+    "low": -1,
+    "debris@open": -4,
+    "debris@city": -4
+   },
+   "far": "far:boom:bomb",
+   "layers": {
+    "crack": [
+     "boom/bomb/crack-1.ogg",
+     "boom/bomb/crack-2.ogg",
+     "boom/bomb/crack-3.ogg",
+     "boom/bomb/crack-4.ogg",
+     "boom/bomb/crack-5.ogg",
+     "boom/bomb/crack-6.ogg"
     ],
-    "mid": [
-     "boom/bomb/mid-1.ogg",
-     "boom/bomb/mid-2.ogg",
-     "boom/bomb/mid-3.ogg"
+    "body": [
+     "boom/bomb/body-1.ogg",
+     "boom/bomb/body-2.ogg",
+     "boom/bomb/body-3.ogg",
+     "boom/bomb/body-4.ogg",
+     "boom/bomb/body-5.ogg",
+     "boom/bomb/body-6.ogg"
     ],
+    "low": [
+     "boom/bomb/low-1.ogg",
+     "boom/bomb/low-2.ogg",
+     "boom/bomb/low-3.ogg",
+     "boom/bomb/low-4.ogg",
+     "boom/bomb/low-5.ogg"
+    ],
+    "debris@open": [
+     "boom/bomb/debris-open-1.ogg",
+     "boom/bomb/debris-open-2.ogg",
+     "boom/bomb/debris-open-3.ogg",
+     "boom/bomb/debris-open-4.ogg"
+    ],
+    "debris@city": [
+     "boom/bomb/debris-city-1.ogg",
+     "boom/bomb/debris-city-2.ogg",
+     "boom/bomb/debris-city-3.ogg",
+     "boom/bomb/debris-city-4.ogg"
+    ]
+   }
+  },
+  "far:boom:bomb": {
+   "kind": "far",
+   "layers": {
     "far": [
-     "boom/bomb/far-1.ogg",
-     "boom/bomb/far-2.ogg",
-     "boom/bomb/far-3.ogg"
+     "far/boom-bomb-1.ogg",
+     "far/boom-bomb-2.ogg",
+     "far/boom-bomb-3.ogg",
+     "far/boom-bomb-4.ogg"
     ]
    }
   },
   "boom:emp": {
    "kind": "boom",
-   "tiers": {
-    "near": [
-     "boom/emp/near-1.ogg",
-     "boom/emp/near-2.ogg",
-     "boom/emp/near-3.ogg"
+   "mix": {
+    "crack": -6,
+    "body": 0,
+    "low": -4
+   },
+   "layers": {
+    "crack": [
+     "boom/emp/crack-1.ogg",
+     "boom/emp/crack-2.ogg",
+     "boom/emp/crack-3.ogg",
+     "boom/emp/crack-4.ogg",
+     "boom/emp/crack-5.ogg",
+     "boom/emp/crack-6.ogg"
     ],
-    "mid": [
-     "boom/emp/mid-1.ogg",
-     "boom/emp/mid-2.ogg",
-     "boom/emp/mid-3.ogg"
+    "body": [
+     "boom/emp/body-1.ogg",
+     "boom/emp/body-2.ogg",
+     "boom/emp/body-3.ogg",
+     "boom/emp/body-4.ogg",
+     "boom/emp/body-5.ogg",
+     "boom/emp/body-6.ogg"
     ],
-    "far": [
-     "boom/emp/far-1.ogg",
-     "boom/emp/far-2.ogg",
-     "boom/emp/far-3.ogg"
+    "low": [
+     "boom/emp/low-1.ogg",
+     "boom/emp/low-2.ogg",
+     "boom/emp/low-3.ogg",
+     "boom/emp/low-4.ogg",
+     "boom/emp/low-5.ogg"
     ]
    }
+  },
+  "report:howitzer": {
+   "kind": "report",
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": 0
+   },
+   "layers": {
+    "crack": [
+     "report/howitzer/crack-1.ogg",
+     "report/howitzer/crack-2.ogg",
+     "report/howitzer/crack-3.ogg",
+     "report/howitzer/crack-4.ogg",
+     "report/howitzer/crack-5.ogg"
+    ],
+    "body": [
+     "report/howitzer/body-1.ogg",
+     "report/howitzer/body-2.ogg",
+     "report/howitzer/body-3.ogg",
+     "report/howitzer/body-4.ogg",
+     "report/howitzer/body-5.ogg"
+    ],
+    "low": [
+     "report/howitzer/low-1.ogg",
+     "report/howitzer/low-2.ogg",
+     "report/howitzer/low-3.ogg",
+     "report/howitzer/low-4.ogg",
+     "report/howitzer/low-5.ogg"
+    ]
+   }
+  },
+  "report:at": {
+   "kind": "report",
+   "mix": {
+    "crack": -2,
+    "body": 0,
+    "low": -2
+   },
+   "layers": {
+    "crack": [
+     "report/at/crack-1.ogg",
+     "report/at/crack-2.ogg",
+     "report/at/crack-3.ogg",
+     "report/at/crack-4.ogg",
+     "report/at/crack-5.ogg"
+    ],
+    "body": [
+     "report/at/body-1.ogg",
+     "report/at/body-2.ogg",
+     "report/at/body-3.ogg",
+     "report/at/body-4.ogg",
+     "report/at/body-5.ogg"
+    ],
+    "low": [
+     "report/at/low-1.ogg",
+     "report/at/low-2.ogg",
+     "report/at/low-3.ogg",
+     "report/at/low-4.ogg",
+     "report/at/low-5.ogg"
+    ]
+   }
+  },
+  "report:rocket": {
+   "kind": "report",
+   "mix": {
+    "crack": -4,
+    "body": 0,
+    "low": 0
+   },
+   "layers": {
+    "crack": [
+     "report/rocket/crack-1.ogg",
+     "report/rocket/crack-2.ogg",
+     "report/rocket/crack-3.ogg",
+     "report/rocket/crack-4.ogg",
+     "report/rocket/crack-5.ogg"
+    ],
+    "body": [
+     "report/rocket/body-1.ogg",
+     "report/rocket/body-2.ogg",
+     "report/rocket/body-3.ogg",
+     "report/rocket/body-4.ogg",
+     "report/rocket/body-5.ogg"
+    ],
+    "low": [
+     "report/rocket/low-1.ogg",
+     "report/rocket/low-2.ogg",
+     "report/rocket/low-3.ogg",
+     "report/rocket/low-4.ogg",
+     "report/rocket/low-5.ogg"
+    ]
+   }
+  },
+  "incoming": {
+   "kind": "near",
+   "takes": [
+    "incoming/take-1.ogg",
+    "incoming/take-2.ogg",
+    "incoming/take-3.ogg",
+    "incoming/take-4.ogg",
+    "incoming/take-5.ogg",
+    "incoming/take-6.ogg"
+   ]
+  },
+  "crack": {
+   "kind": "near",
+   "takes": [
+    "crack/take-1.ogg",
+    "crack/take-2.ogg",
+    "crack/take-3.ogg",
+    "crack/take-4.ogg",
+    "crack/take-5.ogg",
+    "crack/take-6.ogg",
+    "crack/take-7.ogg",
+    "crack/take-8.ogg"
+   ]
+  },
+  "whizz:sol": {
+   "kind": "near",
+   "takes": [
+    "whizz/sol/take-1.ogg",
+    "whizz/sol/take-2.ogg",
+    "whizz/sol/take-3.ogg",
+    "whizz/sol/take-4.ogg",
+    "whizz/sol/take-5.ogg",
+    "whizz/sol/take-6.ogg"
+   ]
+  },
+  "whizz:void": {
+   "kind": "near",
+   "takes": [
+    "whizz/void/take-1.ogg",
+    "whizz/void/take-2.ogg",
+    "whizz/void/take-3.ogg",
+    "whizz/void/take-4.ogg",
+    "whizz/void/take-5.ogg",
+    "whizz/void/take-6.ogg"
+   ]
+  },
+  "sky:pod": {
+   "kind": "report",
+   "takes": [
+    "sky/pod/take-1.ogg",
+    "sky/pod/take-2.ogg",
+    "sky/pod/take-3.ogg"
+   ]
+  },
+  "sky:jet": {
+   "kind": "report",
+   "takes": [
+    "sky/jet/take-1.ogg",
+    "sky/jet/take-2.ogg",
+    "sky/jet/take-3.ogg"
+   ]
   },
   "mech:magout": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/magout/near-1.ogg",
-     "mech/magout/near-2.ogg",
-     "mech/magout/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/magout/take-1.ogg",
+    "mech/magout/take-2.ogg",
+    "mech/magout/take-3.ogg",
+    "mech/magout/take-4.ogg",
+    "mech/magout/take-5.ogg",
+    "mech/magout/take-6.ogg",
+    "mech/magout/take-7.ogg",
+    "mech/magout/take-8.ogg",
+    "mech/magout/take-9.ogg"
+   ]
   },
   "mech:magin": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/magin/near-1.ogg",
-     "mech/magin/near-2.ogg",
-     "mech/magin/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/magin/take-1.ogg",
+    "mech/magin/take-2.ogg",
+    "mech/magin/take-3.ogg",
+    "mech/magin/take-4.ogg",
+    "mech/magin/take-5.ogg",
+    "mech/magin/take-6.ogg",
+    "mech/magin/take-7.ogg",
+    "mech/magin/take-8.ogg",
+    "mech/magin/take-9.ogg"
+   ]
   },
   "mech:bolt": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/bolt/near-1.ogg",
-     "mech/bolt/near-2.ogg",
-     "mech/bolt/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/bolt/take-1.ogg",
+    "mech/bolt/take-2.ogg",
+    "mech/bolt/take-3.ogg",
+    "mech/bolt/take-4.ogg",
+    "mech/bolt/take-5.ogg",
+    "mech/bolt/take-6.ogg",
+    "mech/bolt/take-7.ogg",
+    "mech/bolt/take-8.ogg",
+    "mech/bolt/take-9.ogg"
+   ]
   },
   "mech:pump": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/pump/near-1.ogg",
-     "mech/pump/near-2.ogg",
-     "mech/pump/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/pump/take-1.ogg",
+    "mech/pump/take-2.ogg",
+    "mech/pump/take-3.ogg",
+    "mech/pump/take-4.ogg",
+    "mech/pump/take-5.ogg",
+    "mech/pump/take-6.ogg"
+   ]
   },
   "mech:swap": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/swap/near-1.ogg",
-     "mech/swap/near-2.ogg",
-     "mech/swap/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/swap/take-1.ogg",
+    "mech/swap/take-2.ogg",
+    "mech/swap/take-3.ogg",
+    "mech/swap/take-4.ogg",
+    "mech/swap/take-5.ogg",
+    "mech/swap/take-6.ogg",
+    "mech/swap/take-7.ogg",
+    "mech/swap/take-8.ogg",
+    "mech/swap/take-9.ogg"
+   ]
   },
   "mech:dry": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/dry/near-1.ogg",
-     "mech/dry/near-2.ogg",
-     "mech/dry/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/dry/take-1.ogg",
+    "mech/dry/take-2.ogg",
+    "mech/dry/take-3.ogg",
+    "mech/dry/take-4.ogg",
+    "mech/dry/take-5.ogg",
+    "mech/dry/take-6.ogg",
+    "mech/dry/take-7.ogg",
+    "mech/dry/take-8.ogg",
+    "mech/dry/take-9.ogg"
+   ]
   },
   "mech:vent": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/vent/near-1.ogg",
-     "mech/vent/near-2.ogg",
-     "mech/vent/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/vent/take-1.ogg",
+    "mech/vent/take-2.ogg",
+    "mech/vent/take-3.ogg",
+    "mech/vent/take-4.ogg",
+    "mech/vent/take-5.ogg",
+    "mech/vent/take-6.ogg"
+   ]
   },
   "mech:overheat": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "mech/overheat/near-1.ogg",
-     "mech/overheat/near-2.ogg",
-     "mech/overheat/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "mech/overheat/take-1.ogg",
+    "mech/overheat/take-2.ogg",
+    "mech/overheat/take-3.ogg",
+    "mech/overheat/take-4.ogg",
+    "mech/overheat/take-5.ogg",
+    "mech/overheat/take-6.ogg"
+   ]
   },
   "brass:hard": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "brass/hard/near-1.ogg",
-     "brass/hard/near-2.ogg",
-     "brass/hard/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "brass/hard/take-1.ogg",
+    "brass/hard/take-2.ogg",
+    "brass/hard/take-3.ogg",
+    "brass/hard/take-4.ogg",
+    "brass/hard/take-5.ogg",
+    "brass/hard/take-6.ogg",
+    "brass/hard/take-7.ogg",
+    "brass/hard/take-8.ogg",
+    "brass/hard/take-9.ogg"
+   ]
   },
   "brass:dirt": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "brass/dirt/near-1.ogg",
-     "brass/dirt/near-2.ogg",
-     "brass/dirt/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "brass/dirt/take-1.ogg",
+    "brass/dirt/take-2.ogg",
+    "brass/dirt/take-3.ogg",
+    "brass/dirt/take-4.ogg",
+    "brass/dirt/take-5.ogg",
+    "brass/dirt/take-6.ogg",
+    "brass/dirt/take-7.ogg",
+    "brass/dirt/take-8.ogg",
+    "brass/dirt/take-9.ogg"
+   ]
   },
   "brass:snow": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "brass/snow/near-1.ogg",
-     "brass/snow/near-2.ogg",
-     "brass/snow/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "brass/snow/take-1.ogg",
+    "brass/snow/take-2.ogg",
+    "brass/snow/take-3.ogg",
+    "brass/snow/take-4.ogg",
+    "brass/snow/take-5.ogg",
+    "brass/snow/take-6.ogg",
+    "brass/snow/take-7.ogg",
+    "brass/snow/take-8.ogg",
+    "brass/snow/take-9.ogg"
+   ]
   },
   "cloth": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "cloth/near-1.ogg",
-     "cloth/near-2.ogg",
-     "cloth/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "cloth/take-1.ogg",
+    "cloth/take-2.ogg",
+    "cloth/take-3.ogg",
+    "cloth/take-4.ogg",
+    "cloth/take-5.ogg",
+    "cloth/take-6.ogg"
+   ]
   },
   "body:heavy": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "body/heavy/near-1.ogg",
-     "body/heavy/near-2.ogg",
-     "body/heavy/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "body/heavy/take-1.ogg",
+    "body/heavy/take-2.ogg",
+    "body/heavy/take-3.ogg",
+    "body/heavy/take-4.ogg",
+    "body/heavy/take-5.ogg"
+   ]
   },
   "body:slide": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "body/slide/near-1.ogg",
-     "body/slide/near-2.ogg",
-     "body/slide/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "body/slide/take-1.ogg",
+    "body/slide/take-2.ogg",
+    "body/slide/take-3.ogg",
+    "body/slide/take-4.ogg"
+   ]
   },
   "dig": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "dig/near-1.ogg",
-     "dig/near-2.ogg",
-     "dig/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "dig/take-1.ogg",
+    "dig/take-2.ogg",
+    "dig/take-3.ogg",
+    "dig/take-4.ogg"
+   ]
   },
   "foot:concrete": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "foot/concrete/near-1.ogg",
-     "foot/concrete/near-2.ogg",
-     "foot/concrete/near-3.ogg",
-     "foot/concrete/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "foot/concrete/take-1.ogg",
+    "foot/concrete/take-2.ogg",
+    "foot/concrete/take-3.ogg",
+    "foot/concrete/take-4.ogg",
+    "foot/concrete/take-5.ogg",
+    "foot/concrete/take-6.ogg",
+    "foot/concrete/take-7.ogg",
+    "foot/concrete/take-8.ogg"
+   ]
   },
   "foot:dirt": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "foot/dirt/near-1.ogg",
-     "foot/dirt/near-2.ogg",
-     "foot/dirt/near-3.ogg",
-     "foot/dirt/near-4.ogg",
-     "foot/dirt/near-5.ogg",
-     "foot/dirt/near-6.ogg",
-     "foot/dirt/near-7.ogg",
-     "foot/dirt/near-8.ogg"
-    ]
-   }
+   "takes": [
+    "foot/dirt/take-1.ogg",
+    "foot/dirt/take-2.ogg",
+    "foot/dirt/take-3.ogg",
+    "foot/dirt/take-4.ogg",
+    "foot/dirt/take-5.ogg",
+    "foot/dirt/take-6.ogg",
+    "foot/dirt/take-7.ogg",
+    "foot/dirt/take-8.ogg"
+   ]
   },
   "foot:snow": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "foot/snow/near-1.ogg",
-     "foot/snow/near-2.ogg",
-     "foot/snow/near-3.ogg",
-     "foot/snow/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "foot/snow/take-1.ogg",
+    "foot/snow/take-2.ogg",
+    "foot/snow/take-3.ogg",
+    "foot/snow/take-4.ogg",
+    "foot/snow/take-5.ogg",
+    "foot/snow/take-6.ogg",
+    "foot/snow/take-7.ogg",
+    "foot/snow/take-8.ogg"
+   ]
   },
   "foot:wood": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "foot/wood/near-1.ogg",
-     "foot/wood/near-2.ogg",
-     "foot/wood/near-3.ogg",
-     "foot/wood/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "foot/wood/take-1.ogg",
+    "foot/wood/take-2.ogg",
+    "foot/wood/take-3.ogg",
+    "foot/wood/take-4.ogg",
+    "foot/wood/take-5.ogg",
+    "foot/wood/take-6.ogg",
+    "foot/wood/take-7.ogg",
+    "foot/wood/take-8.ogg"
+   ]
   },
   "foot:metal": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "foot/metal/near-1.ogg",
-     "foot/metal/near-2.ogg",
-     "foot/metal/near-3.ogg",
-     "foot/metal/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "foot/metal/take-1.ogg",
+    "foot/metal/take-2.ogg",
+    "foot/metal/take-3.ogg",
+    "foot/metal/take-4.ogg",
+    "foot/metal/take-5.ogg",
+    "foot/metal/take-6.ogg",
+    "foot/metal/take-7.ogg",
+    "foot/metal/take-8.ogg"
+   ]
   },
   "impact:metal": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "impact/metal/near-1.ogg",
-     "impact/metal/near-2.ogg",
-     "impact/metal/near-3.ogg",
-     "impact/metal/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "impact/metal/take-1.ogg",
+    "impact/metal/take-2.ogg",
+    "impact/metal/take-3.ogg",
+    "impact/metal/take-4.ogg",
+    "impact/metal/take-5.ogg",
+    "impact/metal/take-6.ogg",
+    "impact/metal/take-7.ogg",
+    "impact/metal/take-8.ogg"
+   ]
   },
   "impact:vehicle": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "impact/vehicle/near-1.ogg",
-     "impact/vehicle/near-2.ogg",
-     "impact/vehicle/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "impact/vehicle/take-1.ogg",
+    "impact/vehicle/take-2.ogg",
+    "impact/vehicle/take-3.ogg",
+    "impact/vehicle/take-4.ogg",
+    "impact/vehicle/take-5.ogg"
+   ]
   },
   "impact:wood": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "impact/wood/near-1.ogg",
-     "impact/wood/near-2.ogg",
-     "impact/wood/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "impact/wood/take-1.ogg",
+    "impact/wood/take-2.ogg",
+    "impact/wood/take-3.ogg",
+    "impact/wood/take-4.ogg",
+    "impact/wood/take-5.ogg",
+    "impact/wood/take-6.ogg"
+   ]
   },
   "impact:flesh": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "impact/flesh/near-1.ogg",
-     "impact/flesh/near-2.ogg",
-     "impact/flesh/near-3.ogg",
-     "impact/flesh/near-4.ogg",
-     "impact/flesh/near-5.ogg"
-    ]
-   }
+   "takes": [
+    "impact/flesh/take-1.ogg",
+    "impact/flesh/take-2.ogg",
+    "impact/flesh/take-3.ogg",
+    "impact/flesh/take-4.ogg",
+    "impact/flesh/take-5.ogg"
+   ]
   },
   "melee:swing": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/swing/near-1.ogg",
-     "melee/swing/near-2.ogg",
-     "melee/swing/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "melee/swing/take-1.ogg",
+    "melee/swing/take-2.ogg",
+    "melee/swing/take-3.ogg",
+    "melee/swing/take-4.ogg",
+    "melee/swing/take-5.ogg",
+    "melee/swing/take-6.ogg"
+   ]
   },
   "melee:hit": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/hit/near-1.ogg",
-     "melee/hit/near-2.ogg",
-     "melee/hit/near-3.ogg",
-     "melee/hit/near-4.ogg",
-     "melee/hit/near-5.ogg",
-     "melee/hit/near-6.ogg",
-     "melee/hit/near-7.ogg"
-    ]
-   }
+   "takes": [
+    "melee/hit/take-1.ogg",
+    "melee/hit/take-2.ogg",
+    "melee/hit/take-3.ogg",
+    "melee/hit/take-4.ogg",
+    "melee/hit/take-5.ogg",
+    "melee/hit/take-6.ogg",
+    "melee/hit/take-7.ogg"
+   ]
   },
   "melee:block": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/block/near-1.ogg",
-     "melee/block/near-2.ogg",
-     "melee/block/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "melee/block/take-1.ogg",
+    "melee/block/take-2.ogg",
+    "melee/block/take-3.ogg",
+    "melee/block/take-4.ogg",
+    "melee/block/take-5.ogg",
+    "melee/block/take-6.ogg"
+   ]
   },
   "melee:parry": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/parry/near-1.ogg",
-     "melee/parry/near-2.ogg",
-     "melee/parry/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "melee/parry/take-1.ogg",
+    "melee/parry/take-2.ogg",
+    "melee/parry/take-3.ogg"
+   ]
   },
   "melee:deflect": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/deflect/near-1.ogg",
-     "melee/deflect/near-2.ogg",
-     "melee/deflect/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "melee/deflect/take-1.ogg",
+    "melee/deflect/take-2.ogg",
+    "melee/deflect/take-3.ogg"
+   ]
   },
   "melee:guardbreak": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "melee/guardbreak/near-1.ogg",
-     "melee/guardbreak/near-2.ogg",
-     "melee/guardbreak/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "melee/guardbreak/take-1.ogg",
+    "melee/guardbreak/take-2.ogg",
+    "melee/guardbreak/take-3.ogg"
+   ]
   },
   "ui:hit": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit/ui-1.ogg",
-     "ui/hit/ui-2.ogg",
-     "ui/hit/ui-3.ogg",
-     "ui/hit/ui-4.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit/take-1.ogg",
+    "ui/hit/take-2.ogg",
+    "ui/hit/take-3.ogg",
+    "ui/hit/take-4.ogg"
+   ]
   },
   "ui:hit_head": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit_head/ui-1.ogg",
-     "ui/hit_head/ui-2.ogg",
-     "ui/hit_head/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit_head/take-1.ogg",
+    "ui/hit_head/take-2.ogg",
+    "ui/hit_head/take-3.ogg"
+   ]
   },
   "ui:hit_kill": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit_kill/ui-1.ogg",
-     "ui/hit_kill/ui-2.ogg",
-     "ui/hit_kill/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit_kill/take-1.ogg",
+    "ui/hit_kill/take-2.ogg",
+    "ui/hit_kill/take-3.ogg"
+   ]
   },
   "ui:hit_plink": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit_plink/ui-1.ogg",
-     "ui/hit_plink/ui-2.ogg",
-     "ui/hit_plink/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit_plink/take-1.ogg",
+    "ui/hit_plink/take-2.ogg",
+    "ui/hit_plink/take-3.ogg"
+   ]
   },
   "ui:hit_shieldbreak": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit_shieldbreak/ui-1.ogg",
-     "ui/hit_shieldbreak/ui-2.ogg",
-     "ui/hit_shieldbreak/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit_shieldbreak/take-1.ogg",
+    "ui/hit_shieldbreak/take-2.ogg",
+    "ui/hit_shieldbreak/take-3.ogg"
+   ]
   },
   "ui:hit_friendly": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hit_friendly/ui-1.ogg",
-     "ui/hit_friendly/ui-2.ogg",
-     "ui/hit_friendly/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hit_friendly/take-1.ogg",
+    "ui/hit_friendly/take-2.ogg",
+    "ui/hit_friendly/take-3.ogg"
+   ]
   },
   "ui:ability_hit": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/ability_hit/ui-1.ogg",
-     "ui/ability_hit/ui-2.ogg",
-     "ui/ability_hit/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/ability_hit/take-1.ogg",
+    "ui/ability_hit/take-2.ogg",
+    "ui/ability_hit/take-3.ogg"
+   ]
   },
   "ui:open": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/open/ui-1.ogg",
-     "ui/open/ui-2.ogg",
-     "ui/open/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/open/take-1.ogg",
+    "ui/open/take-2.ogg",
+    "ui/open/take-3.ogg"
+   ]
   },
   "arrow:1": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/1/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/1/take-1.ogg"
+   ]
   },
   "arrow:2": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/2/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/2/take-1.ogg"
+   ]
   },
   "arrow:3": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/3/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/3/take-1.ogg"
+   ]
   },
   "arrow:4": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/4/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/4/take-1.ogg"
+   ]
   },
   "arrow:5": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/5/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/5/take-1.ogg"
+   ]
   },
   "arrow:6": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/6/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/6/take-1.ogg"
+   ]
   },
   "arrow:7": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/7/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/7/take-1.ogg"
+   ]
   },
   "arrow:8": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/8/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/8/take-1.ogg"
+   ]
   },
   "arrow:9": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/9/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/9/take-1.ogg"
+   ]
   },
   "arrow:10": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "arrow/10/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "arrow/10/take-1.ogg"
+   ]
   },
   "ui:error": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/error/ui-1.ogg",
-     "ui/error/ui-2.ogg",
-     "ui/error/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/error/take-1.ogg",
+    "ui/error/take-2.ogg",
+    "ui/error/take-3.ogg"
+   ]
   },
   "ui:denied": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/denied/ui-1.ogg",
-     "ui/denied/ui-2.ogg",
-     "ui/denied/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/denied/take-1.ogg",
+    "ui/denied/take-2.ogg",
+    "ui/denied/take-3.ogg"
+   ]
   },
   "ui:armed": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/armed/ui-1.ogg",
-     "ui/armed/ui-2.ogg",
-     "ui/armed/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/armed/take-1.ogg",
+    "ui/armed/take-2.ogg",
+    "ui/armed/take-3.ogg"
+   ]
   },
   "ui:beacon": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/beacon/ui-1.ogg",
-     "ui/beacon/ui-2.ogg",
-     "ui/beacon/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/beacon/take-1.ogg",
+    "ui/beacon/take-2.ogg",
+    "ui/beacon/take-3.ogg"
+   ]
   },
   "ui:beep": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/beep/ui-1.ogg",
-     "ui/beep/ui-2.ogg",
-     "ui/beep/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/beep/take-1.ogg",
+    "ui/beep/take-2.ogg",
+    "ui/beep/take-3.ogg"
+   ]
   },
   "ui:throw": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/throw/ui-1.ogg",
-     "ui/throw/ui-2.ogg",
-     "ui/throw/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/throw/take-1.ogg",
+    "ui/throw/take-2.ogg",
+    "ui/throw/take-3.ogg"
+   ]
   },
   "ui:grab": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/grab/ui-1.ogg",
-     "ui/grab/ui-2.ogg",
-     "ui/grab/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/grab/take-1.ogg",
+    "ui/grab/take-2.ogg",
+    "ui/grab/take-3.ogg"
+   ]
   },
   "ui:stim": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/stim/ui-1.ogg",
-     "ui/stim/ui-2.ogg",
-     "ui/stim/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/stim/take-1.ogg",
+    "ui/stim/take-2.ogg",
+    "ui/stim/take-3.ogg"
+   ]
   },
   "ui:repair": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/repair/ui-1.ogg",
-     "ui/repair/ui-2.ogg",
-     "ui/repair/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/repair/take-1.ogg",
+    "ui/repair/take-2.ogg",
+    "ui/repair/take-3.ogg"
+   ]
   },
   "ui:bp": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/bp/ui-1.ogg",
-     "ui/bp/ui-2.ogg",
-     "ui/bp/ui-3.ogg",
-     "ui/bp/ui-4.ogg"
-    ]
-   }
+   "takes": [
+    "ui/bp/take-1.ogg",
+    "ui/bp/take-2.ogg",
+    "ui/bp/take-3.ogg",
+    "ui/bp/take-4.ogg"
+   ]
   },
   "ui:buy": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/buy/ui-1.ogg",
-     "ui/buy/ui-2.ogg",
-     "ui/buy/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/buy/take-1.ogg",
+    "ui/buy/take-2.ogg",
+    "ui/buy/take-3.ogg"
+   ]
   },
   "ui:ready": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/ready/ui-1.ogg",
-     "ui/ready/ui-2.ogg",
-     "ui/ready/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/ready/take-1.ogg",
+    "ui/ready/take-2.ogg",
+    "ui/ready/take-3.ogg"
+   ]
   },
   "ui:super_ready": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/super_ready/ui-1.ogg",
-     "ui/super_ready/ui-2.ogg",
-     "ui/super_ready/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/super_ready/take-1.ogg",
+    "ui/super_ready/take-2.ogg",
+    "ui/super_ready/take-3.ogg"
+   ]
   },
   "ui:hero": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/hero/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "ui/hero/take-1.ogg"
+   ]
   },
   "ui:smoke": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "ui/smoke/near-1.ogg",
-     "ui/smoke/near-2.ogg",
-     "ui/smoke/near-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/smoke/take-1.ogg",
+    "ui/smoke/take-2.ogg",
+    "ui/smoke/take-3.ogg"
+   ]
   },
   "ui:revive": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/revive/ui-1.ogg",
-     "ui/revive/ui-2.ogg",
-     "ui/revive/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/revive/take-1.ogg",
+    "ui/revive/take-2.ogg",
+    "ui/revive/take-3.ogg"
+   ]
   },
   "ui:revived": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/revived/ui-1.ogg",
-     "ui/revived/ui-2.ogg",
-     "ui/revived/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/revived/take-1.ogg",
+    "ui/revived/take-2.ogg",
+    "ui/revived/take-3.ogg"
+   ]
   },
   "ui:down": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/down/ui-1.ogg",
-     "ui/down/ui-2.ogg",
-     "ui/down/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/down/take-1.ogg",
+    "ui/down/take-2.ogg",
+    "ui/down/take-3.ogg"
+   ]
   },
   "ui:empty": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "ui/empty/ui-1.ogg",
-     "ui/empty/ui-2.ogg",
-     "ui/empty/ui-3.ogg"
-    ]
-   }
+   "takes": [
+    "ui/empty/take-1.ogg",
+    "ui/empty/take-2.ogg",
+    "ui/empty/take-3.ogg"
+   ]
   },
   "pod:open": {
    "kind": "near",
-   "tiers": {
-    "near": [
-     "pod/open/near-1.ogg",
-     "pod/open/near-2.ogg",
-     "pod/open/near-3.ogg",
-     "pod/open/near-4.ogg"
-    ]
-   }
+   "takes": [
+    "pod/open/take-1.ogg",
+    "pod/open/take-2.ogg",
+    "pod/open/take-3.ogg",
+    "pod/open/take-4.ogg"
+   ]
   },
   "music:victory": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "music/victory/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "music/victory/take-1.ogg"
+   ]
   },
   "music:defeat": {
    "kind": "ui",
-   "tiers": {
-    "ui": [
-     "music/defeat/ui-1.ogg"
-    ]
-   }
+   "takes": [
+    "music/defeat/take-1.ogg"
+   ]
+  },
+  "amb:trench:wind": {
+   "kind": "amb",
+   "takes": [
+    "amb/trench/wind/take-1.ogg"
+   ]
+  },
+  "amb:trench:front": {
+   "kind": "amb",
+   "takes": [
+    "amb/trench/front/take-1.ogg"
+   ]
+  },
+  "amb:trench:ash": {
+   "kind": "amb",
+   "takes": [
+    "amb/trench/ash/take-1.ogg"
+   ]
+  },
+  "spot:trench:gust": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "trench"
+    ],
+    "every": [
+     9,
+     22
+    ],
+    "dist": [
+     15,
+     40
+    ],
+    "gain": 0.5
+   },
+   "takes": [
+    "spot/trench/gust/take-1.ogg",
+    "spot/trench/gust/take-2.ogg",
+    "spot/trench/gust/take-3.ogg",
+    "spot/trench/gust/take-4.ogg"
+   ]
+  },
+  "spot:trench:wire": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "trench"
+    ],
+    "every": [
+     14,
+     35
+    ],
+    "dist": [
+     12,
+     35
+    ],
+    "gain": 0.35
+   },
+   "takes": [
+    "spot/trench/wire/take-1.ogg",
+    "spot/trench/wire/take-2.ogg",
+    "spot/trench/wire/take-3.ogg",
+    "spot/trench/wire/take-4.ogg"
+   ]
+  },
+  "spot:trench:fire": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "trench"
+    ],
+    "every": [
+     12,
+     30
+    ],
+    "dist": [
+     20,
+     60
+    ],
+    "gain": 0.4
+   },
+   "takes": [
+    "spot/trench/fire/take-1.ogg",
+    "spot/trench/fire/take-2.ogg",
+    "spot/trench/fire/take-3.ogg"
+   ]
+  },
+  "spot:trench:aircraft": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "trench"
+    ],
+    "every": [
+     45,
+     110
+    ],
+    "dist": [
+     500,
+     900
+    ],
+    "gain": 0.8
+   },
+   "takes": [
+    "spot/trench/aircraft/take-1.ogg",
+    "spot/trench/aircraft/take-2.ogg",
+    "spot/trench/aircraft/take-3.ogg"
+   ]
+  },
+  "amb:city:wind": {
+   "kind": "amb",
+   "takes": [
+    "amb/city/wind/take-1.ogg"
+   ]
+  },
+  "amb:city:hum": {
+   "kind": "amb",
+   "takes": [
+    "amb/city/hum/take-1.ogg"
+   ]
+  },
+  "amb:city:snow": {
+   "kind": "amb",
+   "takes": [
+    "amb/city/snow/take-1.ogg"
+   ]
+  },
+  "spot:city:siren": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city"
+    ],
+    "every": [
+     30,
+     70
+    ],
+    "dist": [
+     400,
+     900
+    ],
+    "gain": 0.6
+   },
+   "takes": [
+    "spot/city/siren/take-1.ogg",
+    "spot/city/siren/take-2.ogg",
+    "spot/city/siren/take-3.ogg"
+   ]
+  },
+  "spot:city:klaxon": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city",
+     "night"
+    ],
+    "every": [
+     40,
+     90
+    ],
+    "dist": [
+     200,
+     500
+    ],
+    "gain": 0.5
+   },
+   "takes": [
+    "spot/city/klaxon/take-1.ogg",
+    "spot/city/klaxon/take-2.ogg",
+    "spot/city/klaxon/take-3.ogg"
+   ]
+  },
+  "spot:city:drone": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city",
+     "night"
+    ],
+    "every": [
+     25,
+     60
+    ],
+    "dist": [
+     40,
+     120
+    ],
+    "gain": 0.45
+   },
+   "takes": [
+    "spot/city/drone/take-1.ogg",
+    "spot/city/drone/take-2.ogg",
+    "spot/city/drone/take-3.ogg"
+   ]
+  },
+  "spot:city:neon": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city",
+     "night"
+    ],
+    "every": [
+     18,
+     45
+    ],
+    "dist": [
+     8,
+     20
+    ],
+    "gain": 0.25
+   },
+   "takes": [
+    "spot/city/neon/take-1.ogg",
+    "spot/city/neon/take-2.ogg",
+    "spot/city/neon/take-3.ogg"
+   ]
+  },
+  "spot:city:steel": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city",
+     "night"
+    ],
+    "every": [
+     20,
+     50
+    ],
+    "dist": [
+     20,
+     80
+    ],
+    "gain": 0.4
+   },
+   "takes": [
+    "spot/city/steel/take-1.ogg",
+    "spot/city/steel/take-2.ogg",
+    "spot/city/steel/take-3.ogg",
+    "spot/city/steel/take-4.ogg"
+   ]
+  },
+  "spot:city:snowslide": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "city"
+    ],
+    "every": [
+     20,
+     50
+    ],
+    "dist": [
+     10,
+     35
+    ],
+    "gain": 0.4
+   },
+   "takes": [
+    "spot/city/snowslide/take-1.ogg",
+    "spot/city/snowslide/take-2.ogg",
+    "spot/city/snowslide/take-3.ogg"
+   ]
+  },
+  "amb:night:air": {
+   "kind": "amb",
+   "takes": [
+    "amb/night/air/take-1.ogg"
+   ]
+  },
+  "amb:night:hum": {
+   "kind": "amb",
+   "takes": [
+    "amb/night/hum/take-1.ogg"
+   ]
+  },
+  "amb:night:sing": {
+   "kind": "amb",
+   "takes": [
+    "amb/night/sing/take-1.ogg"
+   ]
+  },
+  "spot:night:searchlight": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "night"
+    ],
+    "every": [
+     14,
+     35
+    ],
+    "dist": [
+     60,
+     180
+    ],
+    "gain": 0.4
+   },
+   "takes": [
+    "spot/night/searchlight/take-1.ogg",
+    "spot/night/searchlight/take-2.ogg",
+    "spot/night/searchlight/take-3.ogg",
+    "spot/night/searchlight/take-4.ogg"
+   ]
+  },
+  "spot:night:raid": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "night"
+    ],
+    "every": [
+     60,
+     140
+    ],
+    "dist": [
+     600,
+     1200
+    ],
+    "gain": 0.7
+   },
+   "takes": [
+    "spot/night/raid/take-1.ogg",
+    "spot/night/raid/take-2.ogg",
+    "spot/night/raid/take-3.ogg"
+   ]
+  },
+  "spot:night:dropship": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "night",
+     "city"
+    ],
+    "every": [
+     50,
+     120
+    ],
+    "dist": [
+     250,
+     600
+    ],
+    "gain": 0.8
+   },
+   "takes": [
+    "spot/night/dropship/take-1.ogg",
+    "spot/night/dropship/take-2.ogg",
+    "spot/night/dropship/take-3.ogg"
+   ]
+  },
+  "spot:night:arc": {
+   "kind": "spot",
+   "spot": {
+    "maps": [
+     "night"
+    ],
+    "every": [
+     25,
+     60
+    ],
+    "dist": [
+     20,
+     60
+    ],
+    "gain": 0.35
+   },
+   "takes": [
+    "spot/night/arc/take-1.ogg",
+    "spot/night/arc/take-2.ogg",
+    "spot/night/arc/take-3.ogg"
+   ]
   }
- }
+ },
+ "version": 2,
+ "note": "Built by tools/audio/forge.mjs: layered guns and blasts, the close-up sounds, each map's atmosphere."
 }

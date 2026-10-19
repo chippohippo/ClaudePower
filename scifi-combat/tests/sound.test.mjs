@@ -1,16 +1,18 @@
 // The sound (src/audio/): every sound in the bank renders clean; every gun has its own voice;
 // kinetic guns crack and thump, lasers chirp down, far versions are duller and longer; distance
-// does what it does to sound (quieter, later, duller, more echo, the far version taking over);
-// the city's room answers; every weapon in the game has a design; and the director turns the
-// battle's events into the right sounds (through a stand-in engine: Node has no WebAudio).
+// does what it does to sound (quieter, later, duller, more echo, the far layer taking over); each
+// map's room answers in its own way; no ability cue or loop whines; every weapon in the game has a
+// design; and the director turns the battle's events into the right sounds (through a stand-in
+// engine: Node has no WebAudio). The recorded and forged sounds: audio-forge.test.mjs.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { catalogue, render, variantsOf, weaponDesign, abilityId } from '../src/audio/SoundBank.js';
-import { distanceShape, impulse, KINDS } from '../src/audio/SoundEngine.js';
+import { distanceShape, layerWeights, KINDS } from '../src/audio/SoundEngine.js';
+import { impulse, rt60 } from '../src/audio/Acoustics.js';
 import { AudioDirector } from '../src/audio/AudioDirector.js';
-import { centroid, rms, peak, lowpass, SR } from '../src/audio/dsp.js';
+import { centroid, rms, peak, lowpass, fft, SR } from '../src/audio/dsp.js';
 import { bus } from '../src/core/EventBus.js';
 
 const J = (p) => JSON.parse(readFileSync(new URL(`../data/${p}`, import.meta.url)));
@@ -84,18 +86,42 @@ test('far away: duller, longer (the city rolling it back), and from much further
   assert.ok(a.gain > b.gain && b.gain > c.gain, 'quieter');
   assert.ok(a.cutoff > b.cutoff && b.cutoff > c.cutoff, 'duller (the air takes the highs)');
   assert.ok(Math.abs(c.delay - 600 / 343) < 1e-9, 'late by the speed of sound');
-  assert.ok(a.wet < b.wet && b.wet <= c.wet, 'more of the city answering');
-  assert.ok(a.far === 0 && c.far === 1 && b.far > 0.5, 'the far version takes over');
+  assert.ok(a.wet < b.wet && b.wet <= c.wet, 'more of the room answering');
+  const w = (d) => layerWeights(d, 'gun');
+  assert.ok(w(10).far === 0 && w(600).far > 0.99 && w(150).far > 0.5, 'the far layer takes over');
   assert.equal(distanceShape(KINDS.foley.max + 1, 'foley').gain, 0, 'footsteps past earshot are silent');
   assert.ok(distanceShape(900, 'boom').gain > distanceShape(900, 'gun').gain, 'a shell carries further than a rifle');
 });
 
-test("the city's room: walls close by answer early, the facades across the street slap back, then a tail that dies away", () => {
-  const [L] = impulse('city'), [O] = impulse('open');
+test("each map's room: the city's walls answer early and its facades slap back, the night's carry further, the open front rolls", () => {
+  const [L] = impulse('city'), [N] = impulse('night'), [O] = impulse('open');
   assert.ok(rms(L, 0, 0.1) > rms(L, 1.5, 0.5) * 4, 'loud early, quiet late');
   assert.ok(rms(L, 0.13, 0.04) > rms(L, 0.5, 0.04), 'the slap back off the facades');
   assert.ok(centroid(L, 1.2, 0.3) < centroid(L, 0.02, 0.1), 'the tail darkens');
-  assert.ok(L.length > O.length, 'the city rings longer than the open front');
+  assert.ok(rt60(N) > rt60(L) && centroid(N, 0.1, 0.3) > centroid(L, 0.1, 0.3), 'the cold night rings longer and brighter than the snowy dusk');
+  assert.ok(rt60(O) > rt60(L) && centroid(O, 1, 0.5) < centroid(L, 1, 0.5), 'the open front rolls on longest, and darkest');
+  for (const x of [L, N, O]) { let e = 0; for (const v of x) e += v * v; assert.ok(Math.abs(e - 1) < 1e-3, 'unit energy: the room gives back what it gets'); }
+});
+
+test('no ability cue, beam or engine whines: no pure tone holds on in any of them', () => {
+  // The strongest bin's share of the energy in a 1/6-octave round it, over the whole sound: a whine
+  // puts most of it there (a pure tone ~100%); noise, crackle and struck metal spread it out.
+  const tonal = (x, sr) => {
+    const n = 1 << Math.floor(Math.log2(Math.min(x.length, sr))), re = new Float64Array(n), im = new Float64Array(n);
+    for (let i = 0; i < n; i++) re[i] = x[i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / n));
+    fft(re, im);
+    let best = 0, tot = 0; const P = new Float64Array(n / 2);
+    for (let k = 1; k < n / 2; k++) { P[k] = re[k] * re[k] + im[k] * im[k]; tot += P[k]; if (P[k] > P[best]) best = k; }
+    let near = 0; for (let k = Math.floor(best / 1.12); k <= Math.ceil(best * 1.12) && k < n / 2; k++) near += P[k];
+    return near / tot;
+  };
+  const ids = ['beam:sol', 'beam:void', 'charge:sol', 'charge:void', 'engine:tracked', 'engine:car', 'engine:hover', 'engine:flyer'];
+  for (const t of ['brass_stab', 'harp_rise', 'choir_major', 'bell_peal', 'glass_choir', 'organ_cathedral', 'sonar_ping', 'laser_tone', 'psi_hum', 'servo_whirr']) for (const k of ['cast', 'loop', 'zone']) ids.push(abilityId({ root: 'E5', timbre: t }, 'sol', k));
+  for (const id of ids) {
+    // (A held sound, stricter: a short ping may ring a little; a loop that rings would never stop.)
+    const o = render(id, 0), share = tonal(o.ch[0], o.sr), max = /:(cast)$/.test(id) ? 0.6 : 0.45;
+    assert.ok(share < max, `${id}: ${(share * 100).toFixed(0)}% of it in one narrow band`);
+  }
 });
 
 test('every weapon in the game has a design in the bank', () => {
