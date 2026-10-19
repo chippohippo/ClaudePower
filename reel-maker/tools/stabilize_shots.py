@@ -83,9 +83,20 @@ def main():
         else:
             vf = sel
         run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", vf, "-an", "-c:v", "ffv1", p])
+        if do:
+            # keep the stabilised shot only if it is measurably steadier; vidstab
+            # can latch onto a moving subject and make a shot worse
+            after = measure(p, [(0, e - s)])[0][1]
+            if after > jit * 0.85:
+                run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", sel, "-an", "-c:v", "ffv1", p])
+                do = None
+            else:
+                jit = (jit, after)
         parts.append(p)
-        print(f"  shot {i:2d}  {s / fps:6.2f}-{e / fps:6.2f}s  shake {jit:.2f}  "
-              f"{'bars, kept' if bars else ('STABILISED' if do else 'steady, kept')}", flush=True)
+        state = ("bars, kept" if bars else "STABILISED" if do else
+                 "stabilising didn't help, kept original" if do is None else "steady, kept")
+        sh = f"{jit[0]:.2f} → {jit[1]:.2f}" if isinstance(jit, tuple) else f"{jit:.2f}"
+        print(f"  shot {i:2d}  {s / fps:6.2f}-{e / fps:6.2f}s  shake {sh}  {state}", flush=True)
     lst = os.path.join(tmp, "list.txt")
     with open(lst, "w") as f:
         f.writelines(f"file '{p}'\n" for p in parts)
