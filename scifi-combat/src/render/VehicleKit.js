@@ -90,11 +90,32 @@ function tank(def, st, fine) {
 // ---------------------------------------------------------------- hover bike
 function bike(def, st, fine) {
   const { x: W, y: H, z: L } = def.size, b = [];
+  // Where the rider sits, holds on and puts his feet (the driver seat's offset, grips and pegs, from
+  // the hull's position, which floats hoverHeight over this model's origin): the seat's top, the
+  // bar's grips and the pegs are built exactly there, and the rider's pose reaches the same points.
+  const seat = def.seats?.find((q) => q.role === 'driver'), hh = def.hoverHeight ?? 0;
+  const [, oy, oz] = seat?.offset ?? [0, H * 0.78 - hh, L * 0.08];
+  const sy = oy + hh, at = (p, side) => [side * p[0], sy + p[1], oz - p[2]];
   // Body: a long armored spine, a fairing over the nose, a seat, hover pods glowing underneath.
   b.push(rbox(W * 0.6, H * 0.36, L * 0.72, { e1: 0.35, e2: st.e + 0.1, ws: fine ? 14 : 7, hs: 6 }).paint(CH.armor, { dirt: 0.1 }).move(0, H * 0.5, 0.05));
   b.push(shell(W * 0.7, L * 0.34, 0.06, { corner: st.void ? [0.25, 0.25, 0.02, 0.02] : [0.12, 0.12, 0.04, 0.04], curveY: 0.35, nu: fine ? 6 : 2, nv: 3 }).paint(CH.armor).rot(-1.2, 0, 0).move(0, H * 0.62, -L * 0.36));
   b.push(shell(W * 0.46, 0.2, 0.025, { corner: 0.04, curveY: 0.3, nu: 3, nv: 2 }).paint(CH.glass).rot(-0.75, 0, 0).move(0, H * 0.78, -L * 0.2));
-  b.push(rbox(W * 0.36, 0.12, L * 0.3, { e1: 0.35, e2: 0.4, ws: 8, hs: 4 }).paint(CH.black).move(0, H * 0.72, L * 0.14));
+  // The saddle: its top at the seat point, running back from just ahead of it, on a riser off the spine.
+  b.push(rbox(W * 0.36, 0.12, L * 0.3, { e1: 0.35, e2: 0.4, ws: 8, hs: 4 }).paint(CH.black).move(0, sy - 0.06, oz + L * 0.06));
+  if (sy - 0.12 > H * 0.68) b.push(rbox(W * 0.3, sy - 0.12 - H * 0.6, L * 0.24, { e1: 0.3, e2: 0.3, ws: 6, hs: 3 }).paint(CH.armor).move(0, (sy - 0.12 + H * 0.6) / 2, oz + L * 0.06));
+  // The handlebar through the grips, on a stem off the nose; the pegs out on struts from the spine.
+  if (seat?.grips) {
+    const gl = at(seat.grips, -1), gr = at(seat.grips, 1), mid = [0, gl[1] - 0.05, gl[2] - 0.05];
+    b.push(tube([gl, mid, gr], 0.02, { seg: fine ? 12 : 4, radial: fine ? 6 : 4 }).paint(CH.black));
+    b.push(tube([[0, H * 0.7, mid[2] + 0.06], [0, mid[1], mid[2]]], 0.03, { seg: 2, radial: fine ? 6 : 4 }).paint(CH.metal));
+    for (const g of [gl, gr]) b.push(cyl(0.024, 0.024, 0.11, { seg: fine ? 8 : 4 }).paint(CH.black, { dirt: 0.3 }).rot(0, 0, Math.PI / 2).move(g[0] + 0.055, g[1], g[2]));   // (centred on the grip)
+  }
+  if (seat?.pegs) for (const side of [-1, 1]) {
+    // (the peg is the ankle's: the sole rests on it, an ankle's height below)
+    const [px, py, pz] = at(seat.pegs, side), top = py - 0.08;
+    b.push(rbox(0.12, 0.035, 0.09, { e1: 0.3, e2: 0.3, ws: 4, hs: 2 }).paint(CH.black, { dirt: 0.5 }).move(px, top - 0.0175, pz));
+    b.push(rbox(Math.abs(px) - W * 0.28, 0.04, 0.05, { e1: 0.2, e2: 0.2, ws: 3, hs: 2 }).paint(CH.metal).move(side * (Math.abs(px) + W * 0.28) / 2, top - 0.02, pz));
+  }
   for (const z of [-L * 0.3, L * 0.28]) {
     b.push(rbox(W * 0.95, H * 0.2, L * 0.24, { e1: 0.3, e2: st.e, ws: fine ? 10 : 6, hs: 4 }).paint(CH.black, { dirt: 0.4 }).move(0, H * 0.25, z));
     b.push(rbox(W * 0.8, 0.02, L * 0.18, { e1: 0.2, e2: 0.3, ws: 6, hs: 2 }).paint(CH.visor).move(0, H * 0.14, z));
@@ -102,7 +123,7 @@ function bike(def, st, fine) {
   b.push(cyl(0.13, 0.16, 0.3, { seg: fine ? 12 : 6 }).paint(CH.metal).rot(Math.PI / 2, 0, 0).move(0, H * 0.48, L * 0.42));
   b.push(cyl(0.1, 0.1, 0.02, { seg: fine ? 12 : 6 }).paint(CH.visor).rot(Math.PI / 2, 0, 0).move(0, H * 0.48, L * 0.73));
   if (fine) {
-    b.push(tube([[-W * 0.4, H * 0.86, -L * 0.12], [0, H * 0.8, -L * 0.16], [W * 0.4, H * 0.86, -L * 0.12]], 0.018, { seg: 10, radial: 5 }).paint(CH.black));
+    if (!seat?.grips) b.push(tube([[-W * 0.4, H * 0.86, -L * 0.12], [0, H * 0.8, -L * 0.16], [W * 0.4, H * 0.86, -L * 0.12]], 0.018, { seg: 10, radial: 5 }).paint(CH.black));
     for (const sx of [-1, 1]) b.push(shell(L * 0.3, H * 0.16, 0.03, { corner: 0.02, nu: 3, nv: 1 }).paint(CH.hazard).rot(0, sx * -Math.PI / 2, 0).move(sx * W * 0.31, H * 0.5, -L * 0.05));
     lamp(b, 0, H * 0.55, -L * 0.48, 0.05);
     b.push(number(0.22, 0.12).rot(0, -Math.PI / 2, 0).move(W * 0.31, H * 0.56, L * 0.15));

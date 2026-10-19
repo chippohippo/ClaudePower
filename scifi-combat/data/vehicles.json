@@ -1,5 +1,5 @@
 {
- "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun, 'stand' stands him at a ring mount. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). climb: the tallest obstacle (m) it drives over (tracked and guns 0.5; trucks ride over trench parapets). Every vehicle lists its counterplay. Model 'car': a rigid body on four raycast wheels (src/vehicles/CarPhysics.js, the `car` block): it squats, drifts, rolls and throws out its exposed crew. Seats with ownWeapon: the passenger leans out with his own gun; shown: a protected seat whose occupant is still drawn (an open car's driver).",
+ "_comment": "Vehicles. model: hover | tracked | flyer | gun (a towed field piece the crew pushes). Speeds in m/s, turn rates in deg/s. Seats: role driver|gunner|loader|passenger; 'weapon' refers to 'weapons' below (WeaponSystem stat format); 'aim': hull | turret | free. exposed seats leave the occupant hittable (bikes, gun crews); pose 'crew' kneels the occupant at the gun, 'stand' stands him at a ring mount. weakSpot: hits on that face count as headshots. gun: a crew-served gun (FieldGuns): kind howitzer | at | rockets; set up (deployTime) before it fires, packed (packTime) before it moves; traverse = degrees either side of the carriage, shiftRate = how fast the crew swings the carriage past that; elevation [min, max] and layRate [yaw, pitch] in deg/s; indirect guns fire at a marked point at `arc` degrees, choosing the charge (muzzle speed within speedRange) for the range; dispersion = [base m, fraction of range]; reload in s (loaderMul with a loader); salvo rockets salvoInterval apart; ammo carried / ammoMax. tow.hitch = where a towed gun's trail hooks on; cargo = supplies a truck carries. crush / cutsWire: whether tracks crush destructible cover and flatten wire (tracked default). climb: the tallest obstacle (m) it drives over (tracked and guns 0.5; trucks ride over trench parapets). Every vehicle lists its counterplay. Model 'car': a rigid body on four raycast wheels (src/vehicles/CarPhysics.js, the `car` block): it squats, drifts, rolls and throws out its exposed crew. Seats with ownWeapon: the passenger leans out with his own gun; shown: a protected seat whose occupant is still drawn (an open car's driver). A seat's offset is its seat point (x right, y up from the hull's position, z back), on top of the cushion; a speeder's driver seat also says where the rider's hands go (grips: [x out, up, forward] from the seat point, mirrored) and his feet (pegs, the ankles): the model builds its bars and pegs there and the rider's pose reaches them. lean (hover): the hull banks into its lateral acceleration (gain × the angle of the g it pulls, to ±max rad, settling at rate/s) and pitches nose up on the throttle and down on the brake (pitchGain, ±pitchMax): sim state, so the rider and his hit spheres tilt with it.",
  "vehicles": {
   "solari_hoverbike": {
    "name": "Sunrunner Hoverbike",
@@ -36,14 +36,17 @@
     "damagePerMs": 10,
     "eject": 17
    },
+   "lean": { "max": 0.6, "gain": 1.0, "rate": 8, "pitchMax": 0.08, "pitchGain": 0.35 },
    "seats": [
     {
      "role": "driver",
      "offset": [
       0,
-      0.9,
+      0.25,
       0.2
      ],
+     "grips": [0.36, 0.1, 0.49],
+     "pegs": [0.34, -0.42, 0.22],
      "exposed": true,
      "weapon": "bike_blaster",
      "aim": "hull"
@@ -92,14 +95,17 @@
     "damagePerMs": 10,
     "eject": 17
    },
+   "lean": { "max": 0.6, "gain": 1.0, "rate": 8, "pitchMax": 0.08, "pitchGain": 0.35 },
    "seats": [
     {
      "role": "driver",
      "offset": [
       0,
-      0.9,
+      0.08,
       0.2
      ],
+     "grips": [0.4, 0.08, 0.51],
+     "pegs": [0.37, -0.42, 0.22],
      "exposed": true,
      "weapon": "skiff_shard_gun",
      "aim": "hull"

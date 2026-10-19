@@ -1,6 +1,6 @@
 // VehicleViews: vehicles and guns in the art direction's kit (render/VehicleKit.js: faction
 // paint, black and gunmetal mechanics, hazard stripes, stencilled numbers, work lights). Read-only;
-// reads VehicleSystem state each frame.
+// reads VehicleSystem state each frame (a speeder's bank and pitch too: its rider sits them).
 //
 // Readability: the faction's paint, a turret that visibly lags the camera (its turn rate is the
 // counterplay), a glowing rear weak-spot vent, an HP bar above enemy vehicles, a boost flame,
@@ -28,8 +28,9 @@ const BLOCK = merge([rbox(1, 1, 1, { e1: 0.2, e2: 0.2, ws: 6, hs: 3 }).paint(CH.
 const MODELS = new Map();                             // type -> the kit's geometries (shared by every vehicle of a type)
 
 export class VehicleViews {
-  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end), palette (palette.json), fx: BattleFx (a burning car's flames and smoke) } */
-  constructor(scene, world, { localTeam = 0, far = 540, palette = DEFAULT_PALETTE, fx = null } = {}) {
+  /** @param {object} o { localTeam, far: m beyond which nothing is drawn (the fog's end), palette (palette.json), fx: BattleFx (a burning car's flames and smoke), bars: HP bars over enemy vehicles } */
+  constructor(scene, world, { localTeam = 0, far = 540, palette = DEFAULT_PALETTE, fx = null, bars = true } = {}) {
+    this.bars = bars;
     this.scene = scene;
     this.world = world;
     this.fx = fx;
@@ -90,7 +91,7 @@ export class VehicleViews {
     root.add(smoke);
     parts.smoke = smoke;
     // HP bar (enemies only; your own HP is on the HUD).
-    if (v.team !== this.localTeam) {
+    if (this.bars && v.team !== this.localTeam) {
       const bg = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.6, depthTest: false }));
       const fg = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.18).translate(1, 0, 0), new THREE.MeshBasicMaterial({ color: '#ff3b5c', depthTest: false }));
       fg.position.x = -1; fg.position.z = 0.01;
@@ -125,10 +126,9 @@ export class VehicleViews {
       if (v.car) { root.position.copy(v.car.base); root.quaternion.copy(v.car.q); this.#carPose(v, parts, dt); }
       else {
         root.position.copy(s.position); root.position.y -= v.def.hoverHeight ?? 0;
-        root.rotation.y = v.yaw;
-        // Bikes bank into turns; dropships pitch with speed.
-        const lat = s.velocity.x * Math.cos(v.yaw) - s.velocity.z * Math.sin(v.yaw);
-        root.rotation.z = THREE.MathUtils.damp(root.rotation.z, v.def.model === 'hover' ? -lat * 0.04 : 0, 6, dt);
+        // Speeders lean (the sim's bank and nose-up, which the rider sits): yaw, then pitch, then bank.
+        root.rotation.order = 'YXZ';
+        root.rotation.set(v.pitch ?? 0, v.yaw, -(v.bank ?? 0));
       }
       if (parts.turret) parts.turret.rotation.y = v.turretYaw - v.yaw;
       if (v.gun) this.#gunPose(v, parts, dt);

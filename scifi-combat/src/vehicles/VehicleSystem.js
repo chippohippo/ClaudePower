@@ -46,6 +46,21 @@ import { orientedFaces } from '../movement/CoverFaces.js';
 import { Quaternion } from 'three';
 
 const IDLE = Object.freeze({ ...emptyCommand(), buttons: Object.freeze({}) });   // an empty gun seat's command, every tick
+const G = 9.81;
+
+/**
+ * A seat point (offset from the hull's position) on a hull that's banked and pitched (a speeder):
+ * turned as the model is (VehicleViews: yaw, then nose-up, then the bank, about the model's origin
+ * hoverHeight below the hull's position).
+ */
+export function seatOnTilted(out, v, [x, y, z]) {
+  const hh = v.def.hoverHeight ?? 0, cb = Math.cos(v.bank), sb = Math.sin(v.bank), cp = Math.cos(v.pitch), sp = Math.sin(v.pitch);
+  const yy = y + hh;
+  const x1 = x * cb + yy * sb, y1 = -x * sb + yy * cb;                 // the bank (+ leans right)
+  const y2 = y1 * cp - z * sp, z2 = y1 * sp + z * cp;                  // nose up
+  const p = v.movement.state.position, c = Math.cos(v.yaw), s = Math.sin(v.yaw);
+  return out.set(p.x + x1 * c + z2 * s, p.y - hh + y2, p.z - x1 * s + z2 * c);
+}
 
 const DEG = Math.PI / 180;
 const ENTER_RANGE = 3.2;
@@ -84,6 +99,7 @@ export class VehicleSystem {
     const v = {
       id: this.nextId++, isVehicle: true, type, def, team, calledBy: ownerId, pad,
       yaw, turretYaw: yaw, altitude: 0, boostTime: 0, boostCd: 0, emptyTime: 0, removed: false, ramCd: new Map(),
+      bank: 0, pitch: 0,   // a speeder's lean (rad, + to the right) and nose-up (def.lean); 0 for the rest
     };
     v.movement = {
       state: { position: pos, velocity: new Vector3(), yaw, grounded: true, stance: 'stand', mode: 'vehicle', invulnerable: false, speedScale: 1, sprinting: false, locks: {} },
@@ -433,11 +449,31 @@ export class VehicleSystem {
     s.velocity.addScaledVector(_f, throttle * d.accel * dt).addScaledVector(_r, (stalled ? 0 : cmd.moveX) * d.accel * 0.45 * dt);
     this.#gripAndDrag(v, dt, throttle === 0);
     this.#clampSpeed(s.velocity, top);
+    this.#lean(v, dt);
     s.position.addScaledVector(s.velocity, dt);
     // Float at hover height over whatever is below, including low cover (you can skim over crates)
     // and across trenches (the highest ground under the hull carries it).
     const target = this.#support(v, 0.75) + d.hoverHeight;
     s.position.y += (target - s.position.y) * Math.min(1, dt * 12);
+  }
+
+  /**
+   * A speeder leans as a bike does (def.lean): banked into the sideways g it pulls (a carve, a
+   * strafe, a shove), nose up on the throttle and down on the brake, settling at `rate`. Sim state,
+   * so the rider sits it with the hull and his hit spheres tilt with him. Needs _f/_r for v.yaw.
+   */
+  #lean(v, dt) {
+    const L = v.def.lean, vel = v.movement.state.velocity;
+    if (!L) return;
+    // The sideways g against the hull, and the change in speed (not the turn's pull: a steady carve
+    // holds the nose level).
+    const pv = (v.prevVel ??= vel.clone()), dx = vel.x - pv.x, dz = vel.z - pv.z;
+    const sp = Math.hypot(vel.x, vel.z) * (vel.x * _f.x + vel.z * _f.z < 0 ? -1 : 1), ps = v.prevSpeed ?? sp;
+    pv.copy(vel); v.prevSpeed = sp;
+    const aR = (dx * _r.x + dz * _r.z) / dt, aF = (sp - ps) / dt, k = Math.min(1, dt * L.rate);
+    const lim = (x, m) => Math.max(-m, Math.min(m, x));
+    v.bank += (lim(Math.atan2(aR, G) * L.gain, L.max) - v.bank) * k;
+    v.pitch += (lim(Math.atan2(aF, G) * L.pitchGain, L.pitchMax) - v.pitch) * k;
   }
 
   /**
@@ -633,6 +669,7 @@ export class VehicleSystem {
       const occ = seat.occupant;
       if (occ) {
         if (v.car) v.car.point(_v.fromArray(seat.def.offset), occ.movement.state.position);
+        else if (v.bank || v.pitch) seatOnTilted(occ.movement.state.position, v, seat.def.offset);
         else localToWorld(occ.movement.state.position, s.position, v.yaw, seat.def.offset);
         occ.movement.state.velocity.copy(s.velocity);
         occ.movement.body?.teleport?.(occ.movement.state.position);
@@ -747,6 +784,7 @@ export class VehicleSystem {
     const g = v.gun;
     return {
       id: v.id, type: v.type, team: v.team, p: v.movement.state.position.toArray(), vel: v.movement.state.velocity.toArray(), yaw: v.yaw, turret: v.turretYaw, alt: v.altitude, hp: v.health.hp, seats: v.seats.map((s) => s.occupant?.id ?? null),
+      ...(v.def.lean ? { bank: v.bank, pitch: v.pitch } : {}),
       ...(g ? { gun: { st: g.state, t: g.t, y: g.yaw, p: g.pitch, a: g.ammo, l: g.load, tow: g.towedBy?.id ?? null } } : {}),
       ...(v.def.cargo ? { cargo: v.cargo } : {}),
     };

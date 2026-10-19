@@ -1208,11 +1208,63 @@ export class ProceduralHumanoid {
       out.aimW = 1; out.gunUp = 1;
       return out;
     }
+    const sd = v?.veh?.seats?.[v.seat]?.def;
+    if (v?.veh?.def?.model === 'hover' && sd?.role === 'driver') return this.#ridePose(out, v.veh, sd);
     this.#keyPose('seated', out, this.root, yaw);
-    const driver = v?.veh?.seats?.[v.seat]?.def?.role === 'driver';
+    const driver = sd?.role === 'driver';
     if (!driver) { out.handW[0] = 0; out.handW[1] = 0; out.gunUp = 1; }
     out.aimW = driver ? 0.35 : 1;
     return out;
+  }
+
+  /**
+   * Riding a speeder (poses.ride): sat on its seat (the root is the seat point), crouched over the
+   * bars, hands on the seat's grips and feet on its pegs (vehicles.json; the model builds them at the
+   * same points). The whole rider tilts with the hull's bank and nose-up (sim state, as the model
+   * and the hit spheres do) about the seat point, the chest leaning a little further into a turn.
+   */
+  #ridePose(out, veh, sd) {
+    const k = this.cfg.poses.ride, yaw = veh.yaw, R = this.root;
+    this.#keyPose('ride', out, R, yaw);
+    forwardOf(yaw, _f); rightOf(yaw, _r);
+    const at = (q, side, o) => o.set(R.x + _r.x * side * q[0] + _f.x * q[2], R.y + q[1], R.z + _r.z * side * q[0] + _f.z * q[2]);
+    for (let i = 0; i < 2; i++) {
+      const side = i === 0 ? -1 : 1;
+      if (sd.grips) at(sd.grips, side, out.hand[i]);
+      if (sd.pegs) at(sd.pegs, side, out.foot[i]);
+    }
+    // The rider goes over with the hull as one piece: the points here, the body's frames as they're
+    // built (#layersAndFrames), so the whole skeleton turns about the seat as the model does.
+    const T = (this.ride ??= { yaw: 0, b: 0, p: 0 });
+    T.yaw = yaw; T.b = veh.bank ?? 0; T.p = veh.pitch ?? 0;
+    if (T.b || T.p) {
+      this.#tilt(out.pelvis, R, 1);
+      for (let i = 0; i < 2; i++) { this.#tilt(out.foot[i], R, 1); this.#tilt(out.hand[i], R, 1); this.#tilt(out.knee[i], null, 1); }
+    }
+    out.aimW = k.aimW ?? 0; out.gunUp = 0;
+    return out;
+  }
+
+  /**
+   * A speeder rider's tilt with the hull (this.ride: its yaw, bank + leaning right, nose-up), `k` of
+   * it, about `o` (a direction when `o` is null): the bank, then the nose (VehicleViews' order).
+   */
+  #tilt(q, o, k) {
+    const T = this.ride, b = T.b * k, p = T.p * k;
+    if (!b && !p) return q;
+    const cy = Math.cos(T.yaw), sy = Math.sin(T.yaw), rx = cy, rz = -sy, fx = -sy, fz = -cy;
+    const cb = Math.cos(b), sb = Math.sin(b), cp = Math.cos(p), sp = Math.sin(p);
+    const dx = q.x - (o?.x ?? 0), dy = q.y - (o?.y ?? 0), dz = q.z - (o?.z ?? 0);
+    const r = dx * rx + dz * rz, f = dx * fx + dz * fz;
+    const r1 = r * cb + dy * sb, u1 = -r * sb + dy * cb, f2 = f * cp - u1 * sp, u2 = f * sp + u1 * cp;
+    return q.set((o?.x ?? 0) + rx * r1 + fx * f2, (o?.y ?? 0) + u2, (o?.z ?? 0) + rz * r1 + fz * f2);
+  }
+
+  /** A body frame turned with a speeder's hull (`k` of its tilt, as far as the rider is seated). */
+  #tiltFrame(F, k) {
+    if (!this.ride || !(this.w.seated > 0)) return;
+    const kk = k * this.w.seated;
+    this.#tilt(F.d, null, kk); this.#tilt(F.n, null, kk); this.#tilt(F.r, null, kk);
   }
 
   /**
@@ -1366,7 +1418,7 @@ export class ProceduralHumanoid {
     // (when the planter comes on) starts from the drop the body already had. Out of locomotion
     // the drop eases away with the state's weight; it never cuts off.
     // The hips are measured where the skeleton puts them (off the pelvis frame), standing or lying.
-    bodyFrame(P.yawP, P.pitchP, P.spinP, P.leanP, F.pelvis);
+    bodyFrame(P.yawP, P.pitchP, P.spinP, P.leanP, F.pelvis); this.#tiltFrame(F.pelvis, 1);
     const footPose = !this.planterLive && this.active === 'loco';
     if (this.planterLive || footPose) {
       const Lm = (d.thigh + d.shin) * 0.985, Fp = F.pelvis;
@@ -1393,7 +1445,7 @@ export class ProceduralHumanoid {
     } else this.#reachStep(0, dt);
     P.pelvis.y -= this.reachDrop * this.w.loco;
 
-    bodyFrame(P.yawC, P.pitchC, P.spinC, P.leanC, F.chest);
+    bodyFrame(P.yawC, P.pitchC, P.spinC, P.leanC, F.chest); this.#tiltFrame(F.chest, 1);
     j.pelvis.copy(P.pelvis);
     // Spine: lower part follows the pelvis, upper part the chest.
     _v.copy(F.pelvis.d).multiplyScalar(0.35).addScaledVector(F.chest.d, 0.65).normalize();
@@ -1412,7 +1464,7 @@ export class ProceduralHumanoid {
     const hp = clamp(-lookPitch * 0.85, P.pitchC - b.headPitchMax, P.pitchC + b.headPitchMax);
     const headPitch = lerp(P.pitchC, hp, P.headW) + this.flZ.x * L.flinch.head + this.rec.x * (L.recoil.head ?? 0.02);
     const ads = sword ? 0 : (e.weapons?.ads ?? 0) * raisedK;
-    bodyFrame(hy, headPitch, 0, P.leanC * 0.5 + this.flX.x * L.flinch.head + ads * 0.14, F.head);
+    bodyFrame(hy, headPitch, 0, P.leanC * 0.5 + this.flX.x * L.flinch.head + ads * 0.14, F.head); this.#tiltFrame(F.head, 0.5);   // (a rider keeps his eyes nearer level)
     _v.copy(F.chest.d).multiplyScalar(0.6).addScaledVector(F.head.d, 0.4).normalize();
     j.neckTop.copy(j.neck).addScaledVector(_v, d.neck);
     j.head.copy(j.neckTop).addScaledVector(F.head.d, d.headR * 0.85).addScaledVector(F.head.n, 0.02 * sc);

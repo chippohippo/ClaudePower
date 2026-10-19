@@ -19,6 +19,8 @@ const LAYOUTS = {
   dive:     [[0.47, 0.72, 0.22, 'head'], [0.19, 0.55, 0.30, 'body'], [-0.05, 0.48, 0.28, 'body'], [-0.60, 0.35, 0.24, 'limb']],
   diveBack: [[0.35, 0.90, 0.22, 'head'], [0.17, 0.65, 0.30, 'body'], [-0.05, 0.55, 0.28, 'body'], [-0.46, 0.78, 0.24, 'limb']],
   seated:   [[0, 0.85, 0.22, 'head'], [0, 0.50, 0.30, 'body'], [0.10, 0.25, 0.28, 'body'], [0.30, 0.10, 0.24, 'limb']],
+  // A speeder's rider, crouched over the bars from the seat point (tilted with the hull's bank and pitch).
+  ride:     [[0.345, 0.69, 0.22, 'head'], [0.16, 0.38, 0.30, 'body'], [0.03, 0.17, 0.28, 'body'], [0.25, 0.02, 0.24, 'limb']],
   // Reeling from a blow at its deepest (REEL_FULL): doubled over, the knees giving.
   folded:   [[0.50, 1.28, 0.22, 'head'], [0.24, 1.07, 0.30, 'body'], [0.06, 0.88, 0.28, 'body'], [0.06, 0.46, 0.26, 'limb']],
 };
@@ -55,7 +57,7 @@ export function silhouetteScale(e) { return e.transform?.def?.movement?.scale ??
 /** Yaw of the body axis (the direction the head points along the ground). */
 export function bodyAxisYaw(e) {
   const s = e.movement.state, body = s.bodyYaw ?? s.yaw;
-  if (e.vehicle) return body;
+  if (e.vehicle) return riding(e) ? e.vehicle.veh.yaw : body;
   if (s.mode === 'dive' && s.dive) return s.dive.dirYaw;
   if (s.mode === 'slide' && s.slide?.kind === 'belly') {
     const from = s.slide.from ?? 'forward';
@@ -72,6 +74,8 @@ export function bodyAxisYaw(e) {
 }
 
 const layoutOf = (stance, s) => (stance === 'prone' && s.supine ? LAYOUTS.supine : LAYOUTS[stance] ?? LAYOUTS.stand);
+/** The driver of a speeder (rides it: the rig's ride pose). */
+const riding = (e) => e.vehicle?.veh?.def?.model === 'hover' && e.vehicle.veh.seats?.[e.vehicle.seat]?.def?.role === 'driver';
 
 // The layout (or the two being blended) for a fighter's state, in a reused object: hit spheres
 // are built for every soldier along every bullet's path.
@@ -79,7 +83,7 @@ const _lay = { a: null, b: null, t: 0 };
 const lay = (a, b = null, t = 0) => { _lay.a = a; _lay.b = b; _lay.t = t; return _lay; };
 function layoutFor(e) {
   const s = e.movement.state;
-  if (e.vehicle) return lay(e.vehicle.pose === 'stand' ? LAYOUTS.stand : LAYOUTS.seated);   // a ring-mount gunner stands
+  if (e.vehicle) return lay(e.vehicle.pose === 'stand' ? LAYOUTS.stand : riding(e) ? LAYOUTS.ride : LAYOUTS.seated);   // a ring-mount gunner stands
   switch (s.mode) {
     case 'dive': return lay(s.dive?.kind === 'back' ? LAYOUTS.diveBack : LAYOUTS.dive);
     case 'slide': return lay(s.slide?.kind === 'belly' ? (s.slide.from === 'back' ? LAYOUTS.supine : LAYOUTS.prone) : LAYOUTS.slide);
@@ -134,6 +138,17 @@ export function hitSpheres(e) {
     o.r = (ra[2] + (rb[2] - ra[2]) * t) * scale;
     o.zone = ra[3];
     if (ev > 0) { const L = SIDESTEP[i], d = s.dodgeDir; o.x += d.x * L[0] * ev; o.z += d.z * L[0] * ev; o.y -= L[1] * ev; }
+  }
+  // A speeder's rider tilts with its hull about the seat point: banked (+ right), then nose up.
+  const veh = riding(e) ? e.vehicle.veh : null;
+  if (veh && (veh.bank || veh.pitch)) {
+    const cb = Math.cos(veh.bank), sb = Math.sin(veh.bank), cp = Math.cos(veh.pitch), sn = Math.sin(veh.pitch), rx = -fz, rz = fx;
+    for (let i = 0; i < 4; i++) {
+      const o = pool[i], dx = o.x - p.x, dy = o.y - p.y, dz = o.z - p.z;
+      const r = dx * rx + dz * rz, f = dx * fx + dz * fz;
+      const r1 = r * cb + dy * sb, u1 = -r * sb + dy * cb, f2 = f * cp - u1 * sn, u2 = f * sn + u1 * cp;
+      o.x = p.x + rx * r1 + fx * f2; o.y = p.y + u2; o.z = p.z + rz * r1 + fz * f2;
+    }
   }
   // On your feet, the head (and with the gun up, the chest) goes along a high or low aim.
   const ap = e.weapons?.aimPitch ?? 0, set = (s.mode === 'ground' || s.mode === 'cover') && !s.stanceT && !e.vehicle ? AIM[s.stance] : null;

@@ -1,5 +1,5 @@
 // Art lab: every piece of the art direction in isolation, to build it and screenshot it
-// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|people|vehicles|cars|city|scene|stratagems|gunfx|melee &view=...
+// (docs/ART_DIRECTION.md). ?station=palette|sky|troopers|people|vehicles|cars|bikes|city|scene|stratagems|gunfx|melee &view=...
 // window.__art = { ready, station, view(name) } for automated captures.
 
 import * as THREE from 'three';
@@ -43,7 +43,7 @@ const planet = palette.planets[params.get('planet') ?? (station === 'city' || st
 // The planet's own paint and effect colours over the shared ones (the dusk city: winter whites, snow kicked up).
 for (const [k, paint] of Object.entries(planet.factions ?? {})) if (palette.factions[k]) Object.assign(palette.factions[k], paint);
 Object.assign(palette.vfx, planet.vfx ?? {});
-const STATIONS = ['palette', 'sky', 'troopers', 'people', 'vehicles', 'cars', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
+const STATIONS = ['palette', 'sky', 'troopers', 'people', 'vehicles', 'cars', 'bikes', 'city', 'falls', 'scene', 'stratagems', 'gunfx', 'melee'];
 
 const bar = document.getElementById('bar'), note = document.getElementById('note');
 for (const s of STATIONS) {
@@ -108,6 +108,7 @@ async function scene3d() {
   if (station === 'people') await peopleStation(scene, views, atmo);
   if (station === 'vehicles') await vehiclesStation(scene, views, atmo);
   if (station === 'cars') await carsStation(scene, views, atmo);
+  if (station === 'bikes') await bikesStation(scene, views, atmo);
   if (station === 'city') await cityStation(scene, views, atmo);
   if (station === 'scene') await sceneStation(scene, views, atmo);
   if (station === 'stratagems') await stratagemsStation(scene, views, atmo);
@@ -501,6 +502,63 @@ async function carsStation(scene, views, atmo) {
     },
   };
   window.__art.sim = W; window.__art.run = run;
+}
+
+// The speeder bikes (docs/VEHICLES.md), the real sim and the game's own views: both parked side on
+// with their riders aboard (sitting on the seat, hands on the grips, feet on the pegs), and one
+// carving a turn at speed: the bike banked into it and the rider with it.
+async function bikesStation(scene, views, atmo) {
+  const camAz = (planet.sun.azimuth - 40) * Math.PI / 180;
+  const fwd = new THREE.Vector3(Math.sin(camAz), 0, -Math.cos(camAz)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const at = (a, f = 0) => new THREE.Vector3().addScaledVector(right, a).addScaledVector(fwd, f);
+  const { t } = scorchedGround(scene, { seed: 23, amp: 0.15, size: 400, z0: -200, flat: [[0, 0, 90]], craters: 4, spread: [200, 100] });
+  const F = await fighters(scene, t, { max: 16 });
+  const W = F.world, VS = W.vehicles, DT = 1 / 60;
+  const facing = Math.atan2(fwd.x, fwd.z) + Math.PI;       // toward the camera
+  const ride = (type, team, cls, pos, yaw) => {
+    const b = VS.spawn(type, team, pos, yaw);
+    const e = F.add(cls, team, pos.clone().add(new THREE.Vector3(2, 0, 0)), yaw, 'stand');
+    VS.enter(e, b, 0);
+    return b;
+  };
+  // Parked side on: nose to the camera's right.
+  const sunrunner = ride('solari_hoverbike', 0, 'skyrider', at(-1.7, 0), facing - Math.PI / 2);
+  const skiff = ride('void_skiff', 1, 'wraith', at(1.9, -0.4), facing - Math.PI / 2);
+  // Out on the flat, a Sunrunner carving a long left-hander at speed (its rider steering it round).
+  const carver = ride('solari_hoverbike', 0, 'skyrider', at(-30, -30), facing);
+  const steer = (b, rate) => { const c = b.seats[0]; c.cmd = { moveX: 0, moveY: 1, yaw: b.yaw + rate * DT * 4, pitch: 0, buttons: {} }; };
+  F.start();
+  const vv = new VehicleViews(scene, W, { localTeam: 0, palette, bars: false });
+  tickers.push((dt) => vv.update(dt, window.__art.camera));
+  const run = (sec, each) => { for (let i = 0; i < Math.round(sec * 60); i++) { each?.(); F.tick(); F.anim.update(DT, 1, window.__art.camera.position); vv.update(DT, window.__art.camera); } };
+  const hold = () => { F.ctl.paused = true; };
+  const y = (v, up) => v.clone().setY(t.height(v.x, v.z) + up);
+  views.parked = { pos: y(at(0.1, 6.2), 1.25), look: y(at(0.1, 0), 0.9), fov: 40, note: 'Sunrunner Hoverbike (Solari) and Wraith-Skiff (Void), parked, riders aboard: on the seat, hands on the grips, feet on the pegs' };
+  views.sunrunner = { pos: y(at(-1.7, 3.4), 1.2), look: y(at(-1.7, 0), 0.95), fov: 40, note: 'the Sunrunner rider up close' };
+  views.skiff = { pos: y(at(1.9, 3.0), 1.2), look: y(at(1.9, -0.4), 0.95), fov: 40, note: 'the Wraith-Skiff rider up close' };
+  const back = (b, d, up, ahead) => { const f = new THREE.Vector3(-Math.sin(b.yaw), 0, -Math.cos(b.yaw)), p = b.movement.state.position; return { pos: y(p.clone().addScaledVector(f, -d), up), look: y(p.clone().addScaledVector(f, ahead), 0.9) }; };
+  views.behind = { ...back(sunrunner, 4.2, 1.9, 2), fov: 50, note: 'from behind, near where the game camera rides' };
+  views.front = { ...back(sunrunner, -3.2, 1.3, 0), fov: 44, note: 'from ahead: hands on the grips, crouched over the bars' };
+  views.turn = {
+    pos: y(at(-30, -30), 1.6), look: y(at(-30, -30), 1), fov: 46, note: 'carving a left-hander at speed: the bike banked into the turn and the rider with it',
+    enter: () => {
+      run(3.2, () => steer(carver, 1.1)); hold();
+      // Framed from the sun's side (lit), 7 m off, a little above the rider.
+      const p = carver.movement.state.position, c = window.__art.camera;
+      c.position.copy(p).addScaledVector(fwd, 6.5).addScaledVector(right, 2.5); c.position.y = t.height(c.position.x, c.position.z) + 1.5;
+      c.lookAt(p.x, p.y + 0.4, p.z);
+    },
+  };
+  views.chase = {
+    pos: y(at(-30, -30), 1.6), look: y(at(-30, -30), 1), fov: 60, note: 'the same turn from the rider camera (5 m back, 1.6 m up)',
+    enter: () => {
+      run(3.2, () => steer(carver, 1.1)); hold();
+      const p = carver.movement.state.position, c = window.__art.camera, f = new THREE.Vector3(-Math.sin(carver.yaw), 0, -Math.cos(carver.yaw));
+      c.position.copy(p).addScaledVector(f, -5); c.position.y = p.y + 1.6;
+      c.lookAt(p.x + f.x * 6, p.y + 0.6, p.z + f.z * 6);
+    },
+  };
+  window.__art.sim = W; window.__art.run = run; window.__art.bikes = { sunrunner, skiff, carver };
 }
 
 // The night city (`?map=city`): the real map (32v32, seed 7) under the Neon Night sky, drawn by

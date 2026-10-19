@@ -922,7 +922,7 @@
    ]
   },
   "seated": {
-   "_note": "Bike rider (exposed seat). The root is the seat point.",
+   "_note": "A seated occupant (car seats, passengers). The root is the seat point. A speeder's driver rides instead (ride).",
    "pelvisH": 0.1,
    "pelvisF": -0.05,
    "pitchP": 0.15,
@@ -968,6 +968,55 @@
     ]
    ],
    "handsW": 1
+  },
+  "ride": {
+   "_note": "Riding a speeder (the driver of a hover vehicle): sat on the seat (the root is the seat point, the top of the cushion), crouched over the bars; the hands go to the seat's grips and the feet (ankles) to its pegs where the vehicle says (vehicles.json, which the model builds them at), else these. The whole rider goes over with the hull's bank and nose-up (sim state) about the seat point, as one piece (the head half as far: the eyes stay nearer level). aimW 0: square to the bars (both hands on the grips; the bike's gun aims with the hull), the head free to look.",
+   "pelvisH": 0.1,
+   "pelvisF": -0.04,
+   "pitchP": 0.45,
+   "pitchC": 0.8,
+   "feet": [
+    [
+     -0.34,
+     -0.42,
+     0.22
+    ],
+    [
+     0.34,
+     -0.42,
+     0.22
+    ]
+   ],
+   "footPitch": [
+    0.15,
+    0.15
+   ],
+   "knees": [
+    [
+     -0.35,
+     0.15,
+     1
+    ],
+    [
+     0.35,
+     0.15,
+     1
+    ]
+   ],
+   "hands": [
+    [
+     -0.36,
+     0.1,
+     0.49
+    ],
+    [
+     0.36,
+     0.1,
+     0.49
+    ]
+   ],
+   "handsW": 1,
+   "aimW": 0
   },
   "lying": {
    "_note": "Knocked down, face down. 'lyingBack' is the supine version.",
