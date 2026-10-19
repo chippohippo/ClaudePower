@@ -19,6 +19,7 @@ See [PLAY.md](PLAY.md).
   - **You:** dig in (hold **H**), slide into prone, crew a gun or drive a truck. Blasts and critical hits throw bodies as full ragdolls. At 0 HP you're downed, not dead: crawl, and a squadmate can revive you.
   - **Docs:** [docs/FRONTLINE.md](docs/FRONTLINE.md), [docs/VEHICLES.md](docs/VEHICLES.md).
 - **Arena (feel lab):** `arena.html` is the 4v4 skirmish against full-kit bots (`?difficulty=recruit|veteran|elite`). Press **K** to cycle through all 20 class kits, and **X** to enter the bike, tank or dropship near spawn. It sets up a duel as the Solari Dawnblade (sword, two guns and a full ability kit) against a Void Ashsworn bot with vault and climb boxes and a wall-run wall.
+- **Sound (Audio Lab):** `audio-lab.html` (with a launcher running, http://localhost:8765/audio-lab.html) plays every weapon in your hands and at 5 to 300 m, every blast at 8 to 500 m, the near misses and the artillery, each map's atmosphere, and a live 32 v 32 battle heard from inside it. The sound itself, how it's made and how it's measured are in [`docs/AUDIO.md`](docs/AUDIO.md).
 
 | Path | What |
 |---|---|
