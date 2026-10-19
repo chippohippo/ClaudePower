@@ -205,7 +205,15 @@ async function record(kind, o) {
   await engine.loadAllRecorded();
   const log = { plays: [], ear: [], map: key, kind, secs };
   logPlays(engine, log, () => ctx.currentTime, { only: o.only ? new RegExp(o.only) : null, mute: o.mute ? new RegExp(o.mute) : null });
-  if (kind === 'board') {
+  if (kind === 'amb') {
+    // The atmosphere alone: a map's beds, spots and the war beyond it, a listener standing still.
+    const A = new Ambience(engine, S.atmosphere);
+    const dt = 1 / 20;
+    let i = 0;
+    const next = () => { i++; if (i * dt < secs - 0.05) ctx.suspend(i * dt).then(() => { A.update(dt); next(); ctx.resume(); }); };
+    A.update(dt);
+    next();
+  } else if (kind === 'board') {
     const B = boardScript(data);
     for (const ev of B.events) ctx.suspend(ev.t).then(() => { ev.play(engine); log.plays.at(-1)?.push(ev.label); ctx.resume(); });
   } else {

@@ -1137,9 +1137,9 @@
   "boom:grenade": {
    "kind": "boom",
    "mix": {
-    "crack": 2,
+    "crack": 5,
     "body": 0,
-    "low": -1,
+    "low": -4,
     "debris@open": -4,
     "debris@city": -4
    },
@@ -1196,9 +1196,9 @@
   "boom:vehicle": {
    "kind": "boom",
    "mix": {
-    "crack": 2,
+    "crack": 5,
     "body": 0,
-    "low": -1,
+    "low": -4,
     "debris@open": -4,
     "debris@city": -4
    },
@@ -1255,9 +1255,9 @@
   "boom:shell": {
    "kind": "boom",
    "mix": {
-    "crack": 2,
+    "crack": 5,
     "body": 0,
-    "low": -1,
+    "low": -4,
     "debris@open": -4,
     "debris@city": -4
    },
@@ -1314,9 +1314,9 @@
   "boom:bomb": {
    "kind": "boom",
    "mix": {
-    "crack": 2,
+    "crack": 5,
     "body": 0,
-    "low": -1,
+    "low": -4,
     "debris@open": -4,
     "debris@city": -4
    },
@@ -2362,14 +2362,14 @@
      "night"
     ],
     "every": [
-     40,
-     90
+     60,
+     130
     ],
     "dist": [
-     200,
-     500
+     300,
+     700
     ],
-    "gain": 0.5
+    "gain": 0.4
    },
    "takes": [
     "spot/city/klaxon/take-1.ogg",

@@ -85,7 +85,7 @@ for (const name of [...Object.keys(SIZES), 'emp']) {
     const k = layer.split('@')[0];
     layers[layer] = write(`boom/${name}/${layer.replace('@', '-')}`, lv(takes, ...BOOM_LEVEL[k]), ENC[k]);
   }
-  const mix = name === 'emp' ? { crack: -6, body: 0, low: -4 } : { crack: 2, body: 0, low: -1, 'debris@open': -4, 'debris@city': -4 };
+  const mix = name === 'emp' ? { crack: -6, body: 0, low: -4 } : { crack: 5, body: 0, low: -4, 'debris@open': -4, 'debris@city': -4 };
   manifest.sounds[id] = { kind: 'boom', mix, ...(name === 'emp' ? {} : { far: `far:boom:${name}` }), layers };
   if (name !== 'emp') manifest.sounds[`far:boom:${name}`] = { kind: 'far', layers: { far: write(`far/boom-${name}`, lv(boomFarTakes(name), ...BOOM_LEVEL.far), ENC.far) } };
 }

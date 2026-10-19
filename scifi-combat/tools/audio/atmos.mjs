@@ -108,8 +108,10 @@ function creak(r, metal = 1) {
     t += 1 / rate(t) * (0.7 + r() * 0.6);
   }
   const out = new Float32Array(n);
-  for (const [f, q, g] of [[jit(r, 420, 0.2) * metal, 18, 1], [jit(r, 1130, 0.2) * metal, 22, 0.6], [jit(r, 2350, 0.2) * metal, 25, 0.35]]) D.mix(out, D.bandpass(Float32Array.from(x), f, q, SR), g);
-  return B.st(D.normalize(out, 0.7));
+  // (Resonances wide enough to groan, not squeal: a creak that sings on a pitch every half minute grates.)
+  for (const [f, q, g] of [[jit(r, 300, 0.25) * metal, 7, 1], [jit(r, 820, 0.25) * metal, 9, 0.55], [jit(r, 1900, 0.25) * metal, 10, 0.25]]) D.mix(out, D.bandpass(Float32Array.from(x), f, q, SR), g);
+  D.mix(out, D.lowpass(Float32Array.from(x), 900, 0.7, SR), 0.4);
+  return B.st(D.normalize(D.lowpass(out, 2500, 0.7, SR), 0.7));
 }
 function fireFlare(r) {
   const len = jit(r, 2.6, 0.2), n = D.samples(len, SR), x = new Float32Array(n), env = (t) => Math.sin(Math.PI * Math.min(1, t / len)) ** 0.8;
@@ -131,11 +133,11 @@ function siren(r, kind = 'wail') {
 function klaxon(r) {
   const n = D.samples(3.2, SR), x = new Float32Array(n), a = jit(r, 392, 0.06), b = a * 1.26;
   for (let k = 0; k < 3; k++) for (const [f, t0] of [[a, k * 1.0], [b, k * 1.0 + 0.45]]) {
-    const m = D.samples(0.42, SR), s = D.osc(m, f, 'square', SR);
+    const m = D.samples(0.42, SR), s = D.osc(m, f, 'tri', SR);
     D.mul(s, D.envSwell(m, 0.02, 0.42, 0.05, SR, 1));
     D.mix(x, s, 0.5, t0, SR);
   }
-  return B.st(D.normalize(D.lowpass(D.highpass(x, 250, 0.7, SR), 2200, 0.7, SR), 0.6));
+  return B.st(D.normalize(D.lowpass(D.lowpass(D.highpass(x, 250, 0.7, SR), 1600, 0.7, SR), 1600, 0.7, SR), 0.6));
 }
 /** A patrol drone going over: rotor thrum and a motor whine dropping as it passes. */
 function drone(r) {
@@ -213,7 +215,7 @@ export function atmos() {
   bedOf('amb:city:hum', 41, (r, n) => cityHum(r, n, { base: 50, roar: 300, tone: 0.1 }), -28);
   bedOf('amb:city:snow', 19, snowHiss, -40);
   spotOf('spot:city:siren', (r) => siren(r, 'wail'), 3, { maps: ['city'], every: [30, 70], dist: [400, 900], gain: 0.6 });
-  spotOf('spot:city:klaxon', klaxon, 3, { maps: ['city', 'night'], every: [40, 90], dist: [200, 500], gain: 0.5 });
+  spotOf('spot:city:klaxon', klaxon, 3, { maps: ['city', 'night'], every: [60, 130], dist: [300, 700], gain: 0.4 });
   spotOf('spot:city:drone', drone, 3, { maps: ['city', 'night'], every: [25, 60], dist: [40, 120], gain: 0.45 });
   spotOf('spot:city:neon', neon, 3, { maps: ['city', 'night'], every: [18, 45], dist: [8, 20], gain: 0.25 });
   spotOf('spot:city:steel', (r) => creak(r, 0.8), 4, { maps: ['city', 'night'], every: [20, 50], dist: [20, 80], gain: 0.4 });

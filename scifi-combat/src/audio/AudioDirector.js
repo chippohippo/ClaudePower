@@ -106,7 +106,7 @@ export class AudioDirector {
       if (d < (p.audioMin ?? Infinity)) p.audioMin = d;
       else if (p.audioMin < 3.2 && !p.audioPassed) {
         p.audioPassed = true;
-        E.play(`whizz:${p.team === 1 ? 'void' : 'sol'}`, { pos: { x: p.pos.x, y: p.pos.y, z: p.pos.z }, kind: 'near', gain: 0.7 * (1 - p.audioMin / 4), delay: false });
+        E.play(`whizz:${p.team === 1 ? 'void' : 'sol'}`, { pos: { x: p.pos.x, y: p.pos.y, z: p.pos.z }, kind: 'near', gain: 0.7 * (1 - p.audioMin / 4), delay: false, hero: true });
         this.onNearMiss(1 - p.audioMin / 3.2); E.suppress?.(1 - p.audioMin / 3.2);
       }
     }
@@ -162,7 +162,7 @@ export class AudioDirector {
       if (miss > 4) return;
       const spec = this.getEntity(e.id)?.weapon, [kind] = weaponDesign(spec);
       const k = 1 - miss / 4;
-      E.play(kind === 'laser' ? `whizz:${this.#army(e.id)}` : 'crack', { pos: { x: cx, y: cy, z: cz }, kind: 'near', gain: (kind === 'laser' ? 0.65 : 0.8) * (0.4 + 0.6 * k), delay: false });
+      E.play(kind === 'laser' ? `whizz:${this.#army(e.id)}` : 'crack', { pos: { x: cx, y: cy, z: cz }, kind: 'near', gain: (kind === 'laser' ? 0.65 : 0.8) * (0.4 + 0.6 * k), delay: false, hero: true });
       this.onNearMiss(k); E.suppress?.(k);
     });
     on('projectile:spawn', (e) => { if (e.ref && e.ref.ownerId !== this.listenerId && !e.ref.spec?.splash) this.projectiles.add(e.ref); });

@@ -590,12 +590,15 @@ function arrow(k, sr) {
   tone(x, 'square', f, f, 0, 0.05, 0.22, sr); tone(x, 'sine', f * 2, f * 2, 0, 0.04, 0.2, sr);
   return D.normalize2([x, Float32Array.from(x)], 0.6);
 }
-/** An officer's pea whistle: two blasts, the second long; the enemy's lower and rougher. */
-function squadWhistle(enemy, sr) {
-  const len = 1.75, n = D.samples(len, sr);
-  const x = D.osc(n, (t) => (enemy ? 2300 : 2800) + Math.sin(t * 2 * Math.PI * 28) * (enemy ? 260 : 180), enemy ? 'saw' : 'sine', sr);
-  if (enemy) D.lowpass(x, 4000, 0.7, sr);
-  for (let i = 0; i < n; i++) { const t = i / sr; x[i] *= (t < 0.55 ? Math.min(1, t / 0.02, (0.55 - t) / 0.04) : t > 0.75 && t < 1.6 ? Math.min(1, (t - 0.75) / 0.02, (1.6 - t) / 0.04) : 0); }
+/** An officer's pea whistle: two blasts, the second long (each officer's a little different); the enemy's lower and rougher. */
+function squadWhistle(enemy, r, sr) {
+  const len = 1.85, n = D.samples(len, sr), f0 = jit(r, enemy ? 2300 : 2700, 0.06), trill = jit(r, 28, 0.15), b1 = jit(r, 0.5, 0.15), gap = jit(r, 0.2, 0.25);
+  const x = D.osc(n, (t) => f0 + Math.sin(t * 2 * Math.PI * trill) * (enemy ? 240 : 170) * (0.7 + 0.3 * Math.sin(t * 3.1)), enemy ? 'saw' : 'sine', sr);
+  if (enemy) D.lowpass(x, 3500, 0.7, sr);
+  // The breath through it: a little air, so it isn't a test tone.
+  D.mix(x, D.bandpass(D.noise(n, r), f0, 3, sr), 0.25);
+  const e2 = b1 + gap, e3 = Math.min(len - 0.05, e2 + jit(r, 0.85, 0.12));
+  for (let i = 0; i < n; i++) { const t = i / sr; x[i] *= (t < b1 ? Math.min(1, t / 0.02, (b1 - t) / 0.04) : t > e2 && t < e3 ? Math.min(1, (t - e2) / 0.02, (e3 - t) / 0.06) : 0); }
   return D.normalize2([x, Float32Array.from(x)], 0.6);
 }
 function heartbeat(sr) {
@@ -822,7 +825,7 @@ export const abilityId = (sig, faction, kind) => `ability:${sig?.root ?? 'A4'}:$
 
 /** How many variants an id has (loops and the pad's arrows have one; your own gun and far sounds two). */
 export function variantsOf(id) {
-  if (/^(beam|charge|engine|fire|amb|arrow|whistle|heartbeat|incoming|sky|ui|ability:.*:(loop|zone))/.test(id)) return 1;
+  if (/^(beam|charge|engine|fire|amb|arrow|heartbeat|incoming|sky|ui|ability:.*:(loop|zone))/.test(id)) return 1;
   return /:(far|1p)$|^boom/.test(id) ? 2 : VARIANTS;
 }
 
@@ -864,7 +867,7 @@ function design(id, variant, sr) {
     case 'melee': return melee(p[1], r, sr);
     case 'ui': return ui(p[1], r, sr);
     case 'arrow': return arrow(+p[1] || 1, sr);
-    case 'whistle': return squadWhistle(p[1] === 'enemy', sr);
+    case 'whistle': return squadWhistle(p[1] === 'enemy', r, sr);
     case 'heartbeat': return heartbeat(sr);
     case 'dig': return dig(r, sr);
     case 'struct': return structural(p[1], r, sr);

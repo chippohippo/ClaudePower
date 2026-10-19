@@ -71,7 +71,7 @@ function boomBody(size, r, element) {
   D.saturate(D.normalize(roar, 1), 2.4);
   out = B.mix(out, B.level(B.st(roar, D.scale(Float32Array.from(roar), 1)), -14), 0, -2);
   if (element === 'emp') out = B.mix(out, B.level(B.eq(pickFrom(S.emp, r), [['highpass', 90, 0.7]]), -14), 0, -2);
-  out = B.eq(out, [['highpass', 45, 0.7], ['peak', 220, 2, 0.8], ['peak', 2500, -2, 0.8]]);
+  out = B.eq(out, [['highpass', 45, 0.7], ['peak', 220, 2, 0.8], ['peak', 2400, 2.5, 0.7]]);
   return B.fade(B.width(B.sat(B.shape(out, 0.9), 1.3), 1.25), 0.001, len * 0.5);   // (its first ms pushed up: it hits, then it roars)
 }
 function boomLow(size, r) {
