@@ -135,7 +135,7 @@
  "evade": {
   "_note": "Non-dive evades for classes that live in melee range (a dive to prone would end every sword duel). sidestep: anyone's dodge within threatRange m of an enemy winding up or swinging at them (The Last of Us Part II: a quarter-second duck out of the blow's way, the trunk leaning with it); elsewhere a gunner's dodge is still the dive.",
   "sidestep": {
-   "speed": 6.5,
+   "speed": 5.5,
    "duration": 0.26,
    "iframeStart": 0.02,
    "iframeEnd": 0.2,

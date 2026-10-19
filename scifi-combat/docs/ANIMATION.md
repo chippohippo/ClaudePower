@@ -130,12 +130,15 @@ exactly. The data can also mark the frame the body hits the ground (`impact`) an
 | **Vault** | One hand plants on the obstacle (world-fixed, `hands` impact), the legs swing over to the side, and forward momentum never stops. |
 | **Climb** | Both hands plant on the lip (world-fixed), then a pull-up with the chest over the edge and a knee coming up. Feet plant on top with footsteps at 72% and 90%. |
 | **Thrown** | Blasts, critical hits, downs and deaths throw the body as a physics ragdoll (see [Ragdolls and downs](#ragdolls-and-downs)). Where it lands is where you are: it gets up front or back from however it came to rest, starts the downed crawl, or stays as a corpse. |
-| **Evades** | Melee classes' flameStep/ashStep: a low leap along the dash with the chest on the aim. Shoulder bash: running steps with the shoulder leading. |
+| **Evades** | The sidestep (anyone's dodge near a man swinging at them; The Last of Us Part II's duck, `poses.sidestep`): the far foot steps out and the near one pushes off and comes in under him, both planted in world space; the trunk leans 44-47° out of the blow's way and is up again by 0.26 s, on the same curve the hit spheres lean on (`Hitboxes.evadeCurve`); the knees dip, the free hand is flung out, the gun stays near the aim, the eyes on him. Melee classes' flameStep/ashStep: a low leap along the dash with the chest on the aim, leaning a little after it. Shoulder bash: running steps with the shoulder leading. |
 | **Seated** | Bike riders: hands on the bars for drivers; gunners and passengers aim. |
 | **Death** | A ragdoll collapse, pushed gently the way the killing shot went. (A body without a ragdoll falls back on an authored collapse to the lying pose.) |
 
 **Crossfades:** each state fades in over `[seconds, curve]` from `blend.fade`:
-- `out` (ease-out) for commits that must read instantly: dive (0.1 s), mantle (0.1 s), evades.
+- `out` (ease-out) for commits that must read instantly: dive (0.1 s), mantle (0.1 s), evades
+  (the sidestep 0.03 s: its pose starts from where the feet stand).
+- `blend.after` overrides the next state's fade when leaving one: out of a sidestep 0.05 s (it
+  ends stood over the feet the planter starts from; a longer fade dragged them with the body).
 - `smooth` for drops, get-ups, the downed crawl and recoveries, so nothing front-loads a pop:
   back to locomotion 0.2 s, slide 0.17 s, air 0.15 s.
 - `in` for the authored death collapse.
@@ -187,16 +190,29 @@ show a cut. Beyond the crossfades:
     its key, so the blade carries through instead of stopping dead at the end of the arc.
   - Heavy, flame wave and guard break are two-handed; the off hand moves onto the grip over a few
     frames. Guard, stagger and guard-broken have their own poses.
+  - **The whole body goes into it** (`wind.body` / `follow.body`: hip twist, trunk lean, drop):
+    the hips start to unwind late in the wind-up and lead the blade (a spring, ω 40, its
+    acceleration capped so the turn never pops), the trunk leans into the blow and sinks 6-14 cm
+    on contact, held through the first 35% of the recovery. The sim steps him in (`step` in
+    `melee.json`) and sweeps the blade with the same lean and drop (`bladeAt`), so the blade you
+    see is the one that hits (docs/FEEL_TLOU2.md).
   - Unknown moveset attacks map by name (heavy, thrust, sweep).
 
 ## Additive layers (never touch the legs)
 
-- **Recoil** (`weapon:recoil`): the muzzle climbs, the stock drives back, the chest rocks.
-- **Hit flinch** (`weapon:hit`, `melee:hit`, `ability:hit`): the chest and head snap away from the hit direction, scaled by damage.
+- **Recoil** (`weapon:recoil`, `layers.recoil`): the muzzle flips up, the stock drives back, the
+  chest and head rock: a rifle aimed 2.5° (3.9° from the hip), peaking at 33 ms, back within 5% by
+  0.12 s (The Last of Us Part II's pistol: ~40 ms, ~125 ms).
+- **Aim pitch:** `body.aimBend` (35%) of the aim's pitch bends the upper back, to ±0.45 rad: the
+  shoulders and head go with a high or low aim (and the hit spheres with them: `Hitboxes` `AIM`).
+- **Hit flinch** (`weapon:hit`, `melee:hit`, `ability:hit`): the chest and head snap away from the hit direction, scaled by damage. A blast flinches every body within 1.6× its radius the same way (`AnimationSystem`).
 - **Near-miss flinch** (`fighter:nearMiss`, from suppression): a round cracking past makes the chest and head
   jerk away from where it came from (45% of a hit's kick, harder the closer it came) and the body duck a little.
 - **Breathing:** slow at rest, heavy and fast when stamina is low or exhausted.
-- **Secondary motion:** a 3-link verlet cape streams behind sprints, dives and slides.
+- **Secondary motion:** a 3-link verlet cape streams behind sprints, dives and slides. Its damping
+  is per second (the same swing at 144 Hz as at 60), and each link hangs at least `cape.droop` of
+  its length below the one above (halfway between the back's up and the world's): a burst swings
+  it out, never up over the shoulders.
 
 ## Ragdolls and downs
 
@@ -289,6 +305,11 @@ The hitboxes sit on the particles the whole time, so you shoot the body where it
   last third. Rocked again before you've found your feet, you go over as a ragdoll.
 - **Buckled:** a leg hit taking 15% drops you onto that knee for a moment. The hitboxes drop with
   you.
+- **Reeled** (a blade or a fist, `stagger.melee`): by the blow's poise, 0.5-1.0 s doubled over and
+  stumbling (The Last of Us Part II's ~0.9 s for a heavy blow): a short jolt along the blow, then
+  the trunk folds 31-54° on `reelCurve`, the knees giving, one hand to the gut and the other
+  reaching low, the gun forgotten; the hit spheres fold with it (the `folded` layout). Only a
+  knockdown blow (the riposte) throws you as a ragdoll.
 - **Injured** (revived, until a stim):
   - hunched, with the free hand pressed to a trunk wound while the gun's down;
   - a limp: the hips dip and the trunk swings off the wounded leg while it carries the weight.
@@ -386,6 +407,10 @@ Drop-in replacement per fighter with the same inputs and events. Mapping lives i
   - `wallPush`: walking on into a wall, a hand out flat against it.
   - `squeeze`: squeezing past a man standing in a narrow trench.
   - `bump`: jogging into a lighter man standing there; he stumbles with it.
+- **Melee feel** (docs/FEEL_TLOU2.md):
+  - `exchange`: two light blows and a heavy landing on a gunner: the step in, the hips ahead of
+    the blade; he reels, doubled over.
+  - `duck`: a gunner ducks a swordsman's blows, backward then to the side.
 - **URL:** `rig-lab.html?station=slide&view=side&speed=0.25`. Add `&at=1.9` to freeze at that loop
   time (deterministic, used for screenshots). For a clean shot, `&solo` shows only that station
   (not the others lined up behind it), `&view=orbit&yaw=1.57&pitch=0.1&dist=2.8` frames the camera

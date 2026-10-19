@@ -450,14 +450,17 @@ function runStation(st, onFrame) {
   const sys = new AnimationSystem(anim, { getEntity: (id) => world.entity(id), groundY: floorOf(cover), bodies });
   const h = sys.add(e); sys.focusId = 1;
   const drv = new StationDriver(st);
-  const buddy = st.buddy ? buildFighter(world, stationFactory, { id: 2, team: 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
-  if (buddy) { buddy.mode = 'gun'; buddy.health.damage = () => ({}); sys.add(buddy); }
+  const buddy = st.buddy ? buildFighter(world, stationFactory, { id: 2, team: st.buddy.team ?? 0, classId: st.buddy.classId ?? 'lancer', pos: new Vector3(...(st.buddy.start ?? [0, 0, 0])), cover }) : null;
+  if (buddy) { buddy.mode = st.buddy.mode ?? 'gun'; buddy.health.damage = () => ({}); meleeSys.add(buddy.melee); sys.add(buddy); }
   const bdrv = buddyDriver(st);
   const rec = sys.record(1);
   while (!drv.done) {
     sys.snapshot();
     const cmd = drv.command(e, DT, buddy);
-    if (buddy) { const bc = bdrv.command(buddy, DT, e); buddy.health.update(DT); buddy.movement.update(bc, DT); }
+    if (buddy) {
+      const bc = bdrv.command(buddy, DT, e); buddy.health.update(DT); buddy.movement.update(bc, DT);
+      const br = routeCommand(buddy, bc); buddy.melee.update(br.meleeCmd, DT); buddy.weapons.update(br.gunCmd, DT);
+    }
     e.status.update(DT); e.health.update(DT);
     e.movement.update(cmd, DT);
     e.movement.state.speedScale = e.status.speedMul;

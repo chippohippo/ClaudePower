@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import { bus } from '../src/core/EventBus.js';
 import { AnimationSystem } from '../src/anim/AnimationSystem.js';
+import { ProceduralHumanoid } from '../src/anim/ProceduralHumanoid.js';
 import { hitSpheres } from '../src/movement/Hitboxes.js';
 import { meleeWeapon } from '../src/combat/melee/MeleeWeapons.js';
 import { bladeAt, keysFor } from '../src/combat/melee/MeleeSystem.js';
@@ -220,7 +221,7 @@ test('the dodge: near a man swinging at you it\'s a quarter-second duck out of t
     const s = B.movement.state;
     assert.equal(s.mode, 'dodge', 'a ground evade, not a dive');
     assert.equal(s.dodgeStyle, 'sidestep');
-    let peak = 0, peakAt = 0, worstHead = 0, worstChest = 0, slid = 0;
+    let peak = 0, peakAt = 0, worstHead = 0, worstChest = 0, slid = 0, knee = 0, gunUp = 0;
     const was = [rigB.j.ankle[0].clone(), rigB.j.ankle[1].clone()];
     while (B.movement.state.mode === 'dodge') {
       tick();
@@ -229,6 +230,8 @@ test('the dodge: near a man swinging at you it\'s a quarter-second duck out of t
       if (lean > peak) { peak = lean; peakAt = t; }
       worstHead = Math.max(worstHead, h.distanceTo(new Vector3(hs[0].x, hs[0].y, hs[0].z)));
       worstChest = Math.max(worstChest, rigB.j.chestC.distanceTo(new Vector3(hs[1].x, hs[1].y, hs[1].z)));
+      for (let f = 0; f < 2; f++) knee = Math.max(knee, 180 - rigB.j.hip[f].clone().sub(rigB.j.knee[f]).angleTo(rigB.j.ankle[f].clone().sub(rigB.j.knee[f])) * 180 / Math.PI);
+      gunUp = Math.max(gunUp, Math.asin(rigB.prop.dir.y) * 180 / Math.PI);
       // A foot down on the ground stays where it is (it moves only while it swings).
       for (let f = 0; f < 2; f++) {
         const a = rigB.j.ankle[f], down = a.y - P(B).y < 0.085 && was[f].y - P(B).y < 0.085;
@@ -240,6 +243,9 @@ test('the dodge: near a man swinging at you it\'s a quarter-second duck out of t
     assert.ok(peakAt > 0.08 && peakAt < 0.17, `${label}: all the way out by ${peakAt.toFixed(2)} s (the clip: 0.13)`);
     assert.ok(worstHead < 0.12 && worstChest < 0.12, `${label}: the spheres lean with him (head ${worstHead.toFixed(2)}, chest ${worstChest.toFixed(2)} m)`);
     assert.ok(slid < 0.015, `${label}: no foot slides (${slid.toFixed(3)} m in a frame)`);
+    // A duck, not a squat (standing, the knees are already bent 45 deg); the gun stays near the aim.
+    assert.ok(knee > 55 && knee < 90, `${label}: the knees dip to ${knee.toFixed(0)} deg`);
+    assert.ok(gunUp < 20, `${label}: the muzzle rises ${gunUp.toFixed(0)} deg at most`);
     const h = rigB.j.head, p = rigB.j.pelvis;
     assert.ok(Math.atan2(Math.hypot(h.x - p.x, h.z - p.z), h.y - p.y) * 180 / Math.PI < 12, `${label}: back up by the end (${E.duration} s)`);
   }
@@ -259,4 +265,67 @@ test('a blast nearby flinches the body away from it, like a hit', () => {
   let moved = 0;
   for (let i = 0; i < 6; i++) { tick(); moved = Math.max(moved, Math.abs(rigB.flX.x) + Math.abs(rigB.flZ.x)); }
   assert.ok(moved > 0.05, `flinched (${moved.toFixed(2)})`);
+});
+
+// ---------------------------------------------------------------- the body
+
+test('a high or low aim bends the upper back: the shoulders and head go with the gun', () => {
+  const B = data.humanoid.body;
+  const chestAt = (pitch) => {
+    const w = makeWorld();
+    const G = w.fighter(2, 1, v(0, 0, 0), 'lancer', { hp: 5000 });
+    G.mode = 'gun'; w.aim(G, Math.PI, pitch);
+    const sys = new AnimationSystem(data.humanoid, { getEntity: (id) => w.world.entity(id) });
+    sys.add(G); sys.focusId = 2;
+    for (let i = 0; i < 60; i++) { sys.snapshot(); w.step(1); sys.update(DT, 1, null); }
+    const r = sys.get(2), d = r.F.chest.d, h = r.F.head.d;   // (he faces +z: forward is +z)
+    return { chest: Math.atan2(d.z, d.y), head: Math.atan2(h.z, h.y) };
+  };
+  const level = chestAt(0), low = chestAt(-0.6), high = chestAt(0.6);
+  assert.ok(Math.abs(low.chest - level.chest - 0.6 * B.aimBend) < 0.03, `aiming 0.6 rad down, the chest bends ${(low.chest - level.chest).toFixed(2)} rad forward`);
+  assert.ok(Math.abs(level.chest - high.chest - 0.6 * B.aimBend) < 0.03, `aiming 0.6 rad up, ${(level.chest - high.chest).toFixed(2)} rad back`);
+  assert.ok(Math.abs(low.head - 0.51) < 0.03 && Math.abs(high.head + 0.51) < 0.03, 'and the head stays on the look');
+});
+
+test('aiming up or down, the hit spheres go with the head and the bent back', () => {
+  for (const [cls, mode, crouch] of [['lancer', 'gun', false], ['lancer', 'gun', true], ['dawnblade', 'sword', false]]) {
+    let head = 0, chest = 0;
+    for (const pitch of [-0.8, -0.4, 0.4, 0.8]) {
+      const w = makeWorld();
+      const G = w.fighter(2, 1, v(0, 0, 0), cls, { hp: 5000 });
+      G.mode = mode; w.aim(G, Math.PI + 0.4, pitch);
+      if (crouch) w.press(G, 'crouch');
+      const sys = new AnimationSystem(data.humanoid, { getEntity: (id) => w.world.entity(id) });
+      sys.add(G); sys.focusId = 2;
+      for (let i = 0; i < 90; i++) { sys.snapshot(); w.step(1); sys.update(DT, 1, null); }
+      const r = sys.get(2), hs = hitSpheres(G);
+      head = Math.max(head, r.j.head.distanceTo(new Vector3(hs[0].x, hs[0].y, hs[0].z)));
+      chest = Math.max(chest, r.j.chestC.distanceTo(new Vector3(hs[1].x, hs[1].y, hs[1].z)));
+    }
+    const label = `${mode}${crouch ? ', crouched' : ''}`;
+    assert.ok(head < 0.06 && chest < 0.06, `${label}: head sphere within ${(head * 100).toFixed(0)} cm, chest ${(chest * 100).toFixed(0)} cm of the drawn body`);
+  }
+});
+
+test('the cape swings the same at 144 Hz as at 60', () => {
+  const tipPath = (hz) => {
+    const { fighter } = makeWorld();
+    const f = fighter(1, 0, v(0, 0, 0), 'lancer');
+    Object.assign(f.movement.state, { stance: 'stand', bodyYaw: 0, yaw: 0, mode: 'ground' });
+    f.mode = 'gun';
+    const h = new ProceduralHumanoid(f, data.humanoid, {}), out = new Map();
+    for (let i = 0; i < hz * 4; i++) {
+      // Settle, then turn at the body's turn rate and stop.
+      const t = i / hz, yaw = Math.min(1.2, Math.max(0, (t - 2.5) * 12));
+      f.movement.state.bodyYaw = f.movement.state.yaw = yaw;
+      h.update(1 / hz, f.movement.state.position, { yaw, aimYaw: yaw, aimPitch: 0, lod: 0, emit: false });
+      const k = Math.round(t * 20);
+      if (t >= 2.4 && Math.abs(t * 20 - k) < 10 / hz) { const p = h.cape[h.cape.length - 1]; out.set(k, [p.x - h.j.neck.x, p.z - h.j.neck.z]); }
+    }
+    return out;
+  };
+  const a = tipPath(60), b = tipPath(144);
+  let worst = 0;
+  for (const [k, p] of a) if (b.has(k)) worst = Math.max(worst, Math.hypot(b.get(k)[0] - p[0], b.get(k)[1] - p[1]));
+  assert.ok(a.size > 20 && worst < 0.1, `the tip's path through a turn: ${(worst * 100).toFixed(0)} cm apart`);
 });

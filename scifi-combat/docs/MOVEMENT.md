@@ -77,9 +77,11 @@ measured fact. The procedure for locking them to the real game is in the next se
  │                    │───────────────────────────────────────────────────▶│ at rest: get up (front/back), │
  └────────────────────┘                                                    │ downed crawl, or corpse       │
                                                                            └───────────────────────────────┘
-   MANTLE (vault keeps momentum / climb ends standing) · DODGE (class evades) · VEHICLE
+   MANTLE (vault keeps momentum / climb ends standing) · DODGE (class evades; anyone's sidestep
+   near a swing) · VEHICLE
    STAGGER (rocked by a hit or a 2.5–6 m/s shove: stumble along it; a leg hit buckles you onto
-   that knee; rocked again while stumbling → RAGDOLL; a dying or downed stumble ends in the RAGDOLL)
+   that knee; a blade or fist reels you by its poise, doubled over; rocked again while stumbling →
+   RAGDOLL; a dying or downed stumble ends in the RAGDOLL)
 ```
 
 Other systems read per-tick flags the controller sets first in every tick:
@@ -224,6 +226,8 @@ stiff camera, poses snapping) and in slow motion when the frame rate dipped (a f
 | A higher, longer dive (0.5 s, 0.46 m up) | Requested: more air and a little more distance | `dive.upVelocity`, `dive.gravity` |
 | Slides roll off ledges; dives off drops brace as ragdolls | Requested | `roll`, `dive.braceAt`, `ragdoll.drive.brace` |
 | Melee-class evades (`flameStep`, `ashStep`, `shoulderBash`) | A dive to prone would end every sword duel | class `movement.dodgeStyle` |
+| The sidestep: within `evade.sidestep.threatRange` (4 m) of an enemy winding up or swinging at you (facing you), anyone's dodge is a quarter-second duck instead of the dive: 5.5 m/s × 1.4 easing out over 0.26 s (about 0.6 m), i-frames 0.02–0.2 s, 14 stamina, backward unless steered | The Last of Us Part II's dodge (docs/FEEL_TLOU2.md): a dive to prone in a melee is a death sentence; the duck reads at once and leaves you on your feet. The hit spheres lean with the drawn body (`Hitboxes.evadeCurve`) | `evade.sidestep`; `MovementController.hooks.meleeThreat` (set by `MeleeSystem.add`) |
+| Melee blows reel instead of throwing: poise 15–90 stumbles you 0.5–1.0 s at 1.2–2.6 m/s, doubled over; only poise ≥ 90 (or a `knockdown` attack) throws you | The Last of Us Part II: a heavy blow leaves a man helpless ~0.9 s on his feet, not a ragdoll for 2.2 s. The spheres fold with him (`Hitboxes` `folded`) | `stagger.melee` |
 | Wall-running | Disabled (HD2 has none) | `wallRun.enabled` |
 
 ## Hitboxes
@@ -235,6 +239,13 @@ pose (tested), so what you see is what you hit:
 - **Body axis:** the head leads in the dive direction; supine bodies and backward knockdowns have the
   head behind; side landings roll toward the facing on the same timer as the animation.
 - **Transitions:** stance changes blend between layouts.
+- **Reel and duck:** a reeling man's spheres fold toward the `folded` layout on `reelCurve`, as far
+  as the rig doubles him over; a sidestep's lean along the dodge on `evadeCurve` (`SIDESTEP`
+  offsets). Rig and spheres share both curves (tests: the head sphere within 12–13 cm of the
+  drawn head).
+- **Aim pitch:** on your feet, the head sphere goes along a high or low aim (the head pitches with
+  the look) and, with the gun up, the chest too (the rig bends the upper back): `AIM`, per radian
+  of pitch, measured on the rig standing and crouched; within 4 cm at any aim.
 - **Scale:** transform supers scale the spheres with their silhouette.
 
 ## Camera (HD2 third person, optional first person)
@@ -255,13 +266,20 @@ pose (tested), so what you see is what you hit:
 - **Sway:** the camera banks into sprint carves (body turn rate × speed).
 - **FOV:** base 70, +6 at full sprint, +8 sliding, +10 diving. The dive start punches +5;
   heavy landings dip −4 and knockdowns punch +6. ADS goes to the weapon's ADS FOV.
+- **Aiming** pushes the camera in with the arms: the ADS framing and FOV ride the gun's own aim
+  blend (eased), over the stance framing's springs: 95% in at 0.22 s against the gun's 0.24 s
+  (The Last of Us Part II: the same 0.25 s).
+- **Your own shot** kicks the view up (a stiff pitch spring, ω 40, from the shot's `visualKick`):
+  aimed, a rifle 0.22°, a pistol 0.37°, a shotgun 0.9°, a sniper 1.1°, peaking at 33 ms. It's
+  presentation; the aim's climb is the recoil. **Being hit** adds trauma (min(0.3, 0.1 + damage/150)).
 - **Scopes** (`ScopeView`): a gun whose sights narrow the view to 30° or less (the snipers, a 4x
   optic) is looked through. As it comes up, the eye goes to the sight whatever the view (third person
   too), your gun and arms aren't drawn, and the screen becomes the sight picture: a round field of view
   magnified to the gun's ADS FOV (the Longwatch's 18°, about 4x), black round it, a reticle (posts, a
   fine cross with stadia dots, a lit centre dot) and the lens darkening at its edge. The rounds left
   and the score stay on screen over the black.
-- **Reduced motion:** bob is ×0.25, with no roll, sway or FOV effects, and a quarter of the shake.
+- **Reduced motion:** bob is ×0.25, with no roll, sway or FOV effects, a quarter of the shake and
+  30% of the shot kick.
 - **First person ([V], pad View):** the camera blends (ω 14) into the animated head's eyes, so
   stance changes, dives and slides move it as the body moves. Stiff springs on where the eyes sit
   on the body (ω 40 across, 22 up and down) take out the footfall thud without lagging the body's
@@ -310,6 +328,10 @@ Not in HD2 (added on request; `cover` in the data, `src/movement/CoverFaces.js`)
 - **Flinch under fire:** a round cracking past within the suppression radius makes the body flinch
   away from it and duck (every soldier; see [ANIMATION.md](ANIMATION.md)), and a person's aim jumps a
   little, as from a light hit, the closer the round the more. Hits flinch harder than they used to.
+- **Aim sway (persons, while aiming; `WeaponSystem` `SWAY`):** a slow breathing figure-eight
+  (1.2 mrad at 0.25 Hz), plus 11 mrad × the weapon's `ads.sway` for a scope. Holding sprint while
+  aimed holds the breath for `ads.holdBreath` s (the wander drops under 30%); letting go, or running
+  out, it comes back stronger for about a second. Never while sprinting; bots don't sway.
 
 ## Animation sync contract
 

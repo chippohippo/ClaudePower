@@ -197,6 +197,16 @@ export const STATIONS = [
       c.hold('heavy', between(t, 2.6, 2.7));
     },
   },
+  {
+    id: 'duck', name: 'Ducking a blow (TLOU2): the trunk leans 45 deg out of its way for a quarter second, the feet planted', length: 4.5, mode: 'gun',
+    buddy: { team: 1, mode: 'sword', classId: 'dawnblade', start: [0, 0, -1.9], script(t, c) { c.look(Math.PI); for (const at of [0.5, 2.5]) if (between(t, at, at + 0.05)) c.press('light'); } },
+    script(t, c) {
+      // In each wind-up: back out of it, then over to the left.
+      if (between(t, 0.58, 0.62)) c.press('dodge');
+      if (between(t, 2.5, 2.9)) c.move(-1, 0);
+      if (between(t, 2.58, 2.62)) c.press('dodge');
+    },
+  },
   // ---- bodies and steps (BodyContacts, FootPlanter): what's underfoot and who's in the way
   {
     id: 'kerb', name: 'Up a kerb at a jog, then backing down off it: the feet lift onto it, no slowdown', length: 6.8,

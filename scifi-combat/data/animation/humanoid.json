@@ -1101,7 +1101,7 @@
   },
   "sidestep": {
    "_note": "The Last of Us Part II's duck out of a blow (the sidestep, a quarter second): the far foot steps out the way the dodge goes, lifting at step[0] and down at step[1] (fractions of the evade) step[2] m past its place in the standing stance; the near foot pushes off at push[0] and comes in under him (push[2] m back) by push[1]; the trunk leans `away` rad after the step (TLOU2: 40-50 deg; the hips take `hips` of it and stay hipsBack m back over the push foot) on Hitboxes.evadeCurve, the spheres leaning with it; the knees give to pelvisH; the free hand flung out (arm: m out to the side, up from the hips, along the dodge) and the gun offAim off the aim; the head goes headWith of the way with the trunk (the rest stays on the look, the eyes on him).",
-   "pelvisH": 0.8,
+   "pelvisH": 0.86,
    "away": 1.05,
    "hips": 0.5,
    "hipsBack": 0.06,
@@ -1111,8 +1111,8 @@
     0.15
    ],
    "push": [
-    0.3,
-    0.8,
+    0.22,
+    0.75,
     0
    ],
    "lift": 0.07,
@@ -1122,7 +1122,7 @@
     0.12
    ],
    "armW": 0.9,
-   "offAim": 0.6,
+   "offAim": 0.25,
    "headWith": 0.65
   }
  },
@@ -1417,13 +1417,15 @@
   "footPitch": -0.5
  },
  "body": {
-  "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim. Every locomotion signal is smoothed once per frame: the hips swivel on a spring (hipOmega, rad/s) and only flip between facing a strafe and backpedalling it past hipFlip (radians off the aim: [to back, to forward], hysteresis); the lean and bank follow the acceleration on springs (leanOmega, leanZeta); the side-step and backpedal stride blend (gaitBlendRate, 1/s) and the posture speed (postureRate) ease in. popLimit: the pop absorber's limits on how fast a pose channel's speed may change (pelvis m/s², yaw and angle rad/s²); anything sharper springs out over a few frames (omega, rad/s).",
+  "_note": "Lean into acceleration like an inverted pendulum (punchy starts, braced skids, banked carves). hipFollow turns the hips toward the strafe direction while the chest stays on the aim. Every locomotion signal is smoothed once per frame: the hips swivel on a spring (hipOmega, rad/s) and only flip between facing a strafe and backpedalling it past hipFlip (radians off the aim: [to back, to forward], hysteresis); the lean and bank follow the acceleration on springs (leanOmega, leanZeta); the side-step and backpedal stride blend (gaitBlendRate, 1/s) and the posture speed (postureRate) ease in. popLimit: the pop absorber's limits on how fast a pose channel's speed may change (pelvis m/s², yaw and angle rad/s²); anything sharper springs out over a few frames (omega, rad/s). aimBend: that share of the aim's pitch bends the upper back (to ±aimBendMax rad), so a high or low aim takes the shoulders and head with the gun (TLOU2).",
   "accelLean": 0.5,
   "maxLean": 0.36,
   "hipFollow": 0.4,
   "maxHipYaw": 0.65,
   "headYawMax": 1.25,
   "headPitchMax": 1.1,
+  "aimBend": 0.35,
+  "aimBendMax": 0.45,
   "hipOmega": 18,
   "hipFlip": [
    1.83,
@@ -2369,12 +2371,14 @@
   }
  },
  "cape": {
+  "_note": "Verlet cape behind the shoulders: damping is per 60 Hz frame (applied per second, the same at any frame rate); each link hangs at least droop x its length below the one above it (measured halfway between the back's up and the world's: it swings out on a burst, never up over the shoulders or at the sky).",
   "enabled": true,
   "links": 3,
   "linkLen": 0.27,
   "width": 0.42,
   "damping": 0.93,
-  "gravity": 9.8
+  "gravity": 9.8,
+  "droop": 0.5
  },
  "lod": {
   "_note": "near: full rig every frame with footstep events; mid: reduced rig at a lower rate; far: capsule impostor. Distances in m.",

@@ -1286,7 +1286,8 @@ export class ProceduralHumanoid {
     // The hips sink and stay back over the push foot while the trunk goes.
     const back = k.hipsBack * c * sc;
     out.pelvis.set(root.x - d.x * back, root.y + lerp(st0.pelvisH, k.pelvisH, c) * sc, root.z - d.z * back);
-    out.yawP = yaw; out.yawC = yaw; out.spinP = out.spinC = 0;
+    // (the hips on the stance's own swivel, so it blends in and out of the stance without a turn)
+    out.yawP = this.#hipYaw(); out.yawC = yaw; out.spinP = out.spinC = 0;
     // The lean, in the hips' and chest's frames (on the aim): back for a backstep, over for a sidestep.
     const rel = angleDelta(yaw, Math.atan2(-d.x, -d.z)), A = k.away * c, fw = Math.cos(rel), sd = -Math.sin(rel);
     out.pitchP = st0.pitchP + A * k.hips * fw; out.pitchC = st0.pitchC + A * fw;
@@ -1344,6 +1345,11 @@ export class ProceduralHumanoid {
       P.yawP += this.#hipLead(B.hip, dt) * P.aimW;
       P.pitchC += B.lean * P.aimW; P.pitchP += B.lean * 0.4 * P.aimW;
       P.pelvis.y -= B.drop * this.scale * P.aimW;
+    } else {
+      // A high or low aim bends the upper back (TLOU2: the shoulders and head go with the gun, the
+      // arms don't aim on their own): body.aimBend of the aim's pitch into the chest, to ±aimBendMax.
+      const bd = this.cfg.body, m = bd.aimBendMax ?? 0.45;
+      P.pitchC += clamp(-(this.aimPitch ?? 0) * (bd.aimBend ?? 0), -m, m) * P.aimW * raisedK;
     }
     // Additive layers on the upper body only (the legs keep their plants).
     const breathRate = s.exhausted || s.lowStamina ? L.breath.rateLow : L.breath.rate;
@@ -1746,15 +1752,19 @@ export class ProceduralHumanoid {
       this.capeInit = true;
     }
     pts[0].copy(anchor); prev[0].copy(anchor);
-    const h = Math.min(dt, 1 / 30), g = c.gravity * h * h;
+    // (damping is per 60 Hz frame: as much per second at 144 Hz as at 60)
+    const h = Math.min(dt, 1 / 30), g = c.gravity * h * h, damp = Math.pow(c.damping, 60 * h);
     for (let i = 1; i < pts.length; i++) {
       const p = pts[i], q = prev[i];
-      _v.subVectors(p, q).multiplyScalar(c.damping);
+      _v.subVectors(p, q).multiplyScalar(damp);
       q.copy(p);
       p.add(_v); p.y -= g;
     }
     const back = frameToWorld(F, this.j.neck, 0, -0.25 * sc, 0, _b);
     const groundY = this.root.y + 0.03;
+    // "Above" for the cape: halfway between the back's up and the world's (upright, it can't fly up
+    // over the shoulders, leaning back it can't point at the sky, lying down it lies along the back).
+    const upA = _c.copy(F.d).add(UP).normalize(), top = -link * (c.droop ?? 0);
     for (let iter = 0; iter < 3; iter++) {
       for (let i = 1; i < pts.length; i++) {
         const a = pts[i - 1], p = pts[i];
@@ -1764,6 +1774,10 @@ export class ProceduralHumanoid {
         // Stay behind the back and above the ground.
         const z = (p.x - back.x) * F.n.x + (p.y - back.y) * F.n.y + (p.z - back.z) * F.n.z;
         if (z > -0.14 * sc) p.addScaledVector(F.n, -0.14 * sc - z);
+        // Each link hangs below the one above it: a burst sideways or a sudden duck swings the cape
+        // out, never up.
+        const up = (p.x - a.x) * upA.x + (p.y - a.y) * upA.y + (p.z - a.z) * upA.z;
+        if (up > top) p.addScaledVector(upA, top - up);
         if (p.y < groundY) p.y = groundY;
       }
     }

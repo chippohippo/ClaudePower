@@ -35,7 +35,16 @@ export function reelCurve(u) { return ss(0.1, 0.32, u) * (1 - ss(0.7, 1, u)); }
  */
 export function evadeCurve(u) { const a = Math.min(1, Math.max(0, u / 0.45)); return (1 - (1 - a) * (1 - a)) * (1 - ss(0.62, 1, u)); }
 // At the sidestep's full lean: how far each sphere has gone along the dodge, and down (m).
-const SIDESTEP = [[0.46, 0.35], [0.19, 0.22], [-0.05, 0.14], [-0.1, 0.03]];
+const SIDESTEP = [[0.46, 0.28], [0.19, 0.165], [-0.05, 0.08], [-0.15, 0]];
+
+// Aiming up or down moves the head along the aim (it pitches with the look) and, with the gun up,
+// the chest too (the rig bends the upper back: body.aimBend). Per rad of the aim's pitch (down
+// positive): [head forward, head up per rad, head up per rad², chest forward] (m), standing and
+// crouched, gun down and up; measured on the rig (tests/feel-tlou2).
+const AIM = {
+  stand: { lowered: [0.116, 0.0165, -0.0435, 0], raised: [0.25, 0.0245, -0.0655, 0.059] },
+  crouch: { lowered: [0.115, 0.029, -0.043, 0], raised: [0.24, 0.0935, -0.0615, 0.055] },
+};
 
 const pool = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, r: 0, zone: 'body' }));
 const angleDelta = (a, b) => ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -125,6 +134,15 @@ export function hitSpheres(e) {
     o.r = (ra[2] + (rb[2] - ra[2]) * t) * scale;
     o.zone = ra[3];
     if (ev > 0) { const L = SIDESTEP[i], d = s.dodgeDir; o.x += d.x * L[0] * ev; o.z += d.z * L[0] * ev; o.y -= L[1] * ev; }
+  }
+  // On your feet, the head (and with the gun up, the chest) goes along a high or low aim.
+  const ap = e.weapons?.aimPitch ?? 0, set = (s.mode === 'ground' || s.mode === 'cover') && !s.stanceT && !e.vehicle ? AIM[s.stance] : null;
+  if (set && ap !== 0) {
+    const row = e.mode === 'gun' && s.weaponReady !== false ? set.raised : set.lowered;
+    const p = Math.max(-1, Math.min(1, ap)), yaw = e.weapons?.aimYaw ?? s.aimYaw ?? axis;
+    const ax = -Math.sin(yaw) * scale, az = -Math.cos(yaw) * scale, h = -p * row[0], c = -p * row[3];
+    pool[0].x += ax * h; pool[0].z += az * h; pool[0].y += (row[1] * p + row[2] * p * p) * scale;
+    pool[1].x += ax * c; pool[1].z += az * c;
   }
   return pool;
 }
