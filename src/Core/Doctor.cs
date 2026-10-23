@@ -75,6 +75,38 @@ namespace AimForge.Core
             };
         }
 
+        /// Is the curve actually running somewhere? Cadence in the settings + RawAccel flat is only a curve if the daemon prints
+        /// Cadence Lock. Null daemon output = the daemon was not asked (row says so).
+        public static Item CurveLiveRow(bool cadenceInSettings, bool rawAccelFlat, string? daemonFilters)
+        {
+            if (!rawAccelFlat) return new Item { Name = "curve live in the daemon", Ok = true, Detail = "the curve runs in RawAccel (RawAccel engine)" };
+            if (!cadenceInSettings) return new Item { Name = "curve live in the daemon", Ok = false, Detail = "RawAccel is flat and Cadence Lock is off: NO CURVE ANYWHERE - every card plays 1:1 (flicks feel slow and short)", Fix = "apply your card again (Ctrl+Enter)" };
+            if (daemonFilters == null) return new Item { Name = "curve live in the daemon", Ok = true, Warn = true, Detail = "Cadence Lock is on in the settings; the daemon was not asked (is it running?) - UNVERIFIED" };
+            bool live = daemonFilters.Contains("Cadence Lock");
+            return new Item
+            {
+                Name = "curve live in the daemon", Ok = live,
+                Detail = live ? "Cadence Lock is running in the daemon (RawAccel flat by design)"
+                              : "the settings say Cadence Lock, but the RUNNING daemon does not run it (its plugin did not load) and RawAccel is flat: NO CURVE ANYWHERE - every card plays 1:1, flicks feel slow and short",
+                Fix = live ? "" : "check the Plugins folder (the duplicate-plugin row below), restart the OTD daemon, then apply again - or untick Cadence Lock and apply to run the curve in RawAccel",
+            };
+        }
+
+        /// The same plugin DLL installed more than once under Plugins (e.g. a copied folder inside the plugin folder): OTD may
+        /// load the wrong one or neither. Returns the duplicate groups.
+        public static List<string> DuplicatePlugins(IEnumerable<string> dllPaths)
+            => dllPaths.Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                       .GroupBy(p => p.Split(new[] { '\\', '/' }).Last(), StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1)
+                       .Select(g => g.Key + ": " + string.Join(" | ", g)).ToList();
+
+        public static Item SmoothingRow(List<string> smoothingOn) => new Item
+        {
+            Name = "no smoothing live", Ok = true, Warn = smoothingOn.Count > 0,
+            Detail = smoothingOn.Count == 0 ? "no smoothing or interpolation filter is on - the pen reaches the curve raw"
+                   : "ON: " + string.Join(", ", smoothingOn) + " - smoothing trails the pen, so every card reacts later and flicks feel heavy",
+            Fix = smoothingOn.Count == 0 ? "" : "disable it in OpenTabletDriver (or apply a card whose plan turns it off), then apply again",
+        };
+
         /// The fix for a row that is not OK, by row name - one table, so every row has an action.
         static readonly (string name, string fix)[] FixTable =
         {
@@ -121,6 +153,7 @@ namespace AimForge.Core
         static List<Item> RunChecks(RawAccelBridge ra, OtdBridge otd, Catalogue? roster)
         {
             var o = new List<Item>();
+            string? daemonFilters = null;   // what the RUNNING daemon prints (getfilters), when it answered
             o.Add(new Item { Name = "RawAccel installed", Ok = ra.Installed, Detail = ra.Dir });
             o.Add(new Item { Name = "rawaccel service", Ok = ServiceRunning("rawaccel"), Detail = "kernel filter driver" });
             string sys = Path.Combine(ra.Dir, "driver", "rawaccel.sys");
@@ -143,6 +176,15 @@ namespace AimForge.Core
                            : fade == false ? "the installed build predates it (moving taps are still pinned and over-priced by the curve) - " + OtdBridge.StabilizerInstallHint + OtdBridge.RestartHint
                            : "could not read the installed build - UNVERIFIED" });
             }
+            try
+            {
+                string pd = Path.Combine(otd.DataDir, "Plugins");
+                var dups = Directory.Exists(pd) ? DuplicatePlugins(Directory.EnumerateFiles(pd, "*.dll", SearchOption.AllDirectories)) : new List<string>();
+                o.Add(new Item { Name = "no duplicate plugin copies", Ok = dups.Count == 0,
+                    Detail = dups.Count == 0 ? "each plugin DLL is installed once" : "installed more than once (OTD may load the wrong copy or neither): " + string.Join("; ", dups),
+                    Fix = dups.Count == 0 ? "" : "keep one copy of each (the one directly in its own plugin folder), delete the extra folder, restart the OTD daemon, apply again" });
+            }
+            catch (Exception e) { o.Add(new Item { Name = "no duplicate plugin copies", Ok = true, Warn = true, Detail = "could not scan the Plugins folder (" + e.Message + ") - UNVERIFIED" }); }
             var gfStale = otd.PluginNewerThanDaemon(); var stStale = otd.PluginNewerThanDaemon(otd.StabilizerDll); var dStart = otd.DaemonStartUtc();
             o.Add(new Item { Name = "AimForge Game Filters plugin", Ok = File.Exists(otd.GameFilterDll),
                 Detail = !File.Exists(otd.GameFilterDll) ? "MISSING - game filters are skipped on apply and the Cadence Lock engine is refused; build.ps1 installs it, then " + OtdBridge.RestartHint
@@ -170,6 +212,7 @@ namespace AimForge.Core
                 {
                     o.Add(new Item { Name = "daemon pipe reachable", Ok = true, Detail = "non-elevated, same session" });
                     var r = otd.Run("getfilters \"" + otd.TabletName() + "\"", 4000);
+                    if (r.ok) daemonFilters = r.output;
                     // getfilters answers from the saved profile even with the tablet unplugged: presence comes from Windows
                     bool present = otd.TabletDevicePresent();
                     o.Add(new Item { Name = "tablet connected", Ok = present && r.ok && !r.output.Contains("not found", StringComparison.OrdinalIgnoreCase),
@@ -200,6 +243,9 @@ namespace AimForge.Core
                     Ok = true,
                     Detail = on.Count == 0 ? "none enabled" : string.Join(" + ", on.ConvertAll(f => f.Display + " [" + f.LiveTier + "]"))
                 });
+                // 2026-10-23 (latency report): smoothing that is ON costs reaction time on every card
+                var smooth = on.Where(f => f.LiveTier.StartsWith("T3") || f.LiveTier.StartsWith("T4")).Select(f => f.Display + " [" + f.LiveTier + "]").ToList();
+                o.Add(SmoothingRow(smooth));
                 bool interp = on.Exists(f => f.LiveTier == "T4");
                 o.Add(new Item { Name = "no interpolator (T4) live", Ok = !interp,
                     Detail = interp ? "an interpolator is enabled - every field glitch in this project traced to this class" : "good - raw reports reach RawAccel" });
@@ -223,6 +269,9 @@ namespace AimForge.Core
                     o.Add(new Item { Name = "engine pairing", Ok = false, Detail = "RawAccel is flat (noaccel) and Cadence Lock is off - no curve anywhere; re-apply the build" });
                 else
                     o.Add(new Item { Name = "engine pairing", Ok = true, Detail = cadOn ? "Cadence Lock engine: curve in tablet space on the pen's clock, RawAccel flat" : "RawAccel engine: curve in the driver from arrival-time dt" });
+                // the settings file can say Cadence Lock while the DAEMON runs without it (plugin not loaded): then no curve runs
+                // anywhere and every card plays 1:1 - the 'everything feels slow' failure (2026-10-23)
+                if (raFlat != null) o.Add(CurveLiveRow(cadOn, raFlat.Value, daemonFilters));
                 // ---- mouse mirror (2026-09-14): the mouse must carry a curve regardless of the pen engine ----
                 try
                 {

@@ -426,6 +426,39 @@ namespace AimForge.App
                         }
                         return 0;
                     }
+                    case "--onset-lab":
+                    {
+                        // read-only: how fast a flick from rest is delivered on the user's live build, per engine option.
+                        // Cadence core fed a 0.01 mm-lattice pen at 360 Hz (no jitter); delivered output vs the ideal (hand x true gain)
+                        // at 5/10/20/40 ms after motion starts, and the ms until 90% of the ideal travel is out.
+                        var cp = cat.Find(args.Length > 1 ? args[1] : "breakwide")!;
+                        foreach (var (name, intent, drop) in new[] { ("v1.2 core", false, false), ("v1.2 + Intent", true, false), ("1.3 drop check", false, true), ("1.3 + Intent (your xp.txt)", true, true) })
+                        {
+                            var rg = Rig.From(cp); rg.Engine = "cadence"; rg.ReportHz = 360; rg.MergeMax = 5; rg.IntentSpeed = intent; rg.DropCheck = drop;
+                            var core = Core.OtdBridge.CadenceCoreFor(cp, rg);
+                            var lut = Curve.EffectiveLut(cp, rg.PxMm);
+                            Func<double, double> g = cp.IsLut ? v => Curve.GainAt(lut, v) : v => Curve.ClassicGain(v * rg.PxMm / 1000.0, cp.adv.accel ?? 0, cp.adv.offset ?? 0, cp.adv.cap ?? 1);
+                            foreach (var (fl, T, A) in new[] { ("flick 40mm/120ms", 0.12, 40.0), ("flick 15mm/100ms", 0.10, 15.0), ("tap-correct 2mm/80ms", 0.08, 2.0) })
+                            {
+                                var c = Core.OtdBridge.CadenceCoreFor(cp, rg); double DT = 1000.0 / 360; double prevU = 0, ideal = 0; var o0 = c.Filter(new System.Numerics.Vector2(0, 0), DT);
+                                for (int i = 0; i < 72; i++) c.Filter(new System.Numerics.Vector2(0, 0), DT);   // 200 ms at rest
+                                var outs = new List<(double t, double d, double id)>(); var oPrev = c.Filter(new System.Numerics.Vector2(0, 0), DT);
+                                double delivered = 0;
+                                for (int i = 1; i <= 90; i++)
+                                {
+                                    double t = i * DT / 1000.0, s = Math.Min(1, t / T), x = A * (10 * s * s * s - 15 * s * s * s * s + 6 * s * s * s * s * s);
+                                    double u = Math.Round(x * 100); double du = u - prevU; prevU = u;
+                                    double v = Math.Abs(du) / 100 / DT * 1000; ideal += du * (du == 0 ? 1 : g(v));
+                                    var o = c.Filter(new System.Numerics.Vector2((float)u, 0), DT); delivered += o.X - oPrev.X; oPrev = o;
+                                    outs.Add((i * DT, delivered, ideal));
+                                }
+                                string At(double ms) { var r = outs.First(z => z.t >= ms); return r.id > 0 ? $"{100 * r.d / r.id,5:0}%" : "  -  "; }
+                                double fin = outs[^1].id; var t90 = outs.FirstOrDefault(z => z.d >= 0.9 * fin).t; var i90 = outs.FirstOrDefault(z => z.id >= 0.9 * fin).t;
+                                Console.WriteLine(System.FormattableString.Invariant($"{name,-28} {fl,-22} delivered vs ideal @5ms {At(5)} @10ms {At(10)} @20ms {At(20)} @40ms {At(40)}   90% at {t90,5:0.0} ms (ideal {i90,5:0.0})  final {100 * outs[^1].d / fin:0.0}%"));
+                            }
+                        }
+                        return 0;
+                    }
                     case "--dropcheck-stress":
                     {
                         // try to BREAK Cadence's drop check: drops / late reports at every spacing 3..17 across flicks and tracks;
@@ -529,6 +562,19 @@ namespace AimForge.App
                     case "--daemon-restart":
                         // full bounce so a freshly installed plugin build is loaded; re-applies the AimForge preset
                         return otd.RestartDaemon(log) ? 0 : 1;
+                    case "--latency-check":
+                    {
+                        // read-only: everything that can make every card feel slow or late, worst first, with the fix
+                        string[] want = { "curve live in the daemon", "engine pairing", "plugins loaded", "no duplicate plugin", "no smoothing live", "no interpolator",
+                                          "live = last apply", "live tier", "AimForge Game Filters plugin", "OTD GUI not running", "RawAccel GUI not running", "tablet connected", "OTD daemon running" };
+                        var rows = Doctor.Run(ra, otd, cat).Where(i => want.Any(w => i.Name.StartsWith(w))).OrderBy(i => i.Level == "FAIL" ? 0 : i.Level == "WARN" ? 1 : 2).ToList();
+                        foreach (var i in rows) Console.WriteLine(i);
+                        var la = LastApply.Load(); var xps = Experiments.State.Load();
+                        Console.WriteLine($"\nlast apply: {la?.CardName ?? "(none)"} at {la?.At ?? "-"} on {la?.Engine ?? "-"}; experimental modes: {(xps.Intent ? "Intent Speed ON " : "")}{(xps.CarryMs > 0 ? $"Carry {xps.CarryMs} ms " : "")}{(xps.Twin ? "Nib Twin ON" : "")}");
+                        int nFail = rows.Count(i => i.Level == "FAIL");
+                        Console.WriteLine(nFail > 0 ? $"VERDICT: {nFail} problem(s) above can make every card slow - fix the FAIL rows first" : "VERDICT: the chain is clean - the curve runs, nothing smooths it; if it still feels slow, A/B the engine (untick Cadence Lock) and Intent Speed");
+                        return nFail > 0 ? 1 : 0;
+                    }
                     case "--qc":
                     {
                         int viol = 0;
@@ -2776,6 +2822,20 @@ namespace AimForge.App
                 Ok("split hazard: the closed-form rule (curve still changing above 127 counts a report) flags exactly the cards whose RawAccel-engine flick misprices > 1 deg in the chain lab - and those get the Cadence advice",
                    bad.Length == 0 && hz.SequenceEqual(new[] { "hdwx", "owwx" }) && hz.All(id => BuildState.CadenceReason(cat.Find(id)!, cat.Find(id)!.pxmm)!.Contains("splits")),
                    bad.Length == 0 ? string.Join(", ", hz) : bad);
+            }
+
+            // ---- 2026-10-23: 'every card feels slow' - the curve must actually run, once, unsmoothed ----
+            {
+                var notLive = Doctor.CurveLiveRow(true, true, "Filters: 'Hover Distance Limiter: { Hover_max: 87 }'");
+                var live = Doctor.CurveLiveRow(true, true, "Filters: 'AimForge Cadence Lock (tablet-space accel, T0): { NominalHz: 360 }'");
+                var nowhere = Doctor.CurveLiveRow(false, true, null); var ra2 = Doctor.CurveLiveRow(false, false, null);
+                Ok("latency: Cadence in the settings but not in the daemon (plugin not loaded) with RawAccel flat FAILS as 'no curve anywhere'; Cadence running passes; RawAccel flat with Cadence off fails; the RawAccel engine passes",
+                   notLive.Level == "FAIL" && notLive.Detail.Contains("NO CURVE ANYWHERE") && live.Level == "OK" && nowhere.Level == "FAIL" && ra2.Level == "OK");
+                var d = Doctor.DuplicatePlugins(new[] { @"D:\Pen\userdata\Plugins\AimForge Game Filters\AimForge.Filters.dll",
+                    @"D:\Pen\userdata\Plugins\AimForge Game Filters\plugin - copy\AimForge.Filters.dll", @"D:\Pen\userdata\Plugins\Coherence Stabilizer\CoherenceStabilizer.dll" });
+                var sm = Doctor.SmoothingRow(new List<string> { "Hawku Smoothing [T3]" });
+                Ok("latency: a plugin DLL installed twice is named; a live smoothing filter is a WARN with what it costs",
+                   d.Count == 1 && d[0].StartsWith("AimForge.Filters.dll") && sm.Level == "WARN" && sm.Detail.Contains("reacts later") && Doctor.SmoothingRow(new List<string>()).Level == "OK");
             }
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
