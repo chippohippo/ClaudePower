@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AimForge.Filters;
@@ -50,7 +50,13 @@ namespace AimForge.Core
             public GameFilterCore.Game FilterGame;
             public PsyLab.Scen[] Scens = Array.Empty<PsyLab.Scen>();
             /// The family card whose Y/X and game-filter plan this hero inherits.
-            public string FamilyCard => Game == "rivals" ? "rivmp" : "owmp";
+            public string FamilyCard => FamilyCardOverride ?? (Game == "rivals" ? "rivmp" : "owmp");
+            /// 2026-10-23 (GameLab): a game-family role names its own family card, 180 limit and candidate set.
+            public string? FamilyCardOverride;
+            public double Max180Mm = 70;
+            public Func<Hero, Catalogue, double, List<PsyLab.Cand>>? CandidateSet;
+            /// Y/X when the family card cannot be read (a role whose family card is being re-authored).
+            public double YxDefault = 0.85;
         }
 
         static PsyLab.Scen S(string n, double d, double lat, double rev, double w, double proj = 0, double vamp = 0, double vhz = 0,
@@ -190,7 +196,7 @@ namespace AimForge.Core
             var why = new List<string>();
             if (r.DeadMs > 2000.0 / PsyLab.HZ + 0.3) why.Add($"onset {r.DeadMs:0.0} ms");
             if (r.MicroPct < 90 || r.MicroPct > 130) why.Add($"micro {r.MicroPct:0}%");
-            if (r.Turn180Mm > 70) why.Add($"180 {r.Turn180Mm:0} mm");
+            if (r.Turn180Mm > h.Max180Mm) why.Add($"180 {r.Turn180Mm:0} mm");
             double pk = r.PerScen.Max(q => q.PeakAllMms); if (pk > 600) why.Add($"peak {pk:0} mm/s");
             if (h.TapFire && r.SkidMm > skidCapMm) why.Add($"click skid {r.SkidMm:0.000} mm");
             return (why.Count == 0, string.Join(", ", why));
@@ -240,7 +246,7 @@ namespace AimForge.Core
         {
             var tab = cat.tablet; var prm = new PsyLab.Params(); int ns = h.Scens.Length;
             var fam = cat.Find(h.FamilyCard);
-            double yx = fam?.Yx ?? 0.85;
+            double yx = fam?.Yx ?? h.YxDefault;
             var famSpec = fam?.filters?.FirstOrDefault(f => f.on && PlanFilters.IsGameFilter(f.id));
             double skidCap = SkidCap(cat);
             Scored Sc(PsyLab.Cand c, PsyLab.Params p, string baseName)
@@ -255,7 +261,7 @@ namespace AimForge.Core
             log($"Y/X {yx} (the {h.FamilyCard} family's field value) | game-filter dimension: {(famSpec == null ? "none - the family ships no Master filter" : famSpec.id)} | click-skid cap: {(h.TapFire ? $"{skidCap:0.000} mm (tap fire)" : "none (hold-to-fire)")}");
             log("cells = RMS execution error in target radii / % of samples on target, for " + string.Join(" | ", h.Scens.Select(s => s.Name)));
 
-            var cands = Candidates(h, cat, yx);
+            var cands = h.CandidateSet != null ? h.CandidateSet(h, cat, yx) : Candidates(h, cat, yx);
             var p1 = cands.AsParallel().AsOrdered().Select(c => Sc(c, prm, c.Name)).ToList();
             var legal = p1.Where(x => x.Legal && x.C.Family != "reference").ToList();
             if (legal.Count == 0) { log("!! no legal curve - relaxing to every non-reference curve"); legal = p1.Where(x => x.C.Family != "reference").ToList(); }
