@@ -2832,9 +2832,10 @@ namespace AimForge.App
                 Ok("latency: Cadence in the settings but not in the daemon (plugin not loaded) with RawAccel flat FAILS as 'no curve anywhere'; Cadence running passes; RawAccel flat with Cadence off fails; the RawAccel engine passes",
                    notLive.Level == "FAIL" && notLive.Detail.Contains("NO CURVE ANYWHERE") && live.Level == "OK" && nowhere.Level == "FAIL" && ra2.Level == "OK");
                 var d = Doctor.DuplicatePlugins(new[] { @"D:\Pen\userdata\Plugins\AimForge Game Filters\AimForge.Filters.dll",
-                    @"D:\Pen\userdata\Plugins\AimForge Game Filters\plugin - copy\AimForge.Filters.dll", @"D:\Pen\userdata\Plugins\Coherence Stabilizer\CoherenceStabilizer.dll" });
+                    @"D:\Pen\userdata\Plugins\AimForge Game Filters\plugin - copy\AimForge.Filters.dll", @"D:\Pen\userdata\Plugins\Coherence Stabilizer\CoherenceStabilizer.dll",
+                    @"D:\Pen\userdata\Plugins\Reconstructor\VoiD.dll", @"D:\Pen\userdata\Plugins\VMultiMode\VoiD.dll" });
                 var sm = Doctor.SmoothingRow(new List<string> { "Hawku Smoothing [T3]" });
-                Ok("latency: a plugin DLL installed twice is named; a live smoothing filter is a WARN with what it costs",
+                Ok("latency: a first-party plugin DLL installed twice is named (a shared third-party library like VoiD.dll in two packages is normal, not flagged); a live smoothing filter is a WARN with what it costs",
                    d.Count == 1 && d[0].StartsWith("AimForge.Filters.dll") && sm.Level == "WARN" && sm.Detail.Contains("reacts later") && Doctor.SmoothingRow(new List<string>()).Level == "OK");
             }
 

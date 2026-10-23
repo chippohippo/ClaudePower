@@ -94,8 +94,12 @@ namespace AimForge.Core
 
         /// The same plugin DLL installed more than once under Plugins (e.g. a copied folder inside the plugin folder): OTD may
         /// load the wrong one or neither. Returns the duplicate groups.
+        /// Only first-party plugin DLLs count: third-party packages ship their own copy of a shared library (every VoiDPlugins
+        /// package carries VoiD.dll) and OTD loads each plugin folder in its own context, so those copies are normal
+        /// (2026-10-23: the first --latency-check on the user's rig flagged VoiD.dll in Reconstructor + VMultiMode).
+        static readonly string[] FirstParty = { "AimForge.Filters.dll", "CoherenceStabilizer.dll" };
         public static List<string> DuplicatePlugins(IEnumerable<string> dllPaths)
-            => dllPaths.Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            => dllPaths.Where(p => FirstParty.Contains(p.Split(new[] { '\\', '/' }).Last(), StringComparer.OrdinalIgnoreCase))
                        .GroupBy(p => p.Split(new[] { '\\', '/' }).Last(), StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1)
                        .Select(g => g.Key + ": " + string.Join(" | ", g)).ToList();
 
