@@ -58,6 +58,21 @@ def measure(src, ranges):
     return info
 
 
+def borders(cand, src, s, e):
+    """True if the stabilised shot shows black corners the original doesn't."""
+    def corners(path, sel=None):
+        vf = (f"{sel}," if sel else "") + "scale=90:160,format=gray"
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", vf, "-f", "rawvideo", "-"],
+                             capture_output=True).stdout
+        F = np.frombuffer(raw, np.uint8).reshape(-1, 160, 90).astype(np.float32)
+        c = np.concatenate([F[:, :12, :12], F[:, :12, -12:], F[:, -12:, :12], F[:, -12:, -12:]], 1)
+        return (c < 10).mean(axis=(1, 2))
+    a = corners(cand)
+    b = corners(src, f"select='between(n\\,{s}\\,{e - 1})'")
+    m = min(len(a), len(b))
+    return bool((a[:m] - b[:m] > 0.15).any())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("src")
@@ -74,24 +89,33 @@ def main():
         sel = f"select='between(n\\,{s}\\,{e - 1})',setpts=N/FRAME_RATE/TB"
         do = (not bars) and jit >= a.min_shake and e - s >= 10
         if do:
+            # try several stabilisers; keep the steadiest result that is clearly
+            # better than the original and shows no black borders
             trf = os.path.join(tmp, f"s{i:03d}.trf")
             run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf",
-                 f"{sel},vidstabdetect=shakiness=8:accuracy=15:stepsize=6:result={trf}", "-f", "null", "-"])
+                 f"{sel},vidstabdetect=shakiness=10:accuracy=15:stepsize=4:mincontrast=0.2:result={trf}",
+                 "-f", "null", "-"])
             sm = max(6, min(30, (e - s) // 2))
-            vf = (f"{sel},vidstabtransform=input={trf}:smoothing={sm}:optzoom=1:zoomspeed=0.1:"
-                  f"crop=black:interpol=bicubic,unsharp=5:5:0.3")
-        else:
-            vf = sel
-        run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", vf, "-an", "-c:v", "ffv1", p])
-        if do:
-            # keep the stabilised shot only if it is measurably steadier; vidstab
-            # can latch onto a moving subject and make a shot worse
-            after = measure(p, [(0, e - s)])[0][1]
-            if after > jit * 0.85:
+            base = f"input={trf}:optzoom=1:crop=black:interpol=bicubic"
+            cands = {"smooth": f"vidstabtransform={base}:smoothing={sm}:zoomspeed=0.1",
+                     "heavy": f"vidstabtransform={base}:smoothing={e - s}",
+                     "tripod": f"vidstabtransform={base}:tripod=1"}
+            best, best_j = None, jit * 0.85
+            for k, vfx in cands.items():
+                cp = os.path.join(tmp, f"s{i:03d}_{k}.mkv")
+                run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", f"{sel},{vfx},unsharp=5:5:0.3",
+                     "-an", "-c:v", "ffv1", cp])
+                j = measure(cp, [(0, e - s)])[0][1]
+                if j < best_j and not borders(cp, a.src, s, e):
+                    best, best_j = cp, j
+            if best:
+                os.replace(best, p)
+                jit = (jit, best_j)
+            else:
                 run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", sel, "-an", "-c:v", "ffv1", p])
                 do = None
-            else:
-                jit = (jit, after)
+        else:
+            run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-vf", sel, "-an", "-c:v", "ffv1", p])
         parts.append(p)
         state = ("bars, kept" if bars else "STABILISED" if do else
                  "stabilising didn't help, kept original" if do is None else "steady, kept")
