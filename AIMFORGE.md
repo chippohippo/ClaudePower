@@ -60,18 +60,17 @@ Rejected by measurement and documented so they are never rebuilt: the 2-unit-ste
 
 ---
 
-## The preset roster (78 cards, one physics)
+## The preset roster (63 cards)
 
-Everything derives from the **BO6 baseline**: 57 px/mm, cm/360 37.70, snap 9°, Y/X 0.789, reset 80 ms, HDL 87 — games differ in the in-game sens number, so one muscle memory transfers everywhere (The Finals family is the one exception, on your field-rated 78.95 cm/360). Verified sens constants: OW2 = CoD (K 138545.5, sens **2.54**), The Finals (K 914400, sens **8.00** at 78.95 cm/360), Rivals **0.957** (Y/X 0.85), Apex **0.7615** (set in settings.cfg; the menu rounds to 0.1), Valorant **0.239**, Holdfast **0.105**, Helldivers 2 **0.0292** (estimated K; set in input_settings.config and calibrate with a 360 test).
+BO6 Original, the Breakpoints and the character cards share the **BO6 baseline** physics: 57 px/mm, 37.70 cm/360, snap 9°, Y/X 0.789, reset 80 ms, HDL 87. Breakpoint Wide is the exception, at your field-rated 78.95 cm/360. Since 2026-10-23 the game families no longer copy that physics; each game sits in its own pro range (see `GAME_FAMILIES.md`). Every card prints its in-game sens from the game's K.
 
 - **BO6 Original** — the baseline itself, byte-for-byte (classic 0.105 / 3.6 / 0.5). The field verdict card.
 - **Breakpoint** — the flick flagship: eff-14 ramp to cap 5.0, saturating below flick speed. **Breakpoint Wide** — the same curve at 78.95 cm/360 (the Finals field verdict). **Breakpoint Slow Center** — the same with the unity pocket widened to 12.3 mm/s by offset (v2; the v1 floor was retired by field verdict).
 - **Specific Characters** — nine hero cards (Rivals: Psylocke, Loki, White Fox, The Punisher, Hela; OW2: Soldier: 76, Emre, Illari, Freja), each chosen by the same rule in HeroLab on that hero's own fights. See `CHARACTER_CARDS.md`.
-- **Per game, 9 cards (7 games):** **Master** (the synthesis card: unity pocket to 12.3 mm/s + a per-game continuous ramp + the Tap Anchor pin in exact-passthrough), **Baseline** (BO6 verbatim), **Planted** (calmer: eff 4.3 / cap 2.6 / offset 12.3 mm/s), **Turbo** (hotter: eff 8 / cap 4.5), **Tapped** (baseline + the per-game click pin), plus three **Low-Latency Breakpoint** cards per game — floor exactly 1.0, tier ≤T1, each specialized hard in one aspect (e.g. eff 14 / cap 3.0 delivering 2.3% committed flick spread for one-taps; acceleration starting at 149 mm/s for 0.0-drift tracking; eff 18 / cap 6.0 for a 37 mm 180).
-- **Wildcards** (Lab tier, one per game, deliberately off-baseline): *Slipstream* (flat + Lead Sight for Rivals tracking), *Stillframe* (max-stability hold smoothing), *Flatline* (unity through the whole track band), *Guardrail* (Feather + overflick descent + lead), *Surgeon* (every stillness mechanism stacked at cm 42), *Protocol* (the zero-accel tac-pro orthodoxy), *Cannonade* (unity to 180 then 7×).
+- **Per game, 6 lab-derived roles (8 games, 2026-10-23):** **Master** (pro median), **Precision** (slow end + Tap Anchor), **Tracker** (wide 1:1 band), **Flick** (short high cap), **Brawl** (fast end), plus one **Signature** for the game's own job (Operator, Longbow, Projectile, Skyward, Fieldwide, Zipline, Heavy, Sabre). All are classic curves with the floor at 1.00, onset in two reports and tier ≤T1, with no smoothing. The full table, sources and in-game notes are in `GAME_FAMILIES.md`. The old Baseline/Planted/Turbo/Tapped quads, the LUT Masters, the Low-Latency Breakpoint trios and the Lab wildcards were retired.
 - **Reference:** Feather (the previous field-best era, preserved exactly) and True Raw (the honest flat control).
 
-Standout measured numbers: Valorant Master 180 in 47.1 mm at **8.2% committed flick spread** — the most consistent of the seven Masters; every unity-floor card reads micro 99% and a two-report (5.6 ms) onset on the corrected probes.
+Standout measured numbers: the Rivals Master and Flick turn 180° in 38 mm; the Valorant Precision caps at 100 mm/s for a steady 88.6 mm 180; every family card reads micro 90–130% and a two-report (5.6 ms) onset.
 
 ---
 
@@ -79,9 +78,9 @@ Standout measured numbers: Valorant Master 180 in 47.1 mm at **8.2% committed fl
 
 ### Coherence Stabilizer (first-party plugin, 19 settings)
 Separates tremor from intent by **directional coherence** (|EMA(Δ⃗)|/EMA(|Δ⃗|)) instead of displacement — no dead zone anywhere. Measured: up to 94.6% tremor removed on a hold, deliberate movement passed at 0.0000 mm lag, flicks bit-exact, ~20 ns/report. Carries:
-- **Tap Anchor** — the pressure-gated click pin (the only feature in the project that adds a new *input*). Ships on every Tapped and Master card in exact-passthrough mode (hold 0): zero latency ever, only the pin runs.
-- **Lead Sight** — decel-gated extrapolation attacking the ~9 ms downstream pipeline (display-time error 0.960 → 0.257 mm). Lab cards only.
-- Hold smoothing / Anchor / Settle Assist — the T3 stillness stack, wildcard territory.
+- **Tap Anchor** — the pressure-gated click pin (the only feature in the project that adds a new *input*). Ships on the tap-fire roles (every Precision; Valorant and Holdfast Master, Flick and Signature) in exact-passthrough mode (hold 0): zero latency ever, only the pin runs.
+- **Lead Sight** — decel-gated extrapolation attacking the ~9 ms downstream pipeline (display-time error 0.960 → 0.257 mm). No shipped card since 2026-10-23.
+- Hold smoothing / Anchor / Settle Assist — the T3 stillness stack. No shipped card runs it since the wildcards were retired on 2026-10-23.
 
 ### AimForge Game Filters (first-party plugin, session 3)
 One assembly, one personality per game, **pen signals only** — position, Δt, coherence; game-specificity is policy on those signals, never game memory. Master members are T0–T1 (a heading bias, a two-report brake — never a trail, never a smoother); Lab members are T3 and hard-blocked from strict roles. CoD's rail preserves 100.0% of along-axis travel while cutting orthogonal chatter to 0.65×, flicks bit-exact (re-minted at 360 Hz). Valorant's rest gate froze tremor-scale jitter to 0.000 mm with a same-report flush on peek jigs — but measured through the whole plan it also ate micro-aim, so the **Valorant, Apex and Rivals Masters were retired on 2026-09-16** (OFF in every plan). The kernel's two hard-won rules: the deadzone bypass demands *sustained* coherence (a single report always looks coherent), and turn-flushes are speed-gated (tremor is 180° reversals too).

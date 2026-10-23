@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -343,7 +343,7 @@ namespace AimForge.Core
         public static List<Cand> Candidates(Catalogue cat)
         {
             var o = new List<Cand>();
-            foreach (var id in new[] { "breakpoint", "breakwide", "rivb6", "rivmp", "rivlla", "rivllb", "rivllc" })
+            foreach (var id in new[] { "breakpoint", "breakwide", "rivmp", "rivlla", "rivllb", "rivllc" })
                 if (cat.Find(id) is Preset p) o.Add(new Cand { Name = "ref " + id, Family = "reference", P = p });
             foreach (var cm in new[] { 37.7, 55.0, 78.95 })
                 foreach (var G in new[] { 2.5, 3.5, 5.0 })

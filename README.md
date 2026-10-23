@@ -1,3 +1,5 @@
+> **Game families rebuilt 2026-10-23:** every game now has six cards (Master, Precision, Tracker, Flick, Brawl, one Signature), each tuned by the game lab on that game's own fights at its pro cm/360 range. All are latency-first: classic, floor 1.00, a two-report onset, tier ≤T1 and no smoothing. BO6 Original, the Breakpoints and the character cards did not change. See `GAME_FAMILIES.md`.
+
 > **Audit & renovation 2026-09-16:** a full adversarial audit (22 dimensions, 248 findings, 192 confirmed by independent skeptics) and the fixes it drove. The ones you would feel: applying from the window now writes each card's declared game filter and its own stabilizer overlay (it silently dropped both); the Valorant, Apex and Rivals Master game filters are retired (through the plan their rest deadzone delivered 3-7% of a micro-correction and took 139 ms to register a slow creep); the Rivals/Apex re-anchor no longer repays the withheld offset as a one-report speed spike; all nine character cards were re-derived by a renovated lab. Details: the *Audit & renovation* section of README.md.
 
 > **Correction 2026-09-07 (ev-20260907-pen-rate):** the pen reports at **360 Hz**, not 266. Measured on the rig with the Cadence Lock probe (360.2 Hz over 16k reports). Consequences: the 1-unit step is **3.60 mm/s** (was quoted 2.66) and one report is **2.78 ms**; Cadence Lock pins 360. LUT cards keep their authored 2.66 mm/s first anchor, so their slowest expressible step sits on the table's ramp: the 0.70 / 0.85 floors are delivered as about 0.75 / 0.89 at 3.60 mm/s - and that is what was field-rated.
@@ -105,11 +107,12 @@ config the user has run. Old docs quoting them are stale; the measured record wi
 Latency tiers: **T0** gates (Hover Distance Limiter — min/max exposed) · **T1** state
 (Tap Anchor pin, the game filters' rails and brake — ~0 ms on coherent motion) ·
 **T2** corrective · **T3** light smoothing (Planted/Lab territory) · **T4** interpolators
-(never on a shipped build) · **T5** prediction (Lead Sight, Lab cards only, decel-gated).
+(never on a shipped build) · **T5** prediction (Lead Sight, decel-gated; no shipped card since 2026-10-23).
 The Filters tab shows every filter discovered on the machine with tier, stage, live settings,
 and conflicts; presets enable exactly what their plan declares — the apply force-disables
-everything else first. The CoD, OW2, Finals and Holdfast Master personalities ship on their
-strict cards; the **Valorant, Apex and Rivals Masters are retired** (OFF in every plan since
+everything else first. The CoD Master personality ships on the CoD cards; the OW2 and Finals
+ones ship only on the family roles where the game lab measured them winning (OW2 Projectile,
+Finals Tracker/Flick/Brawl); the **Valorant, Apex and Rivals Masters are retired** (OFF in every plan since
 2026-09-16 — see below).
 
 ## Adding a preset

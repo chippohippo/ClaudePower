@@ -803,7 +803,6 @@ namespace AimForge.App
                 : ""));
             if (rig.HdlMax <= 2 && fHdl.Checked) qc.Items.Add("ℹ contact-only aim: hover reports never move the camera");
             if (cur.id.StartsWith("val")) qc.Items.Add("ℹ compat: VMulti relative output — Vanguard-safe; fire must be a keyboard key mapped to the pen tip");
-            if (cur.id == "valwx") qc.Items.Add("ℹ philosophy: low-accel tactical — the doc-orthodoxy sibling of the sat-265 Master, not a rival");
             if (problems == 0) qc.Items.Add("✓ passes every field-derived rule");
             curve.Invalidate();
         }

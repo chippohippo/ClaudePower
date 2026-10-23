@@ -1,0 +1,547 @@
+{
+  "evidenceId": "ev-20261023-game-finals",
+  "date": "2026-10-23",
+  "game": "The Finals",
+  "proRange": {
+    "median": 36,
+    "lo": 32,
+    "hi": 39,
+    "source": "senslab (31 pros, median eDPI 25600 = 35.7 cm, 32-39; small sample)"
+  },
+  "character": "tracking at every range through destruction, Light dashes and grapples, class HP from 150 to 350",
+  "fights": [
+    {
+      "Name": "F1 CQB vs a dashing Light 6m",
+      "tag": "Brawl",
+      "D": 6,
+      "Lat": 8,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "F2 mid-range track 20m",
+      "tag": "Track",
+      "D": 20,
+      "Lat": 6,
+      "W": 0.3,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "F3 long head poke 45m",
+      "tag": "Prec",
+      "D": 45,
+      "Lat": 5,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "F4 grapple/jump re-target 10m",
+      "tag": "Flick",
+      "D": 10,
+      "Lat": 7,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "F5 room clear switch 60deg 8m",
+      "tag": "Sig",
+      "D": 8,
+      "Lat": 5,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 60,
+      "TargetR": 0.3
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset \u003C= 2 reports, micro 90-130% through the card\u0027s own filter, the role\u0027s 180 limit, no report above 600 mm/s, tap-fire roles click skid \u003C= BO6 base \u002B 15%",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "finmp",
+      "name": "Master Preset",
+      "cm": 36,
+      "snap": 9,
+      "accel": 1.3645,
+      "cap": 3,
+      "offset": 4.56,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm36 off80 G3 @140 s9",
+      "rel": 1.1344139626943852,
+      "regret": 1.1445456779845573,
+      "Turn180Mm": 60,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.212,
+          "targetRadii": 0.104,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.255,
+          "targetRadii": 0.154,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.128,
+          "targetRadii": 0.522,
+          "onTargetPct": 95.3
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.128,
+          "targetRadii": 0.153,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.128,
+          "targetRadii": 1.29,
+          "onTargetPct": 73.3
+        },
+        {
+          "Name": "R re-acquire 120deg/190ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.783,
+          "onTargetPct": 92.2
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm36 off80 G3 @140 s9",
+          "Rel": 1.1344139626943852,
+          "Regret": 1.1445456779845573
+        },
+        {
+          "Name": "tl-sat cm36 off120 G3 @230 s9 \u002BMaster",
+          "Rel": 1.2439726368238153,
+          "Regret": 1.2938748957262554
+        },
+        {
+          "Name": "tl-sat cm36 off40 G3 @240 s9 \u002BMaster",
+          "Rel": 1.2540943026101152,
+          "Regret": 1.300662837127327
+        },
+        {
+          "Name": "tl-sat cm36 off80 G4 @140 s9 \u002BMaster",
+          "Rel": 1.2467152282811302,
+          "Regret": 1.3173202952068475
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "finpl",
+      "name": "Precision",
+      "cm": 39,
+      "snap": 9,
+      "accel": 1.2671,
+      "cap": 3,
+      "offset": 3.99,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm39 off70 G3 @130 s9",
+      "rel": 1.1435088818791688,
+      "regret": 1.2150441112184378,
+      "Turn180Mm": 65,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.057,
+          "targetRadii": 0.189,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.227,
+          "targetRadii": 0.144,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.34,
+          "targetRadii": 0.484,
+          "onTargetPct": 96.4
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.113,
+          "targetRadii": 0.148,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.113,
+          "targetRadii": 1.216,
+          "onTargetPct": 72.6
+        },
+        {
+          "Name": "R re-acquire 120deg/219ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.789,
+          "onTargetPct": 86.3
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm39 off70 G3 @180 s9",
+          "Rel": 1.1176155529758323,
+          "Regret": 1.1579690825619684
+        },
+        {
+          "Name": "tl-sat cm39 off40 G3 @240 s9",
+          "Rel": 1.1554541744146303,
+          "Regret": 1.2024433572748343
+        },
+        {
+          "Name": "tl-sat cm39 off70 G3 @130 s9",
+          "Rel": 1.1435088818791688,
+          "Regret": 1.2150441112184378
+        },
+        {
+          "Name": "tl-sat cm39 off40 G3 @150 s9",
+          "Rel": 1.1892391840861727,
+          "Regret": 1.2642058884530831
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "finlla",
+      "name": "Tracker",
+      "cm": 36,
+      "snap": 5,
+      "accel": 1.6569,
+      "cap": 3,
+      "offset": 6.27,
+      "gameFilter": true,
+      "tapAnchor": false,
+      "winner": "tl-sat cm36 off110 G3 @170 s5 \u002BMaster",
+      "rel": 1.0439292791653205,
+      "regret": 1.1127061875426503,
+      "Turn180Mm": 60,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.147,
+          "targetRadii": 0.112,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.528,
+          "targetRadii": 0.154,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.044,
+          "targetRadii": 0.522,
+          "onTargetPct": 95.3
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.044,
+          "targetRadii": 0.148,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.088,
+          "targetRadii": 1.404,
+          "onTargetPct": 80
+        },
+        {
+          "Name": "R re-acquire 120deg/190ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.764,
+          "onTargetPct": 90.4
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm36 off110 G3 @220 s5 \u002BMaster",
+          "Rel": 1.0323470834824233,
+          "Regret": 1.0619279570548528
+        },
+        {
+          "Name": "tl-sat cm36 off140 G3 @250 s9 \u002BMaster",
+          "Rel": 1.085307083031949,
+          "Regret": 1.0781477875580174
+        },
+        {
+          "Name": "tl-sat cm36 off110 G4 @170 s9 \u002BMaster",
+          "Rel": 1.1031560370465239,
+          "Regret": 1.095489601698523
+        },
+        {
+          "Name": "tl-sat cm36 off170 G3 @230 s3 \u002BMaster",
+          "Rel": 1.109358290211898,
+          "Regret": 1.1081696830543935
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "fintb",
+      "name": "Flick",
+      "cm": 36,
+      "snap": 9,
+      "accel": 0.5105,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": true,
+      "tapAnchor": false,
+      "winner": "early-sat cm36 G4 @120 s9 \u002BMaster",
+      "rel": 1.0994134816517696,
+      "regret": 1.1207451041842398,
+      "Turn180Mm": 45,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.4638795480132103,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.104,
+          "targetRadii": 0.17,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.124,
+          "targetRadii": 0.193,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.124,
+          "targetRadii": 0.527,
+          "onTargetPct": 95.3
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.373,
+          "targetRadii": 0.244,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.124,
+          "targetRadii": 1.267,
+          "onTargetPct": 78.2
+        },
+        {
+          "Name": "R re-acquire 120deg/162ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.921,
+          "onTargetPct": 88.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm36 G4 @160 s9",
+          "Rel": 1.0445256521494803,
+          "Regret": 1.0772505816603115
+        },
+        {
+          "Name": "early-sat cm36 G4 @120 s9 \u002BMaster",
+          "Rel": 1.0994134816517696,
+          "Regret": 1.1207451041842398
+        },
+        {
+          "Name": "early-sat cm36 G5 @160 s9 \u002BMaster",
+          "Rel": 1.126949511580399,
+          "Regret": 1.1215330492989684
+        },
+        {
+          "Name": "early-sat cm36 G6 @160 s9 \u002BMaster",
+          "Rel": 1.2313638143585073,
+          "Regret": 1.2300904339829968
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "finllb",
+      "name": "Brawl",
+      "cm": 32,
+      "snap": 9,
+      "accel": 0.3431,
+      "cap": 3,
+      "offset": 3.99,
+      "gameFilter": true,
+      "tapAnchor": false,
+      "winner": "tl-sat cm32 off70 G3 @220 s9 \u002BMaster",
+      "rel": 1.0895224345525787,
+      "regret": 1.109373549430539,
+      "Turn180Mm": 53.33333333333333,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.457,
+          "targetRadii": 0.108,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.183,
+          "targetRadii": 0.169,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.027,
+          "targetRadii": 0.585,
+          "onTargetPct": 93.6
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.091,
+          "targetRadii": 0.155,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.091,
+          "targetRadii": 1.638,
+          "onTargetPct": 79.7
+        },
+        {
+          "Name": "R re-acquire 120deg/190ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.573,
+          "onTargetPct": 89.9
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm32 off70 G3 @220 s9 \u002BMaster",
+          "Rel": 1.0895224345525787,
+          "Regret": 1.109373549430539
+        },
+        {
+          "Name": "early-sat cm32 G2.5 @260 s9 \u002BMaster",
+          "Rel": 1.173093439819306,
+          "Regret": 1.1930904270224147
+        },
+        {
+          "Name": "early-sat cm32 G3 @260 s9 \u002BMaster",
+          "Rel": 1.2452121515289118,
+          "Regret": 1.2504968700781036
+        },
+        {
+          "Name": "early-sat cm32 G2.5 @200 s9 \u002BMaster",
+          "Rel": 1.2557802737082921,
+          "Regret": 1.2557802737082921
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "finllc",
+      "name": "Fieldwide",
+      "cm": 78.95,
+      "snap": 9,
+      "accel": 0.7916,
+      "cap": 7,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm78.95 G7 @150 s9",
+      "rel": 1.0553333760331713,
+      "regret": 1.0590588502391258,
+      "Turn180Mm": 56.39285714285714,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5357336401939392,
+      "perScenario": [
+        {
+          "Name": "F1 CQB vs a dashing Light 6m",
+          "weight": 0.104,
+          "targetRadii": 0.181,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F2 mid-range track 20m",
+          "weight": 0.124,
+          "targetRadii": 0.172,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F3 long head poke 45m",
+          "weight": 0.062,
+          "targetRadii": 0.396,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F4 grapple/jump re-target 10m",
+          "weight": 0.062,
+          "targetRadii": 0.254,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "F5 room clear switch 60deg 8m",
+          "weight": 0.498,
+          "targetRadii": 1.229,
+          "onTargetPct": 76.2
+        },
+        {
+          "Name": "R re-acquire 120deg/190ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.742,
+          "onTargetPct": 94.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm78.95 G7 @150 s9",
+          "Rel": 1.0553333760331713,
+          "Regret": 1.0590588502391258
+        },
+        {
+          "Name": "early-sat cm78.95 G8 @150 s9",
+          "Rel": 1.0743353312630324,
+          "Regret": 1.0809374406897905
+        },
+        {
+          "Name": "early-sat cm78.95 G9 @150 s9",
+          "Rel": 1.1402871280155722,
+          "Regret": 1.150932559794096
+        },
+        {
+          "Name": "early-sat cm78.95 G7 @250 s9 \u002BMaster",
+          "Rel": 1.3046791005259701,
+          "Regret": 1.4605677064286908
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

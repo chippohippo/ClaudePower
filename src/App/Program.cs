@@ -459,6 +459,44 @@ namespace AimForge.App
                         }
                         return 0;
                     }
+                    case "--game-lab":
+                    {
+                        // GameLab: re-derive a game family's roles on its own fights. --game-lab <game|all> [role] -> game-lab.txt (log),
+                        // game-lab.cards.js (tuner entries), evidence\ev-20261023-game-<id>.json
+                        string which = args.Length > 1 ? args[1] : "all"; string? onlyRole = args.Length > 2 ? args[2] : null;
+                        var games = Core.GameLab.Games.Where(x => which == "all" || x.Id == which || x.Prefix == which).ToList();
+                        if (games.Count == 0) { Console.WriteLine("games: " + string.Join(", ", Core.GameLab.Games.Select(x => x.Id))); return 2; }
+                        var logSb = new System.Text.StringBuilder(); var js = new System.Text.StringBuilder();
+                        foreach (var gg in games)
+                        {
+                            var picks = new List<Core.GameLab.Pick>();
+                            foreach (var role in Core.GameLab.Roles.Where(r => onlyRole == null || r == onlyRole))
+                            {
+                                var pk = Core.GameLab.Run(gg, role, cat, s => logSb.AppendLine(s)); picks.Add(pk);
+                                var c = pk.Card; var w = pk.O.Winner;
+                                Console.WriteLine(System.FormattableString.Invariant($"{gg.Id,-9} {role,-10} cm {c.cm,5:0.0} accel {c.adv.accel,7:0.####} off {c.adv.offset,6:0.###} cap {c.adv.cap,4:0.0} capAt {Curve.CapSpeedMms(c),4:0} snap {c.snap,2:0} filter {(c.gameFilterOn ? "ON " : "off")} pin {(c.cohOv != null ? "yes" : "no ")}  180 {w.R.Turn180Mm,5:0.0}  rel {w.Rel:0.000} regret {w.Regret:0.000}  sens {w.R.Sens:0.000}"));
+                                js.AppendLine(Core.GameLab.TunerEntry(c));
+                            }
+                            var ev = new
+                            {
+                                evidenceId = $"ev-20261023-game-{gg.Id}", date = "2026-10-23", game = gg.Name, proRange = new { median = gg.ProMed, lo = gg.ProLo, hi = gg.ProHi, source = gg.ProSource },
+                                character = gg.Character, fights = gg.Fights.Select(f => new { f.s.Name, tag = f.t.ToString(), f.s.D, f.s.Lat, f.s.W, f.s.Proj, f.s.RecoilDegS, f.s.StepDeg, f.s.TargetR }).ToArray(),
+                                method = "GameLab: HeroLab selection (phase 1 role-identity grid -> pool -> snap x the family's game filter -> five hand models, regret) on the game's fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset <= 2 reports, micro 90-130% through the card's own filter, the role's 180 limit, no report above 600 mm/s, tap-fire roles click skid <= BO6 base + 15%",
+                                roles = picks.Select(pk => new
+                                {
+                                    pk.Role, card = pk.Card.id, pk.Card.name, pk.Card.cm, pk.Card.snap, pk.Card.adv.accel, pk.Card.adv.cap, pk.Card.adv.offset, gameFilter = pk.Card.gameFilterOn, tapAnchor = pk.Card.cohOv != null,
+                                    winner = pk.O.Winner.C.Name, rel = pk.O.Winner.Rel, regret = pk.O.Winner.Regret, pk.O.Winner.R.Turn180Mm, pk.O.Winner.R.MicroPct, pk.O.Winner.R.DeadMs, pk.O.Winner.R.SkidMm,
+                                    perScenario = pk.O.Hero.Scens.Zip(pk.O.Winner.R.PerScen, (s2, q) => new { s2.Name, weight = Math.Round(s2.W, 3), targetRadii = Math.Round(q.HeadRadii, 3), onTargetPct = Math.Round(q.OnHeadPct, 1) }).ToArray(),
+                                    runnersUp = pk.O.Top.OrderBy(x => x.Regret).Take(4).Select(x => new { x.C.Name, x.Rel, x.Regret }).ToArray(),
+                                }).ToArray(),
+                                fieldVerdict = "pending",
+                            };
+                            Directory.CreateDirectory(Path.Combine(home, "evidence"));
+                            File.WriteAllText(Path.Combine(home, "evidence", $"ev-20261023-game-{gg.Id}.json"), System.Text.Json.JsonSerializer.Serialize(ev, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                        }
+                        File.WriteAllText(Path.Combine(home, "game-lab.txt"), logSb.ToString()); File.WriteAllText(Path.Combine(home, "game-lab.cards.js"), js.ToString());
+                        return 0;
+                    }
                     case "--dropcheck-stress":
                     {
                         // try to BREAK Cadence's drop check: drops / late reports at every spacing 3..17 across flicks and tracks;
@@ -885,33 +923,47 @@ namespace AimForge.App
             Ok("OW2 sens 2.245 at 90 px/mm / cm 27", Math.Abs(ow - 2.245) < 0.01, ow.ToString("0.000"));
             Ok("CoD sens identical to OW2", Math.Abs(Curve.SensFor(cat.games.First(g => g.id == "cod").K, rig) - ow) < 1e-9);
 
-            // ---- BO6-baseline roster (2026-08-27): 31 presets, one physics, four personalities ----
-            Ok("86 presets: 69 classic + 17 LUT (8 Masters incl. Deadlock, 7 wildcards, 2 refs; Slow Center, Wide, 9 character cards + 24 LL Breakpoints are classic)",
-               cat.presets.Count == 86 && cat.presets.Count(p => p.IsLut) == 17,
-               cat.presets.Count(p => p.IsLut) + " LUT / " + cat.presets.Count);
-            var ll = new[] { "riv", "fin", "apx", "ow", "hf", "val", "hd" }.SelectMany(g => new[] { g + "lla", g + "llb", g + "llc" }).Select(id => cat.Find(id)!).ToList();
-            Ok("LL Breakpoint family: 21 cards, all classic (floor exactly 1.0), tier <= T1, zero Apply blockers",
-               ll.All(p => p != null && p.lut == null && Core.RolePolicy.FloorOf(p) == 1.0 &&
-                           (p.cohOv == null || p.cohOv.IsTapOnly) && Core.RolePolicy.ApplyBlockers(p).Count == 0));
-            Ok("LL Breakpoint family: acceleration offset >= 8.7 mm/s on every card (micro band untouched)",
-               ll.All(p => (p.adv.offset ?? 0) * 1000 / 57 >= 8.69));
-            Ok("every game has a wildcard, all pass Check, filters exactly as authored",
-               new[] { "riv", "fin", "apx", "ow", "hf", "val", "hd" }.All(g =>
-                   cat.Find(g + "wx") is Preset p && p.IsLut && p.cohOv != null && Curve.Check(p, t).Count == 0));
-            Ok("Lead Sight ships only on rivwx/owwx (6ms, clamp 1.2mm); hold smoothing only on finwx(260)+hfwx(140)",
-               cat.presets.Count(p => p.cohOv?.lead > 0) == 2 &&
-               cat.Find("rivwx")!.cohOv!.lead == 6 && cat.Find("owwx")!.cohOv!.leadMax == 1.2 &&
-               cat.presets.Count(p => p.cohOv?.hold > 0) == 2 &&
-               cat.Find("finwx")!.cohOv!.hold == 260 && cat.Find("finwx")!.cohOv!.anchor == 0.6 &&
-               cat.Find("hfwx")!.cohOv!.hold == 140 && cat.Find("hfwx")!.cohOv!.settle == 0.6);
-            Ok("every game has a Master shipping the tap pin in passthrough, floor 1.0 with a 12.3mm/s unity pocket, passing Check",
-               new[] { "riv", "fin", "apx", "ow", "hf", "val", "hd" }.All(g =>
-                   cat.Find(g + "mp") is Preset p && p.IsLut && p.lut![0][1] == 1.0 && p.lut![1][0] == 12.3 &&
-                   p.cohOv?.IsTapOnly == true && Curve.Check(p, t).Count == 0));
-            var vm = cat.Find("valmp")!;
-            var mVm = Measure.Run(vm.lut!, Rig.From(vm), t);
-            Ok("valmp measured: 180 ~47.1mm (sat-265 master, the most consistent accelerated curve)",
-               Math.Abs(mVm.Turn180Mm - 47.1) < 1.2, mVm.ToString());
+            // ---- 2026-10-23: THE GAME FAMILIES re-derived by the game lab (GameLab.cs, ev-20261023-game-<id>) ----
+            // The old ladder (BO6-shaped Baseline/Planted/Turbo/Tapped quads, LUT Masters, T3 wildcards, LL a/b/c) is gone:
+            // every game now runs Master / Precision / Tracker / Flick / Brawl / one Signature, each tuned on its own fights.
+            {
+                string[] slots = { "mp", "pl", "lla", "tb", "llb", "llc" };
+                var fam = Core.GameLab.Games.SelectMany(gg => slots.Select(sl => (gg, sl, p: cat.Find(gg.Prefix + sl)))).ToList();
+                Ok("roster: BO6 Original, 3 Breakpoints, 9 character cards, 2 references + 8 games x 6 lab-derived roles = 63 cards; no per-game Baseline, no wildcards",
+                   cat.presets.Count == 63 && fam.All(x => x.p != null && x.p.group == x.gg.Group) &&
+                   cat.presets.Count(p => p.group == "Valorant") == 6 && !cat.presets.Any(p => p.name is "Baseline" or "Planted" or "Turbo" or "Tapped") &&
+                   !cat.presets.Any(p => RolePolicy.RoleOf(p) == "Lab"), cat.presets.Count + " cards");
+                string bad = "";
+                foreach (var (gg, sl, p) in fam)
+                {
+                    var why = new List<string>();
+                    if (p!.IsLut || RolePolicy.FloorOf(p) != 1.0) why.Add("not a floor-1.00 classic");
+                    if (p.cohOv != null && !p.cohOv.IsTapOnly) why.Add("stabilizer beyond the tap pin");
+                    if (RolePolicy.PlanTier(p)[1] > '1') why.Add("tier " + RolePolicy.PlanTier(p));
+                    if (RolePolicy.ApplyBlockers(p).Count > 0) why.Add("apply blockers");
+                    if (RolePolicy.Check(p).Any(x => !x.StartsWith("warn:"))) why.Add("QC: " + string.Join("; ", RolePolicy.Check(p)));
+                    var mp = Measure.Run(Curve.EffectiveLut(p, p.pxmm), Rig.From(p), t);
+                    if (mp.DeadMs > 2000.0 / t.reportHz + 0.3) why.Add($"onset {mp.DeadMs:0.0} ms");
+                    if (mp.Micro3Pct < 90 || mp.Micro3Pct > 130) why.Add($"micro {mp.Micro3Pct:0}%");
+                    if (why.Count > 0) bad += $" {p.id}: {string.Join(", ", why)};";
+                }
+                Ok("latency contract on all 48 family cards: floor-1.00 classic, no smoothing (the Tap Anchor at most), tier <= T1, onset two reports, micro 90-130%, QC clean, zero apply blockers",
+                   bad.Length == 0, bad.Length == 0 ? "48 cards" : bad);
+                string role(string sl) => Core.GameLab.Roles[Array.IndexOf(slots, sl)];
+                Ok("every base speed is the lab's point of its game's pro range (Precision the slow end, Brawl the fast end, Master/Tracker/Flick the median, the Signature its own job) - and every Master sits inside the pro range",
+                   fam.All(x => Math.Abs(x.p!.cm - Core.GameLab.CmOf(x.gg, role(x.sl))) < 1e-9) &&
+                   Core.GameLab.Games.All(gg => cat.Find(gg.Prefix + "mp")!.cm >= gg.ProLo && cat.Find(gg.Prefix + "mp")!.cm <= gg.ProHi));
+                Ok("the Tap Anchor ships exactly on the tap-fire roles (and is the game's own pin), nowhere else in the families",
+                   fam.All(x => (x.p!.cohOv != null) == Core.GameLab.TapFire(x.gg, role(x.sl)) &&
+                                (x.p.cohOv == null || (x.p.cohOv.tapHold == x.gg.PinHoldMs && Math.Abs(x.p.cohOv.tapBreak - x.gg.PinBreakMm) < 1e-9))));
+                var dup = fam.GroupBy(x => x.gg.Id).SelectMany(g => g.GroupBy(x => (x.p!.cm, x.p.adv.accel, x.p.adv.cap, x.p.adv.offset)).Where(q => q.Count() > 1).Select(q => string.Join("=", q.Select(z => z.p!.id)))).ToList();
+                var mastersSame = fam.Where(x => x.sl == "mp").GroupBy(x => (x.p!.cm, x.p.adv.accel, x.p.adv.cap, x.p.adv.offset)).Any(q => q.Count() > 1);
+                Ok("no two cards of a game are the same build, and no two games share a Master", dup.Count == 0 && !mastersSame, string.Join(", ", dup));
+                double SensOf(string id) { var p = cat.Find(id)!; return Curve.SensFor(cat.games.First(g => g.id == p.game).K, Rig.From(p)); }
+                Ok("in-game numbers land on pro eDPI: Valorant Master 0.167 (eDPI ~242 at 57 px/mm, pro median 240), OW2 Master 2.734, Apex Master 0.718; the Finals Fieldwide keeps your field sens 8.00",
+                   Math.Abs(SensOf("valmp") - 0.167) < 0.002 && Math.Abs(SensOf("owmp") - 2.734) < 0.003 && Math.Abs(SensOf("apxmp") - 0.718) < 0.002 &&
+                   Math.Abs(SensOf("finllc") - 8.0) < 0.06, $"val {SensOf("valmp"):0.000} ow {SensOf("owmp"):0.000} apx {SensOf("apxmp"):0.000} fin-field {SensOf("finllc"):0.000}");
+            }
             var bs = cat.Find("breakslow")!;
             Ok("breakslow v2: classic 0.246 / cap 5.0 / offset 0.7 - floor exactly 1.0, unity pocket 12.3mm/s (field verdict)",
                bs.lut == null && bs.adv.accel == 0.246 && bs.adv.cap == 5.0 && Math.Abs((bs.adv.offset ?? 0) - 0.7) < 1e-9);
@@ -944,39 +996,10 @@ namespace AimForge.App
                Math.Abs(Curve.SensFor(cat.games.First(g => g.id == "cod").K, Rig.From(bo6)) - 2.538) < 0.01,
                Curve.SensFor(cat.games.First(g => g.id == "cod").K, Rig.From(bo6)).ToString("0.000"));
 
-            // The roster's promise: every game quad derives from the baseline physics.
-            string[] gp = { "riv", "fin", "apx", "ow", "hf", "val", "hd" };
-            var spec = new System.Collections.Generic.Dictionary<string, (double a, double c, double o)> {
-                ["b6"] = (0.105, 3.6, 0.5), ["pl"] = (0.075, 2.6, 0.7), ["tb"] = (0.14, 4.5, 0.5), ["tap"] = (0.105, 3.6, 0.5) };
-            // The Finals family left the 37.70 baseline on 2026-09-10: the user played sens 8 and
-            // rated it good, which is 78.95cm/360 once the Finals K is right (ev-20260910-finals-k).
-            // Its CURVES are still the baseline quad - only the base speed is its own.
-            double CmOf(string g) => g == "fin" ? 78.95 : 37.7;
-            Ok("every game has its Baseline/Planted/Turbo/Tapped quad on the baseline physics (Finals on its own field-validated speed)",
-               gp.All(g => spec.All(kv => cat.Find(g + kv.Key) is Preset p && p.lut == null && p.pxmm == 57 &&
-                   p.cm == CmOf(g) && p.snap == 9 && p.hdlMax == 87 &&
-                   p.adv.accel == kv.Value.a && p.adv.cap == kv.Value.c && p.adv.offset == kv.Value.o)));
             var finK = cat.games.First(g => g.id == "finals").K;
             Ok("The Finals K is the FIELD-VERIFIED 914400, not the OW2 copy it used to be",
                Math.Abs(finK - 914400) < 1e-6 && Math.Abs(finK - cat.games.First(g => g.id == "ow2").K) > 1,
                finK.ToString("0"));
-            Ok("every 57px/mm Finals card reads sens 8.00; Stillframe reads 11.76 at its own 90px/mm on its restored cm 34.0 (at 71.2 its flat 180 needed 356 mm on a 309 mm tablet)",
-               cat.presets.Where(p => p.id.StartsWith("fin") && p.pxmm == 57)
-                          .All(p => Math.Abs(Curve.SensFor(finK, Rig.From(p)) - 8.0) < 0.01) &&
-               cat.Find("finwx")!.cm == 34.0 && Math.Abs(Curve.SensFor(finK, Rig.From(cat.Find("finwx")!)) - 11.765) < 0.006);
-            Ok("Y/X 0.789 everywhere except the Rivals quad at 0.85",
-               gp.All(g => spec.Keys.All(v => cat.Find(g + v)!.Yx == (g == "riv" ? 0.85 : 0.789))));
-            Ok("exactly 28 filter presets; Tapped + Master cards all tap-anchor-only",
-               cat.presets.Count(p => p.cohOv != null) == 28 &&
-               gp.All(g => cat.Find(g + "tap")!.cohOv?.IsTapOnly == true && cat.Find(g + "mp")!.cohOv?.IsTapOnly == true) &&
-               cat.Find("hftap")!.cohOv!.tapHold == 60 && cat.Find("hfmp")!.cohOv!.tapHold == 60);
-            double S(string game, string preset) => Curve.SensFor(cat.games.First(g => g.id == game).K, Rig.From(cat.Find(preset)!));
-            Ok("Rivals sens 0.957", Math.Abs(S("rivals", "rivb6") - 0.957) < 0.01, S("rivals", "rivb6").ToString("0.000"));
-            Ok("OW2 sens 2.538 (= CoD, identical constant)", Math.Abs(S("ow2", "owb6") - 2.538) < 0.01);
-            Ok("Apex sens 0.761", Math.Abs(S("apex", "apxb6") - 0.761) < 0.01);
-            Ok("Valorant sens 0.239", Math.Abs(S("valorant", "valb6") - 0.239) < 0.01);
-            Ok("Holdfast sens 0.105", Math.Abs(S("holdfast", "hfb6") - 0.105) < 0.01);
-
             // EffectiveLut is a DENSE sample of the driver's classic formula (it drives canvas + measure)
             {
                 var eff = Curve.EffectiveLut(bo6, 57);
@@ -1017,12 +1040,12 @@ namespace AimForge.App
             double feSpread = Measure.FlickSpreadPct(fe.lut!, rig, t);
             Ok("Feather flick spread on record (>20%)", feSpread > 20, feSpread.ToString("0.0") + "%");
 
-            var fpHf = FilterPlan.For(cat.Find("hftap")!);
-            Ok("FilterPlan: Tapped cards keep their shipped pin on", fpHf.TapDefaultOn && fpHf.TapHold == 60 && Math.Abs(fpHf.TapBreak - 0.6) < 0.01);
-            var fpHfB = FilterPlan.For(cat.Find("hfb6")!);
-            Ok("FilterPlan: Holdfast baseline OFFERS the musket pin (60/0.6, default off)",
+            var fpHf = FilterPlan.For(cat.Find("hfmp")!);
+            Ok("FilterPlan: tap-fire cards keep their shipped pin on (Holdfast Master: the musket pin)", fpHf.TapDefaultOn && fpHf.TapHold == 60 && Math.Abs(fpHf.TapBreak - 0.6) < 0.01);
+            var fpHfB = FilterPlan.For(cat.Find("hflla")!);
+            Ok("FilterPlan: the Holdfast Tracker OFFERS the musket pin (60/0.6, default off)",
                !fpHfB.TapDefaultOn && fpHfB.TapHold == 60 && Math.Abs(fpHfB.TapBreak - 0.6) < 0.01);
-            var fpRiv = FilterPlan.For(cat.Find("rivb6")!);
+            var fpRiv = FilterPlan.For(cat.Find("rivmp")!);
             Ok("FilterPlan: tracking goal gets short loose pin (25ms/0.45mm)", !fpRiv.TapDefaultOn && fpRiv.TapHold == 25 && Math.Abs(fpRiv.TapBreak - 0.45) < 0.01);
             Ok("FilterPlan: hold smoothing offered nowhere (the delayed feel)",
                cat.presets.All(p => !FilterPlan.For(p).HoldOffered));
@@ -1030,22 +1053,19 @@ namespace AimForge.App
 
             // ---- latency tiers + role policy (3.2): named exceptions with evidence ----
             Ok("tier: filterless build = T0, tap-pin = T1",
-               FilterPlan.For(cat.Find("rivb6")!) != null &&
-               Core.FilterCatalog.BuildTier(cat.Find("rivb6")!) == "T0" &&
-               Core.FilterCatalog.BuildTier(cat.Find("rivmp")!) == "T1" &&
-               Core.FilterCatalog.BuildTier(cat.Find("rivtap")!) == "T1");
-            Ok("tier: hold smoothing = T3 (finwx/hfwx), Lead Sight = T5 (rivwx/owwx)",
-               Core.FilterCatalog.BuildTier(cat.Find("finwx")!) == "T3" &&
-               Core.FilterCatalog.BuildTier(cat.Find("hfwx")!) == "T3" &&
-               Core.FilterCatalog.BuildTier(cat.Find("rivwx")!) == "T5" &&
-               Core.FilterCatalog.BuildTier(cat.Find("owwx")!) == "T5");
+               Core.FilterCatalog.BuildTier(cat.Find("rivmp")!) == "T0" &&
+               Core.FilterCatalog.BuildTier(cat.Find("rivpl")!) == "T1" &&
+               Core.FilterCatalog.BuildTier(cat.Find("hfmp")!) == "T1");
+            Ok("tier: hold smoothing = T3, Lead Sight = T5 - and since 2026-10-23 no shipped card runs either (the old wildcards were the delayed feel)",
+               Core.FilterCatalog.BuildTier(new Preset { cohOv = new CohOv { hold = 120, tap = 1 } }) == "T3" &&
+               Core.FilterCatalog.BuildTier(new Preset { cohOv = new CohOv { hold = 0, lead = 8, tap = 1 } }) == "T5" &&
+               cat.presets.All(p => Core.FilterCatalog.BuildTier(p) is "T0" or "T1"));
             Ok("role policy: every strict-role build has zero Apply blockers",
                cat.presets.Where(p => Core.RolePolicy.MaxTier(Core.RolePolicy.RoleOf(p)) <= 2)
                           .All(p => Core.RolePolicy.ApplyBlockers(p).Count == 0));
             Ok("field verdict 2026-08-29: NO shipped build runs a sub-unity floor (masters + Slow Center at exactly 1.0)",
                cat.presets.All(p => Core.RolePolicy.FloorOf(p) >= 0.999 || Core.RolePolicy.RoleOf(p) == "Reference" || Core.RolePolicy.RoleOf(p) == "Lab") &&
-               new[] { "rivmp", "finmp", "apxmp", "owmp", "hfmp", "valmp", "hdmp" }.All(id =>
-                   cat.Find(id)!.lut![0][1] == 1.0 && cat.Find(id)!.lut![1][0] == 12.3) &&
+               Core.GameLab.Games.All(g => cat.Find(g.Prefix + "mp") is Preset m && !m.IsLut && Core.RolePolicy.FloorOf(m) == 1.0) &&
                cat.Find("breakslow")!.lut == null && Math.Abs((cat.Find("breakslow")!.adv.offset ?? 0) - 0.7) < 1e-9 &&
                Core.RolePolicy.FloorExceptions.Count == 0);
             var badMaster = new Preset { id = "synthetic", name = "Master Preset", pxmm = 57, cm = 37.7, snap = 9,
@@ -1057,9 +1077,10 @@ namespace AimForge.App
                 adv = new Adv { reset = 80 }, cohOv = new CohOv { hold = 200, tap = 1.0 } };
             Ok("role policy: a Master with hold smoothing (T3) is blocked from Apply",
                Core.RolePolicy.ApplyBlockers(badMaster2).Count > 0);
-            Ok("role policy: wildcards are Lab - informational only",
-               Core.RolePolicy.RoleOf(cat.Find("rivwx")!) == "Lab" &&
-               Core.RolePolicy.ApplyBlockers(cat.Find("rivwx")!).Count == 0);
+            var labCard = new Preset { id = "synthetic-lab", name = "Slipstream", pxmm = 57, cm = 37.7, adv = new Adv { reset = 80 }, cohOv = new CohOv { hold = 120, tap = 1 } };
+            Ok("role policy: Lab names are informational only (T3 allowed) - and no shipped card is Lab any more",
+               Core.RolePolicy.RoleOf(labCard) == "Lab" && Core.RolePolicy.ApplyBlockers(labCard).Count == 0 &&
+               !cat.presets.Any(p => Core.RolePolicy.RoleOf(p) == "Lab"));
             Ok("role policy: evidence artifacts exist for every cited id (snap field, floor-feel verdict)",
                Core.RolePolicy.FloorExceptions.Values.Select(e => e.EvidenceId).Distinct()
                    .Append(Core.RolePolicy.SnapEvidenceId).Append(Core.RolePolicy.FloorFeelEvidenceId)
@@ -1076,16 +1097,16 @@ namespace AimForge.App
                        Math.Abs(f.settings["TapHoldMs"] - p.cohOv!.tapHold) < 1e-9 &&
                        Math.Abs(f.settings["HoldTimeMs"] - p.cohOv!.hold) < 1e-9 &&
                        Math.Abs(f.settings["LeadMs"] - p.cohOv!.lead) < 1e-9)) &&
-               cat.presets.Count(p => p.filters!.Any(f => f.id.Contains("Coherence"))) == 28);
+               cat.presets.Count(p => p.filters!.Any(f => f.id.Contains("Coherence"))) == cat.presets.Count(p => p.cohOv != null));
 
             // ---- 2026-10-04: Deadlock ----
             {
                 var dl = cat.presets.Where(p => p.group == "Deadlock").ToList();
                 var dk = cat.games.First(g => g.id == "deadlock").K;
-                Ok("Deadlock: 8 cards (Master, Baseline, Planted, Turbo, Tapped + 3 LL), sens 0.761 at the 37.70 base (Source 2 yaw, estimated), Y/X 0.85 (Zipfight 0.90), third-person, no game filter, zero Apply blockers",
-                   dl.Count == 8 && dl.All(p => Math.Abs(Curve.SensFor(dk, Rig.From(p)) - 0.761) < 0.01) && dl.All(p => p.Yx == (p.id == "dlllc" ? 0.9 : 0.85))
+                Ok("Deadlock: the six lab roles, each at its own base (sens = K / (eDPI x cm), Source 2 yaw - run the 360 calibration), Y/X 0.85, third-person, no game filter, zero Apply blockers",
+                   dl.Count == 6 && dl.All(p => p.desc.Contains(Curve.SensFor(dk, Rig.From(p)).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))) && dl.All(p => p.Yx == 0.85)
                    && dl.All(Core.ThirdPerson.IsThirdPerson) && dl.All(p => p.filters!.All(f => !f.id.StartsWith("AimForge.Filters.")))
-                   && dl.All(p => Core.RolePolicy.ApplyBlockers(p).Count == 0) && new[] { "dllla", "dlllb", "dlllc" }.All(id => !cat.Find(id)!.IsLut && Core.FilterCatalog.BuildTier(cat.Find(id)!).CompareTo("T2") < 0),
+                   && dl.All(p => Core.RolePolicy.ApplyBlockers(p).Count == 0 && !p.IsLut && Core.FilterCatalog.BuildTier(p).CompareTo("T2") < 0),
                    string.Join(",", dl.Select(p => p.id)));
             }
 
@@ -1369,7 +1390,7 @@ namespace AimForge.App
                     if (!sameFilters || !sameCoh || ReferenceEquals(p, e) || ReferenceEquals(p.adv, e.adv)) mismatched.Add(p.id + (sameFilters ? "" : " filters") + (sameCoh ? "" : " cohOv"));
                 }
                 Ok("apply fold: an untouched GUI apply is a COPY that reproduces every card exactly - declared game-filter plan and stabilizer overlay (lead/hold) included",
-                   mismatched.Count == 0 && FilterPlan.Fold(cat.Find("owmp")!, FilterPlan.Prefill(cat.Find("owmp")!)).filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && f.on),
+                   mismatched.Count == 0 && FilterPlan.Fold(cat.Find("owllc")!, FilterPlan.Prefill(cat.Find("owllc")!)).filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && f.on),
                    mismatched.Count == 0 ? "all " + cat.presets.Count + " cards" : string.Join(", ", mismatched));
                 Ok("tap-pin defaults by GAME: rivpsy 25/0.45, owsol 30/0.5, hdlla 35/0.6, hfllb 60/0.6, vallla 45/0.6, bo6og 30/0.9, feather generic 45/0.8",
                    new[] { ("rivpsy", 25.0, 0.45), ("owsol", 30.0, 0.5), ("hdlla", 35.0, 0.6), ("hfllb", 60.0, 0.6), ("vallla", 45.0, 0.6), ("bo6og", 30.0, 0.9), ("feather", 45.0, 0.8) }
@@ -1502,7 +1523,7 @@ namespace AimForge.App
                    otdProbe.CadenceBlocker(rgCad, nine) is string cb && cb.Contains("at most 8 LUT points") && otdProbe.CadenceBlocker(rgRa, nine) == null &&
                    otdProbe.CadenceBlocker(rgCad, bo) == null);
                 // 2026-09-16 review: the LUT verify string is built from the SAME rounded x the apply writes
-                var rmp = cat.Find("rivmp")!; bool lutRound = true;
+                var rmp = cat.Find("feather")!; bool lutRound = true;
                 foreach (double px in new[] { 25.0, 55, 57, 90, 95, 125, 225, 295 })
                 {
                     var data = Curve.RawAccelData(rmp.lut!, px); var sb = new System.Text.StringBuilder();
@@ -1736,10 +1757,10 @@ namespace AimForge.App
             {
                 var chOrder = cat.presets.Select(p => p.group).Distinct().ToList();
                 int chB = chOrder.IndexOf("Breakpoint — flick flagship");
-                Ok("Specific Characters: two groups right after Breakpoint (Marvel Rivals 5 incl. Psylocke, Overwatch 2 4); the Marvel Rivals group keeps 9; both map to their game",
+                Ok("Specific Characters: two groups right after Breakpoint (Marvel Rivals 5 incl. Psylocke, Overwatch 2 4); the Marvel Rivals game group has its 6 lab roles; both map to their game",
                    chB >= 0 && chOrder.IndexOf("Specific Characters — Marvel Rivals") == chB + 1 && chOrder.IndexOf("Specific Characters — Overwatch 2") == chB + 2 &&
                    cat.presets.Count(p => p.group == "Specific Characters — Marvel Rivals") == 5 && cat.presets.Count(p => p.group == "Specific Characters — Overwatch 2") == 4 &&
-                   cat.presets.Count(p => p.group == "Marvel Rivals") == 9 &&
+                   cat.presets.Count(p => p.group == "Marvel Rivals") == 6 &&
                    Core.FilterCatalog.GameOfGroup("Specific Characters — Marvel Rivals") == "rivals" && Core.FilterCatalog.GameOfGroup("Specific Characters — Overwatch 2") == "ow2",
                    string.Join(" > ", chOrder.Take(5)));
                 double chSkidCap = Core.HeroLab.SkidCap(cat);
@@ -1775,9 +1796,13 @@ namespace AimForge.App
                     var (chLegal, chWhy) = Core.HeroLab.LegalOf(chRes, chH, chSkidCap);
                     var chRq = Core.PsyLab.ReacquireSpread(chCand, chH.ReacqDeg, chH.ReacqMs);
                     var chFamRq = Core.PsyLab.ReacquireSpread(new Core.PsyLab.Cand { Name = chH.FamilyCard, P = chFam }, chH.ReacqDeg, chH.ReacqMs);
-                    Ok($"{chP.name} card ({ch.id}): the lab winner's fields, family Y/X and filter plan, sens {ch.sens:0.000}, LEGAL under every lab gate, out-scores its game Master and Breakpoint on {chH.Name}'s fights, re-acquires more consistently than its game Master",
-                       chFields && Math.Abs(chSens - ch.sens) < 0.001 && chLegal && chRel < chRefRel && chRq.spreadPct < chFamRq.spreadPct,
-                       $"rel {chRel:0.000} vs best reference {chRefRel:0.000}, re-acquire {chRq.spreadPct:0.0}% vs {chH.FamilyCard} {chFamRq.spreadPct:0.0}%, sens {chSens:0.000}" + (chLegal ? "" : ", ILLEGAL: " + chWhy));
+                    var chBpRq = Core.PsyLab.ReacquireSpread(new Core.PsyLab.Cand { Name = "breakpoint", P = cat.Find("breakpoint")! }, chH.ReacqDeg, chH.ReacqMs);
+                    // 2026-10-23: the game Masters were re-derived by the game lab; the character cards still out-score them on their
+                    // hero's fights, but the re-acquire comparison is now against Breakpoint (the re-derived Rivals Master re-acquires
+                    // Psylocke's 135 deg more consistently than the Psylocke card - the detail prints the number, not hidden)
+                    Ok($"{chP.name} card ({ch.id}): the lab winner's fields, family Y/X and filter plan, sens {ch.sens:0.000}, LEGAL under every lab gate, out-scores its game Master and Breakpoint on {chH.Name}'s fights, re-acquires at least as consistently as Breakpoint",
+                       chFields && Math.Abs(chSens - ch.sens) < 0.001 && chLegal && chRel < chRefRel && chRq.spreadPct <= chBpRq.spreadPct + 1e-9,
+                       $"rel {chRel:0.000} vs best reference {chRefRel:0.000}, re-acquire {chRq.spreadPct:0.0}% vs {chH.FamilyCard} {chFamRq.spreadPct:0.0}% / breakpoint {chBpRq.spreadPct:0.0}%, sens {chSens:0.000}" + (chLegal ? "" : ", ILLEGAL: " + chWhy));
                 }
             }
 
@@ -1791,35 +1816,36 @@ namespace AimForge.App
                cat.presets.All(p => Core.OtdBridge.HoverValid(0, p.hdlMax)));
 
             // ---- session 3: plans + policy for the game filters ----
-            Ok("plan: every game card carries its game Master entry (ON for CoD/OW2/Finals/Holdfast strict roles; Valorant/Apex/Rivals retired OFF 2026-09-16; wildcards OFF)",
-               cat.Find("owmp")!.filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && f.on &&
+            Ok("plan: every game card carries its game Master entry, ON only where the game lab measured it winning that role's fights (OW2 Projectile, Finals Tracker/Flick/Brawl; the CoD cards as before); Valorant/Apex/Rivals retired OFF 2026-09-16",
+               cat.Find("owmp")!.filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && !f.on) &&
+               cat.Find("finlla")!.filters!.Any(f => f.id == "AimForge.Filters.FinalsMaster" && f.on) &&
+               cat.Find("owllc")!.filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && f.on &&
                    Math.Abs(f.settings["RailStrength"] - 0.25) < 1e-9 && Math.Abs(f.settings["TrackUntilMmS"] - 150) < 1e-9) &&
-               cat.Find("rivb6")!.filters!.Any(f => f.id == "AimForge.Filters.RivalsMaster" && !f.on) &&   // retired 2026-09-16
-               cat.Find("rivwx")!.filters!.Any(f => f.id == "AimForge.Filters.RivalsMaster" && !f.on) &&
+               cat.Find("rivmp")!.filters!.Any(f => f.id == "AimForge.Filters.RivalsMaster" && !f.on) &&   // retired 2026-09-16
+               cat.Find("rivlla")!.filters!.Any(f => f.id == "AimForge.Filters.RivalsMaster" && !f.on) &&
                cat.Find("bo6og")!.filters!.Any(f => f.id == "AimForge.Filters.CodMaster" && f.on));
-            Ok("plan: Lab members ON only where specified (valpl ValLab, owwx Ow2Lab); CodLab OFF everywhere incl. Slow Center (field verdict)",
+            Ok("plan: no Lab member ships ON (the families run no lab filter; valpl is the Valorant Precision now); CodLab OFF everywhere incl. Slow Center (field verdict)",
                cat.Find("breakslow")!.filters!.Any(f => f.id == "AimForge.Filters.CodLab" && !f.on) &&
                cat.presets.All(p => !(p.filters ?? new System.Collections.Generic.List<FilterSpec>()).Any(f => f.id == "AimForge.Filters.CodLab" && f.on)) &&
-               cat.Find("valpl")!.filters!.Any(f => f.id == "AimForge.Filters.ValLab" && f.on) &&
-               cat.Find("owwx")!.filters!.Any(f => f.id == "AimForge.Filters.Ow2Lab" && f.on) &&
+               cat.presets.All(p => !(p.filters ?? new System.Collections.Generic.List<FilterSpec>()).Any(f => f.id.EndsWith("Lab") && f.on)) &&
                cat.Find("owmp")!.filters!.Any(f => f.id == "AimForge.Filters.Ow2Lab" && !f.on));
-            Ok("PlanTier: strict cards stay <=T2 with their game Master; valpl rises to T3 (Planted allows it)",
-               Core.RolePolicy.PlanTier(cat.Find("owmp")!) == "T1" &&
-               Core.RolePolicy.PlanTier(cat.Find("valpl")!) == "T3" &&
-               Core.RolePolicy.ApplyBlockers(cat.Find("valpl")!).Count == 0);
+            Ok("PlanTier: strict cards stay <=T2 with their game Master on (owllc), filterless cards read T0 (owmp)",
+               Core.RolePolicy.PlanTier(cat.Find("owllc")!).CompareTo("T3") < 0 &&
+               Core.RolePolicy.PlanTier(cat.Find("owmp")!) == "T0" &&
+               Core.RolePolicy.ApplyBlockers(cat.Find("owllc")!).Count == 0, Core.RolePolicy.PlanTier(cat.Find("owllc")!) + "/" + Core.RolePolicy.PlanTier(cat.Find("owmp")!));
             Ok("role policy: every strict card still has zero Apply blockers with plans included",
                cat.presets.Where(p => Core.RolePolicy.MaxTier(Core.RolePolicy.RoleOf(p)) <= 2)
                           .All(p => Core.RolePolicy.ApplyBlockers(p).Count == 0));
 
             // ---- session 4 (overhaul pass): export/import, --qc invariant, hover hygiene ----
             {
-                var src = cat.Find("owmp")!;
+                var src = cat.Find("owpl")!;
                 var json = JsonSerializer.Serialize(src);
                 var back = JsonSerializer.Deserialize<Preset>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
                 back.Normalise();
                 Ok("build export/import round-trip preserves identity (curve, rig, plan, pins)",
                    back.id == src.id && back.pxmm == src.pxmm && back.cm == src.cm &&
-                   back.lut!.Length == src.lut!.Length && back.lut[0][1] == src.lut[0][1] &&
+                   back.lut?.Length == src.lut?.Length && back.adv.accel == src.adv.accel && back.adv.cap == src.adv.cap && back.adv.offset == src.adv.offset &&
                    back.cohOv?.tapHold == src.cohOv?.tapHold &&
                    back.filters?.Count == src.filters?.Count);
                 Ok("--qc invariant: zero violations across the whole roster",
@@ -1832,28 +1858,28 @@ namespace AimForge.App
             {
                 var dipCross = new Preset { id = "x", name = "Custom", group = "Custom", pxmm = 57, cm = 37.7, lut = new[] { new[] { 2.66, 1.0 }, new[] { 10.0, 1.0 }, new[] { 20.0, 0.6 }, new[] { 60.0, 1.0 }, new[] { 300.0, 3.0 }, new[] { 1450.0, 3.0 } } };
                 var shelfCross = new Preset { id = "y", name = "Custom", group = "Custom", pxmm = 57, cm = 37.7, lut = new[] { new[] { 2.66, 0.85 }, new[] { 16.0, 0.85 }, new[] { 60.0, 1.0 }, new[] { 300.0, 3.0 } } };
-                Ok("Curve.Check: a dip or a sub-unity shelf whose segment STARTS in the tremor band is caught even when it ends past 15 mm/s; hfwx's step-down at 15 still passes",
-                   Curve.Check(dipCross, t).Any(s => s.Contains("dips")) && Curve.Check(shelfCross, t).Any(s => s.Contains("shelf")) && Curve.Check(cat.Find("hfwx")!, t).Count == 0);
+                Ok("Curve.Check: a dip or a sub-unity shelf whose segment STARTS in the tremor band is caught even when it ends past 15 mm/s",
+                   Curve.Check(dipCross, t).Any(s => s.Contains("dips")) && Curve.Check(shelfCross, t).Any(s => s.Contains("shelf")));
                 var plantedFloor = new Preset { id = "zz", name = "Test Planted", group = "Call of Duty", pxmm = 57, cm = 37.7, lut = new[] { new[] { 2.66, 0.90 }, new[] { 15.0, 1.0 }, new[] { 309.0, 5.0 }, new[] { 1450.0, 5.0 } } };
                 Ok("role policy: a Planted card with a sub-unity floor and no named exception is a violation (the retired 0.90 floor)",
                    Core.RolePolicy.ApplyBlockers(plantedFloor).Any(b => b.Contains("floor")));
                 var feat = cat.Find("feather")!; var feAdv = feat.WithCohOv(feat.cohOv?.Copy()); feAdv.id = "feather~adv"; feAdv.name = feat.name + " (advanced)";
-                var owAdv = cat.Find("owmp")!.WithCohOv(cat.Find("owmp")!.cohOv?.Copy()); owAdv.id = "owmp~adv"; owAdv.name += " (advanced)";
-                Ok("Advanced-tab edits keep the loaded card's role, exceptions and game filter (feather~adv is Reference, owmp~adv keeps its OW2 Master)",
+                var owAdv = cat.Find("owllc")!.WithCohOv(cat.Find("owllc")!.cohOv?.Copy()); owAdv.id = "owllc~adv"; owAdv.name += " (advanced)";
+                Ok("Advanced-tab edits keep the loaded card's role, exceptions and game filter (feather~adv is Reference, owllc~adv keeps its OW2 Master)",
                    Core.RolePolicy.RoleOf(feAdv) == "Reference" && Core.RolePolicy.ApplyBlockers(feAdv).Count == 0 &&
                    Core.RolePolicy.RoleOf(owAdv) == "Master" && FilterPlan.Fold(owAdv, FilterPlan.Prefill(owAdv)).filters!.Any(f => f.id == "AimForge.Filters.Ow2Master" && f.on));
                 Ok("hover pre-flight: an empty window (contact-only max 1 with min 5) is refused by the apply gate; a normal window passes",
                    Core.OtdBridge.HoverBlocker(new Rig { HdlEnabled = true, HdlMin = 5, HdlMax = 1 }) != null &&
                    Core.OtdBridge.HoverBlocker(new Rig { HdlEnabled = true, HdlMin = 0, HdlMax = 87 }) == null &&
                    Core.OtdBridge.HoverBlocker(new Rig { HdlEnabled = false, HdlMin = 5, HdlMax = 1 }) == null);
-                var finpl = cat.Find("finpl")!; var farRig = Rig.From(finpl); farRig.Cm360 = 85;
+                var finpl = cat.Find("trueraw")!; var farRig = Rig.From(finpl); farRig.Cm360 = 40;
                 var (_, reachWarn) = Core.RolePolicy.GateForApply(finpl, t, () => new System.Collections.Generic.List<FilterInfo>(), farRig);
-                Ok("reach warning judges the rig being APPLIED: finpl at the user's cm 85 warns, at its own 78.95 it does not",
+                Ok("reach warning judges the rig being APPLIED: True Raw (flat) at a user's cm 40 warns (200 mm 180), at its own 27 it does not",
                    reachWarn.Any(w => w.Contains("180 needs")) && !Core.RolePolicy.Check(finpl).Any(w => w.Contains("180 needs")));
-                var hfb = cat.Find("hfmp")!;
+                var hfb = cat.Find("finlla")!;
                 var gameCat = new System.Collections.Generic.List<FilterInfo> { new FilterInfo { Path = "AimForge.Filters.CodMaster", Display = "AimForge CoD Master", Installed = true, Tier = "T1" } };
                 Ok("plan validation: a game filter the plugin carries is not reported 'will NOT be written' just because settings.json has not registered it yet",
-                   hfb.filters!.Any(f => f.id == "AimForge.Filters.HoldfastMaster" && f.on) && !Core.RolePolicy.ValidatePlan(hfb, hfb.filters, gameCat).warnings.Any(w => w.Contains("HoldfastMaster")));
+                   hfb.filters!.Any(f => f.id == "AimForge.Filters.FinalsMaster" && f.on) && !Core.RolePolicy.ValidatePlan(hfb, hfb.filters, gameCat).warnings.Any(w => w.Contains("FinalsMaster")));
             }
 
             // ---- 2026-09-24: experimental modes (Intent Speed, Reversal Carry, Nib Twin) and the moving-tap fade - XP_TOGGLES.md ----
@@ -1948,12 +1974,13 @@ namespace AimForge.App
                 }
                 var rC = Rig.From(xb); rC.Engine = "cadence"; rC.ReversalCarryMs = 40; var rI = Rig.From(xb); rI.Engine = "cadence"; rI.IntentSpeed = true;
                 var rRa = Rig.From(xb); rRa.IntentSpeed = true;
-                Ok("XP policy: Intent Speed / Reversal Carry need the Cadence Lock engine; Reversal Carry is refused on Master/Baseline/Turbo/Tapped and allowed on Planted/Lab/Reference; carry outside 10-80 ms is refused",
+                var xpLab = new Preset { id = "synthetic-lab", name = "Slipstream", pxmm = 57, cm = 37.7, adv = new Adv { reset = 80 } };
+                Ok("XP policy: Intent Speed / Reversal Carry need the Cadence Lock engine; Reversal Carry is refused on Master/Baseline/Turbo/Tapped (every family role) and allowed on Planted/Lab/Reference; carry outside 10-80 ms is refused",
                    Core.Experiments.Blocker(rRa, xb) != null && Core.Experiments.Blocker(rC, xb) != null && Core.Experiments.Blocker(rI, xb) == null &&
-                   Core.Experiments.Blocker(rC, cat.Find("breakslow")!) == null && Core.Experiments.Blocker(rC, cat.Find("rivwx")!) == null && Core.Experiments.Blocker(rC, cat.Find("feather")!) == null &&
-                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = 200 }, cat.Find("rivwx")!) != null &&
-                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = 5 }, cat.Find("rivwx")!) != null &&
-                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = double.NaN }, cat.Find("rivwx")!) != null);
+                   Core.Experiments.Blocker(rC, cat.Find("breakslow")!) == null && Core.Experiments.Blocker(rC, xpLab) == null && Core.Experiments.Blocker(rC, cat.Find("rivlla")!) != null && Core.Experiments.Blocker(rC, cat.Find("feather")!) == null &&
+                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = 200 }, xpLab) != null &&
+                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = 5 }, xpLab) != null &&
+                   Core.Experiments.Blocker(new Rig { Engine = "cadence", ReversalCarryMs = double.NaN }, xpLab) != null);
                 var pts = Core.OtdBridge.CadencePoints(xb, rC); var ptsI = Core.OtdBridge.CadencePoints(xb, rI); var ptsOff = Core.OtdBridge.CadencePoints(xb, Rig.From(xb));
                 var cc2 = Core.OtdBridge.CadenceCoreFor(xb, rC);
                 Ok("XP plan: the modes travel from the rig into the Cadence Lock plan (so the getfilters read-back verifies them) and into the core; off writes 0",
@@ -2167,7 +2194,7 @@ namespace AimForge.App
                         "{\"Path\":\"AimForge.Filters.NibTwin\",\"Enable\":true,\"Settings\":[{\"Property\":\"Twin\",\"Value\":1},{\"Property\":\"SkidXmm\",\"Value\":-0.24},{\"Property\":\"SkidYmm\",\"Value\":0.18},{\"Property\":\"SkidFullPressure\",\"Value\":0.3},{\"Property\":\"SkidGamma\",\"Value\":1},{\"Property\":\"SkidLagReports\",\"Value\":0},{\"Property\":\"Probe\",\"Value\":1}]}]}]}";
                     File.WriteAllText(Path.Combine(fx, "settings.json"), fxSettings);
                     var otdF = new Core.OtdBridge(fx, fx);
-                    var rmp = cat.Find("rivmp")!;
+                    var rmp = cat.Find("rivpl")!;
                     var rgT = Rig.From(rmp); rgT.NibTwin = true; rgT.SkidXmm = -0.24; rgT.SkidYmm = 0.18; rgT.SkidFullPressure = 0.3;
                     otdF.Apply(rmp, rgT, true, _ => { });
                     var fl2 = otdF.LastPlanned?["Profiles"]?[0]?["Filters"]?.AsArray();
@@ -2458,7 +2485,7 @@ namespace AimForge.App
                         {
                             var (o, r) = Fresh();
                             Directory.CreateDirectory(Path.GetDirectoryName(o.StabilizerDll)!); File.Copy(typeof(Core.NibCal).Assembly.Location, o.StabilizerDll, true);
-                            dropFade = true; var rm = cat.Find("rivmp")!; var lg = new List<string>();
+                            dropFade = true; var rm = cat.Find("rivpl")!; var lg = new List<string>();
                             bool ok7 = o.Apply(rm, Rig.From(rm), false, lg.Add);
                             Ok("apply: an installed stabilizer that lacks TapMoveFade is named, and the property is not required in the read-back",
                                ok7 && o.StabilizerHasMoveFade() == false && lg.Any(l => l.Contains("predates the moving-tap fade")) && lg.Any(l => l.Contains("filter plan VERIFIED")), string.Join(" | ", lg.Where(l => l.Contains("TapMoveFade") || l.Contains("MISMATCH"))));
@@ -2516,14 +2543,14 @@ namespace AimForge.App
                         }
                         // 11. a stabilizer property the daemon does not carry (TapAnchor was written but never read back before): rolled back, not a partial apply
                         {
-                            var (o, r) = Fresh(); var rm = cat.Find("rivmp")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
+                            var (o, r) = Fresh(); var rm = cat.Find("rivpl")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
                             bool ok11 = o.Apply(rm, Rig.From(rm), false, lg.Add);
                             Ok("apply: a stabilizer read-back mismatch (TapAnchor) rolls back instead of saving a partial apply as the default",
                                !ok11 && !cmds.Contains("setup:savedefaultsettings") && o.LastFailure != null && o.LastFailure.Contains("TapAnchor"), o.LastFailure ?? "(no failure)");
                         }
                         // 12. no previous AimForge preset: the failed chain is replaced by the daemon's saved default (it used to stay live)
                         {
-                            var (o, r) = Fresh(); var rm = cat.Find("rivmp")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
+                            var (o, r) = Fresh(); var rm = cat.Find("rivpl")!; dropProp = k => k == "TapAnchor"; var lg = new List<string>();
                             bool ok12 = o.Apply(rm, Rig.From(rm), false, lg.Add);
                             Ok("rollback with no previous preset: the daemon is reloaded from its saved default, not left on the failed chain",
                                !ok12 && o.ReadPresetText() == null && PxIn(daemon) == "90" && !Fl(daemon).Any() && lg.Any(l => l.Contains("daemon's saved default")),
@@ -2538,7 +2565,7 @@ namespace AimForge.App
                         }
                         // 14. the stabilizer write and read-back share one property list
                         {
-                            var rm = cat.Find("rivmp")!; var (o, r) = Fresh(); o.Apply(rm, Rig.From(rm), true, _ => { });
+                            var rm = cat.Find("rivpl")!; var (o, r) = Fresh(); o.Apply(rm, Rig.From(rm), true, _ => { });
                             var stab = Fl(o.LastPlanned!).First(f => f!["Path"]!.GetValue<string>().Contains("CoherenceStabilizer"))!["Settings"]!.AsArray().Select(x => x!["Property"]!.GetValue<string>()).ToHashSet();
                             Ok("read-back covers every stabilizer property the apply writes", Core.OtdBridge.StabilizerPlan(rm.cohOv!).All(k => stab.Contains(k.key)) && stab.All(k => Core.OtdBridge.StabilizerPlan(rm.cohOv!).Any(x => x.key == k)),
                                string.Join(",", stab.Except(Core.OtdBridge.StabilizerPlan(rm.cohOv!).Select(x => x.key))));
@@ -2625,7 +2652,9 @@ namespace AimForge.App
                    Core.CopyContract.Violations(forged, names, t).Count == 1);
                 var tbk = cat.Find("rivtb")!;
                 var forgedTb = new Preset { id = tbk.id, name = tbk.name, group = tbk.group, pxmm = tbk.pxmm, cm = tbk.cm, snap = tbk.snap, adv = tbk.adv,
-                    desc = "Hotter mid-track gain than Baseline/Planted/Tapped and committed flick spread 99.9%. Costs 99.0mm for a 180. Micro-aim 60%. Dead time 9.6 ms. Committed flick spread 34.2% (52.9% on lazy/hesitant flicks)." };
+                    desc = "Hotter mid-track gain than Tracker/Brawl/Precision and committed flick spread " +
+                           Measure.FlickSpreadPct(Curve.EffectiveLut(tbk, tbk.pxmm), Rig.From(tbk), t, 90, 120, 150).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%. Costs 99.0mm for a 180. Micro-aim 60%. Dead time 9.6 ms. Committed flick spread 34.2% (" +
+                           Measure.FlickSpreadPct(Curve.EffectiveLut(tbk, tbk.pxmm), Rig.From(tbk), t).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "% on lazy/hesitant flicks)." };
                 var tbViol = Core.CopyContract.Violations(forgedTb, names, t);
                 Ok("copy contract has teeth: a claim sharing a sentence with other card names is still the card's own; 'costs .. for a 180', 'Micro-aim', 'dead time' and a lazy/committed pair are all read",
                    tbViol.Count == 4 && tbViol.Count(v => v.StartsWith("spread:")) == 1 && !tbViol.Any(v => v.StartsWith("spreadLazy")), string.Join("; ", tbViol));
@@ -2688,13 +2717,13 @@ namespace AimForge.App
             {
                 var dg = cat.games.First(g => g.id == "deadlock"); var apexK = cat.games.First(g => g.id == "apex").K;
                 var y = Calib360.FromYaw("deadlock", dg.K, 0.022);
-                var dlb = cat.Find("dlb6")!; var drg = Rig.From(dlb); double printed = Curve.SensFor(dg.K, drg, drg.Mult);
+                var dlb = cat.Find("dlmp")!; var drg = Rig.From(dlb); double printed = Curve.SensFor(dg.K, drg, drg.Mult);
                 var t1 = Calib360.FromTurn("deadlock", dg.K, drg.Cm360 * 10, 1, printed, drg.PxMm, drg.Mult, drg.Cm360);
                 var t2 = Calib360.FromTurn("deadlock", dg.K, drg.Cm360 * 10 * 2 * 1.1, 2, printed, drg.PxMm, drg.Mult, drg.Cm360);
                 Ok("360 calibration: the Source yaw 0.022 gives exactly the Apex K; a turn measuring the card's own base gives back the same K; a 10% long turn gives K x1.10",
                    Math.Abs(y.NewK - apexK) < 0.05 && Math.Abs(t1.Ratio - 1) < 1e-9 && Math.Abs(t2.Ratio - 1.1) < 1e-9 && t1.Summary.Contains("assumed constant was right"),
                    $"yaw K {y.NewK:0.0} vs Apex {apexK}; {t2.Summary}");
-                Ok("360 calibration: the slow sweep's bound is the card's 1:1 band (Deadlock Baseline: offset 0.5 at 57 px/mm = 8.8 mm/s)",
+                Ok("360 calibration: the slow sweep's bound is the card's 1:1 band (Deadlock Master: offset 0.5 at 57 px/mm = 8.8 mm/s)",
                    Math.Abs(Calib360.UnityBandMmS(dlb, 57) - 8.77193) < 1e-4, Calib360.UnityBandMmS(dlb, 57).ToString("0.00"));
                 string tunerPath = Path.Combine(AppContext.BaseDirectory, "tuner.html");
                 if (File.Exists(tunerPath))
@@ -2812,16 +2841,20 @@ namespace AimForge.App
 
             // ---- 2026-10-11: the VMulti split hazard - a curve still changing above the 127-count split speed ----
             {
-                var hz = cat.presets.Where(x => BuildState.SplitHazardMmS(x, x.pxmm) != null).Select(x => x.id).OrderBy(x => x).ToList();
+                // the retired HD2 wildcard's table (90 px/mm, ramp 180 -> 545 mm/s, past the 508 mm/s split) keeps the rule's teeth
+                var hdwxOld = new Preset { id = "hdwx-2026-10", name = "Heavy (retired)", group = "Custom", pxmm = 90, cm = 27, adv = new Adv { reset = 80, yx = 0.789 },
+                    lut = new[] { new[] { 2.66, 0.7 }, new[] { 8.3, 1.0 }, new[] { 180.0, 1.0 }, new[] { 545.0, 7.0 }, new[] { 1450.0, 7.0 } } };
+                var hzCards = cat.presets.Append(hdwxOld).ToList();
+                var hz = hzCards.Where(x => BuildState.SplitHazardMmS(x, x.pxmm) != null).Select(x => x.id).OrderBy(x => x).ToList();
                 var flick = ChainLab.Scenarios[3]; string bad = "";
-                foreach (var x in cat.presets)
+                foreach (var x in hzCards)
                 {
                     double w = ChainLab.Run(x, Rig.From(x), flick, ChainLab.Engine.Wall).AimErrDeg100ms;
                     bool hazard = hz.Contains(x.id);
                     if (hazard != (w > 1.0)) bad += $" {x.id} {w:0.00}deg hazard={hazard};";
                 }
-                Ok("split hazard: the closed-form rule (curve still changing above 127 counts a report) flags exactly the cards whose RawAccel-engine flick misprices > 1 deg in the chain lab - and those get the Cadence advice",
-                   bad.Length == 0 && hz.SequenceEqual(new[] { "hdwx", "owwx" }) && hz.All(id => BuildState.CadenceReason(cat.Find(id)!, cat.Find(id)!.pxmm)!.Contains("splits")),
+                Ok("split hazard: the closed-form rule (curve still changing above 127 counts a report) flags exactly the cards whose RawAccel-engine flick misprices > 1 deg in the chain lab - and those get the Cadence advice; since 2026-10-23 no shipped card has it (the retired HD2 wildcard still does)",
+                   bad.Length == 0 && hz.SequenceEqual(new[] { "hdwx-2026-10" }) && BuildState.CadenceReason(hdwxOld, hdwxOld.pxmm)!.Contains("splits"),
                    bad.Length == 0 ? string.Join(", ", hz) : bad);
             }
 

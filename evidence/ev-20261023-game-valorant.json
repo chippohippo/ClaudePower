@@ -1,0 +1,547 @@
+{
+  "evidenceId": "ev-20261023-game-valorant",
+  "date": "2026-10-23",
+  "game": "Valorant",
+  "proRange": {
+    "median": 54,
+    "lo": 47,
+    "hi": 71,
+    "source": "prosettings (701 pros, median eDPI 240) / senslab (605 pros, median 58.3 cm)"
+  },
+  "character": "one-tap headshots after a counter-strafe stop, crosshair placement, very short time-to-kill",
+  "fights": [
+    {
+      "Name": "V1 hold an angle, peeker at 20m",
+      "tag": "Prec",
+      "D": 20,
+      "Lat": 5.4,
+      "W": 0.3,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "V2 counter-strafe duel 15m",
+      "tag": "Track",
+      "D": 15,
+      "Lat": 3,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "V3 off-angle flick 45deg 12m",
+      "tag": "Flick",
+      "D": 12,
+      "Lat": 3,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 45,
+      "TargetR": 0
+    },
+    {
+      "Name": "V4 close spray 6m \u002B recoil",
+      "tag": "Brawl",
+      "D": 6,
+      "Lat": 5.4,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 2,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "V5 Operator peek 40m, 25deg snap",
+      "tag": "Sig",
+      "D": 40,
+      "Lat": 5.4,
+      "W": 0.1,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 25,
+      "TargetR": 0.3
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset \u003C= 2 reports, micro 90-130% through the card\u0027s own filter, the role\u0027s 180 limit, no report above 600 mm/s, tap-fire roles click skid \u003C= BO6 base \u002B 15%",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "valmp",
+      "name": "Master Preset",
+      "cm": 54,
+      "snap": 3,
+      "accel": 0.6525,
+      "cap": 4,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm54 off40 G4 @150 s3",
+      "rel": 1.2673111311178986,
+      "regret": 1.3093884722097506,
+      "Turn180Mm": 67.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.255,
+          "targetRadii": 0.219,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.212,
+          "targetRadii": 0.156,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.17,
+          "targetRadii": 2.12,
+          "onTargetPct": 70
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.128,
+          "targetRadii": 0.269,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.085,
+          "targetRadii": 2.119,
+          "onTargetPct": 70.8
+        },
+        {
+          "Name": "R re-acquire 90deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.464,
+          "onTargetPct": 86.3
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm54 off40 G4 @150 s3",
+          "Rel": 1.2673111311178986,
+          "Regret": 1.3093884722097506
+        },
+        {
+          "Name": "early-sat cm54 G4 @200 s5",
+          "Rel": 1.3372305498628645,
+          "Regret": 1.4043662958679415
+        },
+        {
+          "Name": "early-sat cm54 G4 @150 s5",
+          "Rel": 1.3775626534153695,
+          "Regret": 1.454822743524061
+        },
+        {
+          "Name": "early-sat cm54 G5 @150 s5",
+          "Rel": 1.503515909269603,
+          "Regret": 1.6097154765332706
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "valpl",
+      "name": "Precision",
+      "cm": 62,
+      "snap": 5,
+      "accel": 1.2183,
+      "cap": 3.5,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm62 off40 G3.5 @100 s5",
+      "rel": 1.0228358092894958,
+      "regret": 1.0329777292394224,
+      "Turn180Mm": 88.57142857142856,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.512,
+          "targetRadii": 0.207,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.142,
+          "targetRadii": 0.141,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.114,
+          "targetRadii": 1.745,
+          "onTargetPct": 69.7
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.026,
+          "targetRadii": 0.36,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.057,
+          "targetRadii": 1.322,
+          "onTargetPct": 77.3
+        },
+        {
+          "Name": "R re-acquire 90deg/207ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.106,
+          "onTargetPct": 83.5
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm62 off40 G3.5 @150 s9",
+          "Rel": 1.0269062535609406,
+          "Regret": 1.0232047636721262
+        },
+        {
+          "Name": "tl-sat cm62 off40 G3.5 @100 s5",
+          "Rel": 1.0228358092894958,
+          "Regret": 1.0329777292394224
+        },
+        {
+          "Name": "tl-sat cm62 off40 G4 @100 s5",
+          "Rel": 1.0413597645602668,
+          "Regret": 1.0468471044556924
+        },
+        {
+          "Name": "tl-sat cm62 off40 G4 @150 s9",
+          "Rel": 1.0447099298524847,
+          "Regret": 1.049580083155986
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "vallla",
+      "name": "Tracker",
+      "cm": 54,
+      "snap": 5,
+      "accel": 2.4854,
+      "cap": 4,
+      "offset": 6.27,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm54 off110 G4 @170 s5",
+      "rel": 1.01153323204262,
+      "regret": 1.0212368383405526,
+      "Turn180Mm": 67.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.102,
+          "targetRadii": 0.219,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.51,
+          "targetRadii": 0.156,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.068,
+          "targetRadii": 3.168,
+          "onTargetPct": 62
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.102,
+          "targetRadii": 0.162,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.068,
+          "targetRadii": 4.771,
+          "onTargetPct": 73.8
+        },
+        {
+          "Name": "R re-acquire 90deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.541,
+          "onTargetPct": 90
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm54 off110 G4 @170 s5",
+          "Rel": 1.01153323204262,
+          "Regret": 1.0212368383405526
+        },
+        {
+          "Name": "tl-sat cm54 off110 G4 @220 s5",
+          "Rel": 1.035535162612081,
+          "Regret": 1.045970396580854
+        },
+        {
+          "Name": "tl-sat cm54 off140 G4 @200 s5",
+          "Rel": 1.0725670132255762,
+          "Regret": 1.0901414017638482
+        },
+        {
+          "Name": "tl-sat cm54 off110 G5 @170 s5",
+          "Rel": 1.095168379488304,
+          "Regret": 1.1211751589487506
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "valtb",
+      "name": "Flick",
+      "cm": 54,
+      "snap": 9,
+      "accel": 0.6807,
+      "cap": 5,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "early-sat cm54 G5 @120 s9",
+      "rel": 1.0705094584623156,
+      "regret": 1.0961824070499584,
+      "Turn180Mm": 54,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5076841711997986,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.212,
+          "targetRadii": 0.363,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.089,
+          "targetRadii": 0.191,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.425,
+          "targetRadii": 1.745,
+          "onTargetPct": 76
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.053,
+          "targetRadii": 0.337,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.071,
+          "targetRadii": 1.749,
+          "onTargetPct": 72.2
+        },
+        {
+          "Name": "R re-acquire 90deg/153ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.655,
+          "onTargetPct": 90.4
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm54 G5 @120 s9",
+          "Rel": 1.0705094584623156,
+          "Regret": 1.0961824070499584
+        },
+        {
+          "Name": "early-sat cm54 G5 @90 s9",
+          "Rel": 1.1505621324265378,
+          "Regret": 1.1774784508761318
+        },
+        {
+          "Name": "early-sat cm54 G6 @120 s9",
+          "Rel": 1.176688585721259,
+          "Regret": 1.2631363493842438
+        },
+        {
+          "Name": "early-sat cm54 G6 @90 s5",
+          "Rel": 1.2230105470877444,
+          "Regret": 1.3070773581601984
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "valllb",
+      "name": "Brawl",
+      "cm": 47,
+      "snap": 5,
+      "accel": 0.3298,
+      "cap": 3.5,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm47 G3.5 @150 s5",
+      "rel": 1.1059777422731103,
+      "regret": 1.1402075555098976,
+      "Turn180Mm": 67.14285714285714,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.4110642075538635,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.07,
+          "targetRadii": 0.3,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.195,
+          "targetRadii": 0.185,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.156,
+          "targetRadii": 1.839,
+          "onTargetPct": 77.3
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.351,
+          "targetRadii": 0.223,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.078,
+          "targetRadii": 1.693,
+          "onTargetPct": 72.2
+        },
+        {
+          "Name": "R re-acquire 90deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.337,
+          "onTargetPct": 86.5
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm47 G3.5 @150 s5",
+          "Rel": 1.1059777422731103,
+          "Regret": 1.1402075555098976
+        },
+        {
+          "Name": "early-sat cm47 G4 @150 s5",
+          "Rel": 1.153064532929379,
+          "Regret": 1.1918716354167127
+        },
+        {
+          "Name": "early-sat cm47 G3.5 @110 s5",
+          "Rel": 1.1954337016218723,
+          "Regret": 1.253446020093382
+        },
+        {
+          "Name": "early-sat cm47 G3.5 @200 s5",
+          "Rel": 1.2185057575198444,
+          "Regret": 1.2594595507392428
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "valllc",
+      "name": "Operator",
+      "cm": 62,
+      "snap": 9,
+      "accel": 0.565,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "early-sat cm62 G4 @110 s9",
+      "rel": 1.2129298623640152,
+      "regret": 1.2672856432992725,
+      "Turn180Mm": 77.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.4734388440847397,
+      "perScenario": [
+        {
+          "Name": "V1 hold an angle, peeker at 20m",
+          "weight": 0.15,
+          "targetRadii": 0.324,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V2 counter-strafe duel 15m",
+          "weight": 0.125,
+          "targetRadii": 0.174,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V3 off-angle flick 45deg 12m",
+          "weight": 0.1,
+          "targetRadii": 1.599,
+          "onTargetPct": 77
+        },
+        {
+          "Name": "V4 close spray 6m \u002B recoil",
+          "weight": 0.075,
+          "targetRadii": 0.362,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "V5 Operator peek 40m, 25deg snap",
+          "weight": 0.4,
+          "targetRadii": 1.287,
+          "onTargetPct": 77.8
+        },
+        {
+          "Name": "R re-acquire 90deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.219,
+          "onTargetPct": 91
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm62 off40 G4 @100 s5",
+          "Rel": 1.125474524633442,
+          "Regret": 1.2450051586582873
+        },
+        {
+          "Name": "early-sat cm62 G4 @110 s9",
+          "Rel": 1.2129298623640152,
+          "Regret": 1.2672856432992725
+        },
+        {
+          "Name": "early-sat cm62 G4 @150 s9",
+          "Rel": 1.2247431397241242,
+          "Regret": 1.3453510534426156
+        },
+        {
+          "Name": "early-sat cm62 G5 @110 s9",
+          "Rel": 1.284185030698471,
+          "Regret": 1.3543327543778465
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

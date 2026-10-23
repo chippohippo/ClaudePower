@@ -127,6 +127,8 @@ namespace AimForge.Core
         public string group { get; set; } = "";
         /// The game this card plays (GAMES id from the tuner, generated); null for reference cards.
         public string? game { get; set; }
+        /// GameLab only: the lab's game-filter verdict for a card being authored (exported as the tuner's gameFilter).
+        [System.Text.Json.Serialization.JsonIgnore] public bool gameFilterOn;
         public string tag { get; set; } = "";
         public string? field { get; set; }
         public string desc { get; set; } = "";

@@ -31,7 +31,7 @@ namespace AimForge.Core
             {
                 case "holdfast":
                     return new FilterPlan { TapHold = 60, TapBreak = 0.6,
-                        Rationale = "musket taps: the skid is pressure-domain and only the pin addresses it - the Tapped card ships this on" };
+                        Rationale = "musket taps: the skid is pressure-domain and only the pin addresses it - the tap-fire roles ship this on" };
                 case "val":
                     return new FilterPlan { TapHold = 45, TapBreak = 0.6,
                         Rationale = "one-taps: a pin through the counter-strafe click costs nothing; remember fire must be a keyboard key under Vanguard" };

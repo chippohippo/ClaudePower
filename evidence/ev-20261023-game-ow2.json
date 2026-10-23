@@ -1,0 +1,547 @@
+{
+  "evidenceId": "ev-20261023-game-ow2",
+  "date": "2026-10-23",
+  "game": "Overwatch 2",
+  "proRange": {
+    "median": 35,
+    "lo": 27,
+    "hi": 41,
+    "source": "senslab (236 pros, median eDPI 4000 = 34.6 cm, 27-41)"
+  },
+  "character": "hitscan tracking of hectic movement and fliers, one-shot flicks for snipers, projectile leading",
+  "fights": [
+    {
+      "Name": "O1 hitscan strafe track 15m",
+      "tag": "Track",
+      "D": 15,
+      "Lat": 5.5,
+      "W": 0.3,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "O2 flier 25m",
+      "tag": "Track",
+      "D": 25,
+      "Lat": 8,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "O3 sniper head switch 20deg 30m",
+      "tag": "Prec",
+      "D": 30,
+      "Lat": 3,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 20,
+      "TargetR": 0
+    },
+    {
+      "Name": "O4 dive brawl 5m",
+      "tag": "Brawl",
+      "D": 5,
+      "Lat": 8,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "O5 projectile lead 15m",
+      "tag": "Sig",
+      "D": 15,
+      "Lat": 5.5,
+      "W": 0.15,
+      "Proj": 50,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset \u003C= 2 reports, micro 90-130% through the card\u0027s own filter, the role\u0027s 180 limit, no report above 600 mm/s, tap-fire roles click skid \u003C= BO6 base \u002B 15%",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "owmp",
+      "name": "Master Preset",
+      "cm": 35,
+      "snap": 9,
+      "accel": 0.1919,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm35 G3 @200 s9",
+      "rel": 1.1674212906573451,
+      "regret": 1.2003517627544145,
+      "Turn180Mm": 58.33333333333333,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.3763301149010658,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.255,
+          "targetRadii": 0.275,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.17,
+          "targetRadii": 0.445,
+          "onTargetPct": 98.5
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.128,
+          "targetRadii": 3.592,
+          "onTargetPct": 61.8
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.17,
+          "targetRadii": 0.137,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.128,
+          "targetRadii": 0.266,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.581,
+          "onTargetPct": 90.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm35 G3 @200 s9",
+          "Rel": 1.1674212906573451,
+          "Regret": 1.2003517627544145
+        },
+        {
+          "Name": "early-sat cm35 G3 @150 s9",
+          "Rel": 1.2334698568395992,
+          "Regret": 1.2770315211911254
+        },
+        {
+          "Name": "early-sat cm35 G4 @200 s9",
+          "Rel": 1.2547391374791577,
+          "Regret": 1.311058969638164
+        },
+        {
+          "Name": "tl-sat cm35 off40 G3 @240 s5",
+          "Rel": 1.126335297959797,
+          "Regret": 1.3347811539117655
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "owpl",
+      "name": "Precision",
+      "cm": 41,
+      "snap": 9,
+      "accel": 0.9747,
+      "cap": 3,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm41 off40 G3 @100 s9",
+      "rel": 1.3748096123965468,
+      "regret": 1.4288486688882815,
+      "Turn180Mm": 68.33333333333331,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.22,
+          "targetRadii": 0.219,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.147,
+          "targetRadii": 0.336,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.33,
+          "targetRadii": 3.201,
+          "onTargetPct": 56.6
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.044,
+          "targetRadii": 0.23,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.11,
+          "targetRadii": 0.413,
+          "onTargetPct": 97.7
+        },
+        {
+          "Name": "R re-acquire 120deg/207ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.277,
+          "onTargetPct": 86.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm41 off40 G3 @100 s9",
+          "Rel": 1.3748096123965468,
+          "Regret": 1.4288486688882815
+        },
+        {
+          "Name": "tl-sat cm41 off40 G3.5 @100 s9 \u002BMaster",
+          "Rel": 1.446774879998368,
+          "Regret": 1.517592123370255
+        },
+        {
+          "Name": "tl-sat cm41 off40 G3 @340 s9",
+          "Rel": 1.3637683300613768,
+          "Regret": 1.5368295606634046
+        },
+        {
+          "Name": "tl-sat cm41 off40 G3 @240 s9",
+          "Rel": 1.3612200531183247,
+          "Regret": 1.7714164891343918
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "owlla",
+      "name": "Tracker",
+      "cm": 35,
+      "snap": 3,
+      "accel": 1.6569,
+      "cap": 3,
+      "offset": 6.27,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm35 off110 G3 @170 s3",
+      "rel": 1.0773396558095316,
+      "regret": 1.0941147002883382,
+      "Turn180Mm": 58.33333333333333,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.397,
+          "targetRadii": 0.242,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.265,
+          "targetRadii": 0.356,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.033,
+          "targetRadii": 10.66,
+          "onTargetPct": 48
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.088,
+          "targetRadii": 0.114,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.066,
+          "targetRadii": 0.222,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.995,
+          "onTargetPct": 85.6
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm35 off110 G3 @220 s9",
+          "Rel": 1.0421984829738051,
+          "Regret": 1.0478899742182755
+        },
+        {
+          "Name": "tl-sat cm35 off140 G3 @250 s9",
+          "Rel": 1.07701472790841,
+          "Regret": 1.0865269094646874
+        },
+        {
+          "Name": "tl-sat cm35 off110 G3 @170 s3",
+          "Rel": 1.0773396558095316,
+          "Regret": 1.0941147002883382
+        },
+        {
+          "Name": "tl-sat cm35 off110 G3 @310 s9",
+          "Rel": 1.1265273447409128,
+          "Regret": 1.1186648824532246
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "owtb",
+      "name": "Flick",
+      "cm": 35,
+      "snap": 5,
+      "accel": 0.9828,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm35 G4 @70 s5",
+      "rel": 1.4086880722474102,
+      "regret": 1.468202971610705,
+      "Turn180Mm": 43.75,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5891245156526566,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.196,
+          "targetRadii": 0.431,
+          "onTargetPct": 99
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.131,
+          "targetRadii": 0.815,
+          "onTargetPct": 79.5
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.196,
+          "targetRadii": 3.148,
+          "onTargetPct": 51.4
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.131,
+          "targetRadii": 0.203,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.196,
+          "targetRadii": 0.435,
+          "onTargetPct": 96.9
+        },
+        {
+          "Name": "R re-acquire 120deg/153ms 8m",
+          "weight": 0.15,
+          "targetRadii": 2.421,
+          "onTargetPct": 83.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm35 G4 @70 s5",
+          "Rel": 1.4086880722474102,
+          "Regret": 1.468202971610705
+        },
+        {
+          "Name": "early-sat cm35 G4 @90 s9",
+          "Rel": 1.2501965527911765,
+          "Regret": 1.5947883637503215
+        },
+        {
+          "Name": "early-sat cm35 G4 @160 s9",
+          "Rel": 1.285087317000529,
+          "Regret": 1.7743416581412053
+        },
+        {
+          "Name": "early-sat cm35 G5 @160 s9 \u002BMaster",
+          "Rel": 1.3450937649027586,
+          "Regret": 1.903169546913583
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "owllb",
+      "name": "Brawl",
+      "cm": 27,
+      "snap": 9,
+      "accel": 0.1084,
+      "cap": 2.5,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm27 G2.5 @260 s9",
+      "rel": 1.195176614040389,
+      "regret": 1.21482109388851,
+      "Turn180Mm": 54,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.35159438103437424,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.197,
+          "targetRadii": 0.306,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.131,
+          "targetRadii": 0.446,
+          "onTargetPct": 98.9
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.03,
+          "targetRadii": 3.195,
+          "onTargetPct": 59.1
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.394,
+          "targetRadii": 0.127,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.098,
+          "targetRadii": 0.255,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.695,
+          "onTargetPct": 88.5
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm27 G2.5 @260 s9",
+          "Rel": 1.195176614040389,
+          "Regret": 1.21482109388851
+        },
+        {
+          "Name": "tl-sat cm27 off70 G3 @220 s9",
+          "Rel": 1.1007592493879335,
+          "Regret": 1.2610038748066272
+        },
+        {
+          "Name": "early-sat cm27 G2.5 @200 s9 \u002BMaster",
+          "Rel": 1.23211363085462,
+          "Regret": 1.339999792519161
+        },
+        {
+          "Name": "early-sat cm27 G3 @260 s9 \u002BMaster",
+          "Rel": 1.2302899741820335,
+          "Regret": 1.3427630247903006
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "owllc",
+      "name": "Projectile",
+      "cm": 35,
+      "snap": 9,
+      "accel": 0.667,
+      "cap": 3,
+      "offset": 6.84,
+      "gameFilter": true,
+      "tapAnchor": false,
+      "winner": "tl-sat cm35 off120 G3 @230 s9 \u002BMaster",
+      "rel": 1.1323093817680538,
+      "regret": 1.167670986759593,
+      "Turn180Mm": 58.33333333333333,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "O1 hitscan strafe track 15m",
+          "weight": 0.124,
+          "targetRadii": 0.24,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O2 flier 25m",
+          "weight": 0.083,
+          "targetRadii": 0.469,
+          "onTargetPct": 95.7
+        },
+        {
+          "Name": "O3 sniper head switch 20deg 30m",
+          "weight": 0.062,
+          "targetRadii": 8.676,
+          "onTargetPct": 54.3
+        },
+        {
+          "Name": "O4 dive brawl 5m",
+          "weight": 0.083,
+          "targetRadii": 0.099,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "O5 projectile lead 15m",
+          "weight": 0.498,
+          "targetRadii": 0.195,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/180ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.875,
+          "onTargetPct": 88.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm35 off120 G3 @230 s9 \u002BMaster",
+          "Rel": 1.1323093817680538,
+          "Regret": 1.167670986759593
+        },
+        {
+          "Name": "tl-sat cm35 off80 G3 @280 s9 \u002BMaster",
+          "Rel": 1.0568018436596331,
+          "Regret": 1.2399983473783258
+        },
+        {
+          "Name": "tl-sat cm35 off120 G3 @320 s9 \u002BMaster",
+          "Rel": 1.1572646800370534,
+          "Regret": 1.245510109566586
+        },
+        {
+          "Name": "tl-sat cm35 off40 G3 @240 s9",
+          "Rel": 1.2277657574897194,
+          "Regret": 1.3715740847848998
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

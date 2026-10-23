@@ -52,8 +52,8 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **272 headless selftests pass (cloud, 2026-10-11); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 86 cards.
-- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
+- Current state: **264 headless selftests pass (cloud, 2026-10-23); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 63 cards. The game families were re-derived by `--game-lab` (see `GAME_FAMILIES.md`).
+- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--game-lab <game|all> [role]`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
 
@@ -151,5 +151,5 @@ Everything below needs the user at the tablet; none of it can be closed from the
 ## Ideas not started
 
 - Make `--apply` read the saved engine from `engine.txt` (the window does; the CLI defaults to RawAccel unless `--engine cadence` is passed).
-- A Lab (wildcard) card for Deadlock, for parity with the other families.
+- Re-run HeroLab for the character cards against the re-derived game Masters (the Rivals Master now re-acquires Psylocke's 135° more consistently than the Psylocke card).
 - Per-game camera arm for the third-person match (one global value today).

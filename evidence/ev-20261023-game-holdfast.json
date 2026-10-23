@@ -1,0 +1,547 @@
+{
+  "evidenceId": "ev-20261023-game-holdfast",
+  "date": "2026-10-23",
+  "game": "Holdfast",
+  "proRange": {
+    "median": 40,
+    "lo": 34,
+    "hi": 46,
+    "source": "no pro data - a 40 cm base for single slow shots, \u002B-15% for the role spread"
+  },
+  "character": "one slow, still musket shot per 12 s reload, heavy drop and random sideways spread, directional melee strokes",
+  "fights": [
+    {
+      "Name": "M1 musket shot at a walking line 50m",
+      "tag": "Prec",
+      "D": 50,
+      "Lat": 1.5,
+      "W": 0.35,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "M2 skirmisher 20m",
+      "tag": "Track",
+      "D": 20,
+      "Lat": 4,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "M3 flank switch 40deg 25m",
+      "tag": "Flick",
+      "D": 25,
+      "Lat": 2,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 40,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "M4 close skirmish 6m",
+      "tag": "Brawl",
+      "D": 6,
+      "Lat": 5,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.4
+    },
+    {
+      "Name": "M5 melee duel 2m",
+      "tag": "Sig",
+      "D": 2,
+      "Lat": 6,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.8
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset \u003C= 2 reports, micro 90-130% through the card\u0027s own filter, the role\u0027s 180 limit, no report above 600 mm/s, tap-fire roles click skid \u003C= BO6 base \u002B 15%",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "hfmp",
+      "name": "Master Preset",
+      "cm": 40,
+      "snap": 9,
+      "accel": 0.3767,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "early-sat cm40 G3 @110 s9",
+      "rel": 1.1112607223484074,
+      "regret": 1.12136470112569,
+      "Turn180Mm": 66.66666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.42914462089538574,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.298,
+          "targetRadii": 0.209,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.17,
+          "targetRadii": 0.138,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.128,
+          "targetRadii": 1.243,
+          "onTargetPct": 80.4
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.128,
+          "targetRadii": 0.084,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.128,
+          "targetRadii": 0.047,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/250ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.476,
+          "onTargetPct": 87.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm40 G3 @110 s9",
+          "Rel": 1.1112607223484074,
+          "Regret": 1.12136470112569
+        },
+        {
+          "Name": "early-sat cm40 G3 @80 s9",
+          "Rel": 1.1711374874446026,
+          "Regret": 1.19690630060777
+        },
+        {
+          "Name": "early-sat cm40 G3 @150 s9",
+          "Rel": 1.1464534089431264,
+          "Regret": 1.2032777800153363
+        },
+        {
+          "Name": "early-sat cm40 G4 @110 s9",
+          "Rel": 1.180545534549796,
+          "Regret": 1.2429585137399555
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "hfpl",
+      "name": "Precision",
+      "cm": 46,
+      "snap": 9,
+      "accel": 0.731,
+      "cap": 2.5,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm46 off40 G2.5 @100 s9",
+      "rel": 1.0510386640080722,
+      "regret": 1.0585237676906885,
+      "Turn180Mm": 92,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.56,
+          "targetRadii": 0.182,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.107,
+          "targetRadii": 0.105,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.08,
+          "targetRadii": 1.253,
+          "onTargetPct": 80.8
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.024,
+          "targetRadii": 0.09,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.08,
+          "targetRadii": 0.059,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/288ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.362,
+          "onTargetPct": 92.9
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm46 off40 G2.5 @150 s9",
+          "Rel": 1.0278357485076781,
+          "Regret": 1.0374967323815922
+        },
+        {
+          "Name": "tl-sat cm46 off40 G2.5 @100 s9",
+          "Rel": 1.0510386640080722,
+          "Regret": 1.0585237676906885
+        },
+        {
+          "Name": "tl-sat cm46 off40 G3 @100 s9",
+          "Rel": 1.0871201022335109,
+          "Regret": 1.093593754419677
+        },
+        {
+          "Name": "tl-sat cm46 off40 G3.5 @100 s9",
+          "Rel": 1.109406267103354,
+          "Regret": 1.1185801857432462
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "hflla",
+      "name": "Tracker",
+      "cm": 40,
+      "snap": 9,
+      "accel": 0.2719,
+      "cap": 3,
+      "offset": 6.27,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm40 off110 G3 @310 s9",
+      "rel": 1.143068674920283,
+      "regret": 1.1723773722359878,
+      "Turn180Mm": 66.66666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.129,
+          "targetRadii": 0.209,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.443,
+          "targetRadii": 0.116,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.055,
+          "targetRadii": 3.9,
+          "onTargetPct": 68.8
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.111,
+          "targetRadii": 0.061,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.111,
+          "targetRadii": 0.05,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/250ms 8m",
+          "weight": 0.15,
+          "targetRadii": 2.463,
+          "onTargetPct": 84.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm40 off110 G3 @310 s9",
+          "Rel": 1.143068674920283,
+          "Regret": 1.1723773722359878
+        },
+        {
+          "Name": "tl-sat cm40 off110 G3 @220 s9",
+          "Rel": 1.2408022472463223,
+          "Regret": 1.2589681843000118
+        },
+        {
+          "Name": "tl-sat cm40 off140 G3 @250 s9",
+          "Rel": 1.255933053478343,
+          "Regret": 1.291748274266111
+        },
+        {
+          "Name": "tl-sat cm40 off140 G3 @340 s9",
+          "Rel": 1.2613716773287078,
+          "Regret": 1.342262008900049
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "hftb",
+      "name": "Flick",
+      "cm": 40,
+      "snap": 9,
+      "accel": 0.9828,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "early-sat cm40 G4 @70 s9",
+      "rel": 1.0571064238501542,
+      "regret": 1.066775017962731,
+      "Turn180Mm": 50,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5891245156526566,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.264,
+          "targetRadii": 0.209,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.076,
+          "targetRadii": 0.186,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.34,
+          "targetRadii": 1.215,
+          "onTargetPct": 81.6
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.057,
+          "targetRadii": 0.108,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.113,
+          "targetRadii": 0.057,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/213ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.582,
+          "onTargetPct": 93.4
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm40 G4 @70 s9",
+          "Rel": 1.0571064238501542,
+          "Regret": 1.066775017962731
+        },
+        {
+          "Name": "early-sat cm40 G4 @90 s9",
+          "Rel": 1.0285963472626576,
+          "Regret": 1.0748002480518295
+        },
+        {
+          "Name": "early-sat cm40 G5 @70 s9",
+          "Rel": 1.1052485019779454,
+          "Regret": 1.115497134614499
+        },
+        {
+          "Name": "early-sat cm40 G5 @90 s9",
+          "Rel": 1.0703988213490216,
+          "Regret": 1.145677692584762
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "hfllb",
+      "name": "Brawl",
+      "cm": 34,
+      "snap": 9,
+      "accel": 0.2825,
+      "cap": 2.5,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm34 G2.5 @110 s9",
+      "rel": 1.1069828468179654,
+      "regret": 1.1212041168713343,
+      "Turn180Mm": 68,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.40440475940704346,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.085,
+          "targetRadii": 0.246,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.161,
+          "targetRadii": 0.144,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.121,
+          "targetRadii": 1.233,
+          "onTargetPct": 81.6
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.363,
+          "targetRadii": 0.08,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.121,
+          "targetRadii": 0.045,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/250ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.467,
+          "onTargetPct": 87.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm34 G2.5 @150 s9",
+          "Rel": 1.0734683089982602,
+          "Regret": 1.0920504203301318
+        },
+        {
+          "Name": "early-sat cm34 G2.5 @110 s9",
+          "Rel": 1.1069828468179654,
+          "Regret": 1.1212041168713343
+        },
+        {
+          "Name": "early-sat cm34 G3 @110 s5",
+          "Rel": 1.1770315624757233,
+          "Regret": 1.2005628925764482
+        },
+        {
+          "Name": "early-sat cm34 G3 @150 s9",
+          "Rel": 1.1967318278924555,
+          "Regret": 1.2436797077698287
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "hfllc",
+      "name": "Sabre",
+      "cm": 46,
+      "snap": 9,
+      "accel": 0.3767,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "early-sat cm46 G3 @110 s9",
+      "rel": 1.111520274031996,
+      "regret": 1.1284557546833647,
+      "Turn180Mm": 76.66666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.42914462089538574,
+      "perScenario": [
+        {
+          "Name": "M1 musket shot at a walking line 50m",
+          "weight": 0.145,
+          "targetRadii": 0.182,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M2 skirmisher 20m",
+          "weight": 0.083,
+          "targetRadii": 0.129,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M3 flank switch 40deg 25m",
+          "weight": 0.062,
+          "targetRadii": 1.247,
+          "onTargetPct": 79.1
+        },
+        {
+          "Name": "M4 close skirmish 6m",
+          "weight": 0.062,
+          "targetRadii": 0.084,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "M5 melee duel 2m",
+          "weight": 0.498,
+          "targetRadii": 0.047,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 120deg/250ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.457,
+          "onTargetPct": 88
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm46 G3 @150 s9",
+          "Rel": 1.0525719028531235,
+          "Regret": 1.081633354376615
+        },
+        {
+          "Name": "early-sat cm46 G3 @110 s9",
+          "Rel": 1.111520274031996,
+          "Regret": 1.1284557546833647
+        },
+        {
+          "Name": "early-sat cm46 G3 @80 s9",
+          "Rel": 1.1343062264348485,
+          "Regret": 1.141648619081257
+        },
+        {
+          "Name": "early-sat cm46 G3 @200 s9",
+          "Rel": 1.1619864211816822,
+          "Regret": 1.212051645388747
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

@@ -1,6 +1,32 @@
 # AimForge changelog
 
-What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (261 headless). Nothing here has a field verdict yet; those are listed at the end.
+What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (264 headless). Nothing here has a field verdict yet; those are listed at the end.
+
+## 2026-10-23
+
+### The game families, rebuilt (GAME_FAMILIES.md)
+- **Every game card was replaced.** Each of the 8 games now has 6 cards tuned by the new game lab on that game's own fights: Master, Precision, Tracker, Flick, Brawl and one Signature. They run at the game's pro cm/360 range, not the BO6 number.
+- **They feel different on purpose.**
+  - Precision sits at the slow end with the click pin.
+  - Brawl sits at the fast end.
+  - Flick turns 180° in 38–54 mm.
+  - Tracker keeps a wide 1:1 band before the ramp.
+- **Latency first.**
+  - Every family card is a classic curve with the floor at 1.00.
+  - Onset is two reports (5.6 ms).
+  - Tier is T0 or T1.
+  - **No smoothing anywhere.**
+  - The Tap Anchor, in exact passthrough, ships only where you fire single shots.
+- **Retired:**
+  - the per-game Baseline/Planted/Turbo/Tapped quads;
+  - the LUT Masters;
+  - the Low-Latency Breakpoint trios;
+  - the seven Lab wildcards, which carried hold smoothing or Lead Sight.
+- **Unchanged:** BO6 Original stays your fallback. The Breakpoints, the character cards and the references are also unchanged.
+- **Game-side notes on each card:**
+  - Apex: EAC may disable RawAccel (issue #304), so use Cadence Lock if the curve vanishes.
+  - Deadlock: the sens constant is unverified, so run the 360 calibration.
+  - The Finals and Helldivers 2: turn the game's mouse smoothing off.
 
 ## 2026-10-11
 

@@ -1,0 +1,547 @@
+{
+  "evidenceId": "ev-20261023-game-deadlock",
+  "date": "2026-10-23",
+  "game": "Deadlock",
+  "proRange": {
+    "median": 38,
+    "lo": 32,
+    "hi": 50,
+    "source": "senslab (35 pros, median eDPI 544 = 38.2 cm at yaw 0.044, 32-50; esportsmice disagrees)"
+  },
+  "character": "third-person tracking with travelling bullets you lead, long time-to-kill, dashes, slides and ziplines",
+  "fights": [
+    {
+      "Name": "D1 mid lane track 15m (lead)",
+      "tag": "Track",
+      "D": 15,
+      "Lat": 7,
+      "W": 0.3,
+      "Proj": 400,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "D2 dash/slide brawl 7m",
+      "tag": "Brawl",
+      "D": 7,
+      "Lat": 10,
+      "W": 0.25,
+      "Proj": 400,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "D3 head poke 25m (lead)",
+      "tag": "Prec",
+      "D": 25,
+      "Lat": 5,
+      "W": 0.2,
+      "Proj": 400,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "D4 zipline target 22m",
+      "tag": "Sig",
+      "D": 22,
+      "Lat": 9,
+      "W": 0.1,
+      "Proj": 400,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "D5 switch 45deg 10m",
+      "tag": "Flick",
+      "D": 10,
+      "Lat": 5,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 45,
+      "TargetR": 0.3
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role from the pro range (Precision slow quartile, Master/Tracker/Flick median, Brawl fast quartile, Signature its own job); legality: onset \u003C= 2 reports, micro 90-130% through the card\u0027s own filter, the role\u0027s 180 limit, no report above 600 mm/s, tap-fire roles click skid \u003C= BO6 base \u002B 15%",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "dlmp",
+      "name": "Master Preset",
+      "cm": 38,
+      "snap": 9,
+      "accel": 0.3958,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm38 G4 @150 s9",
+      "rel": 1.346655831984372,
+      "regret": 1.3988636898435876,
+      "Turn180Mm": 47.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.4324616938829422,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.255,
+          "targetRadii": 0.191,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.212,
+          "targetRadii": 0.212,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.17,
+          "targetRadii": 0.345,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.085,
+          "targetRadii": 0.27,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.128,
+          "targetRadii": 0.893,
+          "onTargetPct": 86.8
+        },
+        {
+          "Name": "R re-acquire 150deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.843,
+          "onTargetPct": 89.9
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm38 G4 @200 s9",
+          "Rel": 1.2685230762131108,
+          "Regret": 1.3871091923165628
+        },
+        {
+          "Name": "early-sat cm38 G4 @150 s9",
+          "Rel": 1.346655831984372,
+          "Regret": 1.3988636898435876
+        },
+        {
+          "Name": "early-sat cm38 G5 @150 s5",
+          "Rel": 1.4563944761380525,
+          "Regret": 1.5206408793144002
+        },
+        {
+          "Name": "early-sat cm38 G4 @110 s5",
+          "Rel": 1.4819990775372933,
+          "Regret": 1.5477998412914888
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "dlpl",
+      "name": "Precision",
+      "cm": 45,
+      "snap": 9,
+      "accel": 0.5437,
+      "cap": 3.5,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": true,
+      "winner": "tl-sat cm45 off40 G3.5 @150 s9",
+      "rel": 1.055555146165896,
+      "regret": 1.0434925803311128,
+      "Turn180Mm": 64.28571428571428,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.208,
+          "targetRadii": 0.13,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.052,
+          "targetRadii": 0.248,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.416,
+          "targetRadii": 0.259,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.069,
+          "targetRadii": 0.165,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.104,
+          "targetRadii": 0.759,
+          "onTargetPct": 90.2
+        },
+        {
+          "Name": "R re-acquire 150deg/230ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.803,
+          "onTargetPct": 86
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm45 off40 G3.5 @150 s9",
+          "Rel": 1.055555146165896,
+          "Regret": 1.0434925803311128
+        },
+        {
+          "Name": "tl-sat cm45 off40 G4 @150 s9",
+          "Rel": 1.109215196124084,
+          "Regret": 1.0621914701447057
+        },
+        {
+          "Name": "tl-sat cm45 off40 G3.5 @100 s5",
+          "Rel": 1.0824064764557897,
+          "Regret": 1.1012081640255997
+        },
+        {
+          "Name": "tl-sat cm45 off40 G4 @100 s5",
+          "Rel": 1.1007966299200316,
+          "Regret": 1.1225967517898758
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "dllla",
+      "name": "Tracker",
+      "cm": 38,
+      "snap": 9,
+      "accel": 2.4854,
+      "cap": 4,
+      "offset": 6.27,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm38 off110 G4 @170 s9",
+      "rel": 1,
+      "regret": 1.0006890896370577,
+      "Turn180Mm": 47.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.537,
+          "targetRadii": 0.142,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.149,
+          "targetRadii": 0.136,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.06,
+          "targetRadii": 0.291,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.06,
+          "targetRadii": 0.175,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.045,
+          "targetRadii": 2.612,
+          "onTargetPct": 59.9
+        },
+        {
+          "Name": "R re-acquire 150deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.319,
+          "onTargetPct": 85.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm38 off110 G4 @170 s9",
+          "Rel": 1,
+          "Regret": 1.0006890896370577
+        },
+        {
+          "Name": "tl-sat cm38 off110 G4 @220 s9",
+          "Rel": 1.0276386037617187,
+          "Regret": 1.0323658395858015
+        },
+        {
+          "Name": "tl-sat cm38 off140 G4 @200 s9",
+          "Rel": 1.0648086443262506,
+          "Regret": 1.0936847629461495
+        },
+        {
+          "Name": "tl-sat cm38 off110 G5 @170 s9",
+          "Rel": 1.0862558605517514,
+          "Regret": 1.1224750755519104
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "dltb",
+      "name": "Flick",
+      "cm": 38,
+      "snap": 9,
+      "accel": 0.9572,
+      "cap": 5,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm38 G5 @90 s9",
+      "rel": 1.065050216906941,
+      "regret": 1.0718606458765314,
+      "Turn180Mm": 38,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5823645889759064,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.124,
+          "targetRadii": 0.257,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.104,
+          "targetRadii": 0.26,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.166,
+          "targetRadii": 0.459,
+          "onTargetPct": 99.4
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.083,
+          "targetRadii": 0.391,
+          "onTargetPct": 99.4
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.373,
+          "targetRadii": 0.823,
+          "onTargetPct": 85.3
+        },
+        {
+          "Name": "R re-acquire 150deg/170ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.125,
+          "onTargetPct": 91.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm38 G5 @90 s9",
+          "Rel": 1.065050216906941,
+          "Regret": 1.0718606458765314
+        },
+        {
+          "Name": "early-sat cm38 G5 @70 s9",
+          "Rel": 1.156481661229845,
+          "Regret": 1.1721315786222695
+        },
+        {
+          "Name": "early-sat cm38 G6 @70 s9",
+          "Rel": 1.2552896555932758,
+          "Regret": 1.2674448176471254
+        },
+        {
+          "Name": "early-sat cm38 G6 @90 s9",
+          "Rel": 1.1638572974192192,
+          "Regret": 1.290446194553615
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "dlllb",
+      "name": "Brawl",
+      "cm": 32,
+      "snap": 9,
+      "accel": 0.1445,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm32 G3 @260 s9",
+      "rel": 1.156165116428634,
+      "regret": 1.1858475830458501,
+      "Turn180Mm": 53.33333333333333,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.3611423969268799,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.187,
+          "targetRadii": 0.173,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.469,
+          "targetRadii": 0.177,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.038,
+          "targetRadii": 0.343,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.062,
+          "targetRadii": 0.224,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.094,
+          "targetRadii": 1.186,
+          "onTargetPct": 85.9
+        },
+        {
+          "Name": "R re-acquire 150deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.96,
+          "onTargetPct": 86.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm32 G3 @260 s9",
+          "Rel": 1.156165116428634,
+          "Regret": 1.1858475830458501
+        },
+        {
+          "Name": "early-sat cm32 G3.5 @260 s9",
+          "Rel": 1.211561818341565,
+          "Regret": 1.2328846204102721
+        },
+        {
+          "Name": "early-sat cm32 G4 @260 s9",
+          "Rel": 1.2447931141274788,
+          "Regret": 1.2447931141274788
+        },
+        {
+          "Name": "early-sat cm32 G3 @200 s5",
+          "Rel": 1.2207273596705854,
+          "Regret": 1.2598248892675692
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "dlllc",
+      "name": "Zipline",
+      "cm": 38,
+      "snap": 9,
+      "accel": 0.3158,
+      "cap": 4,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm38 off40 G4 @240 s9",
+      "rel": 1.1164698179006427,
+      "regret": 1.1389586380937715,
+      "Turn180Mm": 47.5,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "D1 mid lane track 15m (lead)",
+          "weight": 0.15,
+          "targetRadii": 0.142,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D2 dash/slide brawl 7m",
+          "weight": 0.125,
+          "targetRadii": 0.202,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D3 head poke 25m (lead)",
+          "weight": 0.1,
+          "targetRadii": 0.291,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D4 zipline target 22m",
+          "weight": 0.4,
+          "targetRadii": 0.175,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "D5 switch 45deg 10m",
+          "weight": 0.075,
+          "targetRadii": 1.691,
+          "onTargetPct": 76.5
+        },
+        {
+          "Name": "R re-acquire 150deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.158,
+          "onTargetPct": 86.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm38 off40 G4 @240 s9",
+          "Rel": 1.1164698179006427,
+          "Regret": 1.1389586380937715
+        },
+        {
+          "Name": "tl-sat cm38 off40 G4 @150 s5",
+          "Rel": 1.1910386771560035,
+          "Regret": 1.2099229561322964
+        },
+        {
+          "Name": "tl-sat cm38 off80 G4 @190 s9",
+          "Rel": 1.1757329708218491,
+          "Regret": 1.2120706043400982
+        },
+        {
+          "Name": "tl-sat cm38 off40 G5 @150 s5",
+          "Rel": 1.2483331414060577,
+          "Regret": 1.2730340877310962
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}
