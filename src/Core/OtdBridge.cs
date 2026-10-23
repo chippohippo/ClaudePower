@@ -213,6 +213,9 @@ namespace AimForge.Core
         public bool EnsureDaemon(Action<string> log, int waitMs = 9000)
         {
             if (DaemonRunning()) return true;
+            // 2026-10-23: a daemon started from an ELEVATED AimForge runs elevated and locks every normal program out of its
+            // pipe (the user's daemon was started from an admin PowerShell). Never start one from here while elevated.
+            if (Hook == null && Doctor.IsElevated()) { log("OTD: NOT starting the daemon - AimForge is running as administrator and the daemon would be too (locking out every normal app). Start AimForge normally, then apply."); return false; }
             log("OTD: daemon not running - starting it");
             var psi = new ProcessStartInfo(Daemon) { WorkingDirectory = Dir, UseShellExecute = false, CreateNoWindow = true };
             Process.Start(psi);
@@ -330,6 +333,12 @@ namespace AimForge.Core
         /// the live settings survive the bounce.
         public bool RestartDaemon(Action<string> log)
         {
+            if (Hook == null && Doctor.IsElevated())
+            {
+                log("OTD: NOT restarting the daemon - AimForge is running as administrator, so the new daemon would be elevated and lock every normal app out. " +
+                    "Run this from a normal (not admin) PowerShell, or use the tray menu of a normally started AimForge.");
+                return false;
+            }
             foreach (var pr in Process.GetProcessesByName("OpenTabletDriver.Daemon"))
             { try { pr.Kill(); pr.WaitForExit(3000); } catch { } }
             Thread.Sleep(400);
