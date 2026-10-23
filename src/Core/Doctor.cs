@@ -81,7 +81,9 @@ namespace AimForge.Core
         {
             if (!rawAccelFlat) return new Item { Name = "curve live in the daemon", Ok = true, Detail = "the curve runs in RawAccel (RawAccel engine)" };
             if (!cadenceInSettings) return new Item { Name = "curve live in the daemon", Ok = false, Detail = "RawAccel is flat and Cadence Lock is off: NO CURVE ANYWHERE - every card plays 1:1 (flicks feel slow and short)", Fix = "apply your card again (Ctrl+Enter)" };
-            if (daemonFilters == null) return new Item { Name = "curve live in the daemon", Ok = true, Warn = true, Detail = "Cadence Lock is on in the settings; the daemon was not asked (is it running?) - UNVERIFIED" };
+            if (daemonFilters == null) return new Item { Name = "curve live in the daemon", Ok = true, Warn = true,
+                Detail = "Cadence Lock is on in the settings, but the daemon did not answer, so whether it really runs is UNVERIFIED" + (IsElevated() ? " - this check ran ELEVATED (an admin PowerShell), and the daemon's pipe only answers your normal user session" : ""),
+                Fix = IsElevated() ? "run it again from a normal (not admin) PowerShell: Start menu > PowerShell, without 'Run as administrator'" : "see the 'daemon pipe reachable' row; restart the OTD daemon if it is not answering" };
             bool live = daemonFilters.Contains("Cadence Lock");
             return new Item
             {

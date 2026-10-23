@@ -566,7 +566,8 @@ namespace AimForge.App
                     {
                         // read-only: everything that can make every card feel slow or late, worst first, with the fix
                         string[] want = { "curve live in the daemon", "engine pairing", "plugins loaded", "no duplicate plugin", "no smoothing live", "no interpolator",
-                                          "live = last apply", "live tier", "AimForge Game Filters plugin", "OTD GUI not running", "RawAccel GUI not running", "tablet connected", "OTD daemon running" };
+                                          "live = last apply", "live tier", "AimForge Game Filters plugin", "OTD GUI not running", "RawAccel GUI not running", "tablet connected", "OTD daemon running",
+                                          "daemon pipe reachable", "not running elevated" };
                         var rows = Doctor.Run(ra, otd, cat).Where(i => want.Any(w => i.Name.StartsWith(w))).OrderBy(i => i.Level == "FAIL" ? 0 : i.Level == "WARN" ? 1 : 2).ToList();
                         foreach (var i in rows) Console.WriteLine(i);
                         var la = LastApply.Load(); var xps = Experiments.State.Load();
@@ -2829,6 +2830,9 @@ namespace AimForge.App
                 var notLive = Doctor.CurveLiveRow(true, true, "Filters: 'Hover Distance Limiter: { Hover_max: 87 }'");
                 var live = Doctor.CurveLiveRow(true, true, "Filters: 'AimForge Cadence Lock (tablet-space accel, T0): { NominalHz: 360 }'");
                 var nowhere = Doctor.CurveLiveRow(false, true, null); var ra2 = Doctor.CurveLiveRow(false, false, null);
+                var unasked = Doctor.WithFixes(new List<Doctor.Item> { Doctor.CurveLiveRow(true, true, null) })[0];
+                Ok("latency: a daemon that did not answer leaves the curve UNVERIFIED with its own fix (not the generic 'check the driver is installed')",
+                   unasked.Level == "WARN" && !unasked.Fix.StartsWith("check the driver is installed"), unasked.Fix);
                 Ok("latency: Cadence in the settings but not in the daemon (plugin not loaded) with RawAccel flat FAILS as 'no curve anywhere'; Cadence running passes; RawAccel flat with Cadence off fails; the RawAccel engine passes",
                    notLive.Level == "FAIL" && notLive.Detail.Contains("NO CURVE ANYWHERE") && live.Level == "OK" && nowhere.Level == "FAIL" && ra2.Level == "OK");
                 var d = Doctor.DuplicatePlugins(new[] { @"D:\Pen\userdata\Plugins\AimForge Game Filters\AimForge.Filters.dll",
