@@ -137,17 +137,25 @@ def stab_filter(trf, mode, nframes):
 
 
 def _jitter(path):
-    """Frame-to-frame shake (px at 160 px width) and black-corner fraction."""
+    """Shake score (px at 320 px width): fast frame-to-frame jitter plus slow
+    wobble (camera path deviation from a smooth quadratic move); and the
+    largest black-corner fraction (stabiliser borders)."""
     import cv2
-    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", "scale=160:90,format=gray",
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", "scale=320:180,format=gray",
                           "-f", "rawvideo", "-"], capture_output=True).stdout
-    F = np.frombuffer(raw, np.uint8).reshape(-1, 90, 160).astype(np.float32)
-    if len(F) < 4:
+    F = np.frombuffer(raw, np.uint8).reshape(-1, 180, 320).astype(np.float32)
+    if len(F) < 6:
         return 0.0, 0.0
     sh = np.array([cv2.phaseCorrelate(F[k], F[k + 1])[0] for k in range(len(F) - 1)])
-    jit = float(np.abs(np.diff(sh, axis=0)).mean())
-    c = np.concatenate([F[:, :8, :8], F[:, :8, -8:], F[:, -8:, :8], F[:, -8:, -8:]], 1)
-    return jit, float((c < 12).mean(axis=(1, 2)).max())
+    fast = float(np.abs(np.diff(sh, axis=0)).mean())
+    path_ = np.cumsum(sh, axis=0)
+    tt = np.arange(len(path_))
+    wob = 0.0
+    for c in range(2):
+        fit = np.polyval(np.polyfit(tt, path_[:, c], 2), tt)
+        wob += float(np.sqrt(((path_[:, c] - fit) ** 2).mean()))
+    c = np.concatenate([F[:, :12, :12], F[:, :12, -12:], F[:, -12:, :12], F[:, -12:, -12:]], 1)
+    return fast + 0.5 * wob, float((c < 12).mean(axis=(1, 2)).max())
 
 
 def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
@@ -175,12 +183,22 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     x, y = seg.get("x", 0.5), seg.get("y", 0.5)
     x1 = seg.get("x_end", x)
     D = max(out_dur, 0.1)
-    p = f"(0.5-0.5*cos(PI*min(t/{D:.3f},1)))"            # eased progress
-    zw = f"({base_w:.1f}/({z0}+({z1}-{z0})*{p}))"
-    cx = f"(({x}+({x1}-{x})*{p})*iw)"
-    f.append(f"crop=w='{zw}':h='{zw}/{A:.5f}':"
-             f"x='max(0,min(iw-{zw},{cx}-{zw}/2))':"
-             f"y='max(0,min(ih-{zw}/{A:.5f},{y}*ih-{zw}/{2 * A:.5f}))'")
+    # sub-pixel zoom/pan: crop can only move in whole pixels, which makes slow
+    # push-ins shimmer and jiggle. perspective interpolates the window every
+    # frame (bicubic), so moves are perfectly smooth. Time = output frame / fps.
+    fps_num = eval(FILM["fps"].replace("/", "/")) if isinstance(FILM["fps"], str) else FILM["fps"]
+    p = f"(0.5-0.5*cos(PI*min(on/{fps_num * D:.3f},1)))"           # eased progress
+    zw = f"({base_w:.2f}/({z0}+({z1}-{z0})*{p}))"
+    zh = f"({zw}/{A:.5f})"
+    cx = f"(({x}+({x1}-{x})*{p})*W)"
+    X0 = f"max(0,min(W-{zw},{cx}-{zw}/2))"
+    Y0 = f"max(0,min(H-{zh},{y}*H-{zh}/2))"
+    X1 = f"({X0}+{zw})"
+    Y1 = f"({Y0}+{zh})"
+    f.append(f"perspective=x0='{X0}':y0='{Y0}':x1='{X1}':y1='{Y0}':x2='{X0}':y2='{Y1}':"
+             f"x3='{X1}':y3='{Y1}':interpolation=cubic:sense=source:eval=frame")
+    # perspective keeps the input size; the window now fills it. Restore aspect:
+    f.append(f"scale={int(round(src_h * A / 2) * 2)}:{int(src_h)}:flags=lanczos")
     f.append(f"scale={W}:{H}:flags=lanczos")
     f.append(f"lut3d=file={lut}:interp=tetrahedral")
     if FILM["halation"] > 0:
@@ -324,9 +342,10 @@ def render_segment(seg, i, media_dir, work, preview):
             os.remove(tmp)
         os.remove(tmp0)
         ok = {m: r for m, r in results.items() if m == "none" or r[1] <= c0 + 0.02}
-        best = min(ok, key=lambda m: ok[m][0])
-        if best != "none" and ok[best][0] > j0 * 0.9:
-            best = "none"                       # not clearly better: leave the shot as shot
+        stab_ok = {m: r for m, r in ok.items() if m != "none"}
+        best = min(stab_ok, key=lambda m: stab_ok[m][0]) if stab_ok else "none"
+        if best != "none" and ok[best][0] > j0 * 1.02:
+            best = "none"                       # stabilising made it worse: leave the shot as shot
         seg = dict(seg, _stab_mode=best)
         print(f"      stab {seg['clip']}: " + "  ".join(f"{m} {r[0]:.2f}" for m, r in results.items())
               + f"  → {best}", flush=True)
