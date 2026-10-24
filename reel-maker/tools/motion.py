@@ -65,6 +65,25 @@ def step_motion(frames):
     return m
 
 
+def smooth_path(x, sigma):
+    """Gaussian-smoothed camera path, padded by linear extrapolation of each
+    end so a steady pan or gimbal move is kept as it is (plain edge padding
+    would read every move as wobble at the shot's ends and freeze it)."""
+    n = len(x)
+    pad = int(min(3 * sigma, 4 * n)) + 1
+    k = max(2, min(n, int(0.3 * 29.97)))
+    t = np.arange(n)
+    out = []
+    for c in range(x.shape[1]):
+        a = np.polyfit(t[:k], x[:k, c], 1)
+        b = np.polyfit(t[-k:], x[-k:, c], 1)
+        pre = np.polyval(a, np.arange(-pad, 0))
+        post = np.polyval(b, np.arange(n, n + pad))
+        y = gaussian_filter1d(np.r_[pre, x[:, c], post], sigma, mode="nearest")
+        out.append(y[pad:pad + n])
+    return np.stack(out, 1)
+
+
 def trajectory(frames):
     s = step_motion(frames)
     return np.vstack([np.zeros((1, 3)), np.cumsum(s, 0)]), s
@@ -79,7 +98,7 @@ def shake(frames, fps=29.97):
     tr, s = trajectory(frames)
     xy = tr[:, :2]
     fast = float(np.abs(np.diff(s[:, :2], axis=0)).mean()) if len(s) > 2 else 0.0
-    sm = gaussian_filter1d(xy, sigma=0.5 * fps, axis=0, mode="nearest")
+    sm = smooth_path(xy, 0.5 * fps)
     wob = float(np.sqrt(((xy - sm) ** 2).sum(1).mean()))
     return fast + wob
 
@@ -112,7 +131,7 @@ def shake_peak(frames, fps=29.97, win=1.0):
     if len(frames) < 8:
         return 0.0
     _, s = trajectory(frames)
-    sm = gaussian_filter1d(s[:, :2], sigma=0.2 * fps, axis=0, mode="nearest")
+    sm = smooth_path(s[:, :2], 0.2 * fps)
     e = np.linalg.norm(s[:, :2] - sm, axis=1)
     k = max(1, min(len(e), int(win * fps)))
     return float(np.convolve(e, np.ones(k) / k, "valid").max())
@@ -134,7 +153,7 @@ def plan(traj, scale, win, size, fps=29.97, smax=1.06, locked=False):
                 cands.append((f"path{deg}", np.stack([np.polyval(np.polyfit(t, tr[:, c], deg), t)
                                                        for c in range(3)], 1)))
     for sg in (2.0, 1.4, 1.0, 0.7, 0.45, 0.3):
-        cands.append((f"g{sg}", gaussian_filter1d(tr, sigma=sg * fps, axis=0, mode="nearest")))
+        cands.append((f"g{sg}", smooth_path(tr, sg * fps)))
     scales = np.round(np.arange(1.0, smax + 1e-6, 0.005), 3)
     for label, sm in cands:
         corr = sm - tr

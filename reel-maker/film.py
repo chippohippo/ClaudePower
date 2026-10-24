@@ -340,7 +340,7 @@ def render_segment(seg, i, media_dir, work, preview):
     out_dur = seg["dur"] + seg.get("_tail", 0.0)
     src_dur = out_dur * speed + 0.2
     t_in = float(seg["in"])
-    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v2"], sort_keys=True).encode()).hexdigest()[:10]
+    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v3"], sort_keys=True).encode()).hexdigest()[:10]
     out = os.path.join(work, f"seg{i:03d}_{seg['clip']}_{key}.mp4")
     if os.path.exists(out):
         return out
