@@ -239,7 +239,7 @@ audio = dict(sr=48000, total=total, song="../../footage/cm_song/song.wav",
              lav="../../footage/cm_rec/001_260314.wav", lav_safety="../../footage/cm_rec/001_260314_D.wav",
              lav_words="../../footage/cm_lav.json", lav_offset=1875.94, speech_db=-17,
              speech=[dict(at=at, src=[a, b]) for at, a, b in speech],
-             cheers=[dict(at=162.5, file="../../footage/cm_audio/0543.wav", src=[1645.4, 1651.6], db=-17),
+             cheers=[dict(at=163.6, file="../../footage/cm_audio/0543.wav", src=[1646.9, 1650.3], db=-17, fade=0.5),
                      dict(at=178.3, file="../../footage/cm_audio/0543.wav", src=[1679.3, 1686.0], db=-17)])
 json.dump(audio, open(os.path.join(HERE, "audio.json"), "w"), indent=1)
 print(f"{len(segs)} segments, picture ends {t:.2f}s, total {total}s")

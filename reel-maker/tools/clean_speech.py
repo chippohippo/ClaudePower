@@ -26,7 +26,7 @@ import noisereduce as nr
 import numpy as np
 from scipy.io import wavfile
 from scipy.ndimage import label, median_filter
-from scipy.signal import istft, stft
+from scipy.signal import fftconvolve, istft, stft
 
 SR = 44100
 
@@ -91,7 +91,7 @@ def word_gate(n, words, floor_db, pre=0.05, post=0.10):
         g[max(int((a - pre) * SR), 0): int((b + post) * SR)] = 1
     k = int(0.03 * SR)
     ker = np.hanning(2 * k + 1)
-    return np.convolve(g, ker / ker.sum(), "same")
+    return fftconvolve(g, ker / ker.sum(), "same")
 
 
 def main():

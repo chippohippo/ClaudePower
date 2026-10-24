@@ -22,7 +22,7 @@ import subprocess
 import sys
 
 import numpy as np
-from scipy.signal import butter, sosfilt
+from scipy.signal import butter, fftconvolve, sosfilt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from clean_speech import clamp_spikes, sniff_gain, word_gate  # noqa: E402
@@ -96,7 +96,15 @@ def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
     # mic bumps & handling: low-band spikes clamped to the running level
     x = clamp_spikes(x[:, None], [(20, 180), (2500, 9000)], [3, 6])[:, 0]
     # word gate (lav words in lav time → line-local time)
-    gate = word_gate(len(x), lw, -34, pre=0.04, post=0.10)
+    # merge words separated by short pauses (< 0.35 s): the gate only closes in
+    # real gaps between phrases, never inside a phrase or on a word onset
+    spans = []
+    for w0, w1, w in sorted(lw):
+        if spans and w0 - spans[-1][1] < 0.35:
+            spans[-1][1] = max(spans[-1][1], w1)
+        else:
+            spans.append([w0, w1])
+    gate = word_gate(len(x), [(p, q, "") for p, q in spans], -32, pre=0.14, post=0.18)
     x = x * gate
     # loudness on words
     on = gate > 0.9
@@ -144,7 +152,7 @@ def main():
         m = min(L, n - i0)
         k = int(0.45 * sr)
         ker = np.hanning(2 * k + 1)
-        dz = np.convolve(duck, ker / ker.sum(), "same")[i0:i0 + m, None]
+        dz = np.clip(fftconvolve(duck, ker / ker.sum(), "same"), 0, 1)[i0:i0 + m, None]
         g_full = 10 ** (cfg["music_db"] / 20)
         g_under = 10 ** (cfg["music_under_speech_db"] / 20)
         music[i0:i0 + m] = full[:m] * (1 - dz) * g_full + inst[:m] * dz * g_under
