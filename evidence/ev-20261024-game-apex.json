@@ -1,0 +1,558 @@
+{
+  "evidenceId": "ev-20261024-game-apex",
+  "date": "2026-10-24",
+  "baseline": {
+    "card": "goat",
+    "Cm": 52.63,
+    "Accel": 0.2963,
+    "Offset": 2.28,
+    "Cap": 3,
+    "Snap": 0,
+    "Yx": 1,
+    "ResetMs": 20,
+    "evidence": "ev-20261024-goat"
+  },
+  "game": "Apex Legends",
+  "proRange": {
+    "median": 40,
+    "lo": 35,
+    "hi": 43,
+    "source": "senslab (median eDPI 1040 = 40 cm) / prosettings player pages (26-52 cm)"
+  },
+  "character": "long strafe-tracking duels against ADAD, slides and bunny-hops, learnable upward recoil pulled down",
+  "fights": [
+    {
+      "Name": "A1 close strafe duel 8m \u002B recoil",
+      "tag": "Brawl",
+      "D": 8,
+      "Lat": 7,
+      "W": 0.3,
+      "Proj": 0,
+      "RecoilDegS": 1.5,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "A2 mid-range beam 25m \u002B recoil",
+      "tag": "Track",
+      "D": 25,
+      "Lat": 5,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 1.5,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "A3 slide/jump target 10m",
+      "tag": "Track",
+      "D": 10,
+      "Lat": 9,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "A4 third-party switch 40deg 15m",
+      "tag": "Flick",
+      "D": 15,
+      "Lat": 4,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 40,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "A5 marksman poke 60m",
+      "tag": "Sig",
+      "D": 60,
+      "Lat": 5,
+      "W": 0.1,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.15
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role as a ratio of the GOAT\u0027s 52.63 (Master/Tracker/Flick x1, Precision x1.15, Brawl x0.87, Signature its old ratio; Finals Fieldwide the sens-8 verdict); snap 0 and Y/X 1.00 everywhere (the GOAT verdict); the Master searches the GOAT\u0027s neighbourhood (1:1 to 30-60 mm/s, cap 2.5-4x by 150-230 mm/s, the GOAT curve included); legality: onset \u003C= 2 reports, micro 90-130%, the role\u0027s 180 limit as a ratio of the GOAT\u0027s own 180, no report above 600 mm/s",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "apxmp",
+      "name": "Master Preset",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.3945,
+      "cap": 3,
+      "offset": 3.42,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off60 G3 @190 s0",
+      "rel": 1.0625962387184693,
+      "regret": 1.089605865256613,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.255,
+          "targetRadii": 0.129,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.212,
+          "targetRadii": 0.128,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.17,
+          "targetRadii": 0.213,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.128,
+          "targetRadii": 1.338,
+          "onTargetPct": 76.8
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.085,
+          "targetRadii": 0.525,
+          "onTargetPct": 95
+        },
+        {
+          "Name": "R re-acquire 120deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.91,
+          "onTargetPct": 86.3
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off50 G3 @230 s0",
+          "Rel": 1.0507506155304789,
+          "Regret": 1.0598269248730077
+        },
+        {
+          "Name": "tl-sat cm52.63 off60 G3 @230 s0",
+          "Rel": 1.062425620533407,
+          "Regret": 1.0765753261839888
+        },
+        {
+          "Name": "tl-sat cm52.63 off40 G3 @230 s0",
+          "Rel": 1.0792910836991905,
+          "Regret": 1.0895865549051633
+        },
+        {
+          "Name": "tl-sat cm52.63 off60 G3 @190 s0",
+          "Rel": 1.0625962387184693,
+          "Regret": 1.089605865256613
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "apxpl",
+      "name": "Precision",
+      "cm": 60.52,
+      "snap": 0,
+      "accel": 1.9493,
+      "cap": 3.5,
+      "offset": 5.7,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm60.52 off100 G3.5 @160 s0",
+      "rel": 1.0155156936504297,
+      "regret": 1.0648466619831056,
+      "Turn180Mm": 86.45714285714286,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.097,
+          "targetRadii": 0.11,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.269,
+          "targetRadii": 0.118,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.215,
+          "targetRadii": 0.153,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.161,
+          "targetRadii": 1.499,
+          "onTargetPct": 69.3
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.108,
+          "targetRadii": 0.459,
+          "onTargetPct": 97.4
+        },
+        {
+          "Name": "R re-acquire 120deg/230ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.933,
+          "onTargetPct": 85.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm60.52 off100 G3.5 @160 s0",
+          "Rel": 1.0155156936504297,
+          "Regret": 1.0648466619831056
+        },
+        {
+          "Name": "tl-sat cm60.52 off100 G3.5 @210 s0",
+          "Rel": 1.0921435805673243,
+          "Regret": 1.1125063723292676
+        },
+        {
+          "Name": "tl-sat cm60.52 off100 G4 @160 s0",
+          "Rel": 1.1198520264034317,
+          "Regret": 1.1631608872210517
+        },
+        {
+          "Name": "tl-sat cm60.52 off100 G4 @210 s0",
+          "Rel": 1.2237525914720633,
+          "Regret": 1.2637818246826522
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "apxlla",
+      "name": "Tracker",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 1.6569,
+      "cap": 3,
+      "offset": 6.27,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off110 G3 @170 s0",
+      "rel": 1,
+      "regret": 1,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.14,
+          "targetRadii": 0.111,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.349,
+          "targetRadii": 0.128,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.279,
+          "targetRadii": 0.153,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.035,
+          "targetRadii": 1.438,
+          "onTargetPct": 76.5
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.047,
+          "targetRadii": 0.525,
+          "onTargetPct": 95
+        },
+        {
+          "Name": "R re-acquire 120deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.963,
+          "onTargetPct": 86.1
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off110 G3 @170 s0",
+          "Rel": 1,
+          "Regret": 1
+        },
+        {
+          "Name": "tl-sat cm52.63 off110 G3 @220 s0",
+          "Rel": 1.0112664673701444,
+          "Regret": 1.0121046663199291
+        },
+        {
+          "Name": "tl-sat cm52.63 off140 G3 @200 s0",
+          "Rel": 1.0298447882012556,
+          "Regret": 1.0499373626848965
+        },
+        {
+          "Name": "tl-sat cm52.63 off140 G3 @250 s0",
+          "Rel": 1.0444258652634946,
+          "Regret": 1.0641775759911372
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "apxtb",
+      "name": "Flick",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.7179,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm52.63 G4 @90 s0",
+      "rel": 1.0637354265817756,
+      "regret": 1.069965706237338,
+      "Turn180Mm": 65.7875,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.5200308561325073,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.138,
+          "targetRadii": 0.176,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.115,
+          "targetRadii": 0.195,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.092,
+          "targetRadii": 0.27,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.414,
+          "targetRadii": 1.245,
+          "onTargetPct": 75.8
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.092,
+          "targetRadii": 0.534,
+          "onTargetPct": 95.1
+        },
+        {
+          "Name": "R re-acquire 120deg/170ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.274,
+          "onTargetPct": 85.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm52.63 G4 @120 s0",
+          "Rel": 1.0235390425761886,
+          "Regret": 1.0333572617895448
+        },
+        {
+          "Name": "early-sat cm52.63 G4 @90 s0",
+          "Rel": 1.0637354265817756,
+          "Regret": 1.069965706237338
+        },
+        {
+          "Name": "early-sat cm52.63 G4 @160 s0",
+          "Rel": 1.080348446963842,
+          "Regret": 1.11319280871074
+        },
+        {
+          "Name": "early-sat cm52.63 G5 @120 s0",
+          "Rel": 1.093210924862623,
+          "Regret": 1.1182243453151173
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "apxllb",
+      "name": "Brawl",
+      "cm": 45.79,
+      "snap": 0,
+      "accel": 0.3431,
+      "cap": 3,
+      "offset": 3.99,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm45.79 off70 G3 @220 s0",
+      "rel": 1.036392477829406,
+      "regret": 1.0463630216030584,
+      "Turn180Mm": 76.31666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.478,
+          "targetRadii": 0.113,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.133,
+          "targetRadii": 0.14,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.106,
+          "targetRadii": 0.158,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.08,
+          "targetRadii": 1.631,
+          "onTargetPct": 76.3
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.053,
+          "targetRadii": 0.603,
+          "onTargetPct": 91.8
+        },
+        {
+          "Name": "R re-acquire 120deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.967,
+          "onTargetPct": 86.2
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm45.79 off70 G3 @220 s0",
+          "Rel": 1.036392477829406,
+          "Regret": 1.0463630216030584
+        },
+        {
+          "Name": "early-sat cm45.79 G3 @260 s0",
+          "Rel": 1.1696335251211434,
+          "Regret": 1.2108628351310347
+        },
+        {
+          "Name": "tl-sat cm45.79 off70 G4 @220 s0",
+          "Rel": 1.159684142757334,
+          "Regret": 1.2202195060018222
+        },
+        {
+          "Name": "early-sat cm45.79 G3.5 @260 s0",
+          "Rel": 1.2022676890532962,
+          "Regret": 1.2546227402897299
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "apxllc",
+      "name": "Longbow",
+      "cm": 56.58,
+      "snap": 0,
+      "accel": 0.2879,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm56.58 G4 @200 s0",
+      "rel": 1.1074960830771359,
+      "regret": 1.121166075329783,
+      "Turn180Mm": 70.725,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.40440475940704346,
+      "perScenario": [
+        {
+          "Name": "A1 close strafe duel 8m \u002B recoil",
+          "weight": 0.15,
+          "targetRadii": 0.145,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A2 mid-range beam 25m \u002B recoil",
+          "weight": 0.125,
+          "targetRadii": 0.147,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A3 slide/jump target 10m",
+          "weight": 0.1,
+          "targetRadii": 0.218,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "A4 third-party switch 40deg 15m",
+          "weight": 0.075,
+          "targetRadii": 1.437,
+          "onTargetPct": 76.5
+        },
+        {
+          "Name": "A5 marksman poke 60m",
+          "weight": 0.4,
+          "targetRadii": 0.494,
+          "onTargetPct": 96.5
+        },
+        {
+          "Name": "R re-acquire 120deg/200ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.91,
+          "onTargetPct": 86.5
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm56.58 off60 G3.5 @230 s0",
+          "Rel": 1.0624295922548836,
+          "Regret": 1.0693443649193928
+        },
+        {
+          "Name": "tl-sat cm56.58 off50 G3.5 @230 s0",
+          "Rel": 1.0804519948556923,
+          "Regret": 1.0891374159242324
+        },
+        {
+          "Name": "tl-sat cm56.58 off40 G3.5 @230 s0",
+          "Rel": 1.0890934011778517,
+          "Regret": 1.0976498466033004
+        },
+        {
+          "Name": "tl-sat cm56.58 off30 G3.5 @230 s0",
+          "Rel": 1.0915695743769411,
+          "Regret": 1.0986435886400878
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

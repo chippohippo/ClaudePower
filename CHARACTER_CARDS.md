@@ -1,5 +1,23 @@
 # Specific Characters (2026-09-15, renovated 2026-09-16)
 
+> **2026-10-24: re-derived on THE GOAT's rig** (`--hero-lab all`, `evidence/ev-20261024-hero-<hero>.json`). Changes from the table below:
+> - snap 0, Y/X 1.00, reset 20 ms, no game filter (the GOAT verdict);
+> - the speed ceiling is the GOAT's 52.63 cm/360; the lab may go faster, at x0.8, x0.9 or x1.0;
+> - the GOAT's own curve is always a candidate.
+>
+> New picks:
+> - **Psylocke:** 42.1 cm, 1:1 to 170 mm/s, cap 3.0 by 230; Cadence Lock advised.
+> - **Loki:** 42.1 cm, 1:1 to 60, cap 3.0 by 170.
+> - **White Fox:** 52.63 cm, 1:1 to 40, cap 3.0 by 240.
+> - **The Punisher:** 47.37 cm, 1:1 to 60, cap 3.0 by 120.
+> - **Hela:** the GOAT.
+> - **Soldier: 76:** 47.37 cm, 1:1 to 130, cap 3.0 by 190; Cadence Lock advised.
+> - **Emre:** the GOAT.
+> - **Illari:** 52.63 cm, 1:1 to 40, cap 3.0 by 150.
+> - **Freja:** 47.37 cm, 1:1 to 60, cap 3.0 by 120.
+>
+> Each card prints its hero sensitivity. The table below is the 2026-09-16 history.
+
 Two preset groups sit right after the Breakpoint group: **Specific Characters — Marvel Rivals** (Psylocke, Loki, White Fox, The Punisher, Hela) and **Specific Characters — Overwatch 2** (Soldier: 76, Emre, Illari, Freja). Every card is 57 px/mm with a classic RawAccel curve, and all nine were chosen by one rule in `AimForge --hero-lab <hero|all>` (`src/Core/HeroLab.cs`). Evidence: `evidence/ev-20260916-hero-<hero>.json` per hero, `evidence/ev-20260916-character-cards.json` for the set.
 
 | Hero | id | cm/360 | curve shape | snap | Y/X | game filter | in-game sens | re-acquire spread | click skid (mm) | RawAccel-engine gain noise (aim band, worst report) |

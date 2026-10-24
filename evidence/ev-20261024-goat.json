@@ -1,0 +1,70 @@
+{
+  "evidenceId": "ev-20261024-goat",
+  "date": "2026-10-24",
+  "kind": "field verdict",
+  "verdict": "good - \"hands down one of the best feelings I've had on tablet\"",
+  "userNotes": [
+    "my current finals sensitivity and my tablet aimforge settings have been hands down one of the best feelings I've had on tablet",
+    "I found that angle snapping and x/y offset made aim inconsistent",
+    "it feels most like a mouse, a lot of arm and hand movements, finger tip and wrist pivot on micro adjustments but it feels very adaptable to changes"
+  ],
+  "source": "screenshots of the live AimForge window (Builds/Rig/Filters/Engine/Modes), 2026-10-24",
+  "liveBuild": {
+    "card": "apxllb (Apex Legends Brawl, game lab 2026-10-23)",
+    "applied": "15:19, verified by read-back",
+    "curve": {
+      "type": "classic (RawAccel legacy formula 1+a(v-off)^2/v)",
+      "accel": 0.2963,
+      "offsetCountsPerMs": 2.28,
+      "cap": 3.0,
+      "unityUntilMmS": 40,
+      "capAtMmS": 190
+    },
+    "rig": {
+      "pxmm": 57,
+      "cm360Card": 35.0,
+      "snapDeg": 0.0,
+      "yx": 1.0,
+      "hoverMax": 87,
+      "hoverMin": 0,
+      "resetMs": 20
+    },
+    "filters": {
+      "hoverDistanceLimiter": true,
+      "contactOnly": false,
+      "tapAnchor": false,
+      "holdSmoothing": false,
+      "gameFilter": "none"
+    },
+    "engine": {
+      "cadenceLock": true,
+      "penRateHz": 360,
+      "mergeCapReports": 5,
+      "nibTwin": false,
+      "intentSpeed": false,
+      "reversalCarry": false
+    },
+    "modes": {
+      "thirdPersonMatch": "on (no effect on first-person games)",
+      "mouseMirror": false
+    },
+    "rawAccel": "noaccel (flat) - the curve runs in Cadence Lock"
+  },
+  "game": {
+    "title": "The Finals",
+    "mouseLookSensitivity": 12,
+    "sensSource": "the user's recollection (not read from the game)",
+    "cm360": 52.63,
+    "derivation": "cm = K / (eDPI x sens) = 914400 / (57 x 25.4 x 12) = 52.63 (K verified, ev-20260910-finals-k)"
+  },
+  "measured": {
+    "turn180Mm": 87.7,
+    "committedFlickSpreadPct": 4.3,
+    "lazyFlickSpreadPct": 13.3,
+    "microPct": 99,
+    "onsetMs": 5.6,
+    "tracking120": 1.9
+  },
+  "consequence": "THE GOAT card (id goat, top of the roster) = this build at 52.63 cm/360 (Finals sens 12). Every card except BO6 Original is rebuilt on it: snap 0 and Y/X 1.00 everywhere, reset 20 ms, no stabilizer; game families re-derived by the game lab at ratios of the GOAT base (ev-20261024-game-*), character cards re-derived by HeroLab under the GOAT ceiling (ev-20261024-hero-*), Breakpoints moved onto the GOAT rig.",
+  "openQuestion": "the in-game Finals sensitivity is from memory; if the game reads otherwise, Goat.Cm changes and the labs re-run"
+}

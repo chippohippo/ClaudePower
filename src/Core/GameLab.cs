@@ -27,6 +27,13 @@ namespace AimForge.Core
     /// candidate is floor 1.00 classic (no smoothing, no prediction), legality demands onset <= two reports and micro
     /// 90-130% through the card's own filter, and the only stabilizer element a card can carry is the pressure-gated Tap
     /// Anchor (exact passthrough off the click) on tap-fire roles.
+    ///
+    /// 2026-10-24 - THE GOAT is the baseline (Goat.cs, field verdict). Every role now sits at a fixed ratio of the GOAT's
+    /// 52.63 cm/360 (Master / Tracker / Flick at it, Precision x1.15, Brawl x0.87, the Signature at its old ratio to the base;
+    /// the Finals Fieldwide keeps the sens-8 verdict), every card runs angle snap 0 and Y/X 1.00 (the verdict: snap and Y/X
+    /// made aim inconsistent), reset 20 ms and no stabilizer (the GOAT runs none; the Tap Anchor stays one switch away in
+    /// Filters). The Master searches the GOAT's own neighbourhood and the GOAT curve itself is a candidate; the 180 limits
+    /// scale from the GOAT's own measured 180. The pro ranges stay on record in each card's text.
     /// </summary>
     public static class GameLab
     {
@@ -166,12 +173,33 @@ namespace AimForge.Core
             _ => 1,
         };
 
+        /// Role base speed as a ratio of the GOAT's (2026-10-24). The Finals Signature keeps the sens-8 field verdict (78.95).
         public static double CmOf(G g, string role) => role switch
         {
-            "Precision" => g.CmSlow, "Brawl" => g.CmFast, "Signature" => g.SigCm, _ => g.CmBase,
+            "Precision" => Math.Round(Goat.Cm * 1.15, 2), "Brawl" => Math.Round(Goat.Cm * 0.87, 2),
+            "Signature" => g.Id == "finals" ? g.SigCm : Math.Round(Goat.Cm * g.SigCm / g.CmBase, 2),
+            _ => Goat.Cm,
         };
 
+        /// Roles whose fire is a click per shot: the Filters tab offers the game's Tap Anchor there. Since 2026-10-24 no card
+        /// ships it ON - the GOAT, the field verdict, runs without it.
         public static bool TapFire(G g, string role) => role == "Precision" || (g.TapFireGame && role != "Tracker" && role != "Brawl");
+
+        /// The one role whose card is the GOAT itself, not a lab pick: The Finals Master (the verdict was given there).
+        public static bool IsGoatHome(G g, string role) => g.Id == "finals" && role == "Master";
+
+        /// The GOAT's own measured 180 (mm at 150 ms) - every role's 180 limit is a ratio of it.
+        public static double Goat180(Tablet t)
+        {
+            var p = GoatPreset(); var rg = Rig.From(p);
+            return Measure.Run(Curve.EffectiveLut(p, rg.PxMm), rg, t).Turn180Mm;
+        }
+
+        public static Preset GoatPreset() => new Preset
+        {
+            id = Goat.Id, name = "The GOAT", group = "The GOAT", pxmm = Goat.PxMm, cm = Goat.Cm, snap = Goat.Snap, hdlMax = Goat.HdlMax, game = "finals",
+            adv = new Adv { reset = Goat.ResetMs, yx = Goat.Yx, accel = Goat.Accel, cap = Goat.Cap, offset = Goat.Offset },
+        };
 
         /// The role as a HeroLab hero: the game's fights re-weighted for the role, the role's own re-acquire, 180 limit and
         /// candidate identity.
@@ -191,8 +219,8 @@ namespace AimForge.Core
                 // the click-skid gate (BO6 base + 15%, measured WITHOUT the stabilizer) is not applied: every tap-fire role ships the
                 // Tap Anchor, which holds the click position exactly (measured bit-exact) - the pin is the answer to click skid
                 Archetype = role, Kit = g.Character, TapFire = false, ReacqDeg = g.ReacqDeg, ReacqMs = rqMs, Scens = sc,
-                FamilyCardOverride = g.FamilyCard, YxDefault = g.Yx,
-                Max180Mm = role switch { "Precision" => 110, "Flick" => 55, "Signature" => g.SigMax180, _ => 70 },
+                FamilyCardOverride = g.FamilyCard, YxDefault = Goat.Yx, YxOverride = Goat.Yx, SnapSet = new[] { Goat.Snap },
+                Max180Mm = Max180(g, role, Goat180Cache ??= Goat180(new Tablet())),
             };
             h.CandidateSet = (hh, cat, yx) => Candidates(g, role, yx);
             // the re-acquire every role fights (HeroLab.WithReacquire's rule: 15% weight, the rest scaled to 85%)
@@ -203,12 +231,25 @@ namespace AimForge.Core
             return h;
         }
 
+        static double? Goat180Cache;
+        public static (double, double?, double?, double?) Key(Preset p) => (p.cm, p.adv.accel, p.adv.cap, p.adv.offset);
+        /// The role's 180 limit, scaled from the GOAT's own 180 (the old fixed limits were set for a 35-40 cm world).
+        public static double Max180(G g, string role, double goat180) => Math.Round(role switch
+        {
+            "Precision" => goat180 * 1.6, "Flick" => goat180 * 0.85,
+            "Signature" => goat180 * 1.15 * g.SigMax180 / 70.0,
+            _ => goat180 * 1.15,
+        }, 1);
+
         /// The role's identity: which curve shapes it may pick from (all floor 1.00 classic, no smoothing).
         public static List<PsyLab.Cand> Candidates(G g, string role, double yx)
         {
             double cm = CmOf(g, role); var o = new List<PsyLab.Cand>();
-            void TL(double off, double G, double span) => o.Add(new PsyLab.Cand { Name = $"tl-sat cm{cm} off{off} G{G} @{off + span}", Family = "trackline-sat", P = PsyLab.TracklineSat(cm, off, G, off + span, yx, 5), FilterGame = g.FilterGame });
-            void ES(double G, double sat) => o.Add(new PsyLab.Cand { Name = $"early-sat cm{cm} G{G} @{sat}", Family = "early-sat", P = PsyLab.EarlySat(cm, G, sat, 0.5, yx, 5), FilterGame = g.FilterGame });
+            bool goatHome = IsGoatHome(g, role);
+            void TL(double off, double G, double span) => o.Add(new PsyLab.Cand { Name = $"tl-sat cm{cm} off{off} G{G} @{off + span}", Family = "trackline-sat", P = PsyLab.TracklineSat(cm, off, G, off + span, yx, Goat.Snap), FilterGame = g.FilterGame });
+            void ES(double G, double sat) => o.Add(new PsyLab.Cand { Name = $"early-sat cm{cm} G{G} @{sat}", Family = "early-sat", P = PsyLab.EarlySat(cm, G, sat, 0.5, yx, Goat.Snap), FilterGame = g.FilterGame });
+            // the GOAT's neighbourhood: 1:1 to 30-60 mm/s (fingertip and wrist), one ramp to a 2.5-4x cap by 150-230 mm/s (the arm)
+            void Near() { foreach (var off in new[] { 30.0, 40.0, 50.0, 60.0 }) foreach (var G in new[] { 2.5, 3.0, 3.5, 4.0 }) foreach (var at in new[] { 150.0, 190.0, 230.0 }) TL(off, G, at - off); }
             // the cap must at least bring a 180 inside the role's limit at this base (ceil to 0.1)
             switch (role)
             {
@@ -226,7 +267,13 @@ namespace AimForge.Core
                     foreach (var G in new[] { 2.5, 3.0, 3.5, 4.0 }) foreach (var sat in new[] { 110.0, 150.0, 200.0, 260.0 }) ES(G, sat);
                     foreach (var off in new[] { 40.0, 70.0 }) foreach (var G in new[] { 3.0, 4.0 }) TL(off, G, 150);
                     break;
-                default:   // Master and Signature: the whole space
+                case "Master":
+                    // The Finals Master IS the GOAT: the field verdict was given in this game and outranks the lab
+                    if (goatHome) { TL(Goat.UnityMms, Goat.Cap, Goat.CapAtMms - Goat.UnityMms); break; }
+                    Near();
+                    break;
+                default:   // Signature: the whole space and the GOAT's neighbourhood
+                    Near();
                     foreach (var off in new[] { 40.0, 80.0, 120.0, 160.0, 200.0 }) foreach (var G in new[] { 2.5, 3.0, 4.0, 5.0 }) foreach (var span in new[] { 60.0, 110.0, 200.0 }) TL(off, G, span);
                     foreach (var G in new[] { 3.0, 4.0, 5.0, 6.0 }) foreach (var sat in new[] { 80.0, 110.0, 150.0, 200.0 }) ES(G, sat);
                     if (cm > 60) foreach (var G in new[] { 7.0, 8.0, 9.0 }) foreach (var sat in new[] { 150.0, 250.0 }) ES(G, sat);
@@ -237,9 +284,17 @@ namespace AimForge.Core
 
         public sealed class Pick { public G Game = null!; public string Role = ""; public HeroLab.Outcome O = null!; public Preset Card = null!; }
 
-        public static Pick Run(G g, string role, Catalogue cat, Action<string> log)
+        /// taken: builds earlier roles of this game already ship (cm, accel, cap, offset) - a role may not repeat one, so no
+        /// two cards in a game are the same.
+        public static Pick Run(G g, string role, Catalogue cat, Action<string> log, ICollection<(double, double?, double?, double?)>? taken = null)
         {
+            Goat180Cache ??= Goat180(cat.tablet);
             var h = RoleHero(g, role);
+            if (taken != null && taken.Count > 0)
+            {
+                var inner = h.CandidateSet!;
+                h.CandidateSet = (hh, c, yx) => inner(hh, c, yx).Where(x => !taken.Contains(Key(x.P))).ToList();
+            }
             var o = HeroLab.Run(h, cat, log);
             return new Pick { Game = g, Role = role, O = o, Card = CardOf(g, role, o, cat) };
         }
@@ -263,12 +318,9 @@ namespace AimForge.Core
             var w = o.Winner.C.P;
             var card = new Preset
             {
-                id = g.Prefix + Slot[role], group = g.Group, name = CardName(g, role), tag = "theory", pxmm = 57, cm = w.cm, snap = w.snap, hdlMax = 87,
-                adv = new Adv { reset = 80, yx = g.Yx, accel = w.adv.accel, cap = w.adv.cap, offset = w.adv.offset }, game = g.Id,
+                id = g.Prefix + Slot[role], group = g.Group, name = CardName(g, role), tag = "theory", pxmm = Goat.PxMm, cm = w.cm, snap = w.snap, hdlMax = Goat.HdlMax,
+                adv = new Adv { reset = Goat.ResetMs, yx = Goat.Yx, accel = w.adv.accel, cap = w.adv.cap, offset = w.adv.offset }, game = g.Id,
             };
-            if (TapFire(g, role))
-                card.cohOv = new CohOv { window = 70, hold = 0, fullPass = 8, engage = 3, floor = 0.30, ceiling = 0.55, rails = 0, anchor = 0, anchorMs = 350, settle = 0, settleSpeed = 80,
-                                         tap = 1.0, tapArm = 1.0, tapHold = g.PinHoldMs, tapBreak = g.PinBreakMm, lead = 0 };
             card.gameFilterOn = o.Winner.C.Filter;
             card.desc = Copy(g, role, card, o, cat);
             return card;
@@ -284,21 +336,57 @@ namespace AimForge.Core
             double spread = Measure.FlickSpreadPct(lut, rg, t, 90, 120, 150), track = Curve.Summary(lut, t).track, capAt = Curve.CapSpeedMms(c) ?? 0;
             double unity = (c.adv.offset ?? 0) * 1000 / rg.PxMm;
             var w = o.Winner;
-            string quart = role == "Precision" ? "the slow end" : role == "Brawl" ? "the fast end" : role == "Signature" && g.Id == "finals" ? "your field speed, not the pros'" : "the median";
+            string rel = role == "Precision" ? "the GOAT's 52.63 x1.15, slower for placed shots" : role == "Brawl" ? "the GOAT's 52.63 x0.87, faster for close fights"
+                       : role == "Signature" && g.Id == "finals" ? "your sens-8 field verdict, 1.5x the GOAT's base"
+                       : Math.Abs(c.cm - Goat.Cm) < 1e-9 ? "the GOAT's own base" : $"the GOAT's 52.63 x{c.cm / Goat.Cm:0.00}";
+            bool isGoat = c.adv.accel == Goat.Accel && c.adv.cap == Goat.Cap && c.adv.offset == Goat.Offset && Math.Abs(c.cm - Goat.Cm) < 1e-9;
             var sb = new StringBuilder();
             sb.Append($"<b>{g.Name.ToUpperInvariant()} {CardName(g, role).ToUpperInvariant()} — {RoleTag(g, role)}.</b> ");
             sb.Append($"{g.Name} rewards {g.Character}. ");
-            sb.Append($"Base <b>{F1(c.cm)} cm/360</b> — {quart} of the pro range ({F1(g.ProLo)}–{F1(g.ProHi)} cm, median {F1(g.ProMed)}; {g.ProSource}). ");
+            sb.Append($"Base <b>{F2(c.cm)} cm/360</b> — {rel} (pros in {g.Name} play {F1(g.ProLo)}–{F1(g.ProHi)} cm, median {F1(g.ProMed)}; {g.ProSource}; your arm-aim base is a field verdict and outranks them). ");
+            if (IsGoatHome(g, role)) sb.Append("<b>This IS the GOAT</b> — your field verdict was given in The Finals, and a verdict outranks the lab: same curve, same rig, same sens. ");
+            else if (isGoat) sb.Append("<b>The lab picked the GOAT's own curve for this role.</b> ");
             sb.Append(unity > 15 ? $"1:1 up to <b>{unity:0} mm/s</b>, then one ramp to the {F1(c.adv.cap ?? 1)}x cap at {capAt:0} mm/s" : $"1:1 in the micro pocket, then one ramp to the {F1(c.adv.cap ?? 1)}x cap at {capAt:0} mm/s");
             sb.Append($" (tracking {F2(track)}x). 180° in {F1(m.Turn180Mm)} mm; committed flick spread {F1(spread)}%; micro {m.Micro3Pct:0}% and onset {F1(m.DeadMs)} ms (two reports). ");
-            sb.Append($"<b>Chosen by the game lab</b> from {o.Phase1.Count(x => x.C.Family != "reference")} curves on {g.Name}'s own fights, weighted for this role: ");
+            sb.Append(IsGoatHome(g, role) ? $"<b>Scored by the game lab</b> on {g.Name}'s own fights: "
+                      : $"<b>Chosen by the game lab</b> from {o.Phase1.Count(x => x.C.Family != "reference")} curves on {g.Name}'s own fights, weighted for this role: ");
             sb.Append(string.Join(" / ", o.Hero.Scens.Zip(w.R.PerScen, (s, q) => $"{s.Name.Split(' ')[0]} {q.HeadRadii:0.00}")));
             sb.Append($" target radii (relative {w.Rel:0.00}, robust across five hand models). ");
-            sb.Append($"Angle snap {c.snap:0}°, Y/X {c.adv.yx}, ");
+            sb.Append($"Angle snap {c.snap:0}° and Y/X {F2(c.adv.yx ?? 1)} like the GOAT (snap and Y/X made aim inconsistent), reset {c.adv.reset:0} ms, ");
             sb.Append(o.FamilyFilter == null ? "no game filter" : c.gameFilterOn ? "the game's Master filter ON (the lab scored it better)" : "the game's Master filter OFF (the lab scored it no better)");
-            sb.Append(c.cohOv != null ? $", Tap Anchor {c.cohOv.tapHold:0} ms / {F2(c.cohOv.tapBreak)} mm (exact passthrough off the click)" : ", no stabilizer at all");
+            sb.Append(c.cohOv != null ? $", Tap Anchor {c.cohOv.tapHold:0} ms / {F2(c.cohOv.tapBreak)} mm (exact passthrough off the click)"
+                      : TapFire(g, role) ? $", no stabilizer (like the GOAT; this is a single-shot role, so the Tap Anchor {g.PinHoldMs:0} ms / {F2(g.PinBreakMm)} mm is one switch away in Filters)" : ", no stabilizer at all");
             sb.Append($", latency tier {RolePolicy.PlanTier(c)}. In game: sensitivity <b>{{SENS}}</b>. {g.Setup}");
             return sb.ToString();
+        }
+
+        /// The GOAT card's copy, every number recomputed from the card (the copy contract checks them).
+        public static string GoatCopy(Tablet t)
+        {
+            var c = GoatPreset(); var rg = Rig.From(c); var lut = Curve.EffectiveLut(c, rg.PxMm);
+            var m = Measure.Run(lut, rg, t);
+            double spread = Measure.FlickSpreadPct(lut, rg, t, 90, 120, 150), track = Curve.Summary(lut, t).track, capAt = Curve.CapSpeedMms(c) ?? 0;
+            var sb = new StringBuilder();
+            sb.Append("<b>THE GOAT — field verdict 2026-10-24: &ldquo;hands down one of the best feelings I&rsquo;ve had on tablet.&rdquo;</b> ");
+            sb.Append("In your words it feels most like a mouse: arm and hand for the big moves, fingertip and wrist pivot on the micro adjustments, and it adapts to changes. ");
+            sb.Append("<b>Every card except BO6 Original is now built on this one.</b> ");
+            sb.Append($"The build exactly as you played it: the Apex Legends Brawl curve of 2026-10-23 (classic accel {Goat.Accel} / offset {Goat.Offset} / cap {F1(Goat.Cap)}), ");
+            sb.Append($"1:1 up to <b>{Goat.UnityMms:0} mm/s</b> (the fingertip and wrist band), then one ramp to the {F1(Goat.Cap)}x cap at {capAt:0} mm/s (the arm; tracking {F2(track)}x). ");
+            sb.Append($"57 px/mm, <b>{F2(Goat.Cm)} cm/360</b> = The Finals sensitivity <b>{{SENS}}</b> (you remember 12; if the game reads something else, say so and the whole roster moves with it), ");
+            sb.Append($"<b>angle snap 0&deg; and Y/X 1.00</b> (snap and the Y/X ratio made aim inconsistent), reset {Goat.ResetMs:0} ms, hover max {Goat.HdlMax:0}, no stabilizer, no game filter. ");
+            sb.Append($"Measured: 180&deg; in {F1(m.Turn180Mm)} mm; committed flick spread {F1(spread)}%; micro {m.Micro3Pct:0}% and onset {F1(m.DeadMs)} ms (two reports). ");
+            sb.Append("Engine as you ran it: Cadence Lock (pen rate 360, merge cap 5), with Nib Twin, Intent Speed and Reversal Carry off. ");
+            sb.Append($"The in-game number for every other game is in the panel. Evidence: {Goat.EvidenceId}.");
+            return sb.ToString();
+        }
+
+        public static string GoatTunerEntry(Tablet t)
+        {
+            string J(string s) => s.Replace("\\", "\\\\").Replace("'", "\\'");
+            var inv = CultureInfo.InvariantCulture;
+            return $"  {{id:'{Goat.Id}', group:'The GOAT', tag:'real', name:'The GOAT', field:'good',\n   desc:'{J(GoatCopy(t))}',\n" +
+                   string.Format(inv, "   device:'wacom', res:0, pxmm:{0}, cm:{1}, slider:0, hdlMax:{2}, snap:{3}, gameFilter:false, adv:{{reset:{4}, yx:{5}, accel:{6}, cap:{7}, offset:{8}}}}},",
+                       Goat.PxMm, Goat.Cm, Goat.HdlMax, Goat.Snap, Goat.ResetMs, "1.0", Goat.Accel, Goat.Cap, Goat.Offset);
         }
 
         /// The card as a tuner.html entry (the roster's only write path).
@@ -308,8 +396,8 @@ namespace AimForge.Core
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
             sb.Append($"  {{id:'{c.id}', group:'{J(c.group)}', tag:'theory', name:'{J(c.name)}',\n   desc:'{J(c.desc)}',\n");
-            sb.Append(string.Format(inv, "   device:'wacom', res:0, pxmm:{0}, cm:{1}, slider:0, hdlMax:87, snap:{2}, gameFilter:{3}, adv:{{reset:80, yx:{4}, accel:{5}, cap:{6}, offset:{7}}}",
-                c.pxmm, c.cm, c.snap, c.gameFilterOn ? "true" : "false", c.adv.yx, c.adv.accel, c.adv.cap, c.adv.offset));
+            sb.Append(string.Format(inv, "   device:'wacom', res:0, pxmm:{0}, cm:{1}, slider:0, hdlMax:{8}, snap:{2}, gameFilter:{3}, adv:{{reset:{9}, yx:{4}, accel:{5}, cap:{6}, offset:{7}}}",
+                c.pxmm, c.cm, c.snap, c.gameFilterOn ? "true" : "false", c.adv.yx, c.adv.accel, c.adv.cap, c.adv.offset, c.hdlMax, c.adv.reset));
             if (c.cohOv is CohOv h)
                 sb.Append(string.Format(inv, ",\n   cohOv:{{window:70, hold:0, fullPass:8, engage:3, floor:0.30, ceiling:0.55, rails:0, anchor:0, anchorMs:350, settle:0, settleSpeed:80, tap:1.0, tapArm:1.0, tapHold:{0}, tapBreak:{1}, lead:0}}", h.tapHold, h.tapBreak));
             sb.Append("},");

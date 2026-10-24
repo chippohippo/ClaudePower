@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
+using System.Text;
 using AimForge.Filters;
 
 namespace AimForge.Core
@@ -57,6 +59,29 @@ namespace AimForge.Core
             public Func<Hero, Catalogue, double, List<PsyLab.Cand>>? CandidateSet;
             /// Y/X when the family card cannot be read (a role whose family card is being re-authored).
             public double YxDefault = 0.85;
+            /// 2026-10-24 (the GOAT field verdict: angle snap and the Y/X ratio made aim inconsistent): every hero and role
+            /// is searched at snap 0 and Y/X 1.00. Null restores the family card's Y/X; the snap set restores {0,3,5,9}.
+            public double? YxOverride = Goat.Yx;
+            public double[] SnapSet = { Goat.Snap };
+            /// The peak hand-speed gate (mm/s). 600 in the 37.7 cm world; since 2026-10-24 it is the larger of 600 and the
+            /// GOAT's own peak on the same fights (PeakCap) - the GOAT is field-proven, so a curve asking no more of the hand
+            /// than the GOAT does is playable. Null = 600.
+            public double? PeakCapMms;
+        }
+
+        /// The hero's peak-speed gate: max(600, the GOAT's own peak on the hero's fights), cached on the hero.
+        public static double PeakCap(Hero h, Catalogue cat)
+        {
+            if (h.PeakCapMms is double v) return v;
+            double cap = 600;
+            if (cat.Find(Goat.Id) is Preset g)
+            {
+                var q = PsyLab.WithSnap(g, h.SnapSet[0]); q.adv.yx = h.YxOverride ?? g.Yx;
+                var r = PsyLab.Score(new PsyLab.Cand { Name = "goat", Family = "reference", P = q, FilterGame = h.FilterGame }, cat.tablet, new PsyLab.Params(), h.Scens, h.K);
+                cap = Math.Max(cap, Math.Ceiling(r.PerScen.Max(x => x.PeakAllMms)));
+            }
+            h.PeakCapMms = cap;
+            return cap;
         }
 
         static PsyLab.Scen S(string n, double d, double lat, double rev, double w, double proj = 0, double vamp = 0, double vhz = 0,
@@ -64,10 +89,14 @@ namespace AimForge.Core
             => new PsyLab.Scen { Name = n, D = d, Lat = lat, Rev = rev, W = w, Proj = proj, VAmp = vamp, VHz = vhz, RecoilDegS = recoil,
                                  H = h, Fall = fall, StepDeg = step, StepS = stepS, SettleOnly = stepS > 0, TargetR = r };
 
+        /// 2026-10-24: the heroes' 180 limit = the GOAT's own measured 180 (87.7 mm at 52.63 cm/360) x1.15; the old 70 mm was set
+        /// for the 37.7 cm world.
+        public const double HeroMax180Mm = 101;
+
         static Hero Rivals(string id, string name, string arch, string kit, bool tap, double rqDeg, double rqMs, params PsyLab.Scen[] sc)
-            => WithReacquire(new Hero { Id = id, Name = name, Game = "rivals", K = PsyLab.K_RIVALS, FilterGame = GameFilterCore.Game.Rivals, Archetype = arch, Kit = kit, TapFire = tap, ReacqDeg = rqDeg, ReacqMs = rqMs, Scens = sc }, 6);
+            => WithReacquire(new Hero { Id = id, Name = name, Game = "rivals", K = PsyLab.K_RIVALS, FilterGame = GameFilterCore.Game.Rivals, Archetype = arch, Kit = kit, TapFire = tap, ReacqDeg = rqDeg, ReacqMs = rqMs, Scens = sc, Max180Mm = HeroMax180Mm }, 6);
         static Hero Ow2(string id, string name, string arch, string kit, bool tap, double rqDeg, double rqMs, params PsyLab.Scen[] sc)
-            => WithReacquire(new Hero { Id = id, Name = name, Game = "ow2", K = K_OW2, FilterGame = GameFilterCore.Game.Ow2, Archetype = arch, Kit = kit, TapFire = tap, ReacqDeg = rqDeg, ReacqMs = rqMs, Scens = sc }, 5.5);
+            => WithReacquire(new Hero { Id = id, Name = name, Game = "ow2", K = K_OW2, FilterGame = GameFilterCore.Game.Ow2, Archetype = arch, Kit = kit, TapFire = tap, ReacqDeg = rqDeg, ReacqMs = rqMs, Scens = sc, Max180Mm = HeroMax180Mm }, 5.5);
 
         /// Every hero also fights the big turn its kit forces (dash / teleport / swap / a flanker behind): one switch of
         /// ReacqDeg at 8 m thrown at the hero's own re-acquire tempo, weight 15% (the kit scenarios keep 85%). Projectile
@@ -158,20 +187,24 @@ namespace AimForge.Core
             var o = new List<PsyLab.Cand>();
             var refs = h.Game == "rivals" ? new[] { "rivpsy", "rivmp", "rivlla", "rivllb", "rivllc", "breakpoint" } : new[] { "owmp", "owlla", "owllb", "owllc", "breakpoint" };
             foreach (var id in refs)
-                if (cat.Find(id) is Preset p) { var q = PsyLab.WithSnap(p, 5); q.adv.yx = yx; o.Add(new PsyLab.Cand { Name = "ref " + id, Family = "reference", P = q }); }
-            // cm/360 ceiling = 37.7, the field-tested base: the human model has no cost for a LONGER hand motion, so left
-            // open it always prefers less gain. The lab may only go FASTER than the base.
-            foreach (var cm in new[] { 30.0, 34.0, 37.7 })
-                foreach (var off in new[] { 60.0, 100.0, 130.0, 150.0, 170.0, 200.0 })
+                if (cat.Find(id) is Preset p) { var q = PsyLab.WithSnap(p, h.SnapSet[0]); q.adv.yx = yx; o.Add(new PsyLab.Cand { Name = "ref " + id, Family = "reference", P = q }); }
+            // cm/360 ceiling = the field-tested base (the GOAT's 52.63 since 2026-10-24; 37.7 before): the human model has no
+            // cost for a LONGER hand motion, so left open it always prefers less gain. The lab may only go FASTER than the base.
+            double C = Goat.Cm, sn = h.SnapSet[0];
+            var cms = new[] { Math.Round(C * 0.8, 2), Math.Round(C * 0.9, 2), C };
+            // the GOAT's own curve is always a candidate: 1:1 to 40 mm/s, cap 3.0 at 190 mm/s
+            o.Add(new PsyLab.Cand { Name = $"goat cm{C}", Family = "trackline-sat", P = PsyLab.TracklineSat(C, Goat.UnityMms, Goat.Cap, Goat.CapAtMms, yx, sn) });
+            foreach (var cm in cms)
+                foreach (var off in new[] { 40.0, 60.0, 100.0, 130.0, 150.0, 170.0, 200.0 })
                     foreach (var G in new[] { 2.0, 3.0, 4.0 })
                         foreach (var span in new[] { 60.0, 110.0, 200.0 })
-                            o.Add(new PsyLab.Cand { Name = $"tl-sat cm{cm} off{off} G{G} @{off + span}", Family = "trackline-sat", P = PsyLab.TracklineSat(cm, off, G, off + span, yx, 5) });
-            foreach (var cm in new[] { 30.0, 34.0, 37.7 })
+                            o.Add(new PsyLab.Cand { Name = $"tl-sat cm{cm} off{off} G{G} @{off + span}", Family = "trackline-sat", P = PsyLab.TracklineSat(cm, off, G, off + span, yx, sn) });
+            foreach (var cm in cms)
                 foreach (var G in new[] { 3.0, 4.0, 5.0 })
                     foreach (var sc in new[] { 80.0, 110.0, 150.0, 200.0 })
-                        o.Add(new PsyLab.Cand { Name = $"early-sat cm{cm} G{G} @{sc}", Family = "early-sat", P = PsyLab.EarlySat(cm, G, sc, 0.5, yx, 5) });
-            foreach (var cm in new[] { 26.0, 30.0, 34.0, 37.7 })
-                o.Add(new PsyLab.Cand { Name = $"flat cm{cm}", Family = "flat", P = PsyLab.Flat(cm, yx, 5) });
+                        o.Add(new PsyLab.Cand { Name = $"early-sat cm{cm} G{G} @{sc}", Family = "early-sat", P = PsyLab.EarlySat(cm, G, sc, 0.5, yx, sn) });
+            foreach (var f in new[] { 0.7, 0.8, 0.9, 1.0 })
+                o.Add(new PsyLab.Cand { Name = $"flat cm{Math.Round(C * f, 2)}", Family = "flat", P = PsyLab.Flat(Math.Round(C * f, 2), yx, sn) });
             foreach (var c in o) c.FilterGame = h.FilterGame;
             return o;
         }
@@ -197,15 +230,16 @@ namespace AimForge.Core
             if (r.DeadMs > 2000.0 / PsyLab.HZ + 0.3) why.Add($"onset {r.DeadMs:0.0} ms");
             if (r.MicroPct < 90 || r.MicroPct > 130) why.Add($"micro {r.MicroPct:0}%");
             if (r.Turn180Mm > h.Max180Mm) why.Add($"180 {r.Turn180Mm:0} mm");
-            double pk = r.PerScen.Max(q => q.PeakAllMms); if (pk > 600) why.Add($"peak {pk:0} mm/s");
+            double pk = r.PerScen.Max(q => q.PeakAllMms); if (pk > (h.PeakCapMms ?? 600)) why.Add($"peak {pk:0} mm/s");
             if (h.TapFire && r.SkidMm > skidCapMm) why.Add($"click skid {r.SkidMm:0.000} mm");
             return (why.Count == 0, string.Join(", ", why));
         }
 
-        /// The click-skid ceiling for tap-fire heroes: the field-rated BO6 base's measured skid + 15%.
+        /// The click-skid ceiling for tap-fire heroes: the field-rated base's measured skid + 15% (the GOAT since 2026-10-24,
+        /// BO6 Original before it existed).
         public static double SkidCap(Catalogue cat)
         {
-            var bo = cat.Find("bo6og")!;
+            var bo = cat.Find(Goat.Id) ?? cat.Find("bo6og")!;
             return Measure.Run(Curve.EffectiveLut(bo, bo.pxmm), Rig.From(bo), cat.tablet).SkidMm * 1.15;
         }
 
@@ -246,9 +280,10 @@ namespace AimForge.Core
         {
             var tab = cat.tablet; var prm = new PsyLab.Params(); int ns = h.Scens.Length;
             var fam = cat.Find(h.FamilyCard);
-            double yx = fam?.Yx ?? h.YxDefault;
+            double yx = h.YxOverride ?? fam?.Yx ?? h.YxDefault;
             var famSpec = fam?.filters?.FirstOrDefault(f => f.on && PlanFilters.IsGameFilter(f.id));
             double skidCap = SkidCap(cat);
+            PeakCap(h, cat);
             Scored Sc(PsyLab.Cand c, PsyLab.Params p, string baseName)
             {
                 var rq = PsyLab.ReacquireSpread(c, h.ReacqDeg, h.ReacqMs);
@@ -258,6 +293,7 @@ namespace AimForge.Core
             }
             var o = new Outcome { Hero = h, Yx = yx, SkidCapMm = skidCap, FamilyFilter = famSpec?.id };
             log($"##### {h.Name} ({h.Game}) - {h.Archetype}");
+            log($"peak hand-speed gate {h.PeakCapMms:0} mm/s (max of 600 and the GOAT's own peak on these fights) | 180 limit {h.Max180Mm:0.0} mm");
             log($"Y/X {yx} (the {h.FamilyCard} family's field value) | game-filter dimension: {(famSpec == null ? "none - the family ships no Master filter" : famSpec.id)} | click-skid cap: {(h.TapFire ? $"{skidCap:0.000} mm (tap fire)" : "none (hold-to-fire)")}");
             log("cells = RMS execution error in target radii / % of samples on target, for " + string.Join(" | ", h.Scens.Select(s => s.Name)));
 
@@ -268,7 +304,7 @@ namespace AimForge.Core
             o.Min1 = Minima(legal.Select(x => x.R), ns);
             foreach (var x in p1) x.Rel = RelScore(x.R, o.Min1, h);
             o.Phase1 = p1.OrderBy(x => x.Rel).ThenBy(x => x.R.Weighted).ToList();
-            log($"=== phase 1: {cands.Count} curves @ snap 5, no filter - best legal per engagement: " + string.Join(" / ", o.Min1.Select(v => v.ToString("0.000"))) + " ===");
+            log($"=== phase 1: {cands.Count} curves @ snap {h.SnapSet[0]:0}, no filter - best legal per engagement: " + string.Join(" / ", o.Min1.Select(v => v.ToString("0.000"))) + " ===");
             foreach (var x in o.Phase1) log(Line(x) + (x.C.Family == "reference" ? "  (reference)" : ""));
 
             legal = legal.OrderBy(x => x.Rel).ThenBy(x => x.R.Weighted).ToList();
@@ -278,13 +314,13 @@ namespace AimForge.Core
 
             var variants = new List<(PsyLab.Cand v, string b)>();
             var specs = famSpec == null ? new FilterSpec?[] { null } : new FilterSpec?[] { null, famSpec };
-            foreach (var x in pool) foreach (var sv in new[] { 0.0, 3.0, 5.0, 9.0 }) foreach (var spec in specs)
+            foreach (var x in pool) foreach (var sv in h.SnapSet) foreach (var spec in specs)
                 variants.Add((Variant(x.C, sv, yx, spec), x.C.Name));
             var p2 = variants.AsParallel().AsOrdered().Select(q => Sc(q.v, prm, q.b)).ToList();
             o.Min2 = Minima(p2.Where(x => x.Legal).Select(x => x.R).DefaultIfEmpty(p2[0].R), ns);
             foreach (var x in p2) x.Rel = RelScore(x.R, o.Min2, h);
             o.Phase2 = p2.OrderBy(x => x.Rel).ThenBy(x => x.R.Weighted).ToList();
-            log($"=== phase 2: {pool.Count} curves x snap {{0,3,5,9}} x filter {(famSpec == null ? "{off}" : "{off,on}")} (top 30) ===");
+            log($"=== phase 2: {pool.Count} curves x snap {{{string.Join(",", h.SnapSet)}}} x filter {(famSpec == null ? "{off}" : "{off,on}")} (top 30) ===");
             foreach (var x in o.Phase2.Take(30)) log(Line(x));
 
             o.Top = o.Phase2.GroupBy(x => x.Base).Select(g => g.Where(x => x.Legal).OrderBy(x => x.Rel).ThenBy(x => x.R.Weighted).FirstOrDefault())
@@ -319,6 +355,63 @@ namespace AimForge.Core
             if (o.WinnerFlipped != null)
                 log($"  filter flipped ({(!w.C.Filter ? "ON" : "off")}): worst {o.WinnerFlipped.Worst:0.000}  per scenario {string.Join(" / ", o.WinnerFlipped.PerScen.Select(q => q.HeadRadii.ToString("0.00")))}  micro {o.WinnerFlipped.MicroPct:0}%  onset {o.WinnerFlipped.DeadMs:0.0}ms");
             return o;
+        }
+
+        /// The character card id each hero ships as.
+        public static readonly Dictionary<string, string> CardIds = new()
+        {
+            ["psylocke"] = "rivpsy", ["loki"] = "rivloki", ["whitefox"] = "rivwfox", ["punisher"] = "rivpun", ["hela"] = "rivhela",
+            ["soldier76"] = "owsol", ["emre"] = "owemre", ["illari"] = "owillari", ["freja"] = "owfreja",
+        };
+
+        /// Cadence Lock advice rule: the card's RawAccel-engine aim-band gain noise exceeds 2x the GOAT's, or its worst report 3x.
+        public static bool NeedsCadence(Preset p, Preset goat)
+        {
+            var n = CadenceLab.RunAimBand(p, Rig.From(p)); var g = CadenceLab.RunAimBand(goat, Rig.From(goat));
+            return n.WallGainNoisePct > 2 * g.WallGainNoisePct || n.WallWorstGainErrPct > 3 * g.WallWorstGainErrPct;
+        }
+
+        /// 2026-10-24: the winner as a character card on the GOAT's rig (snap 0, Y/X 1.00, reset 20, no stabilizer), with copy
+        /// that quotes only its own recomputed numbers.
+        public static Preset CharacterCard(Outcome o, Catalogue cat)
+        {
+            var h = o.Hero; var w = o.Winner.C.P; var inv = CultureInfo.InvariantCulture;
+            var c = new Preset
+            {
+                id = CardIds[h.Id], name = h.Name, group = h.Game == "rivals" ? "Specific Characters — Marvel Rivals" : "Specific Characters — Overwatch 2",
+                tag = "theory", pxmm = Goat.PxMm, cm = w.cm, snap = w.snap, hdlMax = Goat.HdlMax, game = h.Game,
+                adv = new Adv { reset = Goat.ResetMs, yx = w.Yx, accel = w.adv.accel, cap = w.adv.cap, offset = w.adv.offset },
+            };
+            var t = cat.tablet; var rg = Rig.From(c); var lut = Curve.EffectiveLut(c, rg.PxMm); var m = Measure.Run(lut, rg, t);
+            double spread = Measure.FlickSpreadPct(lut, rg, t, 90, 120, 150), track = Curve.Summary(lut, t).track, capAt = Curve.CapSpeedMms(c) ?? 0;
+            double unity = (c.adv.offset ?? 0) * 1000 / rg.PxMm;
+            bool isGoat = c.adv.accel == Goat.Accel && c.adv.cap == Goat.Cap && c.adv.offset == Goat.Offset && Math.Abs(c.cm - Goat.Cm) < 1e-9;
+            string F1(double v) => v.ToString("0.0", inv); string F2(double v) => v.ToString("0.00", inv);
+            var sb = new StringBuilder();
+            sb.Append($"<b>{h.Name.ToUpperInvariant()} — built on {h.Name}&rsquo;s own fights, on THE GOAT&rsquo;s rig (2026-10-24).</b> {h.Archetype}. ");
+            sb.Append("<b>The lab fought:</b> " + string.Join(", ", h.Scens.Select(x => x.Name.Substring(x.Name.IndexOf(' ') + 1))) + ". ");
+            if (isGoat) sb.Append($"<b>The lab picked the GOAT itself for {h.Name}</b>: nothing it tried beat your field verdict on these fights. ");
+            sb.Append(unity > 15 ? $"1:1 up to <b>{unity:0} mm/s</b>, then one ramp to the {F1(c.adv.cap ?? 1)}x cap at {capAt:0} mm/s" : $"1:1 in the micro pocket, then one ramp to the {F1(c.adv.cap ?? 1)}x cap at {capAt:0} mm/s");
+            sb.Append($" (tracking {F2(track)}x). Base <b>{F2(c.cm)} cm/360</b>" + (Math.Abs(c.cm - Goat.Cm) < 1e-9 ? " (the GOAT&rsquo;s)" : $" (the GOAT&rsquo;s 52.63 x{c.cm / Goat.Cm:0.00}: the lab may only go faster than your base, and here it did)") + ". ");
+            var goatRow = o.Phase1.FirstOrDefault(x => x.C.Name.StartsWith("goat"));
+            sb.Append($"<b>Lab (ev-20261024-hero-{h.Id}):</b> {o.Phase1.Count(x => x.C.Family != "reference")} curves, execution error in target radii: ");
+            sb.Append(string.Join(" / ", h.Scens.Zip(o.Winner.R.PerScen, (x, q) => $"{x.Name.Split(' ')[0]} {q.HeadRadii:0.00}")));
+            sb.Append($"; relative score {o.Winner.Rel:0.00}" + (goatRow != null && !isGoat ? $" against the GOAT&rsquo;s {goatRow.Rel:0.00}" : "") + ", robust across five simulated hands. ");
+            sb.Append($"180&deg; in {F1(m.Turn180Mm)} mm; committed flick spread {F1(spread)}%; micro {m.Micro3Pct:0}% and onset {F1(m.DeadMs)} ms (two reports); the {h.ReacqDeg:0}&deg; re-acquire lands within {o.Winner.Rq:0.0}% across three tempos. ");
+            if (cat.Find(Goat.Id) is Preset gp && NeedsCadence(c, gp))
+                sb.Append($"{BuildState.CadenceAdvice}: on the RawAccel engine this ramp turns report-timing jitter into gain noise (you already run Cadence Lock). ");
+            sb.Append($"Angle snap {c.snap:0}&deg; and Y/X {F2(c.adv.yx ?? 1)} like the GOAT, no game filter, no stabilizer, latency tier T0. ");
+            sb.Append($"In game: set the {h.Name} hero-specific sensitivity to <b>{{SENS}}</b>.");
+            c.desc = sb.ToString();
+            return c;
+        }
+
+        public static string CharacterTunerEntry(Preset c)
+        {
+            string J(string x) => x.Replace("\\", "\\\\").Replace("'", "\\'");
+            return $"  {{id:'{c.id}', group:'{c.group}', tag:'theory', name:'{J(c.name)}',\n   desc:'{J(c.desc)}',\n" +
+                   string.Format(CultureInfo.InvariantCulture, "   device:'wacom', res:0, pxmm:{0}, cm:{1}, slider:0, hdlMax:{2}, snap:{3}, gameFilter:false, adv:{{reset:{4}, yx:{5}, accel:{6}, cap:{7}, offset:{8}}}}},",
+                       c.pxmm, c.cm, c.hdlMax, c.snap, c.adv.reset, (c.adv.yx ?? 1).ToString("0.0##", CultureInfo.InvariantCulture), c.adv.accel, c.adv.cap, c.adv.offset);
         }
 
         public static object Evidence(Outcome o)

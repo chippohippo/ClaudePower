@@ -23,7 +23,7 @@ const out={schema:1,generated:new Date().toISOString().slice(0,10),tablet:{name:
       TapAnchor:c.tap,TapArmPressurePct:c.tapArm,TapHoldMs:c.tapHold,TapBreakMm:c.tapBreak,
       LeadMs:c.lead,LeadMaxMm:c.leadMax==null?1.5:c.leadMax}});
     // session 3: the game personality filters, authored per family + role
-    const G={'The Baseline':'cod','Marvel Rivals':'rivals','The Finals':'finals','Apex Legends':'apex',
+    const G={'The GOAT':'finals','The Baseline':'cod','Marvel Rivals':'rivals','The Finals':'finals','Apex Legends':'apex',
              'Overwatch 2':'ow2','Holdfast: NAW':'holdfast','Valorant':'val',
              'Specific Characters — Marvel Rivals':'rivals','Specific Characters — Overwatch 2':'ow2',
              'Helldivers 2':'hd2','Deadlock':'deadlock'};   // hd2 has no personality filter (no cls below) - mapped so policy and pins know the game

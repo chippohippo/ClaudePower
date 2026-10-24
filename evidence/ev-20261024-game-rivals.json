@@ -1,0 +1,558 @@
+{
+  "evidenceId": "ev-20261024-game-rivals",
+  "date": "2026-10-24",
+  "baseline": {
+    "card": "goat",
+    "Cm": 52.63,
+    "Accel": 0.2963,
+    "Offset": 2.28,
+    "Cap": 3,
+    "Snap": 0,
+    "Yx": 1,
+    "ResetMs": 20,
+    "evidence": "ev-20261024-goat"
+  },
+  "game": "Marvel Rivals",
+  "proRange": {
+    "median": 38,
+    "lo": 33,
+    "hi": 47,
+    "source": "senslab (129 pros, median eDPI 1360 = 38.4 cm, 33-47)"
+  },
+  "character": "hitscan and projectile mix, fliers that need smooth vertical tracking, dive brawls and teleport re-acquires",
+  "fights": [
+    {
+      "Name": "R1 strafe track 10m",
+      "tag": "Track",
+      "D": 10,
+      "Lat": 6,
+      "W": 0.3,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "R2 dive brawl 4m",
+      "tag": "Brawl",
+      "D": 4,
+      "Lat": 9,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "R3 projectile poke 12m",
+      "tag": "Prec",
+      "D": 12,
+      "Lat": 6,
+      "W": 0.15,
+      "Proj": 100,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.3
+    },
+    {
+      "Name": "R4 head poke 25m",
+      "tag": "Prec",
+      "D": 25,
+      "Lat": 6,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    },
+    {
+      "Name": "R5 flier 18m",
+      "tag": "Sig",
+      "D": 18,
+      "Lat": 12,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role as a ratio of the GOAT\u0027s 52.63 (Master/Tracker/Flick x1, Precision x1.15, Brawl x0.87, Signature its old ratio; Finals Fieldwide the sens-8 verdict); snap 0 and Y/X 1.00 everywhere (the GOAT verdict); the Master searches the GOAT\u0027s neighbourhood (1:1 to 30-60 mm/s, cap 2.5-4x by 150-230 mm/s, the GOAT curve included); legality: onset \u003C= 2 reports, micro 90-130%, the role\u0027s 180 limit as a ratio of the GOAT\u0027s own 180, no report above 600 mm/s",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "rivmp",
+      "name": "Master Preset",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.2491,
+      "cap": 3,
+      "offset": 2.85,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off50 G3 @230 s0",
+      "rel": 1.0721551105508793,
+      "regret": 1.0874632938151252,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.255,
+          "targetRadii": 0.2,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.212,
+          "targetRadii": 0.199,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.128,
+          "targetRadii": 0.143,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.128,
+          "targetRadii": 0.281,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.128,
+          "targetRadii": 0.563,
+          "onTargetPct": 95.3
+        },
+        {
+          "Name": "R re-acquire 135deg/160ms 8m",
+          "weight": 0.15,
+          "targetRadii": 3.152,
+          "onTargetPct": 84.4
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off60 G3 @230 s0",
+          "Rel": 1.0609827405714962,
+          "Regret": 1.0778352786232674
+        },
+        {
+          "Name": "tl-sat cm52.63 off50 G3 @230 s0",
+          "Rel": 1.0721551105508793,
+          "Regret": 1.0874632938151252
+        },
+        {
+          "Name": "tl-sat cm52.63 off50 G3.5 @230 s0",
+          "Rel": 1.1134351975013852,
+          "Regret": 1.1434460799062052
+        },
+        {
+          "Name": "tl-sat cm52.63 off60 G3.5 @230 s0",
+          "Rel": 1.114229164934921,
+          "Regret": 1.144072379621838
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "rivpl",
+      "name": "Precision",
+      "cm": 60.52,
+      "snap": 0,
+      "accel": 0.3289,
+      "cap": 3.5,
+      "offset": 5.7,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm60.52 off100 G3.5 @300 s0",
+      "rel": 1.0322080501962285,
+      "regret": 1.042170197849579,
+      "Turn180Mm": 86.45714285714286,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.179,
+          "targetRadii": 0.187,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.045,
+          "targetRadii": 0.229,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.268,
+          "targetRadii": 0.136,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.268,
+          "targetRadii": 0.263,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.089,
+          "targetRadii": 0.407,
+          "onTargetPct": 99.7
+        },
+        {
+          "Name": "R re-acquire 135deg/184ms 8m",
+          "weight": 0.15,
+          "targetRadii": 2.461,
+          "onTargetPct": 84.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm60.52 off100 G3.5 @300 s0",
+          "Rel": 1.0322080501962285,
+          "Regret": 1.042170197849579
+        },
+        {
+          "Name": "tl-sat cm60.52 off70 G3.5 @370 s0",
+          "Rel": 1.0389497010609456,
+          "Regret": 1.0591494043319318
+        },
+        {
+          "Name": "tl-sat cm60.52 off100 G4 @300 s0",
+          "Rel": 1.0453128567576404,
+          "Regret": 1.0612076935502934
+        },
+        {
+          "Name": "tl-sat cm60.52 off100 G3.5 @400 s0",
+          "Rel": 1.0361154863012518,
+          "Regret": 1.0692743693788231
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "rivlla",
+      "name": "Tracker",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.8989,
+      "cap": 3,
+      "offset": 11.4,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off200 G3 @310 s0",
+      "rel": 1.002147102773574,
+      "regret": 1.0237012411464408,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.528,
+          "targetRadii": 0.192,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.147,
+          "targetRadii": 0.135,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.044,
+          "targetRadii": 0.14,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.044,
+          "targetRadii": 0.281,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.088,
+          "targetRadii": 0.413,
+          "onTargetPct": 99.7
+        },
+        {
+          "Name": "R re-acquire 135deg/160ms 8m",
+          "weight": 0.15,
+          "targetRadii": 3.18,
+          "onTargetPct": 84.6
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off200 G3 @400 s0",
+          "Rel": 1.0087672306238873,
+          "Regret": 1.0125371637844631
+        },
+        {
+          "Name": "tl-sat cm52.63 off240 G3 @350 s0",
+          "Rel": 1.009430674272654,
+          "Regret": 1.0205210206824338
+        },
+        {
+          "Name": "tl-sat cm52.63 off200 G3 @310 s0",
+          "Rel": 1.002147102773574,
+          "Regret": 1.0237012411464408
+        },
+        {
+          "Name": "tl-sat cm52.63 off240 G3 @300 s0",
+          "Rel": 1.007463201031491,
+          "Regret": 1.026050480847645
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "rivtb",
+      "name": "Flick",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.3682,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm52.63 G4 @160 s0",
+      "rel": 1.0001338699260756,
+      "regret": 1.0032652194734335,
+      "Turn180Mm": 65.7875,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.42351092398166656,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.176,
+          "targetRadii": 0.283,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.147,
+          "targetRadii": 0.192,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.176,
+          "targetRadii": 0.205,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.176,
+          "targetRadii": 0.361,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.176,
+          "targetRadii": 0.65,
+          "onTargetPct": 90.6
+        },
+        {
+          "Name": "R re-acquire 135deg/136ms 8m",
+          "weight": 0.15,
+          "targetRadii": 3.778,
+          "onTargetPct": 80.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm52.63 G4 @160 s0",
+          "Rel": 1.0001338699260756,
+          "Regret": 1.0032652194734335
+        },
+        {
+          "Name": "early-sat cm52.63 G5 @160 s0",
+          "Rel": 1.0831009192370908,
+          "Regret": 1.099266876351785
+        },
+        {
+          "Name": "early-sat cm52.63 G4 @120 s0",
+          "Rel": 1.0950666059389802,
+          "Regret": 1.115646185934091
+        },
+        {
+          "Name": "early-sat cm52.63 G6 @160 s0",
+          "Rel": 1.1617351534154259,
+          "Regret": 1.1926538055181033
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "rivllb",
+      "name": "Brawl",
+      "cm": 45.79,
+      "snap": 0,
+      "accel": 0.1919,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm45.79 G3 @200 s0",
+      "rel": 1.036004531556529,
+      "regret": 1.045369713507226,
+      "Turn180Mm": 76.31666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.3763301149010658,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.198,
+          "targetRadii": 0.251,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.494,
+          "targetRadii": 0.175,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.03,
+          "targetRadii": 0.183,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.03,
+          "targetRadii": 0.341,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.099,
+          "targetRadii": 0.562,
+          "onTargetPct": 95
+        },
+        {
+          "Name": "R re-acquire 135deg/160ms 8m",
+          "weight": 0.15,
+          "targetRadii": 3.169,
+          "onTargetPct": 84.4
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm45.79 G3 @260 s0",
+          "Rel": 1.000493863659982,
+          "Regret": 1.0044784560089408
+        },
+        {
+          "Name": "early-sat cm45.79 G3.5 @260 s0",
+          "Rel": 1.0277815422664731,
+          "Regret": 1.0353831633444783
+        },
+        {
+          "Name": "early-sat cm45.79 G3 @200 s0",
+          "Rel": 1.036004531556529,
+          "Regret": 1.045369713507226
+        },
+        {
+          "Name": "early-sat cm45.79 G4 @260 s0",
+          "Rel": 1.052316451004631,
+          "Regret": 1.0662610269982244
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "rivllc",
+      "name": "Skyward",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 2.5341,
+      "cap": 3,
+      "offset": 11.4,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off200 G3 @260 s0",
+      "rel": 1.0042672075858916,
+      "regret": 1.0816382295802898,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "R1 strafe track 10m",
+          "weight": 0.124,
+          "targetRadii": 0.192,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R2 dive brawl 4m",
+          "weight": 0.104,
+          "targetRadii": 0.137,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R3 projectile poke 12m",
+          "weight": 0.062,
+          "targetRadii": 0.14,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R4 head poke 25m",
+          "weight": 0.062,
+          "targetRadii": 0.281,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R5 flier 18m",
+          "weight": 0.498,
+          "targetRadii": 0.413,
+          "onTargetPct": 99.7
+        },
+        {
+          "Name": "R re-acquire 135deg/160ms 8m",
+          "weight": 0.15,
+          "targetRadii": 3.156,
+          "onTargetPct": 81.8
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off200 G3 @400 s0",
+          "Rel": 1.010161223738106,
+          "Regret": 1.0339188542611522
+        },
+        {
+          "Name": "tl-sat cm52.63 off200 G3 @260 s0",
+          "Rel": 1.0042672075858916,
+          "Regret": 1.0816382295802898
+        },
+        {
+          "Name": "tl-sat cm52.63 off160 G3 @360 s0",
+          "Rel": 1.054636317774223,
+          "Regret": 1.089270437691466
+        },
+        {
+          "Name": "tl-sat cm52.63 off200 G4 @310 s0",
+          "Rel": 1.0282652286845642,
+          "Regret": 1.0913963292695208
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}

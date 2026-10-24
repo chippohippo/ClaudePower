@@ -94,6 +94,7 @@ namespace AimForge.Core
         {
             null or "" => null,
             "The Baseline" => "cod",
+            "The GOAT" => "finals",
             var g when g.StartsWith("Breakpoint") => "cod",
             "Marvel Rivals" => "rivals",
             "Specific Characters — Marvel Rivals" => "rivals",

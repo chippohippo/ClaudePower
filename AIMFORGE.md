@@ -60,17 +60,21 @@ Rejected by measurement and documented so they are never rebuilt: the 2-unit-ste
 
 ---
 
-## The preset roster (63 cards)
+## The preset roster (64 cards, built on THE GOAT)
 
-BO6 Original, the Breakpoints and the character cards share the **BO6 baseline** physics: 57 px/mm, 37.70 cm/360, snap 9°, Y/X 0.789, reset 80 ms, HDL 87. Breakpoint Wide is the exception, at your field-rated 78.95 cm/360. Since 2026-10-23 the game families no longer copy that physics; each game sits in its own pro range (see `GAME_FAMILIES.md`). Every card prints its in-game sens from the game's K.
+**THE GOAT** is the field verdict of 2026-10-24 and the first card in the list. It is the Apex Brawl curve you had live: classic 0.2963 / offset 2.28 / cap 3.0, so 1:1 to 40 mm/s, then cap 3.0 at 190 mm/s. It runs at 57 px/mm and 52.63 cm/360 (The Finals sensitivity 12), with **snap 0, Y/X 1.00**, reset 20 ms, no stabilizer and no game filter, on the Cadence Lock engine. Every card except BO6 Original is built on it. See `GAME_FAMILIES.md`.
 
-- **BO6 Original** — the baseline itself, byte-for-byte (classic 0.105 / 3.6 / 0.5). The field verdict card.
-- **Breakpoint** — the flick flagship: eff-14 ramp to cap 5.0, saturating below flick speed. **Breakpoint Wide** — the same curve at 78.95 cm/360 (the Finals field verdict). **Breakpoint Slow Center** — the same with the unity pocket widened to 12.3 mm/s by offset (v2; the v1 floor was retired by field verdict).
-- **Specific Characters** — nine hero cards (Rivals: Psylocke, Loki, White Fox, The Punisher, Hela; OW2: Soldier: 76, Emre, Illari, Freja), each chosen by the same rule in HeroLab on that hero's own fights. See `CHARACTER_CARDS.md`.
-- **Per game, 6 lab-derived roles (8 games, 2026-10-23):** **Master** (pro median), **Precision** (slow end + Tap Anchor), **Tracker** (wide 1:1 band), **Flick** (short high cap), **Brawl** (fast end), plus one **Signature** for the game's own job (Operator, Longbow, Projectile, Skyward, Fieldwide, Zipline, Heavy, Sabre). All are classic curves with the floor at 1.00, onset in two reports and tier ≤T1, with no smoothing. The full table, sources and in-game notes are in `GAME_FAMILIES.md`. The old Baseline/Planted/Turbo/Tapped quads, the LUT Masters, the Low-Latency Breakpoint trios and the Lab wildcards were retired.
-- **Reference:** Feather (the previous field-best era, preserved exactly) and True Raw (the honest flat control).
-
-Standout measured numbers: the Rivals Master and Flick turn 180° in 38 mm; the Valorant Precision caps at 100 mm/s for a steady 88.6 mm 180; every family card reads micro 90–130% and a two-report (5.6 ms) onset.
+- **The GOAT:** the baseline. In your words it feels most like a mouse: arm for the big moves, fingertip and wrist for micro.
+- **BO6 Original:** the old baseline, byte-for-byte (classic 0.105 / 3.6 / 0.5, snap 9, Y/X 0.789). Unchanged; it is the fallback.
+- **Breakpoints, on the GOAT's rig:**
+  - **Breakpoint:** the flick flagship curve (0.246 / 0.5 / cap 5.0) at 52.63.
+  - **Breakpoint Wide:** the same curve at 78.95 (Finals sens 8).
+  - **Breakpoint Slow Center:** the GOAT's 40 mm/s fingertip band with Breakpoint's cap 5.0 by 303 mm/s.
+- **Specific Characters:** nine hero cards, re-derived by HeroLab with the GOAT's base as the speed ceiling. Hela and Emre came out as the GOAT itself. See `CHARACTER_CARDS.md`.
+- **Per game, 6 lab-derived roles (8 games):**
+  - Master, Tracker and Flick at the GOAT's base; Precision at x1.15; Brawl at x0.87; plus one Signature.
+  - Each role is tuned on its game's fights. The Finals Master is the GOAT.
+- **Reference:** Feather and True Raw. Unchanged; they are A/B controls.
 
 ---
 
@@ -78,7 +82,7 @@ Standout measured numbers: the Rivals Master and Flick turn 180° in 38 mm; the 
 
 ### Coherence Stabilizer (first-party plugin, 19 settings)
 Separates tremor from intent by **directional coherence** (|EMA(Δ⃗)|/EMA(|Δ⃗|)) instead of displacement — no dead zone anywhere. Measured: up to 94.6% tremor removed on a hold, deliberate movement passed at 0.0000 mm lag, flicks bit-exact, ~20 ns/report. Carries:
-- **Tap Anchor** — the pressure-gated click pin (the only feature in the project that adds a new *input*). Ships on the tap-fire roles (every Precision; Valorant and Holdfast Master, Flick and Signature) in exact-passthrough mode (hold 0): zero latency ever, only the pin runs.
+- **Tap Anchor** — the pressure-gated click pin (the only feature in the project that adds a new *input*). Offered (default off) on the tap-fire roles in exact-passthrough mode (hold 0): zero latency ever, only the pin runs. No card ships it on since the GOAT verdict (2026-10-24): the GOAT runs without it.
 - **Lead Sight** — decel-gated extrapolation attacking the ~9 ms downstream pipeline (display-time error 0.960 → 0.257 mm). No shipped card since 2026-10-23.
 - Hold smoothing / Anchor / Settle Assist — the T3 stillness stack. No shipped card runs it since the wildcards were retired on 2026-10-23.
 

@@ -1,6 +1,23 @@
 # AimForge changelog
 
-What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (264 headless). Nothing here has a field verdict yet; those are listed at the end.
+What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (266 headless). Nothing here has a field verdict yet; those are listed at the end.
+
+## 2026-10-24
+
+### THE GOAT (GAME_FAMILIES.md)
+- **New first card: The GOAT.** It is the build you rated "hands down one of the best feelings I've had on tablet":
+  - the Apex Brawl curve (1:1 to 40 mm/s, then cap 3.0 at 190 mm/s);
+  - 57 px/mm and 52.63 cm/360, which is The Finals sensitivity 12;
+  - **angle snap 0, Y/X 1.00**, reset 20 ms, no filters, on Cadence Lock.
+- **Everything except BO6 Original is rebuilt on it:**
+  - snap 0 and Y/X 1.00 everywhere (you found snap and Y/X made aim inconsistent);
+  - reset 20 ms and no stabilizer everywhere;
+  - base speeds are ratios of the GOAT's;
+  - the game families and character cards were re-derived by the labs around the GOAT;
+  - the Breakpoints moved onto its rig.
+- **The Finals Master is the GOAT.** The lab picked the GOAT's exact curve on its own for the Helldivers 2 Master and the Valorant Brawl. Hela and Emre are the GOAT too.
+- **The Tap Anchor no longer ships on any card.** The GOAT runs without it. It is still one switch in Filters, preset per game.
+- **If your Finals sensitivity is not 12:** every speed derives from that one number, so tell me the real value and the roster re-derives.
 
 ## 2026-10-23
 

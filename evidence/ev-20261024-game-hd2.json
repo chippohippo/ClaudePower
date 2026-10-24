@@ -1,0 +1,558 @@
+{
+  "evidenceId": "ev-20261024-game-hd2",
+  "date": "2026-10-24",
+  "baseline": {
+    "card": "goat",
+    "Cm": 52.63,
+    "Accel": 0.2963,
+    "Offset": 2.28,
+    "Cap": 3,
+    "Snap": 0,
+    "Yx": 1,
+    "ResetMs": 20,
+    "evidence": "ev-20261024-goat"
+  },
+  "game": "Helldivers 2",
+  "proRange": {
+    "median": 37.7,
+    "lo": 33,
+    "hi": 42,
+    "source": "no pro scene - your field-tested 37.7 base, \u002B-12% for the role spread"
+  },
+  "character": "deliberate PvE weak-point shots on slower targets, hordes from every side, heavy weapons with drag and recoil",
+  "fights": [
+    {
+      "Name": "H1 weak-point shot 25m",
+      "tag": "Prec",
+      "D": 25,
+      "Lat": 2,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.25
+    },
+    {
+      "Name": "H2 horde sweep 10m",
+      "tag": "Track",
+      "D": 10,
+      "Lat": 4,
+      "W": 0.25,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.4
+    },
+    {
+      "Name": "H3 hunter pounce 5m",
+      "tag": "Brawl",
+      "D": 5,
+      "Lat": 7,
+      "W": 0.2,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 0,
+      "TargetR": 0.4
+    },
+    {
+      "Name": "H4 target switch 50deg 15m",
+      "tag": "Flick",
+      "D": 15,
+      "Lat": 3,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 0,
+      "StepDeg": 50,
+      "TargetR": 0.4
+    },
+    {
+      "Name": "H5 heavy weapon on a charger 15m",
+      "tag": "Sig",
+      "D": 15,
+      "Lat": 3,
+      "W": 0.15,
+      "Proj": 0,
+      "RecoilDegS": 4,
+      "StepDeg": 0,
+      "TargetR": 0.6
+    }
+  ],
+  "method": "GameLab: HeroLab selection (phase 1 role-identity grid -\u003E pool -\u003E snap x the family\u0027s game filter -\u003E five hand models, regret) on the game\u0027s fights re-weighted per role; cm/360 fixed per role as a ratio of the GOAT\u0027s 52.63 (Master/Tracker/Flick x1, Precision x1.15, Brawl x0.87, Signature its old ratio; Finals Fieldwide the sens-8 verdict); snap 0 and Y/X 1.00 everywhere (the GOAT verdict); the Master searches the GOAT\u0027s neighbourhood (1:1 to 30-60 mm/s, cap 2.5-4x by 150-230 mm/s, the GOAT curve included); legality: onset \u003C= 2 reports, micro 90-130%, the role\u0027s 180 limit as a ratio of the GOAT\u0027s own 180, no report above 600 mm/s",
+  "roles": [
+    {
+      "Role": "Master",
+      "card": "hdmp",
+      "name": "Master Preset",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.2963,
+      "cap": 3,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off40 G3 @190 s0",
+      "rel": 1.0706488027528576,
+      "regret": 1.0860151469400283,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.212,
+          "targetRadii": 0.128,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.212,
+          "targetRadii": 0.051,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.17,
+          "targetRadii": 0.119,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.128,
+          "targetRadii": 1.036,
+          "onTargetPct": 76.7
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.128,
+          "targetRadii": 0.034,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/260ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.876,
+          "onTargetPct": 85.6
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off40 G3 @190 s0",
+          "Rel": 1.0706488027528576,
+          "Regret": 1.0860151469400283
+        },
+        {
+          "Name": "tl-sat cm52.63 off40 G3 @230 s0",
+          "Rel": 1.1138012825574166,
+          "Regret": 1.1215770084335692
+        },
+        {
+          "Name": "tl-sat cm52.63 off50 G3 @190 s0",
+          "Rel": 1.0980757230204288,
+          "Regret": 1.1236747013883055
+        },
+        {
+          "Name": "tl-sat cm52.63 off50 G3 @230 s0",
+          "Rel": 1.129633925722414,
+          "Regret": 1.1436676923152014
+        }
+      ]
+    },
+    {
+      "Role": "Precision",
+      "card": "hdpl",
+      "name": "Precision",
+      "cm": 60.52,
+      "snap": 0,
+      "accel": 0.435,
+      "cap": 3,
+      "offset": 2.28,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm60.52 off40 G3 @150 s0",
+      "rel": 1.0268198139702793,
+      "regret": 1.045563515031217,
+      "Turn180Mm": 100.86666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.469,
+          "targetRadii": 0.112,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.156,
+          "targetRadii": 0.053,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.038,
+          "targetRadii": 0.134,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.094,
+          "targetRadii": 1.029,
+          "onTargetPct": 76.7
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.094,
+          "targetRadii": 0.031,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/299ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.731,
+          "onTargetPct": 90
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm60.52 off40 G3 @150 s0",
+          "Rel": 1.0268198139702793,
+          "Regret": 1.045563515031217
+        },
+        {
+          "Name": "tl-sat cm60.52 off70 G3 @180 s0",
+          "Rel": 1.022209092458926,
+          "Regret": 1.0458397370397814
+        },
+        {
+          "Name": "tl-sat cm60.52 off40 G3.5 @150 s0",
+          "Rel": 1.034961114898172,
+          "Regret": 1.0581466551964969
+        },
+        {
+          "Name": "tl-sat cm60.52 off40 G3 @240 s0",
+          "Rel": 1.0391484390307735,
+          "Regret": 1.0670650177112102
+        }
+      ]
+    },
+    {
+      "Role": "Tracker",
+      "card": "hdlla",
+      "name": "Tracker",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 1.9493,
+      "cap": 3,
+      "offset": 7.98,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off140 G3 @200 s0",
+      "rel": 1.0636940929068563,
+      "regret": 1.0743520548918906,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32349154353141785,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.082,
+          "targetRadii": 0.128,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.49,
+          "targetRadii": 0.051,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.131,
+          "targetRadii": 0.081,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.049,
+          "targetRadii": 1.151,
+          "onTargetPct": 72.8
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.098,
+          "targetRadii": 0.034,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/260ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.132,
+          "onTargetPct": 85.3
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off140 G3 @200 s0",
+          "Rel": 1.0636940929068563,
+          "Regret": 1.0743520548918906
+        },
+        {
+          "Name": "tl-sat cm52.63 off110 G3 @220 s0",
+          "Rel": 1.0689476426578264,
+          "Regret": 1.1397916411686966
+        },
+        {
+          "Name": "tl-sat cm52.63 off140 G3 @250 s0",
+          "Rel": 1.149416674490088,
+          "Regret": 1.174333293401722
+        },
+        {
+          "Name": "tl-sat cm52.63 off170 G3 @230 s0",
+          "Rel": 1.177550707849608,
+          "Regret": 1.1908656730480245
+        }
+      ]
+    },
+    {
+      "Role": "Flick",
+      "card": "hdtb",
+      "name": "Flick",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.5105,
+      "cap": 4,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm52.63 G4 @120 s0",
+      "rel": 1.0366758243956697,
+      "regret": 1.0459529169639579,
+      "Turn180Mm": 65.7875,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.4638795480132103,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.198,
+          "targetRadii": 0.13,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.099,
+          "targetRadii": 0.085,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.079,
+          "targetRadii": 0.124,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.356,
+          "targetRadii": 1.006,
+          "onTargetPct": 76.9
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.119,
+          "targetRadii": 0.05,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/221ms 8m",
+          "weight": 0.15,
+          "targetRadii": 1.039,
+          "onTargetPct": 85.9
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm52.63 G4 @120 s0",
+          "Rel": 1.0366758243956697,
+          "Regret": 1.0459529169639579
+        },
+        {
+          "Name": "early-sat cm52.63 G4 @160 s0",
+          "Rel": 1.0449213993819402,
+          "Regret": 1.046828436737859
+        },
+        {
+          "Name": "early-sat cm52.63 G5 @160 s0",
+          "Rel": 1.0916722800663694,
+          "Regret": 1.097216044178381
+        },
+        {
+          "Name": "early-sat cm52.63 G5 @120 s0",
+          "Rel": 1.0816386939689746,
+          "Regret": 1.0996733894599373
+        }
+      ]
+    },
+    {
+      "Role": "Brawl",
+      "card": "hdllb",
+      "name": "Brawl",
+      "cm": 45.79,
+      "snap": 0,
+      "accel": 0.2639,
+      "cap": 3,
+      "offset": 0.5,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "early-sat cm45.79 G3 @150 s0",
+      "rel": 1.1445123052628134,
+      "regret": 1.1717597014957675,
+      "Turn180Mm": 76.31666666666666,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.3977453112602234,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.052,
+          "targetRadii": 0.147,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.173,
+          "targetRadii": 0.072,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.416,
+          "targetRadii": 0.11,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.104,
+          "targetRadii": 1.019,
+          "onTargetPct": 76.8
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.104,
+          "targetRadii": 0.044,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/260ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.83,
+          "onTargetPct": 85.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "early-sat cm45.79 G3 @200 s0",
+          "Rel": 1.1079839655498667,
+          "Regret": 1.1256882752564825
+        },
+        {
+          "Name": "early-sat cm45.79 G3.5 @200 s0",
+          "Rel": 1.1326889750535176,
+          "Regret": 1.157111474101201
+        },
+        {
+          "Name": "early-sat cm45.79 G3 @260 s0",
+          "Rel": 1.1663952658083825,
+          "Regret": 1.1685458419419865
+        },
+        {
+          "Name": "early-sat cm45.79 G3 @150 s0",
+          "Rel": 1.1445123052628134,
+          "Regret": 1.1717597014957675
+        }
+      ]
+    },
+    {
+      "Role": "Signature",
+      "card": "hdllc",
+      "name": "Heavy",
+      "cm": 52.63,
+      "snap": 0,
+      "accel": 0.3655,
+      "cap": 3,
+      "offset": 1.71,
+      "gameFilter": false,
+      "tapAnchor": false,
+      "winner": "tl-sat cm52.63 off30 G3 @150 s0",
+      "rel": 1.0614374430460523,
+      "regret": 1.0724442896171875,
+      "Turn180Mm": 87.71666666666667,
+      "MicroPct": 99.33124752924745,
+      "DeadMs": 5.555555555555555,
+      "SkidMm": 0.32686997205018997,
+      "perScenario": [
+        {
+          "Name": "H1 weak-point shot 25m",
+          "weight": 0.104,
+          "targetRadii": 0.128,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H2 horde sweep 10m",
+          "weight": 0.104,
+          "targetRadii": 0.065,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H3 hunter pounce 5m",
+          "weight": 0.083,
+          "targetRadii": 0.124,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "H4 target switch 50deg 15m",
+          "weight": 0.062,
+          "targetRadii": 1.027,
+          "onTargetPct": 76.8
+        },
+        {
+          "Name": "H5 heavy weapon on a charger 15m",
+          "weight": 0.498,
+          "targetRadii": 0.034,
+          "onTargetPct": 100
+        },
+        {
+          "Name": "R re-acquire 150deg/260ms 8m",
+          "weight": 0.15,
+          "targetRadii": 0.821,
+          "onTargetPct": 85.7
+        }
+      ],
+      "runnersUp": [
+        {
+          "Name": "tl-sat cm52.63 off30 G3 @230 s0",
+          "Rel": 1.0465500670683083,
+          "Regret": 1.0492430416293153
+        },
+        {
+          "Name": "tl-sat cm52.63 off30 G3 @190 s0",
+          "Rel": 1.0448839210933438,
+          "Regret": 1.0517768483413288
+        },
+        {
+          "Name": "tl-sat cm52.63 off40 G3 @230 s0",
+          "Rel": 1.0527780530624422,
+          "Regret": 1.0582729931922228
+        },
+        {
+          "Name": "tl-sat cm52.63 off30 G3.5 @190 s0",
+          "Rel": 1.0551965562065166,
+          "Regret": 1.0631698893018429
+        }
+      ]
+    }
+  ],
+  "fieldVerdict": "pending"
+}
