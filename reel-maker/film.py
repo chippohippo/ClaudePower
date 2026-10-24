@@ -36,6 +36,27 @@ from scipy.io import wavfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import make_reel as mr  # noqa: E402  (shares the grade / matching code)
+sys.path.insert(0, os.path.join(HERE, "tools"))
+from grade_shots import apply_cube, read_cube  # noqa: E402
+
+_PRE = {}
+
+
+def pre_lut():
+    """Optional camera LUT (e.g. S-Log3 → LC-709) applied before the look."""
+    p = FILM.get("pre_lut")
+    if not p:
+        return None
+    if p not in _PRE:
+        _PRE[p] = read_cube(p)
+    return _PRE[p]
+
+
+def out_size(preview):
+    A = FILM["width"] / FILM["height"]
+    if preview:
+        return int(round(540 * A / 2) * 2), 540
+    return FILM["width"], FILM["height"]
 
 FILM = {
     "width": 2160, "height": 1440,       # 3:2 master
@@ -75,8 +96,15 @@ def bake_lut(path, match, sat_scale=1.0):
     rgb = np.stack([r, gg, b], -1).reshape(n * n, n, 3)
     saved = mr.CONFIG["saturation"]
     mr.CONFIG["saturation"] = saved * sat_scale
+    src = rgb
+    pre = pre_lut()
+    if pre is not None:
+        rgb = apply_cube(rgb, pre)
     out = mr.grade(rgb, match).reshape(-1, 3)
     mr.CONFIG["saturation"] = saved
+    s = src.reshape(-1, 3)                      # protect true black
+    k = np.clip(s.max(1, keepdims=True) / 0.04, 0, 1)
+    out = s * (1 - k) + out * k
     with open(path, "w") as f:
         f.write(f"LUT_3D_SIZE {n}\n")
         np.savetxt(f, out, fmt="%.5f")
@@ -96,7 +124,8 @@ def sample_frame(path, t):
 #  Segment rendering
 # ════════════════════════════════════════════════════════════════════════════
 def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
-    W, H = (810, 540) if preview else (FILM["width"], FILM["height"])
+    W, H = out_size(preview)
+    A = W / H
     f = [f"scale=-2:{H}:flags=lanczos"]
     src_w, src_h = src_w * H / src_h, H
     if trf:
@@ -111,10 +140,10 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
         f.append(f"setpts=PTS/{FILM['dream_speed']}")
     if tempo == "step":
         # Wong Kar-wai step-printing: sample at a low rate, hold, smear-blend
-        f.append("fps=8,fps=24000/1001,tmix=frames=3:weights='1 2 1'")
+        f.append(f"fps=8,fps={FILM['fps']},tmix=frames=3:weights='1 2 1'")
     f.append(f"fps={FILM['fps']}")
     # 3:2 window: biggest 3:2 that fits, shrunk by zoom (z0 -> z1 over the shot)
-    base_w = min(src_w, src_h * 1.5)
+    base_w = min(src_w, src_h * A)
     z0, z1 = seg.get("zoom", [1.0, 1.06]) if isinstance(seg.get("zoom"), list) \
         else (1.0, 1.0 + seg.get("zoom", 0.06))
     x, y = seg.get("x", 0.5), seg.get("y", 0.5)
@@ -123,9 +152,9 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     p = f"(0.5-0.5*cos(PI*min(t/{D:.3f},1)))"            # eased progress
     zw = f"({base_w:.1f}/({z0}+({z1}-{z0})*{p}))"
     cx = f"(({x}+({x1}-{x})*{p})*iw)"
-    f.append(f"crop=w='{zw}':h='{zw}/1.5':"
+    f.append(f"crop=w='{zw}':h='{zw}/{A:.5f}':"
              f"x='max(0,min(iw-{zw},{cx}-{zw}/2))':"
-             f"y='max(0,min(ih-{zw}/1.5,{y}*ih-{zw}/3))'")
+             f"y='max(0,min(ih-{zw}/{A:.5f},{y}*ih-{zw}/{2 * A:.5f}))'")
     f.append(f"scale={W}:{H}:flags=lanczos")
     f.append(f"lut3d=file={lut}:interp=tetrahedral")
     if FILM["halation"] > 0:
@@ -200,7 +229,7 @@ def auto_frame(seg, analysis_dir):
     left, right, top = float(np.percentile(S[:, 2], 10)), float(np.percentile(S[:, 3], 90)), \
         float(np.percentile(S[:, 4], 10))
     span = right - left                                 # in source-width units
-    base = min(1.0, (9 / 16) * 1.5)                     # 3:2 window / 16:9 width
+    base = min(1.0, (9 / 16) * FILM["width"] / FILM["height"])   # window / 16:9 width
     zmax = max(1.0, base / max(span * 1.45, 1e-3))
     z = seg.get("zoom", 0.06)
     z0, z1 = (z if isinstance(z, list) else (1.0, 1.0 + z))
@@ -226,7 +255,10 @@ def render_segment(seg, i, media_dir, work, preview):
         return out
     # match exposure / WB on the middle of the segment, bake the shot's LUT
     lut = os.path.join(work, f"lut_{key}.cube")
-    match = mr.measure(sample_frame(src, t_in + src_dur / 2))
+    img = sample_frame(src, t_in + src_dur / 2)
+    if pre_lut() is not None:
+        img = apply_cube(img, pre_lut())
+    match = mr.measure(img)
     bake_lut(lut, match, seg.get("saturation", 1.0))
     trf = None
     if FILM["stabilize"] and seg.get("stab", True):
@@ -276,7 +308,7 @@ def cue_times(edl):
 
 
 def assemble(edl, files, total, out, preview, work):
-    W, H = (810, 540) if preview else (FILM["width"], FILM["height"])
+    W, H = out_size(preview)
     segs = edl["segments"]
     inputs, filters = [], []
     # black canvas for the full length; every segment is overlaid at its
@@ -403,6 +435,8 @@ def main():
         edl = json.load(f)
     base = os.path.dirname(os.path.abspath(args.edl))
     FILM.update(edl.get("film", {}))
+    if FILM.get("pre_lut") and not os.path.isabs(FILM["pre_lut"]):
+        FILM["pre_lut"] = os.path.normpath(os.path.join(base, FILM["pre_lut"]))
     mr.CONFIG.update(edl.get("grade", {}))
     rel = lambda p: p if os.path.isabs(p) else os.path.normpath(os.path.join(base, p))
     media, audio_dir = rel(edl["media_dir"]), rel(edl["audio_dir"])
@@ -427,7 +461,11 @@ def main():
     if args.only:
         return
     print("• audio")
-    mix = build_audio(edl, total, audio_dir, rel(edl["score"]) if edl.get("score") else None, work)
+    if edl.get("audio_mix"):            # soundtrack built elsewhere (music + speech)
+        import shutil
+        shutil.copy(rel(edl["audio_mix"]), os.path.join(work, "mix.wav"))
+    else:
+        build_audio(edl, total, audio_dir, rel(edl["score"]) if edl.get("score") else None, work)
     out = args.output or rel(edl.get("output", "film.mp4"))
     print(f"• assembling {out}")
     assemble(edl, files, total, out, args.preview, work)
