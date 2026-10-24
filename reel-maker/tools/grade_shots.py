@@ -71,10 +71,16 @@ def identity():
     return np.stack([r, gg, b], -1).reshape(N * N, N, 3)
 
 
+CHROMA = 1.0
+
+
 def bake(path, match, pre=None):
     src = identity()
     x = apply_cube(src, pre) if pre is not None else src
     out = mr.grade(x, match).reshape(-1, 3)
+    if CHROMA != 1.0:                                      # overall colour intensity
+        luma = (out @ mr.LUMA)[:, None]
+        out = luma + (out - luma) * CHROMA
     s = src.reshape(-1, 3)
     k = np.clip(s.max(1, keepdims=True) / 0.04, 0, 1)      # protect true black
     out = s * (1 - k) + out * k
@@ -131,11 +137,14 @@ def main():
     ap.add_argument("--luma", type=float, default=0.42, help="exposure target (median luma)")
     ap.add_argument("--halation", type=float, default=0.10)
     ap.add_argument("--grain", type=int, default=5)
+    ap.add_argument("--chroma", type=float, default=1.0, help="overall colour intensity (1 = as graded)")
     ap.add_argument("--still", type=float, nargs="+")
     ap.add_argument("--crf", type=int, default=15)
     a = ap.parse_args()
     mr.CONFIG.update(log_footage=False, saturation=a.sat, warmth=a.warmth, contrast=a.contrast,
                      match_luma=a.luma, match_wb=1.0)
+    global CHROMA
+    CHROMA = a.chroma
     pre = read_cube(a.pre_lut) if a.pre_lut else None
     n, fps = probe(a.src)
     w = int(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width",

@@ -102,6 +102,10 @@ def bake_lut(path, match, sat_scale=1.0):
         rgb = apply_cube(rgb, pre)
     out = mr.grade(rgb, match).reshape(-1, 3)
     mr.CONFIG["saturation"] = saved
+    ch = FILM.get("chroma", 1.0)                # overall colour intensity
+    if ch != 1.0:
+        luma = (out @ mr.LUMA)[:, None]
+        out = luma + (out - luma) * ch
     s = src.reshape(-1, 3)                      # protect true black
     k = np.clip(s.max(1, keepdims=True) / 0.04, 0, 1)
     out = s * (1 - k) + out * k
@@ -123,18 +127,40 @@ def sample_frame(path, t):
 # ════════════════════════════════════════════════════════════════════════════
 #  Segment rendering
 # ════════════════════════════════════════════════════════════════════════════
+def stab_filter(trf, mode, nframes):
+    base = f"vidstabtransform=input={trf}:optzoom=1:crop=black:interpol=bicubic"
+    if mode == "lock":
+        return base + ":tripod=1"
+    if mode == "heavy":
+        return base + f":smoothing={max(30, nframes)}"
+    return base + f":smoothing={min(45, max(10, nframes // 2))}"
+
+
+def _jitter(path):
+    """Frame-to-frame shake (px at 160 px width) and black-corner fraction."""
+    import cv2
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", "scale=160:90,format=gray",
+                          "-f", "rawvideo", "-"], capture_output=True).stdout
+    F = np.frombuffer(raw, np.uint8).reshape(-1, 90, 160).astype(np.float32)
+    if len(F) < 4:
+        return 0.0, 0.0
+    sh = np.array([cv2.phaseCorrelate(F[k], F[k + 1])[0] for k in range(len(F) - 1)])
+    jit = float(np.abs(np.diff(sh, axis=0)).mean())
+    c = np.concatenate([F[:, :8, :8], F[:, :8, -8:], F[:, -8:, :8], F[:, -8:, -8:]], 1)
+    return jit, float((c < 12).mean(axis=(1, 2)).max())
+
+
 def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     W, H = out_size(preview)
     A = W / H
     f = [f"scale=-2:{H}:flags=lanczos"]
     src_w, src_h = src_w * H / src_h, H
     if trf:
-        if seg.get("lock"):   # near-static shot: lock to a virtual tripod
-            f.append(f"vidstabtransform=input={trf}:tripod=1:optzoom=1:crop=black:"
-                     f"zoom=2:interpol=bicubic")
-        else:
-            f.append(f"vidstabtransform=input={trf}:smoothing=70:optzoom=1:"
-                     f"crop=black:zoom=3:interpol=bicubic")
+        f.append(stab_filter(trf, seg.get("_stab_mode", "lock" if seg.get("lock") else "smooth"),
+                             int(out_dur * 30)))
+    if FILM.get("denoise", 0) > 0:              # temporal smoothing of sensor noise
+        d = FILM["denoise"]
+        f.append(f"hqdn3d={d}:{d * 0.75:.2f}:{d * 2:.2f}:{d * 2:.2f}")
     tempo = seg.get("tempo", "real")
     if tempo in ("dream", "step"):
         f.append(f"setpts=PTS/{FILM['dream_speed']}")
@@ -270,6 +296,42 @@ def render_segment(seg, i, media_dir, work, preview):
     w, h = map(int, subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
          "-of", "csv=p=0", src], capture_output=True, text=True).stdout.strip().split(","))
+    if trf:
+        # try stabilisers on this exact segment; keep the steadiest result that
+        # shows no black borders (tripod lock first for locked-off shots)
+        modes = ["lock"] if seg.get("lock") else ["smooth", "heavy", "lock"]
+        results = {}
+        base_seg = dict(seg)
+        vf0 = seg_filters(base_seg, w, h, out_dur, lut, None, True)
+        tmp0 = os.path.join(work, f"cand_{key}_none.mp4")
+        run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
+             "-filter_complex", vf0, "-t", f"{out_dur}", "-an", "-c:v", "libx264", "-preset",
+             "ultrafast", "-crf", "28", tmp0])
+        j0, c0 = _jitter(tmp0)
+        results["none"] = (j0, c0)
+        for m in modes:
+            cs = dict(seg, _stab_mode=m)
+            tmp = os.path.join(work, f"cand_{key}_{m}.mp4")
+            trf_p = trf.replace(".trf", "_p.trf")
+            if not os.path.exists(trf_p):       # detection at the preview size for the trial renders
+                run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
+                     "-vf", "scale=-2:540,vidstabdetect=shakiness=8:accuracy=15:stepsize=6:"
+                     f"result={trf_p}", "-f", "null", "-"])
+            run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
+                 "-filter_complex", seg_filters(cs, w, h, out_dur, lut, trf_p, True), "-t", f"{out_dur}",
+                 "-an", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", tmp])
+            results[m] = _jitter(tmp)
+            os.remove(tmp)
+        os.remove(tmp0)
+        ok = {m: r for m, r in results.items() if m == "none" or r[1] <= c0 + 0.02}
+        best = min(ok, key=lambda m: ok[m][0])
+        if best != "none" and ok[best][0] > j0 * 0.9:
+            best = "none"                       # not clearly better: leave the shot as shot
+        seg = dict(seg, _stab_mode=best)
+        print(f"      stab {seg['clip']}: " + "  ".join(f"{m} {r[0]:.2f}" for m, r in results.items())
+              + f"  → {best}", flush=True)
+        if best == "none":
+            trf = None
     vf = seg_filters(seg, w, h, out_dur, lut, trf, preview)
     run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
          "-filter_complex", vf, "-t", f"{out_dur}", "-an",

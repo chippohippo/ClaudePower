@@ -61,6 +61,28 @@ def repair_clipping(x, safety, thr=0.97):
     return y, int(clip.sum())
 
 
+_VCACHE = os.path.join(os.path.expanduser("~"), ".cache", "voice_iso")
+
+
+def isolate_voice(x, sr):
+    """Demucs two-stem separation; returns the vocals stem (mono, same length)."""
+    import hashlib
+    from scipy.io import wavfile
+    os.makedirs(_VCACHE, exist_ok=True)
+    h = hashlib.sha1(x.tobytes()).hexdigest()[:16]
+    out = os.path.join(_VCACHE, h + ".npy")
+    if os.path.exists(out):
+        return np.load(out)
+    src = os.path.join(_VCACHE, h + ".wav")
+    wavfile.write(src, sr, np.stack([x, x], 1).astype(np.float32))
+    subprocess.run([sys.executable, "-m", "demucs", "--two-stems", "vocals", "-n", "htdemucs",
+                    "-o", _VCACHE, src], capture_output=True, check=True)
+    v = read(os.path.join(_VCACHE, "htdemucs", h, "vocals.wav"), sr)
+    v = np.pad(v, (0, max(0, len(x) - len(v))))[: len(x)]
+    np.save(out, v)
+    return v
+
+
 def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
     sr = cfg["sr"]
     off = cfg["lav_offset"]
@@ -70,31 +92,34 @@ def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
     if sx is not None:
         sx = np.pad(sx, (0, max(0, len(x) - len(sx))))[: len(x)]
     x, nclip = repair_clipping(x, sx)
-    x = ffilter(x, sr, "highpass=f=85:poles=2,lowpass=f=13000,adeclick=w=40:o=75:a=2,"
-                       "afftdn=nf=-40:nr=16:tn=1,deesser=i=0.35:m=0.5")
-    # breaths / sniffs / coughs: unvoiced breath-band bursts. Inside words only
-    # long bursts (>= 0.25 s: coughs, sneezes) count; short ones there are
-    # consonants (s, sh, f) and must stay.
+    # 1) AI voice isolation (Demucs): clothing rustle, mic handling and room
+    #    noise go to the non-voice stem, the voice is kept intact
+    x = isolate_voice(x, sr)
+    # 2) gentle finishing only — no fast gain changes in the hiss band (those
+    #    are what make speech sound scratchy)
+    x = ffilter(x, sr, "highpass=f=80:poles=2,lowpass=f=14000,afftdn=nf=-45:nr=8:tn=1,deesser=i=0.25:m=0.5")
+    # 3) breaths / sniffs / coughs between phrases (inside words only bursts
+    #    >= 0.25 s, i.e. coughs/sneezes — never consonants)
     clean_speech.SR = sr
     lw = [(w0 - off - t0, w1 - off - t0, w) for w0, w1, w, *_ in words if a - 0.2 <= w0 - off <= b + 0.2]
-    g, _ = sniff_gain(x, 26)
+    g, _ = sniff_gain(x, 18)
     g = g[: len(x)]
     inword = np.zeros(len(x), bool)
     for w0, w1, _ in lw:
-        inword[max(int((w0 - 0.03) * sr), 0): int((w1 + 0.03) * sr)] = True
+        inword[max(int((w0 - 0.05) * sr), 0): int((w1 + 0.05) * sr)] = True
     low = g < 0.5
     edges = np.flatnonzero(np.diff(np.r_[0, low.astype(int), 0]))
     hits = []
     for r0, r1 in zip(edges[::2], edges[1::2]):
-        long_run = (r1 - r0) >= 0.25 * sr
-        if inword[r0:r1].mean() > 0.5 and not long_run:
-            g[r0:r1] = 1.0                      # consonant: leave it
+        if inword[r0:r1].mean() > 0.3 and (r1 - r0) < 0.25 * sr:
+            g[r0:r1] = 1.0
         else:
             hits.append(round(r0 / sr + t0, 2))
-    g = np.convolve(g, np.hanning(481) / np.hanning(481).sum(), "same")
+    k = int(0.03 * sr)
+    g = fftconvolve(g, np.hanning(2 * k + 1) / np.hanning(2 * k + 1).sum(), "same")
     x = x * g
-    # mic bumps & handling: low-band spikes clamped to the running level
-    x = clamp_spikes(x[:, None], [(20, 180), (2500, 9000)], [3, 6])[:, 0]
+    # low-frequency handling thumps only (no hiss-band processing)
+    x = clamp_spikes(x[:, None], [(20, 160)], [4])[:, 0]
     # word gate (lav words in lav time → line-local time)
     # merge words separated by short pauses (< 0.35 s): the gate only closes in
     # real gaps between phrases, never inside a phrase or on a word onset
@@ -104,7 +129,7 @@ def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
             spans[-1][1] = max(spans[-1][1], w1)
         else:
             spans.append([w0, w1])
-    gate = word_gate(len(x), [(p, q, "") for p, q in spans], -32, pre=0.14, post=0.18)
+    gate = word_gate(len(x), [(p, q, "") for p, q in spans], -20, pre=0.2, post=0.25)
     x = x * gate
     # loudness on words
     on = gate > 0.9
