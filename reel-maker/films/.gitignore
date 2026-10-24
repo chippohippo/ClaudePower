@@ -1,3 +1,5 @@
 .work*/
 *.wav
 cues.json
+trailer_mix.wav
+*.pre.wav

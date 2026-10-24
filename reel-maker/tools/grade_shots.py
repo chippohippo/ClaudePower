@@ -159,8 +159,10 @@ def main():
         m = shot_match(a.src, s, e, fps, pre, a.match)
         bake(lut, m, pre)
         p = os.path.join(tmp, f"s{i:03d}.mkv")
-        vf = f"select='between(n\\,{s}\\,{e - 1})',setpts=N/FRAME_RATE/TB," + look_vf(lut, w, a.halation, a.grain)
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", a.src, "-filter_complex", vf, "-an",
+        vf = look_vf(lut, w, a.halation, a.grain)
+        # seek straight to the shot (accurate seek) and take exactly its frames
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{s / fps:.6f}", "-i", a.src,
+                        "-filter_complex", vf, "-frames:v", str(e - s), "-an",
                         "-c:v", "ffv1", "-pix_fmt", "yuv420p", p], check=True)
         parts.append(p)
         print(f"  shot {i:3d} {s / fps:7.2f}s  exposure x{m[0]:.2f}  wb {np.round(m[1], 3)}", flush=True)

@@ -1,0 +1,1148 @@
+{
+ "media_dir": "../../footage/cm_proxy",
+ "audio_dir": "../../footage/cm_audio",
+ "analysis_dir": "../../footage/cm_analysis",
+ "audio_mix": "trailer_mix.wav",
+ "output": "../../output/Cortney & Max - Wedding Trailer.mp4",
+ "film": {
+  "width": 1920,
+  "height": 1080,
+  "fps": "30000/1001",
+  "crf": 16,
+  "dream_speed": 0.8,
+  "grain": 4,
+  "vignette": 0.4,
+  "halation": 0.1,
+  "pre_lut": "../../footage/cm_lut.cube"
+ },
+ "grade": {
+  "log_footage": false,
+  "saturation": 1.2,
+  "warmth": 0.55,
+  "contrast": 1.15,
+  "match_luma": 0.42,
+  "match_wb": 0.5
+ },
+ "segments": [
+  {
+   "clip": "0535",
+   "in": 0.0,
+   "pick": [
+    0,
+    12
+   ],
+   "dur": 6.0,
+   "zoom": [
+    1.0,
+    1.06
+   ],
+   "fade_in": 1.2,
+   "track": false,
+   "couple": false
+  },
+  {
+   "clip": "0506",
+   "dur": 1.904,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "zoom": 0.04,
+   "in": 0,
+   "pick": [
+    0,
+    4
+   ]
+  },
+  {
+   "clip": "0504",
+   "dur": 0.882,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    5
+   ]
+  },
+  {
+   "clip": "0505",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    3
+   ]
+  },
+  {
+   "clip": "0510",
+   "dur": 1.741,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "zoom": 0.04,
+   "in": 0,
+   "pick": [
+    0,
+    3
+   ]
+  },
+  {
+   "clip": "0508",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    5
+   ]
+  },
+  {
+   "clip": "0509",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4
+   ]
+  },
+  {
+   "clip": "0507",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    3
+   ]
+  },
+  {
+   "clip": "0513",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4
+   ]
+  },
+  {
+   "clip": "0514",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    3
+   ]
+  },
+  {
+   "clip": "0515",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    2.5
+   ]
+  },
+  {
+   "clip": "0516",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    2.5
+   ]
+  },
+  {
+   "clip": "0518",
+   "dur": 1.741,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "zoom": 0.04,
+   "in": 0,
+   "pick": [
+    0,
+    4.5
+   ]
+  },
+  {
+   "clip": "0519",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ]
+  },
+  {
+   "clip": "0521",
+   "dur": 1.324,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4.5
+   ]
+  },
+  {
+   "clip": "0520",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    5.5
+   ]
+  },
+  {
+   "clip": "0522",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ]
+  },
+  {
+   "clip": "0523",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ]
+  },
+  {
+   "clip": "0524",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4.2
+   ]
+  },
+  {
+   "clip": "0533",
+   "dur": 0.882,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4
+   ]
+  },
+  {
+   "clip": "0534",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    12
+   ]
+  },
+  {
+   "clip": "0517",
+   "dur": 0.882,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    2.5
+   ]
+  },
+  {
+   "clip": "0525",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    7.5
+   ]
+  },
+  {
+   "clip": "0527",
+   "dur": 0.882,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    3.5
+   ]
+  },
+  {
+   "clip": "0531",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    13
+   ]
+  },
+  {
+   "clip": "0528",
+   "dur": 0.882,
+   "couple": false,
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ]
+  },
+  {
+   "clip": "0530",
+   "dur": 0.859,
+   "couple": false,
+   "in": 0,
+   "pick": [
+    0,
+    7.5
+   ]
+  },
+  {
+   "clip": "0532",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    3.5
+   ]
+  },
+  {
+   "clip": "0536",
+   "dur": 0.859,
+   "couple": false,
+   "in": 0,
+   "pick": [
+    0,
+    30
+   ]
+  },
+  {
+   "clip": "0539",
+   "dur": 0.882,
+   "couple": false,
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.882,
+   "couple": false,
+   "in": 186,
+   "pick": [
+    186,
+    200
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.859,
+   "couple": false,
+   "in": 228,
+   "pick": [
+    228,
+    240
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.859,
+   "couple": false,
+   "in": 252,
+   "pick": [
+    252,
+    262
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.882,
+   "couple": false,
+   "in": 278,
+   "pick": [
+    278,
+    290
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.882,
+   "couple": false,
+   "in": 306,
+   "pick": [
+    306,
+    318
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "in": 338,
+   "pick": [
+    338,
+    350
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.859,
+   "couple": false,
+   "in": 386,
+   "pick": [
+    386,
+    402
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.741,
+   "tempo": "dream",
+   "couple": true,
+   "zoom": 0.05,
+   "in": 507,
+   "pick": [
+    507,
+    517
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.882,
+   "couple": true,
+   "in": 518,
+   "pick": [
+    518,
+    526
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 5.642,
+   "tempo": "dream",
+   "couple": true,
+   "in": 526,
+   "pick": [
+    526,
+    536
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.741,
+   "couple": true,
+   "zoom": 0.05,
+   "in": 536,
+   "pick": [
+    536,
+    546
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.882,
+   "couple": false,
+   "in": 100,
+   "pick": [
+    100,
+    180
+   ]
+  },
+  {
+   "clip": "0526",
+   "dur": 0.859,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.695,
+   "couple": true,
+   "x": 0.42,
+   "zoom": [
+    1.3,
+    1.36
+   ],
+   "in": 546,
+   "pick": [
+    546,
+    556
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.906,
+   "couple": false,
+   "in": 180,
+   "pick": [
+    180,
+    186
+   ]
+  },
+  {
+   "clip": "0535",
+   "dur": 0.836,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    13
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.788,
+   "couple": true,
+   "zoom": 0.04,
+   "in": 556,
+   "pick": [
+    556,
+    600
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 5.921,
+   "x": 0.45,
+   "zoom": [
+    1.4,
+    1.44
+   ],
+   "in": 600,
+   "pick": [
+    600,
+    640
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 796.42,
+   "dur": 2.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "zoom": [
+    1.0,
+    1.04
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 799.02,
+   "dur": 4.0,
+   "stab": false,
+   "track": false,
+   "x": 0.45,
+   "y": 0.5,
+   "zoom": [
+    1.45,
+    1.5
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.946,
+   "couple": true,
+   "x": 0.45,
+   "zoom": [
+    1.4,
+    1.44
+   ],
+   "in": 640,
+   "pick": [
+    640,
+    700
+   ]
+  },
+  {
+   "clip": "0519",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.859,
+   "couple": true,
+   "zoom": 0.04,
+   "in": 700,
+   "pick": [
+    700,
+    760
+   ]
+  },
+  {
+   "clip": "0521",
+   "dur": 0.859,
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4.5
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 4.953,
+   "couple": true,
+   "x": 0.47,
+   "zoom": [
+    1.35,
+    1.4
+   ],
+   "in": 760,
+   "pick": [
+    760,
+    830
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 916.0,
+   "dur": 3.4,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 919.4,
+   "dur": 5.8,
+   "stab": false,
+   "track": false,
+   "x": 0.58,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.7,
+   "couple": true,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ],
+   "in": 925,
+   "pick": [
+    925,
+    940
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 943.9,
+   "dur": 3.2,
+   "stab": false,
+   "track": false,
+   "x": 0.58,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 947.1,
+   "dur": 3.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0526",
+   "dur": 0.8,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1030.25,
+   "dur": 3.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1033.85,
+   "dur": 4.7,
+   "stab": false,
+   "track": false,
+   "x": 0.58,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.8,
+   "couple": true,
+   "zoom": 0.03,
+   "in": 1040,
+   "pick": [
+    1040,
+    1060
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1065.4,
+   "dur": 4.7,
+   "stab": false,
+   "track": false,
+   "x": 0.42,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.8,
+   "couple": true,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ],
+   "in": 1080,
+   "pick": [
+    1080,
+    1091
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1091.35,
+   "dur": 2.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1093.95,
+   "dur": 3.05,
+   "stab": false,
+   "track": false,
+   "x": 0.42,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.65,
+   "couple": true,
+   "zoom": 0.03,
+   "in": 1170,
+   "pick": [
+    1170,
+    1187
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1187.6,
+   "dur": 3.4,
+   "stab": false,
+   "track": false,
+   "x": 0.42,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1191.0,
+   "dur": 3.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.963,
+   "couple": true,
+   "zoom": 0.04,
+   "in": 1240,
+   "pick": [
+    1240,
+    1265
+   ]
+  },
+  {
+   "clip": "0524",
+   "dur": 0.882,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "in": 0,
+   "pick": [
+    0,
+    4.2
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.836,
+   "couple": true,
+   "x": 0.48,
+   "zoom": [
+    1.35,
+    1.4
+   ],
+   "in": 1300,
+   "pick": [
+    1300,
+    1330
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 3.419,
+   "couple": true,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ],
+   "in": 1330,
+   "pick": [
+    1330,
+    1395
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1597.6,
+   "dur": 4.4,
+   "stab": false,
+   "track": false,
+   "x": 0.48,
+   "zoom": [
+    1.0,
+    1.08
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1602.0,
+   "dur": 4.4,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1606.4,
+   "dur": 4.4,
+   "stab": false,
+   "track": false,
+   "x": 0.47,
+   "y": 0.47,
+   "zoom": [
+    1.5,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.1,
+   "couple": true,
+   "zoom": 0.03,
+   "in": 1398,
+   "pick": [
+    1398,
+    1425
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1430.9,
+   "dur": 3.5,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1434.4,
+   "dur": 3.0,
+   "stab": false,
+   "track": false,
+   "x": 0.58,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.8,
+   "couple": true,
+   "zoom": 0.03,
+   "in": 1440,
+   "pick": [
+    1440,
+    1462
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1465.9,
+   "dur": 3.0,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1468.9,
+   "dur": 2.5,
+   "stab": false,
+   "track": false,
+   "x": 0.42,
+   "y": 0.48,
+   "zoom": [
+    1.55,
+    1.6
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 0.9,
+   "couple": true,
+   "zoom": 0.03,
+   "in": 1580,
+   "pick": [
+    1580,
+    1600
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1640.9,
+   "dur": 4.5,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "y": 0.5,
+   "zoom": [
+    1.2,
+    1.24
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1645.4,
+   "dur": 6.6,
+   "stab": false,
+   "track": false,
+   "x": 0.48,
+   "y": 0.47,
+   "zoom": [
+    1.4,
+    1.55
+   ]
+  },
+  {
+   "clip": "0543",
+   "dur": 1.1,
+   "couple": true,
+   "x": 0.48,
+   "zoom": [
+    1.4,
+    1.45
+   ],
+   "in": 1652,
+   "pick": [
+    1652,
+    1668
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1671.2,
+   "dur": 4.6,
+   "stab": false,
+   "track": false,
+   "x": 0.5,
+   "zoom": [
+    1.0,
+    1.05
+   ]
+  },
+  {
+   "clip": "0543",
+   "in": 1675.8,
+   "dur": 4.2,
+   "stab": false,
+   "track": false,
+   "x": 0.49,
+   "zoom": [
+    1.3,
+    1.36
+   ]
+  },
+  {
+   "clip": "0526",
+   "dur": 28.0,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "zoom": [
+    1.0,
+    1.08
+   ],
+   "in": 0,
+   "pick": [
+    0,
+    10
+   ]
+  }
+ ],
+ "titles": [
+  {
+   "text": "Cortney & Max",
+   "start": 201.0,
+   "end": 206.2,
+   "y": 0.47,
+   "size": 0.06,
+   "fade": 1.4
+  },
+  {
+   "text": "09 \u00b7 05 \u00b7 2026",
+   "start": 201.6,
+   "end": 206.2,
+   "y": 0.56,
+   "size": 0.026,
+   "fade": 1.4
+  }
+ ]
+}
