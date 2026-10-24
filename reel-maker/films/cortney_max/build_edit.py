@@ -170,7 +170,7 @@ t = sync_block(t, [
 ])
 t = music_block(t, 105.1, [("0543", [1040, 1060], 1, dict(couple=True, zoom=0.03))])
 t = sync_block(t, [
-    (105.1, 1065.4, 1070.1, [(2.3, CWP), (2.4, dict(clip="0528", pick=[0, 6], couple=False, track=False, tempo='dream'))]),     # when we first met (photo wall)
+    (105.1, 1065.4, 1070.1, [(2.3, CWP), (2.4, dict(clip="0528", pick=[0, 1.8], couple=False, track=False, tempo='dream'))]),     # when we first met (photo wall)
 ])
 t = music_block(t, 110.6, [("0543", [1080, 1091], 1, dict(couple=True, **TWO))])
 t = sync_block(t, [
