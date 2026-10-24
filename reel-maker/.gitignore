@@ -3,3 +3,4 @@ music/*.wav
 *.mp4
 footage/
 projects/_*.json
+__pycache__/
