@@ -14,7 +14,17 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SONG_START = 6.0                      # film time where the song begins
-beats = np.array(json.load(open(os.path.join(HERE, "song_beats.json")))["beats"]) + SONG_START
+_b = np.array(json.load(open(os.path.join(HERE, "song_beats.json")))["beats"])
+_p = float(np.median(np.diff(_b)))           # 60/136 s
+# the tracker drops beats in places: fill gaps and extend the grid to the song's end
+_g = [_b[0]]
+for x in _b[1:]:
+    while x - _g[-1] > 1.5 * _p:
+        _g.append(_g[-1] + _p)
+    _g.append(x)
+while _g[-1] < 200.0:
+    _g.append(_g[-1] + _p)
+beats = np.array(_g) + SONG_START
 
 
 def snap(t):
@@ -51,8 +61,13 @@ def sync_block(t0, chunks):
         t = at
         src = a
         for d, kw in cuts:
-            segs.append(dict(clip="0543", **{"in": round(src, 3)}, dur=round(d, 3), stab=False,
-                             track=False, **kw))
+            if "clip" in kw:                     # cutaway: speech continues over b-roll
+                kw = dict(kw)
+                c, rng = kw.pop("clip"), kw.pop("pick")
+                segs.append(dict(clip=c, **{"in": rng[0]}, pick=rng, dur=round(d, 3), **kw))
+            else:
+                segs.append(dict(clip="0543", **{"in": round(src, 3)}, dur=round(d, 3), stab=False,
+                                 track=False, **kw))
             t += d
             src += d
     return t
@@ -128,8 +143,9 @@ t = music_block(t, 64.0 - 0.6, [
     ("0543", [556, 600], 4, dict(couple=True, zoom=0.04)),
     ("0543", [600, 640], 2, dict(x=0.45, zoom=[1.4, 1.44])),
 ])
-t = sync_block(t, [(63.4, 796.42, 803.0, [(2.6, dict(x=0.5, zoom=[1.0, 1.04])),
-                                         (4.0, dict(x=0.45, y=0.5, zoom=[1.45, 1.5]))])])
+t = sync_block(t, [(63.4, 796.42, 803.0, [(2.2, dict(clip="0510", pick=[0, 3], couple=False, track=False, tempo='dream')),
+                                         (2.2, dict(clip="0507", pick=[0, 3], couple=False, track=False)),
+                                         (2.2, dict(x=0.45, y=0.5, zoom=[1.45, 1.5]))])])
 t = music_block(t, 78.5, [
     ("0543", [640, 700], 2, dict(couple=True, x=0.45, zoom=[1.4, 1.44])),
     ("0519", [0, 6], 2, dict(**D, **NC)),
@@ -146,7 +162,7 @@ t = sync_block(78.5, [
 ])
 t = music_block(t, 88.4, [("0543", [925, 940], 1, dict(couple=True, **TWO))])
 t = sync_block(t, [
-    (88.4, 943.9, 950.7, [(3.2, MAXP), (3.6, TWO)]),                     # first person I see
+    (88.4, 943.9, 950.7, [(3.2, MAXP), (1.8, dict(clip="0539", pick=[0, 10], couple=False, track=False)), (1.8, dict(clip="0540", pick=[0, 9], couple=False, track=False))]),   # first person I see
 ])
 t = music_block(t, 96.0, [("0526", [0, 10], 2, dict(**D, **NC))])
 t = sync_block(t, [
@@ -154,7 +170,7 @@ t = sync_block(t, [
 ])
 t = music_block(t, 105.1, [("0543", [1040, 1060], 1, dict(couple=True, zoom=0.03))])
 t = sync_block(t, [
-    (105.1, 1065.4, 1070.1, [(4.7, CWP)]),                               # when we first met
+    (105.1, 1065.4, 1070.1, [(2.3, CWP), (2.4, dict(clip="0528", pick=[0, 6], couple=False, track=False, tempo='dream'))]),     # when we first met (photo wall)
 ])
 t = music_block(t, 110.6, [("0543", [1080, 1091], 1, dict(couple=True, **TWO))])
 t = sync_block(t, [
@@ -173,8 +189,9 @@ t = music_block(t, 130.0, [
 ])
 # ── BRIDGE: "take a deep breath… imprint on your heart" ──────────────────────
 t = sync_block(130.0, [
-    (130.0, 1597.6, 1610.8, [(4.4, dict(x=0.48, zoom=[1.0, 1.08])), (4.4, TWO),
-                             (4.4, dict(x=0.47, y=0.47, zoom=[1.5, 1.6]))]),
+    (130.0, 1597.6, 1610.8, [(3.0, dict(x=0.48, zoom=[1.0, 1.06])), (2.4, dict(clip="0525", pick=[0, 7.5], couple=False, track=False, tempo='dream')),
+                             (2.4, dict(clip="0511", pick=[0, 7], couple=False, track=False, tempo='dream')), (1.6, TWO),
+                             (3.8, dict(x=0.47, y=0.47, zoom=[1.5, 1.6]))]),
 ])
 # ── FINAL CHORUS: I do · I do · declare · kiss · presented ────────────────────
 t = music_block(t, 144.3, [("0543", [1398, 1425], 1, dict(couple=True, zoom=0.03))])
@@ -186,8 +203,8 @@ t = sync_block(t, [(158.0, 1640.9, 1652.0, [(4.5, TWO), (6.6, dict(x=0.48, y=0.4
 t = music_block(t, 170.2, [("0543", [1652, 1668], 2, dict(couple=True, x=0.48, zoom=[1.4, 1.45]))])
 t = sync_block(t, [(170.2, 1671.2, 1680.0, [(4.6, dict(x=0.5, zoom=[1.0, 1.05])),
                                             (4.2, dict(x=0.49, zoom=[1.3, 1.36]))])])
-# ── RECESSIONAL → after: hugs, the license, the party ───────────────────────
-t = music_block(t, 204.5, [
+# ── RECESSIONAL → after: hugs, the license, the party; bookend on the arch ──
+t = music_block(t, 199.5, [
     ("0543", [1700, 1712], 4, dict(**D, couple=True)),
     ("0543", [1712, 1722], 2, dict(couple=True)),
     ("0543", [1735, 1760], 2, dict(couple=False)),
@@ -197,20 +214,25 @@ t = music_block(t, 204.5, [
     ("0544", [300, 312], 4, dict(couple=True)),
     ("0546", [0, 58], 2, dict(couple=False)),
     ("0538", [0, 24], 2, dict(**D, couple=False)),
+    ("0539", [0, 10], 2, dict(couple=False)),
     ("0542", [0, 8], 2, dict(couple=False)),
+    ("0540", [0, 9], 2, dict(**D, couple=False)),
     ("0537", [0, 16], 2, dict(couple=False)),
+    ("0536", [0, 30], 2, dict(couple=False)),
+    ("0543", [1790, 1840], 2, dict(couple=False)),
+    ("0541", [0, 4.5], 2, dict(couple=False)),
     ("0544", [312, 330], 4, dict(**D, couple=True)),
-    ("0526", [0, 10], 8, dict(**D, **NC, zoom=[1.0, 1.08])),
 ])
-segs[-1]["dur"] = round(segs[-1]["dur"] + 2.5, 3)          # hold under the title & fade
+segs.append(dict(clip="0535", **{"in": 2.0}, dur=8.5, zoom=[1.0, 1.08], track=False, couple=False,
+                 in_tr="dissolve:1.0"))                    # bookend: the empty arch, under the title
 total = 207.0
 
 edl = dict(media_dir="../../footage/cm_proxy", audio_dir="../../footage/cm_audio",
            analysis_dir="../../footage/cm_analysis", audio_mix="trailer_mix.wav",
            output="../../output/Cortney & Max - Wedding Trailer.mp4",
            film=dict(width=1920, height=1080, fps="30000/1001", crf=16, dream_speed=0.8, grain=4,
-                     vignette=0.4, halation=0.10, pre_lut="../../footage/cm_lut.cube"),
-           grade=dict(log_footage=False, saturation=1.2, warmth=0.55, contrast=1.15, match_luma=0.42,
+                     vignette=0.3, halation=0.10, pre_lut="../../footage/cm_lut.cube"),
+           grade=dict(log_footage=False, saturation=1.05, warmth=0.35, contrast=1.1, match_luma=0.42,
                       match_wb=0.5),
            segments=segs,
            titles=[dict(text="Cortney & Max", start=total - 6.0, end=total - 0.8, y=0.47, size=0.06, fade=1.4),
