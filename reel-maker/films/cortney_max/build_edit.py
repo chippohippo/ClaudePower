@@ -35,7 +35,8 @@ beats = np.array(_g) + SONG_START
 # ── where the couple stands in the locked-off ceremony angle ────────────────
 # (source time → [bride's outer edge, groom's outer edge], fractions of frame
 # width, read off the footage at every camera framing)
-COUPLE = {548: (.38, .56), 575: (.41, .60), 610: (.30, .58), 640: (.40, .73), 700: (.35, .65),
+COUPLE = {548: (.38, .56), 575: (.41, .60), 610: (.30, .58), 640: (.40, .73), 645: (.27, .73),
+          675: (.39, .63), 700: (.35, .65),
           760: (.39, .57), 797: (.40, .58), 830: (.27, .53), 918: (.30, .63), 946: (.29, .73),
           1032: (.24, .67), 1067: (.30, .78), 1094: (.24, .73), 1190: (.29, .84), 1250: (.38, .61),
           1300: (.33, .67), 1350: (.35, .65), 1434: (.35, .62), 1469: (.35, .60), 1600: (.33, .62),
@@ -175,7 +176,8 @@ t = music_block(t, 57.4, [
     ("0543", [575, 600], 4, dict(**C)),
     ("0510", [0, 3], 2, dict(**D, **NC)),
     ("0543", [610, 630], 4, dict(**C)),
-    ("0543", [640, 660], 4, dict(**C)),
+    ("0543", [644, 647.6], 6, dict(**C)),      # steady, before the operator's zoom-out at 648
+    ("0543", [667, 685], 4, dict(**C)),        # settled wide of the whole arch
 ])
 t = sync_block([(57.4, 796.42, 803.0, [(2.2, B("0507", 0, 3)), (2.2, B("0508", 0, 5, tempo="dream")),
                                        (2.2, None)])])               # a marriage is a continual choice

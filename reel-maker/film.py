@@ -137,25 +137,72 @@ def stab_filter(trf, mode, nframes):
 
 
 def _jitter(path):
-    """Shake score (px at 320 px width): fast frame-to-frame jitter plus slow
-    wobble (camera path deviation from a smooth quadratic move); and the
-    largest black-corner fraction (stabiliser borders)."""
-    import cv2
-    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vf", "scale=320:180,format=gray",
-                          "-f", "rawvideo", "-"], capture_output=True).stdout
-    F = np.frombuffer(raw, np.uint8).reshape(-1, 180, 320).astype(np.float32)
-    if len(F) < 6:
+    """Shake score of a rendered candidate: camera-path wobble + 2 × the worst
+    1-second stretch of frame-to-frame jerk (robust feature tracking, so
+    moving people don't count as camera shake); and the largest black-corner
+    fraction (stabiliser borders)."""
+    from motion import gray_frames, shake, shake_peak
+    F = gray_frames(path)
+    if len(F) < 8:
         return 0.0, 0.0
-    sh = np.array([cv2.phaseCorrelate(F[k], F[k + 1])[0] for k in range(len(F) - 1)])
-    fast = float(np.abs(np.diff(sh, axis=0)).mean())
-    path_ = np.cumsum(sh, axis=0)
-    tt = np.arange(len(path_))
-    wob = 0.0
-    for c in range(2):
-        fit = np.polyval(np.polyfit(tt, path_[:, c], 2), tt)
-        wob += float(np.sqrt(((path_[:, c] - fit) ** 2).mean()))
-    c = np.concatenate([F[:, :12, :12], F[:, :12, -12:], F[:, -12:, :12], F[:, -12:, -12:]], 1)
-    return fast + 0.5 * wob, float((c < 12).mean(axis=(1, 2)).max())
+    score = shake(F) + 2 * shake_peak(F)
+    G = F.astype(np.float32)
+    c = np.concatenate([G[:, :12, :12], G[:, :12, -12:], G[:, -12:, :12], G[:, -12:, -12:]], 1)
+    return score, float((c < 12).mean(axis=(1, 2)).max())
+
+
+def _window(seg, rw, rh):
+    """Output window (x0, y0, x1, y1) in render px at the widest zoom,
+    covering the whole pan — what the stabiliser must keep filled."""
+    W, H = out_size(False)
+    A = W / H
+    base_w = min(rw, rh * A)
+    z0, z1 = seg.get("zoom", [1.0, 1.06]) if isinstance(seg.get("zoom"), list) \
+        else (1.0, 1.0 + seg.get("zoom", 0.06))
+    zw = base_w / min(z0, z1)
+    zh = zw / A
+    xs = [seg.get("x", 0.5), seg.get("x_end", seg.get("x", 0.5))]
+    X = [max(0, min(rw - zw, x * rw - zw / 2)) for x in xs]
+    Y0 = max(0, min(rh - zh, seg.get("y", 0.5) * rh - zh / 2))
+    return min(X), Y0, max(X) + zw, Y0 + zh
+
+
+def cv_stabilize(seg, src, t_in, src_dur, w, h, out):
+    """Feature-tracked stabilisation (motion.py): background-only camera path,
+    smoothest path that fits the crop margin, at most a few % extra zoom
+    (1.03 on couple framing so shoulders stay in). Writes a stabilised
+    intermediate at render height; returns a log label."""
+    from motion import gray_frames, trajectory, plan, AW
+    rh = FILM["height"]
+    rw = int(round(w * rh / h / 2) * 2)
+    tr, _ = trajectory(gray_frames(src, t_in, src_dur))
+    smax = 1.03 if seg.get("lock") else 1.10
+    mats, label, s = plan(tr, rw / AW, _window(seg, rw, rh), (rw, rh), smax=smax,
+                          locked=bool(seg.get("lock")))
+    import cv2
+    dec = subprocess.Popen(["ffmpeg", "-v", "error", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
+                            "-vf", f"scale={rw}:{rh}:flags=lanczos", "-f", "rawvideo", "-pix_fmt", "yuvj444p",
+                            "-"], stdout=subprocess.PIPE)
+    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "yuvj444p",
+                            "-s", f"{rw}x{rh}", "-r", FILM["fps"], "-i", "-", "-c:v", "libx264",
+                            "-preset", "veryfast", "-crf", "6", "-pix_fmt", "yuvj420p", out],
+                           stdin=subprocess.PIPE)
+    n = rw * rh * 3
+    k = 0
+    while True:
+        buf = dec.stdout.read(n)
+        if len(buf) < n:
+            break
+        fr = np.frombuffer(buf, np.uint8).reshape(3, rh, rw)
+        M = mats[min(k, len(mats) - 1)]
+        o = np.stack([cv2.warpAffine(fr[c], M, (rw, rh), flags=cv2.INTER_CUBIC,
+                                     borderMode=cv2.BORDER_REFLECT101) for c in range(3)])
+        enc.stdin.write(o.tobytes())
+        k += 1
+    enc.stdin.close()
+    dec.wait()
+    enc.wait()
+    return f"{label} ×{s:.3f}"
 
 
 def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
@@ -293,7 +340,7 @@ def render_segment(seg, i, media_dir, work, preview):
     out_dur = seg["dur"] + seg.get("_tail", 0.0)
     src_dur = out_dur * speed + 0.2
     t_in = float(seg["in"])
-    key = hashlib.sha1(json.dumps([seg, FILM, preview], sort_keys=True).encode()).hexdigest()[:10]
+    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v2"], sort_keys=True).encode()).hexdigest()[:10]
     out = os.path.join(work, f"seg{i:03d}_{seg['clip']}_{key}.mp4")
     if os.path.exists(out):
         return out
@@ -315,32 +362,33 @@ def render_segment(seg, i, media_dir, work, preview):
         ["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
          "-of", "csv=p=0", src], capture_output=True, text=True).stdout.strip().split(","))
     if trf:
-        # try stabilisers on this exact segment; keep the steadiest result that
-        # shows no black borders (tripod lock first for locked-off shots)
-        modes = ["lock"] if seg.get("lock") else ["smooth", "heavy", "lock"]
+        # try stabilisers on this exact segment and keep the steadiest result
+        # that shows no black borders: none, vidstab (smooth / heavy) and the
+        # feature-tracked stabiliser (cv) that ignores moving people
+        cv_key = hashlib.sha1(json.dumps([seg.get(k) for k in ("clip", "in", "dur", "_tail", "tempo", "zoom",
+                                                                "x", "x_end", "y", "lock")] + [FILM["height"]],
+                                         sort_keys=True).encode()).hexdigest()[:10]
+        cv_src = os.path.join(work, f"cvstab_{cv_key}.mp4")
+        cv_label = "cached"
+        if not os.path.exists(cv_src):
+            cv_label = cv_stabilize(seg, src, t_in, src_dur, w, h, cv_src)
         results = {}
-        base_seg = dict(seg)
-        vf0 = seg_filters(base_seg, w, h, out_dur, lut, None, True)
-        tmp0 = os.path.join(work, f"cand_{key}_none.mp4")
-        run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
-             "-filter_complex", vf0, "-t", f"{out_dur}", "-an", "-c:v", "libx264", "-preset",
-             "ultrafast", "-crf", "28", tmp0])
-        j0, c0 = _jitter(tmp0)
-        results["none"] = (j0, c0)
-        for m in modes:
+        trf_p = trf.replace(".trf", "_p.trf")
+        if not os.path.exists(trf_p):           # detection at the preview size for the trial renders
+            run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
+                 "-vf", "scale=-2:540,vidstabdetect=shakiness=8:accuracy=15:stepsize=6:"
+                 f"result={trf_p}", "-f", "null", "-"])
+        for m in ["none", "smooth", "heavy", "cv"]:
             cs = dict(seg, _stab_mode=m)
             tmp = os.path.join(work, f"cand_{key}_{m}.mp4")
-            trf_p = trf.replace(".trf", "_p.trf")
-            if not os.path.exists(trf_p):       # detection at the preview size for the trial renders
-                run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
-                     "-vf", "scale=-2:540,vidstabdetect=shakiness=8:accuracy=15:stepsize=6:"
-                     f"result={trf_p}", "-f", "null", "-"])
-            run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
-                 "-filter_complex", seg_filters(cs, w, h, out_dur, lut, trf_p, True), "-t", f"{out_dur}",
-                 "-an", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", tmp])
+            inp = ["-i", cv_src] if m == "cv" else ["-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src]
+            run(["ffmpeg", "-v", "error", "-y"] + inp +
+                ["-filter_complex", seg_filters(cs, w, h, out_dur, lut, trf_p if m in ("smooth", "heavy") else None,
+                                                True), "-t", f"{out_dur}",
+                 "-an", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "24", tmp])
             results[m] = _jitter(tmp)
             os.remove(tmp)
-        os.remove(tmp0)
+        j0, c0 = results["none"]
         ok = {m: r for m, r in results.items() if m == "none" or r[1] <= c0 + 0.02}
         stab_ok = {m: r for m, r in ok.items() if m != "none"}
         best = min(stab_ok, key=lambda m: stab_ok[m][0]) if stab_ok else "none"
@@ -348,9 +396,18 @@ def render_segment(seg, i, media_dir, work, preview):
             best = "none"                       # stabilising made it worse: leave the shot as shot
         seg = dict(seg, _stab_mode=best)
         print(f"      stab {seg['clip']}: " + "  ".join(f"{m} {r[0]:.2f}" for m, r in results.items())
-              + f"  → {best}", flush=True)
-        if best == "none":
+              + f"  (cv {cv_label})  → {best}", flush=True)
+        if best != "cv" and os.path.exists(cv_src):
+            os.remove(cv_src)
+        if best in ("none", "cv"):
             trf = None
+        if best == "cv":
+            vf = seg_filters(seg, w, h, out_dur, lut, None, preview)
+            run(["ffmpeg", "-v", "error", "-y", "-i", cv_src,
+                 "-filter_complex", vf, "-t", f"{out_dur}", "-an",
+                 "-c:v", "libx264", "-preset", "veryfast" if preview else "medium",
+                 "-crf", "24" if preview else "12", out])
+            return out
     vf = seg_filters(seg, w, h, out_dur, lut, trf, preview)
     run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
          "-filter_complex", vf, "-t", f"{out_dur}", "-an",
