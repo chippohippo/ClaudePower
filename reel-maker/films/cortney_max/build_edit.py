@@ -216,25 +216,26 @@ t = sync_block([(t + 0.5, 1430.9, 1437.4, [(6.5, None)]),
                 (t + 7.6, 1465.9, 1471.4, [(5.5, None)])])
 t = sync_block([(t + 0.6, 1640.9, 1652.0, [(4.5, None), (6.6, couple(1650, push=0.06))])])
 t_present = t + 0.6
-t = sync_block([(t_present, 1671.2, 1680.0, [(6.6, None), (2.2, CROWD(1680.5, 1685.5))])])  # they turn → the guests
-# ── RECESSIONAL → after: hugs, the license, the party ───────────────────────
-t = music_block(t, t + 16.0, [
-    ("0543", [1700, 1712], 4, dict(**D, couple=True)),
-    ("0543", [1712, 1722], 2, dict(couple=True)),
-    ("0543", [1735, 1760], 2, dict(couple=False)),
-    ("0543", [1760, 1790], 2, dict(couple=True)),
-    ("0544", [100, 200], 2, dict(couple=True)),
-    ("0544", [200, 280], 2, dict(**D, couple=True)),
-    ("0546", [0, 58], 2, dict(couple=False)),
-    ("0538", [0, 24], 2, dict(**D, **NC)),
-    ("0539", [0, 10], 2, dict(couple=False)),
-    ("0542", [0, 8], 2, dict(couple=False)),
-    ("0540", [0, 9], 2, dict(**D, couple=False)),
-    ("0536", [0, 30], 2, dict(couple=False)),
-    ("0541", [0, 4.5], 2, dict(couple=False)),
+t = sync_block([(t_present, 1671.2, 1680.0, [(6.6, None)])])
+# ── RECESSIONAL: down the aisle through the clapping, the dip kiss ───────────
+# (camera follows them from the arch; steady stretches from the jerk index)
+WALK = dict(couple=False, track=False, y=0.5)
+t = music_block(t, t + 15.0, [
+    ("0543", [1680.6, 1686.6], 8, dict(**WALK, x=0.5, zoom=[1.0, 1.05])),     # walking out, everyone clapping
+    ("0543", [1688.8, 1693.6], 8, dict(**WALK, x=0.49, zoom=[1.08, 1.13])),   # hand in hand down the aisle
+    ("0543", [1693.3, 1695.5], 4, dict(**WALK, x=0.48, zoom=[1.1, 1.13])),    # bouquet up
+    ("0543", [1695.45, 1698.4], 8, dict(**D, **WALK, x=0.48, zoom=[1.12, 1.16])),  # the dip kiss
+    ("0543", [1699.0, 1712.0], 6, dict(**D, **WALK, x=0.55, zoom=[1.0, 1.04])),    # walking on toward us
 ])
-# final image: the two of them with the signed license, under the title
-segs.append(dict(clip="0544", **{"in": 304.0}, pick=[300, 330], dur=6.0, couple=True, zoom=[1.0, 1.05],
+# ── THE LICENSE: little moments, no talking — signing, laughing, holding it up
+t = music_block(t, t + 7.9, [
+    ("0544", [141, 147], 4, dict(couple=False, track=False)),                 # the signature
+    ("0544", [251, 257], 4, dict(couple=True)),                               # "you're married!"
+    ("0544", [217, 227], 4, dict(couple=True)),                               # laughing together
+    ("0544", [304.5, 312], 6, dict(couple=True)),                             # holding it up
+])
+# final image: the kiss behind the signed license, under the title
+segs.append(dict(clip="0544", **{"in": 316.8}, pick=[316.6, 323.2], dur=6.0, couple=True, zoom=[1.0, 1.05],
                  in_tr="dissolve:0.6"))
 total = round(t - 0.6 + 6.0, 2)
 
@@ -280,17 +281,23 @@ def chunk_start(src_a):
 for a_src, line_a, line_b in ((1430.9, 1431.10, 1437.16), (1465.9, 1466.09, 1471.13),
                               (1640.9, 1641.14, 1645.40), (1671.2, 1671.34, 1679.30)):
     speech.append((at(chunk_start(a_src), a_src, line_a), line_a, line_b))
+# per-line repairs from review (ceremony time): high band ducked where a
+# breath / sniff / rustle burst sits on the words; trimmed line tails
+LINE_FIX = {
+    1065.68: dict(pad=[0.35, 0.28], ducks=[[1067.75, 1068.25, -12], [1069.15, 1069.45, -12]]),  # 1:40–1:42
+    1187.9: dict(ducks=[[1192.56, 1192.96, -16]]),                                               # sniff 1:54
+}
 kiss_t = chunk_start(1640.9)
 audio = dict(sr=48000, total=total, song="../../footage/cm_song/song.wav",
              song_instrumental="../../footage/cm_song/no_vocals.wav", song_start=SONG_START,
              music_db=-13, music_under_speech_db=-25, music_fade_out=3.0,
              lav="../../footage/cm_rec/001_260314.wav", lav_safety="../../footage/cm_rec/001_260314_D.wav",
              lav_words="../../footage/cm_lav.json", lav_offset=1875.94, speech_db=-17,
-             speech=[dict(at=a, src=[x, y]) for a, x, y in speech],
+             speech=[dict(at=a, src=[x, y], **LINE_FIX.get(round(x, 2), {})) for a, x, y in speech],
              cheers=[dict(at=round(kiss_t + (1646.9 - 1640.9), 3), file="../../footage/cm_audio/0543.wav",
                           src=[1646.9, 1650.3], db=-17, fade=0.5),
-                     dict(at=round(chunk_start(1671.2) + (1679.3 - 1671.2), 3),
-                          file="../../footage/cm_audio/0543.wav", src=[1679.3, 1686.0], db=-17)])
+                     dict(at=round(chunk_start(1671.2) + (1679.3 - 1671.2), 3),     # clapping through the walk
+                          file="../../footage/cm_audio/0543.wav", src=[1679.3, 1699.5], db=-18, fade=1.2)])
 json.dump(audio, open(os.path.join(HERE, "audio.json"), "w"), indent=1)
 print(f"{len(segs)} segments, total {total}s")
 for a, x, y in speech:

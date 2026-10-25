@@ -83,7 +83,60 @@ def isolate_voice(x, sr):
     return v
 
 
-def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
+def declick(x, sr, thr_db=7.0, max_ms=30):
+    """Mic-handling scratches / clicks: short broadband spikes. Per STFT frame,
+    the energy above 1.5 kHz is compared with its local median (±80 ms); a
+    spike that rises > thr_db and lasts <= max_ms is clamped back to the local
+    level (+2 dB), bin by bin. Detection listens to 5–14 kHz, where a voice is
+    weak and a scratch is not; the clamp works on everything above 2 kHz. Consonants rise and fall over longer spans and
+    are kept; a clamp leaves a little of any transient, never a hole."""
+    from scipy.signal import stft, istft
+    from scipy.ndimage import median_filter
+    n = 1024
+    f, t, Z = stft(x, sr, nperseg=n, noverlap=n - 256)
+    M = np.abs(Z)
+    det = (f >= 5000) & (f <= 14000)
+    hb = f >= 2000
+    e = 10 * np.log10((M[det] ** 2).sum(0) + 1e-12)
+    w = max(3, int(0.08 * sr / 256) * 2 + 1)
+    base = median_filter(e, w, mode="nearest")
+    spike = e - base > thr_db
+    # keep only short runs
+    edges = np.flatnonzero(np.diff(np.r_[0, spike.astype(int), 0]))
+    mx = max(1, int(max_ms / 1000 * sr / 256))
+    keep = np.zeros_like(spike)
+    for r0, r1 in zip(edges[::2], edges[1::2]):
+        if r1 - r0 <= mx:
+            keep[max(0, r0 - 1):r1 + 1] = True
+    if not keep.any():
+        return x, 0
+    ref = median_filter(M, size=(1, w), mode="nearest") * 10 ** (2 / 20)
+    G = np.ones_like(M)
+    G[np.ix_(hb, keep)] = np.minimum(1.0, ref[np.ix_(hb, keep)] / (M[np.ix_(hb, keep)] + 1e-12))
+    _, y = istft(Z * G, sr, nperseg=n, noverlap=n - 256)
+    y = np.pad(y, (0, max(0, len(x) - len(y))))[: len(x)].astype(np.float32)
+    return y, int(len(edges) // 2)
+
+
+def hf_duck(x, sr, spans, above=3000.0):
+    """Turn down only the high band (breath, sniff, rustle hiss) in the given
+    spans [(t0, t1, dB), ...] (line-local seconds); the voice body stays."""
+    if not spans:
+        return x
+    from scipy.signal import stft, istft
+    n = 1024
+    f, t, Z = stft(x, sr, nperseg=n, noverlap=n - 256)
+    g = np.ones(len(t))
+    for t0, t1, db in spans:
+        g[(t >= t0) & (t <= t1)] = 10 ** (db / 20)
+    g = np.convolve(g, np.hanning(9) / np.hanning(9).sum(), "same")     # ~20 ms ramps
+    G = np.ones(Z.shape)
+    G[f >= above] = g
+    _, y = istft(Z * G, sr, nperseg=n, noverlap=n - 256)
+    return np.pad(y, (0, max(0, len(x) - len(y))))[: len(x)].astype(np.float32)
+
+
+def clean_line(cfg, a, b, words, pad=(0.35, 0.45), ducks=()):
     sr = cfg["sr"]
     off = cfg["lav_offset"]
     t0, t1 = a - pad[0], b + pad[1]
@@ -98,6 +151,9 @@ def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
     # 2) gentle finishing only — no fast gain changes in the hiss band (those
     #    are what make speech sound scratchy)
     x = ffilter(x, sr, "highpass=f=80:poles=2,lowpass=f=14000,afftdn=nf=-45:nr=8:tn=1,deesser=i=0.25:m=0.5")
+    x, nclick = declick(x, sr)
+    # targeted: breath / sniff / rustle bursts heard in review (ceremony time)
+    x = hf_duck(x, sr, [(d0 - t0, d1 - t0, db) for d0, d1, db in ducks])
     # 3) breaths / sniffs / coughs between phrases (inside words only bursts
     #    >= 0.25 s, i.e. coughs/sneezes — never consonants)
     clean_speech.SR = sr
@@ -129,7 +185,7 @@ def clean_line(cfg, a, b, words, pad=(0.35, 0.45)):
             spans[-1][1] = max(spans[-1][1], w1)
         else:
             spans.append([w0, w1])
-    gate = word_gate(len(x), [(p, q, "") for p, q in spans], -20, pre=0.2, post=0.25)
+    gate = word_gate(len(x), [(p, q, "") for p, q in spans], -30, pre=0.2, post=0.25)
     x = x * gate
     # loudness on words
     on = gate > 0.9
@@ -158,7 +214,8 @@ def main():
     duck = np.zeros(n, np.float32)            # 1 where speech is active
     for s in cfg["speech"]:
         a, b = s["src"]
-        x, lead, hits, nclip = clean_line(cfg, a, b, words, tuple(s.get("pad", (0.35, 0.45))))
+        x, lead, hits, nclip = clean_line(cfg, a, b, words, tuple(s.get("pad", (0.35, 0.45))),
+                                          s.get("ducks", ()))
         x *= 10 ** (s.get("gain_db", 0) / 20)
         i0 = int((s["at"] - lead) * sr)
         m = min(len(x), n - i0)
