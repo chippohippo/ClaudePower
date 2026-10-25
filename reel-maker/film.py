@@ -219,6 +219,10 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     tempo = seg.get("tempo", "real")
     if tempo in ("dream", "step"):
         f.append(f"setpts=PTS/{FILM['dream_speed']}")
+    if tempo == "dream":
+        # 29.97 fps footage slowed to 80 % would repeat every 4th frame — a
+        # visible stutter. Motion-compensated in-between frames keep it fluid.
+        f.append(f"minterpolate=fps={FILM['fps']}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1:scd=none")
     if tempo == "step":
         # Wong Kar-wai step-printing: sample at a low rate, hold, smear-blend
         f.append(f"fps=8,fps={FILM['fps']},tmix=frames=3:weights='1 2 1'")
@@ -352,7 +356,8 @@ def render_segment(seg, i, media_dir, work, preview):
     out_dur = seg["dur"] + seg.get("_tail", 0.0)
     src_dur = out_dur * speed + 0.2
     t_in = float(seg["in"])
-    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v3"], sort_keys=True).encode()).hexdigest()[:10]
+    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v3"] + (["mci"] if seg.get("tempo") == "dream" else []),
+                                   sort_keys=True).encode()).hexdigest()[:10]
     out = os.path.join(work, f"seg{i:03d}_{seg['clip']}_{key}.mp4")
     if os.path.exists(out):
         return out
