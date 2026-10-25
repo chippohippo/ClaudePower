@@ -127,9 +127,9 @@ t = music_block(0.0, snap(15.4), [
     ("0505", [0, 3], 2, dict(**D, **NC)),
     ("0510", [0, 3], 4, dict(**D, **NC, **W)),
     ("0508", [0, 5], 2, dict(**NC)),
-    ("0509", [0, 4], 2, dict(**D, **NC)),
+    ("0511", [0, 7.5], 2, dict(**D, **NC)),   # steady sweetheart chairs (0509 was jittery)
     ("0507", [0, 3], 2, dict(**NC)),
-    ("0513", [0, 4], 2, dict(**D, **NC)),
+    ("0535", [0, 13.5], 2, dict(**D, **NC)),  # smooth walk to the arch (0513 was jittery)
     ("0514", [0, 3], 2, dict(**NC)),
     ("0515", [0, 2.5], 2, dict(**D, **NC)),
     ("0516", [0, 2.5], 2, dict(**NC)),
@@ -143,8 +143,8 @@ t = music_block(t, snap(28.3), [
     ("0522", [0, 10], 2, dict(**D, **NC)),
     ("0523", [0, 6], 2, dict(**NC)),
     ("0524", [0, 4.2], 2, dict(**D, **NC)),
-    ("0533", [0, 4], 2, dict(**NC)),
-    ("0534", [0, 12], 2, dict(**D, **NC)),
+    ("0527", [0, 4.5], 2, dict(**NC)),        # steady reception tables (0533 was jittery)
+    ("0526", [0, 10.5], 2, dict(**D, **NC)),  # the arch reveal (0534 was jittery)
     ("0517", [0, 2.5], 2, dict(**NC)),
     ("0528", [0, 6], 2, dict(couple=False)),
     ("0530", [0, 7.5], 2, dict(couple=False)),

@@ -280,14 +280,26 @@ def pick_window(seg, analysis_dir):
     # normalise per clip: log sharpness vs clip median; motion vs clip median
     ls = np.log(sharp + 1) - np.log(np.median(sharp) + 1)
     mn = mot / (np.median(mot) + 0.5)
+    # camera jerk per frame (tools/jerk_index.py): bumps, jitter, operator grabs
+    jp = os.path.join(analysis_dir, seg["clip"] + ".jerk.json")
+    jerk = None
+    if os.path.exists(jp):
+        jd = json.load(open(jp))
+        jerk, jfps = np.array(jd["jerk"]), jd["fps"]
+        k = max(1, int(0.5 * jfps))
+        jroll = np.convolve(jerk, np.ones(k) / k, "same")
     best, best_s = a, -1e9
-    for t0 in np.arange(a, max(a, b) + 1e-6, 0.25):
+    for t0 in np.arange(a, max(a, b) + 1e-6, 0.1 if jerk is not None else 0.25):
         k = (t >= t0) & (t <= t0 + L)
         if k.sum() < 2:
             continue
         # the window is judged by its worst moments, not just its average
         score = (np.mean(ls[k]) + 0.5 * np.min(ls[k]) - 0.6 * np.mean(mn[k])
                  - 0.4 * np.max(mn[k]) + (1.2 * np.mean(have[k]) if seg.get("couple", True) else 0))
+        if jerk is not None:                    # steadiness dominates the choice
+            j0, j1 = int(t0 * jfps), int((t0 + L) * jfps) + 1
+            if j1 <= len(jerk) and j1 > j0:
+                score -= 3.0 * float(np.mean(jerk[j0:j1])) + 2.0 * float(np.max(jroll[j0:j1]))
         if score > best_s:
             best, best_s = t0, score
     out = dict(seg)
@@ -356,7 +368,7 @@ def render_segment(seg, i, media_dir, work, preview):
         trf = os.path.join(work, f"stab_{key}.trf")
         run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src,
              "-vf", f"scale=-2:{H},vidstabdetect=shakiness=8:accuracy=15:stepsize=6:"
-             f"result={trf}" + (":tripod=1" if seg.get("lock") else ""),
+             f"result={trf}",
              "-f", "null", "-"])
     w, h = map(int, subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height",
@@ -413,6 +425,19 @@ def render_segment(seg, i, media_dir, work, preview):
          "-filter_complex", vf, "-t", f"{out_dur}", "-an",
          "-c:v", "libx264", "-preset", "veryfast" if preview else "medium",
          "-crf", "24" if preview else "12", out])
+    if trf and _jitter(out)[1] > results["none"][1] + 0.02:
+        # the full-resolution vidstab pass can differ from the trial: never
+        # ship black borders — fall back to the feature-tracked result / none
+        alt = "cv" if results["cv"][1] <= results["none"][1] + 0.02 and \
+            results["cv"][0] <= results["none"][0] else "none"
+        print(f"      ! black borders at full resolution, using {alt}", flush=True)
+        seg = dict(seg, _stab_mode=alt)
+        if alt == "cv" and not os.path.exists(cv_src):
+            cv_stabilize(seg, src, t_in, src_dur, w, h, cv_src)
+        inp = ["-i", cv_src] if alt == "cv" else ["-ss", f"{t_in}", "-t", f"{src_dur}", "-i", src]
+        run(["ffmpeg", "-v", "error", "-y"] + inp + ["-filter_complex", seg_filters(seg, w, h, out_dur, lut, None, preview),
+             "-t", f"{out_dur}", "-an", "-c:v", "libx264", "-preset", "veryfast" if preview else "medium",
+             "-crf", "24" if preview else "12", out])
     return out
 
 
