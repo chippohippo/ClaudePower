@@ -222,7 +222,7 @@ t = music_block(t, t + 16.0, [
     ("0544", [100, 200], 2, dict(couple=True)),
     ("0544", [200, 280], 2, dict(**D, couple=True)),
     ("0546", [0, 58], 2, dict(couple=False)),
-    ("0538", [0, 24], 2, dict(**D, couple=False)),
+    ("0538", [0, 24], 2, dict(**D, **NC)),
     ("0539", [0, 10], 2, dict(couple=False)),
     ("0542", [0, 8], 2, dict(couple=False)),
     ("0540", [0, 9], 2, dict(**D, couple=False)),

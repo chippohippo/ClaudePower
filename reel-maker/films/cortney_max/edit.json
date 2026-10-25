@@ -1030,6 +1030,7 @@
    "dur": 0.882,
    "tempo": "dream",
    "couple": false,
+   "track": false,
    "in": 0,
    "pick": [
     0,
