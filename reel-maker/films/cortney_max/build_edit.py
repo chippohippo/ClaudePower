@@ -131,11 +131,11 @@ t = music_block(0.0, snap(15.4), [
     ("0507", [0, 3], 2, dict(**NC)),
     ("0535", [0, 13.5], 2, dict(**D, **NC)),  # smooth walk to the arch (0513 was jittery)
     ("0514", [0, 3], 2, dict(**NC)),
-    ("0515", [0, 2.5], 2, dict(**D, **NC)),
+    ("0512", [0, 5], 2, dict(**D, **NC)),     # steady table sweep (0515 was jittery)
     ("0516", [0, 2.5], 2, dict(**NC)),
     ("0518", [0, 4.5], 4, dict(**D, **NC, **W)),
     ("0519", [0, 6], 2, dict(**NC)),
-    ("0521", [0, 4.5], 4, dict(**D, **NC)),
+    ("0525", [0, 8.5], 4, dict(**D, **NC)),   # reception tables (0521 was jittery)
 ])
 # ── VERSE 1 (song 15.4–28.3): details, then guests arrive ───────────────────
 t = music_block(t, snap(28.3), [
@@ -153,7 +153,7 @@ t = music_block(t, snap(28.3), [
     ("0539", [0, 10], 2, dict(couple=False)),
     ("0540", [0, 9], 2, dict(**D, couple=False)),
     ("0541", [0, 4.5], 2, dict(couple=False)),
-    ("0530", [8, 10], 2, dict(couple=False)),
+    ("0538", [0, 18], 2, dict(couple=False)),  # (0530 end was bumpy)
 ])
 # ── BUILD (song 28.3–42.8): the processional · "Today we witness…" ──────────
 P = dict(couple=False)
@@ -179,7 +179,7 @@ t = music_block(t, 57.4, [
     ("0543", [644, 647.6], 6, dict(**C)),      # steady, before the operator's zoom-out at 648
     ("0543", [667, 685], 4, dict(**C)),        # settled wide of the whole arch
 ])
-t = sync_block([(57.4, 796.42, 803.0, [(2.2, B("0507", 0, 3)), (2.2, B("0508", 0, 5, tempo="dream")),
+t = sync_block([(57.4, 796.42, 803.0, [(2.2, B("0531", 9, 14.5)), (2.2, B("0508", 0, 5, tempo="dream")),
                                        (2.2, None)])])               # a marriage is a continual choice
 t = music_block(t, 72.0, [
     ("0543", [700, 720], 4, dict(**C)),
