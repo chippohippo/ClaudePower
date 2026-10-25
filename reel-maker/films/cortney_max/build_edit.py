@@ -120,6 +120,12 @@ NC = dict(couple=False, track=False)
 C = dict(_couple=True)                     # ceremony angle, couple-centred
 B = lambda c, a, b, **k: dict(clip=c, pick=[a, b], couple=False, track=False, **k)
 
+# ceremony-camera cutaways for the speeches (steady windows, checked with the
+# jerk index): guests watching, the groomsmen, the bridesmaids, the crowd
+CROWD = lambda a=560.5, b=570: B("0543", a, b, x=0.5, y=0.5, zoom=[1.0, 1.04])
+GROOMSMEN = lambda: B("0543", 816.5, 829.5, x=0.75, y=0.5, zoom=[1.68, 1.72])
+BRIDESMAIDS = lambda: B("0543", 1266, 1278, x=0.26, y=0.5, zoom=[1.88, 1.92])
+
 # ── INTRO (song 0–15.4): details on the 2-beat grid, from black ─────────────
 t = music_block(0.0, snap(15.4), [
     ("0506", [0, 4], 4, dict(**D, **NC, **W, fade_in=0.8)),
@@ -146,7 +152,7 @@ t = music_block(t, snap(28.3), [
     ("0527", [0, 4.5], 2, dict(**NC)),        # steady reception tables (0533 was jittery)
     ("0526", [0, 10.5], 2, dict(**D, **NC)),  # the arch reveal (0534 was jittery)
     ("0517", [0, 2.5], 2, dict(**NC)),
-    ("0528", [0, 6], 2, dict(couple=False)),
+    ("0531", [9, 14.5], 2, dict(**NC)),       # tables & arch (0528 was inside the house)
     ("0530", [0, 7.5], 2, dict(couple=False)),
     ("0532", [0, 3.5], 2, dict(**NC)),
     ("0536", [0, 30], 2, dict(couple=False)),
@@ -179,8 +185,7 @@ t = music_block(t, 57.4, [
     ("0543", [644, 647.6], 6, dict(**C)),      # steady, before the operator's zoom-out at 648
     ("0543", [667, 685], 4, dict(**C)),        # settled wide of the whole arch
 ])
-t = sync_block([(57.4, 796.42, 803.0, [(2.2, B("0531", 9, 14.5)), (2.2, B("0508", 0, 5, tempo="dream")),
-                                       (2.2, None)])])               # a marriage is a continual choice
+t = sync_block([(57.4, 796.42, 803.0, [(3.4, None), (3.2, CROWD())])])   # camera pans at 800 → guests               # a marriage is a continual choice
 t = music_block(t, 72.0, [
     ("0543", [700, 720], 4, dict(**C)),
     ("0519", [0, 6], 2, dict(**D, **NC)),
@@ -190,9 +195,9 @@ t = music_block(t, 72.0, [
 # ── VOWS (verse 2 → chorus 2), lip-synced, always both of them in frame ─────
 t = sync_block([
     (72.0, 916.0, 925.2, [(9.2, None)]),                                         # laugh · angel
-    (81.8, 943.9, 950.7, [(3.2, None), (1.8, B("0539", 0, 10)), (1.8, B("0540", 0, 9))]),  # first person
+    (81.8, 943.9, 950.7, [(2.9, GROOMSMEN()), (3.9, None)]),                    # first person (camera reframes 944–946.5)
     (89.2, 1030.25, 1038.55, [(8.3, None)]),                                     # I love you Courtney…
-    (98.1, 1065.4, 1070.1, [(2.3, None), (2.4, B("0528", 0, 1.8, tempo="dream"))]),  # when we first met
+    (98.1, 1065.4, 1070.1, [(4.7, None)]),                                       # when we first met
     (103.1, 1091.35, 1097.0, [(5.65, None)]),                                    # through all of this
     (109.4, 1187.6, 1194.6, [(7.0, None)]),                                      # cry happy tears · I love you
 ])
@@ -205,14 +210,13 @@ t = music_block(t, snap(123.3), [
 ])
 # ── BRIDGE: "take a deep breath… imprint on your heart" ──────────────────────
 b0 = t
-t = sync_block([(b0, 1597.6, 1610.8, [(3.0, None), (2.4, B("0543", 120, 180, tempo="dream")),
-                                      (2.4, B("0536", 0, 30, tempo="dream")), (5.4, None)])])
+t = sync_block([(b0, 1597.6, 1610.8, [(4.4, None), (3.6, BRIDESMAIDS()), (5.2, None)])])   # "look around"
 # ── FINAL CHORUS: I do · I do · declare · kiss · presented ────────────────────
 t = sync_block([(t + 0.5, 1430.9, 1437.4, [(6.5, None)]),
                 (t + 7.6, 1465.9, 1471.4, [(5.5, None)])])
 t = sync_block([(t + 0.6, 1640.9, 1652.0, [(4.5, None), (6.6, couple(1650, push=0.06))])])
 t_present = t + 0.6
-t = sync_block([(t_present, 1671.2, 1680.0, [(8.8, None)])])
+t = sync_block([(t_present, 1671.2, 1680.0, [(6.6, None), (2.2, CROWD(1680.5, 1685.5))])])  # they turn → the guests
 # ── RECESSIONAL → after: hugs, the license, the party ───────────────────────
 t = music_block(t, t + 16.0, [
     ("0543", [1700, 1712], 4, dict(**D, couple=True)),
