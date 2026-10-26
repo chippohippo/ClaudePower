@@ -311,6 +311,7 @@ LINE_FIX = {
     1065.68: dict(pad=[0.35, 0.28], ducks=[[1067.75, 1068.25, -12], [1069.15, 1069.45, -12]]),  # 1:40–1:42
     1187.9: dict(ducks=[[1192.56, 1192.96, -16]]),                                               # sniff 1:54
 }
+EVENT_DB = -20
 kiss_t = chunk_start(1640.9)
 audio = dict(sr=48000, total=total, song="../../footage/cm_song/song.wav",
              song_instrumental="../../footage/cm_song/no_vocals.wav", song_start=SONG_START,
@@ -320,8 +321,13 @@ audio = dict(sr=48000, total=total, song="../../footage/cm_song/song.wav",
              speech=[dict(at=a, src=[x, y], **LINE_FIX.get(round(x, 2), {})) for a, x, y in speech],
              cheers=[dict(at=round(kiss_t + (1646.9 - 1640.9), 3), file="../../footage/cm_audio/0543.wav",
                           src=[1646.9, 1650.3], db=-17, fade=0.5),
-                     dict(at=round(chunk_start(1671.2) + (1679.3 - 1671.2), 3),     # clapping through the walk
-                          file="../../footage/cm_audio/0543.wav", src=[1679.3, 1699.5], db=-18, fade=1.2)])
+                     # the event's own recessional song (it starts as they're presented) with
+                     # the live clapping, real time from here to the end — one handover
+                     dict(at=round(chunk_start(1671.2) + (1679.3 - 1671.2), 3),
+                          file="../../footage/cm_audio/0543.wav",
+                          src=[1679.3, round(1679.3 + total - (chunk_start(1671.2) + 1679.3 - 1671.2), 3)],
+                          db=EVENT_DB, fade_in=0.8, fade_out=3.0, af="highpass=f=35,adeclick")],
+             music_end=[round(chunk_start(1671.2) + (1679.3 - 1671.2) - 2.4, 3), 3.0])
 json.dump(audio, open(os.path.join(HERE, "audio.json"), "w"), indent=1)
 print(f"{len(segs)} segments, total {total}s")
 for a, x, y in speech:

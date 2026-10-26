@@ -12,7 +12,9 @@ Config (JSON):
   "lav_offset": 1875.94,            # lav time = ceremony time + offset
   "speech_db": -18,                 # loudness target on words (RMS dBFS)
   "speech": [ {"at": 0.5, "src": [563.98, 568.88]}, ... ],   # ceremony times
-  "cheers": [ {"at": 160.2, "file": "cam.wav", "src": [1646, 1652], "db": -16} ]
+  "cheers": [ {"at": 160.2, "file": "cam.wav", "src": [1646, 1652], "db": -16} ],
+  # optional: "music_end": [t, fade] — the song fades out once at t (e.g. when
+  # the event's own music, recorded in a "cheers" item, takes over)
 }
     python trailer_audio.py config.json out.wav
 """
@@ -241,6 +243,12 @@ def main():
         if cfg.get("music_fade_out"):
             fo = int(cfg["music_fade_out"] * sr)
             music[n - fo:] *= np.linspace(1, 0, fo)[:, None]
+        if cfg.get("music_end"):            # hand over to the event's own music: song out, once
+            e0, ed = cfg["music_end"]
+            i0, i1 = int(e0 * sr), min(n, int((e0 + ed) * sr))
+            ramp = 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, i1 - i0))
+            music[i0:i1] *= ramp[:, None]
+            music[i1:] = 0
 
     # ── cheers ──────────────────────────────────────────────────────────────
     cheer = np.zeros((n, 2), np.float32)
@@ -248,11 +256,12 @@ def main():
         p = c["file"] if os.path.isabs(c["file"]) else os.path.join(base, c["file"])
         a, b = c["src"]
         x = read(p, sr, a, b - a, ch=2)
-        x = np.stack([ffilter(x[:, i], sr, "highpass=f=120,adeclick") for i in range(2)], 1)
-        f = int(c.get("fade", 0.6) * sr)
+        x = np.stack([ffilter(x[:, i], sr, c.get("af", "highpass=f=120,adeclick")) for i in range(2)], 1)
+        fi = int(c.get("fade_in", c.get("fade", 0.6)) * sr)
+        fo = int(c.get("fade_out", c.get("fade", 0.6)) * sr)
         env = np.ones(len(x), np.float32)
-        env[:f] = np.linspace(0, 1, f)
-        env[-f:] = np.linspace(1, 0, f)
+        env[:fi] = np.linspace(0, 1, fi)
+        env[-fo:] = np.linspace(1, 0, fo)
         x = x * env[:, None]
         x *= 10 ** (c.get("db", -18) / 20) / (np.sqrt((x ** 2).mean()) + 1e-9)
         i0 = int(c["at"] * sr)

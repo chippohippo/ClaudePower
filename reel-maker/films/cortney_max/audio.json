@@ -144,10 +144,16 @@
    "file": "../../footage/cm_audio/0543.wav",
    "src": [
     1679.3,
-    1699.5
+    1706.116
    ],
-   "db": -18,
-   "fade": 1.2
+   "db": -20,
+   "fade_in": 0.8,
+   "fade_out": 3.0,
+   "af": "highpass=f=35,adeclick"
   }
+ ],
+ "music_end": [
+  167.494,
+  3.0
  ]
 }
