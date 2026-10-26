@@ -237,6 +237,30 @@ t = music_block(t, t + 7.9, [
 # final image: the kiss behind the signed license, under the title
 segs.append(dict(clip="0544", **{"in": 316.8}, pick=[316.6, 323.2], dur=6.0, couple=True, zoom=[1.0, 1.05],
                  in_tr="dissolve:0.6"))
+# ── flow: soft mixes where a cut would jump ────────────────────────────────
+# Same camera, near-identical framing (ceremony / walk-out / license) reads as
+# a jump; a short mix makes it flow. Scene changes (details → processional,
+# sunny walk-out → the dim license room) get a slightly longer one. A mix
+# starts on the beat and never moves a later shot, so lip-sync is kept.
+def _fr(sg):
+    z = sg.get("zoom", 1.0)
+    return (z[0] if isinstance(z, list) else 1.0), sg.get("x", 0.5)
+
+
+_t = 0.0
+for _i, _s in enumerate(segs):
+    if _i and "in_tr" not in _s:
+        _p = segs[_i - 1]
+        (za, xa), (zb, xb) = _fr(_p), _fr(_s)
+        if _p["clip"] == _s["clip"] and _s["clip"] in ("0543", "0544") and _t > 45 \
+                and abs(za - zb) < 0.15 and abs(xa - xb) < 0.12:
+            _s["in_tr"] = "mix:0.5" if _t > 168 else "mix:0.4"
+        elif _p["clip"] != "0543" and _s["clip"] == "0543" and 27 < _t < 30:
+            _s["in_tr"] = "mix:0.5"                     # into the processional
+        elif _p["clip"] == "0543" and _s["clip"] == "0544":
+            _s["in_tr"] = "mix:0.7"                     # outdoors → the license room
+    _t += _s["dur"]
+
 total = round(t - 0.6 + 6.0, 2)
 
 edl = dict(media_dir="../../footage/cm_proxy", audio_dir="../../footage/cm_audio",

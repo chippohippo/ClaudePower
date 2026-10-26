@@ -451,8 +451,10 @@ def render_segment(seg, i, media_dir, work, preview):
 # ════════════════════════════════════════════════════════════════════════════
 def layout(edl):
     """Compute each segment's start time. A dissolve of d seconds into segment
-    i fades it in over the last d seconds of i-1. Dips to black are a real
-    black gap."""
+    i fades it in over the last d seconds of i-1. A mix of d seconds fades i in
+    over its own first d seconds while i-1 plays on underneath (i-1 is
+    rendered d seconds longer), so no later shot moves and sync is kept. Dips
+    to black are a real black gap."""
     t = 0.0
     segs = edl["segments"]
     for i, s in enumerate(segs):
@@ -491,11 +493,11 @@ def assemble(edl, files, total, out, preview, work):
         # expose the black canvas (the next shot is layered on top anyway)
         chain = (f"[{i}:v]tpad=stop_mode=clone:stop_duration=0.25,"
                  f"setpts=PTS-STARTPTS+{s['_start']:.4f}/TB")
-        if tr.startswith("dissolve") and i > 0:
+        if tr.startswith(("dissolve", "mix")) and i > 0:
             chain += f",format=yuva420p,fade=in:st={s['_start']:.4f}:d={d}:alpha=1"
         filters.append(chain + f"[v{i}]")
         filters.append(f"{last}[v{i}]overlay=eof_action=pass:enable='between(t,{s['_start']:.3f},"
-                       f"{s['_start'] + s['dur'] + 0.2:.3f})'[o{i}]")
+                       f"{s['_start'] + s['dur'] + s.get('_tail', 0.0) + 0.2:.3f})'[o{i}]")
         last = f"[o{i}]"
     # title(s)
     for k, tx in enumerate(edl.get("titles", [])):
@@ -618,6 +620,10 @@ def main():
     files = []
     adir = rel(edl["analysis_dir"]) if edl.get("analysis_dir") else None
     edl["segments"] = [auto_frame(pick_window(s, adir), adir) for s in edl["segments"]]
+    for i in range(1, len(edl["segments"])):   # a mix needs the outgoing shot to run on underneath
+        tr = edl["segments"][i].get("in_tr", "cut")
+        if tr.startswith("mix"):
+            edl["segments"][i - 1]["_tail"] = float(tr.split(":")[1])
     for i, s in enumerate(edl["segments"]):
         if args.only and i not in args.only:
             continue
