@@ -285,7 +285,9 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
              f"x3='{X1}':y3='{Y1}':interpolation=cubic:sense=source:eval=frame")
     # perspective keeps the input size; the window now fills it. Restore aspect:
     f.append(f"scale={int(round(src_h * A / 2) * 2)}:{int(src_h)}:flags=lanczos")
-    f.append(f"scale={W}:{H}:flags=lanczos")
+    # square pixels: scale keeps the source's display aspect by changing the
+    # SAR, which bends the vignette into an oval on a vertical frame
+    f.append(f"scale={W}:{H}:flags=lanczos,setsar=1")
     f.append(f"lut3d=file={lut}:interp=tetrahedral")
     if FILM["halation"] > 0:
         # glow from the brightest areas, warm-tinted, screen-blended back
@@ -391,7 +393,7 @@ def render_segment(seg, i, media_dir, work, preview):
     out_dur = seg["dur"] + seg.get("_tail", 0.0)
     src_dur = out_dur * speed + 0.2
     t_in = float(seg["in"])
-    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v3"] + (["mci"] if seg.get("tempo") == "dream" else []),
+    key = hashlib.sha1(json.dumps([seg, FILM, preview, "stab-v3", "sar1"] + (["mci"] if seg.get("tempo") == "dream" else []),
                                    sort_keys=True).encode()).hexdigest()[:10]
     out = os.path.join(work, f"seg{i:03d}_{seg['clip']}_{key}.mp4")
     if os.path.exists(out):

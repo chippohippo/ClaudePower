@@ -17,17 +17,17 @@
   "chroma": 1.0,
   "pre_lut": "../../footage/ts_lut.cube",
   "lift": {
-   "target": 0.3,
-   "strength": 0.75,
-   "max_gamma": 2.0
+   "target": 0.36,
+   "strength": 0.8,
+   "max_gamma": 2.2
   },
   "wb": "neutral"
  },
  "grade": {
   "log_footage": false,
-  "saturation": 0.85,
-  "warmth": 0.5,
-  "contrast": 1.25,
+  "saturation": 1.0,
+  "warmth": 0.6,
+  "contrast": 1.2,
   "match_luma": 0.4,
   "match_wb": 0.6
  },
@@ -132,7 +132,7 @@
    "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.42,
+   "x": 0.37,
    "zoom": [
     1.0,
     1.04
@@ -143,12 +143,12 @@
    "dur": 2.647,
    "pick": [
     0,
-    2.8
+    7
    ],
    "in": 0,
    "couple": false,
    "track": false,
-   "x": 0.45,
+   "x": 0.4,
    "zoom": [
     1.0,
     1.04
@@ -223,13 +223,14 @@
    "couple": true
   },
   {
-   "clip": "0475",
+   "clip": "0482",
    "dur": 2.647,
    "pick": [
     0,
-    13
+    2.4
    ],
    "in": 0,
+   "tempo": "dream",
    "couple": true
   },
   {
@@ -254,23 +255,13 @@
    "couple": true
   },
   {
-   "clip": "0478",
-   "dur": 2.624,
+   "clip": "0486",
+   "dur": 5.271,
    "pick": [
-    0,
-    3
+    5,
+    13
    ],
-   "in": 0,
-   "couple": true
-  },
-  {
-   "clip": "0487",
-   "dur": 2.647,
-   "pick": [
-    3,
-    9
-   ],
-   "in": 3,
+   "in": 5,
    "couple": true
   },
   {
@@ -299,7 +290,7 @@
    "in": 4,
    "couple": false,
    "track": false,
-   "x": 0.52,
+   "x": 0.48,
    "zoom": [
     1.0,
     1.03
