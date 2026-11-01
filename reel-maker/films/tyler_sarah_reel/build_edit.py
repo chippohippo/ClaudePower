@@ -71,7 +71,7 @@ segs += block(SPLICE, TOTAL, [
     ("0482", [0, 2.4], 4, dict(**D, **CPL)),                              # her hand on his face, close
     ("0489", [0, 2.8], 4, dict(**CPL)),                                   # showing the ring
     ("0490", [0.5, 4], 4, dict(**D, **CPL)),                              # the ring, close
-    ("0486", [5, 13], 8, dict(**CPL)),                                    # the two of them together
+    ("0486", [1, 6.5], 8, dict(**CPL)),                                   # the two of them together
     ("0477", [18, 30], 4, dict(**DET, x=0.5, zoom=[1.0, 1.03])),          # family hugs
     ("0488", [4, 11], 4, dict(**DET, x=0.48, zoom=[1.0, 1.03])),          # with their people
     ("0491", [12, 44], 8, dict(**DET, x=0.47, zoom=[1.0, 1.05])),         # everyone together
