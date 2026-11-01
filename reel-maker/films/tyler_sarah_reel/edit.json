@@ -1,0 +1,335 @@
+{
+ "media_dir": "../../footage/ts_raw",
+ "audio_dir": "../../footage/ts_raw",
+ "analysis_dir": "../../footage/tyler_sarah_analysis",
+ "audio_mix": "music.wav",
+ "output": "../../output/Tyler & Sarah - Reel.mp4",
+ "film": {
+  "width": 1080,
+  "height": 1920,
+  "fps": "30000/1001",
+  "crf": 16,
+  "dream_speed": 0.8,
+  "grain": 3,
+  "denoise": 2.5,
+  "vignette": 0.3,
+  "halation": 0.08,
+  "chroma": 1.0,
+  "pre_lut": "../../footage/ts_lut.cube",
+  "lift": {
+   "target": 0.3,
+   "strength": 0.75,
+   "max_gamma": 2.0
+  },
+  "wb": "neutral"
+ },
+ "grade": {
+  "log_footage": false,
+  "saturation": 0.85,
+  "warmth": 0.5,
+  "contrast": 1.25,
+  "match_luma": 0.4,
+  "match_wb": 0.6
+ },
+ "segments": [
+  {
+   "clip": "0437",
+   "dur": 2.113,
+   "pick": [
+    2,
+    15
+   ],
+   "in": 2,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "x": 0.55,
+   "zoom": [
+    1.0,
+    1.05
+   ],
+   "fade_in": 1.0
+  },
+  {
+   "clip": "0444",
+   "dur": 2.647,
+   "pick": [
+    0,
+    4
+   ],
+   "in": 0,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "x": 0.58,
+   "zoom": [
+    1.04,
+    1.0
+   ],
+   "in_tr": "mix:0.35"
+  },
+  {
+   "clip": "0454",
+   "dur": 2.601,
+   "pick": [
+    1,
+    9
+   ],
+   "in": 1,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "x": 0.45,
+   "zoom": [
+    1.0,
+    1.05
+   ],
+   "in_tr": "mix:0.35"
+  },
+  {
+   "clip": "0456",
+   "dur": 2.67,
+   "pick": [
+    0,
+    6
+   ],
+   "in": 0,
+   "couple": false,
+   "track": false,
+   "x": 0.47,
+   "zoom": [
+    1.0,
+    1.04
+   ],
+   "in_tr": "mix:0.35"
+  },
+  {
+   "clip": "0458",
+   "dur": 3.279,
+   "pick": [
+    2,
+    9
+   ],
+   "in": 2,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "x": 0.5,
+   "zoom": [
+    1.0,
+    1.05
+   ],
+   "in_tr": "mix:0.35"
+  },
+  {
+   "clip": "0500",
+   "dur": 2.626,
+   "pick": [
+    0,
+    2.2
+   ],
+   "in": 0,
+   "tempo": "dream",
+   "couple": false,
+   "track": false,
+   "x": 0.42,
+   "zoom": [
+    1.0,
+    1.04
+   ]
+  },
+  {
+   "clip": "0502",
+   "dur": 2.647,
+   "pick": [
+    0,
+    2.8
+   ],
+   "in": 0,
+   "couple": false,
+   "track": false,
+   "x": 0.45,
+   "zoom": [
+    1.0,
+    1.04
+   ]
+  },
+  {
+   "clip": "0501",
+   "dur": 2.647,
+   "pick": [
+    1,
+    5.5
+   ],
+   "in": 1,
+   "couple": false,
+   "track": false,
+   "x": 0.5,
+   "zoom": [
+    1.0,
+    1.03
+   ]
+  },
+  {
+   "clip": "0503",
+   "dur": 2.624,
+   "pick": [
+    36,
+    47
+   ],
+   "in": 36,
+   "tempo": "dream",
+   "couple": true
+  },
+  {
+   "clip": "0485",
+   "dur": 2.647,
+   "pick": [
+    2,
+    7
+   ],
+   "in": 2,
+   "couple": true
+  },
+  {
+   "clip": "0480",
+   "dur": 2.624,
+   "pick": [
+    0,
+    4.5
+   ],
+   "in": 0,
+   "tempo": "dream",
+   "couple": true
+  },
+  {
+   "clip": "0481",
+   "dur": 2.624,
+   "pick": [
+    16,
+    26
+   ],
+   "in": 16,
+   "couple": true
+  },
+  {
+   "clip": "0483",
+   "dur": 2.647,
+   "pick": [
+    1,
+    10
+   ],
+   "in": 1,
+   "couple": true
+  },
+  {
+   "clip": "0475",
+   "dur": 2.647,
+   "pick": [
+    0,
+    13
+   ],
+   "in": 0,
+   "couple": true
+  },
+  {
+   "clip": "0489",
+   "dur": 2.647,
+   "pick": [
+    0,
+    2.8
+   ],
+   "in": 0,
+   "couple": true
+  },
+  {
+   "clip": "0490",
+   "dur": 2.624,
+   "pick": [
+    0.5,
+    4
+   ],
+   "in": 0.5,
+   "tempo": "dream",
+   "couple": true
+  },
+  {
+   "clip": "0478",
+   "dur": 2.624,
+   "pick": [
+    0,
+    3
+   ],
+   "in": 0,
+   "couple": true
+  },
+  {
+   "clip": "0487",
+   "dur": 2.647,
+   "pick": [
+    3,
+    9
+   ],
+   "in": 3,
+   "couple": true
+  },
+  {
+   "clip": "0477",
+   "dur": 2.624,
+   "pick": [
+    18,
+    30
+   ],
+   "in": 18,
+   "couple": false,
+   "track": false,
+   "x": 0.5,
+   "zoom": [
+    1.0,
+    1.03
+   ]
+  },
+  {
+   "clip": "0488",
+   "dur": 2.6,
+   "pick": [
+    4,
+    11
+   ],
+   "in": 4,
+   "couple": false,
+   "track": false,
+   "x": 0.52,
+   "zoom": [
+    1.0,
+    1.03
+   ]
+  },
+  {
+   "clip": "0491",
+   "dur": 7.191,
+   "pick": [
+    12,
+    44
+   ],
+   "in": 12,
+   "couple": false,
+   "track": false,
+   "x": 0.47,
+   "zoom": [
+    1.0,
+    1.05
+   ]
+  }
+ ],
+ "titles": [
+  {
+   "text": "Tyler & Sarah",
+   "start": 54.8,
+   "end": 59.6,
+   "y": 0.16,
+   "size": 0.034,
+   "fade": 1.2
+  }
+ ]
+}

@@ -88,7 +88,40 @@ def probe_duration(path):
 # ════════════════════════════════════════════════════════════════════════════
 #  Colour: bake make_reel.grade (+ per-shot matching) into a .cube LUT
 # ════════════════════════════════════════════════════════════════════════════
-def bake_lut(path, match, sat_scale=1.0):
+def neutral_wb(img, strength):
+    """White balance from near-neutral pixels only (white shirt, dress,
+    stone, path): grey-world over foliage reads the green as a cast and pushes
+    skin and whites magenta."""
+    L = img @ mr.LUMA
+    mx, mn = img.max(-1), img.min(-1)
+    m = ((mx - mn) / np.maximum(mx, 1e-3) < 0.18) & (L > 0.12) & (L < 0.9)
+    if m.sum() < 200:
+        return np.ones(3, np.float32)
+    mean = img[m].mean(0)
+    wb = 1 + (mean.mean() / np.maximum(mean, 1e-3) - 1) * strength
+    return (wb / (wb @ mr.LUMA)).astype(np.float32)
+
+
+def exposure_match(img):
+    """Per-shot (gamma, gain, wb). With FILM["lift"] = {target, strength,
+    max_gamma}, dark shots are brightened by a gamma lift (mid-tones up,
+    highlights kept) instead of a capped linear gain — right for dusk."""
+    lift = FILM.get("lift")
+    g = 1.0
+    if lift:
+        med = float(np.median(img @ mr.LUMA))
+        g = np.log(max(med, 0.02)) / np.log(lift["target"])
+        g = float(np.clip(1 + (g - 1) * lift.get("strength", 0.7), 1.0, lift.get("max_gamma", 2.0)))
+        img = np.clip(img, 0, 1) ** (1 / g)
+    gain, wb = mr.measure(img)
+    if lift:
+        gain = 1.0
+    if FILM.get("wb") == "neutral":
+        wb = neutral_wb(img, mr.CONFIG.get("match_wb", 0.6))
+    return g, (gain, wb)
+
+
+def bake_lut(path, match, sat_scale=1.0, gamma=1.0):
     n = FILM["lut_size"]
     g = np.linspace(0, 1, n, dtype=np.float32)
     # .cube order: red fastest, then green, then blue
@@ -100,6 +133,8 @@ def bake_lut(path, match, sat_scale=1.0):
     pre = pre_lut()
     if pre is not None:
         rgb = apply_cube(rgb, pre)
+    if gamma != 1.0:
+        rgb = np.clip(rgb, 0, 1) ** (1 / gamma)
     out = mr.grade(rgb, match).reshape(-1, 3)
     mr.CONFIG["saturation"] = saved
     ch = FILM.get("chroma", 1.0)                # overall colour intensity
@@ -366,8 +401,8 @@ def render_segment(seg, i, media_dir, work, preview):
     img = sample_frame(src, t_in + src_dur / 2)
     if pre_lut() is not None:
         img = apply_cube(img, pre_lut())
-    match = mr.measure(img)
-    bake_lut(lut, match, seg.get("saturation", 1.0))
+    g, match = exposure_match(img)
+    bake_lut(lut, match, seg.get("saturation", 1.0), g)
     trf = None
     if FILM["stabilize"] and seg.get("stab", True):
         trf = os.path.join(work, f"stab_{key}.trf")
