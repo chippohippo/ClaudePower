@@ -196,7 +196,7 @@ def main():
     ap.add_argument("--smax", type=float, default=1.06, help="max stabiliser crop")
     ap.add_argument("--no-stab", action="store_true")
     ap.add_argument("--still", type=float, nargs="+")
-    ap.add_argument("--crf", type=int, default=14)
+    ap.add_argument("--crf", type=int, default=17)
     a = ap.parse_args()
     mr.CONFIG.update(log_footage=False, saturation=a.sat, warmth=a.warmth, contrast=a.contrast,
                      match_luma=a.luma, match_wb=1.0)
@@ -249,11 +249,12 @@ def main():
         p = os.path.join(tmp, "tail.mkv")
         extract(a.src, end / fps, n - end, p, fps_s)
         parts.append(p)
-    lst = os.path.join(tmp, "list.txt")
-    with open(lst, "w") as f:
-        f.writelines(f"file '{p}'\n" for p in parts)
-    run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-i", a.src,
-         "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "slow", "-crf", str(a.crf),
+    # concat *filter* (not the demuxer): the parts' H.264 headers differ (the
+    # passed-through tail especially), which the demuxer can't splice
+    ins = sum((["-i", p] for p in parts), [])
+    fc = "".join(f"[{k}:v]" for k in range(len(parts))) + f"concat=n={len(parts)}:v=1:a=0[v]"
+    run(["ffmpeg", "-v", "error", "-y", *ins, "-i", a.src, "-filter_complex", fc,
+         "-map", "[v]", "-map", f"{len(parts)}:a", "-c:v", "libx264", "-preset", "slow", "-crf", str(a.crf),
          "-tune", "film", "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", fps_s,
          "-c:a", "copy", "-shortest", "-movflags", "+faststart",
          "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", a.out])
