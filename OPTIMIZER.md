@@ -1,6 +1,6 @@
 # The optimizer overhaul (2026-11-12)
 
-What changed, why, and what each piece needs from you. Everything here is tested headless (297 selftests). **None of it has a field verdict yet.** THE GOAT and BO6 Original are untouched and remain your fallbacks.
+What changed, why, and what each piece needs from you. Everything here is tested headless (301 selftests). **None of it has a field verdict yet.** THE GOAT and BO6 Original are untouched and remain your fallbacks.
 
 ## The idea
 
@@ -45,17 +45,19 @@ Copy `AimForge.Filters.dll` and `metadata.json` into `<OTD data>\Plugins\AimForg
 
 ### Realtime Lane (Engine tab, off by default)
 
-- Raises the pen's report thread to Highest priority and the daemon to Above Normal (level 2: High).
+- Raises the pen's report thread to Highest priority and the daemon to Above Normal (level 2: High; level 3: the report thread also joins the scheduling class Windows gives pro-audio threads).
 - Tells Windows never to power-throttle the daemon, and asks the runtime not to pause for full garbage collections.
 - Aimed at latency spikes when a game loads every core. It does not make the average faster.
 - Reverts when you switch it off and apply; gone when the daemon restarts.
 - **Proof:** the Doctor's "realtime lane" row shows the daemon's priority as Windows reports it.
+- **Measured on your PC:** record a few minutes with the lane off and on (Hand Print on), and MY HAND says what it changed. See `LATENCY.md`.
 
 ### Hand Print (Engine tab, off by default)
 
 - While on, Cadence Lock counts pen speeds (hover and tip down), strokes, report-timing classes and where on the tablet you play.
 - It writes `handprint-*.txt` beside the daemon when the pen lifts or rests, at most every 30 s, from a background thread. Each report leaves for the game before any bookkeeping.
 - Ten minutes and 400 strokes make a fit. Record in the game you care about, on one card.
+- It also times the pen's path through your PC: how long each report takes to leave the daemon, and how far it arrived from the pen's own clock (plugin 1.4.1).
 
 ### Pressure Focus (Engine tab, experimental, off by default)
 
@@ -116,6 +118,7 @@ Press **DUEL**. The champion (the GOAT at the start) meets a challenger that dif
 | `--optimize [dir\|file] [--style balanced\|consistency\|precision\|speed] [--save] [--demo]` | report + optimizer; `--save` writes `myhand-build.json` |
 | `--duel [status\|answer challenger\|champion\|same\|seed\|reset\|export]` | the ladder, headless |
 | `--burst-lab` | the drop-check comparison above |
+| `--path-cost` | what the curve costs on the report path (nanoseconds, bytes) |
 
 ## Lost along the way
 

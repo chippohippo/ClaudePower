@@ -22,7 +22,7 @@ namespace AimForge.Filters
     /// </summary>
     public sealed class HandPrintCore
     {
-        public const int Version = 1, Bins = 48, MaxEpisodes = 8192, HeatW = 8, HeatH = 4;
+        public const int Version = 1, Bins = 48, MaxEpisodes = 8192, HeatW = 8, HeatH = 4, LatBins = 13;
         public const double VOn = 6, VOff = 4, EdgeMm = 8, MinTravelMm = 0.5;
         public const int QuietReports = 3;
 
@@ -30,6 +30,11 @@ namespace AimForge.Filters
         public static int BinOf(double mms) => mms < 1 ? 0 : Math.Min(Bins - 1, 1 + (int)(Math.Log2(mms) * 4));
         public static double BinLo(int i) => i <= 0 ? 0 : Math.Pow(2, (i - 1) / 4.0);
         public static double BinMid(int i) => i <= 0 ? 0.5 : Math.Pow(2, (i - 0.5) / 4.0);
+
+        /// Latency bins in microseconds: bin 0 is under 10 us, bin i covers [10 x 2^(i-1), 10 x 2^i) us, the last is open
+        /// (20.48 ms and up). LatHi(i) is a bin's upper edge.
+        public static int LatBin(double us) => us < 10 ? 0 : Math.Min(LatBins - 1, 1 + (int)Math.Log2(us / 10.0));
+        public static double LatHi(int i) => 10.0 * Math.Pow(2, i);
 
         public struct Episode
         {
@@ -41,6 +46,12 @@ namespace AimForge.Filters
         public readonly double[] SecHover = new double[Bins], SecTip = new double[Bins], MmHover = new double[Bins], MmTip = new double[Bins];
         public readonly double[] Heat = new double[HeatW * HeatH];
         public readonly long[] Gap = new long[5];
+        /// THE PEN'S PATH THROUGH THIS PC, measured where it happens (2026-11-12):
+        ///   EmitUs   - how long the rest of the daemon took with each report after the curve: OTD's transform, the output
+        ///              mode and the VMulti write (the part of the path AimForge can see but does not own);
+        ///   JitterUs - how far each plain report arrived from the pen's own clock (USB delivery + the daemon's wake-up).
+        public readonly long[] EmitUs = new long[LatBins], JitterUs = new long[LatBins];
+        public double EmitMaxUs;
         public readonly Episode[] Ep = new Episode[MaxEpisodes];
         public long Reports, Lifts, EdgeEnds, EpTotal;
         public double Seconds, OutMm, HandMm;
@@ -82,6 +93,13 @@ namespace AimForge.Filters
             else { quiet = 0; durMoving = dur; }
         }
 
+        /// One report's path figures: the downstream time of its Emit, and (plain gaps only) its arrival error.
+        public void Path(double emitUs, double dtMs, double nominalMs, int gapClass)
+        {
+            EmitUs[LatBin(emitUs)]++; if (emitUs > EmitMaxUs) EmitMaxUs = emitUs;
+            if (gapClass == 0) JitterUs[LatBin(Math.Abs(dtMs - nominalMs) * 1000.0)]++;
+        }
+
         /// A lift or a gap: the stroke in progress (if any) is over.
         public void Break(bool lift)
         {
@@ -107,7 +125,8 @@ namespace AimForge.Filters
         /// A detached copy for the writer thread (the report thread keeps recording into this one).
         public HandPrintCore Snapshot()
         {
-            var c = new HandPrintCore { WidthMm = WidthMm, HeightMm = HeightMm, Reports = Reports, Lifts = Lifts, EdgeEnds = EdgeEnds, EpTotal = EpTotal, Seconds = Seconds, OutMm = OutMm, HandMm = HandMm };
+            var c = new HandPrintCore { WidthMm = WidthMm, HeightMm = HeightMm, Reports = Reports, Lifts = Lifts, EdgeEnds = EdgeEnds, EpTotal = EpTotal, Seconds = Seconds, OutMm = OutMm, HandMm = HandMm, EmitMaxUs = EmitMaxUs };
+            Array.Copy(EmitUs, c.EmitUs, LatBins); Array.Copy(JitterUs, c.JitterUs, LatBins);
             Array.Copy(SecHover, c.SecHover, Bins); Array.Copy(SecTip, c.SecTip, Bins); Array.Copy(MmHover, c.MmHover, Bins); Array.Copy(MmTip, c.MmTip, Bins);
             Array.Copy(Heat, c.Heat, Heat.Length); Array.Copy(Gap, c.Gap, Gap.Length); Array.Copy(Ep, c.Ep, EpCount);
             return c;
@@ -122,6 +141,9 @@ namespace AimForge.Filters
             sb.Append(string.Format(inv, "tablet {0:0.##} {1:0.##}\n", WidthMm, HeightMm));
             sb.Append(string.Format(inv, "totals seconds {0:0.###} reports {1} lifts {2} handMm {3:0.##} outMm {4:0.##} edgeEnds {5} episodes {6}\n", Seconds, Reports, Lifts, HandMm, OutMm, EdgeEnds, EpTotal));
             sb.Append("gapclass ").Append(string.Join(" ", Gap)).Append('\n');
+            sb.Append("emitUs ").Append(string.Join(" ", EmitUs)).Append('\n');
+            sb.Append("jitterUs ").Append(string.Join(" ", JitterUs)).Append('\n');
+            sb.Append(string.Format(inv, "emitMaxUs {0:0.#}\n", EmitMaxUs));
             void Row(string name, double[] a, string fmt) { sb.Append(name); foreach (var v in a) sb.Append(' ').Append(v.ToString(fmt, inv)); sb.Append('\n'); }
             Row("secHover", SecHover, "0.###"); Row("secTip", SecTip, "0.###"); Row("mmHover", MmHover, "0.##"); Row("mmTip", MmTip, "0.##"); Row("heat", Heat, "0.##");
             int cnt = EpCount; sb.Append("episodes ").Append(cnt).Append('\n');

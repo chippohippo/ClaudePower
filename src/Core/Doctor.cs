@@ -441,7 +441,7 @@ namespace AimForge.Core
                 return new Item { Name = "realtime lane", Ok = true, Warn = true, Detail = $"ON (level {want}) in the Engine tab, but the daemon's priority could not be read - UNVERIFIED", Fix = "start the OTD daemon, apply, move the pen once, run the Doctor again" };
             bool live = daemonPriority == expect || (want == 1 && daemonPriority == "High");
             return new Item { Name = "realtime lane", Ok = true, Warn = !live,
-                Detail = live ? $"live: the daemon runs at {daemonPriority} priority and the pen's report thread at Highest"
+                Detail = live ? $"live: the daemon runs at {daemonPriority} priority and the pen's report thread at Highest" + (want >= 3 ? " in the pro-audio scheduling class (the Hand Print file records 'mmcss 1' as its proof)" : "")
                               : $"ON (level {want}) in the Engine tab, but the daemon runs at {daemonPriority} priority - the lane is set by the first pen report after an apply",
                 Fix = live ? "" : "apply a build on the Cadence Lock engine (plugin 1.4), move the pen once, run the Doctor again" };
         }

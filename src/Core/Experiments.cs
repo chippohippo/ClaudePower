@@ -46,7 +46,7 @@ namespace AimForge.Core
                         foreach (var kv in f.Skip(3).Select(x => x.Split('=')).Where(x => x.Length == 2))
                         {
                             if (!double.TryParse(kv[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) continue;
-                            if (kv[0] == "lane") s.Lane = (int)Math.Clamp(v, 0, 2);
+                            if (kv[0] == "lane") s.Lane = (int)Math.Clamp(v, 0, MaxLane);
                             else if (kv[0] == "hand") s.HandPrint = v >= 0.5;
                             else if (kv[0] == "focus") s.FocusDepth = v;
                         }
@@ -70,6 +70,9 @@ namespace AimForge.Core
         public static double NormalizeCarry(double ms)
             => !double.IsFinite(ms) || ms <= 0 ? 0 : Math.Clamp(ms, MinCarryMs, MaxCarryMs);
 
+        /// Realtime Lane levels: 1 = report thread Highest + daemon Above Normal; 2 = daemon High; 3 = + the pro-audio
+        /// scheduling class (MMCSS) on the report thread.
+        public const int MaxLane = 3;
         public const double MinFocus = 0.05, MaxFocus = 0.5, DefaultFocus = 0.25;
         /// Pressure Focus is off (0) or inside 5-50%; anything else snaps to the nearest legal value.
         public static double NormalizeFocus(double d) => !double.IsFinite(d) || d <= 0 ? 0 : Math.Clamp(d, MinFocus, MaxFocus);

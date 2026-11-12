@@ -46,7 +46,7 @@ namespace AimForge.Core
             if (r.IntentSpeed) m.Add("INTENT SPEED");
             if (r.ReversalCarryMs > 0) m.Add($"CARRY {r.ReversalCarryMs:0} MS");
             if (r.FocusDepth > 0) m.Add($"FOCUS {r.FocusDepth * 100:0}%");
-            if (r.RealtimeLane > 0) m.Add("REALTIME LANE" + (r.RealtimeLane >= 2 ? " 2" : ""));
+            if (r.RealtimeLane > 0) m.Add("REALTIME LANE" + (r.RealtimeLane >= 2 ? " " + r.RealtimeLane : ""));
             if (r.HandPrint) m.Add("HAND PRINT REC");
             if (Math.Abs(r.TpsGain - 1) > 1e-9) m.Add(string.Format(CultureInfo.InvariantCulture, "3RD-PERSON x{0:0.00}", r.TpsGain));
             if (r.MirrorMouse) m.Add("MOUSE MIRROR");

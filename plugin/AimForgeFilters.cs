@@ -170,10 +170,13 @@ namespace AimForge.Filters
                 var raw = report.Position;
                 report.Position = core.Filter(raw, dt, p01);
                 value = report;
-                // the report leaves FIRST; the probe and the Hand Print bookkeeping run after it is on its way
+                // the report leaves FIRST; the probe and the Hand Print bookkeeping run after it is on its way. With the
+                // Hand Print on, the Emit itself is timed: that is the rest of the daemon's work on this report (OTD's
+                // transform, the output mode, the VMulti write).
+                long t0 = HandPrint >= 1 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                 Emit?.Invoke(value);
                 if (Probe >= 1) ProbeTick(dt);
-                if (HandPrint >= 1) HandPrintTick(raw, dt, p01);
+                if (HandPrint >= 1) HandPrintTick(raw, dt, p01, (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * UsPerTick);
                 return;
             }
             Emit?.Invoke(value);
@@ -199,6 +202,26 @@ namespace AimForge.Filters
             // ControlMask 1 + StateMask 0 = execution-speed throttling OFF for this process; ControlMask 0 = back to the system's choice
             try { var s = new PowerThrottling { Version = 1, ControlMask = on ? 1u : 0u, StateMask = 0 }; SetProcessInformation(GetCurrentProcess(), 4, ref s, 12); } catch { }
         }
+        // Lane 3: the report thread joins the Multimedia Class Scheduler's "Pro Audio" task - the scheduling class Windows
+        // itself gives low-latency audio threads (priority 23-26, above every ordinary game thread). MMCSS is the SAFE way
+        // into that range: a thread that hogs the CPU there is demoted by the service, where the raw REALTIME class would
+        // hang the PC. The pen thread works for some tens of microseconds 360 times a second.
+        [System.Runtime.InteropServices.DllImport("avrt.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        static extern IntPtr AvSetMmThreadCharacteristicsW(string taskName, ref uint taskIndex);
+        [System.Runtime.InteropServices.DllImport("avrt.dll", SetLastError = true)]
+        static extern bool AvRevertMmThreadCharacteristics(IntPtr handle);
+        static IntPtr laneMmcss;
+        /// 1 when the report thread is registered with MMCSS, 0 when not (the Hand Print file records it as proof).
+        public static int MmcssLive => laneMmcss != IntPtr.Zero ? 1 : 0;
+        static void Mmcss(bool on)
+        {
+            try
+            {
+                if (on && laneMmcss == IntPtr.Zero) { uint idx = 0; laneMmcss = AvSetMmThreadCharacteristicsW("Pro Audio", ref idx); }
+                else if (!on && laneMmcss != IntPtr.Zero) { AvRevertMmThreadCharacteristics(laneMmcss); laneMmcss = IntPtr.Zero; }
+            }
+            catch { laneMmcss = IntPtr.Zero; }
+        }
         static bool laneRaised; static System.Threading.ThreadPriority lanePrevThread = System.Threading.ThreadPriority.Normal;
         static System.Diagnostics.ProcessPriorityClass lanePrevClass = System.Diagnostics.ProcessPriorityClass.Normal;
         static System.Runtime.GCLatencyMode lanePrevGc = System.Runtime.GCLatencyMode.Interactive;
@@ -220,13 +243,14 @@ namespace AimForge.Filters
                 try { System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency; } catch { }
                 try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = RealtimeLane >= 1.5 ? System.Diagnostics.ProcessPriorityClass.High : System.Diagnostics.ProcessPriorityClass.AboveNormal; } catch { }
                 FullSpeed(true);
+                Mmcss(RealtimeLane >= 2.5);
             }
             else if (laneRaised)
             {
                 try { th.Priority = lanePrevThread; } catch { }
                 try { System.Runtime.GCSettings.LatencyMode = lanePrevGc; } catch { }
                 try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = lanePrevClass; } catch { }
-                FullSpeed(false);
+                FullSpeed(false); Mmcss(false);
                 laneRaised = false;
             }
         }
@@ -236,13 +260,15 @@ namespace AimForge.Filters
         bool hpPrimed; Vector2 hpPrev; long hpLastFlushTick, hpFlushedReports; string hpPath; int hpWriting;
         static int hpInstance;
         readonly string hpSession = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + System.Threading.Interlocked.Increment(ref hpInstance);
-        void HandPrintTick(Vector2 raw, double dt, double p01)
+        static readonly double UsPerTick = 1e6 / System.Diagnostics.Stopwatch.Frequency;
+        void HandPrintTick(Vector2 raw, double dt, double p01, double emitUs)
         {
             if (!(dt > 0) || dt > core.ResetMs) { hp.Break(false); hpPrimed = false; }
             if (!hpPrimed) { hpPrimed = true; hpPrev = raw; return; }
             double dx = (raw.X - hpPrev.X) * mmPerUnitX, dy = (raw.Y - hpPrev.Y) * mmPerUnitY; hpPrev = raw;
-            double hz = core.NominalHz > 0 ? core.NominalHz : core.LiveHz;
-            hp.Tick(dx, dy, core.LastReports, hz > 0 ? 1000.0 / hz : dt, core.LastSpeedMms, core.LastGain, p01 > 0, raw.X * mmPerUnitX, raw.Y * mmPerUnitY, core.LastGapClass);
+            double hz = core.NominalHz > 0 ? core.NominalHz : core.LiveHz, nominalMs = hz > 0 ? 1000.0 / hz : dt;
+            hp.Path(emitUs, dt, nominalMs, core.LastGapClass);
+            hp.Tick(dx, dy, core.LastReports, nominalMs, core.LastSpeedMms, core.LastGain, p01 > 0, raw.X * mmPerUnitX, raw.Y * mmPerUnitY, core.LastGapClass);
             if (core.LastSpeedMms < 1) HandPrintFlush();   // the pen is at rest: nothing is being aimed (still at most every 30 s)
         }
 
@@ -259,7 +285,7 @@ namespace AimForge.Filters
             string curve = core.IsClassic
                 ? string.Format(inv, "curve classic {0:0.#########} {1:0.######} {2:0.####} {3:0.####}", core.ClassicAccel, core.ClassicOffset, core.ClassicCap, core.ClassicExp)
                 : "curve lut " + string.Join(" ", System.Linq.Enumerable.Range(0, CadenceCore.MaxPoints).Where(i => core.Vs[i] > 0).Select(i => string.Format(inv, "{0:0.###}:{1:0.####}", core.Vs[i], core.Gs[i])));
-            string header = string.Format(inv, "session {0}\nnominalHz {1:0.###}\n{2}\nfocus {3:0.###}\ndropcheck {4:0.#}\nlane {5:0.#}", hpSession, core.NominalHz > 0 ? core.NominalHz : core.LiveHz, curve, core.FocusDepth, core.DropCheck, RealtimeLane);
+            string header = string.Format(inv, "session {0}\nnominalHz {1:0.###}\n{2}\nfocus {3:0.###}\ndropcheck {4:0.#}\nlane {5:0.#}\nmmcss {6}", hpSession, core.NominalHz > 0 ? core.NominalHz : core.LiveHz, curve, core.FocusDepth, core.DropCheck, RealtimeLane, MmcssLive);
             hpPath ??= System.IO.Path.Combine(AppContext.BaseDirectory, "handprint-" + hpSession + ".txt");
             string path = hpPath;
             System.Threading.Tasks.Task.Run(() =>
@@ -314,7 +340,7 @@ namespace AimForge.Filters
         public double ReversalCarryMs { get => core.ReversalCarryMs; set => core.ReversalCarryMs = value; }
         [Property("DropCheck"), DefaultPropertyValue(0.0d), ToolTip("1 = a long gap is priced as merged reports only when its travel says so (a LATE single report carries one report of travel; a dropped pair carries two). Removes the half-speed misprice of late reports; never adds latency. 2 = the same with a memory that stays armed through queued report bursts (v1.4). 0 = gap alone (v1.2 behaviour).")]
         public double DropCheck { get => core.DropCheck; set => core.DropCheck = value; }
-        [Property("RealtimeLane"), DefaultPropertyValue(0.0d), ToolTip("1 = the pen's report thread runs at Highest priority, the daemon at Above Normal and never power-throttled, and the runtime avoids blocking full garbage collections (lower latency spikes under game load). 2 = the daemon at High. 0 = leave Windows defaults. Reverts when switched off; gone when the daemon restarts.")]
+        [Property("RealtimeLane"), DefaultPropertyValue(0.0d), ToolTip("1 = the pen's report thread runs at Highest priority, the daemon at Above Normal and never power-throttled, and the runtime avoids blocking full garbage collections (lower latency spikes under game load). 2 = the daemon at High. 3 = also the pro-audio scheduling class (MMCSS) for the report thread. 0 = leave Windows defaults. Reverts when switched off; gone when the daemon restarts.")]
         public double RealtimeLane { get; set; }
         [Property("HandPrint"), DefaultPropertyValue(0.0d), ToolTip("1 = record how your hand moves (pen speed, strokes, report timing - pen data only, never the game) to handprint-*.txt beside the daemon, written on a lift by a background thread. AimForge --handprint / --optimize read it. 0 = off.")]
         public double HandPrint { get; set; }

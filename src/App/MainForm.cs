@@ -644,8 +644,8 @@ namespace AimForge.App
             Sw(fLane, "Realtime lane", "pen thread and daemon to the front of the CPU queue · plugin 1.4");
             fLane.Checked = xpState.Lane > 0;
             pe.Controls.Add(fLane);
-            pe.Controls.Add(FRow("lane level (1 above normal · 2 high)", fLaneLevel, 1, 2, 1, 0, Math.Max(1, xpState.Lane)));
-            tip.SetToolTip(fLane, "Under a game that loads every core the pen's report thread waits its turn; that wait is the tail of the pen's latency. The lane raises that thread to Highest and the OTD daemon to Above Normal (level 2: High), and asks the runtime not to pause for full garbage collections. The same setting Task Manager offers; reverted when switched off, gone when the daemon restarts. The Doctor shows the daemon's priority as proof.");
+            pe.Controls.Add(FRow("lane level (1 · 2 high · 3 pro-audio)", fLaneLevel, 1, Experiments.MaxLane, 1, 0, Math.Max(1, xpState.Lane)));
+            tip.SetToolTip(fLane, "Under a game that loads every core the pen's report thread waits its turn; that wait is the tail of the pen's latency. The lane raises that thread to Highest and the OTD daemon to Above Normal (level 2: High; level 3: also the scheduling class Windows gives pro-audio threads), tells Windows never to power-throttle the daemon, and asks the runtime not to pause for full garbage collections. MY HAND shows the measured effect on this PC once you have recorded with the lane off and on. The same setting Task Manager offers; reverted when switched off, gone when the daemon restarts. The Doctor shows the daemon's priority as proof.");
             Sw(fHand, "Hand Print", "records how your hand moves (pen only) for MY HAND · plugin 1.4");
             fHand.Checked = xpState.HandPrint;
             pe.Controls.Add(fHand);

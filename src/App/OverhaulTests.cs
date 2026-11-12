@@ -121,11 +121,50 @@ namespace AimForge.App
                 var applied = new Rig(); ld.ApplyTo(applied);
                 Ok("1.4 modes persist in xp.txt next to the older fields (the three-field file of 2026-09 still loads; out-of-range values are clamped) and reach the rig",
                    ld.Intent && ld.CarryMs == 35 && ld.Lane == 2 && ld.HandPrint && ld.FocusDepth == 0.25 && old.Intent && old.Twin && old.Lane == 0 && !old.HandPrint && old.FocusDepth == 0 &&
-                   clamp.Lane == 2 && clamp.FocusDepth == Experiments.MaxFocus && applied.RealtimeLane == 2 && applied.HandPrint && applied.FocusDepth == 0.25);
+                   clamp.Lane == Experiments.MaxLane && clamp.FocusDepth == Experiments.MaxFocus && applied.RealtimeLane == 2 && applied.HandPrint && applied.FocusDepth == 0.25);
                 Ok("1.4 modes are part of what makes two applies different, and read in the player's words (Realtime Lane, Hand Print, Pressure Focus)",
                    BuildState.Modes(r).Contains("REALTIME LANE 2") && BuildState.Modes(r).Contains("HAND PRINT REC") && BuildState.Modes(r).Contains("FOCUS 30%") &&
                    BuildState.PendingChanges(goat, new Rig { Engine = "cadence" }, default, goat, r, default).SequenceEqual(new[] { "Realtime Lane", "Hand Print", "Pressure Focus" }),
                    string.Join(", ", BuildState.PendingChanges(goat, new Rig { Engine = "cadence" }, default, goat, r, default)));
+            }
+
+            // ---- what the report path costs, and the path probe ----
+            {
+                var (ns, bytes) = PathCost.Core(goat, false, 200_000); var (nsH, bytesH) = PathCost.Core(goat, true, 200_000);
+                Ok("report path: the Cadence Lock core and the Hand Print recorder allocate NOTHING per report, and a report costs well under a thousandth of the pen's 2.78 ms interval (the app itself is not on the path)",
+                   bytes == 0 && bytesH == 0 && ns < 2000 && nsH < 2500, $"core {ns:0} ns, with the recorder {nsH:0} ns a report; {bytes}/{bytesH} bytes");
+                Ok("path probe bins: under 10 us, then one bin per doubling up to 20 ms; a bin's upper edge is what the report quotes",
+                   HandPrintCore.LatBin(3) == 0 && HandPrintCore.LatBin(10) == 1 && HandPrintCore.LatBin(39) == 2 && HandPrintCore.LatBin(40) == 3 && HandPrintCore.LatBin(1e9) == HandPrintCore.LatBins - 1 &&
+                   HandPrintCore.LatHi(0) == 10 && HandPrintCore.LatHi(2) == 40);
+                // two recorded sessions: lane off with a slow tail and stalls, lane on without
+                HandPrint Rec(bool withOn, bool onIsWorse = false)
+                {
+                    string File(int lane, double tailUs, int stalls)
+                    {
+                        var c = new HandPrintCore();
+                        for (int i = 0; i < 60000; i++)
+                        {
+                            bool stall = stalls > 0 && i % (60000 / stalls) == 0;
+                            c.Path(i % 500 == 0 ? tailUs : 30, 2.778 + (i % 7 == 0 ? 0.25 : 0.01), 2.778, 0);
+                            c.Tick(0.2, 0, 1, 2.778, 72, 1.5, false, 100, 80, stall ? 1 : 0);
+                        }
+                        return c.Serialize($"session s{lane}\nnominalHz 360\ncurve classic 0.016889 40 3 2\nlane {lane}\nmmcss {(lane >= 3 ? 1 : 0)}");
+                    }
+                    var h = new HandPrint(); h.AddFile(File(0, onIsWorse ? 90 : 900, onIsWorse ? 0 : 600));
+                    if (withOn) h.AddFile(File(3, onIsWorse ? 900 : 90, onIsWorse ? 600 : 0));
+                    return h;
+                }
+                var both = Rec(true); var onlyOff = Rec(false); var worse = Rec(true, true);
+                var v = both.LaneVerdict(); var vw = worse.LaneVerdict();
+                Ok("path probe: sessions are kept apart by the Realtime Lane they ran; with both recorded the report says what the lane changed on THIS PC (helps / does not help), and with one it asks for the other",
+                   both.Path[0].EmitN == 60000 && both.Path[1].EmitN == 60000 && both.Path[1].MaxLane == 3 && both.Path[1].Mmcss == 1 &&
+                   HandPrint.LatQuantile(both.Path[0].EmitUs, 0.5) == 40 && HandPrint.LatQuantile(both.Path[0].EmitUs, 0.999) == 1280 && HandPrint.LatQuantile(both.Path[1].EmitUs, 0.999) == 160 &&
+                   v != null && v.Value.verdict == 1 && v.Value.text.Contains("HELPS") && vw != null && vw.Value.verdict == -1 && onlyOff.LaneVerdict() == null &&
+                   both.Report(goat).Contains("Pen path on this PC") && both.Report(goat).Contains("pro-audio class live") && onlyOff.Report(goat).Contains("with the Realtime Lane ON to see"),
+                   v?.text ?? "no verdict");
+                Ok("realtime lane level 3 (the pro-audio scheduling class) travels through the plan and reads back like the other levels",
+                   OtdBridge.CadencePoints(goat, new Rig { Engine = "cadence", RealtimeLane = 3 })["RealtimeLane"] == 3 && BuildState.Modes(new Rig { Engine = "cadence", RealtimeLane = 3 }).Contains("REALTIME LANE 3") &&
+                   Doctor.LaneRow(3, "High").Level == "OK" && Doctor.LaneRow(3, "High").Detail.Contains("pro-audio") && Doctor.LaneRow(3, "Normal").Level == "WARN");
             }
 
             // ---- the Doctor's rows for the 1.4 modes ----

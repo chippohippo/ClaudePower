@@ -52,8 +52,8 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **297 headless selftests pass (cloud, 2026-11-12); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 64 cards. THE GOAT (`src/Core/Goat.cs`) is the baseline. 2026-11-12 added plugin 1.4 (burst-armed drop check, Realtime Lane, Hand Print, Pressure Focus), the dials (`Dials.cs`), the Hand Print analysis (`HandPrint.cs`), the optimizer (`Optimizer.cs`) and the duel ladder (`Duel.cs`, `DuelForm.cs`): see `OPTIMIZER.md`. New tests live in `src/App/OverhaulTests.cs`, new commands in `src/App/OverhaulCli.cs`.
-- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--game-lab <game|all> [role]`, `--handprint`, `--optimize`, `--duel`, `--burst-lab`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
+- Current state: **301 headless selftests pass (cloud, 2026-11-12); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 64 cards. THE GOAT (`src/Core/Goat.cs`) is the baseline. 2026-11-12 added plugin 1.4 (burst-armed drop check, Realtime Lane, Hand Print, Pressure Focus), the dials (`Dials.cs`), the Hand Print analysis (`HandPrint.cs`), the optimizer (`Optimizer.cs`) and the duel ladder (`Duel.cs`, `DuelForm.cs`): see `OPTIMIZER.md` and `LATENCY.md` (why there is no rewrite; the path probe; lane level 3). New tests live in `src/App/OverhaulTests.cs`, new commands in `src/App/OverhaulCli.cs`.
+- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--game-lab <game|all> [role]`, `--handprint`, `--optimize`, `--duel`, `--burst-lab`, `--path-cost`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
 

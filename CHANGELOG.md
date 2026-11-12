@@ -1,6 +1,6 @@
 # AimForge changelog
 
-What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (297 headless). Nothing here has a field verdict yet; those are listed at the end.
+What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (301 headless). Nothing here has a field verdict yet; those are listed at the end.
 
 ## 2026-11-12
 
@@ -17,6 +17,13 @@ What a player notices on the next Desktop deploy. Newest first. Every item is ve
 - **Pressure Focus (Engine tab, experimental).** Press harder and the sensitivity drops smoothly, up to the depth you set: an analog sniper button under the firing finger.
 - **Every card shows its dials against the GOAT** ("1:1 band wider: 50 mm/s (+10)…") and its reach from the tablet centre.
 - **Unchanged:** every card's curve, the GOAT and BO6 Original included.
+
+### Latency: measured, not rebuilt (LATENCY.md)
+- **No ground-up rewrite.** The app is not on the pen's path, and the curve that is costs about 90 nanoseconds a report (0.003% of the pen's interval) with zero memory allocated. `AimForge --path-cost` prints it.
+- **MY HAND now shows the pen's path on your PC.** With Hand Print on, the recorder times how long each report takes to leave the daemon and how far it arrived from the pen's own clock.
+- **The Realtime Lane gets a verdict from your own PC.** Record a few minutes with it off and on; MY HAND then says whether it helps, does not help, or makes no measurable difference.
+- **Realtime Lane level 3.** The pen's report thread joins the scheduling class Windows gives pro-audio threads.
+- **Plugin 1.4.1** carries the probe and level 3. The app works with 1.4.0 too; those two features are then absent.
 
 ## 2026-10-24
 

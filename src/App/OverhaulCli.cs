@@ -10,6 +10,47 @@ namespace AimForge.App
     /// Headless commands of the 2026-11-12 overhaul (the optimizer, the Hand Print, the duel ladder, the burst lab).
     /// Program.Main asks this first; null = not one of ours.
     /// </summary>
+    /// What the first-party report-path code costs (2026-11-12): measured, not argued.
+    static class PathCost
+    {
+        /// Nanoseconds and allocated bytes per report for the Cadence Lock core on a realistic stream (strokes, tracking,
+        /// rests, late and queued reports), optionally with the Hand Print recorder ticking after it.
+        public static (double ns, long bytes) Core(Preset card, bool handPrint, int reports = 1_000_000)
+        {
+            var rg = Rig.From(card); rg.Engine = "cadence"; rg.ReportHz = 360;
+            var core = OtdBridge.CadenceCoreFor(card, rg); var hp = new AimForge.Filters.HandPrintCore();
+            const double DT = 1000.0 / 360.0;
+            // a fixed pseudo-random stream, generated BEFORE the clock starts
+            var rnd = new Random(42); var xs = new float[4096]; var ys = new float[4096]; var dts = new double[4096]; var ps = new double[4096];
+            double x = 15000, y = 8000, v = 0;
+            for (int i = 0; i < xs.Length; i++)
+            {
+                if (i % 180 == 0) v = rnd.NextDouble() < 0.3 ? 0 : Math.Exp(rnd.NextDouble() * 6.5);   // 0 or 1-665 mm/s
+                double a = i * 0.01; x += Math.Cos(a) * v * DT / 10.0; y += Math.Sin(a) * v * DT / 10.0;
+                xs[i] = (float)Math.Round(x); ys[i] = (float)Math.Round(y);
+                dts[i] = i % 97 == 0 ? 2 * DT : i % 97 == 1 ? 0.05 : DT * (0.95 + 0.1 * rnd.NextDouble()); ps[i] = i % 360 < 120 ? 0.6 : 0;
+            }
+            double sink = 0;
+            void Loop(int n)
+            {
+                var prev = new System.Numerics.Vector2(xs[0], ys[0]);
+                for (int i = 0; i < n; i++)
+                {
+                    int k = i & 4095; var pos = new System.Numerics.Vector2(xs[k], ys[k]);
+                    var o = core.Filter(pos, dts[k], ps[k]); sink += o.X;
+                    if (handPrint) hp.Tick((pos.X - prev.X) * 0.01, (pos.Y - prev.Y) * 0.01, core.LastReports, DT, core.LastSpeedMms, core.LastGain, ps[k] > 0, pos.X * 0.01, pos.Y * 0.01, core.LastGapClass);
+                    prev = pos;
+                }
+            }
+            Loop(50_000);   // JIT and caches
+            var sw = System.Diagnostics.Stopwatch.StartNew(); long b0 = GC.GetAllocatedBytesForCurrentThread();
+            Loop(reports);
+            sw.Stop(); long bytes = GC.GetAllocatedBytesForCurrentThread() - b0;
+            GC.KeepAlive(sink);
+            return (sw.Elapsed.TotalMilliseconds * 1e6 / reports, bytes);
+        }
+    }
+
     static class OverhaulCli
     {
         public static int? Handle(string cmd, string[] args, Catalogue cat, string home, OtdBridge otd)
@@ -56,6 +97,17 @@ namespace AimForge.App
                         }
                         Console.WriteLine(FormattableString.Invariant($"  {rate,8} {s0 / nrow,9:0.0000} {s1 / nrow,8:0.0000} {s2 / nrow,8:0.0000}   {w} of {nrow}"));
                     }
+                    return 0;
+                }
+                case "--path-cost":
+                {
+                    // What the code AimForge owns costs on the pen's report path: nanoseconds a report and bytes allocated,
+                    // for the Cadence Lock core alone and with the Hand Print recorder ticking.
+                    var (ns, bytes) = PathCost.Core(cat.Find(Goat.Id)!, false); var (nsH, bytesH) = PathCost.Core(cat.Find(Goat.Id)!, true);
+                    double interval = 1e9 / 360.0;
+                    Console.WriteLine(FormattableString.Invariant($"Cadence Lock core (THE GOAT, drop check 2): {ns:0} ns a report, {bytes} bytes allocated  = {ns / interval * 100:0.0000}% of the pen's 2.78 ms report interval"));
+                    Console.WriteLine(FormattableString.Invariant($"  with the Hand Print recorder:           {nsH:0} ns a report, {bytesH} bytes allocated  = {nsH / interval * 100:0.0000}% of the interval"));
+                    Console.WriteLine("The app itself (this program) is not on the report path: it writes the settings and exits the picture.");
                     return 0;
                 }
                 case "--handprint":

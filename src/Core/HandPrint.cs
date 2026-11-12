@@ -33,6 +33,44 @@ namespace AimForge.Core
         public readonly long[] Gap = new long[5];
         public readonly List<Ep> Episodes = new();
 
+        /// The pen's path through this PC as the recorder measured it inside the daemon, kept apart by whether the session
+        /// ran the Realtime Lane: [0] lane off, [1] lane on. EmitUs = the daemon's output stage after the curve (OTD's
+        /// transform, the output mode, the VMulti write); JitterUs = how far plain reports arrived from the pen's clock.
+        public sealed class PathStats
+        {
+            public readonly long[] EmitUs = new long[HandPrintCore.LatBins], JitterUs = new long[HandPrintCore.LatBins], Gap = new long[5];
+            public double EmitMaxUs, Seconds; public int Files, MaxLane, Mmcss;
+            public long EmitN => EmitUs.Sum();
+            public double DisturbedPerMin => Seconds > 0 ? (Gap[1] + Gap[2] + Gap[3] + Gap[4]) / (Seconds / 60.0) : 0;
+            public bool Enough => Seconds >= 120 && EmitN >= 20000;
+        }
+        public readonly PathStats[] Path = { new PathStats(), new PathStats() };
+
+        /// The upper edge (microseconds) of the bin holding quantile q of a latency histogram; 0 when it is empty.
+        public static double LatQuantile(long[] h, double q)
+        {
+            long tot = h.Sum(); if (tot == 0) return 0; long acc = 0;
+            for (int i = 0; i < h.Length; i++) { acc += h[i]; if (acc >= q * tot) return HandPrintCore.LatHi(i); }
+            return HandPrintCore.LatHi(h.Length - 1);
+        }
+        static string Us(double us) => us >= 1000 ? (us / 1000).ToString("0.##", CultureInfo.InvariantCulture) + " ms" : us.ToString("0", CultureInfo.InvariantCulture) + " µs";
+
+        /// What the Realtime Lane changed on this PC, from sessions recorded with it off and on; null until both exist.
+        /// +1 it helps, -1 it hurts, 0 no measurable difference.
+        public (int verdict, string text)? LaneVerdict()
+        {
+            var off = Path[0]; var on = Path[1];
+            if (!off.Enough || !on.Enough) return null;
+            double pOff = LatQuantile(off.EmitUs, 0.999), pOn = LatQuantile(on.EmitUs, 0.999), jOff = LatQuantile(off.JitterUs, 0.99), jOn = LatQuantile(on.JitterUs, 0.99);
+            double dOff = off.DisturbedPerMin, dOn = on.DisturbedPerMin;
+            string facts = $"99.9% of reports left the daemon in under {Us(pOff)} with the lane off and under {Us(pOn)} with it on; 99% arrived within {Us(jOff)} / {Us(jOn)} of the pen's clock; " +
+                           $"disturbed reports {dOff.ToString("0.0", CultureInfo.InvariantCulture)} / {dOn.ToString("0.0", CultureInfo.InvariantCulture)} a minute";
+            bool better = pOn < pOff || jOn < jOff || (dOff > 1 && dOn < 0.5 * dOff), worse = pOn > pOff || jOn > jOff || (dOn > 1 && dOn > 2 * dOff);
+            if (better && !worse) return (1, "the Realtime Lane HELPS on this PC: " + facts + ". Keep it on.");
+            if (worse && !better) return (-1, "the Realtime Lane does NOT help on this PC: " + facts + ". Leave it off.");
+            return (0, "no measurable difference from the Realtime Lane on this PC: " + facts + ". It is harmless here and not needed.");
+        }
+
         public double Minutes => Seconds / 60.0;
         public double TipSeconds => SecTip.Sum();
         /// Enough to fit a curve to: 10 minutes of pen time and 400 strokes.
@@ -66,7 +104,8 @@ namespace AimForge.Core
         {
             var inv = CultureInfo.InvariantCulture;
             var lines = text.Split('\n'); if (lines.Length == 0 || !lines[0].StartsWith("aimforge-handprint")) throw new InvalidDataException("not a hand print file");
-            Func<double, double> g0 = _ => 1.0; double[]? sh = null, st = null; int epLeft = 0;
+            Func<double, double> g0 = _ => 1.0; double[]? sh = null, st = null; int epLeft = 0, lane = 0;
+            PathStats ps() => Path[lane > 0 ? 1 : 0];
             double[] Row(string[] f, int n) { var a = new double[n]; for (int i = 0; i < n && i + 1 < f.Length; i++) a[i] = double.Parse(f[i + 1], inv); return a; }
             foreach (var raw in lines.Skip(1))
             {
@@ -85,16 +124,21 @@ namespace AimForge.Core
                     case "session": Sessions.Add(f.Length > 1 ? f[1] : "?"); break;
                     case "nominalHz": if (f.Length > 1 && double.Parse(f[1], inv) > 0) NominalHz = double.Parse(f[1], inv); break;
                     case "curve": Curves.Add(line); g0 = GainOf(line); break;
+                    case "lane": if (f.Length > 1) { lane = (int)double.Parse(f[1], inv); ps().MaxLane = Math.Max(ps().MaxLane, lane); } break;
+                    case "mmcss": if (f.Length > 1 && f[1] == "1") ps().Mmcss++; break;
+                    case "emitUs": for (int i = 0; i < HandPrintCore.LatBins && i + 1 < f.Length; i++) ps().EmitUs[i] += long.Parse(f[i + 1], inv); break;
+                    case "jitterUs": for (int i = 0; i < HandPrintCore.LatBins && i + 1 < f.Length; i++) ps().JitterUs[i] += long.Parse(f[i + 1], inv); break;
+                    case "emitMaxUs": if (f.Length > 1) ps().EmitMaxUs = Math.Max(ps().EmitMaxUs, double.Parse(f[1], inv)); break;
                     case "tablet": if (f.Length > 2) { WidthMm = double.Parse(f[1], inv); HeightMm = double.Parse(f[2], inv); } break;
                     case "totals":
                         for (int i = 1; i + 1 < f.Length; i += 2)
                         {
                             double v = double.Parse(f[i + 1], inv);
-                            switch (f[i]) { case "seconds": Seconds += v; break; case "reports": Reports += (long)v; break; case "lifts": Lifts += (long)v; break;
+                            switch (f[i]) { case "seconds": Seconds += v; ps().Seconds += v; break; case "reports": Reports += (long)v; break; case "lifts": Lifts += (long)v; break;
                                             case "handMm": HandMm += v; break; case "outMm": OutMm += v; break; case "edgeEnds": EdgeEnds += (long)v; break; case "episodes": EpTotal += (long)v; break; }
                         }
                         break;
-                    case "gapclass": for (int i = 0; i < 5 && i + 1 < f.Length; i++) Gap[i] += long.Parse(f[i + 1], inv); break;
+                    case "gapclass": for (int i = 0; i < 5 && i + 1 < f.Length; i++) { long n = long.Parse(f[i + 1], inv); Gap[i] += n; ps().Gap[i] += n; } break;
                     case "secHover": sh = Row(f, Bins); for (int i = 0; i < Bins; i++) SecHover[i] += sh[i]; break;
                     case "secTip": st = Row(f, Bins); for (int i = 0; i < Bins; i++) SecTip[i] += st[i]; break;
                     case "mmHover": { var a = Row(f, Bins); for (int i = 0; i < Bins; i++) MmHover[i] += a[i]; break; }
@@ -110,7 +154,7 @@ namespace AimForge.Core
                 if (sh != null) OutSecHover[ob] += sh[i];
                 if (st != null) OutSecTip[ob] += st[i];
             }
-            Files++;
+            Files++; ps().Files++;
         }
 
         public static string Kind(Ep e) => e.OutMm < 3 && e.TravelMm < 3 ? "micro" : e.PeakMms >= 150 && e.DurMs <= 300 ? "flick" : e.DurMs >= 300 ? "track" : "move";
@@ -165,6 +209,21 @@ namespace AimForge.Core
                 sb.AppendLine(stalls > 30 ? "  -> the host stalls often while you play: turn the Realtime Lane on (Engine tab) and keep the burst-armed drop check (plugin 1.4)"
                             : stalls > 3 ? "  -> some host stalls: the burst-armed drop check prices them right; the Realtime Lane should thin them out"
                                          : "  -> clean: the rig delivers the pen's clock");
+            }
+
+            // the pen's path through this PC, measured inside the daemon
+            if (Path[0].EmitN + Path[1].EmitN > 0)
+            {
+                sb.AppendLine("Pen path on this PC (measured inside the daemon; the curve itself costs about 0.0001 ms a report):");
+                for (int li = 0; li < 2; li++)
+                {
+                    var q = Path[li]; if (q.EmitN == 0) continue;
+                    sb.AppendLine($"  lane {(li == 0 ? "off" : "ON" + (q.MaxLane > 1 ? " (level " + q.MaxLane + (q.Mmcss > 0 ? ", pro-audio class live" : "") + ")" : ""))}, {(q.Seconds / 60).ToString("0.0", inv)} min: " +
+                                  $"output stage (to the VMulti write) half under {Us(LatQuantile(q.EmitUs, 0.5))} · 99% under {Us(LatQuantile(q.EmitUs, 0.99))} · 99.9% under {Us(LatQuantile(q.EmitUs, 0.999))} · worst {Us(q.EmitMaxUs)}" +
+                                  $" | arrival off the pen's clock: half within {Us(LatQuantile(q.JitterUs, 0.5))} · 99% within {Us(LatQuantile(q.JitterUs, 0.99))}");
+                }
+                if (LaneVerdict() is var (_, txt)) sb.AppendLine("  -> " + txt);
+                else sb.AppendLine(Path[1].EmitN == 0 ? "  -> record a few minutes with the Realtime Lane ON to see what it changes on this PC" : Path[0].EmitN == 0 ? "  -> record a few minutes with the Realtime Lane OFF to compare" : "  -> two minutes of each (lane off, lane on) make the comparison");
             }
 
             double tip = TipSeconds, all = tip + SecHover.Sum();

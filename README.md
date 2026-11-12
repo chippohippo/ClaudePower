@@ -1,4 +1,4 @@
-> **The optimizer overhaul, 2026-11-12:** record your own hand (Hand Print), fit the curve to it (MY HAND), and let your verdicts run the search (DUEL). Plugin 1.4 adds a burst-proof drop check, the Realtime Lane and the experimental Pressure Focus. See `OPTIMIZER.md`. Nothing in it has a field verdict yet.
+> **The optimizer overhaul, 2026-11-12:** record your own hand (Hand Print), fit the curve to it (MY HAND), and let your verdicts run the search (DUEL). Plugin 1.4 adds a burst-proof drop check, the Realtime Lane and the experimental Pressure Focus. See `OPTIMIZER.md`, and `LATENCY.md` for why the app was not rebuilt and how the pen's path is now measured on your PC. Nothing in it has a field verdict yet.
 
 > **THE GOAT, 2026-10-24:** your field-rated build is the first card: the Apex Brawl curve at 52.63 cm/360 (Finals sens 12), snap 0, Y/X 1.00, reset 20, no filters, on Cadence Lock. Every card except BO6 Original is rebuilt on it. See `GAME_FAMILIES.md`.
 

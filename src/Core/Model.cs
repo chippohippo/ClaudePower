@@ -205,7 +205,8 @@ namespace AimForge.Core
         /// bursts (host stalls). Written as DropCheck 2; a 1.3 plugin reads 2 as 1.
         public bool DropBurst = true;
         /// Realtime Lane (plugin 1.4): 0 = Windows defaults; 1 = report thread Highest, daemon Above Normal, low-latency
-        /// GC; 2 = daemon High. An apply-time mode persisted in xp.txt; lives in the Cadence Lock filter.
+        /// GC; 2 = daemon High; 3 = also the pro-audio scheduling class (MMCSS) on the report thread. An apply-time mode
+        /// persisted in xp.txt; lives in the Cadence Lock filter.
         public int RealtimeLane = 0;
         /// Hand Print (plugin 1.4): record pen kinematics to handprint-*.txt beside the daemon for --handprint/--optimize.
         public bool HandPrint = false;
