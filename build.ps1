@@ -31,7 +31,7 @@ New-Item -ItemType Directory -Force "$b\out" | Out-Null
 # GameFilterCore is compiled into BOTH the app (selftests drive the shipping math) and the plugin.
 # The Coherence Stabilizer's core is compiled in too (2026-09-24): the Nib Twin lab and the moving-tap selftests drive the
 # SHIPPING pin into the SHIPPING Cadence core.
-$src = @(Get-ChildItem "$b\src" -Recurse -Filter *.cs | ForEach-Object { $_.FullName }) + @("$b\plugin\GameFilterCore.cs","$b\plugin\CadenceCore.cs","$b\plugin\NibTwinCore.cs","$b\..\CoherenceStabilizer\src\CoherenceCore.cs")
+$src = @(Get-ChildItem "$b\src" -Recurse -Filter *.cs | ForEach-Object { $_.FullName }) + @("$b\plugin\GameFilterCore.cs","$b\plugin\CadenceCore.cs","$b\plugin\NibTwinCore.cs","$b\plugin\HandPrintCore.cs","$b\..\CoherenceStabilizer\src\CoherenceCore.cs")
 & dotnet $csc (@("-target:winexe","-nologo","-optimize+","-langversion:10","-nullable:enable","-deterministic",
   "-out:$b\out\AimForge.exe") + $refs + $src)
 if ($LASTEXITCODE -ne 0) { throw "build failed" }
@@ -40,7 +40,7 @@ if ($LASTEXITCODE -ne 0) { throw "build failed" }
 $otdRef = "$b\..\CoherenceStabilizer\otd\lib\net8.0\OpenTabletDriver.Plugin.dll"
 if (Test-Path $otdRef) {
   & dotnet $csc (@("-target:library","-nologo","-optimize+","-langversion:10","-deterministic",
-    "-out:$b\out\AimForge.Filters.dll","-r:$otdRef") + $refs + @("$b\plugin\GameFilterCore.cs","$b\plugin\CadenceCore.cs","$b\plugin\NibTwinCore.cs","$b\plugin\AimForgeFilters.cs"))
+    "-out:$b\out\AimForge.Filters.dll","-r:$otdRef") + $refs + @("$b\plugin\GameFilterCore.cs","$b\plugin\CadenceCore.cs","$b\plugin\NibTwinCore.cs","$b\plugin\HandPrintCore.cs","$b\plugin\AimForgeFilters.cs"))
   if ($LASTEXITCODE -ne 0) { throw "plugin build failed" }
   $plugDest = "D:\Pen\userdata\Plugins\AimForge Game Filters"
   New-Item -ItemType Directory -Force $plugDest | Out-Null

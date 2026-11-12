@@ -21,6 +21,8 @@ namespace AimForge.Core
             ["TpsGain"] = "third-person match", ["TipThresholdPct"] = "tip threshold", ["Engine"] = "engine", ["ReportHz"] = "pen rate", ["MergeMax"] = "merge cap",
             ["MirrorMouse"] = "mouse mirror", ["MouseDpi"] = "mouse settings", ["MouseSpeedHalfLifeMs"] = "mouse settings", ["MouseYx"] = "mouse settings",
             ["MouseIdPrefixes"] = "mouse devices", ["IntentSpeed"] = "Intent Speed", ["ReversalCarryMs"] = "Reversal Carry", ["NibTwin"] = "Nib Twin",
+            ["RealtimeLane"] = "Realtime Lane", ["HandPrint"] = "Hand Print", ["FocusDepth"] = "Pressure Focus", ["FocusStart"] = "Pressure Focus", ["FocusFull"] = "Pressure Focus",
+            ["DropCheck"] = "drop check", ["DropBurst"] = "drop check",
             ["NibProbe"] = "nib press log", ["SkidXmm"] = "Nib calibration", ["SkidYmm"] = "Nib calibration", ["SkidFullPressure"] = "Nib calibration",
             ["SkidGamma"] = "Nib calibration", ["SkidLagReports"] = "Nib calibration",
         };
@@ -43,6 +45,9 @@ namespace AimForge.Core
             if (r.NibTwin) m.Add("NIB TWIN");
             if (r.IntentSpeed) m.Add("INTENT SPEED");
             if (r.ReversalCarryMs > 0) m.Add($"CARRY {r.ReversalCarryMs:0} MS");
+            if (r.FocusDepth > 0) m.Add($"FOCUS {r.FocusDepth * 100:0}%");
+            if (r.RealtimeLane > 0) m.Add("REALTIME LANE" + (r.RealtimeLane >= 2 ? " 2" : ""));
+            if (r.HandPrint) m.Add("HAND PRINT REC");
             if (Math.Abs(r.TpsGain - 1) > 1e-9) m.Add(string.Format(CultureInfo.InvariantCulture, "3RD-PERSON x{0:0.00}", r.TpsGain));
             if (r.MirrorMouse) m.Add("MOUSE MIRROR");
             if (!r.HdlEnabled) m.Add("HOVER LIMITER OFF");

@@ -27,8 +27,10 @@ namespace AimForge.Core
         public sealed class State
         {
             public bool Intent, Twin; public double CarryMs;
+            /// 2026-11-12 (plugin 1.4): the Realtime Lane (0/1/2), the Hand Print recorder and Pressure Focus (0 = off).
+            public int Lane; public bool HandPrint; public double FocusDepth;
             public static string Path => System.IO.Path.Combine(AppContext.BaseDirectory, "xp.txt");
-            /// xp.txt: "intent|off;<carry ms>;twin|off" (the two-field form of 2026-09-24 still parses)
+            /// xp.txt: "intent|off;<carry ms>;twin|off[;lane=N;hand=0|1;focus=D]" (the two- and three-field forms still parse)
             public static State Load(string? path = null)
             {
                 var s = new State();
@@ -41,17 +43,25 @@ namespace AimForge.Core
                         s.Intent = f.Length > 0 && f[0] == "intent";
                         if (f.Length > 1 && double.TryParse(f[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var c)) s.CarryMs = c;
                         s.Twin = f.Length > 2 && f[2] == "twin";
+                        foreach (var kv in f.Skip(3).Select(x => x.Split('=')).Where(x => x.Length == 2))
+                        {
+                            if (!double.TryParse(kv[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) continue;
+                            if (kv[0] == "lane") s.Lane = (int)Math.Clamp(v, 0, 2);
+                            else if (kv[0] == "hand") s.HandPrint = v >= 0.5;
+                            else if (kv[0] == "focus") s.FocusDepth = v;
+                        }
                     }
                 }
                 catch { }
-                s.CarryMs = NormalizeCarry(s.CarryMs);
+                s.CarryMs = NormalizeCarry(s.CarryMs); s.FocusDepth = NormalizeFocus(s.FocusDepth);
                 return s;
             }
             public void Save(string? path = null)
-                => File.WriteAllText(path ?? Path, string.Format(CultureInfo.InvariantCulture, "{0};{1};{2}", Intent ? "intent" : "off", CarryMs, Twin ? "twin" : "off"));
+                => File.WriteAllText(path ?? Path, string.Format(CultureInfo.InvariantCulture, "{0};{1};{2};lane={3};hand={4};focus={5}", Intent ? "intent" : "off", CarryMs, Twin ? "twin" : "off", Lane, HandPrint ? 1 : 0, FocusDepth));
             public void ApplyTo(Rig r)
             {
                 r.IntentSpeed = Intent; r.ReversalCarryMs = CarryMs; r.NibTwin = Twin;
+                r.RealtimeLane = Lane; r.HandPrint = HandPrint; r.FocusDepth = FocusDepth;
                 if (Twin && NibCal.Load() is NibCal cal) cal.ApplyTo(r);
             }
         }
@@ -60,15 +70,21 @@ namespace AimForge.Core
         public static double NormalizeCarry(double ms)
             => !double.IsFinite(ms) || ms <= 0 ? 0 : Math.Clamp(ms, MinCarryMs, MaxCarryMs);
 
-        public static bool Any(Rig r) => r.IntentSpeed || r.ReversalCarryMs > 0 || r.NibTwin;
+        public const double MinFocus = 0.05, MaxFocus = 0.5, DefaultFocus = 0.25;
+        /// Pressure Focus is off (0) or inside 5-50%; anything else snaps to the nearest legal value.
+        public static double NormalizeFocus(double d) => !double.IsFinite(d) || d <= 0 ? 0 : Math.Clamp(d, MinFocus, MaxFocus);
+
+        public static bool Any(Rig r) => r.IntentSpeed || r.ReversalCarryMs > 0 || r.NibTwin || r.FocusDepth > 0;
 
         /// Apply pre-flight, run by the shared gate before anything is written.
         public static string? Blocker(Rig r, Preset p)
         {
             if (!double.IsFinite(r.ReversalCarryMs)) return $"Reversal Carry {r.ReversalCarryMs} is not a number of ms; nothing was written";
             if (!Any(r)) return null;
-            if (!r.CadenceEngine && (r.IntentSpeed || r.ReversalCarryMs > 0))
-                return "Intent Speed and Reversal Carry run inside Cadence Lock - tick the Cadence Lock engine or switch them off; nothing was written";
+            if (!r.CadenceEngine && (r.IntentSpeed || r.ReversalCarryMs > 0 || r.FocusDepth > 0))
+                return "Intent Speed, Reversal Carry and Pressure Focus run inside Cadence Lock - tick the Cadence Lock engine or switch them off; nothing was written";
+            if (r.FocusDepth > 0 && (!double.IsFinite(r.FocusDepth) || r.FocusDepth < MinFocus || r.FocusDepth > MaxFocus || !(r.FocusStart >= 0 && r.FocusStart < r.FocusFull && r.FocusFull <= 1)))
+                return $"Pressure Focus {r.FocusDepth} (start {r.FocusStart}, full {r.FocusFull}) is outside {MinFocus}-{MaxFocus} with 0 <= start < full <= 1; nothing was written";
             if (!double.IsFinite(r.ReversalCarryMs) || (r.ReversalCarryMs > 0 && (r.ReversalCarryMs < MinCarryMs || r.ReversalCarryMs > MaxCarryMs)))
                 return $"Reversal Carry {r.ReversalCarryMs} ms is outside {MinCarryMs}-{MaxCarryMs} ms; nothing was written";
             if (r.ReversalCarryMs > 0 && RolePolicy.MaxTier(RolePolicy.RoleOf(p)) <= 2)
@@ -86,10 +102,24 @@ namespace AimForge.Core
 
         /// An experimental mode that cannot run on THIS apply is dropped from it with a note, instead of refusing the whole
         /// apply (2026-09-27: Nib Twin ticked before calibrating silently blocked every apply). Returns what was dropped.
-        public static List<string> Soften(Rig r, Preset p, string? nibBlocker = null)
+        /// plugin14: whether the INSTALLED Game Filters build carries the 1.4 modes (OtdBridge.PluginHas14); false drops them.
+        public static List<string> Soften(Rig r, Preset p, string? nibBlocker = null, bool? plugin14 = true)
         {
             var o = new List<string>();
             if (!double.IsFinite(r.ReversalCarryMs)) r.ReversalCarryMs = 0;
+            if (!double.IsFinite(r.FocusDepth) || r.FocusDepth < 0) r.FocusDepth = 0;
+            if (!r.CadenceEngine)
+            {
+                if (r.FocusDepth > 0) { r.FocusDepth = 0; o.Add("Pressure Focus skipped: it runs inside Cadence Lock (tick the Cadence Lock engine to use it)"); }
+                if (r.RealtimeLane > 0) { r.RealtimeLane = 0; o.Add("Realtime Lane skipped: it lives in the Cadence Lock filter (tick the Cadence Lock engine to use it)"); }
+                if (r.HandPrint) { r.HandPrint = false; o.Add("Hand Print skipped: it records inside Cadence Lock (tick the Cadence Lock engine to use it)"); }
+            }
+            else if (plugin14 != true && (r.FocusDepth > 0 || r.RealtimeLane > 0 || r.HandPrint))
+            {
+                r.FocusDepth = 0; r.RealtimeLane = 0; r.HandPrint = false;
+                o.Add("Realtime Lane / Hand Print / Pressure Focus skipped: the installed AimForge Game Filters plugin is older than 1.4 - " + OtdBridge.Plugin14Hint + OtdBridge.RestartHint);
+            }
+            if (r.FocusDepth > 0) r.FocusDepth = NormalizeFocus(r.FocusDepth);
             if (!r.CadenceEngine && r.IntentSpeed) { r.IntentSpeed = false; o.Add("Intent Speed skipped: it runs inside Cadence Lock (tick the Cadence Lock engine to use it)"); }
             if (!r.CadenceEngine && r.ReversalCarryMs > 0) { r.ReversalCarryMs = 0; o.Add("Reversal Carry skipped: it runs inside Cadence Lock"); }
             if (r.ReversalCarryMs > 0 && RolePolicy.MaxTier(RolePolicy.RoleOf(p)) <= 2) { r.ReversalCarryMs = 0; o.Add($"Reversal Carry skipped: Lab-only, and this is a {RolePolicy.RoleOf(p)} card"); }
@@ -106,7 +136,8 @@ namespace AimForge.Core
 
         public static string Describe(Rig r)
             => !Any(r) ? "off" : string.Join(" + ", new[] { r.IntentSpeed ? "Intent Speed" : null, r.ReversalCarryMs > 0 ? $"Reversal Carry {r.ReversalCarryMs:0} ms" : null,
-                                                            r.NibTwin ? $"Nib Twin {Math.Sqrt(r.SkidXmm * r.SkidXmm + r.SkidYmm * r.SkidYmm):0.00} mm" : null }.Where(x => x != null));
+                                                            r.NibTwin ? $"Nib Twin {Math.Sqrt(r.SkidXmm * r.SkidXmm + r.SkidYmm * r.SkidYmm):0.00} mm" : null,
+                                                            r.FocusDepth > 0 ? $"Pressure Focus {r.FocusDepth * 100:0}%" : null }.Where(x => x != null));
 
         /// Doctor: what the last apply SAVED in the Cadence Lock entry vs the Builds-tab setting (xp.txt).
         public static (bool ok, string detail) LiveCheck(string otdSettingsPath, State want, string? calPath = null)

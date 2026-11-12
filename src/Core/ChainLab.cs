@@ -27,11 +27,14 @@ namespace AimForge.Core
     {
         /// debug: per-report (i, dtObs, du, reports priced) for the cadence engines
         public static List<(int i, double dt, double du, double k, double g)>? Trace;
-        public enum Engine { Wall, Constant, Cadence, CadenceDropCheck }
+        public enum Engine { Wall, Constant, Cadence, CadenceDropCheck, CadenceDropCheck2 }
         /// how reports reach the host: plain USB jitter; every Nth report LATE by ~an interval (it lands just before the next
         /// one - one report of travel over a ~2-interval gap, then a ~0 gap); every Nth report DROPPED (the next one carries
         /// two reports of travel over a 2-interval gap).
-        public enum Timing { Jitter, Late, Drop }
+        /// Burst (2026-11-12): the HOST stalls (a DPC, the scheduler under game load) - every report that arrives during a
+        /// stall is queued and released when it ends, back to back: one late report and then its followers at a ~0 gap.
+        /// mergeEvery is then the stall RATE per second; each stall lasts 3-8 ms (seeded).
+        public enum Timing { Jitter, Late, Drop, Burst }
 
         public sealed class Band { public double NoisePct, BiasPct, WorstPct; public int N; }
         public sealed class Result
@@ -80,8 +83,8 @@ namespace AimForge.Core
             var bands = new (double lo, double hi, Band b)[] { (0.5, 15.0, res.Slow), (15.0, 55.0, res.Tap), (55.0, 220.0, res.Track), (220.0, 5000.0, res.Fast) };
             var acc = bands.Select(_ => new List<(double e, double w)>()).ToArray();
 
-            var cad = eng is Engine.Cadence or Engine.CadenceDropCheck ? OtdBridge.CadenceCoreFor(p, CadRig(rig)) : null;
-            if (cad != null) cad.DropCheck = eng == Engine.CadenceDropCheck ? 1 : 0;   // 'Cadence' is the v1.2 core, whatever the rig default
+            var cad = eng is Engine.Cadence or Engine.CadenceDropCheck or Engine.CadenceDropCheck2 ? OtdBridge.CadenceCoreFor(p, CadRig(rig)) : null;
+            if (cad != null) cad.DropCheck = eng == Engine.CadenceDropCheck ? 1 : eng == Engine.CadenceDropCheck2 ? 2 : 0;   // 'Cadence' is the v1.2 core, whatever the rig default
             if (cad != null) cad.NominalHz = HZ;
             Vector2 cadPrev = default; bool cadPrimed = false;
             if (cad != null) { cadPrev = cad.Filter(new Vector2((float)Math.Round(sc.X(0) * UPM), 0), DT); cadPrimed = true; }   // the stroke is already under way
@@ -92,6 +95,20 @@ namespace AimForge.Core
             double degPerCount = 360.0 / (rig.Cm360 * 10 * pxmm * mult);
             // arrival offsets: a fixed 360 Hz clock seen through bounded USB jitter (+/-jitter% of one interval)
             double Arr(int i) => i * DT + (rnd.NextDouble() * 2 - 1) * jitterPct / 100.0 * DT * 0.5;
+            // host stalls for Timing.Burst: Poisson starts at mergeEvery per second, each 3-8 ms long (its own seeded stream,
+            // so the jitter stream above is the same with and without stalls)
+            var stalls = new List<(double from, double to)>();
+            if (timing == Timing.Burst && mergeEvery > 0)
+            {
+                var sr = new Random(seed * 7919 + 13); double ts = 0, endMs = sc.Seconds * 1000.0;
+                while (true)
+                {
+                    ts += -Math.Log(1.0 - sr.NextDouble()) * 1000.0 / mergeEvery;
+                    if (ts >= endMs) break;
+                    double len = 3 + 5 * sr.NextDouble(); stalls.Add((ts, ts + len)); ts += len;
+                }
+            }
+            int stallAt = 0;
             for (int i = 1; i < n; i++)
             {
                 double t = i / HZ, u = Math.Round(sc.X(t) * UPM);
@@ -101,10 +118,15 @@ namespace AimForge.Core
                 double vTrue = Math.Abs(duTrue) / UPM / DT * 1000.0;                   // mm/s of the hand on the pen clock
                 double gTrue = duTrue == 0 ? 1 : gainMmS(vTrue);
                 ideal += duTrue / UPM * pxmm * mult * gTrue;
-                bool marked = mergeEvery > 0 && i % mergeEvery == 0;
+                bool marked = timing != Timing.Burst && mergeEvery > 0 && i % mergeEvery == 0;
                 if (marked && timing == Timing.Drop) { errHist.Add((delivered - ideal) * degPerCount); continue; }   // never reaches the host
                 double arr = Arr(i);
                 if (marked && timing == Timing.Late) arr = (i + 1) * DT - 0.05;          // held back until just before the next report
+                if (stalls.Count > 0)
+                {
+                    while (stallAt < stalls.Count && stalls[stallAt].to < arr) stallAt++;
+                    if (stallAt < stalls.Count && arr >= stalls[stallAt].from) arr = stalls[stallAt].to;   // queued until the stall ends
+                }
                 if (arr <= prevArr) arr = prevArr + 0.02;
                 double dtObs = arr - prevArr; prevArr = arr;
                 double du = u - prevU; prevU = u;                                         // what the host sees (a drop folds two reports in)

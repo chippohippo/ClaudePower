@@ -34,6 +34,7 @@ namespace AimForge.App
                 string cmd = args[0].ToLowerInvariant();
                 bool dry = args.Contains("--dry-run");
                 Action<string> log = s => Console.WriteLine(s);
+                if (OverhaulCli.Handle(cmd, args, cat, home, otd) is int handled) return handled;
                 switch (cmd)
                 {
                     case "--list":
@@ -2921,6 +2922,9 @@ namespace AimForge.App
                 Ok("latency: a first-party plugin DLL installed twice is named (a shared third-party library like VoiD.dll in two packages is normal, not flagged); a live smoothing filter is a WARN with what it costs",
                    d.Count == 1 && d[0].StartsWith("AimForge.Filters.dll") && sm.Level == "WARN" && sm.Detail.Contains("reacts later") && Doctor.SmoothingRow(new List<string>()).Level == "OK");
             }
+
+            // ---- 2026-11-12: the overhaul (plugin 1.4, dials, Hand Print, optimizer, duel ladder) ----
+            OverhaulTests.Run(cat, (n, c, d) => Ok(n, c, d));
 
             Console.WriteLine(fails == 0 ? "ALL SELF-TESTS PASSED" : fails + " FAILED");
             return fails == 0;

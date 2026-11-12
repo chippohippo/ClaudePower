@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using OpenTabletDriver.Plugin.Attributes;
 using OpenTabletDriver.Plugin.Output;
@@ -134,6 +135,7 @@ namespace AimForge.Filters
         public event Action<IDeviceReport> Emit;
         readonly CadenceCore core = new CadenceCore();
         readonly HPETDeltaStopwatch stopwatch = new HPETDeltaStopwatch(true);
+        double invMaxPressure, mmPerUnitX = 0.01, mmPerUnitY = 0.01;
 
         [TabletReference]
         public TabletReference TabletReference
@@ -142,6 +144,11 @@ namespace AimForge.Filters
             {
                 var dig = value.Properties.Specifications.Digitizer;
                 core.UnitsPerMm = dig.MaxX / dig.Width;     // DTC-141: 30900 / 309 = 100
+                mmPerUnitX = dig.Width / dig.MaxX; mmPerUnitY = dig.Height / dig.MaxY;
+                hp.WidthMm = dig.Width; hp.HeightMm = dig.Height;
+                // tip pressure read the same way the Nib Twin reads it (no pressure range = none)
+                var max = value.Properties.Specifications.Pen?.MaxPressure ?? 0u;
+                invMaxPressure = max > 0u ? 1.0 / max : 0.0;
             }
         }
 
@@ -149,15 +156,107 @@ namespace AimForge.Filters
 
         public void Consume(IDeviceReport value)
         {
-            if (value is OutOfRangeReport) { core.Reset(); Emit?.Invoke(value); return; }
+            if (laneApplied != RealtimeLane) ApplyLane();   // one compare a report; acts only when the setting changed
+            if (value is OutOfRangeReport)
+            {
+                core.Reset(); Emit?.Invoke(value);
+                if (HandPrint >= 1) { hp.Break(true); hpPrimed = false; HandPrintFlush(); }
+                return;
+            }
             if (value is IAbsolutePositionReport report)
             {
                 var dt = stopwatch.Restart().TotalMilliseconds;
-                report.Position = core.Filter(report.Position, dt);
+                double p01 = invMaxPressure > 0.0 && value is ITabletReport tablet ? Math.Min(1.0, tablet.Pressure * invMaxPressure) : 0.0;
+                var raw = report.Position;
+                report.Position = core.Filter(raw, dt, p01);
                 value = report;
+                // the report leaves FIRST; the probe and the Hand Print bookkeeping run after it is on its way
+                Emit?.Invoke(value);
                 if (Probe >= 1) ProbeTick(dt);
+                if (HandPrint >= 1) HandPrintTick(raw, dt, p01);
+                return;
             }
             Emit?.Invoke(value);
+        }
+
+        // ---- Realtime Lane (2026-11-12): the report thread and the daemon ask Windows for the front of the queue ----
+        // Every pen report is handled on OTD's device-reader thread, straight through the filters to the VMulti write. Under
+        // a game that loads every core, that thread waits its turn like any other; the wait is the tail of the pen's
+        // latency. Lane 1 raises the report thread to Highest and the daemon to Above Normal and asks the runtime for
+        // SustainedLowLatency garbage collection (no blocking full collections mid-fight); lane 2 raises the daemon to
+        // High. Nothing is installed or patched: it is the same setting Task Manager offers, made from inside the daemon,
+        // reverted when the lane is switched off and gone when the daemon restarts.
+        static bool laneRaised; static System.Threading.ThreadPriority lanePrevThread = System.Threading.ThreadPriority.Normal;
+        static System.Diagnostics.ProcessPriorityClass lanePrevClass = System.Diagnostics.ProcessPriorityClass.Normal;
+        static System.Runtime.GCLatencyMode lanePrevGc = System.Runtime.GCLatencyMode.Interactive;
+        double laneApplied = double.NaN;
+        void ApplyLane()
+        {
+            laneApplied = RealtimeLane;
+            var th = System.Threading.Thread.CurrentThread;
+            if (RealtimeLane >= 0.5)
+            {
+                if (!laneRaised)
+                {
+                    try { lanePrevThread = th.Priority; } catch { }
+                    try { lanePrevGc = System.Runtime.GCSettings.LatencyMode; } catch { }
+                    try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) lanePrevClass = pr.PriorityClass; } catch { }
+                    laneRaised = true;
+                }
+                try { th.Priority = System.Threading.ThreadPriority.Highest; } catch { }
+                try { System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency; } catch { }
+                try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = RealtimeLane >= 1.5 ? System.Diagnostics.ProcessPriorityClass.High : System.Diagnostics.ProcessPriorityClass.AboveNormal; } catch { }
+            }
+            else if (laneRaised)
+            {
+                try { th.Priority = lanePrevThread; } catch { }
+                try { System.Runtime.GCSettings.LatencyMode = lanePrevGc; } catch { }
+                try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = lanePrevClass; } catch { }
+                laneRaised = false;
+            }
+        }
+
+        // ---- Hand Print (2026-11-12): how this hand really moves, for AimForge --handprint / --optimize ----
+        readonly HandPrintCore hp = new HandPrintCore();
+        bool hpPrimed; Vector2 hpPrev; long hpLastFlushTick, hpFlushedReports; string hpPath; int hpWriting;
+        static int hpInstance;
+        readonly string hpSession = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + System.Threading.Interlocked.Increment(ref hpInstance);
+        void HandPrintTick(Vector2 raw, double dt, double p01)
+        {
+            if (!(dt > 0) || dt > core.ResetMs) { hp.Break(false); hpPrimed = false; }
+            if (!hpPrimed) { hpPrimed = true; hpPrev = raw; return; }
+            double dx = (raw.X - hpPrev.X) * mmPerUnitX, dy = (raw.Y - hpPrev.Y) * mmPerUnitY; hpPrev = raw;
+            double hz = core.NominalHz > 0 ? core.NominalHz : core.LiveHz;
+            hp.Tick(dx, dy, core.LastReports, hz > 0 ? 1000.0 / hz : dt, core.LastSpeedMms, core.LastGain, p01 > 0, raw.X * mmPerUnitX, raw.Y * mmPerUnitY, core.LastGapClass);
+        }
+
+        // Called on a lift (the pen is out of range: nothing is being aimed). At most every 30 s, and the file is formatted
+        // and written by a pool thread from a detached snapshot - the report thread only copies a few small arrays.
+        void HandPrintFlush()
+        {
+            long now = Environment.TickCount64;
+            if (hp.Reports == hpFlushedReports || now - hpLastFlushTick < 30000) return;
+            if (System.Threading.Interlocked.CompareExchange(ref hpWriting, 1, 0) != 0) return;
+            hpLastFlushTick = now; hpFlushedReports = hp.Reports;
+            var snap = hp.Snapshot();
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            string curve = core.IsClassic
+                ? string.Format(inv, "curve classic {0:0.#########} {1:0.######} {2:0.####} {3:0.####}", core.ClassicAccel, core.ClassicOffset, core.ClassicCap, core.ClassicExp)
+                : "curve lut " + string.Join(" ", System.Linq.Enumerable.Range(0, CadenceCore.MaxPoints).Where(i => core.Vs[i] > 0).Select(i => string.Format(inv, "{0:0.###}:{1:0.####}", core.Vs[i], core.Gs[i])));
+            string header = string.Format(inv, "session {0}\nnominalHz {1:0.###}\n{2}\nfocus {3:0.###}\ndropcheck {4:0.#}\nlane {5:0.#}", hpSession, core.NominalHz > 0 ? core.NominalHz : core.LiveHz, curve, core.FocusDepth, core.DropCheck, RealtimeLane);
+            hpPath ??= System.IO.Path.Combine(AppContext.BaseDirectory, "handprint-" + hpSession + ".txt");
+            string path = hpPath;
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    string tmp = path + ".tmp";
+                    System.IO.File.WriteAllText(tmp, snap.Serialize(header));
+                    System.IO.File.Move(tmp, path, true);
+                }
+                catch { }
+                finally { System.Threading.Interlocked.Exchange(ref hpWriting, 0); }
+            });
         }
 
         // Cadence probe: while the pen is moving, every 2 s append the running estimate of the
@@ -197,8 +296,18 @@ namespace AimForge.Filters
         public double IntentTauMs { get => core.IntentTauMs; set => core.IntentTauMs = value; }
         [Property("ReversalCarryMs"), DefaultPropertyValue(0.0d), Unit("ms"), ToolTip("EXPERIMENTAL, Lab-only (T1): hold the previous leg's gain through a strafe-tracking turnaround, fading over this many ms. 0 = off.")]
         public double ReversalCarryMs { get => core.ReversalCarryMs; set => core.ReversalCarryMs = value; }
-        [Property("DropCheck"), DefaultPropertyValue(0.0d), ToolTip("1 = a long gap is priced as merged reports only when its travel says so (a LATE single report carries one report of travel; a dropped pair carries two). Removes the half-speed misprice of late reports; never adds latency. 0 = gap alone (v1.2 behaviour).")]
+        [Property("DropCheck"), DefaultPropertyValue(0.0d), ToolTip("1 = a long gap is priced as merged reports only when its travel says so (a LATE single report carries one report of travel; a dropped pair carries two). Removes the half-speed misprice of late reports; never adds latency. 2 = the same with a memory that stays armed through queued report bursts (v1.4). 0 = gap alone (v1.2 behaviour).")]
         public double DropCheck { get => core.DropCheck; set => core.DropCheck = value; }
+        [Property("RealtimeLane"), DefaultPropertyValue(0.0d), ToolTip("1 = the pen's report thread runs at Highest priority, the daemon at Above Normal, and the runtime avoids blocking full garbage collections (lower latency spikes under game load). 2 = the daemon at High. 0 = leave Windows defaults. Reverts when switched off; gone when the daemon restarts.")]
+        public double RealtimeLane { get; set; }
+        [Property("HandPrint"), DefaultPropertyValue(0.0d), ToolTip("1 = record how your hand moves (pen speed, strokes, report timing - pen data only, never the game) to handprint-*.txt beside the daemon, written on a lift by a background thread. AimForge --handprint / --optimize read it. 0 = off.")]
+        public double HandPrint { get; set; }
+        [Property("FocusDepth"), DefaultPropertyValue(0.0d), ToolTip("EXPERIMENTAL Pressure Focus: the share of sensitivity removed at a full press (0.25 = 25% slower while you press hard). An analog DPI-shift under the firing finger. 0 = off.")]
+        public double FocusDepth { get => core.FocusDepth; set => core.FocusDepth = value; }
+        [Property("FocusStart"), DefaultPropertyValue(0.35d), ToolTip("Pressure Focus begins above this tip pressure (0-1). Below it the curve is untouched.")]
+        public double FocusStart { get => core.FocusStart; set => core.FocusStart = value; }
+        [Property("FocusFull"), DefaultPropertyValue(0.85d), ToolTip("Pressure Focus is complete at this tip pressure (0-1).")]
+        public double FocusFull { get => core.FocusFull; set => core.FocusFull = value; }
 
         [Property("ClassicAccel"), DefaultPropertyValue(0.0d), ToolTip("Classic accel per mm/s (= RawAccel accel x px/mm / 1000). 0 = use the LUT points.")]
         public double ClassicAccel { get => core.ClassicAccel; set => core.ClassicAccel = value; }

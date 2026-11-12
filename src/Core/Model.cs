@@ -201,6 +201,16 @@ namespace AimForge.Core
         /// Cadence Lock's drop check (2026-10-11, ev-20261011-chain-lab): a long gap is priced as merged reports only when
         /// the travel says so. On by default for Cadence applies; written as the plugin's DropCheck property.
         public bool DropCheck = true;
+        /// Plugin 1.4 (2026-11-12, ev-20261112-burst-lab): the drop check's memory stays armed through queued report
+        /// bursts (host stalls). Written as DropCheck 2; a 1.3 plugin reads 2 as 1.
+        public bool DropBurst = true;
+        /// Realtime Lane (plugin 1.4): 0 = Windows defaults; 1 = report thread Highest, daemon Above Normal, low-latency
+        /// GC; 2 = daemon High. An apply-time mode persisted in xp.txt; lives in the Cadence Lock filter.
+        public int RealtimeLane = 0;
+        /// Hand Print (plugin 1.4): record pen kinematics to handprint-*.txt beside the daemon for --handprint/--optimize.
+        public bool HandPrint = false;
+        /// Pressure Focus (experimental, plugin 1.4): share of gain removed at a full press; 0 = off.
+        public double FocusDepth = 0, FocusStart = 0.35, FocusFull = 0.85;
         /// Mouse mirror (2026-09-14): the same build on the physical mouse through a second
         /// RawAccel profile (MouseMirror.cs). Apply-time MODE persisted in mouse.txt - never in
         /// presets.json. DPI is the sensor step as set on the mouse; AimForge cannot check it.

@@ -22,12 +22,12 @@ for d in System.Windows.Forms System.Windows.Forms.Primitives System.Drawing.Com
   [ -f "$desk/$d.dll" ] && refs+=("-r:$desk/$d.dll"); done
 coh="$b/../CoherenceStabilizer/src/CoherenceCore.cs"; [ -f "$coh" ] || coh="$b/vendor/CoherenceCore.recovered.cs"
 mapfile -t src < <(find "$b/src" -name '*.cs' | sort)
-src+=("$b/plugin/GameFilterCore.cs" "$b/plugin/CadenceCore.cs" "$b/plugin/NibTwinCore.cs" "$coh")
+src+=("$b/plugin/GameFilterCore.cs" "$b/plugin/CadenceCore.cs" "$b/plugin/NibTwinCore.cs" "$b/plugin/HandPrintCore.cs" "$coh")
 dotnet "$csc" -target:exe -nologo -optimize+ -langversion:10 -nullable:enable -deterministic -nowarn:CA1416 \
   -out:"$out/AimForge.dll" "${refs[@]}" "${src[@]}"
 dotnet "$csc" -target:library -nologo -optimize+ -langversion:10 -deterministic -nowarn:CA1416 \
   -out:"$out/AimForge.Filters.dll" "-r:$otd" "${refs[@]}" \
-  "$b/plugin/GameFilterCore.cs" "$b/plugin/CadenceCore.cs" "$b/plugin/NibTwinCore.cs" "$b/plugin/AimForgeFilters.cs"
+  "$b/plugin/GameFilterCore.cs" "$b/plugin/CadenceCore.cs" "$b/plugin/NibTwinCore.cs" "$b/plugin/HandPrintCore.cs" "$b/plugin/AimForgeFilters.cs"
 # NETCore.App only: the selftests never touch a WinForms type, so the desktop runtime is not needed to run them
 echo '{"runtimeOptions":{"tfm":"net8.0","framework":{"name":"Microsoft.NETCore.App","version":"8.0.0"}}}' > "$out/AimForge.runtimeconfig.json"
 cp "$b/presets.json" "$out/"; [ -f "$b/tuner.html" ] && cp "$b/tuner.html" "$out/"

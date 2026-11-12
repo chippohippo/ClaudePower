@@ -71,6 +71,20 @@ namespace AimForge.Core
             }
             catch { return null; }
         }
+        /// The installed AimForge Game Filters build is 1.4 or later (Realtime Lane, Hand Print, Pressure Focus, the burst-armed
+        /// drop check). getfilters cannot tell: it echoes the settings store. null = no file / unreadable.
+        public bool? PluginHas14() => PluginHasProperty(GameFilterDll, "CadenceLock", "RealtimeLane");
+        public const string Plugin14Hint = "install the AimForge Game Filters plugin 1.4 (AimForge.Filters.dll), then ";
+        /// The running daemon's Windows priority class as seen from outside (the Realtime Lane's proof), or null.
+        public static string? DaemonPriorityClass()
+        {
+            try
+            {
+                var p = Process.GetProcessesByName("OpenTabletDriver.Daemon");
+                return p.Length == 0 ? null : p[0].PriorityClass.ToString();
+            }
+            catch { return null; }
+        }
         /// The installed Coherence Stabilizer carries the moving-tap fade (TapMoveFade, 2026-09-24).
         public bool? StabilizerHasMoveFade() => PluginHasProperty(StabilizerDll, "CoherenceStabilizerTabletSpace", "TapMoveFade");
         public const string StabilizerInstallHint = "run CoherenceStabilizer\\build.ps1 -Install, then ";
@@ -855,7 +869,7 @@ namespace AimForge.Core
             catch (Exception ex) { log("nib: could not switch the press log off (" + ex.Message + ") - apply your card again"); return false; }
         }
 
-        static readonly string[] CadenceProps = new[] { "NominalHz", "MergeMaxReports", "Probe", "ClassicAccel", "ClassicOffset", "ClassicCap", "ClassicExp", "IntentSpeed", "IntentTauMs", "ReversalCarryMs", "DropCheck" }
+        static readonly string[] CadenceProps = new[] { "NominalHz", "MergeMaxReports", "Probe", "ClassicAccel", "ClassicOffset", "ClassicCap", "ClassicExp", "IntentSpeed", "IntentTauMs", "ReversalCarryMs", "DropCheck", "RealtimeLane", "HandPrint", "FocusDepth", "FocusStart", "FocusFull" }
             .Concat(Enumerable.Range(1, Filters.CadenceCore.MaxPoints).SelectMany(i => new[] { $"P{i}Speed", $"P{i}Gain" })).ToArray();
 
         /// The build's curve as Cadence Lock properties: the exact LUT (classic cards convert
@@ -863,7 +877,9 @@ namespace AimForge.Core
         public static Dictionary<string, double> CadencePoints(Preset p, Rig rig)
         {
             var d = new Dictionary<string, double> { ["NominalHz"] = rig.ReportHz, ["MergeMaxReports"] = rig.MergeMax, ["Probe"] = rig.ReportHz > 0 ? 0 : 1,
-                ["IntentSpeed"] = rig.IntentSpeed ? 1 : 0, ["IntentTauMs"] = 6, ["ReversalCarryMs"] = rig.ReversalCarryMs, ["DropCheck"] = rig.DropCheck ? 1 : 0 };
+                ["IntentSpeed"] = rig.IntentSpeed ? 1 : 0, ["IntentTauMs"] = 6, ["ReversalCarryMs"] = rig.ReversalCarryMs, ["DropCheck"] = rig.DropCheck ? (rig.DropBurst ? 2 : 1) : 0,
+                ["RealtimeLane"] = rig.RealtimeLane, ["HandPrint"] = rig.HandPrint ? 1 : 0,
+                ["FocusDepth"] = rig.FocusDepth > 0 ? Math.Round(rig.FocusDepth, 4) : 0, ["FocusStart"] = Math.Round(rig.FocusStart, 4), ["FocusFull"] = Math.Round(rig.FocusFull, 4) };
             if (!p.IsLut)
             {
                 // classic cards: the driver's formula, natively and exactly (plugin v1.2+). The P slots
@@ -941,6 +957,7 @@ namespace AimForge.Core
             c.NominalHz = d["NominalHz"]; c.MergeMaxReports = d["MergeMaxReports"];
             c.ClassicAccel = d["ClassicAccel"]; c.ClassicOffset = d["ClassicOffset"]; c.ClassicCap = d["ClassicCap"]; c.ClassicExp = d["ClassicExp"];
             c.IntentSpeed = d["IntentSpeed"]; c.IntentTauMs = d["IntentTauMs"]; c.ReversalCarryMs = d["ReversalCarryMs"]; c.DropCheck = d["DropCheck"];
+            c.FocusDepth = d["FocusDepth"]; c.FocusStart = d["FocusStart"]; c.FocusFull = d["FocusFull"];
             return c;
         }
 

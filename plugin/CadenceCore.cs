@@ -91,8 +91,30 @@ namespace AimForge.Filters
         /// one report's travel moves ~1x the per-report displacement its trend predicts and a dropped pair ~2x. On, a gap is
         /// priced as ONE report when its travel is under 1.35x that prediction (>= 3 units, two plain reports of history).
         /// It only ever LOWERS k (never invents a merge) and adds no latency. 0 = off (dt alone, the 2026-09 behaviour).
+        /// 2 (v1.4, 2026-11-12) = the same check with a memory that survives QUEUED BURSTS. A host stall (DPC, scheduler)
+        /// delivers one late report and then its queued followers back to back (gap ~0). v1.3 wiped the per-report travel
+        /// memory on every non-plain gap, so the check was disarmed for two reports after each burst and a second stall in
+        /// that window was priced by dt alone. v1.4 keeps learning from every report whose report count is KNOWN: a queued
+        /// follower carries exactly one report of travel, and a long gap the armed check has judged teaches travel / k. A
+        /// long gap seen while the check is NOT armed is still ambiguous and still clears the memory (a late report at stroke
+        /// start must never teach half the true travel).
         public double DropCheck;
         double dPrev0, dPrev1; int dEmaN;
+        /// How the last report's gap was classified (Hand Print timing health): 0 plain, 1 queued follower (gap under half
+        /// an interval), 2 long gap judged ONE late report, 3 long gap priced as merged reports by an armed check, 4 long gap
+        /// priced by dt alone (check off or not armed).
+        public int LastGapClass { get; private set; }
+
+        /// PRESSURE FOCUS (experimental, 2026-11-12, XP_TOGGLES.md): the pen has an analog axis no mouse has. Pressing the
+        /// tip harder lowers the gain smoothly, like a mouse's DPI-shift ("sniper") button but continuous and under the same
+        /// finger that fires: FocusDepth is the fraction of gain removed at FocusFull pressure, nothing below FocusStart.
+        /// It scales THIS report's delta only (relative output: never a cursor jump), the amount is slew-limited to a full
+        /// swing in FocusSlewMs so pressure noise cannot chatter the gain, and it is cleared on a lift. 0 = off = the
+        /// curve alone, bit-identical.
+        public double FocusDepth;
+        public double FocusStart = 0.35, FocusFull = 0.85, FocusSlewMs = 30;
+        double focusNow;
+        public double LastFocus => focusNow;
         // ---- state ----
         double vex, vey, cohNum, cohDen;                // velocity EMA (mm/s) and coherence EMAs
         double gEma = 1, carryGain = 1, carryAge = -1;  // carry: -1 = idle
@@ -117,7 +139,7 @@ namespace AimForge.Filters
         /// Stroke state of the XP modes. Cleared on a lift AND on every gap/rebase path (2026-09-24 review: the HDL drops
         /// hover-lift reports without an OutOfRange, so a gap carried the last stroke's velocity, peak and carry state
         /// into the next stroke).
-        void ResetXp() { vex = vey = cohNum = cohDen = 0; gEma = 1; carryAge = -1; pkN = 0; lastRevClock = -1e9; dPrev0 = dPrev1 = 0; dEmaN = 0; }
+        void ResetXp() { vex = vey = cohNum = cohDen = 0; gEma = 1; carryAge = -1; pkN = 0; lastRevClock = -1e9; dPrev0 = dPrev1 = 0; dEmaN = 0; focusNow = 0; LastGapClass = 0; }
 
         public int PointCount { get { int n = 0; for (int i = 0; i < MaxPoints; i++) if (Vs[i] > 0) n++; return n; } }
 
@@ -149,8 +171,9 @@ namespace AimForge.Filters
         static double Smooth(double a, double b, double x) { if (x <= a) return 0; if (x >= b) return 1; double t = (x - a) / (b - a); return t * t * (3 - 2 * t); }
 
 
-        /// Positions in tablet UNITS (as OTD hands them to a PreTransform filter).
-        public Vector2 Filter(Vector2 pos, double dtMs)
+        /// Positions in tablet UNITS (as OTD hands them to a PreTransform filter). pressure01 = tip pressure 0-1 (only
+        /// Pressure Focus reads it; 0 when the caller has none).
+        public Vector2 Filter(Vector2 pos, double dtMs, double pressure01 = 0)
         {
             if (!everPrimed || dtMs > RebaseMs)
             {
@@ -184,13 +207,18 @@ namespace AimForge.Filters
             // a late single report carries ~1x the travel the hand's trend predicts for one report, a dropped pair ~2x: price
             // it as ONE report only when the travel is clearly single. The prediction extrapolates the last two plain reports
             // (a flick's tail halves its speed within a few reports - a plain average would read a dropped pair as single).
-            if (DropCheck >= 0.5 && k > 1 && dEmaN >= 2)
+            bool plain = dtMs >= 0.5 * nominal && dtMs <= 1.5 * nominal, longGap = k > 1, armed = dEmaN >= 2;
+            LastGapClass = plain ? 0 : longGap ? 4 : 1;
+            if (DropCheck >= 0.5 && longGap && armed)
             {
                 double pred = dPrev1 + (dPrev1 - dPrev0);
-                if (pred >= 3 && dLen / pred < 1.35) k = 1;
+                if (pred >= 3 && dLen / pred < 1.35) { k = 1; LastGapClass = 2; } else LastGapClass = 3;
             }
-            // the memory learns only from consecutive plain single-report gaps (a merged or late report never teaches it)
-            if (dtMs >= 0.5 * nominal && dtMs <= 1.5 * nominal) { dPrev0 = dEmaN == 0 ? dLen : dPrev1; dPrev1 = dLen; dEmaN++; }
+            // v1.3 memory: learns only from consecutive plain single-report gaps (a merged or late report never teaches it).
+            // v1.4 memory (DropCheck >= 1.5): also from a queued follower (one report of travel) and from a long gap the
+            // ARMED check has judged (travel / k); an unjudged long gap still clears it.
+            if (plain) { dPrev0 = dEmaN == 0 ? dLen : dPrev1; dPrev1 = dLen; dEmaN++; }
+            else if (DropCheck >= 1.5 && (!longGap || armed)) { double per = dLen / k; dPrev0 = dEmaN == 0 ? per : dPrev1; dPrev1 = per; dEmaN++; }
             else dEmaN = 0;
             double dtp = k * nominal;                                        // ms on the pen's clock
             double v = d.Length() / UnitsPerMm / dtp * 1000.0;              // mm/s, on the pen's clock
@@ -240,6 +268,13 @@ namespace AimForge.Filters
                     g = Math.Max(g, floor);
                 }
                 gEma += (GainAt(vCurve) - gEma) * (1.0 - Math.Exp(-dtp / 60.0));   // the last leg's gain, remembered over ~60 ms
+            }
+            if (FocusDepth > 0)
+            {
+                // the focus amount follows the pressure at a bounded rate (a full swing in FocusSlewMs), then scales the gain
+                double target = Smooth(FocusStart, Math.Max(FocusFull, FocusStart + 0.01), pressure01), step = dtp / Math.Max(1.0, FocusSlewMs);
+                focusNow += Math.Clamp(target - focusNow, -step, step);
+                g *= 1.0 - Math.Clamp(FocusDepth, 0, 0.6) * focusNow;
             }
             LastSpeedMms = v; LastCurveSpeedMms = vCurve; LastGain = g; LastReports = k;
             outX += d.X * g; outY += d.Y * g;
