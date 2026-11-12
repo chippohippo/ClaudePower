@@ -45,6 +45,9 @@ namespace AimForge.App
         /// user changes something (2026-09-24 review: construction rewrote them, which polluted the dev tree's out\).
         bool constructing = true;
         CheckBox fIntent = new Switch(), fCarry = new Switch(); NumericUpDown fCarryMs = new NumericUpDown(); Experiments.State xpState = Experiments.State.Load();
+        // 2026-11-12 (plugin 1.4): the Realtime Lane, the Hand Print recorder, Pressure Focus; the optimizer and the duel ladder
+        CheckBox fLane = new Switch(), fHand = new Switch(), fFocus = new Switch(); NumericUpDown fLaneLevel = new NumericUpDown(), fFocusPct = new NumericUpDown();
+        Button bMyHand = new Button(), bDuel = new Button(); DuelForm? duelForm;
         CheckBox fMouse = new Switch();
         CheckBox fTps = new Switch(); NumericUpDown fTpsCam = new NumericUpDown(), fTpsFight = new NumericUpDown(); Label tpsRead = new Label();
         Panel tpsDiagram = new Panel(); bool tpsPushing;
@@ -204,10 +207,14 @@ namespace AimForge.App
             Theme.Button(bExport, "EXPORT"); bExport.Width = 80; bExport.Click += (s, e) => DoExportBuild();
             Theme.Button(bImport, "IMPORT"); bImport.Width = 80; bImport.Click += (s, e) => DoImportBuild();
             Theme.Button(bDoctor, "DOCTOR"); bDoctor.Width = 84; bDoctor.Click += async (s, e) => await DoDoctor();
+            Theme.Button(bMyHand, "MY HAND"); bMyHand.Width = 92; bMyHand.Click += async (s, e) => await DoMyHand();
+            tip.SetToolTip(bMyHand, "Reads the Hand Print the recorder wrote while you played (Engine tab > Hand Print), shows what your hand does, and fits the curve's dials to it. A challenger is selected, never applied for you.");
+            Theme.Button(bDuel, "DUEL"); bDuel.Width = 72; bDuel.Click += (s, e) => OpenDuel();
+            tip.SetToolTip(bDuel, "The duel ladder: the champion (THE GOAT at the start) against a challenger that moves one dial. You play both and answer; your answers are the search.");
             Theme.Button(bTuner, "FULL TUNER"); bTuner.Width = 104; bTuner.Click += (s, e) => OpenTuner();
             var bConsole = new Button(); Theme.Button(bConsole, "CONSOLE  ▲"); bConsole.Width = 112;
             bConsole.Click += (s, e) => { SetConsole(!consoleOpen); bConsole.Text = consoleOpen ? "CONSOLE  ▼" : "CONSOLE  ▲"; };
-            foreach (var b in new[] { bRedetect, bMeasure, bCompare, bCopy, bExport, bImport, bDoctor, bTuner, bConsole }) acts.Controls.Add(b);
+            foreach (var b in new[] { bRedetect, bMeasure, bCompare, bCopy, bExport, bImport, bDoctor, bMyHand, bDuel, bTuner, bConsole }) acts.Controls.Add(b);
             live.Dock = DockStyle.Top; live.Font = Mono; live.ForeColor = Steel; live.Height = 32; live.BackColor = Theme.Well;
             hud.Dock = DockStyle.Top; hud.Font = Mono; hud.ForeColor = Theme.Teal; hud.Height = 18; hud.BackColor = Theme.Well;
             log.Dock = DockStyle.Fill; log.Multiline = true; log.ReadOnly = true; log.ScrollBars = ScrollBars.Vertical; log.BackColor = Theme.Bg; log.ForeColor = Ink; log.BorderStyle = BorderStyle.None; log.Font = Mono;
@@ -627,15 +634,40 @@ namespace AimForge.App
             fCarry.Checked = xpState.CarryMs > 0;
             pe.Controls.Add(fCarry);
             pe.Controls.Add(FRow("carry window, ms", fCarryMs, 10, (decimal)Experiments.MaxCarryMs, 5, 0, (decimal)(xpState.CarryMs > 0 ? xpState.CarryMs : Experiments.DefaultCarryMs)));
+            Sw(fFocus, "Pressure focus", "press harder = slower: an analog sniper button · plugin 1.4");
+            fFocus.Checked = xpState.FocusDepth > 0;
+            pe.Controls.Add(fFocus);
+            pe.Controls.Add(FRow("focus depth at full press, %", fFocusPct, (decimal)(Experiments.MinFocus * 100), (decimal)(Experiments.MaxFocus * 100), 5, 0, (decimal)((xpState.FocusDepth > 0 ? xpState.FocusDepth : Experiments.DefaultFocus) * 100)));
+            tip.SetToolTip(fFocus, "While the tip is pressed past about a third of its range the sensitivity falls smoothly, down to (100 - depth)% at a hard press. Light taps are untouched. It scales the same report (no delay, never a jump). Needs the Cadence Lock engine. Field verdict pending.");
+
+            pe.Controls.Add(Theme.SectionTitle("Latency and telemetry", SideW));
+            Sw(fLane, "Realtime lane", "pen thread and daemon to the front of the CPU queue · plugin 1.4");
+            fLane.Checked = xpState.Lane > 0;
+            pe.Controls.Add(fLane);
+            pe.Controls.Add(FRow("lane level (1 above normal · 2 high)", fLaneLevel, 1, 2, 1, 0, Math.Max(1, xpState.Lane)));
+            tip.SetToolTip(fLane, "Under a game that loads every core the pen's report thread waits its turn; that wait is the tail of the pen's latency. The lane raises that thread to Highest and the OTD daemon to Above Normal (level 2: High), and asks the runtime not to pause for full garbage collections. The same setting Task Manager offers; reverted when switched off, gone when the daemon restarts. The Doctor shows the daemon's priority as proof.");
+            Sw(fHand, "Hand Print", "records how your hand moves (pen only) for MY HAND · plugin 1.4");
+            fHand.Checked = xpState.HandPrint;
+            pe.Controls.Add(fHand);
+            tip.SetToolTip(fHand, "While on, Cadence Lock counts your pen speeds, strokes and report timing (never the game or the screen) and writes handprint-*.txt beside the daemon on a lift, at most every 30 s, from a background thread. MY HAND reads it. 10 minutes of play make a fit.");
             void SaveXp()
             {
                 xpState.Intent = fIntent.Checked; xpState.CarryMs = fCarry.Checked ? (double)fCarryMs.Value : 0; xpState.Twin = fTwin.Checked;
+                xpState.Lane = fLane.Checked ? (int)fLaneLevel.Value : 0; xpState.HandPrint = fHand.Checked; xpState.FocusDepth = fFocus.Checked ? (double)fFocusPct.Value / 100.0 : 0;
                 if (!constructing) try { xpState.Save(); } catch (Exception ex) { Log("warning: xp.txt could not be saved (" + ex.Message + ") - the setting holds for this session only"); }
                 xpState.ApplyTo(rig);
+                // the switch's own Recalc ran BEFORE this handler, on the old state: show the new one (the 'next apply' line
+                // used to lag one event behind an experimental toggle)
+                if (!constructing && !suppress) Recalc();
             }
             fIntent.CheckedChanged += (s, e) => { SaveXp(); Log(fIntent.Checked ? "experimental: Intent Speed ON - the next Cadence Lock apply selects gain from the coherent velocity (needs the Cadence Lock engine)" : "experimental: Intent Speed off"); };
             fCarry.CheckedChanged += (s, e) => { SaveXp(); Log(fCarry.Checked ? $"experimental: Reversal Carry {fCarryMs.Value} ms - Lab-only (refused on Master/Baseline/Turbo/Tapped); needs the Cadence Lock engine" : "experimental: Reversal Carry off"); };
             fCarryMs.ValueChanged += (s, e) => SaveXp();
+            fFocus.CheckedChanged += (s, e) => { SaveXp(); Log(fFocus.Checked ? $"experimental: Pressure Focus {fFocusPct.Value}% - a hard press lowers the sensitivity by that much (needs the Cadence Lock engine and plugin 1.4); apply to use it" : "experimental: Pressure Focus off"); };
+            fFocusPct.ValueChanged += (s, e) => SaveXp();
+            fLane.CheckedChanged += (s, e) => { SaveXp(); Log(fLane.Checked ? $"realtime lane {fLaneLevel.Value}: the next Cadence Lock apply raises the pen's report thread and the daemon's priority (plugin 1.4); the Doctor shows the daemon's priority" : "realtime lane off: the next apply returns the daemon to its Windows defaults"); };
+            fLaneLevel.ValueChanged += (s, e) => SaveXp();
+            fHand.CheckedChanged += (s, e) => { SaveXp(); Log(fHand.Checked ? "hand print ON: the next Cadence Lock apply records how your hand moves (pen only) to handprint-*.txt beside the daemon; play 10 minutes, then press MY HAND" : "hand print off"); };
             fTwin.CheckedChanged += (s, e) =>
             {
                 SaveXp();
@@ -779,6 +811,12 @@ namespace AimForge.App
             else if (fTap.Checked) qc.Items.Add("ℹ Tap Anchor only: exact passthrough + click pin (hold " + fTapHold.Value + "ms, break " + fTapBreak.Value + "mm)");
             else if (cur.RunsFilter) qc.Items.Add(cur.cohOv?.IsTapOnly == true ? "ℹ runs the Coherence Stabilizer in tap-anchor-only mode" : "⚠ runs an aim filter (not a pure LUT build)");
             if (!fHdl.Checked) qc.Items.Add("⚠ Hover Distance Limiter OFF - high-hover wobble returns; this filter is free, off is for A/B only");
+            if (cur.id != Goat.Id && Dials.Of(EffectivePreset()) is Dials dl) qc.Items.Add("ℹ dials: " + dl.Versus(Dials.Goat));
+            {
+                // how far the hand can turn from the middle of the tablet before the edge: at 1:1 and with the cap's help
+                double halfW = RolePolicy.TabletActiveWidthMm / 2, degPerMm = rig.Cm360 > 0 ? 360.0 / (rig.Cm360 * 10) : 0;
+                if (degPerMm > 0) qc.Items.Add($"ℹ reach from the tablet centre: {halfW * degPerMm:0}° at 1:1" + (Dials.Of(EffectivePreset()) is Dials rq ? $" · {halfW * degPerMm * rq.Cap:0}° at full power" : ""));
+            }
             double tipPct = rig.TipThresholdPct ?? 2.0;
             if ((fTap.Checked || fCoh.Checked) && (double)fTapArm.Value >= tipPct)
                 qc.Items.Add((rig.TipThresholdPct != null ? "✖" : "⚠") + " tap arm " + fTapArm.Value + "% is at/above the " + tipPct + "% tip threshold" + (rig.TipThresholdPct != null ? "" : " (OTD default; check yours)") + " - the pin lands AFTER the click");
@@ -915,7 +953,7 @@ namespace AimForge.App
             // calibration, not whatever tps.txt / mouse.txt / nibtwin.json hold now
             if (replay != null) rg = replay.Clone();
             else ThirdPerson.ApplyTo(rg, p, tpsState);
-            var skipped = Experiments.Soften(rg, p, otd.NibBlocker(rg));
+            var skipped = Experiments.Soften(rg, p, otd.NibBlocker(rg), otd.PluginHas14());
             foreach (var sk in skipped) Log("note: " + sk);
             if (rg.TpsGain != 1.0) Log("third-person match: " + ThirdPerson.Describe(tpsState, p) + $" - output multiplier {rg.Mult:0.###} (in-game sensitivity unchanged)");
             Log(dry ? $"--- dry run: {p.name} ---" : $"--- applying {p.name} ---");
@@ -1499,6 +1537,8 @@ namespace AimForge.App
             fCadence.Checked = a.Rg.CadenceEngine; SetNum(fCadHz, a.Rg.ReportHz); SetNum(fCadMerge, a.Rg.MergeMax);
             fIntent.Checked = a.Rg.IntentSpeed; if (a.Rg.ReversalCarryMs > 0) SetNum(fCarryMs, a.Rg.ReversalCarryMs); fCarry.Checked = a.Rg.ReversalCarryMs > 0;
             fTwin.Checked = a.Rg.NibTwin;
+            if (a.Rg.RealtimeLane > 0) SetNum(fLaneLevel, a.Rg.RealtimeLane); fLane.Checked = a.Rg.RealtimeLane > 0; fHand.Checked = a.Rg.HandPrint;
+            if (a.Rg.FocusDepth > 0) SetNum(fFocusPct, a.Rg.FocusDepth * 100); fFocus.Checked = a.Rg.FocusDepth > 0;
             rig = a.Rg.Clone(); ThirdPerson.Strip(rig); PushRig();
             prefillExact = a.T; prefillShown = CurrentToggles();   // replay the applied toggles exactly
             Recalc();
@@ -1535,7 +1575,7 @@ namespace AimForge.App
             xpState.ApplyTo(r);
             mouseState.ApplyTo(r); r.MirrorMouse = fMouse.Checked; if (!r.MirrorMouse) r.MouseIdPrefixes = Array.Empty<string>();
             ThirdPerson.ApplyTo(r, p, tpsState);
-            var skipped = Experiments.Soften(r, p, otd.NibBlocker(r));
+            var skipped = Experiments.Soften(r, p, otd.NibBlocker(r), otd.PluginHas14());
             return (p, r, t, skipped);
         }
 
@@ -1606,6 +1646,57 @@ namespace AimForge.App
             }
             catch (Exception ex) { Log("doctor: " + ex.Message); Banner("✖  DOCTOR COULD NOT RUN - " + ex.Message, Bad); }
             finally { bDoctor.Enabled = true; }
+        }
+
+        /// A build that is not in the roster (the optimizer's challenger, the duel's champion and challenger) through the
+        /// window's own verified apply. True when it is the build that is now live.
+        async Task<bool> ApplyBuild(Preset p)
+        {
+            custom = null; Select(p); measured = null; Recalc();
+            await DoApply(false);
+            return lastApplied != null && lastApplied.P.id == p.id;
+        }
+
+        void OpenDuel()
+        {
+            var goatCard = cat.Find(Goat.Id);
+            if (goatCard == null) { Log("duel: THE GOAT card is missing from presets.json"); return; }
+            if (duelForm != null && !duelForm.IsDisposed) { duelForm.Activate(); return; }
+            duelForm = new DuelForm(Duel.Load(), goatCard, ApplyBuild, Log);
+            duelForm.Show(this);
+        }
+
+        /// MY HAND: what the recorder saw, and the curve the optimizer fits to it. The challenger is SELECTED, never applied.
+        async Task DoMyHand()
+        {
+            var goatCard = cat.Find(Goat.Id);
+            if (goatCard == null) { Log("my hand: THE GOAT card is missing from presets.json"); return; }
+            bMyHand.Enabled = false;
+            try
+            {
+                string dir = otd.Dir;
+                var hp = await Task.Run(() => HandPrint.LoadDir(dir));
+                SetConsole(true);
+                if (hp == null)
+                {
+                    Log($"my hand: no recording yet in {dir}. Tick 'Hand Print' on the Engine tab (Cadence Lock engine, plugin 1.4), apply, and play - the recorder writes on a lift, at most every 30 s.");
+                    Banner("ℹ  MY HAND: NO RECORDING YET - turn Hand Print on (Engine tab), apply, play 10 minutes", Steel);
+                    return;
+                }
+                var card = cur != null && Dials.Of(cur) != null ? cur : goatCard;
+                var (report, r) = await Task.Run(() => (hp.Report(card), Optimizer.Run(hp)));
+                foreach (var l in report.Split('\n')) if (l.Trim().Length > 0) Log(l.TrimEnd());
+                foreach (var l in Optimizer.Report(r).Split('\n')) if (l.Trim().Length > 0) Log(l.TrimEnd());
+                if (Optimizer.Challenger(r, goatCard) is Preset ch)
+                {
+                    custom = null; Select(ch); measured = null; Recalc();
+                    var d = Duel.Load(); if (d.History.Count == 0) { d.SeedFrom(r.Best.D); try { d.Save(); } catch { } }
+                    Banner($"✓  MY HAND: A CHALLENGER IS SELECTED ({r.Best.D.Versus(Dials.Goat)}) - Ctrl+Enter applies it; DUEL pits it against the GOAT", Good);
+                }
+                else Banner(hp.Sufficient ? "✓  MY HAND: THE GOAT ALREADY FITS YOUR HAND - nothing to change" : "ℹ  MY HAND: NOT ENOUGH RECORDING YET (10 min, 400 strokes) - keep Hand Print on and play", hp.Sufficient ? Good : Steel);
+            }
+            catch (Exception ex) { Log("my hand: " + ex.Message); }
+            finally { bMyHand.Enabled = true; }
         }
 
         void DoCalib360()

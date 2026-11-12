@@ -175,3 +175,19 @@ Earlier labs priced the RawAccel engine on the tablet lattice. The real input is
 - **A finer count lattice for the RawAccel engine** (px/mm ×N, multiplier ÷N): rejected by the lab.
 - **Finer output resolution on Cadence** (higher px/mm, lower in-game sens): one count is already about 0.017°, under half a pixel at 2560 px and 103° FOV, so not perceptible.
 - **The lift-and-replace yank:** OTD only re-origins after its 80 ms reset, and the hover limiter drops reports without an out-of-range report. A reposition faster than 80 ms would therefore jump the camera. Realistic edge repositions take well over 100 ms, so no change.
+
+## 10. Bursts, the Realtime Lane and the Hand Print (2026-11-12, plugin 1.4)
+
+**The burst case.** Section 9's drop check tells a late report from a dropped one by its travel. It keeps a memory of what one report of travel looks like, and 1.3 cleared that memory on every gap that was not a plain single interval. A host stall (a DPC, the scheduler under game load) produces exactly such gaps: one late report, then its queued followers at a gap near zero. So after every burst the check was disarmed for two reports, and a second stall in that window was priced by time alone.
+
+**1.4 (`DropCheck` 2).** The memory keeps learning from every report whose report count is known:
+- a plain gap teaches its travel (as before);
+- a queued follower carries exactly one report of travel;
+- a long gap the armed check has judged teaches travel / k;
+- a long gap seen while the check is not armed still clears the memory, so a late report at stroke start can never teach half the true travel (selftest).
+
+Measured in `--burst-lab` (`ev-20261112-burst-lab`): with queued bursts the 1.4 memory holds the no-stall floor (0.0073° per 100 ms) from 2 to 60 stalls a second, where 1.3 reads 0.0076° to 0.2547°. On the drop/late grid of section 9 it is the same or better on 2862 of 2880 rows and gives back at most 0.0013° on the rest. An apply writes `DropCheck 2`; a 1.3 plugin reads that as 1.
+
+**The Realtime Lane (`RealtimeLane` 1 or 2).** The other side of the same problem: fewer stalls. On the first report after the setting changes, the filter raises the report thread to Highest, the daemon to Above Normal (2: High), opts the daemon out of Windows power throttling and sets `GCSettings.LatencyMode` to `SustainedLowLatency`. All of it is reverted when the lane is switched off, and none of it survives a daemon restart. It is opt-in and unmeasured here: scheduling under a real game cannot be simulated. The Doctor reads the daemon's priority class back as proof it took effect.
+
+**The Hand Print (`HandPrint` 1).** The recorder that will tell how often the real rig stalls: every report's gap class (plain, queued follower, late single, merged, unjudged) is counted alongside the hand's own kinematics. It runs after the report has been emitted and writes from a pool thread. See `OPTIMIZER.md`.

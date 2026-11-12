@@ -627,7 +627,18 @@ namespace AimForge.Core
                             bool hasDropCheck = B("Cadence Lock").Contains("DropCheck");
                             if (!hasDropCheck && rig.DropCheck && !dropNoted) { dropNoted = true; log("OTD: the daemon runs an AimForge Game Filters build without the Cadence drop check (v1.3) - late reports are still priced as merged. " + RestartHint + " after installing v1.3."); }
                             foreach (var kv in cadencePts)
+                            {
+                                // plugin 1.4 keys (2026-11-12): a daemon running an older build may not echo them. Switched OFF
+                                // that is not a mismatch (the old build simply has no such mode); switched ON it is one - the
+                                // mode is not running, and an apply never claims what it cannot read back.
+                                if (Plugin14Keys.Contains(kv.Key) && !B("Cadence Lock").Contains(kv.Key))
+                                {
+                                    bool wanted = kv.Key is "RealtimeLane" or "HandPrint" or "FocusDepth" && kv.Value > 0;
+                                    if (wanted) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.####} (the daemon's plugin is older than 1.4)");
+                                    continue;
+                                }
                                 if (!(kv.Key.StartsWith("Classic") && !nativeClassic) && !(kv.Key == "DropCheck" && !hasDropCheck) && !ReadBackMatches(B("Cadence Lock"), kv.Key, kv.Value)) missing.Add($"CadenceLock.{kv.Key} {kv.Value:0.######}");
+                            }
                             if (cadencePts["ClassicAccel"] > 0 && !B("Cadence Lock").Contains("ClassicAccel") && !classicNoted)
                             {
                                 classicNoted = true;
@@ -869,6 +880,8 @@ namespace AimForge.Core
             catch (Exception ex) { log("nib: could not switch the press log off (" + ex.Message + ") - apply your card again"); return false; }
         }
 
+        /// Cadence Lock properties that exist from plugin 1.4 on (the read-back tolerates their absence when they are off).
+        public static readonly string[] Plugin14Keys = { "RealtimeLane", "HandPrint", "FocusDepth", "FocusStart", "FocusFull" };
         static readonly string[] CadenceProps = new[] { "NominalHz", "MergeMaxReports", "Probe", "ClassicAccel", "ClassicOffset", "ClassicCap", "ClassicExp", "IntentSpeed", "IntentTauMs", "ReversalCarryMs", "DropCheck", "RealtimeLane", "HandPrint", "FocusDepth", "FocusStart", "FocusFull" }
             .Concat(Enumerable.Range(1, Filters.CadenceCore.MaxPoints).SelectMany(i => new[] { $"P{i}Speed", $"P{i}Gain" })).ToArray();
 

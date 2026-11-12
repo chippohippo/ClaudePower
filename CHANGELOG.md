@@ -1,6 +1,22 @@
 # AimForge changelog
 
-What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (266 headless). Nothing here has a field verdict yet; those are listed at the end.
+What a player notices on the next Desktop deploy. Newest first. Every item is verified by selftests (297 headless). Nothing here has a field verdict yet; those are listed at the end.
+
+## 2026-11-12
+
+### The optimizer overhaul (OPTIMIZER.md)
+**Needs the new plugin:** install `AimForge.Filters.dll` 1.4 and restart the OTD daemon. With the old plugin every card still applies and the new modes are skipped with a note.
+
+- **MY HAND (new button).** Turn on **Hand Print** (Engine tab), play ten minutes, press MY HAND.
+  - It shows what your hand really does: where your firing time sits on the curve, your flick speeds, timing health, tablet use.
+  - It fits the curve's dials to that recording. A challenger must beat the GOAT by 3% on your own motion, and it is selected, never applied for you.
+  - The recorder keeps pen data only, never the game.
+- **DUEL (new button).** An eye test for aim: the GOAT against a challenger that moves one dial. You play both and answer; your answers run the search. Every answer is saved as a field verdict.
+- **Burst-proof drop check (on by default).** When the PC stalls and pen reports arrive in a burst, speed is now priced right. Simulated tracking error at 10 stalls a second: 0.036° → 0.007°.
+- **Realtime Lane (Engine tab).** Puts the pen's report thread and the OTD daemon at the front of the CPU queue, to cut latency spikes under game load. The Doctor shows the daemon's priority as proof.
+- **Pressure Focus (Engine tab, experimental).** Press harder and the sensitivity drops smoothly, up to the depth you set: an analog sniper button under the firing finger.
+- **Every card shows its dials against the GOAT** ("1:1 band wider: 50 mm/s (+10)…") and its reach from the tablet centre.
+- **Unchanged:** every card's curve, the GOAT and BO6 Original included.
 
 ## 2026-10-24
 

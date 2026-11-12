@@ -120,6 +120,18 @@ It is Lab-only (Planted, Lab and Reference cards), because it still raises gain 
 
 ---
 
+## 5. Pressure Focus — "Pressure focus" + depth % (plugin 1.4; needs Cadence Lock)
+
+Added 2026-11-12. The pen has an analog axis no mouse has: tip pressure.
+
+- **What it does:** while the tip is pressed past `FocusStart` (0.35 of the pressure range) the gain falls smoothly, reaching `1 − depth` at `FocusFull` (0.85). Depth is 5–50%, default 25%.
+- **What it leaves alone:** hover, and light taps under the start pressure. Off is bit-identical to the curve alone (selftest).
+- **Latency:** none. It scales this report's delta, so the cursor never jumps. The focus amount moves at most a full swing in 30 ms, so pressure noise cannot chatter the gain. A lift clears it.
+- **Where it lives:** `CadenceCore.FocusDepth/FocusStart/FocusFull`, written into the Cadence Lock plan and verified by read-back like the other modes. Persisted in `xp.txt` (`focus=0.25`).
+- **Why try it:** finer control while spraying or holding a long shot, at the cost of more hand travel for the same turn while pressed.
+- **Known risk:** a 2026-08 verdict found sub-unity gain at low speed felt "high latency". This is chosen by pressing, not always on, but it may feel similar.
+- **Field verdict:** pending.
+
 ## Apply and verify
 - **Nib Twin:** the filter goes first in the chain with `Twin`, `SkidXmm/Ymm`, `SkidFullPressure`, `SkidGamma`, `SkidLagReports` and `Probe`, all read back through `getfilters`. The apply refuses it without a valid calibration, or while the running daemon has not loaded the plugin build.
 - **Intent Speed / Reversal Carry:** written into the Cadence Lock plan and read back. An engine mismatch rolls both drivers back.

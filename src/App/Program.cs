@@ -2610,6 +2610,19 @@ namespace AimForge.App
                             Ok("apply: an older Cadence Lock without classic keys verifies on its fallback table (noted, not rolled back)",
                                ok13 && lg.Any(l => l.Contains("8-point fallback table")) && o.LastFailure == null, o.LastFailure ?? "ok");
                         }
+                        // 13b. 2026-11-12: a daemon running a pre-1.4 plugin does not echo the 1.4 keys. With those modes OFF the
+                        // apply still verifies (the old build has no such mode); with one ON it rolls back and names it
+                        {
+                            var (o, r) = Fresh(); var rc = Rig.From(cb); rc.Engine = "cadence"; dropProp = k => Core.OtdBridge.Plugin14Keys.Contains(k); var lg = new List<string>();
+                            bool okOff = o.Apply(cb, rc, false, lg.Add); string? failOff = o.LastFailure;
+                            var rOn = rc.Clone(); rOn.HandPrint = true; rOn.RealtimeLane = 1;
+                            bool okOn = o.Apply(cb, rOn, false, lg.Add); string failOn = o.LastFailure ?? "";
+                            dropProp = _ => false; var lg2 = new List<string>();
+                            bool okNew = o.Apply(cb, rOn, false, lg2.Add);
+                            Ok("apply, plugin 1.4 keys: a daemon that does not echo them still verifies with the new modes off, rolls back naming the mode when one is on, and verifies it once the daemon carries 1.4",
+                               okOff && failOff == null && !okOn && failOn.Contains("CadenceLock.RealtimeLane") && failOn.Contains("CadenceLock.HandPrint") && failOn.Contains("older than 1.4") && okNew && o.LastFailure == null,
+                               failOn);
+                        }
                         // 14. the stabilizer write and read-back share one property list
                         {
                             var rm = FilterPlan.Fold(cat.Find("rivpl")!, new FilterPlan.Toggles(true, false, 120, 1.0, 25, 0.45)); var (o, r) = Fresh(); o.Apply(rm, Rig.From(rm), true, _ => { });

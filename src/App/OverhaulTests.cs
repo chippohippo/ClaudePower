@@ -128,6 +128,18 @@ namespace AimForge.App
                    string.Join(", ", BuildState.PendingChanges(goat, new Rig { Engine = "cadence" }, default, goat, r, default)));
             }
 
+            // ---- the Doctor's rows for the 1.4 modes ----
+            {
+                var live = Doctor.LaneRow(2, "High"); var notYet = Doctor.LaneRow(1, "Normal"); var off = Doctor.LaneRow(0, "Normal"); var stale = Doctor.LaneRow(0, "High"); var unknown = Doctor.LaneRow(1, null);
+                Ok("doctor, realtime lane: live only when Windows reports the daemon at the priority the lane sets; ON with a Normal-priority daemon is a WARN with the fix; off is OK and says when the daemon is still raised",
+                   live.Level == "OK" && live.Detail.Contains("live") && notYet.Level == "WARN" && notYet.Fix.Contains("move the pen once") && off.Level == "OK" && stale.Level == "OK" && stale.Detail.Contains("still runs at High") &&
+                   unknown.Level == "WARN" && Doctor.LaneRow(1, "AboveNormal").Level == "OK" && Doctor.LaneRow(2, "AboveNormal").Level == "WARN");
+                Ok("doctor, plugin 1.4 and hand print: an older plugin is a WARN that names what is skipped and how to install; recording ON with nothing written yet is a WARN, enough on record says so",
+                   Doctor.Plugin14Row(true).Level == "OK" && Doctor.Plugin14Row(false).Level == "WARN" && Doctor.Plugin14Row(false).Fix.Contains("1.4") && Doctor.Plugin14Row(null).Level == "WARN" &&
+                   Doctor.HandPrintRow(true, 0, 0, 0).Level == "WARN" && Doctor.HandPrintRow(true, 2, 14.2, 900).Detail.Contains("enough for MY HAND") && Doctor.HandPrintRow(false, 1, 3, 100).Detail.Contains("needs 10 min") &&
+                   Doctor.HandPrintRow(false, 0, 0, 0).Level == "OK");
+            }
+
             // ---- the dials ----
             {
                 var d = Dials.Of(goat)!.Value; var (a, off, cap) = Dials.Goat.Classic(57);

@@ -60,6 +60,10 @@ Rejected by measurement and documented so they are never rebuilt: the 2-unit-ste
 
 ---
 
+## The optimizer (2026-11-12)
+
+The labs fit cards to a simulated player; the GOAT is the one build fitted by your own hands. `OPTIMIZER.md` describes the loop that now connects the two: the **Hand Print** recorder inside Cadence Lock (pen kinematics only), **MY HAND** (the dials fitted to that recording; the GOAT is 1.000 by construction), and the **DUEL** ladder (one dial per round, decided by your verdict). Every classic card is also described by four dials against the GOAT: 1:1 band, cap, cap speed, base speed (`src/Core/Dials.cs`).
+
 ## The preset roster (64 cards, built on THE GOAT)
 
 **THE GOAT** is the field verdict of 2026-10-24 and the first card in the list. It is the Apex Brawl curve you had live: classic 0.2963 / offset 2.28 / cap 3.0, so 1:1 to 40 mm/s, then cap 3.0 at 190 mm/s. It runs at 57 px/mm and 52.63 cm/360 (The Finals sensitivity 12), with **snap 0, Y/X 1.00**, reset 20 ms, no stabilizer and no game filter, on the Cadence Lock engine. Every card except BO6 Original is built on it. See `GAME_FAMILIES.md`.

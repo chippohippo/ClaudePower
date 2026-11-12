@@ -185,7 +185,20 @@ namespace AimForge.Filters
         // latency. Lane 1 raises the report thread to Highest and the daemon to Above Normal and asks the runtime for
         // SustainedLowLatency garbage collection (no blocking full collections mid-fight); lane 2 raises the daemon to
         // High. Nothing is installed or patched: it is the same setting Task Manager offers, made from inside the daemon,
-        // reverted when the lane is switched off and gone when the daemon restarts.
+        // reverted when the lane is switched off and gone when the daemon restarts. The lane also tells Windows never to
+        // power-throttle the daemon (a windowless process can be parked on efficiency cores at reduced clock - "EcoQoS";
+        // SetProcessInformation / ProcessPowerThrottling is the documented opt-out, Windows 10 1709 and later).
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct PowerThrottling { public uint Version, ControlMask, StateMask; }
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetProcessInformation(IntPtr process, int infoClass, ref PowerThrottling info, uint size);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern IntPtr GetCurrentProcess();
+        static void FullSpeed(bool on)
+        {
+            // ControlMask 1 + StateMask 0 = execution-speed throttling OFF for this process; ControlMask 0 = back to the system's choice
+            try { var s = new PowerThrottling { Version = 1, ControlMask = on ? 1u : 0u, StateMask = 0 }; SetProcessInformation(GetCurrentProcess(), 4, ref s, 12); } catch { }
+        }
         static bool laneRaised; static System.Threading.ThreadPriority lanePrevThread = System.Threading.ThreadPriority.Normal;
         static System.Diagnostics.ProcessPriorityClass lanePrevClass = System.Diagnostics.ProcessPriorityClass.Normal;
         static System.Runtime.GCLatencyMode lanePrevGc = System.Runtime.GCLatencyMode.Interactive;
@@ -206,12 +219,14 @@ namespace AimForge.Filters
                 try { th.Priority = System.Threading.ThreadPriority.Highest; } catch { }
                 try { System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency; } catch { }
                 try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = RealtimeLane >= 1.5 ? System.Diagnostics.ProcessPriorityClass.High : System.Diagnostics.ProcessPriorityClass.AboveNormal; } catch { }
+                FullSpeed(true);
             }
             else if (laneRaised)
             {
                 try { th.Priority = lanePrevThread; } catch { }
                 try { System.Runtime.GCSettings.LatencyMode = lanePrevGc; } catch { }
                 try { using (var pr = System.Diagnostics.Process.GetCurrentProcess()) pr.PriorityClass = lanePrevClass; } catch { }
+                FullSpeed(false);
                 laneRaised = false;
             }
         }
@@ -228,9 +243,10 @@ namespace AimForge.Filters
             double dx = (raw.X - hpPrev.X) * mmPerUnitX, dy = (raw.Y - hpPrev.Y) * mmPerUnitY; hpPrev = raw;
             double hz = core.NominalHz > 0 ? core.NominalHz : core.LiveHz;
             hp.Tick(dx, dy, core.LastReports, hz > 0 ? 1000.0 / hz : dt, core.LastSpeedMms, core.LastGain, p01 > 0, raw.X * mmPerUnitX, raw.Y * mmPerUnitY, core.LastGapClass);
+            if (core.LastSpeedMms < 1) HandPrintFlush();   // the pen is at rest: nothing is being aimed (still at most every 30 s)
         }
 
-        // Called on a lift (the pen is out of range: nothing is being aimed). At most every 30 s, and the file is formatted
+        // Called on a lift or while the pen rests (nothing is being aimed). At most every 30 s, and the file is formatted
         // and written by a pool thread from a detached snapshot - the report thread only copies a few small arrays.
         void HandPrintFlush()
         {
@@ -298,7 +314,7 @@ namespace AimForge.Filters
         public double ReversalCarryMs { get => core.ReversalCarryMs; set => core.ReversalCarryMs = value; }
         [Property("DropCheck"), DefaultPropertyValue(0.0d), ToolTip("1 = a long gap is priced as merged reports only when its travel says so (a LATE single report carries one report of travel; a dropped pair carries two). Removes the half-speed misprice of late reports; never adds latency. 2 = the same with a memory that stays armed through queued report bursts (v1.4). 0 = gap alone (v1.2 behaviour).")]
         public double DropCheck { get => core.DropCheck; set => core.DropCheck = value; }
-        [Property("RealtimeLane"), DefaultPropertyValue(0.0d), ToolTip("1 = the pen's report thread runs at Highest priority, the daemon at Above Normal, and the runtime avoids blocking full garbage collections (lower latency spikes under game load). 2 = the daemon at High. 0 = leave Windows defaults. Reverts when switched off; gone when the daemon restarts.")]
+        [Property("RealtimeLane"), DefaultPropertyValue(0.0d), ToolTip("1 = the pen's report thread runs at Highest priority, the daemon at Above Normal and never power-throttled, and the runtime avoids blocking full garbage collections (lower latency spikes under game load). 2 = the daemon at High. 0 = leave Windows defaults. Reverts when switched off; gone when the daemon restarts.")]
         public double RealtimeLane { get; set; }
         [Property("HandPrint"), DefaultPropertyValue(0.0d), ToolTip("1 = record how your hand moves (pen speed, strokes, report timing - pen data only, never the game) to handprint-*.txt beside the daemon, written on a lift by a background thread. AimForge --handprint / --optimize read it. 0 = off.")]
         public double HandPrint { get; set; }

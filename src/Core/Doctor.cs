@@ -203,6 +203,15 @@ namespace AimForge.Core
                              $" - the daemon started {dStart?.ToLocalTime():MM-dd HH:mm} and still runs the previous build" + (gfStale != null ? "; Cadence Lock applies are refused until you " : "; ") + OtdBridge.RestartHint });
             else if (dStart != null)
                 o.Add(new Item { Name = "plugins loaded by the daemon", Ok = true, Detail = $"daemon started {dStart.Value.ToLocalTime():MM-dd HH:mm}, after both installed builds" });
+            // 2026-11-12: plugin 1.4 and its modes
+            if (File.Exists(otd.GameFilterDll))
+            {
+                o.Add(Plugin14Row(otd.PluginHas14()));
+                var xpWant = Experiments.State.Load();
+                o.Add(LaneRow(xpWant.Lane, otd.DaemonRunning() ? OtdBridge.DaemonPriorityClass() : null));
+                try { var hpr = HandPrint.LoadDir(otd.Dir); o.Add(HandPrintRow(xpWant.HandPrint, hpr?.Files ?? 0, hpr?.Minutes ?? 0, hpr?.Episodes.Count ?? 0)); }
+                catch (Exception e) { o.Add(new Item { Name = "hand print", Ok = true, Warn = true, Detail = "could not read the recording (" + e.Message + ") - UNVERIFIED" }); }
+            }
             if (!ra.SettingsReadable(out var raReadErr))
                 o.Add(new Item { Name = "pen device config (RawAccel)", Ok = false, Detail = "could not read RawAccel settings.json (" + raReadErr + ") - UNVERIFIED" });
             else
@@ -407,6 +416,44 @@ namespace AimForge.Core
                 return o.Contains("RUNNING");
             }
             catch { return false; }
+        }
+
+        /// The installed Game Filters build: 1.4 carries the burst-armed drop check, the Realtime Lane, the Hand Print and
+        /// Pressure Focus. An older build still runs every card; the new modes are dropped from an apply with a note.
+        public static Item Plugin14Row(bool? has14) => new Item
+        {
+            Name = "Game Filters plugin 1.4", Ok = true, Warn = has14 != true,
+            Detail = has14 == true ? "1.4 installed: burst-armed drop check, Realtime Lane, Hand Print, Pressure Focus"
+                   : has14 == false ? "an OLDER build is installed: the drop check loses its memory after every report burst, and the Realtime Lane, Hand Print and Pressure Focus are skipped on apply"
+                                    : "could not read the plugin file - UNVERIFIED",
+            Fix = has14 == true ? "" : OtdBridge.Plugin14Hint + OtdBridge.RestartHint + ", then apply again",
+        };
+
+        /// The Realtime Lane's proof: the daemon's priority class as Windows reports it, against the Engine-tab setting.
+        public static Item LaneRow(int want, string? daemonPriority)
+        {
+            string expect = want >= 2 ? "High" : "AboveNormal";
+            if (want <= 0)
+                return new Item { Name = "realtime lane", Ok = true,
+                    Detail = "off" + (daemonPriority == null ? "" : daemonPriority is "High" or "AboveNormal" ? $" - the daemon still runs at {daemonPriority} from an earlier apply (it returns to Normal when the lane-off build is applied and the pen moves, or when the daemon restarts)"
+                                                                                                            : $" - the daemon runs at {daemonPriority} priority (Windows default)") };
+            if (daemonPriority == null)
+                return new Item { Name = "realtime lane", Ok = true, Warn = true, Detail = $"ON (level {want}) in the Engine tab, but the daemon's priority could not be read - UNVERIFIED", Fix = "start the OTD daemon, apply, move the pen once, run the Doctor again" };
+            bool live = daemonPriority == expect || (want == 1 && daemonPriority == "High");
+            return new Item { Name = "realtime lane", Ok = true, Warn = !live,
+                Detail = live ? $"live: the daemon runs at {daemonPriority} priority and the pen's report thread at Highest"
+                              : $"ON (level {want}) in the Engine tab, but the daemon runs at {daemonPriority} priority - the lane is set by the first pen report after an apply",
+                Fix = live ? "" : "apply a build on the Cadence Lock engine (plugin 1.4), move the pen once, run the Doctor again" };
+        }
+
+        /// The Hand Print recorder: is it on, and is there enough on record for MY HAND.
+        public static Item HandPrintRow(bool on, int files, double minutes, int strokes)
+        {
+            string rec = files == 0 ? "nothing recorded yet" : $"{minutes:0.0} min and {strokes} strokes on record ({files} file{(files == 1 ? "" : "s")})";
+            bool enough = minutes >= 10 && strokes >= 400;
+            return new Item { Name = "hand print", Ok = true, Warn = on && files == 0,
+                Detail = (on ? "recording ON - " : "recording off - ") + rec + (files > 0 ? (enough ? ": enough for MY HAND" : ": MY HAND needs 10 min and 400 strokes") : on ? " (it writes on a lift, at most every 30 s)" : ""),
+                Fix = on && files == 0 ? "apply a build on the Cadence Lock engine (plugin 1.4), play, lift the pen out of range once; then run the Doctor again" : "" };
         }
 
         public static bool IsElevated()

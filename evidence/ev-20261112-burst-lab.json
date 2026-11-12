@@ -1,0 +1,75 @@
+{
+  "evidenceId": "ev-20261112-burst-lab",
+  "date": "2026-11-12",
+  "kind": "lab measurement (ChainLab, simulation from the drivers' source)",
+  "question": "Does a drop-check memory that stays armed through queued report bursts (plugin 1.4, DropCheck 2) beat the 1.3 memory, and what does it cost on the shipped drop / late grid?",
+  "method": "AimForge --burst-lab. 8 cards (goat, bo6og, breakpoint, breakwide, rivpsy, owsol, valmp, apxmp) x 4 ChainLab scenarios x 3 seeds. Timing.Burst: Poisson host stalls of 3-8 ms; every report arriving during a stall is released when it ends, back to back. Metric: aim error per 100 ms window (degrees), mean over all rows. Drop/Late grid: every 3rd to 17th report dropped or late.",
+  "burst": [
+    {
+      "stallsPerSecond": 0,
+      "noCheckDeg": 0.0073,
+      "v13Deg": 0.0073,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 0,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 2,
+      "noCheckDeg": 0.0704,
+      "v13Deg": 0.0076,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 3,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 5,
+      "noCheckDeg": 0.1442,
+      "v13Deg": 0.0275,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 2,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 10,
+      "noCheckDeg": 0.216,
+      "v13Deg": 0.0355,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 3,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 20,
+      "noCheckDeg": 0.3051,
+      "v13Deg": 0.0509,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 5,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 30,
+      "noCheckDeg": 0.4319,
+      "v13Deg": 0.1248,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 9,
+      "rows": 96
+    },
+    {
+      "stallsPerSecond": 60,
+      "noCheckDeg": 0.6657,
+      "v13Deg": 0.2547,
+      "v14Deg": 0.0073,
+      "v14WorseThanV13Rows": 4,
+      "rows": 96
+    }
+  ],
+  "dropLateGrid": {
+    "better": 72,
+    "same": 2790,
+    "worse": 18,
+    "worstRegressionDeg": 0.0013,
+    "where": "breakpoint tap band 12mm 1.2Hz Drop every 3 seed 1: 0.0379 -> 0.0392"
+  },
+  "conclusion": "With queued bursts the 1.4 memory holds the no-stall floor at every stall rate tested, where 1.3 degrades from 2 stalls/s on. On the drop/late grid it is the same or better on all but a handful of rows at one report in three dropped, where it gives back about a thousandth of a degree (an armed check can misjudge a real drop while the hand decelerates). DropCheck 2 is the apply default; a 1.3 plugin reads 2 as 1.",
+  "limits": "Simulation. The stall rate of the real rig under real game load is not known; the Hand Print recorder counts it (gap classes) from plugin 1.4 on.",
+  "fieldVerdict": "pending"
+}

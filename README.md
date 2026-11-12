@@ -1,3 +1,5 @@
+> **The optimizer overhaul, 2026-11-12:** record your own hand (Hand Print), fit the curve to it (MY HAND), and let your verdicts run the search (DUEL). Plugin 1.4 adds a burst-proof drop check, the Realtime Lane and the experimental Pressure Focus. See `OPTIMIZER.md`. Nothing in it has a field verdict yet.
+
 > **THE GOAT, 2026-10-24:** your field-rated build is the first card: the Apex Brawl curve at 52.63 cm/360 (Finals sens 12), snap 0, Y/X 1.00, reset 20, no filters, on Cadence Lock. Every card except BO6 Original is rebuilt on it. See `GAME_FAMILIES.md`.
 
 > **Game families rebuilt 2026-10-23:** every game now has six cards (Master, Precision, Tracker, Flick, Brawl, one Signature), each tuned by the game lab on that game's own fights at its pro cm/360 range. All are latency-first: classic, floor 1.00, a two-report onset, tier ≤T1 and no smoothing. BO6 Original, the Breakpoints and the character cards did not change. See `GAME_FAMILIES.md`.

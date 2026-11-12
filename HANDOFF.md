@@ -52,8 +52,8 @@ cd ..\CoherenceStabilizer
 ```
 
 - `build.ps1` also installs the AimForge filter plugin into `D:\Pen\userdata\Plugins\AimForge Game Filters` when it changed. The OTD daemon must be restarted to load a new plugin (tray → Restart OTD daemon).
-- Current state: **266 headless selftests pass (cloud, 2026-10-24); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 64 cards. THE GOAT (`src/Core/Goat.cs`, ev-20261024-goat) is the baseline: the families (`--game-lab all`) and character cards (`--hero-lab all`) are re-derived from it; `--goat-card` prints its tuner entry; `--copy-numbers <id...>` prints what a card may quote.
-- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--game-lab <game|all> [role]`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
+- Current state: **297 headless selftests pass (cloud, 2026-11-12); not yet re-run on Windows with the live-machine block**, all stabilizer suites pass, QC passes on all 64 cards. THE GOAT (`src/Core/Goat.cs`) is the baseline. 2026-11-12 added plugin 1.4 (burst-armed drop check, Realtime Lane, Hand Print, Pressure Focus), the dials (`Dials.cs`), the Hand Print analysis (`HandPrint.cs`), the optimizer (`Optimizer.cs`) and the duel ladder (`Duel.cs`, `DuelForm.cs`): see `OPTIMIZER.md`. New tests live in `src/App/OverhaulTests.cs`, new commands in `src/App/OverhaulCli.cs`.
+- Useful read-only CLI: `--selftest`, `--qc`, `--list`, `--doctor`, `--apply <id> --dry-run`, `--nib-lab [id]`, `--xp-lab [id]`, `--hero-lab <id|all>`, `--game-lab <game|all> [role]`, `--handprint`, `--optimize`, `--duel`, `--burst-lab`, `--noise [ids]`, `--screenshot <png> [card|advanced|filters] [sideTab 0-4]`.
 
 ## Rules that must not be broken
 
@@ -151,5 +151,6 @@ Everything below needs the user at the tablet; none of it can be closed from the
 ## Ideas not started
 
 - Make `--apply` read the saved engine from `engine.txt` (the window does; the CLI defaults to RawAccel unless `--engine cadence` is passed).
+- **Nothing from 2026-11-12 has a field verdict**: the plugin 1.4 wrapper was smoke-tested against the OTD plugin API on Linux only (reports in/out, lane set and reverted, hand print file written); the Realtime Lane's effect on a real rig is unmeasured; the duel window has never been seen rendered.
 - Confirm the GOAT's in-game Finals sensitivity (12 is from memory). If it differs, change `Goat.Cm`, update the tuner's goat entry (`--goat-card`), and re-run `--game-lab all` and `--hero-lab all`.
 - Per-game camera arm for the third-person match (one global value today).
