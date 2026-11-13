@@ -63,7 +63,7 @@ segs += block(SPLICE, TOTAL, [
     ("0500", [0, 2.2], 4, dict(**D, **DET, x=0.37, zoom=[1.0, 1.04])),    # Sarah with the bouquet
     ("0502", [0.7, 3.5], 4, dict(**D, **DET, x=0.33, x_end=0.25, zoom=[1.0, 1.0])),  # Tyler on one knee, smiling
     ("0501", [3.6, 6.4], 4, dict(**D, **DET, x=0.21, x_end=0.25, zoom=[1.0, 1.03])), # the ring box
-    ("0503", [36, 47], 4, dict(**D, **CPL)),                              # the embrace
+    ("0503", [40, 43.2], 4, dict(**D, **DET, x=0.43, x_end=0.47, zoom=[1.0, 1.03])),   # arm in arm
     ("0485", [2, 7], 4, dict(**CPL)),                                     # the kiss
     ("0480", [0, 4.5], 4, dict(**D, **DET, x=0.435)),                    # her hand on his face
     ("0481", [16, 26], 4, dict(**DET, x=0.44)),                           # forehead to forehead

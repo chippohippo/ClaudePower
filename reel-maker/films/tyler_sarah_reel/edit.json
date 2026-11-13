@@ -188,12 +188,19 @@
    "clip": "0503",
    "dur": 2.83,
    "pick": [
-    36,
-    47
+    40,
+    43.2
    ],
-   "in": 36,
+   "in": 40,
    "tempo": "dream",
-   "couple": true,
+   "couple": false,
+   "track": false,
+   "x": 0.43,
+   "x_end": 0.47,
+   "zoom": [
+    1.0,
+    1.03
+   ],
    "in_tr": "mix:0.35"
   },
   {
