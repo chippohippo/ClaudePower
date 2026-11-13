@@ -19,15 +19,21 @@
   "lift": {
    "target": 0.36,
    "strength": 0.8,
-   "max_gamma": 2.2
+   "max_gamma": 2.0
   },
-  "wb": "neutral"
+  "wb": "neutral",
+  "black": 0.045,
+  "rolloff": [
+   0.68,
+   0.93
+  ],
+  "sharpen": 0.5
  },
  "grade": {
   "log_footage": false,
-  "saturation": 1.0,
-  "warmth": 0.6,
-  "contrast": 1.2,
+  "saturation": 1.2,
+  "warmth": 0.65,
+  "contrast": 1.4,
   "match_luma": 0.4,
   "match_wb": 0.6
  },
@@ -90,13 +96,14 @@
    "clip": "0456",
    "dur": 2.67,
    "pick": [
-    0,
-    6
+    2.6,
+    5.2
    ],
-   "in": 0,
+   "in": 2.6,
+   "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.47,
+   "x": 0.48,
    "zoom": [
     1.0,
     1.04
@@ -142,29 +149,33 @@
    "clip": "0502",
    "dur": 2.647,
    "pick": [
-    0,
-    7
+    0.9,
+    3.1
    ],
-   "in": 0,
+   "in": 0.9,
+   "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.4,
+   "x": 0.33,
+   "x_end": 0.25,
    "zoom": [
     1.0,
-    1.04
+    1.0
    ]
   },
   {
    "clip": "0501",
    "dur": 2.647,
    "pick": [
-    1,
-    5.5
+    3.8,
+    6.2
    ],
-   "in": 1,
+   "in": 3.8,
+   "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.5,
+   "x": 0.21,
+   "x_end": 0.25,
    "zoom": [
     1.0,
     1.03
@@ -200,7 +211,9 @@
    ],
    "in": 0,
    "tempo": "dream",
-   "couple": true
+   "couple": false,
+   "track": false,
+   "x": 0.4
   },
   {
    "clip": "0481",
@@ -210,7 +223,9 @@
     26
    ],
    "in": 16,
-   "couple": true
+   "couple": false,
+   "track": false,
+   "x": 0.44
   },
   {
    "clip": "0483",
@@ -220,27 +235,32 @@
     10
    ],
    "in": 1,
-   "couple": true
+   "couple": false,
+   "track": false,
+   "x": 0.475
   },
   {
-   "clip": "0482",
+   "clip": "0473",
    "dur": 2.647,
    "pick": [
-    0,
-    2.4
+    2.8,
+    5.0
    ],
-   "in": 0,
+   "in": 2.8,
    "tempo": "dream",
-   "couple": true
+   "couple": false,
+   "track": false,
+   "x": 0.46
   },
   {
    "clip": "0489",
    "dur": 2.647,
    "pick": [
-    0,
-    2.8
+    0.2,
+    2.6
    ],
-   "in": 0,
+   "in": 0.2,
+   "tempo": "dream",
    "couple": true
   },
   {
@@ -284,13 +304,13 @@
    "clip": "0488",
    "dur": 2.6,
    "pick": [
-    4,
-    11
+    0.3,
+    4.2
    ],
-   "in": 4,
+   "in": 0.3,
    "couple": false,
    "track": false,
-   "x": 0.48,
+   "x": 0.55,
    "zoom": [
     1.0,
     1.03

@@ -137,6 +137,13 @@ def bake_lut(path, match, sat_scale=1.0, gamma=1.0):
         rgb = np.clip(rgb, 0, 1) ** (1 / gamma)
     out = mr.grade(rgb, match).reshape(-1, 3)
     mr.CONFIG["saturation"] = saved
+    b = FILM.get("black", 0.0)                  # deeper black point (no milky shadows)
+    if b:
+        out = np.clip((out - b) / (1 - b), 0, 1)
+    ro = FILM.get("rolloff")                    # soft knee: highlights roll off instead of clipping
+    if ro:
+        k, lim = ro
+        out = np.where(out > k, k + (lim - k) * (1 - np.exp(-(out - k) / (lim - k))), out)
     ch = FILM.get("chroma", 1.0)                # overall colour intensity
     if ch != 1.0:
         luma = (out @ mr.LUMA)[:, None]
@@ -289,6 +296,8 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     # SAR, which bends the vignette into an oval on a vertical frame
     f.append(f"scale={W}:{H}:flags=lanczos,setsar=1")
     f.append(f"lut3d=file={lut}:interp=tetrahedral")
+    if FILM.get("sharpen"):
+        f.append(f"unsharp=5:5:{FILM['sharpen']}:5:5:0")
     if FILM["halation"] > 0:
         # glow from the brightest areas, warm-tinted, screen-blended back
         f.append(f"split[a][b];[b]colorlevels=rimin=0.72:gimin=0.74:bimin=0.78,"
