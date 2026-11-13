@@ -65,10 +65,10 @@ segs += block(SPLICE, TOTAL, [
     ("0501", [3.8, 6.2], 4, dict(**D, **DET, x=0.21, x_end=0.25, zoom=[1.0, 1.03])), # the ring box
     ("0503", [36, 47], 4, dict(**D, **CPL)),                              # the embrace
     ("0485", [2, 7], 4, dict(**CPL)),                                     # the kiss
-    ("0480", [0, 4.5], 4, dict(**D, **DET, x=0.40)),                      # her hand on his face
+    ("0480", [0, 4.5], 4, dict(**D, **DET, x=0.435)),                    # her hand on his face
     ("0481", [16, 26], 4, dict(**DET, x=0.44)),                           # forehead to forehead
-    ("0483", [1, 10], 4, dict(**DET, x=0.475)),                           # he kisses her hand
-    ("0473", [2.8, 5.0], 4, dict(**D, **DET, x=0.46)),                    # laughing, face to face
+    ("0483", [1, 10], 4, dict(**DET, x=0.505)),                           # he kisses her hand
+    ("0473", [2.8, 5.0], 4, dict(**D, **DET, x=0.47, x_end=0.43)),                   # laughing, face to face
     ("0489", [0.2, 2.6], 4, dict(**D, **CPL)),                            # showing the ring
     ("0490", [0.5, 4], 4, dict(**D, **CPL)),                              # the ring, close
     ("0486", [1, 6.5], 8, dict(**CPL)),                                   # the two of them together

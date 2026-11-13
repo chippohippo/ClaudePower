@@ -213,7 +213,7 @@
    "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.4
+   "x": 0.435
   },
   {
    "clip": "0481",
@@ -237,7 +237,7 @@
    "in": 1,
    "couple": false,
    "track": false,
-   "x": 0.475
+   "x": 0.505
   },
   {
    "clip": "0473",
@@ -250,7 +250,8 @@
    "tempo": "dream",
    "couple": false,
    "track": false,
-   "x": 0.46
+   "x": 0.47,
+   "x_end": 0.43
   },
   {
    "clip": "0489",
