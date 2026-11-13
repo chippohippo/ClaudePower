@@ -273,6 +273,16 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     base_w = min(src_w, src_h * A)
     z0, z1 = seg.get("zoom", [1.0, 1.06]) if isinstance(seg.get("zoom"), list) \
         else (1.0, 1.0 + seg.get("zoom", 0.06))
+    wide = seg.get("wide")
+    if wide:
+        # whole frame first (a group on a vertical canvas): the picture sits
+        # full-width on a soft blurred copy of itself, holds, then the window
+        # pushes in to the usual full-height crop at x_end.
+        Hc = int(round(src_w / A / 2) * 2)
+        sw = int(round(src_w / 2) * 2)
+        f.append(f"scale={sw}:{int(src_h)},split[wa][wb];[wb]crop=ih*{A:.5f}:ih,scale=270:-2,gblur=sigma=18,"
+                 f"scale={sw}:{Hc}:flags=bicubic,eq=brightness=-0.12[wbg];[wbg][wa]overlay=0:(H-h)/2")
+        base_w, z0, z1 = sw, wide.get("zoom", 1.0), Hc / src_h
     x, y = seg.get("x", 0.5), seg.get("y", 0.5)
     x1 = seg.get("x_end", x)
     D = max(out_dur, 0.1)
@@ -282,6 +292,9 @@ def seg_filters(seg, src_w, src_h, out_dur, lut, trf, preview):
     fps_num = eval(FILM["fps"].replace("/", "/")) if isinstance(FILM["fps"], str) else FILM["fps"]
     p = f"(0.5-0.5*cos(PI*min(on/{fps_num * D:.3f},1)))"           # eased progress
     zw = f"({base_w:.2f}/({z0}+({z1}-{z0})*{p}))"
+    if wide:
+        p = (f"(0.5-0.5*cos(PI*clip((on/{fps_num:.5f}-{wide['hold']})/{wide['move']},0,1)))")
+        zw = f"({base_w:.2f}/({z0}*pow({z1 / z0:.5f},{p})))"      # geometric: an even-feeling push-in
     zh = f"({zw}/{A:.5f})"
     cx = f"(({x}+({x1}-{x})*{p})*W)"
     X0 = f"max(0,min(W-{zw},{cx}-{zw}/2))"
@@ -546,11 +559,17 @@ def assemble(edl, files, total, out, preview, work):
                        f"{s['_start'] + s['dur'] + s.get('_tail', 0.0) + 0.2:.3f})'[o{i}]")
         last = f"[o{i}]"
     # title(s)
-    for k, tx in enumerate(edl.get("titles", [])):
+    titles = edl.get("titles", [])
+    over = [tx for tx in titles if tx.get("over_fade")]
+    if over:                                    # picture fades first, these titles stay on top of it
+        filters.append(f"{last}fade=out:st={total - 2.0:.3f}:d=2.0[fd]")
+        last = "[fd]"
+    for k, tx in enumerate([tx for tx in titles if not tx.get("over_fade")] + over):
         font = os.path.join(HERE, mr.CONFIG["font_title"])
         a0, a1, fd = tx["start"], tx["end"], tx.get("fade", 1.5)
+        fo = tx.get("fade_out", fd)
         alpha = (f"if(lt(t,{a0}),0,if(lt(t,{a0 + fd}),(t-{a0})/{fd},"
-                 f"if(lt(t,{a1 - fd}),1,if(lt(t,{a1}),({a1}-t)/{fd},0))))")
+                 f"if(lt(t,{a1 - fo}),1,if(lt(t,{a1}),({a1}-t)/{fo},0))))")
         size = int(H * tx.get("size", 0.045))
         txt = tx["text"].replace(":", r"\:").replace("'", r"\'")
         filters.append(f"{last}drawtext=fontfile={font}:text='{txt}':fontsize={size}:"
@@ -558,7 +577,8 @@ def assemble(edl, files, total, out, preview, work):
                        f"y=h*{tx.get('y', 0.80)}-text_h/2:shadowcolor=0x1C241E@0.55:"
                        f"shadowx=0:shadowy={max(1, size // 18)}[t{k}]")
         last = f"[t{k}]"
-    filters.append(f"{last}fade=out:st={total - 2.0:.3f}:d=2.0,format=yuv420p[vout]")
+    filters.append(f"{last}format=yuv420p[vout]" if over else
+                   f"{last}fade=out:st={total - 2.0:.3f}:d=2.0,format=yuv420p[vout]")
     script = os.path.join(work, "assemble.txt")
     with open(script, "w") as fh:
         fh.write(";\n".join(filters))

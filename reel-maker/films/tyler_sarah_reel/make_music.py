@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
-"""The reel's music: the song from Tyler & Sarah's own 3-minute edit, cut to
-60 s with one beat-matched splice — its real intro (0–13.31 s), then straight
-into the big final section (from 160.68 s) through to the song's own ending.
-The splice points were chosen by matching the sound either side (chroma +
-timbre, 96 % alike, level within 0.1 dB); a 40 ms equal-power crossfade hides
-the join.
+"""The reel's music: "Heartwarming" by Kevin MacLeod (incompetech.com),
+licensed Creative Commons BY 4.0 — soft piano and strings, no percussion.
+Credit line for the post:  Music: "Heartwarming" Kevin MacLeod (incompetech.com),
+Licensed under Creative Commons: By Attribution 4.0.
 
-    python make_music.py song.wav out.wav
+The piece's last chord lands at 60.2 s and rings out; played 5 % faster it
+lands at 57.3 s, so the reel ends on the music's own ending (soft fade over
+the last 2.5 s of the ring-out). Writes music.wav and beats.json (the beat
+grid the cuts sit on).
+
+    python make_music.py
 """
 import json
-import sys
+import os
+import subprocess
 
 import numpy as np
-from scipy.io import wavfile
 
-A, B, TOTAL, XF = 13.31, 160.68, 60.0, 0.04
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, "../../music/heartwarming_kevin_macleod.mp3")
+TEMPO, TOTAL = 1.05, 60.0
 
 
 def main():
-    sr, x = wavfile.read(sys.argv[1])
-    x = x.astype(np.float32) / (32768.0 if x.dtype == np.int16 else 1.0)
-    if x.ndim == 1:
-        x = np.stack([x, x], 1)
-    a, b, n, xf = int(A * sr), int(B * sr), int(TOTAL * sr), int(XF * sr)
-    head = x[:a + xf].copy()
-    tail = x[b:b + (n - a)].copy()
-    w = np.sin(np.linspace(0, np.pi / 2, xf))[:, None]
-    head[-xf:] *= np.cos(np.linspace(0, np.pi / 2, xf))[:, None]
-    tail[:xf] *= w
-    y = np.concatenate([head[:-xf], head[-xf:] + tail[:xf], tail[xf:]])[:n]
-    fo = int(1.2 * sr)
-    y[-fo:] *= np.linspace(1, 0, fo)[:, None] ** 2
-    wavfile.write(sys.argv[2], sr, y.astype(np.float32))
-    print(f"✓ {sys.argv[2]}  {len(y) / sr:.2f}s")
+    out = os.path.join(HERE, "music.wav")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", SRC, "-af",
+                    f"atempo={TEMPO},loudnorm=I=-13:TP=-1.5:LRA=11,afade=in:st=0:d=0.4,"
+                    f"afade=out:st={TOTAL - 2.5}:d=2.5:curve=qsin", "-t", f"{TOTAL}",
+                    "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", out], check=True)
+    # beat grid of the original recording (80.75 BPM, first beat 0.35 s), at the new tempo
+    per = 60 / 80.75 / TEMPO
+    b = list(np.arange(0.35 / TEMPO, TOTAL, per))
+    json.dump(dict(bpm=round(60 / per, 2), beats=[round(t, 3) for t in b]),
+              open(os.path.join(HERE, "beats.json"), "w"))
+    print(f"✓ music.wav {TOTAL:.0f}s, {60 / per:.1f} BPM, {len(b)} beats, first {b[0]:.2f}")
 
 
 if __name__ == "__main__":

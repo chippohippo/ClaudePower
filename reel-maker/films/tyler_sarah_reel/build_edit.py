@@ -25,7 +25,7 @@ import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 beats = json.load(open(os.path.join(HERE, "beats.json")))["beats"]
-SPLICE, TOTAL = 13.31, 60.0
+SPLICE, TOTAL = beats[19], 60.0             # the intro: five shots of four beats
 
 D = dict(tempo="dream")
 DET = dict(couple=False, track=False)          # details / scenery
@@ -52,33 +52,35 @@ def block(t0, t1, shots):
 segs = []
 # ── the garden waking up ────────────────────────────────────────────────────
 segs += block(0.0, SPLICE, [
-    ("0437", [2, 15], 0, dict(**D, **DET, x=0.55, zoom=[1.0, 1.05], fade_in=1.0)),   # the fountain
+    ("0437", [2, 15], 4, dict(**D, **DET, x=0.55, zoom=[1.0, 1.05], fade_in=1.0)),   # the fountain
     ("0444", [0, 4], 4, dict(**D, **DET, x=0.58, zoom=[1.04, 1.0])),                  # the roses
     ("0454", [1, 9], 4, dict(**D, **DET, x=0.45, zoom=[1.0, 1.05])),                  # petals on the path
-    ("0456", [2.6, 5.2], 4, dict(**D, **DET, x=0.48, zoom=[1.0, 1.04])),              # Tyler, the jacket
+    ("0456", [2.5, 5.3], 4, dict(**D, **DET, x=0.48, zoom=[1.0, 1.04])),              # Tyler, the jacket
     ("0458", [2, 9], 4, dict(**D, **DET, x=0.5, zoom=[1.0, 1.05])),                   # light through the oaks
 ])
 # ── she walks in · the proposal ─────────────────────────────────────────────
 segs += block(SPLICE, TOTAL, [
     ("0500", [0, 2.2], 4, dict(**D, **DET, x=0.37, zoom=[1.0, 1.04])),    # Sarah with the bouquet
-    ("0502", [0.9, 3.1], 4, dict(**D, **DET, x=0.33, x_end=0.25, zoom=[1.0, 1.0])),  # Tyler on one knee, smiling
-    ("0501", [3.8, 6.2], 4, dict(**D, **DET, x=0.21, x_end=0.25, zoom=[1.0, 1.03])), # the ring box
+    ("0502", [0.7, 3.5], 4, dict(**D, **DET, x=0.33, x_end=0.25, zoom=[1.0, 1.0])),  # Tyler on one knee, smiling
+    ("0501", [3.6, 6.4], 4, dict(**D, **DET, x=0.21, x_end=0.25, zoom=[1.0, 1.03])), # the ring box
     ("0503", [36, 47], 4, dict(**D, **CPL)),                              # the embrace
     ("0485", [2, 7], 4, dict(**CPL)),                                     # the kiss
     ("0480", [0, 4.5], 4, dict(**D, **DET, x=0.435)),                    # her hand on his face
     ("0481", [16, 26], 4, dict(**DET, x=0.44)),                           # forehead to forehead
     ("0483", [1, 10], 4, dict(**DET, x=0.505)),                           # he kisses her hand
-    ("0473", [2.8, 5.0], 4, dict(**D, **DET, x=0.47, x_end=0.43)),                   # laughing, face to face
-    ("0489", [0.2, 2.6], 4, dict(**D, **CPL)),                            # showing the ring
-    ("0490", [0.5, 4], 4, dict(**D, **CPL)),                              # the ring, close
-    ("0486", [1, 6.5], 8, dict(**CPL)),                                   # the two of them together
+    ("0473", [2.2, 5.0], 4, dict(**D, **DET, x=0.47, x_end=0.43)),                   # laughing, face to face
+    ("0489", [0.1, 3.0], 4, dict(**D, **CPL)),                            # showing the ring
+    ("0490", [1.7, 4.5], 4, dict(**D, **DET, x=0.50, x_end=0.53, y=0.6, zoom=[1.1, 1.18])),  # focus pulls to the ring
+    ("0486", [1, 6.5], 4, dict(**CPL)),                                   # the two of them together
     ("0477", [18, 30], 4, dict(**DET, x=0.5, zoom=[1.0, 1.03])),          # family hugs
-    ("0488", [0.3, 4.2], 4, dict(**DET, x=0.55, zoom=[1.0, 1.03])),       # with their people
-    ("0491", [12, 44], 8, dict(**DET, x=0.47, zoom=[1.0, 1.05])),         # everyone together
+    # everyone together: the whole group first, then a push-in to the two of them
+    ("0491", [14, 30], 8, dict(couple=False, track=False, stab=False, x=0.43, x_end=0.515,
+                               wide=dict(hold=3.0, move=2.0, zoom=1.22))),
 ])
-# soft mixes inside the gentle intro; the big section cuts crisply on the beat
-for s in segs[1:5]:
+# soft dissolves throughout — the music is gentle piano and strings
+for s in segs[1:]:
     s["in_tr"] = "mix:0.35"
+segs[-1]["in_tr"] = "mix:0.6"
 
 total = round(sum(s["dur"] for s in segs), 3)
 edl = dict(
@@ -91,7 +93,9 @@ edl = dict(
               black=0.045, rolloff=[0.68, 0.93], sharpen=0.5),
     grade=dict(log_footage=False, saturation=1.2, warmth=0.65, contrast=1.4, match_luma=0.40, match_wb=0.6),
     segments=segs,
-    titles=[dict(text="Tyler & Sarah", start=total - 5.2, end=total - 0.4, y=0.16, size=0.034, fade=1.2)],
+    # the names come up over the couple and stay on while the picture fades to black
+    titles=[dict(text="Tyler & Sarah", start=total - 4.6, end=total, y=0.16, size=0.04, fade=1.2,
+                 fade_out=0.5, over_fade=True)],
 )
 json.dump(edl, open(os.path.join(HERE, "edit.json"), "w"), indent=1)
 print(f"{len(segs)} shots, {total:.2f}s")
