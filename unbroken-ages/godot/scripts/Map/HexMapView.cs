@@ -22,7 +22,7 @@ namespace UnbrokenAges.Client.Map;
 public partial class HexMapView : Node3D
 {
     public const float LandTop = 0.1f;
-    public const float WaterTop = -0.06f;
+    public const float WaterTop = 0.035f;
 
     private readonly ModelLibrary _models = new();
     private MultiMeshInstance3D _land = null!, _water = null!;
@@ -35,16 +35,19 @@ public partial class HexMapView : Node3D
 
     public override void _Ready()
     {
-        var terrain = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/terrain.gdshader") };
-        terrain.SetShaderParameter("albedo_tex", BuildArray("baseColor"));
-        terrain.SetShaderParameter("normal_tex", BuildArray("normal"));
-        terrain.SetShaderParameter("cliff_layer", Array.IndexOf(Layers, "cliff"));
-        _land = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.6f, RadialSegments = 6, Rings = 1 }, terrain);
+        PaperNoise = BuildPaperNoise();
+        _terrainMat = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/terrain.gdshader") };
+        _terrainMat.SetShaderParameter("albedo_tex", BuildArray("baseColor"));
+        _terrainMat.SetShaderParameter("normal_tex", BuildArray("normal"));
+        _terrainMat.SetShaderParameter("paper_noise", PaperNoise);
+        _terrainMat.SetShaderParameter("layer_tint", LayerTints);
+        _land = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.6f, RadialSegments = 6, Rings = 1 }, _terrainMat);
 
-        var water = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/water.gdshader") };
-        water.SetShaderParameter("wave_a", WaveTexture(11, 0.9f));
-        water.SetShaderParameter("wave_b", WaveTexture(23, 1.6f));
-        _water = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.12f, RadialSegments = 6, Rings = 1 }, water);
+        _waterMat = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/water.gdshader") };
+        _waterMat.SetShaderParameter("wave_a", WaveTexture(11, 0.9f));
+        _waterMat.SetShaderParameter("wave_b", WaveTexture(23, 1.6f));
+        _waterMat.SetShaderParameter("paper_noise", PaperNoise);
+        _water = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.12f, RadialSegments = 6, Rings = 1 }, _waterMat);
 
         _rivers = new MeshInstance3D { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         _borders = new MeshInstance3D { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -71,6 +74,99 @@ public partial class HexMapView : Node3D
         };
         AddChild(ring);
         return ring;
+    }
+
+    private ShaderMaterial _terrainMat = null!, _waterMat = null!;
+    private ImageTexture? _tileData;
+
+    /// <summary>RGB noise shared by the paper-map shaders: R stains and colour variation, G grain, B paper fibres.</summary>
+    public static Texture2D PaperNoise { get; private set; } = null!;
+
+    /// <summary>Base tint per terrain layer: the identity of each terrain (lush grassland, golden plains, pale tundra...).</summary>
+    private static readonly Vector3[] LayerTints =
+    {
+        new(0.60f, 0.78f, 0.40f), new(0.80f, 0.78f, 0.40f), new(1.00f, 0.80f, 0.54f), new(0.66f, 0.68f, 0.56f),
+        new(0.95f, 0.97f, 1.00f), new(0.70f, 0.68f, 0.64f), new(0.78f, 0.70f, 0.60f), new(1.00f, 0.90f, 0.70f),
+    };
+
+    private static Texture2D BuildPaperNoise()
+    {
+        const int size = 512;
+        byte[] Channel(int seed, float frequency, FastNoiseLite.NoiseTypeEnum type, int octaves)
+        {
+            var noise = new FastNoiseLite { Seed = seed, Frequency = frequency, NoiseType = type, FractalOctaves = octaves };
+            var img = noise.GetSeamlessImage(size, size, false, false, 0.1f, true);
+            img.Convert(Image.Format.L8);
+            return img.GetData();
+        }
+        var r = Channel(3, 0.006f, FastNoiseLite.NoiseTypeEnum.Simplex, 4);
+        var g = Channel(7, 0.05f, FastNoiseLite.NoiseTypeEnum.Perlin, 2);
+        var b = Channel(13, 0.02f, FastNoiseLite.NoiseTypeEnum.Cellular, 3);
+        var data = new byte[size * size * 3];
+        for (int i = 0; i < size * size; i++) { data[i * 3] = r[i]; data[i * 3 + 1] = g[i]; data[i * 3 + 2] = b[i]; }
+        var image = Image.CreateFromData(size, size, false, Image.Format.Rgb8, data);
+        image.GenerateMipmaps();
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>One texel per tile: terrain layer, fog, water kind, feature (layout documented in hexmap.gdshaderinc).</summary>
+    private void UpdateTileData(GameState s, bool[] visible, bool[] revealed)
+    {
+        var map = s.Map;
+        var db = s.Db;
+        var bytes = new byte[map.Width * map.Height * 4];
+        for (int row = 0; row < map.Height; row++)
+            for (int col = 0; col < map.Width; col++)
+            {
+                int t = map.IndexOf(Sim.Core.HexCoord.FromOffset(col, row));
+                int i = (row * map.Width + col) * 4;
+                if (t < 0) { bytes[i + 1] = 2; bytes[i + 2] = 2; continue; }
+                bool known = t < revealed.Length && revealed[t];
+                bytes[i + 1] = (byte)(!known ? 2 : visible[t] ? 0 : 1);
+                var cls = db.Terrains[map.Terrain[t]].Class;
+                string? feature = map.Feature[t] >= 0 ? db.Features[map.Feature[t]].Id : null;
+                bool ice = feature == "FEATURE_ICE";
+                bytes[i + 2] = (byte)(!map.IsWater(t) || ice ? 0 : cls == TerrainClass.Coast ? 1 : cls == TerrainClass.Ocean ? 2 : 3);
+                var (layer, featureCode) = Surface(s, t);
+                bytes[i] = (byte)layer;
+                bytes[i + 3] = (byte)featureCode;
+            }
+        var image = Image.CreateFromData(map.Width, map.Height, false, Image.Format.Rgba8, bytes);
+        if (_tileData == null || _tileData.GetWidth() != map.Width || _tileData.GetHeight() != map.Height)
+        {
+            _tileData = ImageTexture.CreateFromImage(image);
+            foreach (var m in new[] { _terrainMat, _waterMat })
+            {
+                m.SetShaderParameter("tile_data", _tileData);
+                m.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
+                m.SetShaderParameter("wrap_x", map.WrapX);
+            }
+        }
+        else _tileData.Update(image);
+    }
+
+    private static (int Layer, int Feature) Surface(GameState s, int t)
+    {
+        var db = s.Db;
+        var map = s.Map;
+        string terrain = db.Terrains[map.Terrain[t]].Id;
+        string? feature = map.Feature[t] >= 0 ? db.Features[map.Feature[t]].Id : null;
+        int layer = terrain switch
+        {
+            "TERRAIN_PLAINS" => 1, "TERRAIN_DESERT" => 2, "TERRAIN_TUNDRA" => 3, "TERRAIN_SNOW" => 4,
+            "TERRAIN_ENGINEERED" or "TERRAIN_SUBSTRATE" => 5, _ => 0,
+        };
+        if (map.IsMountain(t)) layer = 5;
+        if (feature == "FEATURE_ICE") layer = 4;
+        int code = feature switch
+        {
+            "FEATURE_FLOODPLAINS" => 1, "FEATURE_MARSH" => 2, "FEATURE_BLOOM" => 3, "FEATURE_OASIS" => 6, _ => 0,
+        };
+        if (terrain == "TERRAIN_ENGINEERED") code = 7;
+        if (terrain == "TERRAIN_SUBSTRATE") code = 8;
+        if (map.HasFlag(t, TileFlags.Flooded)) code = 4;
+        if (map.HasFlag(t, TileFlags.Pillaged)) code = 5;
+        return (layer, code);
     }
 
     private static Texture2DArray BuildArray(string role)
@@ -109,42 +205,6 @@ public partial class HexMapView : Node3D
     }
 
     // ----- Terrain look-up tables ------------------------------------------------------------------
-
-    private static (int Layer, Color Tint) LandLook(GameState s, int t)
-    {
-        var db = s.Db;
-        var map = s.Map;
-        string terrain = db.Terrains[map.Terrain[t]].Id;
-        string? feature = map.Feature[t] >= 0 ? db.Features[map.Feature[t]].Id : null;
-        var look = terrain switch
-        {
-            "TERRAIN_GRASSLAND" => (0, new Color(0.62f, 0.78f, 0.42f)),
-            "TERRAIN_PLAINS" => (1, new Color(0.86f, 0.78f, 0.47f)),
-            "TERRAIN_DESERT" => (2, new Color(0.98f, 0.86f, 0.62f)),
-            "TERRAIN_TUNDRA" => (3, new Color(0.66f, 0.66f, 0.56f)),
-            "TERRAIN_SNOW" => (4, new Color(0.95f, 0.97f, 1f)),
-            "TERRAIN_ENGINEERED" => (5, new Color(0.86f, 0.89f, 0.93f)),
-            "TERRAIN_SUBSTRATE" => (5, new Color(0.22f, 0.2f, 0.32f)),
-            _ => (0, new Color(0.62f, 0.78f, 0.42f)),
-        };
-        if (map.IsMountain(t)) look = (5, new Color(0.7f, 0.68f, 0.64f));
-        if (feature == "FEATURE_FLOODPLAINS") look.Item2 = look.Item2.Lerp(new Color(0.55f, 0.75f, 0.4f), 0.5f);
-        if (feature == "FEATURE_MARSH") look.Item2 = look.Item2.Lerp(new Color(0.42f, 0.55f, 0.42f), 0.6f);
-        if (feature == "FEATURE_ICE") look = (4, new Color(0.85f, 0.93f, 1f));
-        if (feature == "FEATURE_BLOOM") look.Item2 = new Color(0.78f, 0.42f, 0.86f).Lerp(new Color(0.3f, 0.85f, 0.66f), (t * 37 % 11) / 11f);
-        if (feature == "FEATURE_OASIS") look.Item2 = look.Item2.Lerp(new Color(0.5f, 0.8f, 0.45f), 0.5f);
-        // Owned land drifts toward its civilization's Divergence palette (subtle at first, total by the end).
-        int owner = map.OwnerPlayer[t];
-        if (owner >= 0 && s.Players[owner].Divergence >= 0)
-        {
-            var d = db.Divergences[s.Players[owner].Divergence];
-            int age = Math.Clamp(s.Turn - s.Players[owner].DivergenceTurn, 0, 100);
-            look.Item2 = look.Item2.Lerp(new Color(d.Colors.Secondary), 0.25f * age / 100f);
-        }
-        if (map.HasFlag(t, TileFlags.Flooded)) look.Item2 = look.Item2.Lerp(new Color("#5fa7d0"), 0.4f);
-        if (map.HasFlag(t, TileFlags.Pillaged)) look.Item2 = look.Item2.Darkened(0.3f);
-        return look;
-    }
 
     private static float Rand(int t, int salt) => ((uint)(t * 2654435761u ^ (uint)salt * 40503u) % 1000) / 1000f;
 
@@ -192,31 +252,17 @@ public partial class HexMapView : Node3D
         bool Known(int t) => t < revealed.Length && revealed[t];
         float k = ModelLibrary.KitScale;
 
+        UpdateTileData(s, visible, revealed);
         for (int t = 0; t < map.Count; t++)
         {
             var hex = map.CoordOf(t);
             var top = HexLayout.ToWorld(hex, LandTop);
-            float seed = Rand(t, 1);
-            if (!Known(t))
-            {
-                land.Add((new Transform3D(rotate, top - new Vector3(0, 0.3f, 0)), Colors.White, new Color(0, 2, seed, 0)));
-                continue;
-            }
-            float fog = visible[t] ? 0 : 1;
-            var memory = new Color(1, 1, 1, visible[t] ? 1f : 0.5f);
-            if (map.IsWater(t) && !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].Id == "FEATURE_ICE"))
-            {
-                var cls = db.Terrains[map.Terrain[t]].Class;
-                float kind = cls == TerrainClass.Coast ? 0 : cls == TerrainClass.Ocean ? 1 : 2;
-                water.Add((new Transform3D(rotate, HexLayout.ToWorld(hex, WaterTop - 0.06f)), Colors.White, new Color(kind, fog, seed, 0)));
-                // the sea floor under shallow water reads as sand from above
-                if (cls is TerrainClass.Coast or TerrainClass.Lake or TerrainClass.Channel)
-                    land.Add((new Transform3D(rotate, top - new Vector3(0, 0.62f, 0)), new Color(0.75f, 0.68f, 0.5f), new Color(7, fog, seed, 0)));
-                continue;
-            }
-            var (layer, tint) = LandLook(s, t);
-            land.Add((new Transform3D(rotate, top - new Vector3(0, 0.3f, 0)), tint, new Color(layer, fog, seed, 0)));
-            DressTile(s, t, top, memory, k);
+            // Unexplored tiles are all parchment at land height, so the coastline of the unknown never leaks.
+            bool waterHere = Known(t) && map.IsWater(t) && !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].Id == "FEATURE_ICE");
+            if (waterHere) water.Add((new Transform3D(rotate, HexLayout.ToWorld(hex, WaterTop - 0.06f)), Colors.White, default));
+            else land.Add((new Transform3D(rotate, top - new Vector3(0, 0.3f, 0)), Colors.White, default));
+            if (!Known(t) || waterHere) continue;
+            DressTile(s, t, top, new Color(1, 1, 1, visible[t] ? 1f : 0.5f), k);
         }
 
         foreach (var c in s.Cities) if (Known(c.Tile)) DressCity(s, c, visible[c.Tile], k);
@@ -257,7 +303,7 @@ public partial class HexMapView : Node3D
                 ? "nature/mountain_" + "ABC"[(int)(Rand(t, 5) * 3)]
                 : Rand(t, 5) < 0.5f ? "nature/mountain_A_grass_trees" : "nature/mountain_B_grass";
             var mt = feature == "FEATURE_VOLCANO" ? new Color(0.65f, 0.45f, 0.4f, memory.A) : db.Terrains[map.Terrain[t]].Id == "TERRAIN_SNOW" ? new Color(0.95f, 0.97f, 1f, memory.A) : new Color(0.68f, 0.66f, 0.63f, memory.A);
-            AddProp(m, top, k, yaw, mt);
+            AddProp(m, top, k * 0.88f, yaw, mt, flatten: 0.9f);
             return;
         }
         if (hasDistrict)

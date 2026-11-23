@@ -50,7 +50,7 @@ public partial class MiniMapAndTurn : VBoxContainer
         AddChild(_turn);
 
         var frame = new PanelContainer();
-        frame.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color("#0b1422"), UiTheme.Gold, 2, 6, 4));
+        frame.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color("#b9a27a"), UiTheme.Gold, 2, 6, 4));
         AddChild(frame);
         _map = new TextureRect { CustomMinimumSize = new Vector2(292, 182), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.Scale, MouseDefaultCursorShape = CursorShape.PointingHand, TooltipText = "Click to look there." };
         _map.GuiInput += OnMapInput;
@@ -102,7 +102,7 @@ public partial class MiniMapAndTurn : VBoxContainer
             {
                 int t = map.IndexOf(Sim.Core.HexCoord.FromOffset(col, row));
                 Color c;
-                if (t < 0 || t >= revealed.Length || !revealed[t]) c = new Color("#3a3226");
+                if (t < 0 || t >= revealed.Length || !revealed[t]) c = new Color("#b9a27a").Darkened(((col * 7 + row * 13) % 5) * 0.02f);
                 else
                 {
                     var cls = s.Db.Terrains[map.Terrain[t]].Class;

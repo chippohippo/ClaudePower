@@ -74,6 +74,14 @@ public partial class GameRoot : Node3D
         AddChild(_map);
         _lens = new PlacementLens();
         AddChild(_lens);
+        // The paper finish over the whole 3D view (grain, warm grade, aged vignette); the interface stays crisp above it.
+        var grade = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/paper_grade.gdshader") };
+        grade.SetShaderParameter("paper_noise", HexMapView.PaperNoise);
+        _camera.AddChild(new MeshInstance3D
+        {
+            Mesh = new QuadMesh { Size = Vector2.One }, MaterialOverride = grade, Position = new Vector3(0, 0, -0.5f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, CustomAabb = new Aabb(new Vector3(-1e4f, -1e4f, -1e4f), new Vector3(2e4f, 2e4f, 2e4f)),
+        });
 
         var theme = UiTheme.Build();
         var ui = new CanvasLayer();

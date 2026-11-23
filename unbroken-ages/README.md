@@ -60,6 +60,23 @@ Civilization VII's age resets or civ-swapping.
 * **Direct IP multiplayer**: dynamic turns (civilizations at peace move together, enemies alternate phases), authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
+![The known world painted onto an old chart](docs/screenshots/paper-map-overview.png)
+
+## Look and sound
+
+Civ VI's painted art direction on an old paper map ([06 §9](docs/06-ui-ux-wireframes.md#9-art-direction-a-painted-world-on-an-old-chart)):
+terrains blend across soft, hand-painted borders; coasts have turquoise shallows, rolling surf and foam; forests, hills,
+mountains, team-coloured cities and districts are 3D; units are animated squads. The unexplored world is an inked parchment
+chart, places you have seen but cannot see now are a sepia watercolour with cross-hatched scenery, and the frontier is a
+burnt edge on the paper. The interface follows Civ V and VI: top bar with yield icons, research and civic trackers, city
+banners and unit flags, a minimap and a turn button that names the next thing to do. Music, effects and a synthesised
+wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited in
+[`godot/assets/CREDITS.md`](godot/assets/CREDITS.md); `tools/assets/fetch_assets.py` re-downloads them from the manifest.
+
+| | |
+|---|---|
+| ![Close-up](docs/screenshots/close-up.png) | ![City screen](docs/screenshots/city-screen.png) |
+
 ## Play it (first playable)
 
 1. Install the [.NET 8 SDK](https://dotnet.microsoft.com/download) and **Godot 4.3, .NET edition**.

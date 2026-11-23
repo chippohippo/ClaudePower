@@ -249,3 +249,21 @@ carries the meaning for colourblind players, and the red is a reinforcement. **I
 ## 8. Accessibility checklist (applies to every screen)
 Text ≥ 14 px at 100% scale; contrast ≥ 4.5:1; no information carried by colour alone; full keyboard and controller navigation (Steam Deck);
 reduced-motion mode; subtitles and audio cues for notifications; screen-reader labels on every Control (Godot AccessKit); remappable everything.
+
+## 9. Art direction: a painted world on an old chart
+
+Civ VI's warm, painted look, laid over the idea that the game *is* a map being drawn as you explore.
+
+| Layer | How it is made | Code |
+|---|---|---|
+| Painted terrain | One texel per tile in a map-wide data texture (terrain, fog, water, feature). Each pixel finds its tile and the neighbour across the nearest edge and blends them over a wobbly, noise-displaced border, so terrains meet like brush strokes, not hexagons. Aerial PBR textures (Poly Haven) are softened toward their blurred mip and tinted per terrain; broad colour variation hides tiling. Land meeting water turns to beach. A faint pencil hex grid stays readable. | `shaders/terrain.gdshader`, `shaders/hexmap.gdshaderinc` |
+| Water | Depth colour per tile kind (coast, ocean, fresh) blended across edges; surf bands that roll toward land and a broken foam line; drifting swell; sky reflections | `shaders/water.gdshader` |
+| The unknown | Aged parchment (fibres, grain, tea stains) with a firm inked hex grid; unexplored water is paper too, so coastlines never leak | `paper()` in `hexmap.gdshaderinc` |
+| Memory | Remembered land is a watercolour wash of its last-seen colours on the paper, inked in the shadows; remembered props are sepia with cross-hatching | `sepia_drawing()`, `shaders/model_tint.gdshader` |
+| Frontier | Where the known meets the unknown, a ragged burnt-ink edge and scorched paper | `terrain.gdshader` |
+| Scenery | KayKit forests, hills, mountains, marsh; team-coloured castles, towers and houses that grow with population; district and improvement buildings; scaffolding for queued districts. The kit's pastel greens are shifted toward the terrain's natural greens | `Map/HexMapView.cs`, `Visuals/ModelLibrary.cs` |
+| Units | Animated squads (KayKit, Kenney) on discs in the owner's colour: idle, walk, attack | `Visuals/UnitLayer.cs` |
+| Finish | HDRI sky light, warm sun, ACES, SSAO, light bloom, aerial perspective, tilt-shift depth of field; a full-screen paper grain, warm grade and aged vignette under the UI | `GameRoot.BuildEnvironment`, `shaders/paper_grade.gdshader` |
+
+Screenshots: [`docs/screenshots/`](screenshots). The client smoke test (`tools/client-smoke.sh`) renders these views on every run.
+

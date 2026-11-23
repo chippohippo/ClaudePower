@@ -54,6 +54,11 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 with to-dos, save/load (`SaveGame`), exclusive overlays with an opaque theme, city-first clicks, and `tools/client-smoke.sh` with the `--autostart/--do/--shots`
 automation hook. 6 tests (195 total).
 
+**Visual, audio and UI pass (done):** patch.gg asset pipeline (`tools/assets`, CC0/CC-BY only, generated credits), painted
+terrain on a paper-map fog (data-texture shaders), Civ-style water, KayKit scenery and cities, animated unit squads, HDRI
+lighting and grade, Civ V/VI HUD (top bar, trackers, banners, flags, minimap, turn button, pause menu), music, effects and
+procedural ambience, living title backdrop. See docs/06 §9.
+
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.
 

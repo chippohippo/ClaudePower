@@ -41,8 +41,13 @@ void fragment() {
 	hsv.y *= saturation;
 	c = hsv2rgb(hsv) * tint.rgb;
 	if (tint.a < 0.75) {
+		// remembered: drawn in sepia ink, with cross-hatching in the darker tones, like a cartographer's sketch
 		float l = dot(c, vec3(0.3, 0.59, 0.11));
-		c = vec3(l) * vec3(1.05, 0.92, 0.72) * 0.8;
+		vec2 px = FRAGCOORD.xy;
+		float hatch1 = step(0.5, fract((px.x + px.y) / 5.0));
+		float hatch2 = step(0.5, fract((px.x - px.y) / 5.0));
+		float shade = l < 0.32 ? hatch1 * hatch2 : (l < 0.55 ? hatch1 : 1.0);
+		c = mix(vec3(0.24, 0.16, 0.10), vec3(0.70, 0.59, 0.42), 0.3 + 0.55 * shade * smoothstep(0.1, 0.7, l + 0.25));
 	}
 	ALBEDO = c;
 	ROUGHNESS = roughness;
