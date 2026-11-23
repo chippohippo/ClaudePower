@@ -455,7 +455,7 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 22b | Combat preview that shows every modifier | [05/09-combat](05-key-systems/09-combat.md) | **Built** (v1: melee, ranged, cities, capture) |
 | 23 | Timelapse replay and statistics | §14 | Designed — M5 |
 | 24 | One More Turn after victory | §14, [05/11-victory](05-key-systems/11-victory.md) | **Built** (sim; victory screen in the client queue) |
-| 25 | Smarter AI districts, navy, air, war | §18 + shared planners | Planner **built** / AI M3–M5 |
+| 25 | Smarter AI districts, navy, air, war | §18 + shared planners, [05/13](05-key-systems/13-ai.md) | Planner and AI v2 (expansion, builders, war odds, retreat, peace) **built** / navy and air M3–M5 |
 | 26 | Late-game micromanagement relief | Provinces, queue templates, puppets | Designed — M3 |
 | 27 | Era pacing so UUs matter (Extended Eras) | `EraPacingPercent` | **Built** |
 | 28 | Colourblind modes, UI scaling, keyboard play | §16 | Designed — M2 |

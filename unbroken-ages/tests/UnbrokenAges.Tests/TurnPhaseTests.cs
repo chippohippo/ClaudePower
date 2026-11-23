@@ -77,11 +77,11 @@ public class TurnPhaseTests
         };
         using var host = new HostSession(TestWorld.Db, new TcpServerTransport(0, IPAddress.Loopback), setup);
         host.Start();
-        using var alice = new ClientSession(TestWorld.Db, new TcpClientTransport("127.0.0.1", host.Port), new ClientOptions { PlayerName = "Alice" });
-        using var bob = new ClientSession(TestWorld.Db, new TcpClientTransport("127.0.0.1", host.Port), new ClientOptions { PlayerName = "Bob" });
-        alice.Connect();
-        bob.Connect();
-        var polls = new Action[] { host.Poll, alice.Poll, bob.Poll };
+        using var first = new ClientSession(TestWorld.Db, new TcpClientTransport("127.0.0.1", host.Port), new ClientOptions { PlayerName = "C1" });
+        using var second = new ClientSession(TestWorld.Db, new TcpClientTransport("127.0.0.1", host.Port), new ClientOptions { PlayerName = "C2" });
+        first.Connect();
+        second.Connect();
+        var polls = new Action[] { host.Poll, first.Poll, second.Poll };
         void Pump(Func<bool> done)
         {
             var deadline = DateTime.UtcNow.AddSeconds(15);
@@ -92,7 +92,10 @@ public class TurnPhaseTests
                 Thread.Sleep(1);
             }
         }
-        Pump(() => alice.Slot == 1 && bob.Slot == 2);
+        Pump(() => first.Slot >= 1 && second.Slot >= 1);
+        // Slots follow connection order, which is a race: name the clients by the slot they got (slot 1 "Alice", slot 2 "Bob").
+        var alice = first.Slot == 1 ? first : second;
+        var bob = first.Slot == 2 ? first : second;
         host.StartGame();
         Pump(() => alice.State != null && bob.State != null && alice.LastSeq == host.Seq && bob.LastSeq == host.Seq);
         Assert.Equal(new[] { 0, 1, 2 }, host.ActivePlayers.Where(p => p != 3));   // turn 1: everyone at peace, AI already done

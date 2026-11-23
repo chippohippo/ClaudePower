@@ -83,7 +83,7 @@ public static class TestWorld
     public static UnitState Unit(GameState s, int player, string unitId, int col, int row)
     {
         var def = s.Db.Units[unitId];
-        var u = new UnitState { Id = s.AllocateId(), Owner = player, DefIndex = def.Index, Tile = Tile(s, col, row), MovesLeft = def.Moves };
+        var u = new UnitState { Id = s.AllocateId(), Owner = player, DefIndex = def.Index, Tile = Tile(s, col, row), MovesLeft = def.Moves, Charges = def.Charges };
         s.AddUnit(u);
         return u;
     }

@@ -36,7 +36,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Outposts: Waymakers, radius-1 claims, supply source, one harvested resource, raids, promotion to a city | ✔ |
 | Unit upgrades with 2–3 variants each (honest trade-offs), unique-unit substitution, gold and resource costs | ✔ |
 | Turn modes: dynamic (war-graph phases), sequential and simultaneous; phases in the state; host-enforced over real sockets | ✔ |
-| 174 automated tests | ✔ |
+| AI v2: settler site search, builders, war declaration on weaker neighbours, attacks above 60% odds, retreat, peace terms | ✔ |
+| 182 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -52,7 +53,7 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
   religion v0 (pantheon + founding); era score with Golden and Dark Ages.
 * **Client:** chunked terrain, unit models as placeholders, selection and movement UI with path preview and ETA, city screen with production queue,
   placement lens hover tooltips, notification stack, turn summary, tech and civic trees (read-only graph plus queue), save and load.
-* **AI:** expansion planner, district master-plans, basic military defence.
+* **AI:** ~~expansion planner~~ and basic war (AI v2, built in M0); district master-plans, basic military defence.
 * **Tooling:** float-ban analyzer in the sim, cross-platform golden-hash CI job, Huge-map turn benchmark.
 * **Exit:** 10 internal playtesters finish 150-turn games; 70% or more rate "city planning" ≥ 4/5; no determinism failures across Windows, macOS and Linux CI.
 

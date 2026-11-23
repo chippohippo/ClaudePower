@@ -24,7 +24,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **6. Outposts**: cheap claims (radius 1, supply source, one resource), with no city screen; promotable to a city.
 - [x] **7. Unit variants**: choose 1 of 2–3 variants at upgrade; `UpgradeUnitCommand` with gold and resource costs.
 - [x] **8. Dynamic turn mode**: phase ordering by war graph in `HostSession`, with tests over sockets.
-- [ ] **9. AI v2**: expansion (settlers), builders, war planning (declare war on weak neighbours, attack with odds > 60%, retreat when out of supply), peace.
+- [x] **9. AI v2**: expansion (settlers), builders, war planning (declare war on weak neighbours, attack with odds > 60%, retreat when out of supply), peace.
 - [ ] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
 
 ## Done
@@ -41,5 +41,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
   `UpgradeSystem` + `UpgradeUnitCommand` (unique-unit substitution, gold × variant %, resource cost), AI preset upgrades, snapshot v10, 7 tests (170 total).
 - 8. Dynamic turn mode: `TurnPhases` (dynamic war-graph colouring, sequential, simultaneous) stored in the state at each turn start, host-side phase
   gate and phase-by-phase AI/turn driver in `HostSession`, HUD phase line, snapshot v11, 4 tests including a real-socket game (174 total).
+- 9. AI v2: `ExpansionAi` (site score, settler walking), `BuilderAi` (resource-first jobs), `MilitaryAi` (war on weaker neighbours, odds > 60%,
+  wounded fall back, march on cities, peace terms), production priorities; fixed a slot-order race in the dynamic-turn socket test; 8 tests (182 total).
 
 (see git log for full detail)

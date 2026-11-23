@@ -27,18 +27,12 @@ public sealed class SimpleAi : IAiController
         var player = s.Players[playerId];
         var commands = new List<GameCommand>();
 
-        foreach (var unit in s.Units.Where(u => u.Owner == playerId).ToList())
+        commands.AddRange(ExpansionAi.Settlers(s, player));
+        commands.AddRange(BuilderAi.Builders(s, player));
+        foreach (var unit in s.Units.Where(u => u.Owner == playerId && db.Units[u.DefIndex].FoundsOutpost).ToList())
         {
-            if (db.Units[unit.DefIndex].FoundsCity)
-            {
-                var found = new FoundCityCommand { Player = playerId, UnitId = unit.Id };
-                if (found.Validate(s) == null) commands.Add(found);
-            }
-            else if (db.Units[unit.DefIndex].FoundsOutpost)
-            {
-                var plant = new FoundOutpostCommand { Player = playerId, UnitId = unit.Id };
-                if (plant.Validate(s) == null) commands.Add(plant);
-            }
+            var plant = new FoundOutpostCommand { Player = playerId, UnitId = unit.Id };
+            if (plant.Validate(s) == null) commands.Add(plant);
         }
 
         if (player.CurrentTech < 0 && PickTech(s, player) is { } tech)
@@ -49,34 +43,20 @@ public sealed class SimpleAi : IAiController
             if (civic != null) commands.Add(new SetCivicCommand { Player = playerId, Civic = civic.Index });
         }
 
+        int military = s.Units.Count(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u));
+        int cityCount = s.CitiesOf(playerId).Count();
+        bool atWar = MilitaryAi.MajorEnemies(s, playerId).Count > 0;
+        bool wantSettler = ExpansionAi.WantsSettler(s, player);
+        bool wantBuilder = BuilderAi.WantsBuilder(s, player);
         foreach (var city in s.CitiesOf(playerId))
         {
             if (city.Queue.Items.Count > 0) continue;
-            if (PickDivergenceProduction(s, player, city) is { } divergenceItem)
+            var choice = PickProduction(s, player, city, atWar, military, cityCount, ref wantSettler, ref wantBuilder);
+            if (choice is (var kind, var def, var tile))
             {
-                commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = divergenceItem.Kind, DefIndex = divergenceItem.Def });
-                continue;
+                commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = kind, DefIndex = def, Tile = tile });
+                if (kind == ProductionKind.Unit && db.Units[def].Strength > 0) military++;
             }
-            // Prefer the best-scoring specialty district (same scorer the player's lens uses).
-            var districtChoice = db.Districts
-                .Where(d => d.Category == DistrictCategory.Specialty)
-                .Select(d => (Def: d, Best: DistrictPlanner.Rank(s, city, d.Index, DistrictPlanner.BalancedWeights, 1).FirstOrDefault()))
-                .Where(x => x.Best != null)
-                .OrderByDescending(x => x.Best!.Score).ThenBy(x => x.Def.Index)
-                .FirstOrDefault();
-            if (districtChoice.Best != null)
-            {
-                commands.Add(new EnqueueCommand
-                {
-                    Player = playerId, CityId = city.Id, Kind = ProductionKind.District,
-                    DefIndex = districtChoice.Def.Index, Tile = districtChoice.Best.Tile,
-                });
-                continue;
-            }
-            var unitDef = db.Units.FirstOrDefault(u => u.Domain == UnitDomain.Land && u.Strength > 0 &&
-                                                       ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
-            if (unitDef != null)
-                commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = ProductionKind.Unit, DefIndex = unitDef.Index });
         }
 
         commands.AddRange(Governors(s, player));
@@ -91,18 +71,48 @@ public sealed class SimpleAi : IAiController
                 break;
             }
 
-        // Diplomacy (baseline): accept any peace offer; offer peace once a war has run its minimum length.
-        foreach (var rel in s.Relations)
-        {
-            if (rel.A != playerId && rel.B != playerId) continue;
-            int other = rel.A == playerId ? rel.B : rel.A;
-            if (rel.PeaceProposedBy == other) commands.Add(new AcceptPeaceCommand { Player = playerId, Target = other });
-            else if (rel.Status == DiploStatus.War && rel.PeaceProposedBy < 0 && DiplomacySystem.ValidateProposePeace(s, playerId, other) == null)
-                commands.Add(new ProposePeaceCommand { Player = playerId, Target = other });
-        }
+        // War and peace (AI v2): fight the wars we are in, maybe start one, and make peace on sensible terms.
+        commands.AddRange(MilitaryAi.Fight(s, player));
+        if (MilitaryAi.WarDeclaration(s, player) is { } war) commands.Add(war);
+        commands.AddRange(MilitaryAi.Diplomacy(s, player));
 
         commands.Add(new EndTurnCommand { Player = playerId });
         return commands;
+    }
+
+    /// <summary>
+    /// Production priorities: the Divergence's own projects; an army when at war (two units per city); one settler at a time
+    /// while sites remain; one builder while tiles need improving; a peacetime garrison (one unit per city, plus two);
+    /// the best-scoring specialty district; otherwise another unit.
+    /// </summary>
+    private static (ProductionKind Kind, int Def, int Tile)? PickProduction(GameState s, PlayerState player, CityState city, bool atWar,
+        int military, int cityCount, ref bool wantSettler, ref bool wantBuilder)
+    {
+        var db = s.Db;
+        if (PickDivergenceProduction(s, player, city) is { } divergenceItem) return (divergenceItem.Kind, divergenceItem.Def, -1);
+        var soldier = MilitaryAi.BestLandUnit(s, city);
+        if (atWar && soldier != null && military < 2 * cityCount + 2) return (ProductionKind.Unit, soldier.Index, -1);
+        if (wantSettler && db.Units.FirstOrDefault(u => u.FoundsCity && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } settler)
+        {
+            wantSettler = false;
+            return (ProductionKind.Unit, settler.Index, -1);
+        }
+        if (wantBuilder && db.Units.FirstOrDefault(u => u.Charges > 0 && u.Domain == UnitDomain.Civilian &&
+                                                         ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } builder)
+        {
+            wantBuilder = false;
+            return (ProductionKind.Unit, builder.Index, -1);
+        }
+        if (soldier != null && military < cityCount + 2) return (ProductionKind.Unit, soldier.Index, -1);
+        // Prefer the best-scoring specialty district (same scorer the player's lens uses).
+        var districtChoice = db.Districts
+            .Where(d => d.Category == DistrictCategory.Specialty)
+            .Select(d => (Def: d, Best: DistrictPlanner.Rank(s, city, d.Index, DistrictPlanner.BalancedWeights, 1).FirstOrDefault()))
+            .Where(x => x.Best != null)
+            .OrderByDescending(x => x.Best!.Score).ThenBy(x => x.Def.Index)
+            .FirstOrDefault();
+        if (districtChoice.Best != null) return (ProductionKind.District, districtChoice.Def.Index, districtChoice.Best.Tile);
+        return soldier != null ? (ProductionKind.Unit, soldier.Index, -1) : null;
     }
 
     /// <summary>Seat idle governors in the largest ungoverned cities, then spend a title: appoint first, promote after.</summary>
