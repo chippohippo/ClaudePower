@@ -1,4 +1,5 @@
 using UnbrokenAges.Sim.State;
+using UnbrokenAges.Sim.Systems;
 
 namespace UnbrokenAges.Sim.Commands;
 
@@ -108,7 +109,11 @@ public static class CommandProcessor
     {
         string? error = cmd.Validate(s);
         if (error != null) return CommandResult.Fail(error);
+        int from = events.Count;
         cmd.Apply(s, events);
+        // World-level consequences of whatever just happened, identically on every peer.
+        WorldSystem.Push(s, events, from);
+        ChronicleSystem.Record(s, events, from);
         return CommandResult.Success;
     }
 }

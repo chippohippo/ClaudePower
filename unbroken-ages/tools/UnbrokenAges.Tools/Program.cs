@@ -108,11 +108,15 @@ void Simulate()
         foreach (var e in events) tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
         if (s.Turn % 25 == 0)
             Console.WriteLine($"turn {s.Turn,4}: cities={s.Cities.Count} pop={s.Cities.Sum(c => c.Population)} districts={s.Cities.Sum(c => c.Districts.Count - 1)} " +
-                              $"techs={s.Players.Sum(p => p.Techs.Count(x => x))} CO2={s.Climate.Co2Ppm}ppm T=+{s.Climate.Temperature}°C phase={s.Climate.Phase}");
+                              $"techs={s.Players.Sum(p => p.Techs.Count(x => x))} CO2={s.Climate.Co2Ppm}ppm T=+{s.Climate.Temperature}°C phase={s.Climate.Phase} " +
+                              $"| world: {WorldSystem.CurrentAge(s)?.Name ?? "an ordinary age"} (progress {s.World.Progress.FloorToInt()}, strife {s.World.Strife.FloorToInt()}, calamity {s.World.Calamity.FloorToInt()})");
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
     Console.WriteLine("events: " + string.Join(", ", tally.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
+    Console.WriteLine();
+    Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");
+    foreach (var entry in s.Chronicle.TakeLast(12)) Console.WriteLine("  " + entry.Text);
 }
 
 void Host()
@@ -221,6 +225,9 @@ void Future()
     }
     Console.WriteLine();
     Console.WriteLine(FutureScenario.Render(s, $"THE WORLD {turns} TURNS LATER"));
+    Console.WriteLine("THE CHRONICLE (excerpt)");
+    foreach (var entry in s.Chronicle.Where(c => c.Kind is not GameEventType.CityFounded).Take(14)) Console.WriteLine("  " + entry.Text);
+    Console.WriteLine();
     Console.WriteLine("events: " + string.Join(", ", tally.Where(k => k.Key is GameEventType.WorldRemade or GameEventType.BloomEncroached
         or GameEventType.LandReclaimed or GameEventType.TileSubmerged or GameEventType.Disaster or GameEventType.AscensionCompleted).Select(k => $"{k.Key}={k.Value}")));
 }
@@ -306,6 +313,7 @@ static class FutureScenario
     public static void Build(GameState s, string[] paths)
     {
         var db = s.Db;
+        s.Turn = 296; // the calendar reads AD 2000: a world arriving at the Threshold
         var humans = s.Players.Where(p => !p.IsFreeCities).ToList();
         for (int i = 0; i < humans.Count; i++)
         {
@@ -320,7 +328,9 @@ static class FutureScenario
             p.Civics = db.Civics.Select(c => c.DivergenceIndex < 0).ToArray();
             var d = db.Divergences[paths[i % paths.Length]];
             p.Techs[d.DoctrineTechIndex] = true;
-            DivergenceSystem.OnNodeCompleted(s, p, db.Techs[d.DoctrineTechIndex], new List<GameEvent>());
+            var chosen = new List<GameEvent>();
+            DivergenceSystem.OnNodeCompleted(s, p, db.Techs[d.DoctrineTechIndex], chosen);
+            ChronicleSystem.Record(s, chosen, 0);
             foreach (var t in db.Techs.Where(t => t.DivergenceIndex == d.Index && t.Cost < 3400)) p.Techs[t.Index] = true;
             p.Gold = 2000;
             p.Stockpile[db.Resources.IndexOf("RESOURCE_URANIUM")] = 400;

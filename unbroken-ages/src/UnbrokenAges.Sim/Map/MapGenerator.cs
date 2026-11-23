@@ -558,6 +558,9 @@ public static class MapGenerator
     {
         foreach (var res in db.Resources)
         {
+            // Never consume randomness for resources that don't appear on maps (manufactured goods),
+            // so adding such content can't reshuffle every seed's map.
+            if (res.Frequency <= 0 || res.Class == ResourceClass.Good) continue;
             var eligible = new List<int>();
             for (int i = 0; i < map.Count; i++)
             {

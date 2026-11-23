@@ -148,7 +148,7 @@ public sealed class EnqueueCommand : GameCommand
     {
         if (OwnCity(s, CityId) is not { } c) return "Not your city.";
         if (c.Queue.Items.Count >= s.Options.MaxQueueLength) return "Queue is full.";
-        return ProductionSystem.Validate(s, c, Kind, DefIndex, Tile);
+        return ProductionSystem.CanEnqueue(s, c, Kind, DefIndex, Tile);
     }
     public override void Apply(GameState s, List<GameEvent> events) =>
         ProductionSystem.Enqueue(s, s.GetCity(CityId)!, Kind, DefIndex, Tile, Position, Repeat);
@@ -197,7 +197,7 @@ public sealed class PurchaseCommand : GameCommand
         if (Kind is not (ProductionKind.Unit or ProductionKind.Building)) return "Only units and buildings can be purchased.";
         int queued = c.Queue.Items.FindIndex(q => q.Kind == Kind && q.DefIndex == DefIndex);
         int uid = queued >= 0 ? c.Queue.Items[queued].Uid : -1;
-        if (ProductionSystem.Validate(s, c, Kind, DefIndex, -1, uid) is { } err) return err;
+        if ((ProductionSystem.Validate(s, c, Kind, DefIndex, -1, uid) ?? ProductionSystem.ResourceShortfall(s, s.Players[Player], Kind, DefIndex)) is { } err) return err;
         return s.Players[Player].Gold < ProductionSystem.PurchaseCost(s, c, Kind, DefIndex) ? "Not enough gold." : null;
     }
     public override void Apply(GameState s, List<GameEvent> events)

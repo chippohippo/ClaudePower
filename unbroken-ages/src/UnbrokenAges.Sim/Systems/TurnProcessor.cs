@@ -50,17 +50,20 @@ public static class TurnProcessor
             AccumulateStrategicResources(s, player);
         }
 
+        IndustrySystem.ProcessTurn(s);
         GovernorSystem.ProcessTurn(s, events);
         LoyaltySystem.ProcessTurn(s, events);
         DivergenceSystem.ProcessTurn(s, events);
         ClimateSystem.ProcessTurn(s, power, events);
 
+        SupplySystem.ProcessTurn(s, events);
         foreach (var unit in s.Units.ToList())
         {
             unit.MovesLeft = db.Units[unit.DefIndex].Moves;
             if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
         }
 
+        WorldSystem.ProcessTurn(s, events);
         s.Turn++;
         foreach (var p in s.Players) p.HasEndedTurn = false;
         events.Add(new GameEvent(GameEventType.TurnAdvanced, Value: s.Turn));

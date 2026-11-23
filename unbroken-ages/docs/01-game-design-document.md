@@ -410,6 +410,14 @@ Architecture: [02-technical-architecture.md §8](02-technical-architecture.md#8-
 
 ---
 
+## 20. Depth from Millennia & Shadow Empire, with Civ's ease
+
+The game borrows the *stories* those games create (alternate-history ages, logistics that decide wars, production chains, leaders who are people,
+an auto-written history) through an **Ease Charter**: automatic by default, surfaces instead of screens, shortages stall and never delete, and the AI plays it
+or it ships off. A **Depth Dial** (Classic / Enhanced / Grand Strategy) sets granularity. Built now: **World Currents & Ages**, **Supply lens**, **Industries**,
+and **the Chronicle**. Planned: Outposts, Unit Variants, Living Governors, National Character, Private Enterprise, Battle Reports, Fog of Strength, World Genesis.
+Full design: [09-genre-defining-depth.md](09-genre-defining-depth.md).
+
 ## Appendix A — Community request traceability
 
 Status legend: **Built** = implemented and tested in this repository; **Designed** = specified in these documents, scheduled in [04-implementation-plan.md](04-implementation-plan.md).
@@ -450,6 +458,12 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 32 | Hotseat and async play | §15 | Hotseat M2 / async M5 |
 | 33 | A late game that feels like the future (*Beyond Earth*-style affinities, but on Earth) | §6 The Divergence, [08](08-divergence-tech-tree.md) | **Built** (sim, data, AI, client screen); art M4 |
 | 34 | Late-game worlds that look different, not just bigger numbers | Divergence terraforming, biome spread, sea reclamation | **Built** |
+| 35 | Every game tells a different history (Millennia-style ages) | §20 World Currents & Ages | **Built** |
+| 36 | Logistics that matter without micromanagement (Shadow Empire) | §20 Supply lens, attrition, river highways | **Built** |
+| 37 | Economic depth beyond raw yields | §20 Industries (Steel, Plastics, Electronics) | **Built** |
+| 38 | Remember the story of my civilization | §20 The Chronicle | **Built** |
+| 39 | Leaders and governors with personality and history | §20 Living Governors | Designed — M3 |
+| 40 | Less late-game busywork for wide empires | Outposts, Private Enterprise, provinces | Designed — M3 |
 
 ## Appendix B — Naming & IP hygiene
 

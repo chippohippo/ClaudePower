@@ -23,6 +23,7 @@ public static class ResearchSystem
     public static void Process(GameState s, PlayerState p, Fx science, Fx culture, List<GameEvent> events)
     {
         var db = s.Db;
+        int eraBefore = s.PlayerEra(p);
         p.TechProgress += science;
         if (p.CurrentTech >= 0)
         {
@@ -53,5 +54,9 @@ public static class ResearchSystem
                 DivergenceSystem.OnNodeCompleted(s, p, civic, events);
             }
         }
+
+        int eraAfter = s.PlayerEra(p);
+        if (eraAfter > eraBefore && db.Eras.FirstOrDefault(e => e.Order == eraAfter) is { } era)
+            events.Add(new GameEvent(GameEventType.EraEntered, p.Id, Def: era.Index, Value: eraAfter, Detail: era.Name));
     }
 }

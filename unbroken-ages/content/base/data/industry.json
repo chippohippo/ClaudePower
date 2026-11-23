@@ -1,0 +1,22 @@
+{
+  // Production chains: automatic, empire-wide, explained. Design: docs/09-genre-defining-depth.md §3
+  "$schema": "../../schemas/content.schema.json",
+  "resources": [
+    { "id": "RESOURCE_STEEL", "name": "Steel", "class": "Good", "frequency": 0, "stockpileCap": 100,
+      "description": "Iron and coal, made into something better. Armour, rails, river monitors." },
+    { "id": "RESOURCE_PLASTICS", "name": "Plastics", "class": "Good", "frequency": 0, "stockpileCap": 100 },
+    { "id": "RESOURCE_ELECTRONICS", "name": "Electronics", "class": "Good", "frequency": 0, "stockpileCap": 100,
+      "description": "Steel and plastics, made to think. Drones, exoframes, frames." }
+  ],
+  "buildings": [
+    { "id": "BUILDING_STEEL_MILL", "name": "Steel Mill", "district": "DISTRICT_FOUNDRY", "cost": 360, "maintenance": 3,
+      "prereqTech": "TECH_INDUSTRIALIZATION", "requiresBuildings": ["BUILDING_WORKSHOP"], "co2PerTurn": 1,
+      "recipe": { "inputs": { "RESOURCE_IRON": 1, "RESOURCE_COAL": 1 }, "outputs": { "RESOURCE_STEEL": 2 }, "requiresPower": false } },
+    { "id": "BUILDING_REFINERY", "name": "Refinery", "district": "DISTRICT_FOUNDRY", "cost": 420, "maintenance": 3,
+      "prereqTech": "TECH_REFINING", "powerDemand": 1, "co2PerTurn": 0.5,
+      "recipe": { "inputs": { "RESOURCE_OIL": 1 }, "outputs": { "RESOURCE_PLASTICS": 2 } } },
+    { "id": "BUILDING_ELECTRONICS_PLANT", "name": "Electronics Plant", "district": "DISTRICT_FOUNDRY", "cost": 520, "maintenance": 4,
+      "prereqTech": "TECH_ROCKETRY", "powerDemand": 2,
+      "recipe": { "inputs": { "RESOURCE_STEEL": 1, "RESOURCE_PLASTICS": 1 }, "outputs": { "RESOURCE_ELECTRONICS": 2 } } }
+  ]
+}

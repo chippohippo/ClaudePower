@@ -10,7 +10,8 @@ namespace UnbrokenAges.Sim.Data;
 // ---------------------------------------------------------------------------------------------
 
 public enum TerrainClass { Land, Coast, Ocean, Lake, Channel }
-public enum ResourceClass { Bonus, Luxury, Strategic }
+public enum ResourceClass { Bonus, Luxury, Strategic, Good }
+public enum WorldCurrent { Progress, Strife, Calamity }
 public enum DistrictCategory { CityCenter, Specialty, Infrastructure, Wonder }
 public enum UnitDomain { Land, Naval, Air, Civilian }
 public enum AdjacencyScope { Adjacent, Self }
@@ -398,6 +399,8 @@ public sealed class BuildingDef : Definition
     public string? Civilization { get; init; }
     public string? Replaces { get; init; }
     public List<ModifierDef> Modifiers { get; init; } = new();
+    /// <summary>Industry: converts stockpiled resources into goods every turn, automatically.</summary>
+    public IndustryRecipe? Recipe { get; init; }
 
     [JsonIgnore] public int DistrictIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
@@ -415,6 +418,7 @@ public sealed class BuildingDef : Definition
         CivilizationIndex = ctx.Resolve(ctx.Db.Civilizations, Civilization, this, "civilization");
         ReplacesIndex = ctx.Resolve(ctx.Db.Buildings, Replaces, this, "replaces");
         Power?.Link(ctx, this);
+        Recipe?.Link(ctx, this);
         foreach (var m in Modifiers) m.Link(ctx, this);
     }
 }
@@ -823,4 +827,112 @@ public sealed class DivergenceDef : Definition
         ctx.Error(this, message);
         return -1;
     }
+}
+
+// ----- Industry (production chains) ----------------------------------------------------------------------
+
+/// <summary>
+/// An automatic production chain step: each turn, if the empire stockpile holds the inputs (and the
+/// city is powered when required), they become the outputs. No routing, no trucks: one empire pool.
+/// </summary>
+public sealed class IndustryRecipe
+{
+    public Dictionary<string, int> Inputs { get; init; } = new();
+    public Dictionary<string, int> Outputs { get; init; } = new();
+    public bool RequiresPower { get; init; } = true;
+
+    [JsonIgnore] public (int Resource, int Amount)[] ResolvedInputs { get; private set; } = Array.Empty<(int, int)>();
+    [JsonIgnore] public (int Resource, int Amount)[] ResolvedOutputs { get; private set; } = Array.Empty<(int, int)>();
+
+    internal void Link(LinkContext ctx, Definition owner)
+    {
+        (int, int)[] Resolve(Dictionary<string, int> map, string field) => map
+            .Select(kv => (ctx.Resolve(ctx.Db.Resources, kv.Key, owner, field, true), kv.Value))
+            .Where(x => x.Item1 >= 0).OrderBy(x => x.Item1).ToArray();
+        ResolvedInputs = Resolve(Inputs, "recipe.inputs");
+        ResolvedOutputs = Resolve(Outputs, "recipe.outputs");
+    }
+}
+
+// ----- World currents & ages ---------------------------------------------------------------------------
+
+public sealed class CurrentCondition
+{
+    public WorldCurrent Current { get; init; }
+    public Fx Min { get; init; } = Fx.Zero;
+    public Fx Max { get; init; } = 100;
+}
+
+/// <summary>
+/// The character of a whole era for the whole world, chosen when the first civilization enters a new
+/// era, from the world's currents (Progress, Strife, Calamity). It colours history; it never replaces
+/// anyone's civilization, techs or units.
+/// </summary>
+public sealed class WorldAgeDef : Definition
+{
+    public int Priority { get; init; }
+    public string? MinEra { get; init; }
+    public List<CurrentCondition> Conditions { get; init; } = new();
+    public List<ModifierDef> Modifiers { get; init; } = new();
+    /// <summary>Percent change to every disaster's chance while this age lasts.</summary>
+    public int DisasterChancePercent { get; init; }
+    public string? Narration { get; init; }
+
+    [JsonIgnore] public int MinEraOrder { get; private set; }
+
+    internal override void Link(LinkContext ctx)
+    {
+        int era = ctx.Resolve(ctx.Db.Eras, MinEra, this, "minEra");
+        MinEraOrder = era >= 0 ? ctx.Db.Eras[era].Order : 0;
+        foreach (var m in Modifiers) m.Link(ctx, this);
+    }
+}
+
+public sealed class CurrentPush
+{
+    /// <summary>Event type name, or a derived key such as "MilitaryUnitTrained".</summary>
+    public string Event { get; init; } = "";
+    public WorldCurrent Current { get; init; }
+    public Fx Amount { get; init; } = Fx.One;
+}
+
+public sealed class SupplyRules
+{
+    /// <summary>Supply budget at a city, in cost units.</summary>
+    public int CityRange { get; init; } = 10;
+    public int MilitaryDistrictBonus { get; init; } = 4;
+    /// <summary>Supply budget projected over water from Port-tagged districts.</summary>
+    public int PortRange { get; init; } = 12;
+    public int OwnCost { get; init; } = 2;
+    public int NeutralCost { get; init; } = 3;
+    public int ForeignCost { get; init; } = 5;
+    public int RoughExtra { get; init; } = 1;
+    /// <summary>Great Rivers are highways: supply flows cheaply along channel tiles.</summary>
+    public int ChannelCost { get; init; } = 1;
+    public int WaterCost { get; init; } = 2;
+    public int AttritionHp { get; init; } = 10;
+    public int HealHp { get; init; } = 10;
+}
+
+/// <summary>Singleton rules for world-level systems (currents, supply).</summary>
+public sealed class WorldRulesDef : Definition
+{
+    public int CurrentDecayPercent { get; init; } = 3;
+    public List<CurrentPush> Pushes { get; init; } = new();
+    public SupplyRules Supply { get; init; } = new();
+}
+
+// ----- Chronicle --------------------------------------------------------------------------------------
+
+/// <summary>Turns a game event into a line of your civilization's auto-written history.</summary>
+public sealed class ChronicleTemplateDef : Definition
+{
+    public string Event { get; init; } = "";
+    /// <summary>Placeholders: {year} {civ} {leader} {city} {detail} {value}.</summary>
+    public string Text { get; init; } = "";
+    public int MinValue { get; init; } = int.MinValue;
+    /// <summary>Record only the first occurrence per player (e.g. "the sea claims the first lowland").</summary>
+    public bool OncePerPlayer { get; init; }
+    /// <summary>Skip events that happened to no one (e.g. a storm in empty wilderness).</summary>
+    public bool RequiresPlayer { get; init; }
 }

@@ -177,6 +177,25 @@ Mismatch messages are explicit: *"Your enabled gameplay mods differ from the hos
 ```
 The **turn summary** (Ctrl+T) lists everything that changed last turn, grouped and clickable.
 
+**World line** (second HUD row; implemented in `GameRoot.WorldLine`):
+```
+An Age of Lanterns   Progress 61 · Strife 22 · Calamity 9   → if a new era began now: An Age of Lanterns   [L] supply  [C] chronicle  [V] divergence
+```
+**Supply lens (L)**: green hexes shaded by supply depth (rivers glow as long green ribbons); cut-off units get a red hex and an "out of supply: −10 HP/turn" badge.
+
+## 7b. The Chronicle (C)
+```
+┌ THE CHRONICLE ─────────────────────────── ☐ Include other civilizations (as far as you know) ┐
+│ AD 1840: The sea claims the first of Egypt's lowlands.                                         │
+│ AD 1790: The world enters An Age of Titans. Engines everywhere, smoke everywhere…              │
+│ AD 1385: Egypt's first governor, The Steward, takes office in Abydos.                          │
+│ 475 BC: The world enters An Age of Lanterns. Ideas cross borders faster than armies…           │
+│ 4000 BC: Egypt founds Waset.                                                                    │
+│ [Export with timelapse]                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+Your entries are bold and the world's are italic. **Implemented:** `godot/scripts/UI/ChroniclePanel.cs`.
+
 ## 8. Accessibility checklist (applies to every screen)
 Text ≥ 14 px at 100% scale; contrast ≥ 4.5:1; no information carried by colour alone; full keyboard and controller navigation (Steam Deck);
 reduced-motion mode; subtitles and audio cues for notifications; screen-reader labels on every Control (Godot AccessKit); remappable everything.

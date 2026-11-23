@@ -230,7 +230,7 @@ Three civilizations on one continent, each committed to a different future. (Exc
 ```
 In the north, Egypt's arcologies have graded everything they can reach. In the south-west, Venice's Bloom has jumped the strait and is eating the
 unclaimed interior, stopping only at Egypt's grid. Song's Substrate fills the east up to the river and the mountains. Over 300 turns the Bloom reaches
-about 45% of the land and the first Ascension completes. On a full-size map with eight civilizations, the late-game Earth is a patchwork of three alien biomes.
+about 45% of the land and the first Ascension completes (*"AD 2066: Egypt completes the Sovereign Path. History, as the old world knew it, ends here."*). On a full-size map with eight civilizations, the late-game Earth is a patchwork of three alien biomes.
 
 ---
 

@@ -69,7 +69,7 @@ public sealed class SimpleAi : IAiController
                 continue;
             }
             var unitDef = db.Units.FirstOrDefault(u => u.Domain == UnitDomain.Land && u.Strength > 0 &&
-                                                       ProductionSystem.Validate(s, city, ProductionKind.Unit, u.Index, -1) == null);
+                                                       ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
             if (unitDef != null)
                 commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = ProductionKind.Unit, DefIndex = unitDef.Index });
         }

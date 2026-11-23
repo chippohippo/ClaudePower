@@ -133,7 +133,9 @@ public static class ClimateSystem
     public static int DisasterChancePermille(GameState s, DisasterDef d)
     {
         int chance = d.BaseChancePermille * IntensityPercent[Math.Clamp(s.Options.DisasterIntensity, 0, 4)] / 100;
-        return chance * (100 + s.Climate.Phase * d.ClimateScalingPercent) / 100;
+        chance = chance * (100 + s.Climate.Phase * d.ClimateScalingPercent) / 100;
+        if (WorldSystem.CurrentAge(s) is { } age) chance = chance * Math.Max(0, 100 + age.DisasterChancePercent) / 100;
+        return chance;
     }
 
     private static void RollDisasters(GameState s, List<GameEvent> events)
@@ -181,7 +183,7 @@ public static class ClimateSystem
                     if (d.Kind == DisasterKind.Drought) city.FoodStored /= 2;
                 }
             }
-            events.Add(new GameEvent(GameEventType.Disaster, Tile: epicenter, Def: d.Index, Value: affected, Detail: d.Name));
+            events.Add(new GameEvent(GameEventType.Disaster, map.OwnerPlayer[epicenter], map.OwnerCity[epicenter], epicenter, d.Index, affected, d.Name));
         }
     }
 }

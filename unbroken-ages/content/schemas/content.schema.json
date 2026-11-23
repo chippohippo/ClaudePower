@@ -121,6 +121,24 @@
       "items": {
         "$ref": "#/$defs/divergence"
       }
+    },
+    "worldAges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/worldAge"
+      }
+    },
+    "worldRules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/worldRules"
+      }
+    },
+    "chronicle": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chronicleTemplate"
+      }
     }
   },
   "additionalProperties": false,
@@ -753,7 +771,8 @@
           "enum": [
             "Bonus",
             "Luxury",
-            "Strategic"
+            "Strategic",
+            "Good"
           ]
         },
         "yields": {
@@ -1337,6 +1356,27 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "recipe": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              }
+            },
+            "outputs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              }
+            },
+            "requiresPower": {
+              "type": "boolean"
+            }
+          }
         }
       },
       "required": [
@@ -2415,6 +2455,275 @@
         },
         "attitudeTowardOthers": {
           "type": "integer"
+        }
+      }
+    },
+    "worldAge": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "minEra": {
+          "type": "string"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "current": {
+                    "enum": [
+                      "Progress",
+                      "Strife",
+                      "Calamity"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "max": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "disasterChancePercent": {
+          "type": "integer"
+        },
+        "narration": {
+          "type": "string"
+        }
+      }
+    },
+    "worldRules": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "currentDecayPercent": {
+          "type": "integer"
+        },
+        "pushes": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "event": {
+                    "type": "string"
+                  },
+                  "current": {
+                    "enum": [
+                      "Progress",
+                      "Strife",
+                      "Calamity"
+                    ]
+                  },
+                  "amount": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "supply": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cityRange": {
+              "type": "integer"
+            },
+            "militaryDistrictBonus": {
+              "type": "integer"
+            },
+            "portRange": {
+              "type": "integer"
+            },
+            "ownCost": {
+              "type": "integer"
+            },
+            "neutralCost": {
+              "type": "integer"
+            },
+            "foreignCost": {
+              "type": "integer"
+            },
+            "roughExtra": {
+              "type": "integer"
+            },
+            "channelCost": {
+              "type": "integer"
+            },
+            "waterCost": {
+              "type": "integer"
+            },
+            "attritionHp": {
+              "type": "integer"
+            },
+            "healHp": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "chronicleTemplate": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "event": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "minValue": {
+          "type": "integer"
+        },
+        "oncePerPlayer": {
+          "type": "boolean"
+        },
+        "requiresPlayer": {
+          "type": "boolean"
         }
       }
     }

@@ -125,6 +125,43 @@ public sealed class UnitState
     public int Destination = -1;
 }
 
+/// <summary>Shared state of the whole world: currents and the age history.</summary>
+public sealed class WorldState
+{
+    public Fx Progress;
+    public Fx Strife;
+    public Fx Calamity;
+    /// <summary>Highest era order any civilization has reached.</summary>
+    public int WorldEra;
+    /// <summary>World age currently in effect (-1 = an ordinary age).</summary>
+    public int CurrentAge = -1;
+    public List<(int Era, int Age)> AgeHistory = new();
+
+    public Fx Get(Data.WorldCurrent c) => c switch
+    {
+        Data.WorldCurrent.Progress => Progress,
+        Data.WorldCurrent.Strife => Strife,
+        _ => Calamity,
+    };
+
+    public void Set(Data.WorldCurrent c, Fx v)
+    {
+        v = Fx.Clamp(v, Fx.Zero, 100);
+        if (c == Data.WorldCurrent.Progress) Progress = v;
+        else if (c == Data.WorldCurrent.Strife) Strife = v;
+        else Calamity = v;
+    }
+}
+
+public sealed class ChronicleEntry
+{
+    public int Turn;
+    public int Year;
+    public int Player = -1;
+    public GameEventType Kind;
+    public string Text = "";
+}
+
 public sealed class ClimateState
 {
     public Fx Co2Ppm = 280;
@@ -152,6 +189,8 @@ public sealed class GameState
     public List<CityState> Cities = new();
     public List<UnitState> Units = new();
     public ClimateState Climate = new();
+    public WorldState World = new();
+    public List<ChronicleEntry> Chronicle = new();
     public Pcg32 GameplayRng;
     public Pcg32 DisasterRng;
 

@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 2;
+    public const int Version = 3;
 
     public static byte[] Serialize(GameState s)
     {
@@ -106,6 +106,13 @@ public static class GameStateSerializer
         var cl = s.Climate;
         WriteFx(w, cl.Co2Ppm); WriteFx(w, cl.Temperature); w.Write(cl.Phase); WriteFx(w, cl.EmissionsLastTurn);
         WriteFx(w, cl.PendingDeforestation); w.Write(cl.LastPhaseChangeTurn);
+
+        var wd = s.World;
+        WriteFx(w, wd.Progress); WriteFx(w, wd.Strife); WriteFx(w, wd.Calamity); w.Write(wd.WorldEra); w.Write(wd.CurrentAge);
+        w.Write(wd.AgeHistory.Count);
+        foreach (var (era, age) in wd.AgeHistory) { w.Write(era); w.Write(age); }
+        w.Write(s.Chronicle.Count);
+        foreach (var e in s.Chronicle) { w.Write(e.Turn); w.Write(e.Year); w.Write(e.Player); w.Write((byte)e.Kind); w.Write(e.Text); }
     }
 
     public static GameState Deserialize(byte[] data, GameDatabase db)
@@ -220,6 +227,12 @@ public static class GameStateSerializer
             Co2Ppm = ReadFx(r), Temperature = ReadFx(r), Phase = r.ReadInt32(), EmissionsLastTurn = ReadFx(r),
             PendingDeforestation = ReadFx(r), LastPhaseChangeTurn = r.ReadInt32(),
         };
+        s.World = new WorldState { Progress = ReadFx(r), Strife = ReadFx(r), Calamity = ReadFx(r), WorldEra = r.ReadInt32(), CurrentAge = r.ReadInt32() };
+        int ages = r.ReadInt32();
+        for (int i = 0; i < ages; i++) s.World.AgeHistory.Add((r.ReadInt32(), r.ReadInt32()));
+        int entries = r.ReadInt32();
+        for (int i = 0; i < entries; i++)
+            s.Chronicle.Add(new ChronicleEntry { Turn = r.ReadInt32(), Year = r.ReadInt32(), Player = r.ReadInt32(), Kind = (GameEventType)r.ReadByte(), Text = r.ReadString() });
         return s;
     }
 

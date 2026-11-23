@@ -113,6 +113,18 @@ public static class ProductionSystem
         return "Unknown item.";
     }
 
+    /// <summary>Strategic resources and goods the item consumes on completion (units only).</summary>
+    public static string? ResourceShortfall(GameState s, PlayerState player, ProductionKind kind, int def)
+    {
+        if (kind != ProductionKind.Unit || s.Db.Units[def].ResourceCost is not { } rc) return null;
+        return player.Stockpile[rc.ResourceIndex] >= rc.Amount ? null
+            : $"Needs {rc.Amount} {s.Db.Resources[rc.ResourceIndex].Name} (have {player.Stockpile[rc.ResourceIndex]}).";
+    }
+
+    /// <summary>Validation used when adding to the queue or buying: legal now AND affordable in resources.</summary>
+    public static string? CanEnqueue(GameState s, CityState city, ProductionKind kind, int def, int tile) =>
+        Validate(s, city, kind, def, tile) ?? ResourceShortfall(s, s.Players[city.Owner], kind, def);
+
     public static QueueItem Enqueue(GameState s, CityState city, ProductionKind kind, int def, int tile, int position, bool repeat)
     {
         var item = new QueueItem { Uid = city.Queue.NextUid++, Kind = kind, DefIndex = def, Tile = kind == ProductionKind.District ? tile : -1, Repeat = repeat };
@@ -163,6 +175,14 @@ public static class ProductionSystem
                 city.ProgressLedger[item.ProgressKey] = progress;
                 return;
             }
+            // Finished but short of resources: hold at 100% instead of losing the item (it completes when supplied).
+            if (ResourceShortfall(s, player, item.Kind, item.DefIndex) is { } shortfall)
+            {
+                city.ProgressLedger[item.ProgressKey] = cost;
+                city.OverflowProduction = Fx.Min(progress - cost, cost);
+                events.Add(new GameEvent(GameEventType.ProductionStalled, city.Owner, city.Id, Def: item.DefIndex, Value: (int)item.Kind, Detail: shortfall));
+                return;
+            }
 
             // Completed: overflow (in base production terms) carries into next turn.
             Fx overflowRaw = progress - cost;
@@ -186,6 +206,7 @@ public static class ProductionSystem
             case ProductionKind.Unit:
             {
                 var def = db.Units[item.DefIndex];
+                if (def.ResourceCost is { } rc) s.Players[city.Owner].Stockpile[rc.ResourceIndex] -= rc.Amount;
                 var fx = CityEffects.Compute(s, city);
                 var unit = new UnitState
                 {

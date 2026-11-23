@@ -25,6 +25,10 @@ public enum GameEventType : byte
     BloomEncroached,
     LandReclaimed,
     AscensionCompleted,
+    EraEntered,
+    WorldAgeBegan,
+    UnitLostToAttrition,
+    ProductionStalled,
 }
 
 /// <summary>

@@ -63,6 +63,8 @@ public sealed class CityEffects
             var div = db.Divergences[owner.Divergence];
             fx.ApplyAll(s, city, div.Modifiers, div.Name);
         }
+        if (WorldSystem.CurrentAge(s) is { } age)
+            fx.ApplyAll(s, city, age.Modifiers, $"{age.Name} (world)");
         foreach (int t in db.TechsWithModifiers)
             if (owner.HasTech(t)) fx.ApplyAll(s, city, db.Techs[t].Modifiers, db.Techs[t].Name);
         foreach (int c in db.CivicsWithModifiers)

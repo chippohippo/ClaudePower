@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer, placement lens, city panel and production queue, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 97 tests: systems, determinism, snapshots, mods, real-socket multiplayer, and the Divergence |
+| [`tests/`](tests) | 111 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -38,6 +38,9 @@ Civilization VII's age resets or civ-swapping.
 * **The Divergence (Future-era tech fork)**: after *the Threshold*, commit to **Sovereign**, **Symbiont** or **Discarnate**, and the other branches lock forever.
   Your history makes one doctrine cheaper. Each future remakes the Earth (engineered grids, a bioluminescent Bloom that crosses borders, black Substrate) and ends in
   an Ascension victory. See [08-divergence-tech-tree.md](docs/08-divergence-tech-tree.md) and run `ua future`.
+* **Depth from Millennia & Shadow Empire, with Civ's ease** ([09](docs/09-genre-defining-depth.md)): **World Currents & Ages**
+  (Progress, Strife and Calamity steer each era into an Age of Iron, Ash, Lanterns, Titans or Concord for the whole world; no civ swaps), a **supply lens** (rivers are
+  highways; cut-off armies suffer attrition), **industries** (Steel, Plastics, Electronics, fully automatic), and **the Chronicle**, an auto-written dated history.
 * **Direct IP multiplayer**: authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
@@ -45,7 +48,7 @@ Civilization VII's age resets or civ-swapping.
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 97 tests, ~2 s
+dotnet test                                        # 111 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade
@@ -68,3 +71,4 @@ dotnet run --project tools/UnbrokenAges.Tools -- join 127.0.0.1:47620 --name Bot
 6. [UI/UX Wireframes](docs/06-ui-ux-wireframes.md): city view, empire overview, diplomacy, tech tree, lobby, placement lens
 7. [Modding](docs/07-modding.md): philosophy, layering, example mod, scripting sandbox, workshop
 8. [The Divergence](docs/08-divergence-tech-tree.md): the Future-era tech fork (Sovereign / Symbiont / Discarnate) and the remade Earth
+9. [Genre-Defining Depth](docs/09-genre-defining-depth.md): what we take from Millennia and Shadow Empire, held to Civ's ease (Ease Charter, Depth Dial)

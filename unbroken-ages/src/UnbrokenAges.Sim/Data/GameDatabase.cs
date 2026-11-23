@@ -93,6 +93,11 @@ public sealed class GameDatabase
     public DefTable<ClimateConfigDef> Climate { get; } = new("climate");
     public DefTable<MapSizeDef> MapSizes { get; } = new("mapSizes");
     public DefTable<DivergenceDef> Divergences { get; } = new("divergences");
+    public DefTable<WorldAgeDef> WorldAges { get; } = new("worldAges");
+    public DefTable<WorldRulesDef> WorldRules { get; } = new("worldRules");
+    public DefTable<ChronicleTemplateDef> ChronicleTemplates { get; } = new("chronicle");
+
+    public WorldRulesDef Rules => WorldRules.Count > 0 ? WorldRules[0] : new WorldRulesDef { Id = "WORLD_RULES_DEFAULT" };
 
     /// <summary>Techs and civics that grant empire-wide modifiers (cached for CityEffects).</summary>
     public int[] TechsWithModifiers { get; private set; } = Array.Empty<int>();
@@ -121,7 +126,7 @@ public sealed class GameDatabase
         Reg(Eras); Reg(Terrains); Reg(Reliefs); Reg(Features); Reg(Resources); Reg(Improvements);
         Reg(Districts); Reg(Buildings); Reg(Projects); Reg(Units); Reg(Techs); Reg(Civics);
         Reg(Governors); Reg(Civilizations); Reg(Leaders); Reg(Disasters); Reg(Climate); Reg(MapSizes);
-        Reg(Divergences);
+        Reg(Divergences); Reg(WorldAges); Reg(WorldRules); Reg(ChronicleTemplates);
         return r;
     }
 
@@ -130,7 +135,8 @@ public sealed class GameDatabase
         IEnumerable<Definition> all = Eras;
         all = all.Concat(Terrains).Concat(Reliefs).Concat(Features).Concat(Resources).Concat(Improvements)
             .Concat(Districts).Concat(Buildings).Concat(Projects).Concat(Units).Concat(Techs).Concat(Civics)
-            .Concat(Governors).Concat(Civilizations).Concat(Leaders).Concat(Disasters).Concat(Climate).Concat(MapSizes).Concat(Divergences);
+            .Concat(Governors).Concat(Civilizations).Concat(Leaders).Concat(Disasters).Concat(Climate).Concat(MapSizes).Concat(Divergences)
+            .Concat(WorldAges).Concat(WorldRules).Concat(ChronicleTemplates);
         return all;
     }
 

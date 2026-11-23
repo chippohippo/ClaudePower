@@ -27,7 +27,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Direct IP host/client, desync heal, reconnect, spectators, LAN beacons | ✔ |
 | `ua` CLI (mapgen, validate, simulate, host, join); Godot client skeleton that compiles | ✔ |
 | **The Divergence** Future-era fork: locks, leanings, three futures, terraforming spread, Ascension; `ua future` demo | ✔ |
-| 97 automated tests | ✔ |
+| Depth from Millennia & Shadow Empire: World Currents & Ages, Supply lens and attrition, Industries and goods, the Chronicle | ✔ |
+| 111 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -67,7 +68,8 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 * Turn modes: simultaneous, **dynamic**, sequential, hybrid timers; pause voting; AI takeover of dropped players; teams with shared vision and tacks.
 * NAT: UPnP/PCP port mapping, connection doctor ("your port is closed", reachability test), **relay service** with room codes (open-source server).
 * Chaos-test transport (latency, loss, reorder) in CI; reconnect at any phase; spectators with optional delay; in-game chat and pings.
-* Late-game management: **provinces**, puppets, empire-wide queue templates.
+* Late-game management: **provinces**, puppets, empire-wide queue templates, **Outposts**, **Private Enterprise**.
+* **Living Governors** (traits from service), **Unit Variants**, **Battle Reports**, **Fog of Strength**; the supply combat penalty (Grand dial).
 * Combat v2: naval classes, supply, blockades; air missions and superiority overlay; corps and armies; combined-arms support units.
 * **Exit:** 50 community-run 8-player games to turn 150+ with ≥ 98% completing without a stall; median desync heal under 2 s; 0 unrecovered desyncs.
 
@@ -77,6 +79,7 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 
 * Religion overhaul (charges, upkeep, state religion, schisms, reformation); diplomacy (agendas, itemized grievances, research agreements, tile and city trades,
   **vassals**, liberation); **World Congress** redesign with player proposals; **espionage** across all eras; Trade Empires; Legends; Hidden Orders; Cataclysm.
+* **Initiatives**, **National Character** compass, **World Genesis** preview, **Deep Prehistory** ruins; the Depth Dial in setup (from M2).
 * Divergence production: three biome art sets (Engineered Ground, the Bloom, Substrate), per-future city skins, leader portrait evolutions,
   music transformations, Divergence World Congress resolutions, apostate-city events.
 * All victory types plus the Victory Dashboard; wonders (about 45) and natural wonders (about 20); minor nations; barbarians and Tribal Clans.

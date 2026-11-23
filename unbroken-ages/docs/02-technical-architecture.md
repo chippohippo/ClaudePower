@@ -73,11 +73,16 @@ during a turn (any order, any time)            end of turn (AdvanceTurnCommand, 
 Client UI ─► GameCommand ─► Session            1. PowerSystem.Process      grids, dispatch, fuel
              Validate(state) / Apply(state)     2. per player (id order), per city (id order):
              → GameEvents (UI, log, audio)         CityYields → Grow → ProductionSystem.Process
-                                                   treasury, ResearchSystem, strategic stockpiles
-EndTurnCommand per player ──► when all         3. GovernorSystem.ProcessTurn  establishment
-humans have ended (or timers expire),          4. LoyaltySystem.ProcessTurn   (snapshot-based)
-the host issues AdvanceTurnCommand             5. ClimateSystem.ProcessTurn   CO₂ → T → phase → seas → disasters
-                                                6. units refresh and continue multi-turn paths; Turn++
+                                                   treasury, ResearchSystem (+ EraEntered), strategic stockpiles
+EndTurnCommand per player ──► when all         3. IndustrySystem             production chains on the empire stockpile
+humans have ended (or timers expire),          4. GovernorSystem.ProcessTurn  establishment
+the host issues AdvanceTurnCommand             5. LoyaltySystem.ProcessTurn   (snapshot-based)
+                                                6. DivergenceSystem            the remade world spreads
+                                                7. ClimateSystem.ProcessTurn   CO₂ → T → phase → seas → disasters
+                                                8. SupplySystem                heal in supply / attrition when cut off
+                                                9. units refresh and continue multi-turn paths
+                                               10. WorldSystem                 currents decay; a new world era picks its age; Turn++
+ after EVERY command (any phase): WorldSystem.Push (currents) and ChronicleSystem.Record (history), identically on every peer
 ```
 
 * **Commands** (`Commands/GameCommand.cs`) are small, serializable and validated against current state. They are the only way state changes,

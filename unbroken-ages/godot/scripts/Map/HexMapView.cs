@@ -2,6 +2,7 @@ using Godot;
 using UnbrokenAges.Sim.Data;
 using UnbrokenAges.Sim.Map;
 using UnbrokenAges.Sim.State;
+using UnbrokenAges.Sim.Systems;
 
 namespace UnbrokenAges.Client.Map;
 
@@ -193,6 +194,31 @@ public partial class HexMapView : Node3D
         if (segments == 0) { mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); }
         mesh.SurfaceEnd();
         _borders.Mesh = mesh;
+    }
+
+    private MultiMeshInstance3D? _supply;
+
+    /// <summary>Supply lens: green where your armies are supplied (brighter = deeper), red where your units are cut off.</summary>
+    public void RenderSupply(GameState s, int viewer, bool visible)
+    {
+        _supply ??= Make(new CylinderMesh { TopRadius = 0.9f, BottomRadius = 0.9f, Height = 0.02f, RadialSegments = 6, Rings = 1 },
+            new StandardMaterial3D { VertexColorUseAsAlbedo = true, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded });
+        var items = new List<(Transform3D, Color)>();
+        if (visible)
+        {
+            var supply = SupplySystem.Compute(s, viewer);
+            var rotate = new Basis(Vector3.Up, Mathf.Pi / 6f);
+            for (int t = 0; t < s.Map.Count; t++)
+            {
+                if (supply[t] < 0) continue;
+                float k = Mathf.Clamp(supply[t] / 12f, 0.15f, 1f);
+                items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(t), 0.18f)), new Color(0.3f, 0.9f, 0.4f, 0.18f + 0.3f * k)));
+            }
+            foreach (var u in s.Units)
+                if (u.Owner == viewer && supply[u.Tile] < 0 && SupplySystem.IsMilitary(s.Db, u))
+                    items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(u.Tile), 0.2f)), new Color(0.95f, 0.2f, 0.2f, 0.6f)));
+        }
+        Fill(_supply, items);
     }
 
     public void Select(int tile)

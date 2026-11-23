@@ -22,7 +22,12 @@ All game content is data. The **authoritative definitions** are the C# records i
 * **Operations:** every entry may carry `"$op": "add" | "replace" | "patch" | "delete"` (default `add`); see [07-modding.md](07-modding.md).
 
 **Categories (fixed load and hash order):** `eras, terrains, reliefs, features, resources, improvements, districts, buildings,
-projects, units, techs, civics, governors, civilizations, leaders, disasters, climate, mapSizes, divergences`.
+projects, units, techs, civics, governors, civilizations, leaders, disasters, climate, mapSizes, divergences, worldAges, worldRules, chronicle`.
+
+Added in [09](09-genre-defining-depth.md): **worldAges** (`priority`, `minEra`, `conditions[{current, min, max}]`, `modifiers`, `disasterChancePercent`, `narration`);
+**worldRules** (one entry: `currentDecayPercent`, `pushes[{event, current, amount}]`, `supply{cityRange, militaryDistrictBonus, portRange, ownCost, neutralCost,
+foreignCost, roughExtra, channelCost, waterCost, attritionHp, healHp}`); **chronicle** (`event`, `text` with `{year} {civ} {leader} {city} {detail} {value}`,
+`minValue`, `oncePerPlayer`, `requiresPlayer`); building `recipe {inputs, outputs, requiresPower}`; resource class `Good`.
 
 Every definition has: `id` (required), `name`, `description`, `tags[]`.
 

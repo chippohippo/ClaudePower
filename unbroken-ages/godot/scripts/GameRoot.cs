@@ -31,6 +31,8 @@ public partial class GameRoot : Node3D
     private CityPanel _cityPanel = null!;
     private LobbyScreen _lobby = null!;
     private DivergencePanel _divergence = null!;
+    private ChroniclePanel _chronicle = null!;
+    private bool _supplyLens;
     private Label _status = null!;
 
     public GameState? State => _host?.State ?? _client?.State ?? _local;
@@ -63,6 +65,8 @@ public partial class GameRoot : Node3D
         ui.AddChild(_lobby);
         _divergence = new DivergencePanel(this) { Visible = false };
         ui.AddChild(_divergence);
+        _chronicle = new ChroniclePanel(this) { Visible = false };
+        ui.AddChild(_chronicle);
     }
 
     // ----- Session entry points (called by LobbyScreen) --------------------------------------------
@@ -148,12 +152,14 @@ public partial class GameRoot : Node3D
         {
             _renderedVersion = version;
             _map.Render(s, LocalPlayer);
+            _map.RenderSupply(s, LocalPlayer, _supplyLens);
             _cityPanel.Refresh();
         }
         var p = s.Players[LocalPlayer];
         string future = p.Divergence >= 0 ? $"   {s.Db.Divergences[p.Divergence].People} (V)" : "";
         _status.Text = $"Turn {s.Turn}   Gold {p.Gold}   CO2 {s.Climate.Co2Ppm} ppm (+{s.Climate.Temperature}°C, phase {s.Climate.Phase}){future}" +
-                       (_client?.PendingCommands.Count > 0 ? "   ⏳ syncing" : "") + (_client?.Paused == true ? "   ⏸ PAUSED" : "");
+                       (_client?.PendingCommands.Count > 0 ? "   ⏳ syncing" : "") + (_client?.Paused == true ? "   ⏸ PAUSED" : "") +
+                       "\n" + WorldLine(s);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -176,6 +182,25 @@ public partial class GameRoot : Node3D
             Submit(new EndTurnCommand());
         if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape } && _lens.IsActive)
             _lens.Hide();
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.L })
+        {
+            _supplyLens = !_supplyLens;
+            _map.RenderSupply(s, LocalPlayer, _supplyLens);
+        }
+    }
+}
+
+public partial class GameRoot
+{
+    /// <summary>One HUD line: the world's age, its currents, and what the next era would bring.</summary>
+    private static string WorldLine(GameState s)
+    {
+        var w = s.World;
+        int next = WorldSystem.Forecast(s, w.WorldEra + 1);
+        string age = WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age";
+        string forecast = next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age";
+        return $"{age}   Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}   " +
+               $"→ if a new era began now: {forecast}   [L] supply  [C] chronicle  [V] divergence";
     }
 }
 

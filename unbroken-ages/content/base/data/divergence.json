@@ -233,13 +233,13 @@
 
   "units": [
     { "id": "UNIT_WARDEN_LEGION", "name": "Warden Legion", "domain": "Land", "unitClass": "Melee", "era": "ERA_FUTURE", "cost": 900, "maintenance": 8,
-      "strength": 105, "moves": 2, "prereqTech": "TECH_GENOME_REGISTRY", "tags": ["Augmented"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
+      "strength": 105, "moves": 2, "prereqTech": "TECH_GENOME_REGISTRY", "resourceCost": { "resource": "RESOURCE_STEEL", "amount": 5 }, "tags": ["Augmented"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
       "description": "Unmodified humans in sealed armour. The Registry guarantees every one of them is exactly human." },
     { "id": "UNIT_MIRROR_LANCER", "name": "Mirror Lancer", "domain": "Air", "unitClass": "Bomber", "era": "ERA_FUTURE", "cost": 1000, "maintenance": 8,
-      "strength": 80, "rangedStrength": 120, "range": 4, "moves": 6, "prereqTech": "TECH_STRATOSPHERIC_VEIL", "tags": ["Augmented"], "strongAgainst": ["Machine"],
+      "strength": 80, "rangedStrength": 120, "range": 4, "moves": 6, "prereqTech": "TECH_STRATOSPHERIC_VEIL", "resourceCost": { "resource": "RESOURCE_ELECTRONICS", "amount": 5 }, "tags": ["Augmented"], "strongAgainst": ["Machine"],
       "description": "Strike craft riding the Veil's mirror arrays, focusing sunlight the sky no longer receives." },
     { "id": "UNIT_BASTION_STRIDER", "name": "Bastion Strider", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_FUTURE", "cost": 1400, "maintenance": 10,
-      "strength": 135, "moves": 3, "prereqTech": "TECH_ARCOLOGY_DOCTRINE", "tags": ["Augmented", "Armor"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
+      "strength": 135, "moves": 3, "prereqTech": "TECH_ARCOLOGY_DOCTRINE", "resourceCost": { "resource": "RESOURCE_STEEL", "amount": 10 }, "tags": ["Augmented", "Armor"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
       "description": "A walking fortress with a human crew of twelve, all registered." },
 
     { "id": "UNIT_GRAFTED_BEHEMOTH", "name": "Grafted Behemoth", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_FUTURE", "cost": 1400, "maintenance": 10,
@@ -253,13 +253,13 @@
       "description": "Swims up Great Rivers as easily as oceans. Its handlers swim with it." },
 
     { "id": "UNIT_HOLLOW_FRAME", "name": "Hollow Frame", "domain": "Land", "unitClass": "Melee", "era": "ERA_FUTURE", "cost": 900, "maintenance": 6,
-      "strength": 110, "moves": 3, "prereqTech": "TECH_THERMAL_INDIFFERENCE", "tags": ["Machine"], "strongAgainst": ["Living"], "weakAgainst": ["Augmented"],
+      "strength": 110, "moves": 3, "prereqTech": "TECH_THERMAL_INDIFFERENCE", "resourceCost": { "resource": "RESOURCE_ELECTRONICS", "amount": 5 }, "tags": ["Machine"], "strongAgainst": ["Living"], "weakAgainst": ["Augmented"],
       "description": "Wears the face of a citizen who no longer needs it." },
     { "id": "UNIT_THINKING_SWARM", "name": "Thinking Swarm", "domain": "Air", "unitClass": "Drone", "era": "ERA_FUTURE", "cost": 1000, "maintenance": 7,
-      "strength": 60, "rangedStrength": 130, "range": 5, "moves": 7, "prereqTech": "TECH_DISTRIBUTED_COGNITION", "tags": ["Machine", "Drone"], "strongAgainst": ["Living"],
+      "strength": 60, "rangedStrength": 130, "range": 5, "moves": 7, "prereqTech": "TECH_DISTRIBUTED_COGNITION", "resourceCost": { "resource": "RESOURCE_ELECTRONICS", "amount": 5 }, "tags": ["Machine", "Drone"], "strongAgainst": ["Living"],
       "description": "Ten thousand bodies, one opinion." },
     { "id": "UNIT_MONOLITH_ENGINE", "name": "Monolith Engine", "domain": "Land", "unitClass": "Siege", "era": "ERA_FUTURE", "cost": 1600, "maintenance": 12,
-      "strength": 120, "rangedStrength": 160, "range": 3, "moves": 2, "prereqTech": "TECH_LAST_UPLOAD", "tags": ["Machine"], "strongAgainst": ["Living", "Augmented"],
+      "strength": 120, "rangedStrength": 160, "range": 3, "moves": 2, "prereqTech": "TECH_LAST_UPLOAD", "resourceCost": { "resource": "RESOURCE_ELECTRONICS", "amount": 10 }, "tags": ["Machine"], "strongAgainst": ["Living", "Augmented"],
       "description": "A siege engine that is also a city: forty thousand minds run inside it." }
   ]
 }
