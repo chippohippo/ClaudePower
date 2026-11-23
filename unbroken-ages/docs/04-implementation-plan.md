@@ -37,7 +37,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Unit upgrades with 2–3 variants each (honest trade-offs), unique-unit substitution, gold and resource costs | ✔ |
 | Turn modes: dynamic (war-graph phases), sequential and simultaneous; phases in the state; host-enforced over real sockets | ✔ |
 | AI v2: settler site search, builders, war declaration on weaker neighbours, attacks above 60% odds, retreat, peace terms | ✔ |
-| 182 automated tests | ✔ |
+| Client: combat preview tooltip (right-click to attack), diplomacy screen skeleton, victory screen with One More Turn, civ and war borders | ✔ |
+| 189 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.

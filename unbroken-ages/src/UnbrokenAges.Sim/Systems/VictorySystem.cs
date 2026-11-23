@@ -132,6 +132,17 @@ public static class VictorySystem
         return best;
     }
 
+    /// <summary>"Egypt wins a Hegemony victory on turn 212." for the victory screen (null while undecided).</summary>
+    public static string? Headline(GameState s)
+    {
+        var v = s.Victory;
+        if (!v.Decided) return null;
+        var p = s.Players[v.Winner];
+        string civ = p.CivIndex >= 0 ? s.Db.Civilizations[p.CivIndex].Name : p.Name;
+        string article = v.Kind == VictoryKind.Ascension ? "an" : "a";
+        return $"{civ} wins {article} {v.Kind} victory on turn {v.Turn}.";
+    }
+
     // ----- shared --------------------------------------------------------------------------------------
 
     private static IEnumerable<PlayerState> Majors(GameState s) => s.Players.Where(p => p.IsAlive && !p.IsFreeCities);

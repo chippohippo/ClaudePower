@@ -32,6 +32,10 @@ public partial class GameRoot : Node3D
     private LobbyScreen _lobby = null!;
     private DivergencePanel _divergence = null!;
     private ChroniclePanel _chronicle = null!;
+    private DiplomacyPanel _diplomacy = null!;
+    private VictoryPanel _victory = null!;
+    private CombatTooltip _tooltip = null!;
+    private int _selectedUnit = -1;
     private bool _supplyLens;
     private Label _status = null!;
 
@@ -67,6 +71,12 @@ public partial class GameRoot : Node3D
         ui.AddChild(_divergence);
         _chronicle = new ChroniclePanel(this) { Visible = false };
         ui.AddChild(_chronicle);
+        _diplomacy = new DiplomacyPanel(this) { Visible = false };
+        ui.AddChild(_diplomacy);
+        _victory = new VictoryPanel(this);
+        ui.AddChild(_victory);
+        _tooltip = new CombatTooltip();
+        ui.AddChild(_tooltip);
     }
 
     // ----- Session entry points (called by LobbyScreen) --------------------------------------------
@@ -155,6 +165,7 @@ public partial class GameRoot : Node3D
             _map.RenderSupply(s, LocalPlayer, _supplyLens);
             _cityPanel.Refresh();
         }
+        _victory.Watch();
         var p = s.Players[LocalPlayer];
         string future = p.Divergence >= 0 ? $"   {s.Db.Divergences[p.Divergence].People} (V)" : "";
         _status.Text = $"Turn {s.Turn}   Gold {p.Gold}   CO2 {s.Climate.Co2Ppm} ppm (+{s.Climate.Temperature}°C, phase {s.Climate.Phase}){future}" +
@@ -173,11 +184,28 @@ public partial class GameRoot : Node3D
             if (tile < 0) return;
             if (_lens.IsActive) { _cityPanel.ConfirmPlacement(tile); return; }
             var city = s.Cities.FirstOrDefault(c => c.Tile == tile && c.Owner == LocalPlayer);
-            if (city != null) _cityPanel.ShowCity(city.Id);
+            var unit = s.Units.Where(u => u.Tile == tile && u.Owner == LocalPlayer).OrderByDescending(u => SupplySystem.IsMilitary(s.Db, u)).ThenBy(u => u.Id).FirstOrDefault();
+            _selectedUnit = unit?.Id ?? -1;
+            if (unit == null && city != null) _cityPanel.ShowCity(city.Id);
             else _map.Select(tile);
         }
-        if (@event is InputEventMouseMotion motion && _lens.IsActive)
-            _lens.Hover(s.Map.IndexOf(_camera.PickHex(motion.Position)));
+        // Right-click with a unit selected: attack what is there if the preview allows it, otherwise move there.
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } order && s.GetUnit(_selectedUnit) is { } selected)
+        {
+            int tile = s.Map.IndexOf(_camera.PickHex(order.Position));
+            if (tile < 0) return;
+            if (CombatSystem.Preview(s, selected, tile).Legal) Submit(new AttackCommand { UnitId = selected.Id, TargetTile = tile });
+            else Submit(new MoveUnitCommand { UnitId = selected.Id, Destination = tile });
+            _tooltip.Visible = false;
+        }
+        if (@event is InputEventMouseMotion motion)
+        {
+            int hovered = s.Map.IndexOf(_camera.PickHex(motion.Position));
+            if (_lens.IsActive) _lens.Hover(hovered);
+            if (hovered >= 0 && s.GetUnit(_selectedUnit) is { } attacker && SupplySystem.IsMilitary(s.Db, attacker))
+                _tooltip.ShowFor(s, attacker, hovered, motion.Position);
+            else _tooltip.Visible = false;
+        }
         if (@event is InputEventKey { Pressed: true, Keycode: Key.Enter })
             Submit(new EndTurnCommand());
         if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape } && _lens.IsActive)
@@ -202,7 +230,7 @@ public partial class GameRoot
         // Dynamic and sequential turns: say whose phase it is (only when there is more than one).
         string phase = s.TurnPhases.Count > 1 ? $"   {TurnPhases.Describe(s)}" : "";
         return $"{age}   Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}   " +
-               $"→ if a new era began now: {forecast}{phase}   [L] supply  [C] chronicle  [V] divergence";
+               $"→ if a new era began now: {forecast}{phase}   [L] supply  [C] chronicle  [P] diplomacy  [V] divergence";
     }
 }
 

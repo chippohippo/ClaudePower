@@ -173,6 +173,49 @@ public static class CombatSystem
         return new CombatPreview(true, null, ranged, vsCity, false, atk, dfn, dMin, dMax, aMin, aMax, defenderHp, attacker.Hp);
     }
 
+    /// <summary>
+    /// The attacker's share of the exchange, in percent: expected damage dealt as a share of the defender's health, against
+    /// expected damage taken as a share of ours. Ranged attacks, civilian captures and risk-free certain kills score 100.
+    /// The AI attacks above 60; the preview turns it into a verdict.
+    /// </summary>
+    public static int OddsPercent(CombatPreview p)
+    {
+        if (!p.Legal) return 0;
+        if (p.CapturesCivilian || (p.CertainKill && !p.PossibleDeath)) return 100;
+        long dealt = (p.DefenderDamageMin + p.DefenderDamageMax) / 2, taken = (p.AttackerDamageMin + p.AttackerDamageMax) / 2;
+        if (taken == 0) return dealt > 0 ? 100 : 0;
+        long ours = dealt * Math.Max(1, p.AttackerHp), theirs = taken * Math.Max(1, p.DefenderHp);
+        return (int)(100 * ours / (ours + theirs));
+    }
+
+    public static string Verdict(int odds) => odds switch
+    {
+        >= 85 => "Decisive",
+        >= 60 => "Favourable",
+        >= 40 => "Even",
+        >= 20 => "Costly",
+        _ => "Disastrous",
+    };
+
+    /// <summary>The tooltip shown while hovering a target: headline, damage ranges, warnings, then every modifier on both sides.</summary>
+    public static List<string> Describe(GameState s, UnitState attacker, int targetTile, CombatPreview p)
+    {
+        var lines = new List<string>();
+        if (!p.Legal) { lines.Add(p.Reason ?? "Cannot attack."); return lines; }
+        string us = UnitStats.Name(s, attacker);
+        if (p.CapturesCivilian) { lines.Add($"{us} captures the civilians here."); return lines; }
+        string them = p.VsCity ? s.Cities.First(c => c.Tile == targetTile).Name
+                                : UnitStats.Name(s, s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => UnitStats.Strength(s, u)).ThenBy(u => u.Id).First());
+        int odds = OddsPercent(p);
+        lines.Add($"{Verdict(odds)} ({odds}%): {us} {p.Attacker.Total} vs {them} {p.Defender.Total}{(p.Ranged ? " (ranged)" : "")}");
+        lines.Add($"Deal {p.DefenderDamageMin}–{p.DefenderDamageMax} of {p.DefenderHp} HP" + (p.Ranged ? ", take none" : $", take {p.AttackerDamageMin}–{p.AttackerDamageMax} of {p.AttackerHp} HP"));
+        if (p.CertainKill) lines.Add(p.VsCity && !p.Ranged ? "The city will fall." : "Certain kill.");
+        if (p.PossibleDeath) lines.Add("⚠ Your unit may die.");
+        lines.AddRange(p.Attacker.Lines.Select(l => $"  + {l.Label} {(l.Value >= 0 ? "+" : "")}{l.Value}"));
+        lines.AddRange(p.Defender.Lines.Select(l => $"  − {l.Label} {(l.Value >= 0 ? "+" : "")}{l.Value}"));
+        return lines;
+    }
+
     public static void Resolve(GameState s, UnitState attacker, int targetTile, List<GameEvent> events)
     {
         var db = s.Db;

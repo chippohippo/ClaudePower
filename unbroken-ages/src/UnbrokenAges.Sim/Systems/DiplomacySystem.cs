@@ -54,6 +54,10 @@ public static class DiplomacySystem
         return Find(s, a, b)?.Status == DiploStatus.War;
     }
 
+    /// <summary>"At war", "At peace", "Allied" or "Teammates", for the diplomacy screen.</summary>
+    public static string StatusName(GameState s, int a, int b) =>
+        SameTeam(s, a, b) ? "Teammates" : AtWar(s, a, b) ? "At war" : Find(s, a, b)?.Status == DiploStatus.Alliance ? "Allied" : "At peace";
+
     public static bool Allied(GameState s, int a, int b) => SameTeam(s, a, b) || Find(s, a, b)?.Status == DiploStatus.Alliance;
 
     /// <summary>May <paramref name="mover"/>'s military enter <paramref name="owner"/>'s land?</summary>

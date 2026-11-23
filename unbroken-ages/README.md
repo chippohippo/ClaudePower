@@ -19,9 +19,9 @@ Civilization VII's age resets or civ-swapping.
 | [`content/base`](content/base) | The base game, written as a mod in JSON (districts, adjacency, governors, power plants, climate…) |
 | [`content/schemas`](content/schemas) | JSON Schemas for content files and `mod.json` (editor autocomplete and validation) |
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
-| [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer, placement lens, city panel and production queue, lobby |
+| [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 182 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 189 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -64,7 +64,7 @@ Civilization VII's age resets or civ-swapping.
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 182 tests, ~2 s
+dotnet test                                        # 189 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

@@ -159,19 +159,8 @@ public static class MilitaryAi
     public static int Strength(GameState s, int player) =>
         s.Units.Where(u => u.Owner == player && SupplySystem.IsMilitary(s.Db, u)).Sum(u => UnitStats.Strength(s, u) * u.Hp / 100);
 
-    /// <summary>
-    /// The attacker's share of the exchange, in percent: expected damage dealt as a fraction of the defender's health, against
-    /// expected damage taken as a fraction of ours. Ranged attacks and civilian captures cost nothing, so they score 100.
-    /// </summary>
-    public static int OddsPercent(CombatPreview p)
-    {
-        if (!p.Legal) return 0;
-        if (p.CapturesCivilian || (p.CertainKill && !p.PossibleDeath)) return 100;
-        long dealt = (p.DefenderDamageMin + p.DefenderDamageMax) / 2, taken = (p.AttackerDamageMin + p.AttackerDamageMax) / 2;
-        if (taken == 0) return dealt > 0 ? 100 : 0;
-        long ours = dealt * Math.Max(1, p.AttackerHp), theirs = taken * Math.Max(1, p.DefenderHp);
-        return (int)(100 * ours / (ours + theirs));
-    }
+    /// <summary>Shared with the combat preview, so the AI and the player read the same odds.</summary>
+    public static int OddsPercent(CombatPreview p) => CombatSystem.OddsPercent(p);
 
     public static IEnumerable<int> Neighbours(GameState s, int player)
     {

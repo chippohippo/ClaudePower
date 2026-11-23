@@ -95,6 +95,11 @@ auto-renew), **Great Works** (slots, theming hints, swap suggestions), **Victory
 ```
 **World Congress** screen: proposals for next session (yours and others'), live vote tallies before lock, favor trade buttons, victory points table.
 
+**Implemented (skeleton, key P):** `godot/scripts/UI/DiplomacyPanel.cs`. One row per known civilization: status (`DiplomacySystem.StatusName`),
+score, attitude toward you with every named line, grievances both ways, and the buttons Declare war · Propose peace · Accept peace · Denounce ·
+Open/Close borders. A disabled button's tooltip is the host's own validation message ("A peace treaty binds you for 6 more turns."). The deal
+table, portraits and the Congress follow in M4. (D pans the camera, so diplomacy is on P.)
+
 ## 5. Tech / Civic Tree
 ```
 ┌ TECHNOLOGY ─ [Tech] [Civics] ─ Search: "power"              Filter: [Unlocks districts] [Boostable now] [On path to: Exodus] │
@@ -195,6 +200,42 @@ An Age of Lanterns   Progress 61 · Strife 22 · Calamity 9   → if a new era b
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 Your entries are bold and the world's are italic. **Implemented:** `godot/scripts/UI/ChroniclePanel.cs`.
+
+## 7c. Combat preview tooltip (hover an enemy with a unit selected; right-click to attack)
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Favourable (78%): Swordsman (Heavy) 40 vs Warrior 24         │
+│ Deal 31–47 of 100 HP, take 12–18 of 100 HP                   │
+│   + Strength +35                                             │
+│   + Heavy variant +5                                         │
+│   − Strength +20                                             │
+│   − Terrain +3                                               │
+│   − Fortified +4                                             │
+└──────────────────────────────────────────────────────────────┘
+```
+The verdict (Decisive ≥ 85 · Favourable ≥ 60 · Even ≥ 40 · Costly ≥ 20 · Disastrous) uses the same odds the AI attacks on, and the
+panel is tinted green, amber or red with the verdict word always written out, so colour is never the only signal. Warnings: "Certain kill.",
+"The city will fall.", "⚠ Your unit may die." Illegal targets show the reason ("You are not at war with them."). **Implemented:**
+`godot/scripts/UI/CombatTooltip.cs` over `CombatSystem.Describe`. Right-click attacks when the preview is legal, otherwise moves.
+
+## 7d. Victory screen
+```
+┌ VICTORY ─────────────────────────────────────────────────────┐
+│ Egypt wins a Hegemony victory on turn 212.                   │
+│ AD 1710: Egypt wins a Hegemony victory: every old capital    │
+│ answers to it.                                               │
+│                                                              │
+│ Egypt 412 (Citizens 96, Cities 60, Districts 44, …)          │
+│ Venice 301 (…)                                               │
+│                        [ One More Turn ]                     │
+└──────────────────────────────────────────────────────────────┘
+```
+Opens by itself when the game is won (the game then accepts only One More Turn). "VICTORY" or "DEFEAT" depends on your team. Every
+civilization's score is itemized. An eliminated player sees "Your civilization has fallen." **Implemented:** `godot/scripts/UI/VictoryPanel.cs`.
+
+## 7e. Borders and fronts
+Borders are drawn in the owner's colour, your own brighter. A civilization **at war with you** gets a **red double line**: the doubling
+carries the meaning for colourblind players, and the red is a reinforcement. **Implemented:** `HexMapView.DrawBorders`.
 
 ## 8. Accessibility checklist (applies to every screen)
 Text ≥ 14 px at 100% scale; contrast ≥ 4.5:1; no information carried by colour alone; full keyboard and controller navigation (Steam Deck);

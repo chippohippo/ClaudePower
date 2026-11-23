@@ -99,7 +99,7 @@ public partial class HexMapView : Node3D
         Fill(_districts, districts);
         Fill(_cities, cities);
         DrawRivers(map);
-        DrawBorders(s);
+        DrawBorders(s, viewer);
     }
 
     private static void Fill(MultiMeshInstance3D mmi, List<(Transform3D T, Color C)> items)
@@ -174,29 +174,41 @@ public partial class HexMapView : Node3D
         _rivers.Mesh = mesh;
     }
 
-    private void DrawBorders(GameState s)
+    /// <summary>
+    /// Borders in the owner's colour; your own are drawn brighter. Civilizations at war with you get a red double line, so a
+    /// front is readable at a glance (colourblind-safe: the doubling carries the meaning, not only the hue).
+    /// </summary>
+    private void DrawBorders(GameState s, int viewer)
     {
         var map = s.Map;
         var mesh = new ImmediateMesh();
         var mat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
         mesh.SurfaceBegin(Mesh.PrimitiveType.Lines, mat);
         int segments = 0;
+        var war = new Color("#ff3b30");
         for (int t = 0; t < map.Count; t++)
         {
             int owner = map.OwnerPlayer[t];
             if (owner < 0) continue;
             int civ = s.Players[owner].CivIndex;
             var color = civ >= 0 ? new Color(s.Db.Civilizations[civ].Colors.Primary) : Colors.White;
+            bool enemy = owner != viewer && DiplomacySystem.AtWar(s, viewer, owner) && !s.Players[owner].IsFreeCities;
+            if (owner == viewer) color = color.Lightened(0.3f);
+            if (enemy) color = war;
+            var center = HexLayout.ToWorld(map.CoordOf(t), 0.14f);
             for (int d = 0; d < 6; d++)
             {
                 int n = map.Neighbor(t, d);
                 if (n >= 0 && map.OwnerPlayer[n] == owner) continue;
                 var (a, b) = HexLayout.Edge(map.CoordOf(t), d, 0.14f);
-                mesh.SurfaceSetColor(color);
-                mesh.SurfaceAddVertex(a.Lerp(HexLayout.ToWorld(map.CoordOf(t), 0.14f), 0.08f));
-                mesh.SurfaceSetColor(color);
-                mesh.SurfaceAddVertex(b.Lerp(HexLayout.ToWorld(map.CoordOf(t), 0.14f), 0.08f));
-                segments++;
+                foreach (float inset in enemy ? new[] { 0.08f, 0.18f } : new[] { 0.08f })
+                {
+                    mesh.SurfaceSetColor(color);
+                    mesh.SurfaceAddVertex(a.Lerp(center, inset));
+                    mesh.SurfaceSetColor(color);
+                    mesh.SurfaceAddVertex(b.Lerp(center, inset));
+                    segments++;
+                }
             }
         }
         if (segments == 0) { mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); }

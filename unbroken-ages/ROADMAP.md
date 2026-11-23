@@ -25,7 +25,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **7. Unit variants**: choose 1 of 2–3 variants at upgrade; `UpgradeUnitCommand` with gold and resource costs.
 - [x] **8. Dynamic turn mode**: phase ordering by war graph in `HostSession`, with tests over sockets.
 - [x] **9. AI v2**: expansion (settlers), builders, war planning (declare war on weak neighbours, attack with odds > 60%, retreat when out of supply), peace.
-- [ ] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
+- [x] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
@@ -43,5 +43,12 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
   gate and phase-by-phase AI/turn driver in `HostSession`, HUD phase line, snapshot v11, 4 tests including a real-socket game (174 total).
 - 9. AI v2: `ExpansionAi` (site score, settler walking), `BuilderAi` (resource-first jobs), `MilitaryAi` (war on weaker neighbours, odds > 60%,
   wounded fall back, march on cities, peace terms), production priorities; fixed a slot-order race in the dynamic-turn socket test; 8 tests (182 total).
+- 10. Client: `CombatTooltip` (verdict, damage, every modifier; right-click attacks or moves), `DiplomacyPanel` (P; status, attitude lines,
+  grievances, actions with validation tooltips), `VictoryPanel` (headline, itemized scores, One More Turn, defeat), red double borders for
+  enemies at war; sim-side text (`CombatSystem.Describe/Verdict/OddsPercent`, `DiplomacySystem.StatusName`, `VictorySystem.Headline`); wireframes
+  §4, §7c–7e; 7 tests (189 total).
+
+**Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
+policy cards and governments, the turn timer, and Grand-dial governor ageing.
 
 (see git log for full detail)
