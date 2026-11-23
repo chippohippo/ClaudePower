@@ -8,6 +8,21 @@ public enum AgeState : byte { Normal, Golden, Dark, Heroic }
 public enum PowerDispatchPolicy : byte { CleanestFirst, CheapestFirst }
 public enum TurnMode : byte { Simultaneous, Dynamic, Sequential }
 
+/// <summary>Victory types; also the setup toggles (flags). Exodus, Culture, Spiritual and Concord are designed (GDD §14) and not yet built.</summary>
+[Flags]
+public enum VictoryKind
+{
+    None = 0,
+    Ascension = 1,
+    Hegemony = 2,
+    Score = 4,
+    Exodus = 8,
+    Culture = 16,
+    Spiritual = 32,
+    Concord = 64,
+    All = Ascension | Hegemony | Score | Exodus | Culture | Spiritual | Concord,
+}
+
 /// <summary>Game-setup options the simulation itself reads (all peers must agree).</summary>
 public sealed class GameOptions
 {
@@ -25,6 +40,22 @@ public sealed class GameOptions
     public bool NoSurpriseWars { get; set; }
     /// <summary>Grand Strategy dial: out-of-supply units fight at a penalty.</summary>
     public bool SupplyCombatPenalty { get; set; }
+    /// <summary>Score victory is decided when this turn ends (0 = no limit).</summary>
+    public int TurnLimit { get; set; } = 500;
+    public VictoryKind Victories { get; set; } = VictoryKind.All;
+}
+
+/// <summary>Who won, how and when, and whether the players chose One More Turn.</summary>
+public sealed class VictoryState
+{
+    public int Winner = -1;
+    public int WinnerTeam = -1;
+    public VictoryKind Kind;
+    public int Turn = -1;
+    public bool Continued;
+    public bool Decided => Winner >= 0;
+    /// <summary>The game has been won and nobody has chosen One More Turn yet: only that command is accepted.</summary>
+    public bool AwaitingChoice => Decided && !Continued;
 }
 
 public sealed class GovernorState
@@ -208,6 +239,7 @@ public sealed class GameState
     public List<ChronicleEntry> Chronicle = new();
     public List<Relation> Relations = new();
     public List<Grievance> Grievances = new();
+    public VictoryState Victory = new();
     public Pcg32 GameplayRng;
     public Pcg32 DisasterRng;
     public Pcg32 CombatRng;

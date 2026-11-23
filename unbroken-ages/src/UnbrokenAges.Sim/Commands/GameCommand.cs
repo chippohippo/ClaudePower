@@ -30,6 +30,7 @@ public enum CommandType : byte
     Fortify = 71,
     CityStrike = 72,
     PurchaseTile = 73,
+    OneMoreTurn = 80,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -115,6 +116,7 @@ public abstract class GameCommand
         CommandType.Fortify => new FortifyCommand(),
         CommandType.CityStrike => new CityStrikeCommand(),
         CommandType.PurchaseTile => new PurchaseTileCommand(),
+        CommandType.OneMoreTurn => new OneMoreTurnCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 
@@ -125,6 +127,8 @@ public static class CommandProcessor
 {
     public static CommandResult Execute(GameState s, GameCommand cmd, List<GameEvent> events)
     {
+        if (s.Victory.AwaitingChoice && cmd.Type != CommandType.OneMoreTurn)
+            return CommandResult.Fail("The game has been won. Choose One More Turn to keep playing.");
         string? error = cmd.Validate(s);
         if (error != null) return CommandResult.Fail(error);
         int from = events.Count;
@@ -132,6 +136,7 @@ public static class CommandProcessor
         // World-level consequences of whatever just happened, identically on every peer.
         WorldSystem.Push(s, events, from);
         DiplomacySystem.OnEvents(s, events, from);
+        VictorySystem.Check(s, events, endOfTurn: false);   // e.g. the capture that completes Hegemony
         ChronicleSystem.Record(s, events, from);
         return CommandResult.Success;
     }

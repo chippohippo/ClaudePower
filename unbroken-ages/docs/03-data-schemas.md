@@ -26,7 +26,8 @@ projects, units, techs, civics, governors, civilizations, leaders, disasters, cl
 
 Added in [09](09-genre-defining-depth.md): **worldAges** (`priority`, `minEra`, `conditions[{current, min, max}]`, `modifiers`, `disasterChancePercent`, `narration`);
 **worldRules** (one entry: `currentDecayPercent`, `pushes[{event, current, amount}]`, `supply{cityRange, militaryDistrictBonus, portRange, ownCost, neutralCost,
-foreignCost, roughExtra, channelCost, waterCost, attritionHp, healHp}`); **chronicle** (`event`, `text` with `{year} {civ} {leader} {city} {detail} {value}`,
+foreignCost, roughExtra, channelCost, waterCost, attritionHp, healHp}`, `combat{…}` ([05/09](05-key-systems/09-combat.md)),
+`victory{hegemonySharePercent, hegemonyMinLoyalty, scorePer*, tilesPerPoint, scoreForAscension}` ([05/11](05-key-systems/11-victory.md))); **chronicle** (`event`, `text` with `{year} {civ} {leader} {city} {detail} {value}`,
 `minValue`, `oncePerPlayer`, `requiresPlayer`); building `recipe {inputs, outputs, requiresPower}`; resource class `Good`.
 
 Every definition has: `id` (required), `name`, `description`, `tags[]`.

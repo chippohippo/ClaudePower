@@ -2732,6 +2732,57 @@
               "type": "string"
             }
           }
+        },
+        "victory": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Hegemony thresholds and score weights.",
+          "properties": {
+            "hegemonySharePercent": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hegemonyMinLoyalty": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerCitizen": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerCity": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerDistrict": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerBuilding": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerWonder": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerTech": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scorePerCivic": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tilesPerPoint": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scoreForAscension": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },

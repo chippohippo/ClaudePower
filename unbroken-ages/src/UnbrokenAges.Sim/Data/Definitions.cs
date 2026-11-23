@@ -938,13 +938,33 @@ public sealed class CombatRules
     public string WallsBuilding { get; init; } = "BUILDING_ANCIENT_WALLS";
 }
 
-/// <summary>Singleton rules for world-level systems (currents, supply, combat).</summary>
+/// <summary>Hegemony thresholds and score weights (score sources are visible all game).</summary>
+public sealed class VictoryRules
+{
+    /// <summary>Alternative Hegemony: this share of world population (in loyal cities) and of all land.</summary>
+    public int HegemonySharePercent { get; init; } = 60;
+    /// <summary>Cities count toward Hegemony population only above this loyalty.</summary>
+    public int HegemonyMinLoyalty { get; init; } = 50;
+    public int ScorePerCitizen { get; init; } = 1;
+    public int ScorePerCity { get; init; } = 5;
+    public int ScorePerDistrict { get; init; } = 2;
+    public int ScorePerBuilding { get; init; } = 1;
+    public int ScorePerWonder { get; init; } = 15;
+    public int ScorePerTech { get; init; } = 2;
+    public int ScorePerCivic { get; init; } = 2;
+    /// <summary>One point per this many tiles of territory.</summary>
+    public int TilesPerPoint { get; init; } = 5;
+    public int ScoreForAscension { get; init; } = 100;
+}
+
+/// <summary>Singleton rules for world-level systems (currents, supply, combat, victory).</summary>
 public sealed class WorldRulesDef : Definition
 {
     public int CurrentDecayPercent { get; init; } = 3;
     public List<CurrentPush> Pushes { get; init; } = new();
     public SupplyRules Supply { get; init; } = new();
     public CombatRules Combat { get; init; } = new();
+    public VictoryRules Victory { get; init; } = new();
 }
 
 // ----- Chronicle --------------------------------------------------------------------------------------

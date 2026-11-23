@@ -12,7 +12,7 @@ namespace UnbrokenAges.Sim.Systems;
 ///   3. Governor establishment
 ///   4. Loyalty (from a population snapshot, so city order is irrelevant)
 ///   5. Climate: emissions → CO2 → temperature → sea level → disasters
-///   6. Units refresh and continue multi-turn moves; turn counter advances
+///   6. Units refresh and continue multi-turn moves; world ages; victories (Score at the turn limit); turn counter advances
 /// </summary>
 public static class TurnProcessor
 {
@@ -67,6 +67,7 @@ public static class TurnProcessor
         }
 
         WorldSystem.ProcessTurn(s, events);
+        VictorySystem.Check(s, events, endOfTurn: true);
         s.Turn++;
         foreach (var p in s.Players) p.HasEndedTurn = false;
         events.Add(new GameEvent(GameEventType.TurnAdvanced, Value: s.Turn));

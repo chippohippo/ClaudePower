@@ -19,7 +19,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       counters (`strongAgainst`/`weakAgainst`), the out-of-supply penalty, cities with HP and ranged strike, capture → `ChangeOwner`; a combat preview with a full
       breakdown; battle reports in events and the Chronicle.
 - [x] **3. Border growth**: culture-driven tile claims (best adjacent tile up to radius 5) and gold tile purchase.
-- [ ] **4. Victory system**: Ascension, Hegemony (all original capitals), Score at the turn limit; victory toggles; game-over event; One More Turn.
+- [x] **4. Victory system**: Ascension, Hegemony (all original capitals), Score at the turn limit; victory toggles; game-over event; One More Turn.
 - [ ] **5. Living Governors**: experience and data-driven traits earned from where they serve.
 - [ ] **6. Outposts**: cheap claims (radius 1, supply source, one resource), with no city screen; promotable to a city.
 - [ ] **7. Unit variants**: choose 1 of 2–3 variants at upgrade; `UpgradeUnitCommand` with gold and resource costs.
@@ -31,5 +31,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
 - 2. Combat v1: `CombatSystem` (Fx.Pow2 damage curve, combat RNG stream), Attack/Fortify/CityStrike commands, city HP and capture, snapshot v5, 15 tests (135 total).
 - 3. Border growth: `BorderSystem` (culture threshold 15 + 8n, best-tile score, radius 5), `PurchaseTileCommand` (radius 3), snapshot v6, 4 tests (139 total).
+- 4. Victory system: `VictorySystem` (Ascension, Hegemony by capitals or world share, itemized Score at the turn limit), `VictoryKind` toggles,
+  game-over gate + `OneMoreTurnCommand`, elimination, `worldRules.victory`, snapshot v7, CLI continues after victory, 8 tests (147 total).
 
 (see git log for full detail)

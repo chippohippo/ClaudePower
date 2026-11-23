@@ -39,6 +39,8 @@ public enum GameEventType : byte
     CityCaptured,
     CivilianCaptured,
     TileClaimed,
+    VictoryAchieved,
+    PlayerEliminated,
 }
 
 /// <summary>

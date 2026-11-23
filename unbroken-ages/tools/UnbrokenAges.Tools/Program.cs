@@ -103,8 +103,10 @@ void Simulate()
     {
         foreach (var p in s.Players.Where(p => !p.IsFreeCities))
             foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
+        ContinueIfWon(s);
         var events = new List<GameEvent>();
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
+        ContinueIfWon(s);
         foreach (var e in events) tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
         if (s.Turn % 25 == 0)
             Console.WriteLine($"turn {s.Turn,4}: cities={s.Cities.Count} pop={s.Cities.Sum(c => c.Population)} districts={s.Cities.Sum(c => c.Districts.Count - 1)} " +
@@ -113,6 +115,7 @@ void Simulate()
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
     Console.WriteLine("events: " + string.Join(", ", tally.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+    Console.WriteLine("score: " + string.Join(", ", s.Players.Where(p => !p.IsFreeCities).Select(p => $"{p.Name} {VictorySystem.Score(s, p.Id)}")));
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
     Console.WriteLine();
     Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");
@@ -208,12 +211,14 @@ void Future()
     {
         foreach (var p in s.Players.Where(p => !p.IsFreeCities))
             foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
+        ContinueIfWon(s);
         var events = new List<GameEvent>();
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
+        ContinueIfWon(s);
         foreach (var e in events)
         {
             tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
-            if (e.Type is GameEventType.AscensionCompleted or GameEventType.TechResearched && s.Db.Techs[e.Def].DivergenceIndex >= 0)
+            if (e.Type == GameEventType.AscensionCompleted || (e.Type == GameEventType.TechResearched && s.Db.Techs[e.Def].DivergenceIndex >= 0))
                 Console.WriteLine($"  turn {s.Turn}: {s.Players[e.Player].Name} — {e.Detail}");
         }
         if ((t + 1) % 30 == 0)
@@ -237,6 +242,15 @@ static string FindRepoRoot()
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir != null && !File.Exists(Path.Combine(dir.FullName, "content", "base", "mod.json"))) dir = dir.Parent;
     return dir?.FullName ?? Directory.GetCurrentDirectory();
+}
+
+// After a victory the headless tools keep playing (One More Turn), so soaks always run their full length.
+static void ContinueIfWon(GameState s)
+{
+    if (!s.Victory.AwaitingChoice) return;
+    var v = s.Victory;
+    Console.WriteLine($"  turn {v.Turn}: VICTORY ({v.Kind}) for {s.Players[v.Winner].Name}; continuing with One More Turn");
+    CommandProcessor.Execute(s, new OneMoreTurnCommand { Player = GameCommand.SystemPlayer }, new());
 }
 
 static class MapAscii

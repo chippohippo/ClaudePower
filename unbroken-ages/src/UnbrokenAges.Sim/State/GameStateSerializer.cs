@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 6;
+    public const int Version = 7;
 
     public static byte[] Serialize(GameState s)
     {
@@ -40,6 +40,7 @@ public static class GameStateSerializer
         w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity);
         w.Write(o.ClimateEnabled); w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength);
         w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty);
+        w.Write(o.TurnLimit); w.Write((int)o.Victories);
 
         var m = s.Map;
         w.Write(m.Width); w.Write(m.Height); w.Write(m.WrapX);
@@ -124,6 +125,8 @@ public static class GameStateSerializer
         }
         w.Write(s.Grievances.Count);
         foreach (var g in s.Grievances) { w.Write(g.Holder); w.Write(g.Against); WriteFx(w, g.Amount); w.Write(g.Turn); w.Write(g.Reason); }
+        var v = s.Victory;
+        w.Write(v.Winner); w.Write(v.WinnerTeam); w.Write((int)v.Kind); w.Write(v.Turn); w.Write(v.Continued);
     }
 
     public static GameState Deserialize(byte[] data, GameDatabase db)
@@ -150,6 +153,7 @@ public static class GameStateSerializer
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(),
             ClimateEnabled = r.ReadBoolean(), LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(),
             TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(), NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(),
+            TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(),
         };
 
         int width = r.ReadInt32(), height = r.ReadInt32();
@@ -258,6 +262,7 @@ public static class GameStateSerializer
         int grievances = r.ReadInt32();
         for (int i = 0; i < grievances; i++)
             s.Grievances.Add(new Grievance { Holder = r.ReadInt32(), Against = r.ReadInt32(), Amount = ReadFx(r), Turn = r.ReadInt32(), Reason = r.ReadString() });
+        s.Victory = new VictoryState { Winner = r.ReadInt32(), WinnerTeam = r.ReadInt32(), Kind = (VictoryKind)r.ReadInt32(), Turn = r.ReadInt32(), Continued = r.ReadBoolean() };
         return s;
     }
 
@@ -322,7 +327,7 @@ public static class GameSetupCodec
             w.Write(m.Players); w.Write(m.Temperature); w.Write(m.Rainfall);
             var o = g.Options;
             w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity); w.Write(o.ClimateEnabled);
-            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty);
+            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty); w.Write(o.TurnLimit); w.Write((int)o.Victories);
             w.Write(g.Players.Count);
             foreach (var p in g.Players) { w.Write(p.Name); w.Write(p.Leader ?? ""); w.Write(p.IsHuman); w.Write(p.Team); }
         }
@@ -343,7 +348,7 @@ public static class GameSetupCodec
         {
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(), ClimateEnabled = r.ReadBoolean(),
             LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(), TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(),
-            NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(),
+            NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(), TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(),
         };
         int n = r.ReadInt32();
         for (int i = 0; i < n; i++)

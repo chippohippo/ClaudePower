@@ -289,3 +289,18 @@ public sealed class SetPowerPriorityCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(CityId); w.Write(Priority); }
     protected override void ReadPayload(BinaryReader r) { CityId = r.ReadInt32(); Priority = r.ReadInt32(); }
 }
+
+/// <summary>After a victory: keep playing. Any living civilization (or the host) may choose it; no further victory is awarded.</summary>
+public sealed class OneMoreTurnCommand : GameCommand
+{
+    public override CommandType Type => CommandType.OneMoreTurn;
+    public override string? Validate(GameState s)
+    {
+        if (!s.Victory.Decided) return "No one has won yet.";
+        if (s.Victory.Continued) return "The game is already continuing.";
+        return Player == SystemPlayer || Issuer(s) is { IsFreeCities: false } ? null : "Invalid player.";
+    }
+    public override void Apply(GameState s, List<GameEvent> events) => s.Victory.Continued = true;
+    protected override void WritePayload(BinaryWriter w) { }
+    protected override void ReadPayload(BinaryReader r) { }
+}

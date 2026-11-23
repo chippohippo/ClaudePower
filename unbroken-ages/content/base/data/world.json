@@ -29,7 +29,9 @@
                   "cityBaseStrength": 15, "cityStrengthPerEra": 4, "wallsStrength": 10, "cityBaseHp": 100, "wallsHp": 100, "cityHealPerTurn": 20,
                   "cityStrikeRange": 2, "wallsBuilding": "BUILDING_ANCIENT_WALLS" },
       "supply": { "cityRange": 10, "militaryDistrictBonus": 4, "portRange": 12, "ownCost": 2, "neutralCost": 3, "foreignCost": 5,
-                  "roughExtra": 1, "channelCost": 1, "waterCost": 2, "attritionHp": 10, "healHp": 10 } }
+                  "roughExtra": 1, "channelCost": 1, "waterCost": 2, "attritionHp": 10, "healHp": 10 },
+      "victory": { "hegemonySharePercent": 60, "hegemonyMinLoyalty": 50, "scorePerCitizen": 1, "scorePerCity": 5, "scorePerDistrict": 2,
+                   "scorePerBuilding": 1, "scorePerWonder": 15, "scorePerTech": 2, "scorePerCivic": 2, "tilesPerPoint": 5, "scoreForAscension": 100 } }
   ],
 
   // The character of each new era for the whole world, chosen from the currents when the first civ arrives.
@@ -64,6 +66,8 @@
 
   // The Chronicle: dated lines of history written from events. {year} {civ} {leader} {city} {detail} {value}
   "chronicle": [
+    { "id": "CHRONICLE_VICTORY", "event": "VictoryAchieved", "text": "{year}: {detail}" },
+    { "id": "CHRONICLE_ELIMINATED", "event": "PlayerEliminated", "text": "{year}: {civ} falls. Its people live on in other nations' cities." },
     { "id": "CHRONICLE_CITY_FOUNDED", "event": "CityFounded", "text": "{year}: {civ} founds {detail}." },
     { "id": "CHRONICLE_ERA", "event": "EraEntered", "text": "{year}: {civ} enters the {detail}." },
     { "id": "CHRONICLE_WORLD_AGE", "event": "WorldAgeBegan", "text": "{year}: The world enters {detail}" },

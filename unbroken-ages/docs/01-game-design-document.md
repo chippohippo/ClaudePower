@@ -348,6 +348,9 @@ Medicine tech line. Plague can trigger Dark Age dedications and migrations. It n
 | **Ascension** (Divergence) | Complete your future's final project after remaking ≥ 10% of the world's land | The race is to remake the planet; rival futures' ground acts as a firebreak ([08](08-divergence-tech-tree.md#5-ascension-the-sixth-victory)) |
 | **Score** | Highest score at the turn limit | Score sources visible all game; tie-breakers documented |
 
+*Built:* Ascension, Hegemony and Score, the victory toggles, elimination, the game-over pause and One More Turn
+([05/11-victory](05-key-systems/11-victory.md)). Exodus, Cultural Hegemony, Spiritual and Concord follow their systems.
+
 **Victory Dashboard:** one screen with every rival's progress toward every victory, with confidence ("based on what you know").
 
 **After the game:** "One More Turn" continues play; the game never forces an exit. You also get:
@@ -451,7 +454,7 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 22 | No dominant late-game super unit | Counter-tags, EW platoons | **Built** (counters applied in combat v1) |
 | 22b | Combat preview that shows every modifier | [05/09-combat](05-key-systems/09-combat.md) | **Built** (v1: melee, ranged, cities, capture) |
 | 23 | Timelapse replay and statistics | §14 | Designed — M5 |
-| 24 | One More Turn after victory | §14 | Designed — M2 |
+| 24 | One More Turn after victory | §14, [05/11-victory](05-key-systems/11-victory.md) | **Built** (sim; victory screen in the client queue) |
 | 25 | Smarter AI districts, navy, air, war | §18 + shared planners | Planner **built** / AI M3–M5 |
 | 26 | Late-game micromanagement relief | Provinces, queue templates, puppets | Designed — M3 |
 | 27 | Era pacing so UUs matter (Extended Eras) | `EraPacingPercent` | **Built** |

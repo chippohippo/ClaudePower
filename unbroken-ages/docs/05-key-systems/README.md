@@ -14,6 +14,7 @@ Each document covers rules, formulas, pseudocode, the **real implementation** (f
 | 9 | [Diplomacy core: war, peace, borders, grievances, attitude](08-diplomacy.md) | `Systems/DiplomacySystem.cs` | `DiplomacyTests.cs` |
 | 10 | [Combat v1: melee, ranged, cities, capture, preview](09-combat.md) | `Systems/CombatSystem.cs` | `CombatTests.cs` |
 | 11 | [Border growth and tile purchase](10-borders.md) | `Systems/BorderSystem.cs` | `BorderTests.cs` |
+| 12 | [Victory, elimination and One More Turn](11-victory.md) | `Systems/VictorySystem.cs` | `VictoryTests.cs` |
 | 8 | [World Ages, Supply, Industries, Chronicle](../09-genre-defining-depth.md#4-what-we-built-in-this-iteration) | `Systems/WorldSystem.cs`, `SupplySystem.cs`, `IndustrySystem.cs`, `ChronicleSystem.cs` | `DepthTests.cs` |
 
 Paths are relative to `src/UnbrokenAges.Sim/` unless noted; tests live in `tests/UnbrokenAges.Tests/`.

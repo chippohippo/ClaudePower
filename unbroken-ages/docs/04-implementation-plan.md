@@ -31,7 +31,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Diplomacy core (war, peace, denounce, open borders, itemized grievances, attitude; closed borders; supply attrition only at war) | ✔ |
 | Combat v1 (melee, ranged, terrain/river/fortify/flanking/counters/supply, cities with HP, bombard and capture, full preview) | ✔ |
 | Border growth from culture (best adjacent tile, radius 5) and gold tile purchase | ✔ |
-| 139 automated tests | ✔ |
+| Victories: Ascension, Hegemony (capitals or world share), Score at the turn limit; toggles; elimination; One More Turn | ✔ |
+| 147 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
