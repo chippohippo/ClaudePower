@@ -1,0 +1,2183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unbroken-ages.dev/schemas/content.schema.json",
+  "title": "Unbroken Ages content file",
+  "description": "A content file holds any number of categories, each an array of entries. Entries are add (default), replace, patch or delete operations ($op). In patches, arrays accept {\"$append\": [...]}, {\"$prepend\": [...]}, {\"$removeWhere\": {...}}, {\"$remove\": [...]}. The C# loader (ModLoader) is authoritative; this schema powers editor autocomplete.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "eras": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/era"
+      }
+    },
+    "mapSizes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mapSize"
+      }
+    },
+    "terrains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/terrain"
+      }
+    },
+    "reliefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relief"
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/feature"
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "improvements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/improvement"
+      }
+    },
+    "districts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/district"
+      }
+    },
+    "buildings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/building"
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/project"
+      }
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unit"
+      }
+    },
+    "techs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tech"
+      }
+    },
+    "civics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/civic"
+      }
+    },
+    "governors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/governor"
+      }
+    },
+    "civilizations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/civilization"
+      }
+    },
+    "leaders": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/leader"
+      }
+    },
+    "disasters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/disaster"
+      }
+    },
+    "climate": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/climate"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "yields": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "food": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "production": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "gold": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "science": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "culture": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "faith": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        }
+      }
+    },
+    "matcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terrain": {
+          "type": "string",
+          "description": "Id of an entry in 'terrains'."
+        },
+        "terrainClass": {
+          "enum": [
+            "Land",
+            "Coast",
+            "Ocean",
+            "Lake",
+            "Channel"
+          ]
+        },
+        "relief": {
+          "type": "string",
+          "description": "Id of an entry in 'reliefs'."
+        },
+        "feature": {
+          "type": "string",
+          "description": "Id of an entry in 'features'."
+        },
+        "featureTag": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string",
+          "description": "Id of an entry in 'resources'."
+        },
+        "resourceClass": {
+          "enum": [
+            "Bonus",
+            "Luxury",
+            "Strategic"
+          ]
+        },
+        "hasResource": {
+          "type": "boolean"
+        },
+        "district": {
+          "type": "string",
+          "description": "Id of an entry in 'districts'."
+        },
+        "districtTag": {
+          "type": "string"
+        },
+        "anyDistrict": {
+          "type": "boolean"
+        },
+        "cityCenter": {
+          "type": "boolean"
+        },
+        "improvement": {
+          "type": "string",
+          "description": "Id of an entry in 'improvements'."
+        },
+        "riverEdge": {
+          "type": "boolean"
+        },
+        "freshWater": {
+          "type": "boolean"
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "CityHasDistrict",
+            "CityHasBuilding",
+            "CityMinPopulation",
+            "CityIsPowered",
+            "CityIsCoastal",
+            "CityOnGreatRiver",
+            "CityIsCapital",
+            "PlayerHasTech",
+            "PlayerHasCivic"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        }
+      }
+    },
+    "modifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect"
+      ],
+      "properties": {
+        "effect": {
+          "enum": [
+            "CityYieldFlat",
+            "CityYieldPercent",
+            "CityLoyaltyPerTurn",
+            "CityPressurePercent",
+            "CityAmenities",
+            "CityHousing",
+            "CityProductionPercent",
+            "CityDistrictCapacity",
+            "CityAdjacencyPercent",
+            "CityPowerOutput",
+            "CityEmissionsPercent",
+            "CityDisasterImmunity",
+            "CityPurchaseDiscountPercent",
+            "GovernorEstablishTurns",
+            "BuilderCharges",
+            "ClimateCo2Reduction",
+            "PowerRangeBonus",
+            "EspionageDefense",
+            "SpyCapacity"
+          ]
+        },
+        "yield": {
+          "enum": [
+            "Food",
+            "Production",
+            "Gold",
+            "Science",
+            "Culture",
+            "Faith"
+          ]
+        },
+        "amount": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "category": {
+          "enum": [
+            "Unit",
+            "Building",
+            "District",
+            "Project",
+            "Wonder",
+            "Any"
+          ]
+        },
+        "disaster": {
+          "enum": [
+            "RiverFlood",
+            "Storm",
+            "Drought",
+            "Volcano"
+          ]
+        },
+        "requirements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/requirement"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      }
+    },
+    "power": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "Renewable",
+            "Nuclear",
+            "Gas",
+            "Oil",
+            "Coal"
+          ]
+        },
+        "output": {
+          "type": "integer"
+        },
+        "fuel": {
+          "type": "string",
+          "description": "Id of an entry in 'resources'."
+        },
+        "fuelPerTurn": {
+          "type": "integer"
+        },
+        "co2PerTurn": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "range": {
+          "type": "integer"
+        }
+      }
+    },
+    "ability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      }
+    },
+    "era": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "order": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "mapSize": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "defaultPlayers": {
+          "type": "integer"
+        },
+        "greatRivers": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "terrain": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "class": {
+          "enum": [
+            "Land",
+            "Coast",
+            "Ocean",
+            "Lake",
+            "Channel"
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "moveCost": {
+          "type": "integer"
+        },
+        "freshWater": {
+          "type": "boolean"
+        },
+        "appeal": {
+          "type": "integer"
+        },
+        "fordCost": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "relief": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "moveCost": {
+          "type": "integer"
+        },
+        "defense": {
+          "type": "integer"
+        },
+        "impassable": {
+          "type": "boolean"
+        },
+        "appeal": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "feature": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "moveCost": {
+          "type": "integer"
+        },
+        "defense": {
+          "type": "integer"
+        },
+        "removable": {
+          "type": "boolean"
+        },
+        "impassable": {
+          "type": "boolean"
+        },
+        "freshWater": {
+          "type": "boolean"
+        },
+        "appeal": {
+          "type": "integer"
+        },
+        "co2Absorption": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "co2OnRemoval": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "validTerrains": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "class": {
+          "enum": [
+            "Bonus",
+            "Luxury",
+            "Strategic"
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "frequency": {
+          "type": "integer"
+        },
+        "validTerrains": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "validFeatures": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "validReliefs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "revealTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "stockpileCap": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "improvement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "validTerrains": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "validReliefs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "validFeatures": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "validResources": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "requiresResource": {
+          "type": "boolean"
+        },
+        "requiresFeatureOnTile": {
+          "type": "boolean"
+        },
+        "removesFeature": {
+          "type": "boolean"
+        },
+        "onWater": {
+          "type": "boolean"
+        },
+        "prereqTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "power": {
+          "$ref": "#/$defs/power"
+        },
+        "appeal": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "district": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "category": {
+          "enum": [
+            "CityCenter",
+            "Specialty",
+            "Infrastructure",
+            "Wonder"
+          ]
+        },
+        "primaryYield": {
+          "enum": [
+            "Food",
+            "Production",
+            "Gold",
+            "Science",
+            "Culture",
+            "Faith"
+          ]
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "countsTowardLimit": {
+          "type": "boolean"
+        },
+        "maxPerCity": {
+          "type": "integer"
+        },
+        "uniquePerCiv": {
+          "type": "boolean"
+        },
+        "prereqTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "prereqCivic": {
+          "type": "string",
+          "description": "Id of an entry in 'civics'."
+        },
+        "civilization": {
+          "type": "string",
+          "description": "Id of an entry in 'civilizations'."
+        },
+        "replaces": {
+          "type": "string",
+          "description": "Id of an entry in 'districts'."
+        },
+        "placement": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "onWater": {
+              "type": "boolean"
+            },
+            "allowedTerrainClasses": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "Land",
+                      "Coast",
+                      "Ocean",
+                      "Lake",
+                      "Channel"
+                    ]
+                  }
+                },
+                {
+                  "$ref": "#/$defs/arrayPatch"
+                }
+              ]
+            },
+            "allowedReliefs": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/arrayPatch"
+                }
+              ]
+            },
+            "requiresAdjacentCityCenter": {
+              "type": "boolean"
+            },
+            "forbidAdjacentCityCenter": {
+              "type": "boolean"
+            },
+            "requiresAdjacentAny": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/matcher"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/arrayPatch"
+                }
+              ]
+            },
+            "minRiverEdges": {
+              "type": "integer"
+            },
+            "requiresFeature": {
+              "type": "string",
+              "description": "Id of an entry in 'features'."
+            },
+            "special": {
+              "enum": [
+                "None",
+                "Canal"
+              ]
+            }
+          }
+        },
+        "adjacency": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "yield",
+                  "source"
+                ],
+                "properties": {
+                  "yield": {
+                    "enum": [
+                      "Food",
+                      "Production",
+                      "Gold",
+                      "Science",
+                      "Culture",
+                      "Faith"
+                    ]
+                  },
+                  "amount": {
+                    "type": [
+                      "number",
+                      "string"
+                    ],
+                    "description": "Decimal number (fixed-point in the simulation)."
+                  },
+                  "per": {
+                    "type": "integer"
+                  },
+                  "scope": {
+                    "enum": [
+                      "Adjacent",
+                      "Self"
+                    ]
+                  },
+                  "source": {
+                    "$ref": "#/$defs/matcher"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "providesAdjacency": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "toTag": {
+                    "type": "string"
+                  },
+                  "toDistrict": {
+                    "type": "string",
+                    "description": "Id of an entry in 'districts'."
+                  },
+                  "yield": {
+                    "enum": [
+                      "Food",
+                      "Production",
+                      "Gold",
+                      "Science",
+                      "Culture",
+                      "Faith"
+                    ]
+                  },
+                  "amount": {
+                    "type": [
+                      "number",
+                      "string"
+                    ],
+                    "description": "Decimal number (fixed-point in the simulation)."
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "housing": {
+          "type": "integer"
+        },
+        "amenities": {
+          "type": "integer"
+        },
+        "appeal": {
+          "type": "integer"
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "building": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "district": {
+          "type": "string",
+          "description": "Id of an entry in 'districts'."
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "maintenance": {
+          "type": "integer"
+        },
+        "yields": {
+          "$ref": "#/$defs/yields"
+        },
+        "poweredYields": {
+          "$ref": "#/$defs/yields"
+        },
+        "powerDemand": {
+          "type": "integer"
+        },
+        "power": {
+          "$ref": "#/$defs/power"
+        },
+        "co2PerTurn": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "housing": {
+          "type": "integer"
+        },
+        "amenities": {
+          "type": "integer"
+        },
+        "prereqTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "prereqCivic": {
+          "type": "string",
+          "description": "Id of an entry in 'civics'."
+        },
+        "requiresBuildings": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "protectsFromFlood": {
+          "type": "boolean"
+        },
+        "civilization": {
+          "type": "string",
+          "description": "Id of an entry in 'civilizations'."
+        },
+        "replaces": {
+          "type": "string",
+          "description": "Id of an entry in 'buildings'."
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "district": {
+          "type": "string",
+          "description": "Id of an entry in 'districts'."
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "repeatable": {
+          "type": "boolean"
+        },
+        "prereqTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "onComplete": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "unit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "domain": {
+          "enum": [
+            "Land",
+            "Naval",
+            "Air",
+            "Civilian"
+          ]
+        },
+        "unitClass": {
+          "type": "string"
+        },
+        "era": {
+          "type": "string",
+          "description": "Id of an entry in 'eras'."
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "maintenance": {
+          "type": "integer"
+        },
+        "strength": {
+          "type": "integer"
+        },
+        "rangedStrength": {
+          "type": "integer"
+        },
+        "range": {
+          "type": "integer"
+        },
+        "antiAirStrength": {
+          "type": "integer"
+        },
+        "moves": {
+          "type": "integer"
+        },
+        "sight": {
+          "type": "integer"
+        },
+        "charges": {
+          "type": "integer"
+        },
+        "foundsCity": {
+          "type": "boolean"
+        },
+        "oceanGoing": {
+          "type": "boolean"
+        },
+        "riverCapable": {
+          "type": "boolean"
+        },
+        "prereqTech": {
+          "type": "string",
+          "description": "Id of an entry in 'techs'."
+        },
+        "prereqCivic": {
+          "type": "string",
+          "description": "Id of an entry in 'civics'."
+        },
+        "upgradesTo": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "resourceCost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "resource"
+          ],
+          "properties": {
+            "resource": {
+              "type": "string",
+              "description": "Id of an entry in 'resources'."
+            },
+            "amount": {
+              "type": "integer"
+            }
+          }
+        },
+        "upkeep": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "resource"
+          ],
+          "properties": {
+            "resource": {
+              "type": "string",
+              "description": "Id of an entry in 'resources'."
+            },
+            "amount": {
+              "type": "integer"
+            }
+          }
+        },
+        "civilization": {
+          "type": "string",
+          "description": "Id of an entry in 'civilizations'."
+        },
+        "replaces": {
+          "type": "string",
+          "description": "Id of an entry in 'units'."
+        },
+        "strongAgainst": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "weakAgainst": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "tech": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "era": {
+          "type": "string",
+          "description": "Id of an entry in 'eras'."
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "prereqs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "boost": {
+          "type": "string"
+        },
+        "boostPercent": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "civic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "era": {
+          "type": "string",
+          "description": "Id of an entry in 'eras'."
+        },
+        "cost": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "prereqs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "boost": {
+          "type": "string"
+        },
+        "boostPercent": {
+          "type": "integer"
+        },
+        "governorTitles": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "governor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "establishTurns": {
+          "type": "integer"
+        },
+        "baseModifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "promotions": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tier": {
+                    "type": "integer"
+                  },
+                  "requires": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "$ref": "#/$defs/arrayPatch"
+                      }
+                    ]
+                  },
+                  "modifiers": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/$defs/modifier"
+                        }
+                      },
+                      {
+                        "$ref": "#/$defs/arrayPatch"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "civilization": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "adjective": {
+          "type": "string"
+        },
+        "startBias": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "ability": {
+          "$ref": "#/$defs/ability"
+        },
+        "cityNames": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": {
+              "type": "string"
+            },
+            "secondary": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "leader": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "civilization": {
+          "type": "string",
+          "description": "Id of an entry in 'civilizations'."
+        },
+        "ability": {
+          "$ref": "#/$defs/ability"
+        },
+        "agenda": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "likes": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/arrayPatch"
+                }
+              ]
+            },
+            "dislikes": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/arrayPatch"
+                }
+              ]
+            }
+          }
+        },
+        "personality": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "string"
+            ],
+            "description": "Decimal number (fixed-point in the simulation)."
+          }
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "disaster": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "RiverFlood",
+            "Storm",
+            "Drought",
+            "Volcano"
+          ]
+        },
+        "baseChancePermille": {
+          "type": "integer"
+        },
+        "climateScalingPercent": {
+          "type": "integer"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "pillageChancePercent": {
+          "type": "integer"
+        },
+        "populationLossChancePercent": {
+          "type": "integer"
+        },
+        "fertilityFood": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "climate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "basePpm": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "ppmPerEmission": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "sensitivity": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Decimal number (fixed-point in the simulation)."
+        },
+        "lagPercent": {
+          "type": "integer"
+        },
+        "phaseThresholds": {
+          "type": "array",
+          "items": {
+            "type": [
+              "number",
+              "string"
+            ],
+            "description": "Decimal number (fixed-point in the simulation)."
+          }
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "arrayPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$append": {
+          "type": "array"
+        },
+        "$prepend": {
+          "type": "array"
+        },
+        "$removeWhere": {
+          "type": "object"
+        },
+        "$remove": {
+          "type": "array"
+        }
+      },
+      "description": "Array operator, valid inside $op: patch entries."
+    }
+  }
+}

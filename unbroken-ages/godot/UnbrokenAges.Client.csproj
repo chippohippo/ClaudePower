@@ -1,0 +1,17 @@
+<Project Sdk="Godot.NET.Sdk/4.3.0">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>UnbrokenAges.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Presentation depends on the simulation, never the reverse. -->
+    <ProjectReference Include="..\src\UnbrokenAges.Sim\UnbrokenAges.Sim.csproj" />
+    <ProjectReference Include="..\src\UnbrokenAges.Net\UnbrokenAges.Net.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+; Unbroken Ages — Godot 4 presentation client.
+; The simulation lives in ../src (engine-agnostic C#); this project only renders, takes input,
+; and talks to HostSession / ClientSession.
+
+config_version=5
+
+[application]
+
+config/name="Unbroken Ages"
+config/description="A Civ VI-style 4X: districts, adjacency, loyalty, climate — one civilization, unbroken."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="UnbrokenAges.Client"
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=true
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=2
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3

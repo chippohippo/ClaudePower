@@ -34,6 +34,8 @@ public sealed class AdjacencyContribution
     public required string Label { get; init; }
     public YieldType Yield { get; init; }
     public Fx Amount { get; init; }
+    /// <summary>Yield granted per completed group of <see cref="Per"/> matches.</summary>
+    public Fx Increment { get; init; }
     public int Matches { get; init; }
     public int Per { get; init; } = 1;
     public List<int> SourceTiles { get; init; } = new();
@@ -88,6 +90,7 @@ public static class AdjacencyCalculator
                 Label = rule.Label ?? DefaultLabel(rule),
                 Yield = rule.Yield,
                 Amount = amount,
+                Increment = rule.Amount,
                 Matches = sources.Count,
                 Per = per,
                 SourceTiles = sources,
@@ -114,6 +117,7 @@ public static class AdjacencyCalculator
                     Label = p.Label ?? $"+{p.Amount} {y} from adjacent {db.Districts[nd].Name}",
                     Yield = y.Value,
                     Amount = p.Amount,
+                    Increment = p.Amount,
                     Matches = 1,
                     SourceTiles = new List<int> { n },
                     ProvidedByNeighbor = true,
