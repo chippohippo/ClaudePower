@@ -27,7 +27,7 @@ public partial class DivergencePanel : PanelContainer
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        OffsetLeft = 40; OffsetTop = 40; OffsetRight = -40; OffsetBottom = -40;
+        OffsetLeft = 40; OffsetTop = 56; OffsetRight = -40; OffsetBottom = -40;
         var v = new VBoxContainer();
         AddChild(v);
         _header = new Label { ThemeTypeVariation = "HeaderLarge", AutowrapMode = TextServer.AutowrapMode.WordSmart };

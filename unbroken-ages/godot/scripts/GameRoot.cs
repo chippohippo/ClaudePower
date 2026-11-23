@@ -1,4 +1,6 @@
 using Godot;
+using UnbrokenAges.Client.Audio;
+using UnbrokenAges.Client.Hud;
 using UnbrokenAges.Client.Map;
 using UnbrokenAges.Client.UI;
 using UnbrokenAges.Net;
@@ -44,9 +46,14 @@ public partial class GameRoot : Node3D
     private UnitPanel _unitPanel = null!;
     private ResearchPanel _research = null!;
     private NotificationFeed _feed = null!;
-    private TurnBar _turnBar = null!;
+    private TopBar _topBar = null!;
+    private ResearchTracker _tracker = null!;
+    private MiniMapAndTurn _turnCorner = null!;
+    private MapOverlay _overlay = null!;
+    private GameMenu _menu = null!;
+    private AudioManager _audio = null!;
+    private double _seaTimer;
     private bool _supplyLens;
-    private Label _status = null!;
 
     public GameState? State => _host?.State ?? _client?.State ?? _local;
     public StrategyCamera Camera => _camera;
@@ -55,12 +62,12 @@ public partial class GameRoot : Node3D
     {
         Db = ContentLocator.LoadDatabase();
 
-        AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-55, 35, 0), ShadowEnabled = true, LightEnergy = 1.1f });
-        AddChild(new WorldEnvironment { Environment = new Godot.Environment
+        AddChild(new DirectionalLight3D
         {
-            BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new Color("#0b0f14"),
-            AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new Color("#8899aa"), AmbientLightEnergy = 0.6f,
-        } });
+            RotationDegrees = new Vector3(-52, 38, 0), ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#ffe2bd"),
+            DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits, DirectionalShadowMaxDistance = 60f, ShadowBlur = 1.5f,
+        });
+        AddChild(new WorldEnvironment { Environment = BuildEnvironment() });
         _camera = new StrategyCamera();
         AddChild(_camera);
         _map = new HexMapView();
@@ -71,16 +78,20 @@ public partial class GameRoot : Node3D
         var theme = UiTheme.Build();
         var ui = new CanvasLayer();
         AddChild(ui);
-        _status = new Label { Position = new Vector2(16, 12) };
-        ui.AddChild(_status);
+        _overlay = new MapOverlay(this);
+        ui.AddChild(_overlay);
+        _topBar = new TopBar(this) { Visible = false };
+        ui.AddChild(_topBar);
+        _tracker = new ResearchTracker(this) { Visible = false };
+        ui.AddChild(_tracker);
         _feed = new NotificationFeed(this);
         ui.AddChild(_feed);
         _cityPanel = new CityPanel(this, _lens) { Visible = false };
         ui.AddChild(_cityPanel);
         _unitPanel = new UnitPanel(this);
         ui.AddChild(_unitPanel);
-        _turnBar = new TurnBar(this) { Visible = false };
-        ui.AddChild(_turnBar);
+        _turnCorner = new MiniMapAndTurn(this) { Visible = false };
+        ui.AddChild(_turnCorner);
         _research = new ResearchPanel(this);
         ui.AddChild(_research);
         _lobby = new LobbyScreen(this);
@@ -95,9 +106,67 @@ public partial class GameRoot : Node3D
         ui.AddChild(_victory);
         _tooltip = new CombatTooltip();
         ui.AddChild(_tooltip);
+        _menu = new GameMenu(this);
+        ui.AddChild(_menu);
+        _audio = new AudioManager();
+        AddChild(_audio);
         // Themes do not pass through a CanvasLayer, so each top-level control gets it directly.
         foreach (var child in ui.GetChildren()) if (child is Control control) control.Theme = theme;
         StartAutomation();
+        if (State == null) StartBackdrop();
+    }
+
+    // ----- Title backdrop ----------------------------------------------------------------------------
+
+    private GameState? _backdrop;
+
+    /// <summary>
+    /// Behind the lobby: a small living world, generated and played by the AI for a few dozen turns, shown in full colour
+    /// while the camera drifts across it. It is never saved or shared; starting a game replaces it.
+    /// </summary>
+    private void StartBackdrop()
+    {
+        var leaders = Db.Leaders.Select(l => l.Id).ToList();
+        var setup = new GameSetup
+        {
+            Seed = 11,
+            Map = new MapGenSettings { Width = 44, Height = 26, GreatRivers = 1, Seed = 11 },
+            Options = new GameOptions { DisasterIntensity = 0 },
+            Players = Enumerable.Range(0, 3).Select(i => new PlayerSetup { Name = $"AI {i}", Leader = leaders[i % leaders.Count] }).ToList(),
+        };
+        var world = GameFactory.Create(Db, setup);
+        var ai = new UnbrokenAges.Sim.AI.SimpleAi();
+        for (int t = 0; t < 40; t++)
+        {
+            foreach (var p in world.Players.Where(p => !p.IsFreeCities && p.IsAlive).ToList())
+                foreach (var cmd in ai.TakeTurn(world, p.Id).ToList()) CommandProcessor.Execute(world, cmd, new());
+            CommandProcessor.Execute(world, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = world.Turn }, new());
+        }
+        _backdrop = world;
+        _map.Render(world, 0, -1, seeEverything: true);
+        var capital = world.Cities.FirstOrDefault();
+        if (capital != null) _camera.LookAtHex(world.Map.CoordOf(capital.Tile));
+    }
+
+    /// <summary>
+    /// Lighting and grading in the Civ VI spirit: a clear-sky HDRI (Poly Haven) for ambient light and water reflections, a warm
+    /// late-morning sun, ACES tonemapping, ambient occlusion so props sit on the ground, a light bloom and aerial perspective,
+    /// and the deep-ocean colour beyond the map edge.
+    /// </summary>
+    private static Godot.Environment BuildEnvironment()
+    {
+        var sky = new Sky { SkyMaterial = new PanoramaSkyMaterial { Panorama = GD.Load<Texture2D>("res://assets/sky/sky.hdr"), EnergyMultiplier = 0.3f }, RadianceSize = Sky.RadianceSizeEnum.Size256 };
+        return new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new Color("#0d2a40"), Sky = sky,
+            AmbientLightSource = Godot.Environment.AmbientSource.Sky, AmbientLightSkyContribution = 0.6f, AmbientLightEnergy = 0.5f, AmbientLightColor = new Color("#9fb4c8"),
+            ReflectedLightSource = Godot.Environment.ReflectionSource.Sky,
+            TonemapMode = Godot.Environment.ToneMapper.Aces, TonemapExposure = 0.9f, TonemapWhite = 5f,
+            SsaoEnabled = true, SsaoRadius = 0.6f, SsaoIntensity = 1.6f, SsaoPower = 1.4f,
+            GlowEnabled = true, GlowIntensity = 0.25f, GlowBloom = 0.02f, GlowHdrThreshold = 1.6f,
+            FogEnabled = true, FogLightColor = new Color("#a9c3d6"), FogDensity = 0.004f, FogAerialPerspective = 0.35f, FogSkyAffect = 0f,
+            AdjustmentEnabled = true, AdjustmentSaturation = 1.12f, AdjustmentContrast = 1.06f,
+        };
     }
 
     // ----- Session entry points (called by LobbyScreen) --------------------------------------------
@@ -112,7 +181,7 @@ public partial class GameRoot : Node3D
     public void HostGame(GameSetup setup, int port, string? password)
     {
         _host = new HostSession(Db, new TcpServerTransport(port, System.Net.IPAddress.IPv6Any), setup, new HostOptions { Password = password });
-        _host.EventsRaised += events => _feed.Add(_host.State!, events);
+        _host.EventsRaised += events => OnEvents(_host.State!, events);
         _host.Start();
         LocalPlayer = 0;
         _lobby.ShowWaiting($"Hosting on port {_host.Port}. Share your IP with friends.");
@@ -127,15 +196,17 @@ public partial class GameRoot : Node3D
     public void JoinGame(DirectIpEndpoint endpoint, string name, string? password)
     {
         _client = new ClientSession(Db, TcpClientTransport.FromEndpoint(endpoint), new ClientOptions { PlayerName = name, Password = password });
-        _client.EventsRaised += events => _feed.Add(_client.State!, events);
+        _client.EventsRaised += events => OnEvents(_client.State!, events);
         _client.Connect();
         _lobby.ShowWaiting($"Connected to {endpoint}. Waiting for the host to start...");
     }
 
     private void OnGameStarted()
     {
+        _backdrop = null;
         _lobby.Visible = false;
-        _turnBar.Visible = true;
+        _topBar.Visible = _tracker.Visible = _turnCorner.Visible = true;
+        _audio.StartMusic();
         _renderedVersion = -1;
         var s = State!;
         var settler = s.Units.Where(u => u.Owner == LocalPlayer).OrderByDescending(u => s.Db.Units[u.DefIndex].FoundsCity).ThenBy(u => u.Id).FirstOrDefault();
@@ -167,7 +238,7 @@ public partial class GameRoot : Node3D
             CommandProcessor.Execute(_local, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = _local.Turn }, events);
             SelectNextUnit();
         }
-        _feed.Add(_local, events);
+        OnEvents(_local, events);
         return Report(result);
     }
 
@@ -189,8 +260,54 @@ public partial class GameRoot : Node3D
         {
             _camera.LookAtHex(s!.Map.CoordOf(u.Tile));
             _cityPanel.Visible = false;
+            AudioManager.Sfx(SupplySystem.IsMilitary(s.Db, u) ? "draw" : "cloth", -6f);
         }
         _renderedVersion = -1;
+    }
+
+    /// <summary>
+    /// What the player hears and sees when something happens: notifications, sound effects, and battle animations on the map.
+    /// </summary>
+    private void OnEvents(GameState s, IReadOnlyList<GameEvent> events)
+    {
+        _feed.Add(s, events);
+        foreach (var e in events)
+        {
+            bool mine = e.Player == LocalPlayer;
+            switch (e.Type)
+            {
+                case GameEventType.TurnAdvanced: AudioManager.Sfx("bell", -14f, 1.15f); break;
+                case GameEventType.CityFounded when mine: AudioManager.Sfx("bell", -4f); AudioManager.Sfx("build", -6f); break;
+                case GameEventType.ProductionCompleted when mine: AudioManager.Sfx("build", -8f); break;
+                case GameEventType.TechResearched when mine: case GameEventType.CivicCompleted when mine: AudioManager.Sfx("page", -4f); break;
+                case GameEventType.ImprovementBuilt when mine: AudioManager.Sfx("chop", -6f); break;
+                case GameEventType.WarDeclared: AudioManager.Sfx("thud", -2f, 0.7f); break;
+                case GameEventType.PeaceSigned: AudioManager.Sfx("bell", -6f, 0.9f); break;
+                case GameEventType.CityCaptured: AudioManager.Sfx("clash2", -2f); AudioManager.Sfx("bell", -8f, 0.8f); break;
+                case GameEventType.UnitDestroyed: AudioManager.Sfx("thud", -4f); break;
+                case GameEventType.VictoryAchieved: AudioManager.Sfx("confirm", 0f); break;
+                case GameEventType.BattleFought:
+                    if (e.Tile >= 0 && VisibilitySystem.Visible(s, LocalPlayer)[e.Tile])
+                    {
+                        AudioManager.Sfx(e.Value > 25 ? "clash" : "clash2", -3f);
+                        var attacker = s.Units.Where(u => u.Owner == e.Player && u.AttackedThisTurn).OrderBy(u => s.Map.Distance(u.Tile, e.Tile)).FirstOrDefault();
+                        if (attacker != null) _map.Units.Attack(attacker.Id, HexLayout.ToWorld(s.Map.CoordOf(e.Tile), 0));
+                    }
+                    break;
+            }
+        }
+    }
+
+    public HexMapView MapView => _map;
+
+    public void ToggleMenu() => _menu.Visible = !_menu.Visible;
+
+    /// <summary>Top-bar buttons share the hotkeys' behaviour.</summary>
+    public void ToggleByKey(string key)
+    {
+        if (key == "T") ToggleResearch();
+        else if (key == "L") { _supplyLens = !_supplyLens; if (State is { } s) _map.RenderSupply(s, LocalPlayer, _supplyLens); }
+        else TogglePanel(key);
     }
 
     /// <summary>Cycles through your units that still have moves and no orders.</summary>
@@ -247,7 +364,11 @@ public partial class GameRoot : Node3D
         }
 
         var s = State;
-        if (s == null) return;
+        if (s == null)
+        {
+            if (_backdrop != null) _camera.Drift((float)delta);
+            return;
+        }
         long version = (_host?.Seq ?? _client?.LastSeq ?? 0) + s.Turn * 1_000_000L + _localVersion * 7919;
         if (version != _renderedVersion)
         {
@@ -258,17 +379,27 @@ public partial class GameRoot : Node3D
             _map.RenderSupply(s, LocalPlayer, _supplyLens);
             if (_cityPanel.Visible) _cityPanel.Refresh();
             _unitPanel.Refresh();
-            _turnBar.Refresh();
+            _topBar.Refresh();
+            _tracker.Refresh();
+            _turnCorner.Refresh();
             if (_research.Visible) _research.Refresh();
         }
         _victory.Watch();
-        var p = s.Players[LocalPlayer];
-        string future = p.Divergence >= 0 ? $"   {s.Db.Divergences[p.Divergence].People} (V)" : "";
-        var (science, culture) = ResearchSystem.Rates(s, p.Id);
-        _status.Text = $"Turn {s.Turn} ({Calendar.Format(Calendar.Year(s.Turn, s.Options.GameSpeedPercent))})   Gold {p.Gold.FloorToInt()}   Science {science}   Culture {culture}   " +
-                       $"CO2 {s.Climate.Co2Ppm.FloorToInt()} ppm (+{s.Climate.Temperature}°C){future}" +
-                       (_client?.PendingCommands.Count > 0 ? "   ⏳ syncing" : "") + (_client?.Paused == true ? "   ⏸ PAUSED" : "") +
-                       "\n" + WorldLine(s);
+        _seaTimer -= delta;
+        if (_seaTimer <= 0)
+        {
+            // Surf in the ambience follows how much sea is around where you are looking.
+            _seaTimer = 1.0;
+            var focus = HexLayout.FromWorld(_camera.Focus);
+            int center = s.Map.IndexOf(focus), water = 0, total = 0;
+            if (center >= 0)
+            {
+                var around = new List<int>();
+                s.Map.CollectRadius(center, 6, around);
+                foreach (int t in around) { total++; if (s.Map.IsWater(t)) water++; }
+            }
+            _audio.SetSeaShare(total == 0 ? 0 : (float)water / total);
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -292,6 +423,7 @@ public partial class GameRoot : Node3D
         {
             int hovered = s.Map.IndexOf(_camera.PickHex(motion.Position));
             if (_lens.IsActive) _lens.Hover(hovered);
+            _map.Hover(hovered, s.Map);
             if (hovered >= 0 && s.GetUnit(SelectedUnit) is { } attacker && SupplySystem.IsMilitary(s.Db, attacker))
                 _tooltip.ShowFor(s, attacker, hovered, motion.Position);
             else _tooltip.Visible = false;
@@ -306,9 +438,11 @@ public partial class GameRoot : Node3D
             case Key.F5: QuickSave(); break;
             case Key.F9: QuickLoad(); break;
             case Key.Escape:
-                if (_lens.IsActive) _lens.Hide();
+                if (_menu.Visible) _menu.Visible = false;
+                else if (_lens.IsActive) _lens.Hide();
                 else if (_research.Visible || _diplomacy.Visible || _chronicle.Visible || _divergence.Visible) CloseOverlaysExcept(null);
-                else { SelectedUnit = -1; _selectedTile = -1; _cityPanel.Visible = false; _renderedVersion = -1; }
+                else if (SelectedUnit >= 0 || _cityPanel.Visible) { SelectedUnit = -1; _selectedTile = -1; _cityPanel.Visible = false; _renderedVersion = -1; }
+                else _menu.Visible = true;
                 break;
             case Key.L:
                 _supplyLens = !_supplyLens;
@@ -357,7 +491,7 @@ public partial class GameRoot : Node3D
         var s = State!;
         if (s.GetUnit(SelectedUnit) is not { } unit) return;
         if (SupplySystem.IsMilitary(s.Db, unit) && CombatSystem.Preview(s, unit, tile).Legal) Submit(new AttackCommand { UnitId = unit.Id, TargetTile = tile });
-        else Submit(new MoveUnitCommand { UnitId = unit.Id, Destination = tile });
+        else if (Submit(new MoveUnitCommand { UnitId = unit.Id, Destination = tile }).Ok) AudioManager.Sfx(s.Map.IsWater(tile) ? "cloth" : "step", -6f);
         _tooltip.Visible = false;
     }
 
@@ -378,22 +512,6 @@ public partial class GameRoot : Node3D
         if (panel.Visible) (panel as ChroniclePanel)?.Refresh();
         if (panel.Visible) (panel as DivergencePanel)?.Refresh();
         if (panel.Visible) (panel as ResearchPanel)?.Refresh();
-    }
-}
-
-public partial class GameRoot
-{
-    /// <summary>One HUD line: the world's age, its currents, and what the next era would bring.</summary>
-    private static string WorldLine(GameState s)
-    {
-        var w = s.World;
-        int next = WorldSystem.Forecast(s, w.WorldEra + 1);
-        string age = WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age";
-        string forecast = next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age";
-        // Dynamic and sequential turns: say whose phase it is (only when there is more than one).
-        string phase = s.TurnPhases.Count > 1 ? $"   {TurnPhases.Describe(s)}" : "";
-        return $"{age}   Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}   " +
-               $"→ if a new era began now: {forecast}{phase}   [L] supply  [C] chronicle  [P] diplomacy  [V] divergence";
     }
 }
 

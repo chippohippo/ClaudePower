@@ -145,6 +145,7 @@ public partial class GameRoot
                 return null;
             }
             case "save": QuickSave(); return null;
+            case "menu": ToggleMenu(); return null;
             case "load": QuickLoad(); return null;
             case "zoom-out": Camera.Zoom(2.2f); return null;
             default:

@@ -1,0 +1,1155 @@
+{
+ "about": "Assets fetched from the patch.gg index by tools/assets/fetch_assets.py into godot/assets. Only CC0-1.0 and CC-BY-4.0 are accepted; credits go to godot/assets/CREDITS.md.",
+ "assets": [
+  {
+   "name": "grassland",
+   "type": "material",
+   "id": "polyhaven:aerial_grass_rock",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "plains",
+   "type": "material",
+   "id": "polyhaven:withered_grass",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "desert",
+   "type": "material",
+   "id": "polyhaven:aerial_sand",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "tundra",
+   "type": "material",
+   "id": "polyhaven:sparse_grass",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "snow",
+   "type": "material",
+   "id": "polyhaven:snow_field_aerial",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "rock",
+   "type": "material",
+   "id": "polyhaven:aerial_rocks_01",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "cliff",
+   "type": "material",
+   "id": "polyhaven:cliff_side",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "beach",
+   "type": "material",
+   "id": "polyhaven:coast_sand_01",
+   "dest": "terrain",
+   "roles": [
+    "baseColor",
+    "normal",
+    "roughness"
+   ]
+  },
+  {
+   "name": "trees_A_large",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_A_large.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "trees_A_medium",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_A_medium.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "trees_A_small",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_A_small.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "trees_B_large",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_B_large.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "trees_B_medium",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_B_medium.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "trees_B_small",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/trees_B_small.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "tree_single_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/tree_single_A.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "tree_single_B",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/tree_single_B.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "mountain_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/mountain_A.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "mountain_B",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/mountain_B.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "mountain_C",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/mountain_C.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "mountain_A_grass_trees",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/mountain_A_grass_trees.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "mountain_B_grass",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/mountain_B_grass.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "hills_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/hills_A.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "hills_B",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/hills_B.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "hills_C",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/hills_C.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "hills_A_trees",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/hills_A_trees.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "rock_single_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/rock_single_A.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "waterlily_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/waterlily_A.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "waterplant_B",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/waterplant_B.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "cloud_big",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/cloud_big.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "cloud_small",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/nature/cloud_small.gltf",
+   "dest": "models/nature"
+  },
+  {
+   "name": "castle_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_castle_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "castle_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_castle_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "castle_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_castle_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "castle_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_castle_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_A_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_home_A_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_A_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_home_A_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_A_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_home_A_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_A_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_home_A_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_B_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_home_B_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_B_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_home_B_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_B_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_home_B_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "home_B_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_home_B_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "market_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_market_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "market_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_market_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "market_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_market_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "market_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_market_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "church_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_church_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "church_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_church_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "church_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_church_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "church_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_church_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_A_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_tower_A_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_A_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_tower_A_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_A_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_tower_A_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_A_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_tower_A_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "barracks_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_barracks_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "barracks_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_barracks_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "barracks_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_barracks_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "barracks_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_barracks_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "windmill_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_windmill_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "windmill_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_windmill_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "windmill_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_windmill_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "windmill_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_windmill_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "blacksmith_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_blacksmith_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "blacksmith_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_blacksmith_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "blacksmith_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_blacksmith_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "blacksmith_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_blacksmith_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tavern_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_tavern_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tavern_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_tavern_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tavern_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_tavern_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tavern_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_tavern_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "archeryrange_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_archeryrange_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "archeryrange_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_archeryrange_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "archeryrange_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_archeryrange_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "archeryrange_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_archeryrange_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "lumbermill_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_lumbermill_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "lumbermill_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_lumbermill_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "lumbermill_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_lumbermill_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "lumbermill_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_lumbermill_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "mine_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_mine_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "mine_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_mine_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "mine_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_mine_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "mine_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_mine_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "watermill_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_watermill_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "watermill_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_watermill_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "watermill_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_watermill_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "watermill_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_watermill_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "well_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_well_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "well_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_well_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "well_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_well_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "well_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_well_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_B_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/blue/building_tower_B_blue.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_B_red",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/red/building_tower_B_red.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_B_green",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/green/building_tower_B_green.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tower_B_yellow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/yellow/building_tower_B_yellow.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "grain",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_grain.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "dirt",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_dirt.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "scaffolding",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_scaffolding.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "destroyed",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_destroyed.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "stage_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_stage_A.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "bridge_A",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/buildings/neutral/building_bridge_A.gltf",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "tent",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/tent.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "resource_lumber",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/resource_lumber.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "resource_stone",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/resource_stone.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "wheelbarrow",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/wheelbarrow.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "flag_blue",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/flag_blue.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "crate_open",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/crate_open.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "sack",
+   "type": "model",
+   "id": "kaykit:medieval-hexagon/decoration/props/sack.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "building-wizard-tower",
+   "type": "model",
+   "id": "kenney:hexagon-kit/building-wizard-tower.glb",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "building-port",
+   "type": "model",
+   "id": "kenney:hexagon-kit/building-port.glb",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "building-dock",
+   "type": "model",
+   "id": "kenney:hexagon-kit/building-dock.glb",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "building-sheep",
+   "type": "model",
+   "id": "kenney:hexagon-kit/building-sheep.glb",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "building-farm",
+   "type": "model",
+   "id": "kenney:hexagon-kit/building-farm.glb",
+   "dest": "models/buildings"
+  },
+  {
+   "name": "Knight",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Knight.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "Barbarian",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Barbarian.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "Rogue_Hooded",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Rogue_Hooded.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "Mage",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Mage.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "Rogue",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Rogue.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "civilian_a",
+   "type": "model",
+   "id": "kenney:mini-characters/character-male-a.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "civilian_b",
+   "type": "model",
+   "id": "kenney:mini-characters/character-female-b.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "horse",
+   "type": "model",
+   "id": "kenney:prototype-kit/animal-horse.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "ship_small",
+   "type": "model",
+   "id": "kenney:pirate-kit/ship-pirate-small.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "ship_medium",
+   "type": "model",
+   "id": "kenney:pirate-kit/ship-pirate-medium.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "ship_large",
+   "type": "model",
+   "id": "kenney:pirate-kit/ship-pirate-large.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "mech",
+   "type": "model",
+   "id": "anymove:mech",
+   "dest": "models/units"
+  },
+  {
+   "name": "drone",
+   "type": "model",
+   "id": "polyfork:survey-drone-7c71f9",
+   "dest": "models/units"
+  },
+  {
+   "name": "modern_soldier",
+   "type": "model",
+   "id": "kenney:animated-characters-survivors/survivorMaleB.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "sky",
+   "type": "hdri",
+   "id": "polyhaven:kloofendal_43d_clear_puresky",
+   "dest": "sky"
+  },
+  {
+   "name": "click",
+   "type": "audio",
+   "id": "kenney:interface-sounds/click_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "select",
+   "type": "audio",
+   "id": "kenney:interface-sounds/select_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "open",
+   "type": "audio",
+   "id": "kenney:interface-sounds/open_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "close",
+   "type": "audio",
+   "id": "kenney:interface-sounds/close_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "confirm",
+   "type": "audio",
+   "id": "kenney:interface-sounds/confirmation_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "toggle",
+   "type": "audio",
+   "id": "kenney:interface-sounds/toggle_001.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "hover",
+   "type": "audio",
+   "id": "kenney:ui-audio/rollover1.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "page",
+   "type": "audio",
+   "id": "kenney:rpg-audio/bookFlip1.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "book_open",
+   "type": "audio",
+   "id": "kenney:rpg-audio/bookOpen.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "coins",
+   "type": "audio",
+   "id": "kenney:rpg-audio/handleCoins.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "step",
+   "type": "audio",
+   "id": "kenney:impact-sounds/footstep_grass_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "step_snow",
+   "type": "audio",
+   "id": "kenney:impact-sounds/footstep_snow_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "chop",
+   "type": "audio",
+   "id": "kenney:rpg-audio/chop.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "draw",
+   "type": "audio",
+   "id": "kenney:rpg-audio/drawKnife1.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "clash",
+   "type": "audio",
+   "id": "kenney:impact-sounds/impactMetal_heavy_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "clash2",
+   "type": "audio",
+   "id": "kenney:impact-sounds/impactPlate_heavy_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "thud",
+   "type": "audio",
+   "id": "kenney:impact-sounds/impactWood_heavy_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "bell",
+   "type": "audio",
+   "id": "kenney:impact-sounds/impactBell_heavy_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "build",
+   "type": "audio",
+   "id": "kenney:impact-sounds/impactPlank_medium_000.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "door",
+   "type": "audio",
+   "id": "kenney:rpg-audio/doorOpen_1.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "cloth",
+   "type": "audio",
+   "id": "kenney:rpg-audio/cloth1.ogg",
+   "dest": "audio/sfx"
+  },
+  {
+   "name": "thatched_villagers",
+   "type": "music",
+   "id": "incompetech:thatched_villagers",
+   "dest": "audio/music"
+  },
+  {
+   "name": "lord_of_the_land",
+   "type": "music",
+   "id": "incompetech:lord_of_the_land",
+   "dest": "audio/music"
+  },
+  {
+   "name": "folk_round",
+   "type": "music",
+   "id": "incompetech:folk_round",
+   "dest": "audio/music"
+  },
+  {
+   "name": "achaidh_cheide",
+   "type": "music",
+   "id": "incompetech:achaidh_cheide",
+   "dest": "audio/music"
+  },
+  {
+   "name": "the_britons",
+   "type": "music",
+   "id": "incompetech:the_britons",
+   "dest": "audio/music"
+  },
+  {
+   "name": "celtic_impulse",
+   "type": "music",
+   "id": "incompetech:celtic_impulse",
+   "dest": "audio/music"
+  },
+  {
+   "name": "heroic_age",
+   "type": "music",
+   "id": "incompetech:heroic_age",
+   "dest": "audio/music"
+  },
+  {
+   "name": "crusade",
+   "type": "music",
+   "id": "incompetech:crusade",
+   "dest": "audio/music"
+  },
+  {
+   "name": "prelude_and_action",
+   "type": "music",
+   "id": "incompetech:prelude_and_action",
+   "dest": "audio/music"
+  },
+  {
+   "name": "tale_on_the_late",
+   "type": "music",
+   "id": "opengameart:tale-on-the-late-main-theme/komiku_tale_on_the_late_01_tale_on_the_late_main_theme",
+   "dest": "audio/music"
+  },
+  {
+   "name": "food",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/resource_wheat.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "production",
+   "type": "sprite",
+   "id": "kenney:cursor-pack/basic-tool_hammer.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "gold",
+   "type": "sprite",
+   "id": "kenney:game-icons-expansion/coin.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "science",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/flask_full.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "culture",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/book_open.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "faith",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_church.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "strength",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/sword.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "defense",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/shield.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "moves",
+   "type": "sprite",
+   "id": "kenney:cursor-pack/basic-boot.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "turns",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/hourglass.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "housing",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_house.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "amenities",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/crown_a.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "loyalty",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/tag_shield.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "population",
+   "type": "sprite",
+   "id": "kenney:game-icons/singleplayer.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "wall",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_wall.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "tower",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_tower.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "farm",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_farm.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "iron",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/resource_iron.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "lumber",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/resource_lumber.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "apple",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/resource_apple.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "home",
+   "type": "sprite",
+   "id": "kenney:game-icons/home.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "hand",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/hand.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "pouch",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/pouch.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "arrow",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/arrow_right.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "crown",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/crown_b.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "gate",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_gate.png",
+   "dest": "ui/icons"
+  },
+  {
+   "name": "watchtower",
+   "type": "sprite",
+   "id": "kenney:board-game-icons/structure_watchtower.png",
+   "dest": "ui/icons"
+  }
+ ]
+}

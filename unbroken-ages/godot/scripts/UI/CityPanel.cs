@@ -24,6 +24,7 @@ public partial class CityPanel : PanelContainer
     private int _cityId = -1;
     private int _pendingDistrict = -1;
 
+    private HBoxContainer _yieldRow = null!;
     private Label _title = null!, _yields = null!, _loyalty = null!, _hover = null!;
     private ItemList _queue = null!;
     private OptionButton _add = null!;
@@ -39,15 +40,21 @@ public partial class CityPanel : PanelContainer
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.RightWide);
-        CustomMinimumSize = new Vector2(380, 0);
-        OffsetLeft = -390;
-        var v = new VBoxContainer();
-        AddChild(v);
+        CustomMinimumSize = new Vector2(390, 0);
+        OffsetLeft = -402; OffsetRight = -12; OffsetTop = 50; OffsetBottom = -330;   // below the top bar, above the turn button
+        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        AddChild(scroll);
+        var v = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        v.AddThemeConstantOverride("separation", 6);
+        scroll.AddChild(v);
 
         _title = new Label { ThemeTypeVariation = "HeaderLarge" };
+        _yieldRow = new HBoxContainer();
+        _yieldRow.AddThemeConstantOverride("separation", 12);
         _yields = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _loyalty = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         v.AddChild(_title);
+        v.AddChild(_yieldRow);
         v.AddChild(_yields);
         v.AddChild(_loyalty);
         v.AddChild(new HSeparator());
@@ -105,8 +112,16 @@ public partial class CityPanel : PanelContainer
         _cityId = city.Id;
         var fx = CityEffects.Compute(s, city);
         var report = CityYields.Compute(s, city, fx);
-        _title.Text = $"{city.Name}  ·  pop {city.Population}";
-        _yields.Text = $"{report.Total}\nHousing {city.Population}/{report.Housing}   Amenities {report.AmenitiesAvailable}/{report.AmenitiesNeeded} ({report.AmenityStatus})" +
+        _title.Text = $"{(city.IsCapital ? "★ " : "")}{city.Name.ToUpperInvariant()}  ·  {city.Population}";
+        foreach (var child in _yieldRow.GetChildren()) child.QueueFree();
+        foreach (var (icon, color, value, tip) in new[]
+        {
+            ("food", UiTheme.Food, report.Total.Food, "Food"), ("production", UiTheme.Production, report.Total.Production, "Production"),
+            ("gold", UiTheme.GoldYield, report.Total.Gold, "Gold"), ("science", UiTheme.Science, report.Total.Science, "Science"),
+            ("culture", UiTheme.Culture, report.Total.Culture, "Culture"), ("faith", UiTheme.Faith, report.Total.Faith, "Faith"),
+        })
+            _yieldRow.AddChild(Icons.Stat(icon, color, value.ToString(), out _, 18, $"{tip} per turn"));
+        _yields.Text = $"Housing {city.Population}/{report.Housing}   Amenities {report.AmenitiesAvailable}/{report.AmenitiesNeeded} ({report.AmenityStatus})" +
                        $"\nDistricts {DistrictPlacement.UsedCapacity(s, city)}/{DistrictPlacement.Capacity(city, fx)}" +
                        (city.PowerDemand > 0 ? $"   Power {(city.IsPowered ? "✔" : "✖")} ({city.PowerDemand} needed)" : "");
         var (nextTile, borderTurns) = BorderSystem.Forecast(s, city, report.Total.Culture);

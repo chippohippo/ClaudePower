@@ -19,6 +19,7 @@ public partial class ChroniclePanel : PanelContainer
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.LeftWide);
         CustomMinimumSize = new Vector2(520, 0);
+        OffsetTop = 50; OffsetLeft = 12; OffsetBottom = -12;
         var v = new VBoxContainer();
         AddChild(v);
         v.AddChild(new Label { Text = "THE CHRONICLE", ThemeTypeVariation = "HeaderLarge" });

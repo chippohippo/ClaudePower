@@ -48,13 +48,24 @@ public static class HexLayout
 public partial class StrategyCamera : Camera3D
 {
     private Vector3 _focus;
-    private float _distance = 18f;
+    private float _distance = 14f;
     public float PanSpeed = 22f;
     public bool EdgeScroll = true;
 
     public override void _Ready()
     {
-        Fov = 45f;
+        Fov = 40f;
+        // A gentle tilt-shift: the far map softens like a painted backdrop, the area you look at stays crisp.
+        Attributes = new CameraAttributesPractical { DofBlurFarEnabled = true, DofBlurAmount = 0.06f, DofBlurFarTransition = 18f };
+        UpdateTransform();
+    }
+
+    public Vector3 Focus => _focus;
+
+    /// <summary>Slow cinematic pan for the title backdrop.</summary>
+    public void Drift(float delta)
+    {
+        _focus += new Vector3(0.35f, 0, 0.12f) * delta;
         UpdateTransform();
     }
 
@@ -107,10 +118,11 @@ public partial class StrategyCamera : Camera3D
     private void UpdateTransform()
     {
         // Steeper when zoomed out (strategic view), lower when close (city view).
-        float tilt = Mathf.Lerp(50f, 72f, Mathf.Clamp((_distance - 5f) / 60f, 0f, 1f));
+        float tilt = Mathf.Lerp(42f, 70f, Mathf.Clamp((_distance - 5f) / 60f, 0f, 1f));
         float rad = Mathf.DegToRad(tilt);
         Position = _focus + new Vector3(0, Mathf.Sin(rad), Mathf.Cos(rad)) * _distance;
         LookAt(_focus, Vector3.Up);
+        if (Attributes is CameraAttributesPractical dof) dof.DofBlurFarDistance = _distance * 1.6f;
     }
 
     public HexCoord PickHex(Vector2 screen)

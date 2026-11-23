@@ -26,6 +26,7 @@ public partial class DiplomacyPanel : PanelContainer
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
         v.AddChild(scroll);
         _rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _rows.AddThemeConstantOverride("separation", 10);
         scroll.AddChild(_rows);
         var close = new Button { Text = "Close (P)" };
         close.Pressed += () => Visible = false;
@@ -40,12 +41,20 @@ public partial class DiplomacyPanel : PanelContainer
         foreach (var child in _rows.GetChildren()) child.QueueFree();
         foreach (var other in s.Players.Where(p => p.Id != me && !p.IsFreeCities && p.IsAlive))
         {
+            var card = new PanelContainer();
+            var civColor = Map.HexMapView.CivColor(s, other.Id);
+            var style = UiTheme.Box(new Color(civColor.Darkened(0.7f), 0.9f), new Color(civColor, 0.9f), 1, 6, 10);
+            style.BorderWidthLeft = 6;
+            card.AddThemeStyleboxOverride("panel", style);
+            _rows.AddChild(card);
             var row = new HBoxContainer();
-            _rows.AddChild(row);
+            row.AddThemeConstantOverride("separation", 8);
+            card.AddChild(row);
             string civ = other.CivIndex >= 0 ? s.Db.Civilizations[other.CivIndex].Name : other.Name;
             var attitude = DiplomacySystem.Attitude(s, other.Id, me);
             var info = new Label
             {
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 CustomMinimumSize = new Vector2(520, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 Text = $"{other.Name} ({civ}) · {DiplomacySystem.StatusName(s, me, other.Id)} · score {VictorySystem.Score(s, other.Id)}\n" +
                        $"Attitude toward you: {attitude.Total:+0;-0;0}  " + string.Join(", ", attitude.Lines.Select(l => $"{l.Label} {l.Value:+0;-0}")) + "\n" +

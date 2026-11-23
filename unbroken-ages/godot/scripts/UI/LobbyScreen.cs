@@ -29,10 +29,21 @@ public partial class LobbyScreen : PanelContainer
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-        CustomMinimumSize = new Vector2(720, 520);
+        CustomMinimumSize = new Vector2(720, 540);
+        GrowHorizontal = GrowDirection.Both;
+        GrowVertical = GrowDirection.Both;
+        OffsetLeft = -360; OffsetRight = 360; OffsetTop = -230; OffsetBottom = 310;
+        AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(UiTheme.Navy, 0.9f), UiTheme.Gold, 2, 10, 18));
         var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", 8);
         AddChild(v);
-        v.AddChild(new Label { Text = "UNBROKEN AGES", HorizontalAlignment = HorizontalAlignment.Center, ThemeTypeVariation = "HeaderLarge" });
+        var title = new Label { Text = "UNBROKEN AGES", HorizontalAlignment = HorizontalAlignment.Center, ThemeTypeVariation = "HeaderLarge" };
+        title.AddThemeFontSizeOverride("font_size", 40);
+        title.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.7f));
+        title.AddThemeConstantOverride("outline_size", 6);
+        v.AddChild(title);
+        v.AddChild(new Label { Text = "One people. Every age.", HorizontalAlignment = HorizontalAlignment.Center, ThemeTypeVariation = "Caption" });
+        v.AddChild(new HSeparator());
 
         _name = new LineEdit { Text = System.Environment.UserName, PlaceholderText = "Your name" };
         v.AddChild(Labeled("Name", _name));
