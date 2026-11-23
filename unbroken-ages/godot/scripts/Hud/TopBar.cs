@@ -45,7 +45,7 @@ public partial class TopBar : PanelContainer
         _turn = new Label();
         _turn.AddThemeColorOverride("font_color", UiTheme.GoldBright);
         h.AddChild(_turn);
-        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)") })
+        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
         {
             var b = Icons.Button(icon, key, UiTheme.GoldBright, () => _root.ToggleByKey(key), tip);
             b.CustomMinimumSize = new Vector2(46, 28);

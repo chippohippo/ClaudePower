@@ -315,6 +315,7 @@ public partial class GameRoot : Node3D
     {
         if (key == "T") ToggleResearch();
         else if (key == "L") { _supplyLens = !_supplyLens; if (State is { } s) _map.RenderSupply(s, LocalPlayer, _supplyLens); }
+        else if (key == "R") _overlay.ResourceLens = !_overlay.ResourceLens;
         else TogglePanel(key);
     }
 
@@ -448,10 +449,12 @@ public partial class GameRoot : Node3D
             case Key.Escape:
                 if (_menu.Visible) _menu.Visible = false;
                 else if (_lens.IsActive) _lens.Hide();
+                else if (_overlay.ResourceLens) _overlay.ResourceLens = false;
                 else if (_research.Visible || _diplomacy.Visible || _chronicle.Visible || _divergence.Visible) CloseOverlaysExcept(null);
                 else if (SelectedUnit >= 0 || _cityPanel.Visible) { SelectedUnit = -1; _selectedTile = -1; _cityPanel.Visible = false; _renderedVersion = -1; }
                 else _menu.Visible = true;
                 break;
+            case Key.R: _overlay.ResourceLens = !_overlay.ResourceLens; break;
             case Key.L:
                 _supplyLens = !_supplyLens;
                 _map.RenderSupply(s, LocalPlayer, _supplyLens);

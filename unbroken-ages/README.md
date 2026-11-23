@@ -66,7 +66,10 @@ Civilization VII's age resets or civ-swapping.
 
 Civ VI's painted art direction on an old paper map ([06 §9](docs/06-ui-ux-wireframes.md#9-art-direction-a-painted-world-on-an-old-chart)):
 terrains blend across soft, hand-painted borders; coasts have turquoise shallows, rolling surf and foam; forests, hills,
-mountains, team-coloured cities and districts are 3D; units are animated squads. The unexplored world is an inked parchment
+mountains, team-coloured cities and districts are 3D; units are animated squads of four. The world is alive: farms are
+patchworks of crop plots, roads link your cities with wagons (later cars and lorries) carrying the harvest, fishing boats
+work the coasts, cattle and horses graze, birds wheel overhead and every chimney smokes. Every resource stands on its tile,
+and the resource lens (R) shows what each one yields and whether it is improved. The unexplored world is an inked parchment
 chart, places you have seen but cannot see now are a sepia watercolour with cross-hatched scenery, and the frontier is a
 burnt edge on the paper. The interface follows Civ V and VI: top bar with yield icons, research and civic trackers, city
 banners and unit flags, a minimap and a turn button that names the next thing to do. Music, effects and a synthesised
@@ -76,6 +79,8 @@ wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited
 | | |
 |---|---|
 | ![Close-up](docs/screenshots/close-up.png) | ![City screen](docs/screenshots/city-screen.png) |
+| ![Farms, roads and wagons around a capital](docs/screenshots/village-fields.png) | ![Resource lens](docs/screenshots/resource-lens.png) |
+| ![The industrial age: asphalt, cars and coal smoke](docs/screenshots/living-world.png) | |
 
 ## Play it (first playable)
 
@@ -91,7 +96,7 @@ wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited
 | Research and civics | T |
 | City production | Click your city: queue, reorder, buy |
 | End turn | Enter or the End Turn button (it names anything still waiting for you) |
-| Diplomacy · Chronicle · Divergence · Supply lens | P · C · V · L |
+| Diplomacy · Chronicle · Divergence · Supply lens · Resource lens | P · C · V · L · R |
 | Save · Load | F5 · F9 |
 | Pan · Zoom · Close a screen | WASD or arrows · mouse wheel · Esc |
 

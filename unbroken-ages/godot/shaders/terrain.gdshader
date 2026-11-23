@@ -29,6 +29,44 @@ vec3 layer_color(int layer, vec2 wp) {
 	return mix(sharp, soft, 0.45) * layer_tint[layer] * 1.55;    // painterly: less photo noise, more colour
 }
 
+float hash21(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+
+// Worked land seen from the air: a patchwork of crop plots with furrows and hedgerows (farms), rows of trees (plantations),
+// fenced paddocks (pastures), a golden haze of wild grain (unimproved wheat).
+vec3 fields(vec3 col, vec2 wp, int kind, vec3 macro) {
+	float an = 0.45 + floor(wp.x * 0.25 + wp.y * 0.17) * 0.6;       // plots change heading every few tiles
+	mat2 rot = mat2(vec2(cos(an), sin(an)), vec2(-sin(an), cos(an)));
+	vec2 r = rot * wp;
+	if (kind == 12) return mix(col, vec3(0.8, 0.66, 0.3), 0.5 + 0.2 * macro.g);
+	vec2 scale = vec2(1.7, 2.6);
+	if (kind == 11) scale = vec2(1.1, 1.3);
+	vec2 cell = floor(r * scale);
+	vec2 f = fract(r * scale);
+	float h = hash21(cell);
+	float border = min(min(f.x, 1.0 - f.x) / scale.x, min(f.y, 1.0 - f.y) / scale.y);
+	vec3 plot;
+	if (kind == 9) {
+		plot = vec3(0.48, 0.35, 0.21);                                   // ploughed
+		if (h < 0.3) plot = vec3(0.83, 0.66, 0.27);                      // ripe grain
+		else if (h < 0.55) plot = vec3(0.5, 0.62, 0.22);                 // green crop
+		else if (h < 0.8) plot = vec3(0.64, 0.7, 0.3);                   // young crop
+		float furrow = 0.5 + 0.5 * sin((h < 0.5 ? r.x : r.y) * 70.0);
+		plot *= 0.86 + 0.16 * furrow;
+		plot *= 0.92 + 0.16 * macro.b;
+		col = mix(col, plot, 0.9);
+		col = mix(col, vec3(0.2, 0.3, 0.12), smoothstep(0.035, 0.012, border) * 0.85);   // hedgerows
+	} else if (kind == 10) {
+		vec2 g = fract(r * 7.0) - 0.5;
+		float tree = smoothstep(0.32, 0.18, length(g));
+		col = mix(col * 0.9, vec3(0.5, 0.58, 0.3), 0.5);
+		col = mix(col, vec3(0.17, 0.3, 0.11) * (0.85 + 0.3 * h), tree * 0.85);
+	} else {
+		col = mix(col, vec3(0.46, 0.62, 0.27) * (0.9 + 0.2 * h), 0.6);
+		col = mix(col, vec3(0.42, 0.3, 0.18), smoothstep(0.02, 0.008, border) * 0.9);     // fences
+	}
+	return col;
+}
+
 vec3 land_color(vec4 d, vec2 wp) {
 	int layer = channel(d.r);
 	int feature = channel(d.a);
@@ -44,6 +82,7 @@ vec3 land_color(vec4 d, vec2 wp) {
 	else if (feature == 6) col = mix(col, vec3(0.4, 0.62, 0.3), 0.4);
 	else if (feature == 7) col = mix(col, vec3(0.8, 0.83, 0.86), 0.7);
 	else if (feature == 8) col = mix(col, vec3(0.1, 0.09, 0.15), 0.8);
+	else if (feature >= 9) col = fields(col, wp, feature, macro);
 	return col;
 }
 

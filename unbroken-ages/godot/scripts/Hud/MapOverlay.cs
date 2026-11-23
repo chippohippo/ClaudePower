@@ -15,6 +15,8 @@ namespace UnbrokenAges.Client.Hud;
 ///   bar when damaged. Click your banner to open the city.</item>
 /// <item><b>Unit flags</b> above every visible unit: a shield in the owner's colour with the unit type's icon and a health
 ///   bar; yours are clickable, and the selected one is outlined in gold.</item>
+/// <item><b>Resource icons</b> on every resource you know about (hidden when zoomed far out). The <b>resource lens</b> (R)
+///   turns them into full badges: name, yields, and whether the tile is improved — or which improvement it wants.</item>
 /// </list>
 /// Positions follow the camera every frame; labels behind the camera or off-screen are hidden.
 /// </summary>
@@ -23,6 +25,11 @@ public partial class MapOverlay : Control
     private readonly GameRoot _root;
     private readonly Dictionary<int, (PanelContainer Panel, Label Pop, Label Name, Label Strength, ProgressBar Build, Label BuildText, ProgressBar Hp)> _banners = new();
     private readonly Dictionary<int, (PanelContainer Flag, TextureRect Icon, ProgressBar Hp)> _flags = new();
+
+    private readonly Dictionary<int, (PanelContainer Panel, VBoxContainer Detail, int Res, bool Lens, int Improvement)> _badges = new();
+
+    /// <summary>The resource lens: full badges with yields and improvement status for every known resource.</summary>
+    public bool ResourceLens { get; set; }
 
     public MapOverlay(GameRoot root) => _root = root;
 
@@ -54,6 +61,22 @@ public partial class MapOverlay : Control
         }
         foreach (var id in _banners.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _banners[id].Panel.QueueFree(); _banners.Remove(id); }
 
+        // Resource icons (always, when close enough to read them) and the resource lens (R).
+        bool showIcons = ResourceLens || cam.GlobalPosition.Y < 24f;
+        var seenBadges = new HashSet<int>();
+        if (showIcons)
+            for (int t = 0; t < s.Map.Count; t++)
+            {
+                int r = HexMapView.VisibleResource(s, _root.LocalPlayer, t);
+                if (r < 0) continue;
+                seenBadges.Add(t);
+                var b = Badge(s, t, r);
+                var world = HexLayout.ToWorld(s.Map.CoordOf(t), 0) + new Vector3(-0.42f, 0, -0.38f);
+                world.Y = Visuals.HeightField.Current.Surface(world.X, world.Z) + 0.25f;
+                Place(b.Panel, cam, world, view, center: true);
+            }
+        foreach (var t in _badges.Keys.Where(t => !seenBadges.Contains(t)).ToList()) { _badges[t].Panel.QueueFree(); _badges.Remove(t); }
+
         var seenUnits = new HashSet<int>();
         foreach (var u in s.Units)
         {
@@ -77,6 +100,92 @@ public partial class MapOverlay : Control
         var size = c.Size;
         c.Position = center ? p - new Vector2(size.X / 2, size.Y) : p;
     }
+
+    // ----- Resources ---------------------------------------------------------------------------------
+
+    private static readonly Dictionary<string, Texture2D?> ResourceIcons = new();
+
+    public static Texture2D? ResourceIcon(string resourceId)
+    {
+        if (ResourceIcons.TryGetValue(resourceId, out var t)) return t;
+        string path = $"res://assets/ui/resources/res_{resourceId.Replace("RESOURCE_", "").ToLowerInvariant()}.png";
+        t = ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
+        ResourceIcons[resourceId] = t;
+        return t;
+    }
+
+    public static Color ClassColor(ResourceClass c) => c switch
+    {
+        ResourceClass.Luxury => UiTheme.Culture,
+        ResourceClass.Strategic => UiTheme.Production,
+        _ => UiTheme.Food,
+    };
+
+    private (PanelContainer Panel, VBoxContainer Detail, int Res, bool Lens, int Improvement) Badge(GameState s, int tile, int r)
+    {
+        int imp = s.Map.Improvement[tile];
+        if (_badges.TryGetValue(tile, out var b) && b.Res == r && b.Lens == ResourceLens && b.Improvement == imp) return b;
+        if (b.Panel != null) b.Panel.QueueFree();
+        var def = s.Db.Resources[r];
+        var color = ClassColor(def.Class);
+        var panel = new PanelContainer { MouseFilter = MouseFilterEnum.Pass };
+        bool improved = imp >= 0 && !s.Map.HasFlag(tile, Sim.Map.TileFlags.Pillaged);
+        var wants = s.Db.Improvements.FirstOrDefault(i => i.ValidResourceIndices.Contains(r));
+        panel.TooltipText = $"{def.Name} ({def.Class})\n{YieldText(def.Yields)}" + (improved ? "\nImproved." : wants != null ? $"\nImprove with a {wants.Name}." : "");
+        var h = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        h.AddThemeConstantOverride("separation", 6);
+        panel.AddChild(h);
+        int size = ResourceLens ? 30 : 22;
+        h.AddChild(new TextureRect
+        {
+            Texture = ResourceIcon(def.Id), CustomMinimumSize = new Vector2(size, size), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore,
+        });
+        var detail = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Visible = ResourceLens };
+        detail.AddThemeConstantOverride("separation", 0);
+        h.AddChild(detail);
+        if (ResourceLens)
+        {
+            var name = new Label { Text = def.Name };
+            name.AddThemeFontSizeOverride("font_size", 14);
+            name.AddThemeColorOverride("font_color", color.Lightened(0.45f));
+            detail.AddChild(name);
+            var yields = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+            yields.AddThemeConstantOverride("separation", 6);
+            foreach (var (type, icon, c) in YieldIcons)
+            {
+                int v = def.Yields[type].FloorToInt();
+                if (v == 0) continue;
+                yields.AddChild(Icons.Stat(icon, c, $"+{v}", out var l, 14));
+                l.AddThemeFontSizeOverride("font_size", 13);
+            }
+            var status = new Label { Text = improved ? "✔" : wants != null ? "⚒" : "", TooltipText = improved ? "Improved" : $"Build a {wants?.Name}" };
+            status.AddThemeColorOverride("font_color", improved ? UiTheme.Food : UiTheme.GoldBright);
+            status.AddThemeFontSizeOverride("font_size", 13);
+            yields.AddChild(status);
+            detail.AddChild(yields);
+        }
+        var bg = new Color("#0b1422");
+        bg.A = ResourceLens ? 0.92f : 0.78f;
+        var box = UiTheme.Box(bg, improved ? color : color.Darkened(0.25f), ResourceLens ? 2 : 2, 16, ResourceLens ? 4 : 2);
+        if (ResourceLens) { box.ContentMarginRight = 10; box.ContentMarginLeft = 4; }
+        panel.AddThemeStyleboxOverride("panel", box);
+        panel.Modulate = new Color(1, 1, 1, improved || ResourceLens ? 1f : 0.85f);
+        AddChild(panel);
+        MoveChild(panel, 0);   // under banners and unit flags
+        b = (panel, detail, r, ResourceLens, imp);
+        _badges[tile] = b;
+        return b;
+    }
+
+    private static readonly (YieldType Type, string Icon, Color Color)[] YieldIcons =
+    {
+        (YieldType.Food, "food", UiTheme.Food), (YieldType.Production, "production", UiTheme.Production), (YieldType.Gold, "gold", UiTheme.GoldYield),
+        (YieldType.Science, "science", UiTheme.Science), (YieldType.Culture, "culture", UiTheme.Culture), (YieldType.Faith, "faith", UiTheme.Faith),
+    };
+
+    private static string YieldText(YieldSet y) =>
+        string.Join("  ", YieldIcons.Where(x => y[x.Type].FloorToInt() != 0).Select(x => $"+{y[x.Type].FloorToInt()} {x.Type}"));
 
     // ----- City banners ------------------------------------------------------------------------------
 

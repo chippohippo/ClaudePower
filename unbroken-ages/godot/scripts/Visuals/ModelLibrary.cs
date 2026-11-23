@@ -31,9 +31,13 @@ public sealed class ModelLibrary
 
     public static string Path(string relative) => $"res://assets/models/{relative}.glb";
 
+    /// <summary>Foliage sways in the wind (a vertex shader on its own material copy); buildings stay still.</summary>
+    public static bool IsFoliage(string relative) => relative.Contains("tree") || relative.Contains("waterplant") || relative.Contains("grapes");
+
     public Prop? GetProp(string relative)
     {
         if (_props.TryGetValue(relative, out var cached)) return cached;
+        _foliage = IsFoliage(relative);
         Prop? prop = null;
         var scene = LoadScene(relative);
         if (scene != null)
@@ -65,12 +69,14 @@ public sealed class ModelLibrary
         foreach (var child in node.GetChildren()) Collect(child, xf, prop, ref first);
     }
 
-    private readonly Dictionary<Material, ShaderMaterial> _tinted = new();
+    private readonly Dictionary<(Material, bool), ShaderMaterial> _tinted = new();
+    private bool _foliage;
 
     private ShaderMaterial Tinted(Material? original)
     {
-        if (original != null && _tinted.TryGetValue(original, out var done)) return done;
+        if (original != null && _tinted.TryGetValue((original, _foliage), out var done)) return done;
         var m = new ShaderMaterial { Shader = TintShader };
+        m.SetShaderParameter("sway", _foliage ? 1f : 0f);
         if (original is BaseMaterial3D b)
         {
             m.SetShaderParameter("albedo_tex", b.AlbedoTexture);
@@ -79,9 +85,11 @@ public sealed class ModelLibrary
             m.SetShaderParameter("uv_offset", new Vector2(b.Uv1Offset.X, b.Uv1Offset.Y));
             m.SetShaderParameter("roughness", Mathf.Clamp(b.Roughness, 0.4f, 1f));
             if (b.AlbedoTexture == null) m.SetShaderParameter("albedo_tex", WhiteTexture);
+            // Kenney kits colour by UV into a small palette ("colormap"): mipmaps would bleed neighbouring swatches together.
+            else m.SetShaderParameter("palette", b.AlbedoTexture.ResourcePath.Contains("colormap") || b.AlbedoTexture.GetWidth() <= 128 ? 1f : 0f);
         }
         else m.SetShaderParameter("albedo_tex", WhiteTexture);
-        if (original != null) _tinted[original] = m;
+        if (original != null) _tinted[(original, _foliage)] = m;
         return m;
     }
 
@@ -125,6 +133,24 @@ public sealed class ModelLibrary
         _sceneBounds[relative] = box;
         return box;
     }
+}
+
+public static class SceneTint
+{
+    /// <summary>Multiplies every material's albedo under <paramref name="root"/> (e.g. the kit's orange horse → chestnut).</summary>
+    public static void Apply(Node root, Color tint)
+    {
+        foreach (var mi in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
+            for (int i = 0; i < mi.GetSurfaceOverrideMaterialCount(); i++)
+                if (mi.GetActiveMaterial(i) is BaseMaterial3D b)
+                {
+                    var copy = (BaseMaterial3D)b.Duplicate();
+                    copy.AlbedoColor = b.AlbedoColor * tint;
+                    mi.SetSurfaceOverrideMaterial(i, copy);
+                }
+    }
+
+    public static readonly Color Chestnut = new(0.66f, 0.6f, 0.62f);
 }
 
 internal static class ObjectExtensions

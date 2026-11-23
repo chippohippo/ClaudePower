@@ -61,7 +61,11 @@ public partial class HexMapView : Node3D
         AddChild(_borders);
         Units = new UnitLayer(_models);
         AddChild(Units);
+        Life = new LifeLayer(_models);
+        AddChild(Life);
     }
+
+    public LifeLayer Life { get; private set; } = null!;
 
     private MeshInstance3D Ring(Color color, float inner, float outer)
     {
@@ -111,6 +115,18 @@ public partial class HexMapView : Node3D
         var image = Image.CreateFromData(size, size, false, Image.Format.Rgb8, data);
         image.GenerateMipmaps();
         return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>The per-tile data texture, shared with other map shaders (roads read the fog from it).</summary>
+    public ImageTexture? TileData => _tileData;
+
+    /// <summary>Hands the hex-map uniforms (tile data, size, wrap) to another material that includes hexmap.gdshaderinc.</summary>
+    public void ShareMapUniforms(ShaderMaterial m, MapGrid map)
+    {
+        m.SetShaderParameter("tile_data", _tileData);
+        m.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
+        m.SetShaderParameter("wrap_x", map.WrapX);
+        m.SetShaderParameter("paper_noise", PaperNoise);
     }
 
     /// <summary>One texel per tile: terrain layer, fog, water kind, feature (layout documented in hexmap.gdshaderinc).</summary>
@@ -168,6 +184,12 @@ public partial class HexMapView : Node3D
         };
         if (terrain == "TERRAIN_ENGINEERED") code = 7;
         if (terrain == "TERRAIN_SUBSTRATE") code = 8;
+        if (map.Improvement[t] >= 0 && code == 0)
+            code = db.Improvements[map.Improvement[t]].Id switch
+            {
+                "IMPROVEMENT_FARM" => 9, "IMPROVEMENT_PLANTATION" => 10, "IMPROVEMENT_PASTURE" => 11, _ => 0,
+            };
+        if (code == 0 && map.Resource[t] >= 0 && db.Resources[map.Resource[t]].Id == "RESOURCE_WHEAT") code = 12;
         if (map.HasFlag(t, TileFlags.Flooded)) code = 4;
         if (map.HasFlag(t, TileFlags.Pillaged)) code = 5;
         return (layer, code);
@@ -240,6 +262,35 @@ public partial class HexMapView : Node3D
         list.Add((new Transform3D(new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale * flatten, scale)), at), tint));
     }
 
+    /// <summary>Adds a prop fitted to a size in world units (its longest horizontal side), whatever scale the model was authored at.</summary>
+    private void AddFit(string prop, Vector3 at, float size, float yaw, Color tint, bool byHeight = false)
+    {
+        var model = _models.GetProp(prop);
+        if (model == null) return;
+        var b = model.Bounds.Size;
+        float extent = byHeight ? b.Y : Mathf.Max(b.X, b.Z);
+        AddProp(prop, at, extent > 0.0001f ? size / extent : 1f, yaw, tint);
+    }
+
+    /// <summary>The kit's bale is peach with red bands; a golden multiply turns it to straw with twine.</summary>
+    private static Color Hay(Color memory) => new(1.08f, 1.0f, 0.5f, memory.A);
+
+    private int _viewer;
+    private bool _seeAll;
+
+    /// <summary>Whether <paramref name="viewer"/> can see the resource on a tile: known tile, and the reveal tech researched.</summary>
+    public static int VisibleResource(GameState s, int viewer, int t, bool seeEverything = false)
+    {
+        int r = s.Map.Resource[t];
+        if (r < 0) return -1;
+        if (seeEverything) return r;
+        if (viewer < 0 || viewer >= s.Players.Count) return -1;
+        var p = s.Players[viewer];
+        if (t >= p.Revealed.Length || !p.Revealed[t]) return -1;
+        var def = s.Db.Resources[r];
+        return def.RevealTechIndex < 0 || p.HasTech(def.RevealTechIndex) ? r : -1;
+    }
+
     /// <summary>
     /// Draws the map as <paramref name="viewer"/> knows it: unexplored tiles are parchment, explored-but-unseen tiles are a
     /// sepia memory without foreign units, and the selected tile gets a ring.
@@ -254,6 +305,8 @@ public partial class HexMapView : Node3D
         var revealed = seeEverything ? visible : s.Players[viewer].Revealed;
         bool Known(int t) => t < revealed.Length && revealed[t];
         float k = ModelLibrary.KitScale;
+        _viewer = viewer;
+        _seeAll = seeEverything;
 
         UpdateTileData(s, visible, revealed);
         HeightField.Current.Update(s, revealed);
@@ -278,6 +331,7 @@ public partial class HexMapView : Node3D
         DrawRivers(map, revealed);
         DrawBorders(s, viewer, revealed);
         Units.Sync(s, viewer, visible);
+        Life.Sync(s, viewer, visible, revealed, seeEverything);
         Select(selectedTile, map);
     }
 
@@ -346,7 +400,12 @@ public partial class HexMapView : Node3D
             string team = TeamColor(s, owner);
             switch (id)
             {
-                case "IMPROVEMENT_FARM": AddProp("buildings/grain", top + new Vector3(0.2f, 0, 0.1f), k * 0.55f, yaw, memory); AddProp("buildings/grain", top - new Vector3(0.25f, 0, 0.2f), k * 0.45f, yaw + 1f, memory); break;
+                case "IMPROVEMENT_FARM":
+                    // The fields are painted into the ground (terrain shader); a farmstead and its haystacks stand among them.
+                    AddProp(Rand(t, 8) < 0.5f ? $"buildings/home_A_{team}" : $"buildings/home_B_{team}", top + new Vector3(0.18f, 0, 0.12f), k * 0.42f, yaw, memory);
+                    AddFit("resources/hay", top + new Vector3(-0.2f, 0, 0.3f), 0.14f, yaw + 0.5f, Hay(memory));
+                    AddFit("resources/hay", top + new Vector3(-0.05f, 0, 0.4f), 0.12f, yaw + 1.3f, Hay(memory));
+                    break;
                 case "IMPROVEMENT_MINE": AddProp($"buildings/mine_{team}", top, k * 0.6f, yaw, memory); break;
                 case "IMPROVEMENT_PASTURE": AddProp("buildings/building-sheep", top, 0.09f, yaw, memory); break;
                 case "IMPROVEMENT_PLANTATION": AddProp($"buildings/windmill_{team}", top, k * 0.7f, yaw, memory); break;
@@ -356,6 +415,61 @@ public partial class HexMapView : Node3D
             }
         }
         else if (hasImprovement) AddProp("buildings/destroyed", top, k * 0.8f, yaw, memory);
+        DressResource(s, t, top, memory, hasImprovement);
+    }
+
+    /// <summary>
+    /// The resource itself, readable at a glance in the tile's far corner so it never fights the improvement in the middle:
+    /// vines and barrels for wine, ore heaps for iron and coal, glowing crystals for uranium, drums for oil. Livestock and game
+    /// are alive (LifeLayer) rather than drawn here.
+    /// </summary>
+    private void DressResource(GameState s, int t, Vector3 top, Color memory, bool improved)
+    {
+        int r = VisibleResource(s, _viewer, t, _seeAll);
+        if (r < 0) return;
+        string id = s.Db.Resources[r].Id;
+        float a0 = Rand(t, 900) * Mathf.Tau;
+        Vector3 Spot(int i, float rad) { float a = a0 + i * 2.1f; return top + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * rad; }
+        Color Tone(float r_, float g, float b) => new(r_, g, b, memory.A);
+        switch (id)
+        {
+            case "RESOURCE_WHEAT":
+                if (!improved) for (int i = 0; i < 2; i++) AddFit("resources/hay", Spot(i, 0.5f), 0.16f, a0 + i, Hay(memory));
+                break;
+            case "RESOURCE_STONE":
+                AddFit("props/resource_stone", Spot(0, 0.45f), 0.42f, a0, memory);
+                AddFit("nature/rock_single_A", Spot(1, 0.55f), 0.3f, a0 + 1, Tone(0.85f, 0.83f, 0.8f));
+                break;
+            case "RESOURCE_WINE":
+                for (int i = 0; i < 4; i++) AddFit("resources/grapes", Spot(0, 0.5f) + new Vector3(i * 0.13f - 0.2f, 0, (i % 2) * 0.12f), 0.16f, a0, memory, true);
+                AddFit("resources/barrel", Spot(2, 0.55f), 0.13f, a0, memory, true);
+                break;
+            case "RESOURCE_SPICES":
+                for (int i = 0; i < 4; i++) AddFit("resources/pepper", Spot(i, 0.45f + 0.1f * (i % 2)), 0.16f, a0 + i, memory, true);
+                break;
+            case "RESOURCE_SILK":
+                for (int i = 0; i < 3; i++) AddFit("nature/tree_single_B", Spot(i, 0.55f), 0.3f, a0 + i, Tone(1f, 0.72f, 0.85f), true);
+                AddFit("props/sack", Spot(1, 0.3f), 0.18f, a0, Tone(0.95f, 0.85f, 1f));
+                break;
+            case "RESOURCE_IRON":
+                AddFit("resources/ore", Spot(0, 0.45f), 0.4f, a0, Tone(0.75f, 0.52f, 0.42f));
+                AddFit("resources/ore", Spot(1, 0.55f), 0.26f, a0 + 2, Tone(0.7f, 0.5f, 0.42f));
+                break;
+            case "RESOURCE_COAL":
+                AddFit("resources/ore", Spot(0, 0.45f), 0.4f, a0, Tone(0.28f, 0.27f, 0.27f));
+                AddFit("resources/ore", Spot(1, 0.55f), 0.26f, a0 + 2, Tone(0.32f, 0.3f, 0.3f));
+                break;
+            case "RESOURCE_URANIUM":
+                AddFit("resources/crystals", Spot(0, 0.45f), 0.32f, a0, Tone(0.6f, 1.25f, 0.55f), true);
+                AddFit("resources/crystals", Spot(1, 0.55f), 0.22f, a0 + 1, Tone(0.6f, 1.2f, 0.5f), true);
+                break;
+            case "RESOURCE_OIL":
+                for (int i = 0; i < 3; i++) AddFit("resources/barrel", Spot(0, 0.5f) + new Vector3(i * 0.12f, 0, (i % 2) * 0.1f), 0.12f, a0, Tone(0.3f, 0.3f, 0.34f), true);
+                break;
+            case "RESOURCE_PEARLS":
+                AddFit("resources/clam", Spot(0, 0.4f), 0.2f, a0, memory);
+                break;
+        }
     }
 
     /// <summary>

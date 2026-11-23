@@ -8,7 +8,7 @@ namespace UnbrokenAges.Client.Visuals;
 
 /// <summary>
 /// Units as animated figures (KayKit adventurers, Kenney ships and civilians, a mech for the information era):
-/// armies are a squad of three, civilians and ships a single model, each standing on a disc in the owner's colour.
+/// armies are a squad of four, settlers and builders a small party, ships a single hull, each standing on a disc in the owner's colour.
 /// Units breathe (idle), walk between tiles, and swing when they fight. Hidden units (fog) are not drawn.
 /// </summary>
 public partial class UnitLayer : Node3D
@@ -19,13 +19,14 @@ public partial class UnitLayer : Node3D
         public List<AnimationPlayer> Players = new();
         public int Tile;
         public int Def;
+        public bool Ranged;
         public Tween? Move;
     }
 
     private readonly ModelLibrary _models;
     private readonly Dictionary<int, View> _views = new();
     private readonly Dictionary<int, StandardMaterial3D> _discs = new();
-    private static readonly TorusMesh Disc = new() { InnerRadius = 0.36f, OuterRadius = 0.42f, Rings = 24, RingSegments = 6 };
+    private static readonly TorusMesh Disc = new() { InnerRadius = 0.44f, OuterRadius = 0.52f, Rings = 32, RingSegments = 6 };
 
     public UnitLayer(ModelLibrary models) => _models = models;
 
@@ -33,26 +34,35 @@ public partial class UnitLayer : Node3D
     public static (string Model, int Count, float Size, bool ByLength) Look(UnitDef d)
     {
         bool has(string tag) => d.Tags.Contains(tag);
-        if (d.FoundsCity) return ("units/civilian_a", 2, 0.52f, false);
-        if (d.FoundsOutpost) return ("units/Mage", 1, 0.62f, false);
-        if (d.Charges > 0 && d.Domain == UnitDomain.Civilian) return ("units/civilian_b", 1, 0.52f, false);
+        if (d.FoundsCity) return ("units/civilian_a", 3, 0.6f, false);
+        if (d.FoundsOutpost) return ("units/Mage", 2, 0.7f, false);
+        if (d.Charges > 0 && d.Domain == UnitDomain.Civilian) return ("units/civilian_b", 2, 0.6f, false);
         if (d.Domain == UnitDomain.Naval)
-            return d.Strength == 0 ? ("units/ship_small", 1, 1.0f, true)
-                 : d.OceanGoing && d.RangedStrength > 0 ? ("units/ship_large", 1, 1.35f, true)
-                 : d.OceanGoing ? ("units/ship_medium", 1, 1.2f, true)
-                 : ("units/ship_small", 1, 1.1f, true);
-        if (d.Domain == UnitDomain.Air || has("Drone")) return ("units/drone", 2, 0.3f, true);
-        if (has("Exoframe") || has("Armor")) return ("units/mech", 1, 0.85f, false);
-        if (has("ElectronicWarfare")) return ("units/modern_soldier", 3, 0.58f, false);
+            return d.Strength == 0 ? ("units/ship_small", 1, 1.15f, true)
+                 : d.OceanGoing && d.RangedStrength > 0 ? ("units/ship_large", 1, 1.55f, true)
+                 : d.OceanGoing ? ("units/ship_medium", 1, 1.4f, true)
+                 : ("units/ship_small", 2, 0.95f, true);
+        if (d.Domain == UnitDomain.Air || has("Drone")) return ("units/drone", 3, 0.36f, true);
+        if (has("Exoframe") || has("Armor")) return ("units/mech", 2, 0.85f, false);
+        if (has("ElectronicWarfare")) return ("units/modern_soldier", 4, 0.66f, false);
         return d.UnitClass switch
         {
-            "LightCavalry" or "HeavyCavalry" => ("units/horse", 2, 0.7f, true),
-            "Ranged" => ("units/Rogue_Hooded", 3, 0.6f, false),
-            "Recon" => ("units/Rogue", 1, 0.64f, false),
-            "Melee" when d.Strength < 30 => ("units/Barbarian", 3, 0.62f, false),
-            _ => ("units/Knight", 3, 0.62f, false),
+            "LightCavalry" or "HeavyCavalry" => ("units/horse", 3, 0.82f, true),
+            "Ranged" => ("life/Ranger", 4, 0.72f, false),
+            "Recon" => ("units/Rogue_Hooded", 2, 0.7f, false),
+            "Melee" when d.Strength < 30 => ("units/Barbarian", 4, 0.72f, false),
+            _ => ("units/Knight", 4, 0.74f, false),
         };
     }
+
+    /// <summary>Squad formations: a loose wedge facing the camera, wide enough that each figure reads on its own.</summary>
+    private static Vector3[] Formation(int count) => count switch
+    {
+        1 => new[] { Vector3.Zero },
+        2 => new[] { new Vector3(-0.19f, 0, 0.06f), new Vector3(0.19f, 0, -0.06f) },
+        3 => new[] { new Vector3(0, 0, -0.2f), new Vector3(-0.21f, 0, 0.14f), new Vector3(0.21f, 0, 0.14f) },
+        _ => new[] { new Vector3(-0.13f, 0, -0.2f), new Vector3(0.17f, 0, -0.17f), new Vector3(-0.24f, 0, 0.15f), new Vector3(0.1f, 0, 0.2f) },
+    };
 
     public void Sync(GameState s, int viewer, bool[] visible)
     {
@@ -94,7 +104,7 @@ public partial class UnitLayer : Node3D
         if (slot > 0 || city)
         {
             float a = slot * 2.2f + (city ? 2.4f : 0.6f);
-            center += new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.55f;
+            center += new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.6f;
         }
         center.Y = HeightField.Current.Surface(center.X, center.Z) + 0.01f;
         return center;
@@ -108,6 +118,7 @@ public partial class UnitLayer : Node3D
         var view = new View { Root = new Node3D { Name = $"unit{u.Id}" }, Def = u.DefIndex, Tile = u.Tile };
         AddChild(view.Root);
         var (model, count, size, byLength) = Look(def);
+        view.Ranged = def.RangedStrength > 0 && def.Domain == UnitDomain.Land;
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
             _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.4f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.35f };
@@ -119,20 +130,17 @@ public partial class UnitLayer : Node3D
         float extent = byLength ? Mathf.Max(bounds.Size.X, bounds.Size.Z) : bounds.Size.Y;
         float scale = extent > 0.001f ? size / extent : 0.1f;
         if (OS.GetCmdlineUserArgs().Contains("--debug-units")) GD.Print($"[unit] {model} bounds {bounds} scale {scale}");
-        var offsets = count switch
-        {
-            1 => new[] { Vector3.Zero },
-            2 => new[] { new Vector3(-0.15f, 0, 0.05f), new Vector3(0.15f, 0, -0.05f) },
-            _ => new[] { new Vector3(0, 0, -0.17f), new Vector3(-0.17f, 0, 0.12f), new Vector3(0.17f, 0, 0.12f) },
-        };
+        var offsets = Formation(count);
         if (scene == null) return view;
         foreach (var offset in offsets)
         {
             var figure = scene.Instantiate<Node3D>();
             figure.Scale = Vector3.One * scale;
             figure.Position = offset + new Vector3(0, def.Domain == UnitDomain.Air ? 0.35f : 0.03f, 0) - new Vector3(0, bounds.Position.Y * scale, 0);
-            figure.RotationDegrees = new Vector3(0, 180 + (offset.X * 60), 0);
+            figure.RotationDegrees = new Vector3(0, (offset.X * 40) + (float)GD.RandRange(-8.0, 8.0), 0);   // KayKit faces +Z: toward the camera
+            figure.Scale *= (float)GD.RandRange(0.94, 1.05);   // a squad of people, not clones
             view.Root.AddChild(figure);
+            if (model.EndsWith("horse")) SceneTint.Apply(figure, SceneTint.Chestnut);
             foreach (var ap in figure.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
             {
                 view.Players.Add(ap);
@@ -167,7 +175,7 @@ public partial class UnitLayer : Node3D
         view.Move?.Kill();
         var from = view.Root.Position;
         var flat = new Vector3(target.X - from.X, 0, target.Z - from.Z);
-        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z) + Mathf.Pi, 0);
+        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
         foreach (var ap in view.Players) PlayLoop(ap, "Walking_A", "Walk", "walk", "Running_A", "Run");
         float seconds = Mathf.Clamp(from.DistanceTo(target) * 0.22f, 0.25f, 1.2f);
         view.Move = CreateTween();
@@ -180,10 +188,11 @@ public partial class UnitLayer : Node3D
     {
         if (!_views.TryGetValue(unitId, out var view)) return;
         var flat = new Vector3(target.X - view.Root.Position.X, 0, target.Z - view.Root.Position.Z);
-        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z) + Mathf.Pi, 0);
+        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
         foreach (var ap in view.Players)
         {
-            var name = Find(ap, "Melee_1H_Attack_Chop", "1H_Melee_Attack", "Attack", "Stomp", "Throw", "Shoot");
+            var name = view.Ranged ? Find(ap, "Ranged_Bow_Release", "Ranged_2H_Shoot", "Shoot", "Attack") : null;
+            name ??= Find(ap, "Melee_1H_Attack_Chop", "1H_Melee_Attack", "Attack", "Stomp", "Throw", "Shoot");
             if (name == null) continue;
             ap.GetAnimation(name).LoopMode = Animation.LoopModeEnum.None;
             ap.Play(name, 0.1);

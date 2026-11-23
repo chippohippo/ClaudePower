@@ -59,6 +59,10 @@ terrain on a paper-map fog (data-texture shaders), Civ-style water, KayKit scene
 lighting and grade, Civ V/VI HUD (top bar, trackers, banners, flags, minimap, turn button, pause menu), music, effects and
 procedural ambience, living title backdrop. See docs/06 §9.
 
+**Living world pass (done):** squads of four, resources modelled on their tiles, a resource lens (R), painted farm fields,
+client-side road networks with era-appropriate traffic (wagons → cars and lorries), boats, grazing animals, bird flocks,
+chimney smoke and tree sway (`Visuals/LifeLayer.cs`). Debug automation steps `era:N`, `reveal`, `focus-*` for screenshots.
+
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.
 

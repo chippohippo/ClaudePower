@@ -345,6 +345,16 @@
    "models/units/Mage.glb"
   ]
  },
+ "model:Ranger": {
+  "id": "kaykit:adventurers/characters/Ranger.glb",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Ranger\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-adventurers), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its Barbarian (2.4 units, 1.8 m), on KayKit's character scale), 132 animation clips added from KayKit Character Animations (same rig, matched by bone name).",
+  "url": "https://kaylousberg.itch.io/kaykit-adventurers",
+  "files": [
+   "models/life/Ranger.glb"
+  ]
+ },
  "model:Rogue": {
   "id": "kaykit:adventurers/characters/Rogue.glb",
   "license": "CC0-1.0",
@@ -443,6 +453,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_barracks_yellow.gltf",
   "files": [
    "models/buildings/barracks_yellow.glb"
+  ]
+ },
+ "model:barrel": {
+  "id": "kenney:food-kit/barrel.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Barrel\" by Kenney (Kenney, https://kenney.nl/assets/food-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.4 to real-world size (calibrated on the apple (0.2 units; about 8 cm)).",
+  "url": "https://kenney.nl/assets/food-kit",
+  "files": [
+   "models/resources/barrel.glb"
   ]
  },
  "model:blacksmith_blue": {
@@ -545,6 +565,26 @@
    "models/buildings/building-wizard-tower.glb"
   ]
  },
+ "model:canoe": {
+  "id": "kenney:nature-kit/canoe.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Canoe\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/life/canoe.glb"
+  ]
+ },
+ "model:car": {
+  "id": "kenney:car-kit/sedan.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Sedan\" by Kenney (Kenney, https://kenney.nl/assets/car-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71.2 to real-world size (calibrated on the sedan (1.5 units wide; a car is about 1.8 m)).",
+  "url": "https://kenney.nl/assets/car-kit",
+  "files": [
+   "models/life/car.glb"
+  ]
+ },
  "model:castle_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_castle_blue.gltf",
   "license": "CC0-1.0",
@@ -645,6 +685,16 @@
    "models/units/civilian_b.glb"
   ]
  },
+ "model:clam": {
+  "id": "polyfork:maxima-clam-429c17",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Maxima Clam by Polyfork (https://polyfork.dev/asset/maxima-clam-429c17), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/maxima-clam-429c17",
+  "files": [
+   "models/resources/clam.glb"
+  ]
+ },
  "model:cloud_big": {
   "id": "kaykit:medieval-hexagon/decoration/nature/cloud_big.gltf",
   "license": "CC0-1.0",
@@ -665,6 +715,16 @@
    "models/nature/cloud_small.glb"
   ]
  },
+ "model:cow": {
+  "id": "kenney:cube-pets/animal-cow.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Animal cow\" by Kenney (Kenney, https://kenney.nl/assets/cube-pets), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.25 to real-world size (calibrated on the cat (1.7 units; a pet figure about 0.4 m)).",
+  "url": "https://kenney.nl/assets/cube-pets",
+  "files": [
+   "models/resources/cow.glb"
+  ]
+ },
  "model:crate_open": {
   "id": "kaykit:medieval-hexagon/decoration/props/crate_open.gltf",
   "license": "CC0-1.0",
@@ -673,6 +733,26 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/props/crate_open.gltf",
   "files": [
    "models/props/crate_open.glb"
+  ]
+ },
+ "model:crystals": {
+  "id": "kenney:space-kit/rock_crystalsLargeA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Rock crystals large a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/resources/crystals.glb"
+  ]
+ },
+ "model:deer": {
+  "id": "kenney:cube-pets/animal-deer.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Animal deer\" by Kenney (Kenney, https://kenney.nl/assets/cube-pets), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.25 to real-world size (calibrated on the cat (1.7 units; a pet figure about 0.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/cube-pets",
+  "files": [
+   "models/resources/deer.glb"
   ]
  },
  "model:destroyed": {
@@ -705,6 +785,16 @@
    "models/units/drone.glb"
   ]
  },
+ "model:fishing_boat": {
+  "id": "kenney:watercraft-kit/boat-fishing-small.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Boat fishing small\" by Kenney (Kenney, https://kenney.nl/assets/watercraft-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71 to real-world size (calibrated on the rowing boat (2.85 units; about 3 m)).",
+  "url": "https://kenney.nl/assets/watercraft-kit",
+  "files": [
+   "models/life/fishing_boat.glb"
+  ]
+ },
  "model:flag_blue": {
   "id": "kaykit:medieval-hexagon/decoration/props/flag_blue.gltf",
   "license": "CC0-1.0",
@@ -715,6 +805,16 @@
    "models/props/flag_blue.glb"
   ]
  },
+ "model:gem": {
+  "id": "polyfork:gem-chip-heap-573355",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Gem Chip Heap by Polyfork (https://polyfork.dev/asset/gem-chip-heap-573355), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/gem-chip-heap-573355",
+  "files": [
+   "models/resources/gem.glb"
+  ]
+ },
  "model:grain": {
   "id": "kaykit:medieval-hexagon/buildings/neutral/building_grain.gltf",
   "license": "CC0-1.0",
@@ -723,6 +823,26 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/neutral/building_grain.gltf",
   "files": [
    "models/buildings/grain.glb"
+  ]
+ },
+ "model:grapes": {
+  "id": "kenney:food-kit/grapes.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Grapes\" by Kenney (Kenney, https://kenney.nl/assets/food-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.4 to real-world size (calibrated on the apple (0.2 units; about 8 cm)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/food-kit",
+  "files": [
+   "models/resources/grapes.glb"
+  ]
+ },
+ "model:hay": {
+  "id": "kenney:graveyard-kit/hay-bale-bundled.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Hay bale bundled\" by Kenney (Kenney, https://kenney.nl/assets/graveyard-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d72.4 to real-world size (calibrated on the coffin (0.84 units; about 2 m)).",
+  "url": "https://kenney.nl/assets/graveyard-kit",
+  "files": [
+   "models/resources/hay.glb"
   ]
  },
  "model:hills_A": {
@@ -1045,6 +1165,36 @@
    "models/nature/mountain_C.glb"
   ]
  },
+ "model:ore": {
+  "id": "polyfork:copper-ore-deposit-d5e58b",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Copper Ore Deposit by Polyfork (https://polyfork.dev/asset/copper-ore-deposit-d5e58b), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/copper-ore-deposit-d5e58b",
+  "files": [
+   "models/resources/ore.glb"
+  ]
+ },
+ "model:pepper": {
+  "id": "kenney:food-kit/pepper.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Pepper\" by Kenney (Kenney, https://kenney.nl/assets/food-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.4 to real-world size (calibrated on the apple (0.2 units; about 8 cm)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/food-kit",
+  "files": [
+   "models/resources/pepper.glb"
+  ]
+ },
+ "model:pig": {
+  "id": "kenney:cube-pets/animal-pig.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Animal pig\" by Kenney (Kenney, https://kenney.nl/assets/cube-pets), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d70.25 to real-world size (calibrated on the cat (1.7 units; a pet figure about 0.4 m)).",
+  "url": "https://kenney.nl/assets/cube-pets",
+  "files": [
+   "models/resources/pig.glb"
+  ]
+ },
  "model:resource_lumber": {
   "id": "kaykit:medieval-hexagon/decoration/props/resource_lumber.gltf",
   "license": "CC0-1.0",
@@ -1085,6 +1235,16 @@
    "models/props/sack.glb"
   ]
  },
+ "model:sailboat": {
+  "id": "polyfork:sailboat-3ee283",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Sailboat by Polyfork (https://polyfork.dev/asset/sailboat-3ee283), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/sailboat-3ee283",
+  "files": [
+   "models/life/sailboat.glb"
+  ]
+ },
  "model:scaffolding": {
   "id": "kaykit:medieval-hexagon/buildings/neutral/building_scaffolding.gltf",
   "license": "CC0-1.0",
@@ -1093,6 +1253,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/neutral/building_scaffolding.gltf",
   "files": [
    "models/buildings/scaffolding.glb"
+  ]
+ },
+ "model:sheep": {
+  "id": "polyfork:sheep-base",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Sheep by Polyfork (https://polyfork.dev/asset/sheep-base), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/sheep-base",
+  "files": [
+   "models/resources/sheep.glb"
   ]
  },
  "model:ship_large": {
@@ -1265,6 +1435,16 @@
    "models/buildings/tower_B_yellow.glb"
   ]
  },
+ "model:tractor": {
+  "id": "kenney:car-kit/tractor.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tractor\" by Kenney (Kenney, https://kenney.nl/assets/car-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71.2 to real-world size (calibrated on the sedan (1.5 units wide; a car is about 1.8 m)).",
+  "url": "https://kenney.nl/assets/car-kit",
+  "files": [
+   "models/life/tractor.glb"
+  ]
+ },
  "model:tree_single_A": {
   "id": "kaykit:medieval-hexagon/decoration/nature/tree_single_A.gltf",
   "license": "CC0-1.0",
@@ -1343,6 +1523,36 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/nature/trees_B_small.gltf",
   "files": [
    "models/nature/trees_B_small.glb"
+  ]
+ },
+ "model:truck": {
+  "id": "kenney:car-kit/delivery.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Delivery\" by Kenney (Kenney, https://kenney.nl/assets/car-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71.2 to real-world size (calibrated on the sedan (1.5 units wide; a car is about 1.8 m)).",
+  "url": "https://kenney.nl/assets/car-kit",
+  "files": [
+   "models/life/truck.glb"
+  ]
+ },
+ "model:wagon": {
+  "id": "polyfork:four-wheel-wagon-adb946",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Four-Wheel Wagon by Polyfork (https://polyfork.dev/asset/four-wheel-wagon-adb946), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/four-wheel-wagon-adb946",
+  "files": [
+   "models/life/wagon.glb"
+  ]
+ },
+ "model:wagon_covered": {
+  "id": "polyfork:buckboard-wagon-59ec16",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Buckboard Wagon by Polyfork (https://polyfork.dev/asset/buckboard-wagon-59ec16), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/buckboard-wagon-59ec16",
+  "files": [
+   "models/life/wagon_covered.glb"
   ]
  },
  "model:waterlily_A": {
@@ -1803,6 +2013,146 @@
   "url": "https://kenney.nl/assets/cursor-pack",
   "files": [
    "ui/icons/production.png"
+  ]
+ },
+ "sprite:res_cattle": {
+  "id": "kenney:animal-pack-remastered/round-cow.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Round cow\" by Kenney (Kenney, https://kenney.nl/assets/animal-pack-remastered), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/animal-pack-remastered",
+  "files": [
+   "ui/resources/res_cattle.png"
+  ]
+ },
+ "sprite:res_coal": {
+  "id": "kenney:voxel-pack/ore_coal.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Ore coal\" by Kenney (Kenney, https://kenney.nl/assets/voxel-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/voxel-pack",
+  "files": [
+   "ui/resources/res_coal.png"
+  ]
+ },
+ "sprite:res_deer": {
+  "id": "kenney:animal-pack-remastered/round-moose.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Round moose\" by Kenney (Kenney, https://kenney.nl/assets/animal-pack-remastered), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/animal-pack-remastered",
+  "files": [
+   "ui/resources/res_deer.png"
+  ]
+ },
+ "sprite:res_fish": {
+  "id": "kenney:fish-pack/fish_blue.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Fish blue\" by Kenney (Kenney, https://kenney.nl/assets/fish-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/fish-pack",
+  "files": [
+   "ui/resources/res_fish.png"
+  ]
+ },
+ "sprite:res_horses": {
+  "id": "kenney:animal-pack-remastered/round-horse.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Round horse\" by Kenney (Kenney, https://kenney.nl/assets/animal-pack-remastered), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/animal-pack-remastered",
+  "files": [
+   "ui/resources/res_horses.png"
+  ]
+ },
+ "sprite:res_iron": {
+  "id": "kenney:voxel-pack/ore_iron.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Ore iron\" by Kenney (Kenney, https://kenney.nl/assets/voxel-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/voxel-pack",
+  "files": [
+   "ui/resources/res_iron.png"
+  ]
+ },
+ "sprite:res_oil": {
+  "id": "kenney:hexagon-pack/oil.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Oil\" by Kenney (Kenney, https://kenney.nl/assets/hexagon-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/hexagon-pack",
+  "files": [
+   "ui/resources/res_oil.png"
+  ]
+ },
+ "sprite:res_pearls": {
+  "id": "kenney:new-platformer-pack/gem_green.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Gem green\" by Kenney (Kenney, https://kenney.nl/assets/new-platformer-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/new-platformer-pack",
+  "files": [
+   "ui/resources/res_pearls.png"
+  ]
+ },
+ "sprite:res_silk": {
+  "id": "kenney:new-platformer-pack/gem_blue.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Gem blue\" by Kenney (Kenney, https://kenney.nl/assets/new-platformer-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/new-platformer-pack",
+  "files": [
+   "ui/resources/res_silk.png"
+  ]
+ },
+ "sprite:res_spices": {
+  "id": "kenney:new-platformer-pack/gem_yellow.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Gem yellow\" by Kenney (Kenney, https://kenney.nl/assets/new-platformer-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/new-platformer-pack",
+  "files": [
+   "ui/resources/res_spices.png"
+  ]
+ },
+ "sprite:res_stone": {
+  "id": "kenney:voxel-pack/ore_gold.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Ore gold\" by Kenney (Kenney, https://kenney.nl/assets/voxel-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/voxel-pack",
+  "files": [
+   "ui/resources/res_stone.png"
+  ]
+ },
+ "sprite:res_uranium": {
+  "id": "kenney:voxel-pack/ore_emerald.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Ore emerald\" by Kenney (Kenney, https://kenney.nl/assets/voxel-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/voxel-pack",
+  "files": [
+   "ui/resources/res_uranium.png"
+  ]
+ },
+ "sprite:res_wheat": {
+  "id": "kenney:voxel-pack/wheat.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Wheat\" by Kenney (Kenney, https://kenney.nl/assets/voxel-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/voxel-pack",
+  "files": [
+   "ui/resources/res_wheat.png"
+  ]
+ },
+ "sprite:res_wine": {
+  "id": "kenney:new-platformer-pack/gem_red.png",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Gem red\" by Kenney (Kenney, https://kenney.nl/assets/new-platformer-pack), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: credit added to the PNG text.",
+  "url": "https://kenney.nl/assets/new-platformer-pack",
+  "files": [
+   "ui/resources/res_wine.png"
   ]
  },
  "sprite:science": {

@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://di13h3u042tui"
+path="res://.godot/imported/tractor_colormap.png-673d104b6e16cc02f44f2bf430bb374c.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "8fa2e771fb74ce0bd4942f13b0fb9a3c"
+}
+
+[deps]
+
+source_file="res://assets/models/life/tractor_colormap.png"
+dest_files=["res://.godot/imported/tractor_colormap.png-673d104b6e16cc02f44f2bf430bb374c.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

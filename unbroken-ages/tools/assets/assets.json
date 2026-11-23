@@ -1150,6 +1150,216 @@
    "type": "sprite",
    "id": "kenney:board-game-icons/structure_watchtower.png",
    "dest": "ui/icons"
+  },
+  {
+   "name": "Ranger",
+   "type": "model",
+   "id": "kaykit:adventurers/characters/Ranger.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "wagon",
+   "type": "model",
+   "id": "polyfork:four-wheel-wagon-adb946",
+   "dest": "models/life"
+  },
+  {
+   "name": "wagon_covered",
+   "type": "model",
+   "id": "polyfork:buckboard-wagon-59ec16",
+   "dest": "models/life"
+  },
+  {
+   "name": "truck",
+   "type": "model",
+   "id": "kenney:car-kit/delivery.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "car",
+   "type": "model",
+   "id": "kenney:car-kit/sedan.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "tractor",
+   "type": "model",
+   "id": "kenney:car-kit/tractor.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "fishing_boat",
+   "type": "model",
+   "id": "kenney:watercraft-kit/boat-fishing-small.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "sailboat",
+   "type": "model",
+   "id": "polyfork:sailboat-3ee283",
+   "dest": "models/life"
+  },
+  {
+   "name": "canoe",
+   "type": "model",
+   "id": "kenney:nature-kit/canoe.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "cow",
+   "type": "model",
+   "id": "kenney:cube-pets/animal-cow.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "pig",
+   "type": "model",
+   "id": "kenney:cube-pets/animal-pig.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "deer",
+   "type": "model",
+   "id": "kenney:cube-pets/animal-deer.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "sheep",
+   "type": "model",
+   "id": "polyfork:sheep-base",
+   "dest": "models/resources"
+  },
+  {
+   "name": "ore",
+   "type": "model",
+   "id": "polyfork:copper-ore-deposit-d5e58b",
+   "dest": "models/resources"
+  },
+  {
+   "name": "crystals",
+   "type": "model",
+   "id": "kenney:space-kit/rock_crystalsLargeA.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "barrel",
+   "type": "model",
+   "id": "kenney:food-kit/barrel.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "grapes",
+   "type": "model",
+   "id": "kenney:food-kit/grapes.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "pepper",
+   "type": "model",
+   "id": "kenney:food-kit/pepper.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "clam",
+   "type": "model",
+   "id": "polyfork:maxima-clam-429c17",
+   "dest": "models/resources"
+  },
+  {
+   "name": "hay",
+   "type": "model",
+   "id": "kenney:graveyard-kit/hay-bale-bundled.glb",
+   "dest": "models/resources"
+  },
+  {
+   "name": "gem",
+   "type": "model",
+   "id": "polyfork:gem-chip-heap-573355",
+   "dest": "models/resources"
+  },
+  {
+   "name": "res_cattle",
+   "type": "sprite",
+   "id": "kenney:animal-pack-remastered/round-cow.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_horses",
+   "type": "sprite",
+   "id": "kenney:animal-pack-remastered/round-horse.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_fish",
+   "type": "sprite",
+   "id": "kenney:fish-pack/fish_blue.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_wheat",
+   "type": "sprite",
+   "id": "kenney:voxel-pack/wheat.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_coal",
+   "type": "sprite",
+   "id": "kenney:voxel-pack/ore_coal.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_iron",
+   "type": "sprite",
+   "id": "kenney:voxel-pack/ore_iron.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_uranium",
+   "type": "sprite",
+   "id": "kenney:voxel-pack/ore_emerald.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_oil",
+   "type": "sprite",
+   "id": "kenney:hexagon-pack/oil.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_wine",
+   "type": "sprite",
+   "id": "kenney:new-platformer-pack/gem_red.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_spices",
+   "type": "sprite",
+   "id": "kenney:new-platformer-pack/gem_yellow.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_silk",
+   "type": "sprite",
+   "id": "kenney:new-platformer-pack/gem_blue.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_pearls",
+   "type": "sprite",
+   "id": "kenney:new-platformer-pack/gem_green.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_stone",
+   "type": "sprite",
+   "id": "kenney:voxel-pack/ore_gold.png",
+   "dest": "ui/resources"
+  },
+  {
+   "name": "res_deer",
+   "type": "sprite",
+   "id": "kenney:animal-pack-remastered/round-moose.png",
+   "dest": "ui/resources"
   }
  ]
 }

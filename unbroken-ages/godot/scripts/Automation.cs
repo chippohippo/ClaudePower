@@ -12,7 +12,8 @@ namespace UnbrokenAges.Client;
 /// Scripted play for testing the real client (CI smoke tests, screenshots, bug repros). Pass user arguments after "--":
 ///   --autostart[=seed]     start a single-player game at once (Small map, you + 2 AI)
 ///   --do=a,b,c             actions, one every few frames: found, research, produce, end, next, move-east, attack,
-///                          panel:T|P|C|V, save, load, zoom-out, select-city, wait
+///                          panel:T|P|C|V, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
+///                          select-city, focus-road, era:N, reveal (debug), wait
 ///   --shots=dir            screenshot after every action (dir/NN-action.png)
 ///   --shot=file.png        screenshot at the end
 ///   --quit                 exit when done (exit code 1 if an action failed)
@@ -148,6 +149,48 @@ public partial class GameRoot
             case "menu": ToggleMenu(); return null;
             case "load": QuickLoad(); return null;
             case "zoom-out": Camera.Zoom(2.2f); return null;
+            case var z when z.StartsWith("zoom:"): Camera.Zoom(float.Parse(z[5..], System.Globalization.CultureInfo.InvariantCulture)); return null;
+            case "focus-city" or "focus-ai":
+            {
+                var city = s.Cities.Where(c => step == "focus-city" ? c.Owner == LocalPlayer : c.Owner != LocalPlayer).OrderByDescending(c => c.Population).FirstOrDefault();
+                if (city == null) return "no city";
+                Camera.LookAtHex(s.Map.CoordOf(city.Tile));
+                return null;
+            }
+            case var e when e.StartsWith("era:"):
+            {
+                // Debug: every civilization learns all technologies up to an era (to preview late-game visuals).
+                int order = int.Parse(e[4..]);
+                foreach (var p in s.Players)
+                    for (int i = 0; i < s.Db.Techs.Count; i++)
+                        if (s.Db.Eras[s.Db.Techs[i].EraIndex].Order <= order) p.Techs[i] = true;
+                _localVersion++;
+                return null;
+            }
+            case "lens:resources": ToggleByKey("R"); return null;
+            case "reveal":
+                Array.Fill(me.Revealed, true);
+                _localVersion++;
+                return null;
+            case var fr when fr.StartsWith("focus-res:"):
+            {
+                // Debug: look at the first tile with this resource (e.g. focus-res:CATTLE), visible to you first.
+                string id = "RESOURCE_" + fr[10..].ToUpperInvariant();
+                var vis = VisibilitySystem.Visible(s, LocalPlayer);
+                int tile = Enumerable.Range(0, s.Map.Count).Where(t => s.Map.Resource[t] >= 0 && s.Db.Resources[s.Map.Resource[t]].Id == id)
+                                     .OrderByDescending(t => vis[t]).ThenByDescending(t => me.Revealed[t]).DefaultIfEmpty(-1).First();
+                if (tile < 0) return "no such resource";
+                Camera.LookAtHex(s.Map.CoordOf(tile));
+                return null;
+            }
+            case "debug-life": GD.Print("[life] " + MapView.Life.Describe()); return null;
+            case "focus-road":
+            {
+                var road = MapView.Life.Roads.OrderByDescending(r => r.Length).FirstOrDefault();
+                if (road == null) return "no road";
+                Camera.LookAtHex(UnbrokenAges.Client.Map.HexLayout.FromWorld(road[road.Length / 2]));
+                return null;
+            }
             default:
                 if (step.StartsWith("panel:")) { TogglePanel(step[6..]); return null; }
                 return $"unknown step '{step}'";
