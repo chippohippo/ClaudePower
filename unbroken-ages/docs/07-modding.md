@@ -82,8 +82,8 @@ Validate it:
 ```bash
 $ dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade
 OK — base@0.1.0, example-river-trade@1.0.0
-content hash 3062B0E47FD7C4BF
-19 districts, 30 buildings, 19 units, 23 techs, 12 civics, 8 governors, 3 civilizations
+content hash DC197DC74B050B5D
+19 districts, 38 buildings, 28 units, 42 techs, 15 civics, 8 governors, 3 civilizations
 ```
 The test `ModLoaderTests.ExampleMod_LoadsOnTopOfBase` keeps it working.
 
@@ -97,7 +97,7 @@ Mod loading failed:
 ## 5. What can be modded today (data only)
 Terrains, reliefs, features, resources, improvements (including power plants), **districts and every adjacency and placement rule**, buildings, projects,
 units (counters, upgrades, river capability), techs, civics, eras, governors and promotions, civilizations, leaders (abilities, agendas, AI personality),
-disasters, the climate model, and map sizes. Behaviour comes from the **modifier vocabulary** ([03-data-schemas §10](03-data-schemas.md#10-modifiers--requirements-the-effect-vocabulary)).
+disasters, the climate model, map sizes, and **entire Divergence futures** (creed, leanings, terraforming spread, Ascension; see [08](08-divergence-tech-tree.md)). Behaviour comes from the **modifier vocabulary** ([03-data-schemas §10](03-data-schemas.md#10-modifiers--requirements-the-effect-vocabulary)).
 Adding a *new kind* of effect currently needs a C# change (one `case`). Scripting removes that limit.
 
 ## 6. Scripting: sandboxed Lua (M4)

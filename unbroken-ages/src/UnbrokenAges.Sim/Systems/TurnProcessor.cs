@@ -32,8 +32,10 @@ public static class TurnProcessor
             {
                 var fx = CityEffects.Compute(s, city);
                 var report = CityYields.Compute(s, city, fx);
-                Grow(s, city, report, events);
-                ProductionSystem.Process(s, city, report.Total.Production, fx, events);
+                // Fabrication: part of the city's industry builds new citizens instead of feeding them (needs power).
+                Fx fabricated = fx.FabricationPercent > 0 && city.IsPowered ? report.Total.Production * fx.FabricationPercent / 100 : Fx.Zero;
+                Grow(s, city, report, fabricated, events);
+                ProductionSystem.Process(s, city, report.Total.Production - fabricated, fx, events);
                 city.YieldsLastTurnProduction = report.Total.Production;
                 science += report.Total.Science;
                 culture += report.Total.Culture;
@@ -50,6 +52,7 @@ public static class TurnProcessor
 
         GovernorSystem.ProcessTurn(s, events);
         LoyaltySystem.ProcessTurn(s, events);
+        DivergenceSystem.ProcessTurn(s, events);
         ClimateSystem.ProcessTurn(s, power, events);
 
         foreach (var unit in s.Units.ToList())
@@ -64,9 +67,9 @@ public static class TurnProcessor
         return events;
     }
 
-    private static void Grow(GameState s, CityState city, CityYieldReport report, List<GameEvent> events)
+    private static void Grow(GameState s, CityState city, CityYieldReport report, Fx fabricated, List<GameEvent> events)
     {
-        Fx surplus = report.FoodSurplus;
+        Fx surplus = report.FoodSurplus + fabricated;
         if (surplus > Fx.Zero) surplus = surplus * CityYields.HousingGrowthPercent(city.Population, report.Housing) / 100;
         city.FoodStored += surplus;
         if (city.FoodStored < Fx.Zero)

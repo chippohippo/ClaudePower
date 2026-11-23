@@ -96,6 +96,13 @@ public sealed class BuildImprovementCommand : GameCommand
             s.Climate.PendingDeforestation += s.Db.Features[map.Feature[u.Tile]].Co2OnRemoval;
             map.Feature[u.Tile] = -1;
         }
+        if (def.TransformsTerrainIndex >= 0)
+        {
+            if (map.Feature[u.Tile] >= 0) s.Climate.PendingDeforestation += s.Db.Features[map.Feature[u.Tile]].Co2OnRemoval;
+            map.Terrain[u.Tile] = (byte)def.TransformsTerrainIndex;
+            map.Feature[u.Tile] = -1;
+        }
+        if (def.AddsFeatureIndex >= 0) map.Feature[u.Tile] = (short)def.AddsFeatureIndex;
         map.Improvement[u.Tile] = (short)Improvement;
         map.SetFlag(u.Tile, TileFlags.Pillaged, false);
         if (--u.Charges <= 0) s.RemoveUnit(u);
@@ -117,7 +124,9 @@ public static class ImprovementRules
         if (def.ValidTerrainIndices.Length > 0 && !def.ValidTerrainIndices.Contains(map.Terrain[tile])) return "Invalid terrain.";
         if (def.ValidReliefIndices.Length > 0 && !def.ValidReliefIndices.Contains(map.Relief[tile])) return "Invalid relief.";
         // Features: allowed if listed; otherwise the improvement must clear them (removesFeature).
-        if (map.Feature[tile] >= 0 && !def.ValidFeatureIndices.Contains(map.Feature[tile]) && !def.RemovesFeature) return "Remove the feature first.";
+        if (map.Feature[tile] >= 0 && !def.ValidFeatureIndices.Contains(map.Feature[tile]) && !def.RemovesFeature && def.TransformsTerrainIndex < 0)
+            return "Remove the feature first.";
+        if (map.Feature[tile] >= 0 && def.TransformsTerrainIndex >= 0 && !s.Db.Features[map.Feature[tile]].Removable) return "Cannot remake this tile.";
         if (map.Feature[tile] < 0 && def.RequiresFeatureOnTile) return "Requires a feature.";
         if (def.ValidResourceIndices.Length > 0 && !def.ValidResourceIndices.Contains(map.Resource[tile]))
         {
@@ -211,6 +220,7 @@ public sealed class SetResearchCommand : GameCommand
     public override CommandType Type => CommandType.SetResearch;
     public override string? Validate(GameState s) =>
         Issuer(s) is not { } p ? "Invalid player." : Tech < 0 || Tech >= s.Db.Techs.Count ? "Unknown technology."
+        : DivergenceSystem.LockReason(s.Db, p, s.Db.Techs[Tech]) is { } locked ? locked
         : !ResearchSystem.CanResearch(p, s.Db.Techs[Tech]) ? "Prerequisites not met." : null;
     public override void Apply(GameState s, List<GameEvent> events) => s.Players[Player].CurrentTech = Tech;
     protected override void WritePayload(BinaryWriter w) => w.Write(Tech);
@@ -223,6 +233,7 @@ public sealed class SetCivicCommand : GameCommand
     public override CommandType Type => CommandType.SetCivic;
     public override string? Validate(GameState s) =>
         Issuer(s) is not { } p ? "Invalid player." : Civic < 0 || Civic >= s.Db.Civics.Count ? "Unknown civic."
+        : DivergenceSystem.LockReason(s.Db, p, s.Db.Civics[Civic]) is { } locked ? locked
         : !ResearchSystem.CanStudy(p, s.Db.Civics[Civic]) ? "Prerequisites not met." : null;
     public override void Apply(GameState s, List<GameEvent> events) => s.Players[Player].CurrentCivic = Civic;
     protected override void WritePayload(BinaryWriter w) => w.Write(Civic);

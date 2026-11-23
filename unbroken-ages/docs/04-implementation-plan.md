@@ -26,7 +26,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Command pipeline, snapshots, state hash, turn processor, baseline AI | ✔ |
 | Direct IP host/client, desync heal, reconnect, spectators, LAN beacons | ✔ |
 | `ua` CLI (mapgen, validate, simulate, host, join); Godot client skeleton that compiles | ✔ |
-| 83 automated tests | ✔ |
+| **The Divergence** Future-era fork: locks, leanings, three futures, terraforming spread, Ascension; `ua future` demo | ✔ |
+| 97 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -76,6 +77,8 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 
 * Religion overhaul (charges, upkeep, state religion, schisms, reformation); diplomacy (agendas, itemized grievances, research agreements, tile and city trades,
   **vassals**, liberation); **World Congress** redesign with player proposals; **espionage** across all eras; Trade Empires; Legends; Hidden Orders; Cataclysm.
+* Divergence production: three biome art sets (Engineered Ground, the Bloom, Substrate), per-future city skins, leader portrait evolutions,
+  music transformations, Divergence World Congress resolutions, apostate-city events.
 * All victory types plus the Victory Dashboard; wonders (about 45) and natural wonders (about 20); minor nations; barbarians and Tribal Clans.
 * World Builder; TSL Earth maps (Huge, Giant).
 * **Scripting sandbox (Lua)** and workshop integration; modding documentation site generated from schemas.

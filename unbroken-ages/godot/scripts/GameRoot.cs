@@ -30,6 +30,7 @@ public partial class GameRoot : Node3D
     private PlacementLens _lens = null!;
     private CityPanel _cityPanel = null!;
     private LobbyScreen _lobby = null!;
+    private DivergencePanel _divergence = null!;
     private Label _status = null!;
 
     public GameState? State => _host?.State ?? _client?.State ?? _local;
@@ -60,6 +61,8 @@ public partial class GameRoot : Node3D
         ui.AddChild(_cityPanel);
         _lobby = new LobbyScreen(this);
         ui.AddChild(_lobby);
+        _divergence = new DivergencePanel(this) { Visible = false };
+        ui.AddChild(_divergence);
     }
 
     // ----- Session entry points (called by LobbyScreen) --------------------------------------------
@@ -148,7 +151,8 @@ public partial class GameRoot : Node3D
             _cityPanel.Refresh();
         }
         var p = s.Players[LocalPlayer];
-        _status.Text = $"Turn {s.Turn}   Gold {p.Gold}   CO2 {s.Climate.Co2Ppm} ppm (+{s.Climate.Temperature}°C, phase {s.Climate.Phase})" +
+        string future = p.Divergence >= 0 ? $"   {s.Db.Divergences[p.Divergence].People} (V)" : "";
+        _status.Text = $"Turn {s.Turn}   Gold {p.Gold}   CO2 {s.Climate.Co2Ppm} ppm (+{s.Climate.Temperature}°C, phase {s.Climate.Phase}){future}" +
                        (_client?.PendingCommands.Count > 0 ? "   ⏳ syncing" : "") + (_client?.Paused == true ? "   ⏸ PAUSED" : "");
     }
 

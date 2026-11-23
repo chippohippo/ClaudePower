@@ -28,6 +28,9 @@ public sealed class CityEffects
     public int BuilderCharges;
     public int EspionageDefense;
     public int SpyCapacity;
+    public int CitizenFoodUpkeepPercent;
+    public int FabricationPercent;
+    public int CitizenPowerDemandTenths;
     public readonly int[] ProductionPercent = new int[Enum.GetValues<ProductionCategory>().Length];
     private int _immunities;
 
@@ -54,6 +57,16 @@ public sealed class CityEffects
             var leader = db.Leaders[owner.LeaderIndex];
             fx.ApplyAll(s, city, leader.Ability.Modifiers, $"{leader.Name}: {leader.Ability.Name}");
         }
+
+        if (owner.Divergence >= 0)
+        {
+            var div = db.Divergences[owner.Divergence];
+            fx.ApplyAll(s, city, div.Modifiers, div.Name);
+        }
+        foreach (int t in db.TechsWithModifiers)
+            if (owner.HasTech(t)) fx.ApplyAll(s, city, db.Techs[t].Modifiers, db.Techs[t].Name);
+        foreach (int c in db.CivicsWithModifiers)
+            if (owner.HasCivic(c)) fx.ApplyAll(s, city, db.Civics[c].Modifiers, db.Civics[c].Name);
 
         var gov = city.GovernorDef >= 0 ? owner.GetGovernor(city.GovernorDef) : null;
         if (gov is { Established: true })
@@ -129,11 +142,16 @@ public sealed class CityEffects
             case ModifierEffect.BuilderCharges: BuilderCharges += whole; break;
             case ModifierEffect.EspionageDefense: EspionageDefense += whole; break;
             case ModifierEffect.SpyCapacity: SpyCapacity += whole; break;
+            case ModifierEffect.CitizenFoodUpkeepPercent: CitizenFoodUpkeepPercent += whole; break;
+            case ModifierEffect.CityFabricationPercent: FabricationPercent += whole; break;
+            case ModifierEffect.CitizenPowerDemandTenths: CitizenPowerDemandTenths += whole; break;
             case ModifierEffect.CityDisasterImmunity:
                 if (m.Disaster is { } kind) _immunities |= 1 << (int)kind;
                 break;
             case ModifierEffect.ClimateCo2Reduction:
-                break; // one-shot project effect, handled by ProductionSystem
+            case ModifierEffect.ClimateCooling:
+            case ModifierEffect.CompleteAscension:
+                break; // one-shot project effects, handled by ProductionSystem
         }
     }
 }

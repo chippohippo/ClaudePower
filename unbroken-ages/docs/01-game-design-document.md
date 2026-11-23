@@ -192,6 +192,11 @@ and reassigning one resets the timer. Late game adds **Councils**: a governor ca
 * **Ages:** Golden, Dark and Heroic ages with era score and **dedications**, kept from Civ VI with three changes:
   (1) era score sources are listed up front with progress bars; (2) Dark Ages offer stronger, more interesting policies
   instead of a feeling of punishment; (3) catch-up is visible and opt-in ("Turbulent Ages" mode makes ages swingier).
+* **The Divergence (Future era):** after the shared *Threshold* tech the tree forks into three mutually exclusive futures:
+  **Sovereign** (humanity unchanged, the planet engineered), **Symbiont** (humanity spliced into the biosphere) and **Discarnate** (humanity leaves the body).
+  Researching a doctrine locks the other two branches forever. Your history (flood barriers, forests kept, research labs, emissions) makes one doctrine cheaper.
+  Each future is rational and dystopian, and each **remakes the Earth** (Engineered Ground, the Bloom, Substrate), so late-game maps look alien.
+  Full design: [08-divergence-tech-tree.md](08-divergence-tech-tree.md).
 * **Great People:** points accrue per class. Every patronage option (gold, faith) is visible, and you can pass on a
   candidate to bank 50% of the points. New classes: **Great Navigator** (river and sea exploration bonuses) and
   **Great Planner** (one-shot district relocation, or "a free +2 adjacency to a district").
@@ -338,6 +343,7 @@ Medicine tech line. Plague can trigger Dark Age dedications and migrations. It n
 | **Hegemony** (domination) | Hold every original capital **or** control 60% of world population and land with loyalty above 50 | No last-city-standing grind; loyalty matters |
 | **Spiritual** | §7 | Schisms create counterplay |
 | **Concord** (diplomatic) | 20 victory points from proposals, aid, liberations and peace | No random competitions |
+| **Ascension** (Divergence) | Complete your future's final project after remaking ≥ 10% of the world's land | The race is to remake the planet; rival futures' ground acts as a firebreak ([08](08-divergence-tech-tree.md#5-ascension-the-sixth-victory)) |
 | **Score** | Highest score at the turn limit | Score sources visible all game; tie-breakers documented |
 
 **Victory Dashboard:** one screen with every rival's progress toward every victory, with confidence ("based on what you know").
@@ -442,6 +448,8 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 30 | Faith useful late game | §7 faith projects | Designed — M4 |
 | 31 | Plague mode | §12.3 | Designed — post-launch mode |
 | 32 | Hotseat and async play | §15 | Hotseat M2 / async M5 |
+| 33 | A late game that feels like the future (*Beyond Earth*-style affinities, but on Earth) | §6 The Divergence, [08](08-divergence-tech-tree.md) | **Built** (sim, data, AI, client screen); art M4 |
+| 34 | Late-game worlds that look different, not just bigger numbers | Divergence terraforming, biome spread, sea reclamation | **Built** |
 
 ## Appendix B — Naming & IP hygiene
 

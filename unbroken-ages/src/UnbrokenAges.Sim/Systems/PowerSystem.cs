@@ -110,8 +110,10 @@ public static class PowerSystem
         return report;
     }
 
+    /// <summary>Building demand plus per-citizen demand (Discarnate citizens run on electricity).</summary>
     public static int DemandOf(GameState s, CityState city) =>
-        city.AllBuildings().Sum(b => s.Db.Buildings[b].PowerDemand);
+        city.AllBuildings().Sum(b => s.Db.Buildings[b].PowerDemand)
+        + city.Population * CityEffects.Compute(s, city).CitizenPowerDemandTenths / 10;
 
     private static List<PowerPlant> CollectPlants(GameState s, PlayerState player, List<CityState> cities)
     {

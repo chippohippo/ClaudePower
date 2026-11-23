@@ -17,6 +17,7 @@ using UnbrokenAges.Sim.Systems;
 //   ua simulate [--turns N] [--seed N] [--players N]     AI-only headless game, determinism + perf
 //   ua host     [--port P] [--humans N] [--ai N]         dedicated/listen Direct-IP server
 //   ua join     <host[:port]> [--name X]                 headless client that plays with the baseline AI
+//   ua future   [--turns N] [--seed N]                   late-game scenario: three civs, three Divergences, the world remade
 
 var argv = args.ToList();
 string command = argv.Count > 0 ? argv[0] : "help";
@@ -39,6 +40,7 @@ try
         case "simulate": Simulate(); break;
         case "host": Host(); break;
         case "join": Join(); break;
+        case "future": Future(); break;
         default:
             Console.WriteLine("usage: ua mapgen|validate|simulate|host|join (see Program.cs header)");
             break;
@@ -170,6 +172,59 @@ void Join()
     Console.WriteLine(client.RejectReason ?? "Disconnected.");
 }
 
+void Future()
+{
+    var db = LoadDb();
+    int turns = int.Parse(Opt("--turns", "120"));
+    ulong seed = ulong.Parse(Opt("--seed", "7"));
+    var paths = new[] { "DIVERGENCE_SOVEREIGN", "DIVERGENCE_SYMBIONT", "DIVERGENCE_DISCARNATE" };
+    var setup = new GameSetup
+    {
+        Seed = seed,
+        Map = new MapGenSettings { Width = 64, Height = 40, Seed = seed, LandPercent = 40 },
+        Options = new GameOptions { DisasterIntensity = 2 },
+        Players = new()
+        {
+            new PlayerSetup { Name = "Egypt", Leader = "LEADER_THUTMOSE" },
+            new PlayerSetup { Name = "Venice", Leader = "LEADER_DANDOLO" },
+            new PlayerSetup { Name = "Song", Leader = "LEADER_TAIZU_SONG" },
+        },
+    };
+    var s = GameFactory.Create(db, setup);
+    FutureScenario.Build(s, paths);
+    Console.WriteLine($"THE DIVERGENCE — {turns} turns after the Threshold (seed {seed})");
+    foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+        Console.WriteLine($"  {p.Id + 1} {p.Name,-7} → {db.Divergences[p.Divergence].People,-16} \"{db.Divergences[p.Divergence].Creed}\"");
+    Console.WriteLine();
+    Console.WriteLine(FutureScenario.Render(s, "THE WORLD AT THE THRESHOLD"));
+
+    var ai = new SimpleAi();
+    var tally = new Dictionary<GameEventType, int>();
+    for (int t = 0; t < turns; t++)
+    {
+        foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
+        var events = new List<GameEvent>();
+        CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
+        foreach (var e in events)
+        {
+            tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
+            if (e.Type is GameEventType.AscensionCompleted or GameEventType.TechResearched && s.Db.Techs[e.Def].DivergenceIndex >= 0)
+                Console.WriteLine($"  turn {s.Turn}: {s.Players[e.Player].Name} — {e.Detail}");
+        }
+        if ((t + 1) % 30 == 0)
+        {
+            var share = DivergenceSystem.WorldShare(s);
+            Console.WriteLine($"  turn {s.Turn}: world remade — " + string.Join(", ", db.Divergences.Select(d => $"{d.Name} {share[d.Index]:0.0}%")) +
+                              $" · CO2 {s.Climate.Co2Ppm} ppm, +{s.Climate.Temperature}°C, phase {s.Climate.Phase}");
+        }
+    }
+    Console.WriteLine();
+    Console.WriteLine(FutureScenario.Render(s, $"THE WORLD {turns} TURNS LATER"));
+    Console.WriteLine("events: " + string.Join(", ", tally.Where(k => k.Key is GameEventType.WorldRemade or GameEventType.BloomEncroached
+        or GameEventType.LandReclaimed or GameEventType.TileSubmerged or GameEventType.Disaster or GameEventType.AscensionCompleted).Select(k => $"{k.Key}={k.Value}")));
+}
+
 static string FindRepoRoot()
 {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -238,6 +293,100 @@ static class MapAscii
                     _ => m.HasRiver(i) ? '+' : m.IsMountain(i) ? '^' : '.',
                 };
                 sb.Append(c).Append(' ');
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+}
+
+/// <summary>Builds a late-game sandbox: every civ at the Threshold, each committed to a different Divergence.</summary>
+static class FutureScenario
+{
+    public static void Build(GameState s, string[] paths)
+    {
+        var db = s.Db;
+        var humans = s.Players.Where(p => !p.IsFreeCities).ToList();
+        for (int i = 0; i < humans.Count; i++)
+        {
+            var p = humans[i];
+            var settler = s.Units.First(u => u.Owner == p.Id && db.Units[u.DefIndex].FoundsCity);
+            var capital = CitySystem.Found(s, p.Id, settler.Tile);
+            s.RemoveUnit(settler);
+            foreach (int extra in ExpansionSites(s, capital.Tile, 3)) CitySystem.Found(s, p.Id, extra);
+
+            // Everything shared, then the chosen branch: a civilization arriving at the Threshold.
+            p.Techs = db.Techs.Select(t => t.DivergenceIndex < 0).ToArray();
+            p.Civics = db.Civics.Select(c => c.DivergenceIndex < 0).ToArray();
+            var d = db.Divergences[paths[i % paths.Length]];
+            p.Techs[d.DoctrineTechIndex] = true;
+            DivergenceSystem.OnNodeCompleted(s, p, db.Techs[d.DoctrineTechIndex], new List<GameEvent>());
+            foreach (var t in db.Techs.Where(t => t.DivergenceIndex == d.Index && t.Cost < 3400)) p.Techs[t.Index] = true;
+            p.Gold = 2000;
+            p.Stockpile[db.Resources.IndexOf("RESOURCE_URANIUM")] = 400;
+            p.Stockpile[db.Resources.IndexOf("RESOURCE_COAL")] = 200;
+
+            foreach (var city in s.CitiesOf(p.Id).ToList())
+            {
+                city.Population = 12;
+                AddScenarioDistrict(s, city, "DISTRICT_FOUNDRY", "BUILDING_WORKSHOP", "BUILDING_FACTORY", "BUILDING_NUCLEAR_PLANT");
+                AddScenarioDistrict(s, city, "DISTRICT_ACADEMY", "BUILDING_LIBRARY", "BUILDING_UNIVERSITY", "BUILDING_RESEARCH_LAB");
+                city.Districts[0].Buildings.Add(db.Buildings.IndexOf("BUILDING_GRANARY"));
+                // A few turns past commitment: each city already hosts its branch's terraforming building.
+                if (d.Spread is { SourceBuildingIndex: >= 0 } spread) city.Districts[0].Buildings.Add(spread.SourceBuildingIndex);
+            }
+        }
+    }
+
+    private static IEnumerable<int> ExpansionSites(GameState s, int capital, int count)
+    {
+        var map = s.Map;
+        var ring = new List<int>();
+        map.CollectRadius(capital, 7, ring);
+        var picked = new List<int>();
+        foreach (int t in ring.OrderBy(t => Math.Abs(map.Distance(capital, t) - 5)).ThenBy(t => t))
+        {
+            if (picked.Count >= count) break;
+            if (!map.IsLand(t) || map.IsMountain(t) || (map.OwnerPlayer[t] >= 0 && map.OwnerPlayer[t] != map.OwnerPlayer[capital])) continue;
+            if (s.Cities.Any(c => map.Distance(c.Tile, t) < 4) || picked.Any(p => map.Distance(p, t) < 4)) continue;
+            picked.Add(t);
+        }
+        return picked;
+    }
+
+    private static void AddScenarioDistrict(GameState s, CityState city, string district, params string[] buildings)
+    {
+        int def = s.Db.Districts.IndexOf(district);
+        var ring = new List<int>();
+        s.Map.CollectRadius(city.Tile, 2, ring);
+        int tile = ring.OrderBy(t => t).FirstOrDefault(t => t != city.Tile && s.Map.IsLand(t) && !s.Map.IsMountain(t) && s.Map.District[t] < 0
+                                                             && (s.Map.OwnerCity[t] == city.Id || s.Map.OwnerPlayer[t] < 0), -1);
+        if (tile < 0) return;
+        CitySystem.AddDistrict(s, city, def, tile);
+        foreach (var b in buildings) city.Districts[^1].Buildings.Add(s.Db.Buildings.IndexOf(b));
+    }
+
+    public static string Render(GameState s, string title)
+    {
+        var map = s.Map;
+        var db = s.Db;
+        var engineered = db.Terrains.IndexOf("TERRAIN_ENGINEERED");
+        var substrate = db.Terrains.IndexOf("TERRAIN_SUBSTRATE");
+        var bloom = db.Features.IndexOf("FEATURE_BLOOM");
+        var sb = new System.Text.StringBuilder($"{title}\n  E Engineered Ground (Sovereign)  B the Bloom (Symbiont)  S Substrate (Discarnate)  1-3 cities  " +
+                                               "~ sea  = Great River  ^ mountain  ' woods  . other land  ! submerged\n");
+        for (int row = 0; row < map.Height; row++)
+        {
+            sb.Append((row & 1) == 1 ? "   " : "  ");
+            for (int col = 0; col < map.Width; col++)
+            {
+                int t = row * map.Width + col;
+                var city = s.Cities.FirstOrDefault(c => c.Tile == t);
+                char ch = city != null ? (char)('1' + city.Owner)
+                    : map.Terrain[t] == engineered ? 'E' : map.Terrain[t] == substrate ? 'S' : map.Feature[t] == bloom ? 'B'
+                    : map.HasFlag(t, TileFlags.Submerged) ? '!' : map.IsChannel(t) ? '=' : map.IsWater(t) ? '~'
+                    : map.IsMountain(t) ? '^' : map.Feature[t] == db.Ids.Forest || map.Feature[t] == db.Ids.Rainforest ? '\'' : '.';
+                sb.Append(ch).Append(' ');
             }
             sb.AppendLine();
         }

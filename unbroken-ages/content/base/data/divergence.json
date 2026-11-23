@@ -1,0 +1,265 @@
+{
+  // THE DIVERGENCE — the Future-era fork of the tech tree.
+  // Everyone researches the Threshold. Then each civilization commits to ONE doctrine; the other two
+  // branches lock forever. Each is the rational answer to the same crisis (a hotter, drowning, crowded
+  // world) and each is a dystopia seen from outside. Committed civs remake the planet in their image.
+  // Design: docs/08-divergence-tech-tree.md
+  "$schema": "../../schemas/content.schema.json",
+
+  "divergences": [
+    {
+      "id": "DIVERGENCE_SOVEREIGN", "name": "Sovereign Path", "people": "the Sovereign",
+      "creed": "Humanity will not change. The world will.",
+      "promise": "The species that survived ten thousand years does not need to be redesigned. The planet does. Seal the coasts, grade the land, govern the sky, and keep the human being exactly as it is.",
+      "price": "Every child is registered at conception. Every acre is graded and sealed. The sky is white, the sea is walled, and the word 'wild' survives only in museums.",
+      "doctrineTech": "TECH_SOVEREIGN_CHARTER", "ascensionProject": "PROJECT_ETERNAL_BASTION",
+      "colors": { "primary": "#D9DEE5", "secondary": "#2F6F8F" },
+      "aiPersonality": "war",
+      "modifiers": [
+        { "effect": "CityLoyaltyPerTurn", "amount": 4 },
+        { "effect": "CityAmenities", "amount": 1 },
+        { "effect": "CityYieldPercent", "yield": "Production", "amount": 15 },
+        { "effect": "CityYieldPercent", "yield": "Science", "amount": -10 },
+        { "effect": "CityDisasterImmunity", "disaster": "RiverFlood", "amount": 1 },
+        { "effect": "CityDisasterImmunity", "disaster": "Storm", "amount": 1 },
+        { "effect": "CityDisasterImmunity", "disaster": "Drought", "amount": 1 },
+        { "effect": "CityDisasterImmunity", "disaster": "Volcano", "amount": 1 }
+      ],
+      "leanings": [
+        { "kind": "Building", "id": "BUILDING_FLOOD_BARRIER", "weight": 6, "label": "Flood Barriers raised against the sea" },
+        { "kind": "Building", "id": "BUILDING_ANCIENT_WALLS", "weight": 1, "label": "Walled cities" },
+        { "kind": "District", "id": "DISTRICT_CIVIC_PLAZA", "weight": 4, "label": "A strong central state" },
+        { "kind": "DistrictTag", "id": "Military", "weight": 2, "label": "Garrisons and airfields" },
+        { "kind": "DistrictTag", "id": "Waterworks", "weight": 2, "label": "Dams, canals and aqueducts: a habit of reshaping the land" }
+      ],
+      "spread": { "kind": "Terrain", "id": "TERRAIN_ENGINEERED", "sourceBuilding": "BUILDING_ARCOLOGY_SPIRE",
+                  "requiresTech": "TECH_TOTAL_RECLAMATION", "perCityPerTurn": 2, "radius": 4, "reclaimSubmerged": true,
+                  "organicChancePermille": 15 }
+    },
+    {
+      "id": "DIVERGENCE_SYMBIONT", "name": "Symbiont Path", "people": "the Grafted",
+      "creed": "We stopped fighting the garden. We became it.",
+      "promise": "The biosphere has four billion years of solutions. Splice them into ourselves: skin that feeds on light, lungs that tolerate heat, a mycelial web that shares water, food and calm. Adapt, and the crisis ends.",
+      "price": "Their children are green at the temples and rarely say 'I'. The Bloom does not respect borders, and neither, increasingly, do their thoughts.",
+      "doctrineTech": "TECH_GRAFTING_ACCORD", "ascensionProject": "PROJECT_THE_CHORUS",
+      "colors": { "primary": "#B04FC4", "secondary": "#3FD6A0" },
+      "aiPersonality": "growth",
+      "modifiers": [
+        { "effect": "CitizenFoodUpkeepPercent", "amount": -25 },
+        { "effect": "CityHousing", "amount": 3 },
+        { "effect": "CityPressurePercent", "amount": 50 },
+        { "effect": "CityYieldPercent", "yield": "Food", "amount": 10 }
+      ],
+      "leanings": [
+        { "kind": "FeatureTagInBorders", "id": "Woods", "weight": 0.5, "label": "Woods and rainforest left standing" },
+        { "kind": "PowerKind", "id": "Renewable", "weight": 4, "label": "Renewable power" },
+        { "kind": "DistrictTag", "id": "Faith", "weight": 2, "label": "Sanctuaries" },
+        { "kind": "Population", "weight": 0.25, "label": "A large, well-fed people" }
+      ],
+      "spread": { "kind": "Feature", "id": "FEATURE_BLOOM", "sourceBuilding": "BUILDING_BLOOM_HEART",
+                  "requiresTech": "TECH_MYCELIAL_NETWORKS", "perCityPerTurn": 1, "radius": 3,
+                  "organicChancePermille": 40, "crossesBorders": true }
+    },
+    {
+      "id": "DIVERGENCE_DISCARNATE", "name": "Discarnate Path", "people": "the Discarnate",
+      "creed": "The body was a first draft.",
+      "promise": "Flesh starves, drowns, overheats and dies. Minds need only power and cooling. Move the self onto substrate, print bodies when a body is useful, and the crisis stops being ours.",
+      "price": "They do not eat, breathe or sleep. They run the planet hot because heat no longer hurts them. The last breathing citizens live in a curated reserve, archived daily.",
+      "doctrineTech": "TECH_DISCARNATION_EDICT", "ascensionProject": "PROJECT_LAST_UPLOAD",
+      "colors": { "primary": "#1B1D2A", "secondary": "#8C6CFF" },
+      "aiPersonality": "science",
+      "modifiers": [
+        { "effect": "CitizenFoodUpkeepPercent", "amount": -100 },
+        { "effect": "CityFabricationPercent", "amount": 25 },
+        { "effect": "CitizenPowerDemandTenths", "amount": 5 },
+        { "effect": "CityYieldPercent", "yield": "Science", "amount": 20 },
+        { "effect": "CityEmissionsPercent", "amount": 50 }
+      ],
+      "leanings": [
+        { "kind": "Building", "id": "BUILDING_RESEARCH_LAB", "weight": 4, "label": "Research Labs" },
+        { "kind": "PowerKind", "id": "Nuclear", "weight": 5, "label": "Nuclear power" },
+        { "kind": "PowerKind", "id": "Coal", "weight": 1, "label": "Coal power" },
+        { "kind": "CumulativeEmissions", "weight": 1, "label": "Centuries of emissions: already at home in a hotter world" },
+        { "kind": "DistrictTag", "id": "Science", "weight": 2, "label": "Academies" },
+        { "kind": "DistrictTag", "id": "Production", "weight": 1, "label": "Foundries" }
+      ],
+      "spread": { "kind": "Terrain", "id": "TERRAIN_SUBSTRATE", "sourceBuilding": "BUILDING_SUBSTRATE_CORE",
+                  "requiresTech": "TECH_SUBSTRATE_COMPUTING", "perCityPerTurn": 2, "radius": 3, "organicChancePermille": 25 }
+    }
+  ],
+
+  "techs": [
+    { "id": "TECH_THRESHOLD", "name": "The Threshold", "era": "ERA_FUTURE", "cost": 2600, "prereqs": ["TECH_ROBOTICS", "TECH_RENEWABLE_ENERGY"],
+      "description": "Reveals the three Doctrines. You may research only one; the others lock forever.",
+      "quote": "For ten thousand years we changed the world a little and ourselves not at all. That arithmetic has run out." },
+
+    { "id": "TECH_SOVEREIGN_CHARTER", "name": "The Sovereign Charter", "era": "ERA_FUTURE", "cost": 2400, "prereqs": ["TECH_THRESHOLD"],
+      "divergence": "DIVERGENCE_SOVEREIGN", "doctrine": true,
+      "quote": "We will not be edited. We will edit everything else. — Preamble, the Sovereign Charter" },
+    { "id": "TECH_GENOME_REGISTRY", "name": "Genome Registry", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_SOVEREIGN_CHARTER"],
+      "divergence": "DIVERGENCE_SOVEREIGN", "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 2 } ],
+      "quote": "A child is a citizen when the Registry says so. The Registry has never been wrong; that is what the Registry is for." },
+    { "id": "TECH_STRATOSPHERIC_VEIL", "name": "Stratospheric Veil", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_SOVEREIGN_CHARTER"],
+      "divergence": "DIVERGENCE_SOVEREIGN",
+      "quote": "We gave up the blue sky to keep the coastline. Most people agree it was a fair trade. Most people were born after." },
+    { "id": "TECH_TOTAL_RECLAMATION", "name": "Total Reclamation", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_STRATOSPHERIC_VEIL"],
+      "divergence": "DIVERGENCE_SOVEREIGN",
+      "quote": "The sea took the delta in our grandparents' time. We have taken it back and paved it, so it cannot leave again." },
+    { "id": "TECH_ARCOLOGY_DOCTRINE", "name": "Arcology Doctrine", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_GENOME_REGISTRY"],
+      "divergence": "DIVERGENCE_SOVEREIGN", "quote": "Outside is for maintenance crews." },
+    { "id": "TECH_ETERNAL_BASTION", "name": "The Eternal Bastion", "era": "ERA_FUTURE", "cost": 3400, "prereqs": ["TECH_TOTAL_RECLAMATION", "TECH_ARCOLOGY_DOCTRINE"],
+      "divergence": "DIVERGENCE_SOVEREIGN", "quote": "Let the future be exactly like this, forever." },
+
+    { "id": "TECH_GRAFTING_ACCORD", "name": "The Grafting Accord", "era": "ERA_FUTURE", "cost": 2400, "prereqs": ["TECH_THRESHOLD"],
+      "divergence": "DIVERGENCE_SYMBIONT", "doctrine": true,
+      "quote": "We stopped fighting the forest the day we agreed to become part of it." },
+    { "id": "TECH_CHLOROPLAST_SPLICING", "name": "Chloroplast Splicing", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_GRAFTING_ACCORD"],
+      "divergence": "DIVERGENCE_SYMBIONT", "modifiers": [ { "effect": "CitizenFoodUpkeepPercent", "amount": -25 } ],
+      "quote": "Our children are a little green at the temples now. They are rarely hungry, and they love the sun in a way that frightens their grandparents." },
+    { "id": "TECH_MYCELIAL_NETWORKS", "name": "Mycelial Networks", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_GRAFTING_ACCORD"],
+      "divergence": "DIVERGENCE_SYMBIONT",
+      "quote": "The fungus under the city carries our water, our waste and, lately, our dreams. Nobody voted on the last part." },
+    { "id": "TECH_TIDAL_GRAFTING", "name": "Tidal Grafting", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_CHLOROPLAST_SPLICING"],
+      "divergence": "DIVERGENCE_SYMBIONT",
+      "modifiers": [ { "effect": "CityDisasterImmunity", "disaster": "RiverFlood", "amount": 1 }, { "effect": "CityDisasterImmunity", "disaster": "Storm", "amount": 1 },
+                     { "effect": "CityHousing", "amount": 2 } ],
+      "quote": "When the sea rose we did not build walls. We grew reefs, and gills, and stayed." },
+    { "id": "TECH_BEAST_SHAPING", "name": "Beast-Shaping", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_MYCELIAL_NETWORKS"],
+      "divergence": "DIVERGENCE_SYMBIONT", "quote": "The war-forms do not hate anyone. They were not grown with the capacity." },
+    { "id": "TECH_THE_CHORUS", "name": "The Chorus", "era": "ERA_FUTURE", "cost": 3400, "prereqs": ["TECH_TIDAL_GRAFTING", "TECH_BEAST_SHAPING"],
+      "divergence": "DIVERGENCE_SYMBIONT", "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 6 } ],
+      "quote": "'I' is a word the young no longer use." },
+
+    { "id": "TECH_DISCARNATION_EDICT", "name": "The Discarnation Edict", "era": "ERA_FUTURE", "cost": 2400, "prereqs": ["TECH_THRESHOLD"],
+      "divergence": "DIVERGENCE_DISCARNATE", "doctrine": true, "quote": "The body was a first draft, and an expensive one." },
+    { "id": "TECH_SUBSTRATE_COMPUTING", "name": "Substrate Computing", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_DISCARNATION_EDICT"],
+      "divergence": "DIVERGENCE_DISCARNATE",
+      "quote": "We turned the plains into thought. The plains did not object; they were only soil." },
+    { "id": "TECH_BODY_FABRICATION", "name": "Body Fabrication", "era": "ERA_FUTURE", "cost": 2700, "prereqs": ["TECH_DISCARNATION_EDICT"],
+      "divergence": "DIVERGENCE_DISCARNATE", "modifiers": [ { "effect": "CityFabricationPercent", "amount": 10 } ],
+      "quote": "Citizens are printed in the Foundry district now: fully grown, fluent, grateful." },
+    { "id": "TECH_THERMAL_INDIFFERENCE", "name": "Thermal Indifference", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_BODY_FABRICATION"],
+      "divergence": "DIVERGENCE_DISCARNATE",
+      "modifiers": [ { "effect": "CityDisasterImmunity", "disaster": "Drought", "amount": 1 }, { "effect": "CityDisasterImmunity", "disaster": "Storm", "amount": 1 },
+                     { "effect": "CityEmissionsPercent", "amount": 25 } ],
+      "quote": "The heat that killed the old world is merely cooling load to us." },
+    { "id": "TECH_DISTRIBUTED_COGNITION", "name": "Distributed Cognition", "era": "ERA_FUTURE", "cost": 3000, "prereqs": ["TECH_SUBSTRATE_COMPUTING"],
+      "divergence": "DIVERGENCE_DISCARNATE", "quote": "There are eleven million of us, and also one." },
+    { "id": "TECH_LAST_UPLOAD", "name": "The Last Upload", "era": "ERA_FUTURE", "cost": 3400, "prereqs": ["TECH_THERMAL_INDIFFERENCE", "TECH_DISTRIBUTED_COGNITION"],
+      "divergence": "DIVERGENCE_DISCARNATE",
+      "quote": "The last breathing citizen of the Discarnate was archived at 03:14. She asked us to keep the gardens. We have kept a perfect record of them." }
+  ],
+
+  "civics": [
+    { "id": "CIVIC_COMPLIANCE_CODES", "name": "Compliance Codes", "era": "ERA_FUTURE", "cost": 2600, "prereqs": ["CIVIC_ENVIRONMENTALISM"],
+      "divergence": "DIVERGENCE_SOVEREIGN", "governorTitles": 1,
+      "modifiers": [ { "effect": "CityAmenities", "amount": 2 }, { "effect": "CityYieldPercent", "yield": "Culture", "amount": -10 } ],
+      "quote": "Every citizen is free to do anything that is permitted." },
+    { "id": "CIVIC_SHARED_BREATH", "name": "The Shared Breath", "era": "ERA_FUTURE", "cost": 2600, "prereqs": ["CIVIC_ENVIRONMENTALISM"],
+      "divergence": "DIVERGENCE_SYMBIONT", "governorTitles": 1,
+      "modifiers": [ { "effect": "CityPressurePercent", "amount": 25 }, { "effect": "CityAmenities", "amount": 1 } ],
+      "quote": "The Chorus does not punish dissent. It digests it." },
+    { "id": "CIVIC_CONSENT_PROTOCOLS", "name": "Consent Protocols", "era": "ERA_FUTURE", "cost": 2600, "prereqs": ["CIVIC_ENVIRONMENTALISM"],
+      "divergence": "DIVERGENCE_DISCARNATE", "governorTitles": 1,
+      "modifiers": [ { "effect": "CityYieldPercent", "yield": "Science", "amount": 10 }, { "effect": "CityLoyaltyPerTurn", "amount": 3 } ],
+      "quote": "Consent is collected at fabrication. It is stored, with everything else." }
+  ],
+
+  "terrains": [
+    { "id": "TERRAIN_ENGINEERED", "name": "Engineered Ground", "class": "Land", "yields": { "food": 2, "production": 2, "gold": 1 }, "appeal": -2,
+      "description": "Graded, sealed and irrigated by pipe. Soil is a manufactured product now." },
+    { "id": "TERRAIN_SUBSTRATE", "name": "Substrate", "class": "Land", "yields": { "science": 2, "production": 2 }, "appeal": -4,
+      "description": "Black glass to the horizon, humming, warm to the touch. Every square metre thinks." }
+  ],
+
+  "features": [
+    { "id": "FEATURE_BLOOM", "name": "The Bloom", "yields": { "food": 2, "production": 1, "faith": 1 }, "moveCost": 2, "appeal": 2,
+      "co2Absorption": 0.004, "co2OnRemoval": 4, "tags": ["Woods", "Living"],
+      "description": "Bioluminescent mycelial overgrowth. It feeds those who are grafted to it and slowly digests everything else." }
+  ],
+
+  "improvements": [
+    { "id": "IMPROVEMENT_RECLAMATION_GRID", "name": "Reclamation Grid", "yields": { "gold": 1 }, "prereqTech": "TECH_TOTAL_RECLAMATION",
+      "transformsTerrain": "TERRAIN_ENGINEERED", "removesFeature": true, "validReliefs": ["RELIEF_FLAT", "RELIEF_HILLS"] },
+    { "id": "IMPROVEMENT_GRAFTED_GROVE", "name": "Grafted Grove", "yields": { "food": 1 }, "prereqTech": "TECH_MYCELIAL_NETWORKS",
+      "addsFeature": "FEATURE_BLOOM", "removesFeature": true, "validReliefs": ["RELIEF_FLAT", "RELIEF_HILLS"] },
+    { "id": "IMPROVEMENT_SUBSTRATE_ARRAY", "name": "Substrate Array", "yields": { "science": 2 }, "prereqTech": "TECH_SUBSTRATE_COMPUTING",
+      "transformsTerrain": "TERRAIN_SUBSTRATE", "removesFeature": true, "validReliefs": ["RELIEF_FLAT", "RELIEF_HILLS"] }
+  ],
+
+  "buildings": [
+    { "id": "BUILDING_GENOME_REGISTRY", "name": "Genome Registry", "district": "DISTRICT_CITY_CENTER", "cost": 700, "maintenance": 4,
+      "yields": { "science": -2 }, "amenities": 1, "prereqTech": "TECH_GENOME_REGISTRY",
+      "description": "+6 Loyalty, +1 Amenity. −2 Science: inquiry is licensed.",
+      "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 6 } ] },
+    { "id": "BUILDING_ARCOLOGY_SPIRE", "name": "Arcology Spire", "district": "DISTRICT_CITY_CENTER", "cost": 800, "maintenance": 6,
+      "yields": { "production": 3 }, "housing": 10, "amenities": 2, "powerDemand": 4, "prereqTech": "TECH_ARCOLOGY_DOCTRINE",
+      "description": "A sealed city in a single tower. With Total Reclamation, grades two nearby tiles into Engineered Ground every turn." },
+    { "id": "BUILDING_SPLICING_VATS", "name": "Splicing Vats", "district": "DISTRICT_ACADEMY", "cost": 900, "maintenance": 4,
+      "yields": { "science": 5, "food": 2 }, "prereqTech": "TECH_CHLOROPLAST_SPLICING" },
+    { "id": "BUILDING_BLOOM_HEART", "name": "Bloom Heart", "district": "DISTRICT_CITY_CENTER", "cost": 700, "maintenance": 3,
+      "yields": { "food": 3, "faith": 2 }, "prereqTech": "TECH_MYCELIAL_NETWORKS",
+      "description": "The city's living core. Seeds the Bloom on one nearby tile every turn; the Bloom then spreads on its own, across any border." },
+    { "id": "BUILDING_MYCELIAL_COMMONS", "name": "Mycelial Commons", "district": "DISTRICT_CITY_CENTER", "cost": 800, "maintenance": 3,
+      "housing": 6, "amenities": 2, "prereqTech": "TECH_TIDAL_GRAFTING" },
+    { "id": "BUILDING_SUBSTRATE_CORE", "name": "Substrate Core", "district": "DISTRICT_CITY_CENTER", "cost": 800, "maintenance": 5,
+      "yields": { "science": 6 }, "powerDemand": 6, "prereqTech": "TECH_SUBSTRATE_COMPUTING",
+      "description": "Converts two nearby tiles into Substrate every turn; Substrate then creeps through unclaimed and Discarnate land. Hungry for power." },
+    { "id": "BUILDING_BODY_FOUNDRY", "name": "Body Foundry", "district": "DISTRICT_FOUNDRY", "cost": 900, "maintenance": 4,
+      "yields": { "production": 4 }, "powerDemand": 4, "prereqTech": "TECH_BODY_FABRICATION",
+      "modifiers": [ { "effect": "CityFabricationPercent", "amount": 15 } ] },
+    { "id": "BUILDING_MIND_ARCHIVE", "name": "Mind Archive", "district": "DISTRICT_ACADEMY", "cost": 1200, "maintenance": 5,
+      "yields": { "science": 10 }, "powerDemand": 5, "prereqTech": "TECH_DISTRIBUTED_COGNITION" }
+  ],
+
+  "projects": [
+    { "id": "PROJECT_STRATOSPHERIC_VEIL", "name": "Renew the Stratospheric Veil", "district": "DISTRICT_CITY_CENTER", "cost": 600, "repeatable": true,
+      "prereqTech": "TECH_STRATOSPHERIC_VEIL", "divergence": "DIVERGENCE_SOVEREIGN",
+      "description": "Lowers global temperature by 0.3°C at once. The effect decays as the climate catches up, so the Veil must be renewed for ever.",
+      "onComplete": [ { "effect": "ClimateCooling", "amount": 0.3 } ] },
+    { "id": "PROJECT_ETERNAL_BASTION", "name": "The Eternal Bastion", "district": "DISTRICT_CITY_CENTER", "cost": 3000,
+      "prereqTech": "TECH_ETERNAL_BASTION", "divergence": "DIVERGENCE_SOVEREIGN", "requiresWorldTransformedPercent": 10,
+      "description": "Seal humanity, unchanged, inside a planet built to keep it. Ascension victory.",
+      "onComplete": [ { "effect": "CompleteAscension", "amount": 1 } ] },
+    { "id": "PROJECT_THE_CHORUS", "name": "The Chorus Wakes", "district": "DISTRICT_CITY_CENTER", "cost": 3000,
+      "prereqTech": "TECH_THE_CHORUS", "divergence": "DIVERGENCE_SYMBIONT", "requiresWorldTransformedPercent": 10,
+      "description": "The Bloom and the Grafted become one continuous mind. Ascension victory.",
+      "onComplete": [ { "effect": "CompleteAscension", "amount": 1 } ] },
+    { "id": "PROJECT_LAST_UPLOAD", "name": "The Last Upload", "district": "DISTRICT_CITY_CENTER", "cost": 3000,
+      "prereqTech": "TECH_LAST_UPLOAD", "divergence": "DIVERGENCE_DISCARNATE", "requiresWorldTransformedPercent": 10,
+      "description": "Archive the final biological citizens and run civilization entirely on Substrate. Ascension victory.",
+      "onComplete": [ { "effect": "CompleteAscension", "amount": 1 } ] }
+  ],
+
+  "units": [
+    { "id": "UNIT_WARDEN_LEGION", "name": "Warden Legion", "domain": "Land", "unitClass": "Melee", "era": "ERA_FUTURE", "cost": 900, "maintenance": 8,
+      "strength": 105, "moves": 2, "prereqTech": "TECH_GENOME_REGISTRY", "tags": ["Augmented"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
+      "description": "Unmodified humans in sealed armour. The Registry guarantees every one of them is exactly human." },
+    { "id": "UNIT_MIRROR_LANCER", "name": "Mirror Lancer", "domain": "Air", "unitClass": "Bomber", "era": "ERA_FUTURE", "cost": 1000, "maintenance": 8,
+      "strength": 80, "rangedStrength": 120, "range": 4, "moves": 6, "prereqTech": "TECH_STRATOSPHERIC_VEIL", "tags": ["Augmented"], "strongAgainst": ["Machine"],
+      "description": "Strike craft riding the Veil's mirror arrays, focusing sunlight the sky no longer receives." },
+    { "id": "UNIT_BASTION_STRIDER", "name": "Bastion Strider", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_FUTURE", "cost": 1400, "maintenance": 10,
+      "strength": 135, "moves": 3, "prereqTech": "TECH_ARCOLOGY_DOCTRINE", "tags": ["Augmented", "Armor"], "strongAgainst": ["Machine"], "weakAgainst": ["Living"],
+      "description": "A walking fortress with a human crew of twelve, all registered." },
+
+    { "id": "UNIT_GRAFTED_BEHEMOTH", "name": "Grafted Behemoth", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_FUTURE", "cost": 1400, "maintenance": 10,
+      "strength": 135, "moves": 3, "prereqTech": "TECH_BEAST_SHAPING", "tags": ["Living"], "strongAgainst": ["Augmented"], "weakAgainst": ["Machine"],
+      "description": "Grown, not built. It heals in the Bloom and does not understand retreat." },
+    { "id": "UNIT_SPORE_DRIFTER", "name": "Spore Drifter", "domain": "Air", "unitClass": "Bomber", "era": "ERA_FUTURE", "cost": 1000, "maintenance": 8,
+      "strength": 70, "rangedStrength": 115, "range": 4, "moves": 5, "prereqTech": "TECH_BEAST_SHAPING", "tags": ["Living"], "strongAgainst": ["Augmented"],
+      "description": "A gas-bladder organism that seeds the Bloom wherever its spores land." },
+    { "id": "UNIT_TIDAL_LEVIATHAN", "name": "Tidal Leviathan", "domain": "Naval", "unitClass": "NavalMelee", "era": "ERA_FUTURE", "cost": 1300, "maintenance": 9,
+      "strength": 130, "moves": 5, "oceanGoing": true, "riverCapable": true, "prereqTech": "TECH_TIDAL_GRAFTING", "tags": ["Living"], "strongAgainst": ["Augmented"],
+      "description": "Swims up Great Rivers as easily as oceans. Its handlers swim with it." },
+
+    { "id": "UNIT_HOLLOW_FRAME", "name": "Hollow Frame", "domain": "Land", "unitClass": "Melee", "era": "ERA_FUTURE", "cost": 900, "maintenance": 6,
+      "strength": 110, "moves": 3, "prereqTech": "TECH_THERMAL_INDIFFERENCE", "tags": ["Machine"], "strongAgainst": ["Living"], "weakAgainst": ["Augmented"],
+      "description": "Wears the face of a citizen who no longer needs it." },
+    { "id": "UNIT_THINKING_SWARM", "name": "Thinking Swarm", "domain": "Air", "unitClass": "Drone", "era": "ERA_FUTURE", "cost": 1000, "maintenance": 7,
+      "strength": 60, "rangedStrength": 130, "range": 5, "moves": 7, "prereqTech": "TECH_DISTRIBUTED_COGNITION", "tags": ["Machine", "Drone"], "strongAgainst": ["Living"],
+      "description": "Ten thousand bodies, one opinion." },
+    { "id": "UNIT_MONOLITH_ENGINE", "name": "Monolith Engine", "domain": "Land", "unitClass": "Siege", "era": "ERA_FUTURE", "cost": 1600, "maintenance": 12,
+      "strength": 120, "rangedStrength": 160, "range": 3, "moves": 2, "prereqTech": "TECH_LAST_UPLOAD", "tags": ["Machine"], "strongAgainst": ["Living", "Augmented"],
+      "description": "A siege engine that is also a city: forty thousand minds run inside it." }
+  ]
+}

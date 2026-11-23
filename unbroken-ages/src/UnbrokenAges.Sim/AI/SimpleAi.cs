@@ -36,7 +36,7 @@ public sealed class SimpleAi : IAiController
             }
         }
 
-        if (player.CurrentTech < 0 && PickTech(db, player) is { } tech)
+        if (player.CurrentTech < 0 && PickTech(s, player) is { } tech)
             commands.Add(new SetResearchCommand { Player = playerId, Tech = tech.Index });
         if (player.CurrentCivic < 0)
         {
@@ -47,6 +47,11 @@ public sealed class SimpleAi : IAiController
         foreach (var city in s.CitiesOf(playerId))
         {
             if (city.Queue.Items.Count > 0) continue;
+            if (PickDivergenceProduction(s, player, city) is { } divergenceItem)
+            {
+                commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = divergenceItem.Kind, DefIndex = divergenceItem.Def });
+                continue;
+            }
             // Prefer the best-scoring specialty district (same scorer the player's lens uses).
             var districtChoice = db.Districts
                 .Where(d => d.Category == DistrictCategory.Specialty)
@@ -73,8 +78,48 @@ public sealed class SimpleAi : IAiController
         return commands;
     }
 
+    /// <summary>
+    /// Divergence behaviour: commit to the doctrine its history and personality favour, then pursue
+    /// its own branch; in cities, build the world-remaking building first, then the Ascension project.
+    /// </summary>
+    private static (ProductionKind Kind, int Def)? PickDivergenceProduction(GameState s, PlayerState player, CityState city)
+    {
+        if (player.Divergence < 0) return null;
+        var db = s.Db;
+        var d = db.Divergences[player.Divergence];
+        if (d.Spread is { SourceBuildingIndex: >= 0 } spread &&
+            ProductionSystem.Validate(s, city, ProductionKind.Building, spread.SourceBuildingIndex, -1) == null)
+            return (ProductionKind.Building, spread.SourceBuildingIndex);
+        if (d.AscensionProjectIndex >= 0 && ProductionSystem.Validate(s, city, ProductionKind.Project, d.AscensionProjectIndex, -1) == null)
+            return (ProductionKind.Project, d.AscensionProjectIndex);
+        foreach (var b in db.Buildings)
+            if (b.PrereqTechIndex >= 0 && db.Techs[b.PrereqTechIndex].DivergenceIndex == player.Divergence &&
+                ProductionSystem.Validate(s, city, ProductionKind.Building, b.Index, -1) == null)
+                return (ProductionKind.Building, b.Index);
+        return null;
+    }
+
     /// <summary>Beeline toward the cheapest tech that unlocks a specialty district; otherwise cheapest available.</summary>
-    private static TechDef? PickTech(GameDatabase db, PlayerState player)
+    private static TechDef? PickTech(GameState s, PlayerState player)
+    {
+        var db = s.Db;
+        var available = db.Techs.Where(t => ResearchSystem.CanResearch(player, t)).ToList();
+        // At the Threshold: commit to the doctrine our history leans toward (weighted by personality).
+        var doctrines = available.Where(t => t.Doctrine).ToList();
+        if (doctrines.Count > 0 && player.Divergence < 0)
+        {
+            int preferred = DivergenceSystem.Preferred(s, player);
+            return doctrines.FirstOrDefault(t => t.DivergenceIndex == preferred) ?? doctrines[0];
+        }
+        if (player.Divergence >= 0)
+        {
+            var own = available.Where(t => t.DivergenceIndex == player.Divergence).OrderBy(t => t.Cost).ThenBy(t => t.Index).FirstOrDefault();
+            if (own != null) return own;
+        }
+        return PickTechClassic(db, player, available);
+    }
+
+    private static TechDef? PickTechClassic(GameDatabase db, PlayerState player, List<TechDef> available)
     {
         var wanted = new HashSet<int>();
         void Want(int t)
@@ -85,7 +130,6 @@ public sealed class SimpleAi : IAiController
         var goal = db.Districts.Where(d => d.Category == DistrictCategory.Specialty && d.PrereqTechIndex >= 0 && !player.Techs[d.PrereqTechIndex])
             .OrderBy(d => db.Techs[d.PrereqTechIndex].Cost).ThenBy(d => d.Index).FirstOrDefault();
         if (goal != null) Want(goal.PrereqTechIndex);
-        var available = db.Techs.Where(t => ResearchSystem.CanResearch(player, t)).ToList();
         return available.Where(t => wanted.Contains(t.Index)).OrderBy(t => t.Cost).ThenBy(t => t.Index).FirstOrDefault()
                ?? available.OrderBy(t => t.Cost).ThenBy(t => t.Index).FirstOrDefault();
     }

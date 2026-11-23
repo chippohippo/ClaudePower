@@ -40,8 +40,9 @@ public static class TestWorld
             {
                 Id = i, Name = $"P{i}", IsHuman = true, Team = i, LeaderIndex = leader,
                 CivIndex = leader >= 0 ? db.Leaders[leader].CivilizationIndex : -1,
-                Techs = Enumerable.Repeat(allTech, db.Techs.Count).ToArray(),
-                Civics = Enumerable.Repeat(allTech, db.Civics.Count).ToArray(),
+                // "All tech" means every SHARED node: Divergence branches are mutually exclusive by rule.
+                Techs = db.Techs.Select(t => allTech && t.DivergenceIndex < 0).ToArray(),
+                Civics = db.Civics.Select(c => allTech && c.DivergenceIndex < 0).ToArray(),
                 Stockpile = new int[db.Resources.Count],
             });
         }

@@ -110,6 +110,37 @@ auto-renew), **Great Works** (slots, theming hints, swap suggestions), **Victory
 ```
 Era columns are proportional to Era Pacing. "Path to" highlights every node required for a selected target, as a beeline view.
 
+## 5b. The Divergence (Threshold screen, key V)
+```
+┌ THE THRESHOLD — choose what humanity becomes. Two of these futures will close to you forever. ─────────────────────────────┐
+│ ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ │ ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ │ ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ │
+│ SOVEREIGN PATH                    │ SYMBIONT PATH                    │ DISCARNATE PATH                  │
+│ "Humanity will not change.        │ "We stopped fighting the garden. │ "The body was a first draft."    │
+│  The world will."                 │  We became it."                  │                                  │
+│ THE PROMISE  Seal the coasts,     │ THE PROMISE  Splice four billion │ THE PROMISE  Minds need only     │
+│ grade the land, govern the sky…   │ years of solutions into us…      │ power and cooling…               │
+│ THE PRICE (red)  Every child is   │ THE PRICE  Their children rarely │ THE PRICE  The last breathing    │
+│ registered at conception…         │ say "I"…                         │ citizens live in a reserve…      │
+│ Your history leans 52% this way   │ Your history leans 31%           │ Your history leans 17%           │
+│ ██████████░░░░░░░░                │ ██████░░░░░░░░░░                 │ ███░░░░░░░░░░░░                  │
+│  • Flood Barriers raised (+12)    │  • Woods left standing (+9)      │  • Research Labs (+8)            │
+│  • A strong central state (+4)    │  • Renewable power (+8)          │  • Academies (+6)                │
+│ [Research The Sovereign Charter   │ [Research The Grafting Accord    │ [Research The Discarnation Edict │
+│   (1,840 ⚗, −23% from history)]   │   (2,060 ⚗)]                     │   (2,220 ⚗)]                     │
+│ ○ Genome Registry  (hover: quote) │ ○ Chloroplast Splicing           │ ○ Substrate Computing            │
+│ ○ Stratospheric Veil              │ ○ Mycelial Networks              │ ○ Body Fabrication               │
+│ ○ Total Reclamation               │ ○ Tidal Grafting                 │ ○ Thermal Indifference           │
+│ ○ Arcology Doctrine               │ ○ Beast-Shaping                  │ ○ Distributed Cognition          │
+│ ○ The Eternal Bastion ★           │ ○ The Chorus ★                   │ ○ The Last Upload ★              │
+│ World remade: 0%                  │ World remade: 4.1% (Song)        │ World remade: 0%                 │
+└───────────────────────────────────┴──────────────────────────────────┴──────────────────────────────────┘
+ Point of no return: "Commit to the Sovereign Path? We will not be edited. We will edit everything else.
+                      The other two branches will lock forever."   [Cancel] [Commit forever]
+```
+After commitment the two other columns are greyed with **LOCKED FOREVER**. The tech tree shows the Future era as three lanes with the locked lanes dimmed,
+and each node's hover shows its quote. The HUD shows your people's name (e.g. *the Grafted*). Leader portraits in diplomacy switch to their future variant.
+**Implemented:** `godot/scripts/UI/DivergencePanel.cs`. Design: [08-divergence-tech-tree.md](08-divergence-tech-tree.md).
+
 ## 6. Multiplayer Lobby
 ```
 ┌ UNBROKEN AGES ──────────────────────────────────────────────────────────────────────────────────────────────────────┐

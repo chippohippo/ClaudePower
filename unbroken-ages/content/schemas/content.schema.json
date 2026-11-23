@@ -115,6 +115,12 @@
       "items": {
         "$ref": "#/$defs/climate"
       }
+    },
+    "divergences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/divergence"
+      }
     }
   },
   "additionalProperties": false,
@@ -289,7 +295,12 @@
             "ClimateCo2Reduction",
             "PowerRangeBonus",
             "EspionageDefense",
-            "SpyCapacity"
+            "SpyCapacity",
+            "CitizenFoodUpkeepPercent",
+            "CityFabricationPercent",
+            "CitizenPowerDemandTenths",
+            "ClimateCooling",
+            "CompleteAscension"
           ]
         },
         "yield": {
@@ -913,6 +924,12 @@
         },
         "appeal": {
           "type": "integer"
+        },
+        "transformsTerrain": {
+          "type": "string"
+        },
+        "addsFeature": {
+          "type": "string"
         }
       },
       "required": [
@@ -1391,6 +1408,12 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "divergence": {
+          "type": "string"
+        },
+        "requiresWorldTransformedPercent": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1643,6 +1666,29 @@
         },
         "boostPercent": {
           "type": "integer"
+        },
+        "divergence": {
+          "type": "string",
+          "description": "Divergence branch id (locks with the branch)."
+        },
+        "doctrine": {
+          "type": "boolean"
+        },
+        "quote": {
+          "type": "string"
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
         }
       },
       "required": [
@@ -1716,6 +1762,29 @@
         },
         "governorTitles": {
           "type": "integer"
+        },
+        "divergence": {
+          "type": "string",
+          "description": "Divergence branch id (locks with the branch)."
+        },
+        "doctrine": {
+          "type": "boolean"
+        },
+        "quote": {
+          "type": "string"
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
         }
       },
       "required": [
@@ -2178,6 +2247,176 @@
         }
       },
       "description": "Array operator, valid inside $op: patch entries."
+    },
+    "divergence": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "people": {
+          "type": "string"
+        },
+        "creed": {
+          "type": "string"
+        },
+        "promise": {
+          "type": "string"
+        },
+        "price": {
+          "type": "string"
+        },
+        "doctrineTech": {
+          "type": "string"
+        },
+        "ascensionProject": {
+          "type": "string"
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": {
+              "type": "string"
+            },
+            "secondary": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "leanings": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "Building",
+                      "District",
+                      "DistrictTag",
+                      "FeatureTagInBorders",
+                      "PowerKind",
+                      "Population",
+                      "CumulativeEmissions"
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "spread": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "Terrain",
+                "Feature"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "sourceBuilding": {
+              "type": "string"
+            },
+            "requiresTech": {
+              "type": "string"
+            },
+            "perCityPerTurn": {
+              "type": "integer"
+            },
+            "radius": {
+              "type": "integer"
+            },
+            "organicChancePermille": {
+              "type": "integer"
+            },
+            "crossesBorders": {
+              "type": "boolean"
+            },
+            "reclaimSubmerged": {
+              "type": "boolean"
+            }
+          }
+        },
+        "aiPersonality": {
+          "type": "string"
+        },
+        "attitudeTowardSame": {
+          "type": "integer"
+        },
+        "attitudeTowardOthers": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer, placement lens, city panel and production queue, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 83 tests: systems, determinism, snapshots, mods, and real-socket multiplayer |
+| [`tests/`](tests) | 97 tests: systems, determinism, snapshots, mods, real-socket multiplayer, and the Divergence |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -35,6 +35,9 @@ Civilization VII's age resets or civ-swapping.
   CO₂ → temperature with thermal lag → 7 phases → sea-level bands, flood barriers, disasters, forest carbon sinks.
 * **Map generation with navigable rivers**: Great River channel tiles that boats can sail inland, plus classic
   edge rivers traced on the hex-corner graph, floodplains, lakes, lowlands, resources, start positions.
+* **The Divergence (Future-era tech fork)**: after *the Threshold*, commit to **Sovereign**, **Symbiont** or **Discarnate**, and the other branches lock forever.
+  Your history makes one doctrine cheaper. Each future remakes the Earth (engineered grids, a bioluminescent Bloom that crosses borders, black Substrate) and ends in
+  an Ascension victory. See [08-divergence-tech-tree.md](docs/08-divergence-tech-tree.md) and run `ua future`.
 * **Direct IP multiplayer**: authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
@@ -42,10 +45,11 @@ Civilization VII's age resets or civ-swapping.
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 83 tests, ~2 s
+dotnet test                                        # 97 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade
+dotnet run --project tools/UnbrokenAges.Tools -- future --turns 150     # three futures remake one continent
 
 # Direct IP: a dedicated server and a headless bot client in two terminals
 dotnet run --project tools/UnbrokenAges.Tools -- host --port 47620 --humans 1 --ai 2
@@ -63,3 +67,4 @@ dotnet run --project tools/UnbrokenAges.Tools -- join 127.0.0.1:47620 --name Bot
 5. [Key Systems](docs/05-key-systems/README.md): adjacency, loyalty and governors, climate and power, networking, production queue, map generation
 6. [UI/UX Wireframes](docs/06-ui-ux-wireframes.md): city view, empire overview, diplomacy, tech tree, lobby, placement lens
 7. [Modding](docs/07-modding.md): philosophy, layering, example mod, scripting sandbox, workshop
+8. [The Divergence](docs/08-divergence-tech-tree.md): the Future-era tech fork (Sovereign / Symbiont / Discarnate) and the remade Earth

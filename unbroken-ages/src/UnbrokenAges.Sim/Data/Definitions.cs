@@ -42,7 +42,20 @@ public enum ModifierEffect
     EspionageDefense,
     /// <summary>Consumed by the espionage system: additional spy capacity for the owner.</summary>
     SpyCapacity,
+    /// <summary>Percent change to the food each citizen eats (−100 = citizens do not eat).</summary>
+    CitizenFoodUpkeepPercent,
+    /// <summary>Percent of production diverted into growth ("fabricated" citizens). Requires power.</summary>
+    CityFabricationPercent,
+    /// <summary>Power demanded per citizen, in tenths (5 = half a unit of power per citizen).</summary>
+    CitizenPowerDemandTenths,
+    /// <summary>Project one-shot: lowers the global temperature anomaly directly (geoengineering).</summary>
+    ClimateCooling,
+    /// <summary>Project one-shot: completes the owner's Divergence (Ascension victory).</summary>
+    CompleteAscension,
 }
+
+public enum LeaningKind { Building, District, DistrictTag, FeatureTagInBorders, PowerKind, Population, CumulativeEmissions }
+public enum TransformKind { Terrain, Feature }
 
 public enum RequirementType
 {
@@ -159,15 +172,23 @@ public sealed class ImprovementDef : Definition
     public string? PrereqTech { get; init; }
     public PowerPlantSpec? Power { get; init; }
     public int Appeal { get; init; }
+    /// <summary>Remakes the tile's terrain when built (Divergence terraforming).</summary>
+    public string? TransformsTerrain { get; init; }
+    /// <summary>Places a feature on the tile when built (e.g. seeding the Bloom).</summary>
+    public string? AddsFeature { get; init; }
 
     [JsonIgnore] public int[] ValidTerrainIndices { get; private set; } = Array.Empty<int>();
     [JsonIgnore] public int[] ValidReliefIndices { get; private set; } = Array.Empty<int>();
     [JsonIgnore] public int[] ValidFeatureIndices { get; private set; } = Array.Empty<int>();
     [JsonIgnore] public int[] ValidResourceIndices { get; private set; } = Array.Empty<int>();
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
+    [JsonIgnore] public int TransformsTerrainIndex { get; private set; } = -1;
+    [JsonIgnore] public int AddsFeatureIndex { get; private set; } = -1;
 
     internal override void Link(LinkContext ctx)
     {
+        TransformsTerrainIndex = ctx.Resolve(ctx.Db.Terrains, TransformsTerrain, this, "transformsTerrain");
+        AddsFeatureIndex = ctx.Resolve(ctx.Db.Features, AddsFeature, this, "addsFeature");
         ValidTerrainIndices = ctx.ResolveAll(ctx.Db.Terrains, ValidTerrains, this, "validTerrains");
         ValidReliefIndices = ctx.ResolveAll(ctx.Db.Reliefs, ValidReliefs, this, "validReliefs");
         ValidFeatureIndices = ctx.ResolveAll(ctx.Db.Features, ValidFeatures, this, "validFeatures");
@@ -405,12 +426,18 @@ public sealed class ProjectDef : Definition
     public bool Repeatable { get; init; }
     public string? PrereqTech { get; init; }
     public List<ModifierDef> OnComplete { get; init; } = new();
+    /// <summary>Only players committed to this Divergence may build it.</summary>
+    public string? Divergence { get; init; }
+    /// <summary>The builder's Divergence must have remade at least this percent of the world's land.</summary>
+    public int RequiresWorldTransformedPercent { get; init; }
 
     [JsonIgnore] public int DistrictIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
+    [JsonIgnore] public int DivergenceIndex { get; private set; } = -1;
 
     internal override void Link(LinkContext ctx)
     {
+        DivergenceIndex = ctx.Resolve(ctx.Db.Divergences, Divergence, this, "divergence");
         DistrictIndex = ctx.Resolve(ctx.Db.Districts, District, this, "district");
         PrereqTechIndex = ctx.Resolve(ctx.Db.Techs, PrereqTech, this, "prereqTech");
         foreach (var m in OnComplete) m.Link(ctx, this);
@@ -546,12 +573,26 @@ public abstract class ProgressNodeDef : Definition
     /// <summary>Description of the "eureka/inspiration"-style boost trigger shown in the tree.</summary>
     public string? Boost { get; init; }
     public int BoostPercent { get; init; } = 40;
+    /// <summary>Divergence branch this node belongs to (null = shared by everyone).</summary>
+    public string? Divergence { get; init; }
+    /// <summary>Researching a doctrine commits the player to its Divergence and locks every other branch forever.</summary>
+    public bool Doctrine { get; init; }
+    /// <summary>Flavour quote shown on the node and in the completion pop-up.</summary>
+    public string? Quote { get; init; }
+    /// <summary>Empire-wide modifiers granted once the node is completed.</summary>
+    public List<ModifierDef> Modifiers { get; init; } = new();
 
     [JsonIgnore] public int EraIndex { get; private set; } = -1;
     [JsonIgnore] public int[] PrereqIndices { get; protected set; } = Array.Empty<int>();
+    [JsonIgnore] public int DivergenceIndex { get; private set; } = -1;
 
-    internal override void Link(LinkContext ctx) =>
+    internal override void Link(LinkContext ctx)
+    {
         EraIndex = ctx.Resolve(ctx.Db.Eras, Era, this, "era", required: true);
+        DivergenceIndex = ctx.Resolve(ctx.Db.Divergences, Divergence, this, "divergence");
+        if (Doctrine && DivergenceIndex < 0) ctx.Error(this, "a doctrine must name its 'divergence'.");
+        foreach (var m in Modifiers) m.Link(ctx, this);
+    }
 }
 
 public sealed class TechDef : ProgressNodeDef
@@ -685,4 +726,101 @@ public sealed class ClimateConfigDef : Definition
     public int LagPercent { get; init; } = 4;
     /// <summary>Temperature anomaly (°C) at which each climate phase begins.</summary>
     public List<Fx> PhaseThresholds { get; init; } = new();
+}
+
+// ----- Divergence (Future-era branching) ---------------------------------------------------------------
+
+/// <summary>One historical pressure that pulls a civilization toward a Divergence before it commits.</summary>
+public sealed class LeaningDef
+{
+    public LeaningKind Kind { get; init; }
+    /// <summary>Building / district id, district or feature tag, or power kind name, depending on Kind.</summary>
+    public string? Id { get; init; }
+    public Fx Weight { get; init; } = Fx.One;
+    public string? Label { get; init; }
+
+    [JsonIgnore] public int ResolvedIndex { get; internal set; } = -1;
+}
+
+/// <summary>How a Divergence remakes the planet around its cities, turn by turn.</summary>
+public sealed class SpreadSpec
+{
+    public TransformKind Kind { get; init; }
+    /// <summary>The terrain or feature this Divergence turns the world into.</summary>
+    public string Id { get; init; } = "";
+    /// <summary>Cities with this building remake nearby tiles every turn.</summary>
+    public string? SourceBuilding { get; init; }
+    public string? RequiresTech { get; init; }
+    public int PerCityPerTurn { get; init; } = 1;
+    public int Radius { get; init; } = 3;
+    /// <summary>Chance per turn (‰) that each transformed tile spreads on its own to a neighbour.</summary>
+    public int OrganicChancePermille { get; init; }
+    /// <summary>Organic spread may enter other civilizations' land.</summary>
+    public bool CrossesBorders { get; init; }
+    /// <summary>Cities rebuild submerged tiles they own as dry land.</summary>
+    public bool ReclaimSubmerged { get; init; }
+
+    [JsonIgnore] public int TargetIndex { get; internal set; } = -1;
+    [JsonIgnore] public int SourceBuildingIndex { get; internal set; } = -1;
+    [JsonIgnore] public int RequiresTechIndex { get; internal set; } = -1;
+}
+
+/// <summary>
+/// A Future-era destiny for humanity. Committing (researching the doctrine tech) locks the other
+/// Divergences out forever, applies the empire-wide modifiers, unlocks the branch's techs, units,
+/// buildings and terraforming, and points the civilization at its Ascension project.
+/// </summary>
+public sealed class DivergenceDef : Definition
+{
+    /// <summary>What its people are called ("the Sovereign").</summary>
+    public string People { get; init; } = "";
+    public string Creed { get; init; } = "";
+    /// <summary>The rational case, in the faction's own words.</summary>
+    public string? Promise { get; init; }
+    /// <summary>What it costs, in an outsider's words.</summary>
+    public string? Price { get; init; }
+    public string DoctrineTech { get; init; } = "";
+    public string? AscensionProject { get; init; }
+    public CivColors Colors { get; init; } = new();
+    public List<ModifierDef> Modifiers { get; init; } = new();
+    public List<LeaningDef> Leanings { get; init; } = new();
+    public SpreadSpec? Spread { get; init; }
+    /// <summary>Leader personality key the AI multiplies its leaning by ("war", "science", "growth"...).</summary>
+    public string? AiPersonality { get; init; }
+    public int AttitudeTowardSame { get; init; } = 6;
+    public int AttitudeTowardOthers { get; init; } = -8;
+
+    [JsonIgnore] public int DoctrineTechIndex { get; private set; } = -1;
+    [JsonIgnore] public int AscensionProjectIndex { get; private set; } = -1;
+
+    internal override void Link(LinkContext ctx)
+    {
+        DoctrineTechIndex = ctx.Resolve(ctx.Db.Techs, DoctrineTech, this, "doctrineTech", required: true);
+        AscensionProjectIndex = ctx.Resolve(ctx.Db.Projects, AscensionProject, this, "ascensionProject");
+        foreach (var m in Modifiers) m.Link(ctx, this);
+        foreach (var l in Leanings)
+        {
+            l.ResolvedIndex = l.Kind switch
+            {
+                LeaningKind.Building => ctx.Resolve(ctx.Db.Buildings, l.Id, this, "leanings.id", true),
+                LeaningKind.District => ctx.Resolve(ctx.Db.Districts, l.Id, this, "leanings.id", true),
+                LeaningKind.PowerKind => Enum.TryParse<PowerSourceKind>(l.Id, out var k) ? (int)k : Fail(ctx, $"unknown power kind '{l.Id}'."),
+                _ => -1,
+            };
+        }
+        if (Spread != null)
+        {
+            Spread.TargetIndex = Spread.Kind == TransformKind.Terrain
+                ? ctx.Resolve(ctx.Db.Terrains, Spread.Id, this, "spread.id", true)
+                : ctx.Resolve(ctx.Db.Features, Spread.Id, this, "spread.id", true);
+            Spread.SourceBuildingIndex = ctx.Resolve(ctx.Db.Buildings, Spread.SourceBuilding, this, "spread.sourceBuilding");
+            Spread.RequiresTechIndex = ctx.Resolve(ctx.Db.Techs, Spread.RequiresTech, this, "spread.requiresTech");
+        }
+    }
+
+    private int Fail(LinkContext ctx, string message)
+    {
+        ctx.Error(this, message);
+        return -1;
+    }
 }

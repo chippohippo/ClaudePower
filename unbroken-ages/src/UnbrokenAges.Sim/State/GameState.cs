@@ -63,6 +63,11 @@ public sealed class PlayerState
     public Fx EmissionsLastTurn;
     public Fx CumulativeEmissions;
     public int CapitalCityId = -1;
+    /// <summary>Committed Divergence (-1 = not yet). Irreversible.</summary>
+    public int Divergence = -1;
+    public int DivergenceTurn = -1;
+    /// <summary>Completed its Divergence's Ascension project.</summary>
+    public bool Ascended;
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);

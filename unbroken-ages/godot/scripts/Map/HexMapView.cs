@@ -22,6 +22,9 @@ public partial class HexMapView : Node3D
         ["TERRAIN_SNOW"] = new Color("#eef3f6"), ["TERRAIN_COAST"] = new Color("#3f8fc4"),
         ["TERRAIN_OCEAN"] = new Color("#1d4f7c"), ["TERRAIN_LAKE"] = new Color("#4aa6d6"),
         ["TERRAIN_CHANNEL"] = new Color("#58b7e8"),
+        // The Divergence remakes the planet: each future reads differently from orbit.
+        ["TERRAIN_ENGINEERED"] = new Color("#cfd6de"),   // Sovereign: pale, graded, sealed
+        ["TERRAIN_SUBSTRATE"] = new Color("#1b1d2a"),    // Discarnate: black glass, violet circuitry
     };
 
     public override void _Ready()
@@ -114,6 +117,15 @@ public partial class HexMapView : Node3D
             else if (f is "FEATURE_MARSH") c = c.Lerp(new Color("#5b7a62"), 0.5f);
             else if (f is "FEATURE_FLOODPLAINS") c = c.Lerp(new Color("#a7c76b"), 0.4f);
             else if (f is "FEATURE_ICE") c = new Color("#dff4ff");
+            else if (f is "FEATURE_BLOOM") c = new Color("#b04fc4").Lerp(new Color("#3fd6a0"), (t * 37 % 11) / 11f); // bioluminescent mottling
+        }
+        // Owned land drifts toward its civilization's Divergence palette (subtle at first, total by the end).
+        int owner = map.OwnerPlayer[t];
+        if (owner >= 0 && s.Players[owner].Divergence >= 0 && map.IsLand(t))
+        {
+            var d = db.Divergences[s.Players[owner].Divergence];
+            int age = Math.Clamp(s.Turn - s.Players[owner].DivergenceTurn, 0, 100);
+            c = c.Lerp(new Color(d.Colors.Secondary), 0.25f * age / 100f);
         }
         if (map.HasFlag(t, TileFlags.Flooded)) c = c.Lerp(new Color("#3f8fc4"), 0.35f);
         if (map.HasFlag(t, TileFlags.Pillaged)) c = c.Darkened(0.25f);

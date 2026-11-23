@@ -10,5 +10,6 @@ Each document covers rules, formulas, pseudocode, the **real implementation** (f
 | 4 | [Direct IP multiplayer networking](04-multiplayer-networking.md) | `src/UnbrokenAges.Net/*` | `NetworkTests.cs`, `SimulationTests.cs` |
 | 5 | [Production queue + UI](05-production-queue.md) | `Systems/ProductionSystem.cs`, `godot/scripts/UI/CityPanel.cs` | `ProductionTests.cs` |
 | 6 | [Map generation with navigable rivers](06-map-generation-rivers.md) | `Map/MapGenerator.cs`, `Map/MapGrid.cs` | `SimulationTests.cs` (`MapGenerationTests`), `CoreTests.cs` |
+| 7 | [The Divergence — Future-era tech fork](../08-divergence-tech-tree.md) | `Systems/DivergenceSystem.cs` | `DivergenceTests.cs` |
 
 Paths are relative to `src/UnbrokenAges.Sim/` unless noted; tests live in `tests/UnbrokenAges.Tests/`.

@@ -22,7 +22,7 @@ All game content is data. The **authoritative definitions** are the C# records i
 * **Operations:** every entry may carry `"$op": "add" | "replace" | "patch" | "delete"` (default `add`); see [07-modding.md](07-modding.md).
 
 **Categories (fixed load and hash order):** `eras, terrains, reliefs, features, resources, improvements, districts, buildings,
-projects, units, techs, civics, governors, civilizations, leaders, disasters, climate, mapSizes`.
+projects, units, techs, civics, governors, civilizations, leaders, disasters, climate, mapSizes, divergences`.
 
 Every definition has: `id` (required), `name`, `description`, `tags[]`.
 
@@ -172,8 +172,25 @@ no luxury or strategic resource, no non-removable feature. Every violated rule i
 
 ## 6. Progression
 
-**techs / civics:** `era`, `cost`, `prereqs[]`, `boost` (text), `boostPercent` (default 40). Civics also have `governorTitles`.
+**techs / civics:** `era`, `cost`, `prereqs[]`, `boost` (text), `boostPercent` (default 40), `quote` (flavour), `modifiers[]`
+(empire-wide once completed), `divergence` (branch id) and `doctrine` (researching it commits to the branch). Civics also have `governorTitles`.
 Prerequisite cycles are load errors. **eras:** `order`.
+
+### divergences (the Future-era fork — see [08](08-divergence-tech-tree.md))
+```jsonc
+{ "id": "DIVERGENCE_DISCARNATE", "name": "Discarnate Path", "people": "the Discarnate", "creed": "The body was a first draft.",
+  "promise": "...", "price": "...", "doctrineTech": "TECH_DISCARNATION_EDICT", "ascensionProject": "PROJECT_LAST_UPLOAD",
+  "colors": { "primary": "#1B1D2A", "secondary": "#8C6CFF" }, "aiPersonality": "science",
+  "modifiers": [ { "effect": "CitizenFoodUpkeepPercent", "amount": -100 }, { "effect": "CityFabricationPercent", "amount": 25 } ],
+  "leanings": [ { "kind": "Building", "id": "BUILDING_RESEARCH_LAB", "weight": 4, "label": "Research Labs" },
+                { "kind": "PowerKind", "id": "Nuclear", "weight": 5 }, { "kind": "CumulativeEmissions", "weight": 1 } ],
+  "spread": { "kind": "Terrain", "id": "TERRAIN_SUBSTRATE", "sourceBuilding": "BUILDING_SUBSTRATE_CORE",
+              "requiresTech": "TECH_SUBSTRATE_COMPUTING", "perCityPerTurn": 2, "radius": 3, "organicChancePermille": 25 },
+  "attitudeTowardSame": 6, "attitudeTowardOthers": -8 }
+```
+Leaning kinds: `Building, District, DistrictTag, FeatureTagInBorders, PowerKind, Population, CumulativeEmissions`. Spread: `kind` (`Terrain | Feature`),
+`id`, `sourceBuilding`, `requiresTech`, `perCityPerTurn`, `radius`, `organicChancePermille`, `crossesBorders`, `reclaimSubmerged`.
+Related fields: improvements `transformsTerrain` / `addsFeature`; projects `divergence` / `requiresWorldTransformedPercent`.
 
 ---
 
@@ -238,6 +255,10 @@ districts, buildings and projects, and later to policies, beliefs, great people 
 | `CityPurchaseDiscountPercent`, `GovernorEstablishTurns`, `BuilderCharges` | `amount` | |
 | `ClimateCo2Reduction` | `amount` | Project one-shot |
 | `EspionageDefense`, `SpyCapacity` | `amount` | Read by the espionage system (M4) |
+| `CitizenFoodUpkeepPercent` | `amount` | Change to the food citizens eat (−100 = they don't eat) |
+| `CityFabricationPercent` | `amount` | % of Production diverted into growth while powered |
+| `CitizenPowerDemandTenths` | `amount` | Power drawn per citizen, in tenths |
+| `ClimateCooling`, `CompleteAscension` | `amount` | Project one-shots: lower global temperature; complete the Divergence |
 
 | Requirement `type` | Params |
 |---|---|
@@ -255,7 +276,7 @@ New effects are added in C# (one `case` in `CityEffects.Apply`). Scripted effect
 |---|---|
 | `GameState` | `Turn`, `NextId`, `Players[]`, `Cities[]`, `Units[]`, `Climate`, RNG streams, `Options`, `Map` |
 | `MapGrid` (SoA) | `Terrain, Relief, Feature, Resource, Improvement, District, Elevation, RiverEdges(bitmask per tile), Lowland, Flags, Fertility, OwnerPlayer, OwnerCity, Reservation` |
-| `PlayerState` | civ/leader, team, gold, faith, current tech and civic with progress, `Techs[]/Civics[]` bitsets, strategic `Stockpile[]`, age, governor titles, `Governors[]`, dispatch policy, emissions (last turn, cumulative), capital |
+| `PlayerState` | divergence (+ commit turn, ascended), civ/leader, team, gold, faith, current tech and civic with progress, `Techs[]/Civics[]` bitsets, strategic `Stockpile[]`, age, governor titles, `Governors[]`, dispatch policy, emissions (last turn, cumulative), capital |
 | `CityState` | owner and original owner, tile, population, food, **loyalty** (+ last delta), districts (each with buildings and pillaged flag), **production queue** (+ progress ledger, overflow), power status and priority, governor |
 | `UnitState` | owner, def, tile, moves (Fx), hp, charges, destination |
 | `ClimateState` | CO₂ ppm, temperature anomaly, phase, emissions, pending deforestation |

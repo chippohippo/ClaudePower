@@ -51,7 +51,9 @@ public static class CityYields
         var candidates = new List<int>();
         map.CollectRadius(city.Tile, DistrictPlacement.CityRadius, candidates);
         candidates.RemoveAll(t => t == city.Tile || map.OwnerCity[t] != city.Id || map.District[t] >= 0 || map.HasFlag(t, TileFlags.Submerged) || map.IsMountain(t));
-        var scored = candidates.Select(t => (Tile: t, Score: TileScore(map.TileYields(t)))).ToList();
+        // Citizens who don't eat (the Discarnate) stop working farms and favour industry.
+        bool fed = fx.CitizenFoodUpkeepPercent > -100;
+        var scored = candidates.Select(t => (Tile: t, Score: TileScore(map.TileYields(t), fed))).ToList();
         scored.Sort((a, b) => a.Score != b.Score ? b.Score.CompareTo(a.Score) : a.Tile.CompareTo(b.Tile));
         for (int k = 0; k < Math.Min(city.Population, scored.Count); k++)
         {
@@ -114,15 +116,19 @@ public static class CityYields
             percent.Add(t, r.AmenityYieldPercent + r.LoyaltyYieldPercent);
         r.Total = gross.ApplyPercent(percent);
         foreach (var t in YieldSet.All) r.Total[t] = Fx.Max(r.Total[t], Fx.Zero);
-        r.FoodSurplus = r.Total.Food - 2 * city.Population;
+        // Citizens eat 2 food each, modified by the Divergence (Symbiont citizens photosynthesize; the Discarnate don't eat).
+        int upkeepPercent = Math.Max(0, 100 + fx.CitizenFoodUpkeepPercent);
+        r.FoodSurplus = r.Total.Food - Fx.FromInt(2 * city.Population) * upkeepPercent / 100;
+        r.PowerDemand += city.Population * fx.CitizenPowerDemandTenths / 10;
         return r;
     }
 
     public static int LoyaltyYieldPercent(Fx loyalty) =>
         loyalty >= 70 ? 0 : loyalty >= 40 ? -15 : loyalty >= 15 ? -35 : -60;
 
-    private static Fx TileScore(YieldSet y) =>
-        y.Food * 3 + y.Production * 2 + y.Gold + y.Science * 2 + y.Culture * 2 + y.Faith;
+    private static Fx TileScore(YieldSet y, bool citizensEat) => citizensEat
+        ? y.Food * 3 + y.Production * 2 + y.Gold + y.Science * 2 + y.Culture * 2 + y.Faith
+        : y.Food / 2 + y.Production * 3 + y.Gold + y.Science * 3 + y.Culture + y.Faith;
 
     public static int BaseHousing(MapGrid map, int cityTile) =>
         map.HasFreshWaterAccess(cityTile) ? 5 : map.IsAdjacentToSea(cityTile) ? 3 : 2;

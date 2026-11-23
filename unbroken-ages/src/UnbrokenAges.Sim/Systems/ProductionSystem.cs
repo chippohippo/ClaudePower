@@ -96,7 +96,15 @@ public static class ProductionSystem
             {
                 if (def < 0 || def >= db.Projects.Count) return "Unknown project.";
                 var p = db.Projects[def];
+                if (p.DivergenceIndex >= 0 && player.Divergence != p.DivergenceIndex) return $"Only {db.Divergences[p.DivergenceIndex].People} can build this.";
                 if (!player.HasTech(p.PrereqTechIndex)) return "Prerequisite not researched.";
+                if (p.RequiresWorldTransformedPercent > 0 && p.DivergenceIndex >= 0)
+                {
+                    Fx share = DivergenceSystem.WorldShare(s)[p.DivergenceIndex];
+                    if (share < p.RequiresWorldTransformedPercent)
+                        return $"The world must be remade first: {share.FloorToInt()}% of {p.RequiresWorldTransformedPercent}% of land.";
+                }
+                if (!p.Repeatable && player.Ascended && p.OnComplete.Any(m => m.Effect == ModifierEffect.CompleteAscension)) return "Already ascended.";
                 if (p.DistrictIndex >= 0 && city.Districts.All(d => !AdjacencyCalculator.DistrictMatches(db, d.DefIndex, p.DistrictIndex)))
                     return $"Requires {db.Districts[p.DistrictIndex].Name}.";
                 return null;
@@ -202,8 +210,14 @@ public static class ProductionSystem
                 break;
             case ProductionKind.Project:
                 foreach (var m in db.Projects[item.DefIndex].OnComplete)
+                {
                     if (m.Effect == ModifierEffect.ClimateCo2Reduction)
                         s.Climate.Co2Ppm = Fx.Max(s.Db.ClimateConfig.BasePpm, s.Climate.Co2Ppm - m.Amount);
+                    else if (m.Effect == ModifierEffect.ClimateCooling)
+                        s.Climate.Temperature = Fx.Max(Fx.Zero, s.Climate.Temperature - m.Amount); // decays back unless renewed
+                    else if (m.Effect == ModifierEffect.CompleteAscension)
+                        DivergenceSystem.CompleteAscension(s, s.Players[city.Owner], events);
+                }
                 break;
         }
         events.Add(new GameEvent(GameEventType.ProductionCompleted, city.Owner, city.Id, item.Tile, item.DefIndex, (int)item.Kind, ItemName(db, item)));

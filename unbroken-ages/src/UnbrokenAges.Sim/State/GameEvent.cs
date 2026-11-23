@@ -20,6 +20,11 @@ public enum GameEventType : byte
     Disaster,
     ImprovementBuilt,
     TurnAdvanced,
+    DivergenceChosen,
+    WorldRemade,
+    BloomEncroached,
+    LandReclaimed,
+    AscensionCompleted,
 }
 
 /// <summary>
