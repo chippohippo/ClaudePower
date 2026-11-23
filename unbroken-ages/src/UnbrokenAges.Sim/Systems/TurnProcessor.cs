@@ -53,6 +53,7 @@ public static class TurnProcessor
         IndustrySystem.ProcessTurn(s);
         GovernorSystem.ProcessTurn(s, events);
         LoyaltySystem.ProcessTurn(s, events);
+        DiplomacySystem.ProcessTurn(s);
         DivergenceSystem.ProcessTurn(s, events);
         ClimateSystem.ProcessTurn(s, power, events);
 

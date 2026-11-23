@@ -113,6 +113,10 @@ public class SupplyTests
 
         var events = new List<GameEvent>();
         SupplySystem.ProcessTurn(s, events);
+        Assert.Equal(100, raider.Hp);                          // foreign land at peace: no attrition
+        Assert.True(CommandProcessor.Execute(s, new DeclareWarCommand { Player = 0, Target = 1 }, events).Ok);
+        guard.Hp = 50;
+        SupplySystem.ProcessTurn(s, events);
         Assert.Equal(90, raider.Hp);
         Assert.Equal(60, guard.Hp);
         for (int i = 0; i < 9; i++) SupplySystem.ProcessTurn(s, events);

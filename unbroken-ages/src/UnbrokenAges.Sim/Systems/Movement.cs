@@ -25,6 +25,10 @@ public static class Movement
         if (map.HasFlag(to, TileFlags.Submerged) && map.IsLand(to)) return Impassable;
         foreach (var other in s.Units)
             if (other.Tile == to && other.Owner != unit.Owner) return Impassable;
+        // Closed borders: armies need war, an alliance or open borders to enter foreign land.
+        if (SupplySystem.IsMilitary(db, unit) && map.OwnerPlayer[to] >= 0 && map.OwnerPlayer[to] != unit.Owner &&
+            !DiplomacySystem.MayEnter(s, unit.Owner, map.OwnerPlayer[to]))
+            return Impassable;
         if (map.Feature[to] >= 0 && db.Features[map.Feature[to]].Impassable) return Impassable;
 
         if (def.Domain == UnitDomain.Naval)

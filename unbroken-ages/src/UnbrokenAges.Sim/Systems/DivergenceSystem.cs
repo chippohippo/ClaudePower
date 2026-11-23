@@ -239,7 +239,11 @@ public static class DivergenceSystem
                 cap--;
                 int victim = map.OwnerPlayer[target];
                 if (victim >= 0 && s.Players[victim].Divergence != d.Index)
-                    events.Add(new GameEvent(GameEventType.BloomEncroached, victim, map.OwnerCity[target], target, d.Index, Detail: d.Name));
+                {
+                    int source = map.OwnerPlayer[t];
+                    int perpetrator = source >= 0 && s.Players[source].Divergence == d.Index ? source : adherents[0].Id;
+                    events.Add(new GameEvent(GameEventType.BloomEncroached, victim, map.OwnerCity[target], target, d.Index, perpetrator, d.Name));
+                }
             }
         }
     }

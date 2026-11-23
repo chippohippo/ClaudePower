@@ -28,7 +28,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | `ua` CLI (mapgen, validate, simulate, host, join); Godot client skeleton that compiles | ✔ |
 | **The Divergence** Future-era fork: locks, leanings, three futures, terraforming spread, Ascension; `ua future` demo | ✔ |
 | Depth from Millennia & Shadow Empire: World Currents & Ages, Supply lens and attrition, Industries and goods, the Chronicle | ✔ |
-| 111 automated tests | ✔ |
+| Diplomacy core (war, peace, denounce, open borders, itemized grievances, attitude; closed borders; supply attrition only at war) | ✔ |
+| 120 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.

@@ -12,7 +12,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 
 ## Queue
 
-- [ ] **1. Diplomacy core**: war / peace / alliance states, denounce, declare war (with "no surprise wars" option), peace after a minimum war length,
+- [x] **1. Diplomacy core**: war / peace / alliance states, denounce, declare war (with "no surprise wars" option), peace after a minimum war length,
       open borders, itemized decaying grievances, attitude (agenda placeholder + Divergence ideology + grievances + war), Strife pushes from war and peace,
       closed borders for military units at peace, supply attrition only on enemy ground.
 - [ ] **2. Combat v1**: melee and ranged attacks, deterministic damage with a `combat` RNG stream, terrain and river modifiers, fortify, flanking and support,
@@ -28,4 +28,6 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [ ] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
 
 ## Done
+- 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
+
 (see git log for full detail)

@@ -442,6 +442,7 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 16 | Less religious spam | §7 charges, upkeep, cap | Designed — M4 |
 | 17 | Engaging World Congress | §8.4 | Designed — M4 |
 | 18 | Vassals, puppets, liberation | §4.5, §8.3 | Designed — M4 |
+| 18b | Fair, itemized grievances; transparent attitudes; no surprise-war option | §8.1–8.2, [05/08-diplomacy](05-key-systems/08-diplomacy.md) | **Built** (war, peace, borders, grievances, attitude) |
 | 19 | City and tile trading, research agreements | §8.3 | Designed — M4 |
 | 20 | Espionage before the Renaissance | §9 Informants from the Classical era | Designed — M4 |
 | 21 | Naval and air depth | §11 | Designed — M3/M4 |

@@ -21,6 +21,8 @@ public sealed class GameOptions
     public int MaxQueueLength { get; set; } = 8;
     public TurnMode TurnMode { get; set; } = TurnMode.Dynamic;
     public int StartingGovernorTitles { get; set; } = 1;
+    /// <summary>Wars require a denunciation at least 5 turns earlier.</summary>
+    public bool NoSurpriseWars { get; set; }
 }
 
 public sealed class GovernorState
@@ -64,6 +66,7 @@ public sealed class PlayerState
     public Fx CumulativeEmissions;
     public int CapitalCityId = -1;
     /// <summary>Committed Divergence (-1 = not yet). Irreversible.</summary>
+    public int LastWarDeclaredTurn = -1;
     public int Divergence = -1;
     public int DivergenceTurn = -1;
     /// <summary>Completed its Divergence's Ascension project.</summary>
@@ -191,6 +194,8 @@ public sealed class GameState
     public ClimateState Climate = new();
     public WorldState World = new();
     public List<ChronicleEntry> Chronicle = new();
+    public List<Relation> Relations = new();
+    public List<Grievance> Grievances = new();
     public Pcg32 GameplayRng;
     public Pcg32 DisasterRng;
 

@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer, placement lens, city panel and production queue, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 111 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 120 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -41,6 +41,8 @@ Civilization VII's age resets or civ-swapping.
 * **Depth from Millennia & Shadow Empire, with Civ's ease** ([09](docs/09-genre-defining-depth.md)): **World Currents & Ages**
   (Progress, Strife and Calamity steer each era into an Age of Iron, Ash, Lanterns, Titans or Concord for the whole world; no civ swaps), a **supply lens** (rivers are
   highways; cut-off armies suffer attrition), **industries** (Steel, Plastics, Electronics, fully automatic), and **the Chronicle**, an auto-written dated history.
+* **Diplomacy core**: war, peace, denunciation, open borders, closed borders for armies, itemized decaying grievances, and attitudes shown as named lines
+  ([05/08](docs/05-key-systems/08-diplomacy.md)).
 * **Direct IP multiplayer**: authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
@@ -48,7 +50,7 @@ Civilization VII's age resets or civ-swapping.
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 111 tests, ~2 s
+dotnet test                                        # 120 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

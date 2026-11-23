@@ -21,6 +21,11 @@ public enum CommandType : byte
     AssignGovernor = 42,
     SetDispatchPolicy = 50,
     SetPowerPriority = 51,
+    Denounce = 60,
+    DeclareWar = 61,
+    ProposePeace = 62,
+    AcceptPeace = 63,
+    SetOpenBorders = 64,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -97,6 +102,11 @@ public abstract class GameCommand
         CommandType.AssignGovernor => new AssignGovernorCommand(),
         CommandType.SetDispatchPolicy => new SetDispatchPolicyCommand(),
         CommandType.SetPowerPriority => new SetPowerPriorityCommand(),
+        CommandType.Denounce => new DenounceCommand(),
+        CommandType.DeclareWar => new DeclareWarCommand(),
+        CommandType.ProposePeace => new ProposePeaceCommand(),
+        CommandType.AcceptPeace => new AcceptPeaceCommand(),
+        CommandType.SetOpenBorders => new SetOpenBordersCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 
@@ -113,6 +123,7 @@ public static class CommandProcessor
         cmd.Apply(s, events);
         // World-level consequences of whatever just happened, identically on every peer.
         WorldSystem.Push(s, events, from);
+        DiplomacySystem.OnEvents(s, events, from);
         ChronicleSystem.Record(s, events, from);
         return CommandResult.Success;
     }

@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 3;
+    public const int Version = 4;
 
     public static byte[] Serialize(GameState s)
     {
@@ -38,7 +38,7 @@ public static class GameStateSerializer
         var o = s.Options;
         w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity);
         w.Write(o.ClimateEnabled); w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength);
-        w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles);
+        w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars);
 
         var m = s.Map;
         w.Write(m.Width); w.Write(m.Height); w.Write(m.WrapX);
@@ -67,7 +67,7 @@ public static class GameStateSerializer
             }
             w.Write((byte)p.DispatchPolicy); WriteFx(w, p.EmissionsLastTurn); WriteFx(w, p.CumulativeEmissions);
             w.Write(p.CapitalCityId);
-            w.Write(p.Divergence); w.Write(p.DivergenceTurn); w.Write(p.Ascended);
+            w.Write(p.Divergence); w.Write(p.DivergenceTurn); w.Write(p.Ascended); w.Write(p.LastWarDeclaredTurn);
         }
 
         w.Write(s.Cities.Count);
@@ -113,6 +113,15 @@ public static class GameStateSerializer
         foreach (var (era, age) in wd.AgeHistory) { w.Write(era); w.Write(age); }
         w.Write(s.Chronicle.Count);
         foreach (var e in s.Chronicle) { w.Write(e.Turn); w.Write(e.Year); w.Write(e.Player); w.Write((byte)e.Kind); w.Write(e.Text); }
+
+        w.Write(s.Relations.Count);
+        foreach (var rel in s.Relations)
+        {
+            w.Write(rel.A); w.Write(rel.B); w.Write((byte)rel.Status); w.Write(rel.Since); w.Write(rel.DenouncedByA); w.Write(rel.DenouncedByB);
+            w.Write(rel.PeaceProposedBy); w.Write(rel.AGrantsB); w.Write(rel.BGrantsA);
+        }
+        w.Write(s.Grievances.Count);
+        foreach (var g in s.Grievances) { w.Write(g.Holder); w.Write(g.Against); WriteFx(w, g.Amount); w.Write(g.Turn); w.Write(g.Reason); }
     }
 
     public static GameState Deserialize(byte[] data, GameDatabase db)
@@ -137,7 +146,7 @@ public static class GameStateSerializer
         {
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(),
             ClimateEnabled = r.ReadBoolean(), LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(),
-            TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(),
+            TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(), NoSurpriseWars = r.ReadBoolean(),
         };
 
         int width = r.ReadInt32(), height = r.ReadInt32();
@@ -182,6 +191,7 @@ public static class GameStateSerializer
             p.Divergence = r.ReadInt32();
             p.DivergenceTurn = r.ReadInt32();
             p.Ascended = r.ReadBoolean();
+            p.LastWarDeclaredTurn = r.ReadInt32();
             s.Players.Add(p);
         }
 
@@ -233,6 +243,16 @@ public static class GameStateSerializer
         int entries = r.ReadInt32();
         for (int i = 0; i < entries; i++)
             s.Chronicle.Add(new ChronicleEntry { Turn = r.ReadInt32(), Year = r.ReadInt32(), Player = r.ReadInt32(), Kind = (GameEventType)r.ReadByte(), Text = r.ReadString() });
+        int relations = r.ReadInt32();
+        for (int i = 0; i < relations; i++)
+            s.Relations.Add(new Relation
+            {
+                A = r.ReadInt32(), B = r.ReadInt32(), Status = (DiploStatus)r.ReadByte(), Since = r.ReadInt32(), DenouncedByA = r.ReadInt32(),
+                DenouncedByB = r.ReadInt32(), PeaceProposedBy = r.ReadInt32(), AGrantsB = r.ReadBoolean(), BGrantsA = r.ReadBoolean(),
+            });
+        int grievances = r.ReadInt32();
+        for (int i = 0; i < grievances; i++)
+            s.Grievances.Add(new Grievance { Holder = r.ReadInt32(), Against = r.ReadInt32(), Amount = ReadFx(r), Turn = r.ReadInt32(), Reason = r.ReadString() });
         return s;
     }
 
@@ -297,7 +317,7 @@ public static class GameSetupCodec
             w.Write(m.Players); w.Write(m.Temperature); w.Write(m.Rainfall);
             var o = g.Options;
             w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity); w.Write(o.ClimateEnabled);
-            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles);
+            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars);
             w.Write(g.Players.Count);
             foreach (var p in g.Players) { w.Write(p.Name); w.Write(p.Leader ?? ""); w.Write(p.IsHuman); w.Write(p.Team); }
         }
@@ -318,6 +338,7 @@ public static class GameSetupCodec
         {
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(), ClimateEnabled = r.ReadBoolean(),
             LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(), TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(),
+            NoSurpriseWars = r.ReadBoolean(),
         };
         int n = r.ReadInt32();
         for (int i = 0; i < n; i++)

@@ -15,6 +15,8 @@
         { "event": "CityDeclaredIndependence", "current": "Strife", "amount": 6 },
         { "event": "BloomEncroached", "current": "Strife", "amount": 1 },
         { "event": "UnitLostToAttrition", "current": "Strife", "amount": 2 },
+        { "event": "WarDeclared", "current": "Strife", "amount": 10 },
+        { "event": "PeaceSigned", "current": "Strife", "amount": -8 },
         { "event": "Disaster", "current": "Calamity", "amount": 4 },
         { "event": "TileSubmerged", "current": "Calamity", "amount": 1.5 },
         { "event": "CityStarved", "current": "Calamity", "amount": 2 },
@@ -69,6 +71,8 @@
     { "id": "CHRONICLE_DISASTER", "event": "Disaster", "minValue": 4, "requiresPlayer": true, "text": "{year}: {detail} strikes {civ}, ravaging {value} tiles." },
     { "id": "CHRONICLE_RECLAIM", "event": "LandReclaimed", "oncePerPlayer": true, "text": "{year}: {civ} begins pushing the sea back, one paved acre at a time." },
     { "id": "CHRONICLE_BLOOM", "event": "BloomEncroached", "oncePerPlayer": true, "text": "{year}: The Bloom crosses into {civ}'s land. The fields begin to glow." },
+    { "id": "CHRONICLE_WAR", "event": "WarDeclared", "text": "{year}: {civ} declares war on {detail}." },
+    { "id": "CHRONICLE_PEACE", "event": "PeaceSigned", "text": "{year}: {civ} and {detail} make peace." },
     { "id": "CHRONICLE_ATTRITION", "event": "UnitLostToAttrition", "oncePerPlayer": true, "text": "{year}: Cut off from supply, an army of {civ} starves in foreign land." }
   ]
 }

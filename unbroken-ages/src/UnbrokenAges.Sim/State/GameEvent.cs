@@ -29,6 +29,11 @@ public enum GameEventType : byte
     WorldAgeBegan,
     UnitLostToAttrition,
     ProductionStalled,
+    WarDeclared,
+    PeaceProposed,
+    PeaceSigned,
+    Denounced,
+    OpenBordersGranted,
 }
 
 /// <summary>

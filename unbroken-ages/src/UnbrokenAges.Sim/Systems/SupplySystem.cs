@@ -123,7 +123,7 @@ public static class SupplySystem
                 continue;
             }
             int owner = s.Map.OwnerPlayer[unit.Tile];
-            bool hostileGround = owner >= 0 && owner != unit.Owner && s.Players[owner].Team != s.Players[unit.Owner].Team;
+            bool hostileGround = owner >= 0 && DiplomacySystem.AtWar(s, unit.Owner, owner);
             bool openSea = s.Map.IsWater(unit.Tile) && !s.Map.IsChannel(unit.Tile);
             if (!hostileGround && !openSea) continue; // unsupplied at home or in the wilds: no healing, no attrition
             unit.Hp -= rules.AttritionHp;

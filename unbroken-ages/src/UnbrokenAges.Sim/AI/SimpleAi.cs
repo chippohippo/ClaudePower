@@ -74,6 +74,16 @@ public sealed class SimpleAi : IAiController
                 commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = ProductionKind.Unit, DefIndex = unitDef.Index });
         }
 
+        // Diplomacy (baseline): accept any peace offer; offer peace once a war has run its minimum length.
+        foreach (var rel in s.Relations)
+        {
+            if (rel.A != playerId && rel.B != playerId) continue;
+            int other = rel.A == playerId ? rel.B : rel.A;
+            if (rel.PeaceProposedBy == other) commands.Add(new AcceptPeaceCommand { Player = playerId, Target = other });
+            else if (rel.Status == DiploStatus.War && rel.PeaceProposedBy < 0 && DiplomacySystem.ValidateProposePeace(s, playerId, other) == null)
+                commands.Add(new ProposePeaceCommand { Player = playerId, Target = other });
+        }
+
         commands.Add(new EndTurnCommand { Player = playerId });
         return commands;
     }
