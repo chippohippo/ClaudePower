@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 8;
+    public const int Version = 9;
 
     public static byte[] Serialize(GameState s)
     {
@@ -130,6 +130,13 @@ public static class GameStateSerializer
         }
         w.Write(s.Grievances.Count);
         foreach (var g in s.Grievances) { w.Write(g.Holder); w.Write(g.Against); WriteFx(w, g.Amount); w.Write(g.Turn); w.Write(g.Reason); }
+        w.Write(s.Outposts.Count);
+        foreach (var op in s.Outposts)
+        {
+            w.Write(op.Id); w.Write(op.Owner); w.Write(op.Tile); w.Write(op.Name); w.Write(op.FoundedTurn); w.Write(op.HarvestTile);
+            w.Write(op.Tiles.Count);
+            foreach (int t in op.Tiles) w.Write(t);
+        }
         var v = s.Victory;
         w.Write(v.Winner); w.Write(v.WinnerTeam); w.Write((int)v.Kind); w.Write(v.Turn); w.Write(v.Continued);
     }
@@ -272,6 +279,14 @@ public static class GameStateSerializer
         int grievances = r.ReadInt32();
         for (int i = 0; i < grievances; i++)
             s.Grievances.Add(new Grievance { Holder = r.ReadInt32(), Against = r.ReadInt32(), Amount = ReadFx(r), Turn = r.ReadInt32(), Reason = r.ReadString() });
+        int outposts = r.ReadInt32();
+        for (int i = 0; i < outposts; i++)
+        {
+            var op = new OutpostState { Id = r.ReadInt32(), Owner = r.ReadInt32(), Tile = r.ReadInt32(), Name = r.ReadString(), FoundedTurn = r.ReadInt32(), HarvestTile = r.ReadInt32() };
+            int n = r.ReadInt32();
+            for (int k = 0; k < n; k++) op.Tiles.Add(r.ReadInt32());
+            s.Outposts.Add(op);
+        }
         s.Victory = new VictoryState { Winner = r.ReadInt32(), WinnerTeam = r.ReadInt32(), Kind = (VictoryKind)r.ReadInt32(), Turn = r.ReadInt32(), Continued = r.ReadBoolean() };
         return s;
     }

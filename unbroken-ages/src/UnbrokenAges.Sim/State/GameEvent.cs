@@ -42,6 +42,9 @@ public enum GameEventType : byte
     VictoryAchieved,
     PlayerEliminated,
     GovernorTraitEarned,
+    OutpostFounded,
+    OutpostPromoted,
+    OutpostRazed,
 }
 
 /// <summary>

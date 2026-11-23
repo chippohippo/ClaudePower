@@ -534,6 +534,8 @@ public sealed class UnitDef : Definition
     public int Sight { get; init; } = 2;
     public int Charges { get; init; }
     public bool FoundsCity { get; init; }
+    /// <summary>Can plant an Outpost (a cheap claim with no city screen).</summary>
+    public bool FoundsOutpost { get; init; }
     public bool OceanGoing { get; init; }
     /// <summary>Naval units: may sail Great River channels. Land units: may ford them.</summary>
     public bool RiverCapable { get; init; } = true;
@@ -976,6 +978,23 @@ public sealed class CombatRules
     public string WallsBuilding { get; init; } = "BUILDING_ANCIENT_WALLS";
 }
 
+/// <summary>Outposts: cheap claims that hold land, extend supply and harvest one resource; promotable to cities.</summary>
+public sealed class OutpostRules
+{
+    public int ClaimRadius { get; init; } = 1;
+    /// <summary>Minimum distance from any city or outpost.</summary>
+    public int MinDistance { get; init; } = 3;
+    /// <summary>Supply budget seeded at the outpost (cities seed <c>supply.cityRange</c>).</summary>
+    public int SupplyRange { get; init; } = 6;
+    public int GoldPerTurn { get; init; } = 1;
+    public int BonusGold { get; init; } = 2;
+    public int LuxuryGold { get; init; } = 3;
+    /// <summary>Stockpile per turn from a revealed strategic resource in the claim.</summary>
+    public int StrategicPerTurn { get; init; } = 2;
+    public int PromoteGold { get; init; } = 150;
+    public int PromoteGoldPerCity { get; init; } = 25;
+}
+
 /// <summary>Hegemony thresholds and score weights (score sources are visible all game).</summary>
 public sealed class VictoryRules
 {
@@ -1003,6 +1022,7 @@ public sealed class WorldRulesDef : Definition
     public SupplyRules Supply { get; init; } = new();
     public CombatRules Combat { get; init; } = new();
     public VictoryRules Victory { get; init; } = new();
+    public OutpostRules Outposts { get; init; } = new();
 }
 
 // ----- Chronicle --------------------------------------------------------------------------------------

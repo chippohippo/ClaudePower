@@ -34,6 +34,11 @@ public sealed class SimpleAi : IAiController
                 var found = new FoundCityCommand { Player = playerId, UnitId = unit.Id };
                 if (found.Validate(s) == null) commands.Add(found);
             }
+            else if (db.Units[unit.DefIndex].FoundsOutpost)
+            {
+                var plant = new FoundOutpostCommand { Player = playerId, UnitId = unit.Id };
+                if (plant.Validate(s) == null) commands.Add(plant);
+            }
         }
 
         if (player.CurrentTech < 0 && PickTech(s, player) is { } tech)

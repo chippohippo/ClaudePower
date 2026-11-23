@@ -51,6 +51,7 @@ public static class TurnProcessor
             AccumulateStrategicResources(s, player);
         }
 
+        OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);
         GovernorSystem.ProcessTurn(s, events);
         LoyaltySystem.ProcessTurn(s, events);

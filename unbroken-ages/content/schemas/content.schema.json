@@ -1644,6 +1644,10 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "foundsOutpost": {
+          "type": "boolean",
+          "description": "Can plant an Outpost."
         }
       },
       "required": [
@@ -2787,6 +2791,49 @@
               "minimum": 0
             },
             "scoreForAscension": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "outposts": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Outpost claims, supply, harvest and promotion.",
+          "properties": {
+            "claimRadius": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minDistance": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "supplyRange": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "goldPerTurn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bonusGold": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "luxuryGold": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "strategicPerTurn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "promoteGold": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "promoteGoldPerCity": {
               "type": "integer",
               "minimum": 0
             }

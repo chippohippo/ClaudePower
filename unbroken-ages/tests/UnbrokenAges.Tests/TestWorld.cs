@@ -79,4 +79,12 @@ public static class TestWorld
     }
 
     public static int D(GameState s, string id) => s.Db.Districts.IndexOf(id);
+
+    public static UnitState Unit(GameState s, int player, string unitId, int col, int row)
+    {
+        var def = s.Db.Units[unitId];
+        var u = new UnitState { Id = s.AllocateId(), Owner = player, DefIndex = def.Index, Tile = Tile(s, col, row), MovesLeft = def.Moves };
+        s.AddUnit(u);
+        return u;
+    }
 }

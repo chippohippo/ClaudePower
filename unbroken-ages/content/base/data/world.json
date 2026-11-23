@@ -30,6 +30,8 @@
                   "cityStrikeRange": 2, "wallsBuilding": "BUILDING_ANCIENT_WALLS" },
       "supply": { "cityRange": 10, "militaryDistrictBonus": 4, "portRange": 12, "ownCost": 2, "neutralCost": 3, "foreignCost": 5,
                   "roughExtra": 1, "channelCost": 1, "waterCost": 2, "attritionHp": 10, "healHp": 10 },
+      "outposts": { "claimRadius": 1, "minDistance": 3, "supplyRange": 6, "goldPerTurn": 1, "bonusGold": 2, "luxuryGold": 3, "strategicPerTurn": 2,
+                    "promoteGold": 150, "promoteGoldPerCity": 25 },
       "victory": { "hegemonySharePercent": 60, "hegemonyMinLoyalty": 50, "scorePerCitizen": 1, "scorePerCity": 5, "scorePerDistrict": 2,
                    "scorePerBuilding": 1, "scorePerWonder": 15, "scorePerTech": 2, "scorePerCivic": 2, "tilesPerPoint": 5, "scoreForAscension": 100 } }
   ],
@@ -67,6 +69,9 @@
   // The Chronicle: dated lines of history written from events. {year} {civ} {leader} {city} {detail} {value}
   "chronicle": [
     { "id": "CHRONICLE_GOVERNOR_TRAIT", "event": "GovernorTraitEarned", "text": "{year}: {detail}." },
+    { "id": "CHRONICLE_OUTPOST", "event": "OutpostFounded", "oncePerPlayer": true, "text": "{year}: {civ} plants its first outpost, {detail}, beyond its borders." },
+    { "id": "CHRONICLE_OUTPOST_PROMOTED", "event": "OutpostPromoted", "text": "{year}: The outpost at {detail} has grown into a city." },
+    { "id": "CHRONICLE_OUTPOST_RAZED", "event": "OutpostRazed", "requiresPlayer": true, "text": "{year}: Raiders burn {civ}'s outpost, {detail}." },
     { "id": "CHRONICLE_VICTORY", "event": "VictoryAchieved", "text": "{year}: {detail}" },
     { "id": "CHRONICLE_ELIMINATED", "event": "PlayerEliminated", "text": "{year}: {civ} falls. Its people live on in other nations' cities." },
     { "id": "CHRONICLE_CITY_FOUNDED", "event": "CityFounded", "text": "{year}: {civ} founds {detail}." },

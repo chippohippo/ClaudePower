@@ -70,6 +70,10 @@ public static class SupplySystem
             }
         }
 
+        if (!maritime)
+            foreach (var o in s.Outposts)
+                if (o.Owner == player) Seed(o.Tile, db.Rules.Outposts.SupplyRange);
+
         while (pq.TryDequeue(out int cur, out _))
         {
             int budget = remaining[cur];

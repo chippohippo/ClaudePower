@@ -420,7 +420,7 @@ Architecture: [02-technical-architecture.md §8](02-technical-architecture.md#8-
 The game borrows the *stories* those games create (alternate-history ages, logistics that decide wars, production chains, leaders who are people,
 an auto-written history) through an **Ease Charter**: automatic by default, surfaces instead of screens, shortages stall and never delete, and the AI plays it
 or it ships off. A **Depth Dial** (Classic / Enhanced / Grand Strategy) sets granularity. Built now: **World Currents & Ages**, **Supply lens**, **Industries**,
-**the Chronicle** and **Living Governors** (experience and traits from service). Planned: Outposts, Unit Variants, National Character, Private Enterprise, Battle Reports, Fog of Strength, World Genesis.
+**the Chronicle**, **Living Governors** (experience and traits from service) and **Outposts**. Planned: Unit Variants, National Character, Private Enterprise, Battle Reports, Fog of Strength, World Genesis.
 Full design: [09-genre-defining-depth.md](09-genre-defining-depth.md).
 
 ## Appendix A — Community request traceability
@@ -470,7 +470,7 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 37 | Economic depth beyond raw yields | §20 Industries (Steel, Plastics, Electronics) | **Built** |
 | 38 | Remember the story of my civilization | §20 The Chronicle | **Built** |
 | 39 | Leaders and governors with personality and history | §20 Living Governors, [05/02](05-key-systems/02-loyalty-governors.md#living-governors-experience-and-traits) | **Built** (experience, ranks, traits) / ageing M3 |
-| 40 | Less late-game busywork for wide empires | Outposts, Private Enterprise, provinces | Designed — M3 |
+| 40 | Less late-game busywork for wide empires | Outposts ([05/12](05-key-systems/12-outposts.md)), Private Enterprise, provinces | Outposts **built** / rest M3 |
 
 ## Appendix B — Naming & IP hygiene
 

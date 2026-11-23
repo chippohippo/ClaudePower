@@ -163,6 +163,20 @@ public sealed class CityState
     public IEnumerable<int> AllBuildings() => Districts.SelectMany(d => d.Buildings);
 }
 
+/// <summary>A cheap claim: land, supply and one harvested resource, with no city screen.</summary>
+public sealed class OutpostState
+{
+    public int Id;
+    public int Owner;
+    public int Tile;
+    public string Name = "";
+    public int FoundedTurn;
+    /// <summary>Tile whose resource the outpost harvests (-1 none).</summary>
+    public int HarvestTile = -1;
+    /// <summary>Tiles this outpost claimed (released if it is razed).</summary>
+    public List<int> Tiles = new();
+}
+
 public sealed class UnitState
 {
     public int Id;
@@ -240,6 +254,7 @@ public sealed class GameState
     public List<PlayerState> Players = new();
     public List<CityState> Cities = new();
     public List<UnitState> Units = new();
+    public List<OutpostState> Outposts = new();
     public ClimateState Climate = new();
     public WorldState World = new();
     public List<ChronicleEntry> Chronicle = new();

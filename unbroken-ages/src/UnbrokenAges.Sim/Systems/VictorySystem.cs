@@ -159,6 +159,7 @@ public static class VictorySystem
             if (!s.Cities.Any(c => c.OriginalOwner == p.Id)) continue; // never founded: still on the road
             if (s.Cities.Any(c => c.Owner == p.Id) || s.Units.Any(u => u.Owner == p.Id)) continue;
             p.IsAlive = false;
+            foreach (var o in s.Outposts.Where(o => o.Owner == p.Id).ToList()) OutpostSystem.Release(s, o);
             events.Add(new GameEvent(GameEventType.PlayerEliminated, p.Id));
         }
     }

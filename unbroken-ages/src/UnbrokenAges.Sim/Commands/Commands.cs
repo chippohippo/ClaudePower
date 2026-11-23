@@ -304,3 +304,31 @@ public sealed class OneMoreTurnCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { }
     protected override void ReadPayload(BinaryReader r) { }
 }
+
+/// <summary>Waymakers plant an Outpost where they stand.</summary>
+public sealed class FoundOutpostCommand : GameCommand
+{
+    public int UnitId;
+    public override CommandType Type => CommandType.FoundOutpost;
+    public override string? Validate(GameState s) => OwnUnit(s, UnitId) is not { } u ? "Not your unit." : OutpostSystem.ValidateFound(s, Player, u);
+    public override void Apply(GameState s, List<GameEvent> events)
+    {
+        var u = s.GetUnit(UnitId)!;
+        OutpostSystem.Found(s, Player, u.Tile, events);
+        s.RemoveUnit(u);
+    }
+    protected override void WritePayload(BinaryWriter w) => w.Write(UnitId);
+    protected override void ReadPayload(BinaryReader r) => UnitId = r.ReadInt32();
+}
+
+/// <summary>Buy an Outpost up into a city.</summary>
+public sealed class PromoteOutpostCommand : GameCommand
+{
+    public int OutpostId;
+    public override CommandType Type => CommandType.PromoteOutpost;
+    public override string? Validate(GameState s) =>
+        s.Outposts.Find(o => o.Id == OutpostId) is not { } o || o.Owner != Player ? "Not your outpost." : OutpostSystem.ValidatePromote(s, o);
+    public override void Apply(GameState s, List<GameEvent> events) => OutpostSystem.Promote(s, s.Outposts.Find(o => o.Id == OutpostId)!, events);
+    protected override void WritePayload(BinaryWriter w) => w.Write(OutpostId);
+    protected override void ReadPayload(BinaryReader r) => OutpostId = r.ReadInt32();
+}

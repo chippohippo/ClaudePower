@@ -84,6 +84,14 @@ public partial class HexMapView : Node3D
             var color = civ >= 0 ? new Color(db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
             cities.Add((new Transform3D(Basis.Identity, HexLayout.ToWorld(map.CoordOf(c.Tile), 0.5f)), color));
         }
+        // Outposts: a slim post in the owner's colour (no city screen to open).
+        foreach (var o in s.Outposts)
+        {
+            var civ = s.Players[o.Owner].CivIndex;
+            var color = civ >= 0 ? new Color(db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
+            var post = new Transform3D(Basis.Identity.Scaled(new Vector3(0.5f, 1.6f, 0.5f)), HexLayout.ToWorld(map.CoordOf(o.Tile), 0.45f));
+            districts.Add((post, color.Lightened(0.25f)));
+        }
 
         Fill(_flat, flat);
         Fill(_hills, hills);
