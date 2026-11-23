@@ -9,10 +9,13 @@ namespace UnbrokenAges.Client.Visuals;
 /// <summary>
 /// The world going about its business, purely client-side and seeded from the map so it is the same every time you look:
 /// <list type="bullet">
-/// <item><b>Roads</b> join each civilization's cities (a spanning tree of land paths), plus spur tracks from improved resources
-///   to the city that works them. Dirt tracks until the industrial era, paved after.</item>
+/// <item><b>Roads</b> join each civilization's cities (a spanning tree of land paths) and the nearest cities of neighbouring
+///   civilizations (trade roads), plus spur tracks from improved resources to the city that works them. Dirt tracks until the
+///   industrial era, paved after.</item>
 /// <item><b>Traffic</b>: covered wagons and carts early, lorries and cars later, shuttle along the roads carrying the harvest.</item>
-/// <item><b>Boats</b>: fishing boats work the fish, canoes the pearl beds, sailboats tack off coastal cities.</item>
+/// <item><b>Boats</b>: fishing boats work the fish, canoes the pearl beds, sailboats tack off coastal cities, merchantmen sail
+///   sea lanes between nearby ports.</item>
+/// <item><b>Townsfolk</b> stroll around every city.</item>
 /// <item><b>Animals</b>: cattle, deer and horses graze and wander on their resource tiles; sheep at pastures; tractors in fields.</item>
 /// <item><b>Birds</b> wheel over the land in flocks; <b>chimney smoke</b> drifts off every city.</item>
 /// </list>
@@ -35,7 +38,7 @@ public partial class LifeLayer : Node3D
         public Node3D Node = null!;
         public List<AnimationPlayer> Players = new();
         public Vector3 Home, Target;
-        public float Wait, Speed, Roam, YawOffset;
+        public float Wait, Speed, Roam, MinRoam, YawOffset;
         public bool Walking;
         public string Walk = "", Idle = "";
     }
@@ -136,6 +139,45 @@ public partial class LifeLayer : Node3D
                     if (path != null) AddRoad(map, path, Known, modern ? paved : dirt, 0.08f, owner, s, false, t);
                 }
         }
+        // Trade roads: the nearest pair of cities between each two civilizations, if they are close, joined by a caravan road.
+        var known = s.Cities.Where(c => Known(c.Tile)).ToList();
+        var owners = known.Select(c => c.Owner).Distinct().ToList();
+        for (int i = 0; i < owners.Count; i++)
+            for (int j = i + 1; j < owners.Count; j++)
+            {
+                var pair = known.Where(c => c.Owner == owners[i])
+                    .SelectMany(a => known.Where(c => c.Owner == owners[j]).Select(b => (A: a, B: b, D: map.Distance(a.Tile, b.Tile))))
+                    .OrderBy(x => x.D).FirstOrDefault();
+                if (pair.A == null || pair.D > 10) continue;
+                var path = LandPath(map, pair.A.Tile, pair.B.Tile, 14);
+                if (path == null) continue;
+                var pa = s.Players[pair.A.Owner];
+                bool modern = s.PlayerEra(pa) >= 4 && s.PlayerEra(s.Players[pair.B.Owner]) >= 4;
+                AddRoad(map, path, Known, modern ? paved : dirt, 0.13f, pa, s, true);
+            }
+
+        // Sea lanes: merchantmen sail between nearby coastal cities.
+        var ports = known.Where(c => Enumerable.Range(0, 6).Any(d => map.Neighbor(c.Tile, d) is var n && n >= 0 && map.IsWater(n))).ToList();
+        var sailed = new HashSet<int>();
+        foreach (var a in ports)
+        {
+            if (sailed.Contains(a.Id)) continue;
+            var b = ports.Where(c => c.Id != a.Id && !sailed.Contains(c.Id)).OrderBy(c => map.Distance(a.Tile, c.Tile)).FirstOrDefault();
+            if (b == null || map.Distance(a.Tile, b.Tile) > 16) continue;
+            var lane = SeaPath(map, a.Tile, b.Tile, 30);
+            if (lane == null || lane.Count < 3 || !lane.All(Known)) continue;
+            sailed.Add(a.Id);
+            sailed.Add(b.Id);
+            int era = Math.Max(s.PlayerEra(s.Players[a.Owner]), s.PlayerEra(s.Players[b.Owner]));
+            var pts = Smooth(lane.Select(t => HexLayout.ToWorld(map.CoordOf(t), 0) + new Vector3(Rand(t, 13) - 0.5f, 0, Rand(t, 14) - 0.5f) * 0.5f).ToList());
+            var ship = Fitted(era >= 3 ? "units/ship_large" : era >= 1 ? "units/ship_medium" : "units/ship_small", era >= 3 ? 0.75f : 0.6f, 0);
+            _dynamic.AddChild(ship);
+            var m = new Mover { Node = ship, Path = pts, Speed = 0.3f, OnWater = true, Bob = Rand(a.Tile, 15) * 6 };
+            m.Length = Cumulative(pts);
+            m.At = Rand(a.Tile, 16) * m.Length[^1];
+            _movers.Add(m);
+        }
+
         _roads.Mesh = RoadMesh(dirt, paved, map);
 
         // ---- Life on tiles: animals, boats, tractors ----
@@ -172,6 +214,10 @@ public partial class LifeLayer : Node3D
                 Smoke(c.Tile, at + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.62f, industrial, 0.4f);
             }
             if (industrial) Smoke(c.Tile, at + new Vector3(-0.5f, 0, 0.4f), true, 0.9f);   // a factory stack
+            // Townsfolk wander between the houses.
+            int folk = Math.Clamp(2 + c.Population / 2, 2, 6);
+            for (int i = 0; i < folk; i++)
+                Walker(c.Tile, at, i % 2 == 0 ? "units/civilian_a" : "units/civilian_b", 0.24f, 0.45f, 1.05f, i);
             for (int d = 0; d < 6; d++)
             {
                 int n = map.Neighbor(c.Tile, d);
@@ -227,6 +273,39 @@ public partial class LifeLayer : Node3D
         while (path[^1] != from) path.Add(came[path[^1]]);
         path.Reverse();
         return path.Count - 1 <= maxLen ? path : null;
+    }
+
+    /// <summary>A path over water from beside one coastal city to beside another; open coast is preferred to deep ocean.</summary>
+    private static List<int>? SeaPath(MapGrid map, int fromCity, int toCity, int maxLen)
+    {
+        var open = new PriorityQueue<int, float>();
+        var cost = new Dictionary<int, float>();
+        var came = new Dictionary<int, int>();
+        for (int d = 0; d < 6; d++)
+            if (map.Neighbor(fromCity, d) is var n && n >= 0 && map.IsWater(n)) { cost[n] = 0; open.Enqueue(n, 0); }
+        var goals = Enumerable.Range(0, 6).Select(d => map.Neighbor(toCity, d)).Where(n => n >= 0 && map.IsWater(n)).ToHashSet();
+        int end = -1;
+        while (open.TryDequeue(out int cur, out _))
+        {
+            if (goals.Contains(cur)) { end = cur; break; }
+            if (cost[cur] > maxLen * 1.6f) continue;
+            for (int d = 0; d < 6; d++)
+            {
+                int n = map.Neighbor(cur, d);
+                if (n < 0 || !map.IsWater(n)) continue;
+                bool coastal = Enumerable.Range(0, 6).Any(e => map.Neighbor(n, e) is var m && m >= 0 && !map.IsWater(m));
+                float c = cost[cur] + (coastal ? 1.25f : 1f);
+                if (cost.TryGetValue(n, out var old) && old <= c) continue;
+                cost[n] = c;
+                came[n] = cur;
+                open.Enqueue(n, c + map.Distance(n, toCity));
+            }
+        }
+        if (end < 0) return null;
+        var path = new List<int> { end };
+        while (came.TryGetValue(path[^1], out var prev)) path.Add(prev);
+        path.Reverse();
+        return path.Count <= maxLen ? path : null;
     }
 
     private void AddRoad(MapGrid map, List<int> tiles, Func<int, bool> known, List<(Vector3[], float)> into, float half, PlayerState owner, GameState s, bool trunk, int resourceTile = -1)
@@ -379,14 +458,14 @@ public partial class LifeLayer : Node3D
         return node;
     }
 
-    private Node3D FittedRaw(string model, float size, float yawOffset)
+    private Node3D FittedRaw(string model, float size, float yawOffset, bool byHeight = false)
     {
         var holder = new Node3D();
         var scene = _models.LoadScene(model);
         if (scene == null) return holder;
         var inst = scene.Instantiate<Node3D>();
         var b = _models.SceneBounds(model);
-        float extent = Mathf.Max(b.Size.X, b.Size.Z);
+        float extent = byHeight ? b.Size.Y : Mathf.Max(b.Size.X, b.Size.Z);
         float k = extent > 0.0001f ? size / extent : 1f;
         inst.Scale = Vector3.One * k;
         inst.Position = new Vector3(-(b.Position.X + b.Size.X / 2) * k, -b.Position.Y * k, -(b.Position.Z + b.Size.Z / 2) * k);
@@ -464,6 +543,25 @@ public partial class LifeLayer : Node3D
         }
     }
 
+    /// <summary>A person strolling around a town: between an inner and outer ring, so they keep out of the keep.</summary>
+    private void Walker(int tile, Vector3 centre, string model, float height, float inner, float outer, int i)
+    {
+        var node = FittedRaw(model, height, 0, byHeight: true);
+        float a = Rand(tile, 120 + i) * Mathf.Tau;
+        var start = centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * Mathf.Lerp(inner, outer, Rand(tile, 130 + i));
+        var g = new Grazer
+        {
+            Node = node, Home = centre, Target = start, Roam = outer, MinRoam = inner, Speed = 0.07f, Wait = Rand(tile, 140 + i) * 3f,
+            Walk = "walk", Idle = "idle",
+        };
+        node.Position = Ground(start);
+        node.Rotation = new Vector3(0, a, 0);
+        _dynamic.AddChild(node);
+        g.Players.AddRange(node.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>());
+        foreach (var ap in g.Players) Play(ap, "idle");
+        _grazers.Add(g);
+    }
+
     private static void Play(AnimationPlayer ap, string name)
     {
         var all = ap.GetAnimationList();
@@ -535,6 +633,7 @@ public partial class LifeLayer : Node3D
     // ----- Per frame --------------------------------------------------------------------------------
 
     public string Describe() => string.Join(" | ", _movers.Select(m => $"{m.Node.GetChild(0)?.GetChild(0)?.Name ?? m.Node.Name} at {m.Node.Position.Snapped(Vector3.One * 0.01f)} vis {m.Node.Visible}"))
+        + " || " + string.Join(" | ", _grazers.Select(g => $"{g.Node.GetChild(0)?.GetChild(0)?.Name} at {g.Node.GlobalPosition.Snapped(Vector3.One * 0.01f)} vis {g.Node.IsVisibleInTree()} scale {(g.Node.GetChild(0)?.GetChild(0) is Node3D n ? n.Scale.X : 0)}"))
         + " || " + string.Join(" | ", _plumes.Select(p => $"smoke {p.At.Snapped(Vector3.One * 0.01f)}"));
 
     private bool Seen(Vector3 p)
@@ -615,7 +714,7 @@ public partial class LifeLayer : Node3D
             g.Wait -= dt;
             if (g.Wait > 0) return;
             float a = _rng.Randf() * Mathf.Tau;
-            g.Target = g.Home + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * g.Roam * _rng.Randf();
+            g.Target = g.Home + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * Mathf.Lerp(g.MinRoam, g.Roam, _rng.Randf());
             g.Walking = true;
             foreach (var ap in g.Players) Play(ap, g.Walk);
         }

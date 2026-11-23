@@ -34,9 +34,9 @@ public partial class UnitLayer : Node3D
     public static (string Model, int Count, float Size, bool ByLength) Look(UnitDef d)
     {
         bool has(string tag) => d.Tags.Contains(tag);
-        if (d.FoundsCity) return ("units/civilian_a", 3, 0.6f, false);
+        if (d.FoundsCity) return ("units/civilian_a", 3, 0.5f, false);
         if (d.FoundsOutpost) return ("units/Mage", 2, 0.7f, false);
-        if (d.Charges > 0 && d.Domain == UnitDomain.Civilian) return ("units/civilian_b", 2, 0.6f, false);
+        if (d.Charges > 0 && d.Domain == UnitDomain.Civilian) return ("units/civilian_b", 2, 0.5f, false);
         if (d.Domain == UnitDomain.Naval)
             return d.Strength == 0 ? ("units/ship_small", 1, 1.15f, true)
                  : d.OceanGoing && d.RangedStrength > 0 ? ("units/ship_large", 1, 1.55f, true)
