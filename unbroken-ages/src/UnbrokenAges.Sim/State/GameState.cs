@@ -65,6 +65,12 @@ public sealed class GovernorState
     public int EstablishProgress;
     public bool Established;
     public List<int> Promotions = new();
+    /// <summary>Established turns served, anywhere (sets the rank).</summary>
+    public int Experience;
+    /// <summary>Earned trait definitions, in the order they were earned.</summary>
+    public List<int> Traits = new();
+    /// <summary>Progress toward unearned traits (trait index → turns or events).</summary>
+    public SortedDictionary<int, int> TraitProgress = new();
 }
 
 public sealed class PlayerState

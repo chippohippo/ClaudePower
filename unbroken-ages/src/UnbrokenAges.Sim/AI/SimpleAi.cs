@@ -74,6 +74,8 @@ public sealed class SimpleAi : IAiController
                 commands.Add(new EnqueueCommand { Player = playerId, CityId = city.Id, Kind = ProductionKind.Unit, DefIndex = unitDef.Index });
         }
 
+        commands.AddRange(Governors(s, player));
+
         // Diplomacy (baseline): accept any peace offer; offer peace once a war has run its minimum length.
         foreach (var rel in s.Relations)
         {
@@ -86,6 +88,32 @@ public sealed class SimpleAi : IAiController
 
         commands.Add(new EndTurnCommand { Player = playerId });
         return commands;
+    }
+
+    /// <summary>Seat idle governors in the largest ungoverned cities, then spend a title: appoint first, promote after.</summary>
+    private static IEnumerable<GameCommand> Governors(GameState s, PlayerState player)
+    {
+        var open = s.CitiesOf(player.Id).Where(c => c.GovernorDef < 0).OrderByDescending(c => c.Population).ThenBy(c => c.Id).ToList();
+        foreach (var gov in player.Governors.Where(g => g.CityId < 0))
+        {
+            if (open.Count == 0) break;
+            yield return new AssignGovernorCommand { Player = player.Id, Governor = gov.DefIndex, CityId = open[0].Id };
+            open.RemoveAt(0);
+        }
+        if (player.GovernorTitles < 1) yield break;
+        var next = s.Db.Governors.FirstOrDefault(g => player.GetGovernor(g.Index) == null);
+        if (next != null && open.Count > 0)
+        {
+            yield return new AppointGovernorCommand { Player = player.Id, Governor = next.Index };
+            yield break;
+        }
+        foreach (var gov in player.Governors)
+            for (int p = 0; p < s.Db.Governors[gov.DefIndex].Promotions.Count; p++)
+                if (GovernorSystem.ValidatePromote(s, player, gov.DefIndex, p) == null)
+                {
+                    yield return new PromoteGovernorCommand { Player = player.Id, Governor = gov.DefIndex, Promotion = p };
+                    yield break;
+                }
     }
 
     /// <summary>

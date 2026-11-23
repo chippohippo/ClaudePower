@@ -64,7 +64,7 @@ as `GameOptions` flags checked at each system's entry point, the same way `Clima
 | **Logistics network** (supply points, trucks, roads, rail, HQs) | **Adapt** | **Supply lens**: supply flows from cities (and Garrisons) over land, and from Harbors and River Ports over water. Own territory is cheap, foreign land expensive, and **Great Rivers are highways**. Supplied units heal; units cut off in enemy land suffer attrition. **No trucks, no routing.** Grand dial adds a combat penalty and rail depots. | ✔ Built |
 | Procedural planets with real geology and climate | **Adopt** | Our generator already does hydrology, rain shadows and lowlands (doc 05-6). Add **World Genesis**: setup sliders (world age, tectonics, climate) with a live mini-map preview, plus **Deep Prehistory**: ruins of lost civilizations seeded with lore that scouts and archaeologists uncover | M2 / M4 |
 | Model and formation designer | **Adapt** | **Unit Variants**: at each upgrade, pick 1 of 2–3 variants with one honest trade-off ("Amphibious: no river-crossing penalty, −10% strength"; "Heavy: +15% strength, −1 move"). Grand dial: a light designer (chassis + one module). The AI uses presets. | M3/M4 |
-| Leaders with skills, traits and loyalty; a council | **Adapt** | **Living Governors**: governors earn traits from where they serve ("River-wise" after 15 turns on a Great River, "Levee-builder" after surviving floods, "Borderer" on a contested frontier). Grand dial: they age, retire and are succeeded, with biographies in the Chronicle. No cabinet politics minigame. | M3 |
+| Leaders with skills, traits and loyalty; a council | **Adapt** | **Living Governors**: governors earn traits from where they serve ("River-wise" after 15 turns on a Great River, "Levee-builder" after surviving floods, "Borderer" on a contested frontier). Grand dial: they age, retire and are succeeded, with biographies in the Chronicle. No cabinet politics minigame. | ✔ Built (experience, ranks, 9 traits) · ageing M3 |
 | Stratagem cards and political points | **Merge** | Into existing policy cards plus **Initiatives** (§2). No second card hand. | M4 |
 | Regime profile (ideology axes) | **Adapt** | **National Character** compass: Order↔Liberty, Tradition↔Progress, Martial↔Mercantile. It **drifts from your actions** (no sliders) and feeds Divergence leanings, AI agendas, events and dedications. "Your people have become Martial and Orderly; a Sovereign future would suit them." | M4 |
 | Zones with local stockpiles, private economy | **Split** | **Reject** local stockpiles (empire pool, Charter 5). **Adopt Private Enterprise**: idle production and surplus gold attract investors who build cheap commercial buildings automatically, opt-in per province. *Less* micromanagement for wide empires. | M3 |
@@ -127,7 +127,11 @@ as `GameOptions` flags checked at each system's entry point, the same way `Clima
   AD 1380: The world enters the Medieval Era in an ordinary age.
   ```
 
-### 4.5 Tests (14 new, 111 total)
+### 4.5 Living Governors: `Systems/GovernorSystem.cs`, data `governors.json` → `governorTraits`
+Governors gain experience and earn up to three traits from where they serve (see [05/02](05-key-systems/02-loyalty-governors.md#living-governors-experience-and-traits)).
+It is fully automatic, in keeping with the Ease Charter: nothing to click, and the city panel names the next trait and its progress.
+
+### 4.6 Tests (14 new, 111 total)
 `Currents_ArePushedByEvents_AndDecay`, `ANewEra_BeginsTheAgeTheCurrentsPointTo_ForEveryone`, `AnAgeOfAsh_MakesDisastersLikelier`,
 `Supply_FlowsFarther_AlongGreatRivers`, `Garrisons_ExtendSupply`, `Ports_SupplyTheSea_AndLandBeachheads`, `CutOffArmies_SufferAttrition_WhileSuppliedOnesHeal`,
 `Industries_TurnStockpilesIntoGoods_Automatically`, `DryRun_DoesNotTouchTheStockpile`, `Units_ThatNeedGoods_WaitAtFullProgress_InsteadOfVanishing`,

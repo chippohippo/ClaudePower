@@ -66,6 +66,7 @@ public static class TurnProcessor
             if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
         }
 
+        GovernorSystem.GainExperience(s, events);
         WorldSystem.ProcessTurn(s, events);
         VictorySystem.Check(s, events, endOfTurn: true);
         s.Turn++;

@@ -139,6 +139,12 @@
       "items": {
         "$ref": "#/$defs/chronicleTemplate"
       }
+    },
+    "governorTraits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/governorTrait"
+      }
     }
   },
   "additionalProperties": false,
@@ -275,7 +281,9 @@
             "CityOnGreatRiver",
             "CityIsCapital",
             "PlayerHasTech",
-            "PlayerHasCivic"
+            "PlayerHasCivic",
+            "CityOnFrontier",
+            "OwnerAtWar"
           ]
         },
         "id": {
@@ -2838,6 +2846,97 @@
         },
         "requiresPlayer": {
           "type": "boolean"
+        }
+      }
+    },
+    "governorTrait": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "description": "Living Governors: a trait earned from N established turns in a city meeting the requirements, or N end-of-turn events of a type in that city.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "requirements": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/requirement"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "governors": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "modifiers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/modifier"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
         }
       }
     }

@@ -77,6 +77,8 @@ public sealed class CityEffects
             fx.ApplyAll(s, city, def.BaseModifiers, $"{def.Name} ({def.Title})");
             foreach (int p in gov.Promotions)
                 fx.ApplyAll(s, city, def.Promotions[p].Modifiers, $"{def.Name}: {def.Promotions[p].Name}");
+            foreach (int t in gov.Traits)
+                fx.ApplyAll(s, city, db.GovernorTraits[t].Modifiers, $"{def.Name}: {db.GovernorTraits[t].Name} (trait)");
         }
 
         foreach (var district in city.Districts)
@@ -99,6 +101,18 @@ public sealed class CityEffects
         }
     }
 
+    private static bool OnFrontier(GameState s, CityState city, int radius)
+    {
+        var tiles = new List<int>();
+        s.Map.CollectRadius(city.Tile, radius, tiles);
+        foreach (int t in tiles)
+        {
+            int owner = s.Map.OwnerPlayer[t];
+            if (owner >= 0 && !DiplomacySystem.SameTeam(s, owner, city.Owner)) return true;
+        }
+        return false;
+    }
+
     public static bool RequirementsMet(GameState s, CityState city, List<RequirementDef> requirements)
     {
         var owner = s.Players[city.Owner];
@@ -115,6 +129,8 @@ public sealed class CityEffects
                 RequirementType.CityIsCapital => city.IsCapital,
                 RequirementType.PlayerHasTech => owner.HasTech(r.ResolvedIndex),
                 RequirementType.PlayerHasCivic => owner.HasCivic(r.ResolvedIndex),
+                RequirementType.CityOnFrontier => OnFrontier(s, city, r.Value > 0 ? r.Value : 3),
+                RequirementType.OwnerAtWar => s.Players.Any(o => o.IsAlive && !o.IsFreeCities && o.Id != owner.Id && DiplomacySystem.AtWar(s, owner.Id, o.Id)),
                 _ => false,
             };
             if (!ok) return false;

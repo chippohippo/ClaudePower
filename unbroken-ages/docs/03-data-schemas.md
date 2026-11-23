@@ -28,7 +28,8 @@ Added in [09](09-genre-defining-depth.md): **worldAges** (`priority`, `minEra`, 
 **worldRules** (one entry: `currentDecayPercent`, `pushes[{event, current, amount}]`, `supply{cityRange, militaryDistrictBonus, portRange, ownCost, neutralCost,
 foreignCost, roughExtra, channelCost, waterCost, attritionHp, healHp}`, `combat{…}` ([05/09](05-key-systems/09-combat.md)),
 `victory{hegemonySharePercent, hegemonyMinLoyalty, scorePer*, tilesPerPoint, scoreForAscension}` ([05/11](05-key-systems/11-victory.md))); **chronicle** (`event`, `text` with `{year} {civ} {leader} {city} {detail} {value}`,
-`minValue`, `oncePerPlayer`, `requiresPlayer`); building `recipe {inputs, outputs, requiresPower}`; resource class `Good`.
+`minValue`, `oncePerPlayer`, `requiresPlayer`); **governorTraits** (`requirements`, `turns` or `event` + `count`, `governors[]`, `modifiers`);
+requirement types `CityOnFrontier` (value = radius) and `OwnerAtWar`; building `recipe {inputs, outputs, requiresPower}`; resource class `Good`.
 
 Every definition has: `id` (required), `name`, `description`, `tags[]`.
 

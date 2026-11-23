@@ -20,7 +20,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       breakdown; battle reports in events and the Chronicle.
 - [x] **3. Border growth**: culture-driven tile claims (best adjacent tile up to radius 5) and gold tile purchase.
 - [x] **4. Victory system**: Ascension, Hegemony (all original capitals), Score at the turn limit; victory toggles; game-over event; One More Turn.
-- [ ] **5. Living Governors**: experience and data-driven traits earned from where they serve.
+- [x] **5. Living Governors**: experience and data-driven traits earned from where they serve.
 - [ ] **6. Outposts**: cheap claims (radius 1, supply source, one resource), with no city screen; promotable to a city.
 - [ ] **7. Unit variants**: choose 1 of 2–3 variants at upgrade; `UpgradeUnitCommand` with gold and resource costs.
 - [ ] **8. Dynamic turn mode**: phase ordering by war graph in `HostSession`, with tests over sockets.
@@ -33,5 +33,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - 3. Border growth: `BorderSystem` (culture threshold 15 + 8n, best-tile score, radius 5), `PurchaseTileCommand` (radius 3), snapshot v6, 4 tests (139 total).
 - 4. Victory system: `VictorySystem` (Ascension, Hegemony by capitals or world share, itemized Score at the turn limit), `VictoryKind` toggles,
   game-over gate + `OneMoreTurnCommand`, elimination, `worldRules.victory`, snapshot v7, CLI continues after victory, 8 tests (147 total).
+- 5. Living Governors: experience + ranks (faster re-establishing), `governorTraits` category (turns-in-situation or events-in-city), 9 traits,
+  `CityOnFrontier`/`OwnerAtWar` requirements, city panel line, Chronicle entries, snapshot v8, 8 tests (155 total).
 
 (see git log for full detail)

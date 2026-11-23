@@ -69,6 +69,10 @@ public enum RequirementType
     CityIsCapital,
     PlayerHasTech,
     PlayerHasCivic,
+    /// <summary>Another civilization's territory lies within <c>value</c> tiles of the city (default 3).</summary>
+    CityOnFrontier,
+    /// <summary>The city's owner is at war with another civilization (Free Cities do not count).</summary>
+    OwnerAtWar,
 }
 
 public abstract class Definition
@@ -657,6 +661,40 @@ public sealed class GovernorDef : Definition
             }
             p.RequiresIndices = indices.ToArray();
         }
+    }
+}
+
+/// <summary>
+/// Living Governors: a trait a governor earns from where it serves, either <see cref="Turns"/> established turns in a city meeting
+/// <see cref="Requirements"/>, or <see cref="Count"/> end-of-turn events of type <see cref="Event"/> in that city. Traits travel with the
+/// governor, apply their modifiers wherever it is established, and are written into the Chronicle.
+/// </summary>
+public sealed class GovernorTraitDef : Definition
+{
+    public List<RequirementDef> Requirements { get; init; } = new();
+    public int Turns { get; init; }
+    public string? Event { get; init; }
+    public int Count { get; init; }
+    /// <summary>Only these governors can earn it (empty = any).</summary>
+    public List<string> Governors { get; init; } = new();
+    public List<ModifierDef> Modifiers { get; init; } = new();
+
+    [JsonIgnore] public State.GameEventType? EventType { get; private set; }
+    [JsonIgnore] public int[] GovernorIndices { get; private set; } = Array.Empty<int>();
+    [JsonIgnore] public int Goal => EventType != null ? Count : Turns;
+
+    internal override void Link(LinkContext ctx)
+    {
+        foreach (var r in Requirements) r.Link(ctx, this);
+        foreach (var m in Modifiers) m.Link(ctx, this);
+        if (Event != null)
+        {
+            if (Enum.TryParse<State.GameEventType>(Event, out var t)) EventType = t;
+            else ctx.Error(this, $"unknown event '{Event}'.");
+            if (Count <= 0) ctx.Error(this, "an event trait needs a positive 'count'.");
+        }
+        else if (Turns <= 0) ctx.Error(this, "needs either 'turns' or 'event' + 'count'.");
+        GovernorIndices = Governors.Select(g => ctx.Resolve(ctx.Db.Governors, g, this, "governors", true)).Where(i => i >= 0).ToArray();
     }
 }
 

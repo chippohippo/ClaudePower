@@ -66,6 +66,7 @@
 
   // The Chronicle: dated lines of history written from events. {year} {civ} {leader} {city} {detail} {value}
   "chronicle": [
+    { "id": "CHRONICLE_GOVERNOR_TRAIT", "event": "GovernorTraitEarned", "text": "{year}: {detail}." },
     { "id": "CHRONICLE_VICTORY", "event": "VictoryAchieved", "text": "{year}: {detail}" },
     { "id": "CHRONICLE_ELIMINATED", "event": "PlayerEliminated", "text": "{year}: {civ} falls. Its people live on in other nations' cities." },
     { "id": "CHRONICLE_CITY_FOUNDED", "event": "CityFounded", "text": "{year}: {civ} founds {detail}." },

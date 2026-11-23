@@ -119,4 +119,38 @@
           "modifiers": [ { "effect": "EspionageDefense", "amount": 2 }, { "effect": "SpyCapacity", "amount": 1 } ] }
       ] }
   ]
+  ,
+
+  // Living Governors: traits earned from where a governor serves. They travel with the governor.
+  // A governor holds at most three. Turn traits count established turns while the requirements hold;
+  // event traits count end-of-turn events in the governor's city.
+  "governorTraits": [
+    { "id": "TRAIT_RIVER_WISE", "name": "River-wise", "description": "Knows the river's moods: +10% Food and Gold.",
+      "requirements": [ { "type": "CityOnGreatRiver" } ], "turns": 15,
+      "modifiers": [ { "effect": "CityYieldPercent", "yield": "Food", "amount": 10 }, { "effect": "CityYieldPercent", "yield": "Gold", "amount": 10 } ] },
+    { "id": "TRAIT_SALT_BLOODED", "name": "Salt-blooded", "description": "Grew up among sailors: +15% Gold.",
+      "requirements": [ { "type": "CityIsCoastal" } ], "turns": 15,
+      "modifiers": [ { "effect": "CityYieldPercent", "yield": "Gold", "amount": 15 } ] },
+    { "id": "TRAIT_BORDERER", "name": "Borderer", "description": "Walked the contested marches: +25% loyalty pressure, +2 loyalty per turn.",
+      "requirements": [ { "type": "CityOnFrontier", "value": 3 } ], "turns": 15,
+      "modifiers": [ { "effect": "CityPressurePercent", "amount": 25 }, { "effect": "CityLoyaltyPerTurn", "amount": 2 } ] },
+    { "id": "TRAIT_WAR_HARDENED", "name": "War-hardened", "description": "Kept a city working through a war: +15% Production toward units, +1 loyalty per turn.",
+      "requirements": [ { "type": "OwnerAtWar" } ], "turns": 10,
+      "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 15 }, { "effect": "CityLoyaltyPerTurn", "amount": 1 } ] },
+    { "id": "TRAIT_LEVEE_BUILDER", "name": "Levee-builder", "description": "Weathered two disasters: immune to river floods, +1 housing from rebuilding better.",
+      "event": "Disaster", "count": 2,
+      "modifiers": [ { "effect": "CityDisasterImmunity", "disaster": "RiverFlood", "amount": 1 }, { "effect": "CityHousing", "amount": 1 } ] },
+    { "id": "TRAIT_HEARTHKEEPER", "name": "Hearthkeeper", "description": "Saw the city grow four times: +1 housing, +1 amenity.",
+      "event": "CityGrew", "count": 4,
+      "modifiers": [ { "effect": "CityHousing", "amount": 1 }, { "effect": "CityAmenities", "amount": 1 } ] },
+    { "id": "TRAIT_MASTER_OF_WORKS", "name": "Master of Works", "description": "Oversaw eight completed projects: +10% Production toward districts.",
+      "event": "ProductionCompleted", "count": 8,
+      "modifiers": [ { "effect": "CityProductionPercent", "category": "District", "amount": 10 } ] },
+    { "id": "TRAIT_GRID_WARDEN", "name": "Grid-warden", "description": "Kept the lights on for 20 turns: −15% emissions.",
+      "requirements": [ { "type": "CityIsPowered" } ], "turns": 20,
+      "modifiers": [ { "effect": "CityEmissionsPercent", "amount": -15 } ] },
+    { "id": "TRAIT_OLD_HAND", "name": "Old Hand", "description": "Sixty turns in office: establishes 1 turn faster, +1 loyalty per turn.",
+      "turns": 60,
+      "modifiers": [ { "effect": "GovernorEstablishTurns", "amount": -1 }, { "effect": "CityLoyaltyPerTurn", "amount": 1 } ] }
+  ]
 }

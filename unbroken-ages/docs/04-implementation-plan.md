@@ -32,7 +32,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Combat v1 (melee, ranged, terrain/river/fortify/flanking/counters/supply, cities with HP, bombard and capture, full preview) | ✔ |
 | Border growth from culture (best adjacent tile, radius 5) and gold tile purchase | ✔ |
 | Victories: Ascension, Hegemony (capitals or world share), Score at the turn limit; toggles; elimination; One More Turn | ✔ |
-| 147 automated tests | ✔ |
+| Living Governors: experience, ranks and 9 data-driven traits earned from where they serve | ✔ |
+| 155 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -73,7 +74,7 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 * NAT: UPnP/PCP port mapping, connection doctor ("your port is closed", reachability test), **relay service** with room codes (open-source server).
 * Chaos-test transport (latency, loss, reorder) in CI; reconnect at any phase; spectators with optional delay; in-game chat and pings.
 * Late-game management: **provinces**, puppets, empire-wide queue templates, **Outposts**, **Private Enterprise**.
-* **Living Governors** (traits from service), **Unit Variants**, **Battle Reports**, **Fog of Strength**; the supply combat penalty (Grand dial).
+* ~~Living Governors~~ (built in M0; ageing and succession remain here), **Unit Variants**, **Battle Reports**, **Fog of Strength**; the supply combat penalty (Grand dial).
 * Combat v2: naval classes, supply, blockades; air missions and superiority overlay; corps and armies; combined-arms support units.
 * **Exit:** 50 community-run 8-player games to turn 150+ with ≥ 98% completing without a stall; median desync heal under 2 s; 0 unrecovered desyncs.
 

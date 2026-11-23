@@ -41,6 +41,7 @@ public enum GameEventType : byte
     TileClaimed,
     VictoryAchieved,
     PlayerEliminated,
+    GovernorTraitEarned,
 }
 
 /// <summary>

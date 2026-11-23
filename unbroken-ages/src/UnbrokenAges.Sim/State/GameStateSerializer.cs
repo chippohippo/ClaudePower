@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 7;
+    public const int Version = 8;
 
     public static byte[] Serialize(GameState s)
     {
@@ -66,6 +66,11 @@ public static class GameStateSerializer
                 w.Write(g.DefIndex); w.Write(g.CityId); w.Write(g.EstablishProgress); w.Write(g.Established);
                 w.Write(g.Promotions.Count);
                 foreach (int pr in g.Promotions) w.Write(pr);
+                w.Write(g.Experience);
+                w.Write(g.Traits.Count);
+                foreach (int t in g.Traits) w.Write(t);
+                w.Write(g.TraitProgress.Count);
+                foreach (var (trait, count) in g.TraitProgress) { w.Write(trait); w.Write(count); }
             }
             w.Write((byte)p.DispatchPolicy); WriteFx(w, p.EmissionsLastTurn); WriteFx(w, p.CumulativeEmissions);
             w.Write(p.CapitalCityId);
@@ -189,6 +194,11 @@ public static class GameStateSerializer
                 var gs = new GovernorState { DefIndex = r.ReadInt32(), CityId = r.ReadInt32(), EstablishProgress = r.ReadInt32(), Established = r.ReadBoolean() };
                 int promos = r.ReadInt32();
                 for (int k = 0; k < promos; k++) gs.Promotions.Add(r.ReadInt32());
+                gs.Experience = r.ReadInt32();
+                int traits = r.ReadInt32();
+                for (int k = 0; k < traits; k++) gs.Traits.Add(r.ReadInt32());
+                int progress = r.ReadInt32();
+                for (int k = 0; k < progress; k++) gs.TraitProgress[r.ReadInt32()] = r.ReadInt32();
                 p.Governors.Add(gs);
             }
             p.DispatchPolicy = (PowerDispatchPolicy)r.ReadByte();

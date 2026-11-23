@@ -118,6 +118,9 @@ public partial class CityPanel : PanelContainer
         _loyalty.Text = $"Loyalty {city.Loyalty}/100 ({(loyalty.Total >= Fx.Zero ? "+" : "")}{loyalty.Total}/turn" +
                         (loyalty.TurnsUntilFlip > 0 ? $", flips in {loyalty.TurnsUntilFlip}!)" : ")") +
                         "\n" + string.Join("\n", loyalty.Lines().Select(l => $"  {l.Label}: {l.Value}"));
+        if (city.GovernorDef >= 0 && s.Players[city.Owner].GetGovernor(city.GovernorDef) is { } gov)
+            _loyalty.Text += $"\nGovernor: {GovernorSystem.Describe(s, gov)}" +
+                             (gov.Established ? "" : $" (establishing {gov.EstablishProgress}/{GovernorSystem.EstablishTurns(s.Db, gov)})");
 
         _queue.Clear();
         var estimates = ProductionSystem.Estimate(s, city, report.Total.Production);
