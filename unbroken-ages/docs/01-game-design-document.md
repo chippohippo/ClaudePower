@@ -446,7 +446,8 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 19 | City and tile trading, research agreements | §8.3 | Designed — M4 |
 | 20 | Espionage before the Renaissance | §9 Informants from the Classical era | Designed — M4 |
 | 21 | Naval and air depth | §11 | Designed — M3/M4 |
-| 22 | No dominant late-game super unit | Counter-tags, EW platoons | Data **built** / combat M3 |
+| 22 | No dominant late-game super unit | Counter-tags, EW platoons | **Built** (counters applied in combat v1) |
+| 22b | Combat preview that shows every modifier | [05/09-combat](05-key-systems/09-combat.md) | **Built** (v1: melee, ranged, cities, capture) |
 | 23 | Timelapse replay and statistics | §14 | Designed — M5 |
 | 24 | One More Turn after victory | §14 | Designed — M2 |
 | 25 | Smarter AI districts, navy, air, war | §18 + shared planners | Planner **built** / AI M3–M5 |

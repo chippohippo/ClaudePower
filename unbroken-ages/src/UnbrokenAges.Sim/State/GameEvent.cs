@@ -34,6 +34,10 @@ public enum GameEventType : byte
     PeaceSigned,
     Denounced,
     OpenBordersGranted,
+    BattleFought,
+    UnitDestroyed,
+    CityCaptured,
+    CivilianCaptured,
 }
 
 /// <summary>

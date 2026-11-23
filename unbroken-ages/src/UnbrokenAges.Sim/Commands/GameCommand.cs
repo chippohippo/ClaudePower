@@ -26,6 +26,9 @@ public enum CommandType : byte
     ProposePeace = 62,
     AcceptPeace = 63,
     SetOpenBorders = 64,
+    Attack = 70,
+    Fortify = 71,
+    CityStrike = 72,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -107,6 +110,9 @@ public abstract class GameCommand
         CommandType.ProposePeace => new ProposePeaceCommand(),
         CommandType.AcceptPeace => new AcceptPeaceCommand(),
         CommandType.SetOpenBorders => new SetOpenBordersCommand(),
+        CommandType.Attack => new AttackCommand(),
+        CommandType.Fortify => new FortifyCommand(),
+        CommandType.CityStrike => new CityStrikeCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

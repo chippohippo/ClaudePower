@@ -29,7 +29,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | **The Divergence** Future-era fork: locks, leanings, three futures, terraforming spread, Ascension; `ua future` demo | ✔ |
 | Depth from Millennia & Shadow Empire: World Currents & Ages, Supply lens and attrition, Industries and goods, the Chronicle | ✔ |
 | Diplomacy core (war, peace, denounce, open borders, itemized grievances, attitude; closed borders; supply attrition only at war) | ✔ |
-| 120 automated tests | ✔ |
+| Combat v1 (melee, ranged, terrain/river/fortify/flanking/counters/supply, cities with HP, bombard and capture, full preview) | ✔ |
+| 135 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.

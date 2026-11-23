@@ -2669,6 +2669,69 @@
               "type": "integer"
             }
           }
+        },
+        "combat": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "baseDamage": {
+              "type": "integer"
+            },
+            "doublingDelta": {
+              "type": "integer"
+            },
+            "randomMinPercent": {
+              "type": "integer"
+            },
+            "randomMaxPercent": {
+              "type": "integer"
+            },
+            "hpPenaltyPerTen": {
+              "type": "integer"
+            },
+            "riverCrossingPenalty": {
+              "type": "integer"
+            },
+            "fortifyBonus": {
+              "type": "integer"
+            },
+            "flankingBonus": {
+              "type": "integer"
+            },
+            "supportBonus": {
+              "type": "integer"
+            },
+            "counterBonus": {
+              "type": "integer"
+            },
+            "outOfSupplyPenalty": {
+              "type": "integer"
+            },
+            "cityBaseStrength": {
+              "type": "integer"
+            },
+            "cityStrengthPerEra": {
+              "type": "integer"
+            },
+            "wallsStrength": {
+              "type": "integer"
+            },
+            "cityBaseHp": {
+              "type": "integer"
+            },
+            "wallsHp": {
+              "type": "integer"
+            },
+            "cityHealPerTurn": {
+              "type": "integer"
+            },
+            "cityStrikeRange": {
+              "type": "integer"
+            },
+            "wallsBuilding": {
+              "type": "string"
+            }
+          }
         }
       }
     },

@@ -15,7 +15,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **1. Diplomacy core**: war / peace / alliance states, denounce, declare war (with "no surprise wars" option), peace after a minimum war length,
       open borders, itemized decaying grievances, attitude (agenda placeholder + Divergence ideology + grievances + war), Strife pushes from war and peace,
       closed borders for military units at peace, supply attrition only on enemy ground.
-- [ ] **2. Combat v1**: melee and ranged attacks, deterministic damage with a `combat` RNG stream, terrain and river modifiers, fortify, flanking and support,
+- [x] **2. Combat v1**: melee and ranged attacks, deterministic damage with a `combat` RNG stream, terrain and river modifiers, fortify, flanking and support,
       counters (`strongAgainst`/`weakAgainst`), the out-of-supply penalty, cities with HP and ranged strike, capture → `ChangeOwner`; a combat preview with a full
       breakdown; battle reports in events and the Chronicle.
 - [ ] **3. Border growth**: culture-driven tile claims (best adjacent tile up to radius 5) and gold tile purchase.
@@ -29,5 +29,6 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
+- 2. Combat v1: `CombatSystem` (Fx.Pow2 damage curve, combat RNG stream), Attack/Fortify/CityStrike commands, city HP and capture, snapshot v5, 15 tests (135 total).
 
 (see git log for full detail)

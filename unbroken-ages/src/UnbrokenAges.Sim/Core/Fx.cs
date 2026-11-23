@@ -103,6 +103,22 @@ public readonly struct Fx : IEquatable<Fx>, IComparable<Fx>
         return new(result);
     }
 
+    // 2^(2^-k) for k = 1..16 in Q16, precomputed offline with 50-digit decimals (deterministic constants).
+    private static readonly long[] Pow2Fraction =
+        { 92682, 77936, 71468, 68438, 66971, 66250, 65892, 65714, 65625, 65580, 65558, 65547, 65542, 65539, 65537, 65537 };
+
+    /// <summary>Deterministic 2^x (fractional bits by table, integer part by shift). Used by the combat damage curve.</summary>
+    public static Fx Pow2(Fx x)
+    {
+        long ip = x.Raw >> FractionBits;
+        long frac = x.Raw & (OneRaw - 1);
+        Fx result = One;
+        for (int k = 0; k < FractionBits; k++)
+            if ((frac & (1L << (FractionBits - 1 - k))) != 0) result *= FromRaw(Pow2Fraction[k]);
+        if (ip >= 0) return ip > 40 ? MaxValue : new Fx(result.Raw << (int)ip);
+        return ip < -40 ? Zero : new Fx(result.Raw >> (int)-ip);
+    }
+
     public bool Equals(Fx other) => Raw == other.Raw;
     public override bool Equals(object? obj) => obj is Fx f && f.Raw == Raw;
     public override int GetHashCode() => Raw.GetHashCode();

@@ -21,14 +21,23 @@ public static class Movement
     {
         var db = s.Db;
         var map = s.Map;
-        var def = db.Units[unit.DefIndex];
-        if (map.HasFlag(to, TileFlags.Submerged) && map.IsLand(to)) return Impassable;
         foreach (var other in s.Units)
             if (other.Tile == to && other.Owner != unit.Owner) return Impassable;
+        if (s.Cities.Any(c => c.Tile == to && c.Owner != unit.Owner)) return Impassable; // cities are captured, not walked into
         // Closed borders: armies need war, an alliance or open borders to enter foreign land.
         if (SupplySystem.IsMilitary(db, unit) && map.OwnerPlayer[to] >= 0 && map.OwnerPlayer[to] != unit.Owner &&
             !DiplomacySystem.MayEnter(s, unit.Owner, map.OwnerPlayer[to]))
             return Impassable;
+        return TerrainCost(s, unit, from, to);
+    }
+
+    /// <summary>Cost from terrain alone (no units, cities or borders), used by combat to judge reachability.</summary>
+    public static int TerrainCost(GameState s, UnitState unit, int from, int to)
+    {
+        var db = s.Db;
+        var map = s.Map;
+        var def = db.Units[unit.DefIndex];
+        if (map.HasFlag(to, TileFlags.Submerged) && map.IsLand(to)) return Impassable;
         if (map.Feature[to] >= 0 && db.Features[map.Feature[to]].Impassable) return Impassable;
 
         if (def.Domain == UnitDomain.Naval)
@@ -114,6 +123,7 @@ public static class Movement
             if (unit.MovesLeft <= Fx.Zero) break;
             unit.MovesLeft = Fx.Max(Fx.Zero, unit.MovesLeft - cost);
             unit.Tile = next;
+            unit.Fortified = false;
         }
         if (unit.Tile == unit.Destination) unit.Destination = -1;
     }

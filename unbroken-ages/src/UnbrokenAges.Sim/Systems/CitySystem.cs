@@ -21,6 +21,7 @@ public static class CitySystem
             Name = name ?? NextCityName(s, player),
             FoundedTurn = s.Turn,
             IsCapital = player.CapitalCityId < 0,
+            WasOriginalCapital = !s.Cities.Any(c => c.OriginalOwner == playerId),
         };
         if (city.IsCapital) player.CapitalCityId = city.Id;
 

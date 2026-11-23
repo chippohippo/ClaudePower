@@ -914,12 +914,37 @@ public sealed class SupplyRules
     public int HealHp { get; init; } = 10;
 }
 
-/// <summary>Singleton rules for world-level systems (currents, supply).</summary>
+/// <summary>Combat tuning. Damage = baseDamage × 2^(Δstrength / doublingDelta) × random(min..max)%.</summary>
+public sealed class CombatRules
+{
+    public int BaseDamage { get; init; } = 30;
+    public int DoublingDelta { get; init; } = 17;
+    public int RandomMinPercent { get; init; } = 80;
+    public int RandomMaxPercent { get; init; } = 120;
+    public int HpPenaltyPerTen { get; init; } = 1;
+    public int RiverCrossingPenalty { get; init; } = 5;
+    public int FortifyBonus { get; init; } = 4;
+    public int FlankingBonus { get; init; } = 2;
+    public int SupportBonus { get; init; } = 2;
+    public int CounterBonus { get; init; } = 10;
+    public int OutOfSupplyPenalty { get; init; } = 5;
+    public int CityBaseStrength { get; init; } = 15;
+    public int CityStrengthPerEra { get; init; } = 4;
+    public int WallsStrength { get; init; } = 10;
+    public int CityBaseHp { get; init; } = 100;
+    public int WallsHp { get; init; } = 100;
+    public int CityHealPerTurn { get; init; } = 20;
+    public int CityStrikeRange { get; init; } = 2;
+    public string WallsBuilding { get; init; } = "BUILDING_ANCIENT_WALLS";
+}
+
+/// <summary>Singleton rules for world-level systems (currents, supply, combat).</summary>
 public sealed class WorldRulesDef : Definition
 {
     public int CurrentDecayPercent { get; init; } = 3;
     public List<CurrentPush> Pushes { get; init; } = new();
     public SupplyRules Supply { get; init; } = new();
+    public CombatRules Combat { get; init; } = new();
 }
 
 // ----- Chronicle --------------------------------------------------------------------------------------

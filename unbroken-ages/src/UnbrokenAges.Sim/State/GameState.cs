@@ -23,6 +23,8 @@ public sealed class GameOptions
     public int StartingGovernorTitles { get; set; } = 1;
     /// <summary>Wars require a denunciation at least 5 turns earlier.</summary>
     public bool NoSurpriseWars { get; set; }
+    /// <summary>Grand Strategy dial: out-of-supply units fight at a penalty.</summary>
+    public bool SupplyCombatPenalty { get; set; }
 }
 
 public sealed class GovernorState
@@ -110,6 +112,11 @@ public sealed class CityState
     /// <summary>Governor definition currently assigned here (-1 none). Mirrors PlayerState.Governors.</summary>
     public int GovernorDef = -1;
     public Fx YieldsLastTurnProduction;
+    /// <summary>City hit points (0 → a melee unit can capture it).</summary>
+    public int Hp = 100;
+    public bool StruckThisTurn;
+    /// <summary>First city its founder ever built (used by the Hegemony victory).</summary>
+    public bool WasOriginalCapital;
 
     public DistrictInstance? FindDistrict(int defIndex) => Districts.Find(d => d.DefIndex == defIndex);
     public bool HasBuilding(int buildingIndex) => Districts.Any(d => d.Buildings.Contains(buildingIndex));
@@ -126,6 +133,8 @@ public sealed class UnitState
     public int Hp = 100;
     public int Charges;
     public int Destination = -1;
+    public bool Fortified;
+    public bool AttackedThisTurn;
 }
 
 /// <summary>Shared state of the whole world: currents and the age history.</summary>
@@ -198,6 +207,7 @@ public sealed class GameState
     public List<Grievance> Grievances = new();
     public Pcg32 GameplayRng;
     public Pcg32 DisasterRng;
+    public Pcg32 CombatRng;
 
     private Dictionary<int, CityState>? _cityIndex;
     private Dictionary<int, UnitState>? _unitIndex;
@@ -209,6 +219,7 @@ public sealed class GameState
         Map = map;
         GameplayRng = Pcg32.Derive(seed, "gameplay");
         DisasterRng = Pcg32.Derive(seed, "disasters");
+        CombatRng = Pcg32.Derive(seed, "combat");
     }
 
     public int AllocateId() => NextId++;

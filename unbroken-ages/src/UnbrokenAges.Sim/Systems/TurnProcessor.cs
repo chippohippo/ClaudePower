@@ -57,6 +57,7 @@ public static class TurnProcessor
         DivergenceSystem.ProcessTurn(s, events);
         ClimateSystem.ProcessTurn(s, power, events);
 
+        CombatSystem.ProcessTurn(s);
         SupplySystem.ProcessTurn(s, events);
         foreach (var unit in s.Units.ToList())
         {
