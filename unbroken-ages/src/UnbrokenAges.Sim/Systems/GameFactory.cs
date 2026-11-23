@@ -71,6 +71,7 @@ public static class GameFactory
             Civics = new bool[db.Civics.Count],
             Stockpile = new int[db.Resources.Count],
         });
+        TurnPhases.Begin(s);
         return s;
     }
 

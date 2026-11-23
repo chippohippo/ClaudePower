@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 10;
+    public const int Version = 11;
 
     public static byte[] Serialize(GameState s)
     {
@@ -137,6 +137,8 @@ public static class GameStateSerializer
             w.Write(op.Tiles.Count);
             foreach (int t in op.Tiles) w.Write(t);
         }
+        w.Write(s.TurnPhases.Count);
+        foreach (var phase in s.TurnPhases) { w.Write(phase.Length); foreach (int p in phase) w.Write(p); }
         var v = s.Victory;
         w.Write(v.Winner); w.Write(v.WinnerTeam); w.Write((int)v.Kind); w.Write(v.Turn); w.Write(v.Continued);
     }
@@ -286,6 +288,13 @@ public static class GameStateSerializer
             int n = r.ReadInt32();
             for (int k = 0; k < n; k++) op.Tiles.Add(r.ReadInt32());
             s.Outposts.Add(op);
+        }
+        int phaseCount = r.ReadInt32();
+        for (int i = 0; i < phaseCount; i++)
+        {
+            var phase = new int[r.ReadInt32()];
+            for (int k = 0; k < phase.Length; k++) phase[k] = r.ReadInt32();
+            s.TurnPhases.Add(phase);
         }
         s.Victory = new VictoryState { Winner = r.ReadInt32(), WinnerTeam = r.ReadInt32(), Kind = (VictoryKind)r.ReadInt32(), Turn = r.ReadInt32(), Continued = r.ReadBoolean() };
         return s;

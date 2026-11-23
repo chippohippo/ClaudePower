@@ -362,7 +362,7 @@ Medicine tech line. Plague can trigger Dark Age dedications and migrations. It n
 
 ## 15. Multiplayer (design side)
 
-* **Turn modes:** Simultaneous; **Dynamic** (simultaneous in peace, sequential between players at war); Sequential; and **Hybrid with a turn timer**
+* **Turn modes:** Simultaneous; **Dynamic** (simultaneous in peace, sequential between players at war; built, [05/04](05-key-systems/04-multiplayer-networking.md#turn-modes-simultaneous-dynamic-and-sequential-are-implemented)); Sequential; and **Hybrid with a turn timer**
   (dynamic timer: base plus per-city and per-unit allowance).
 * **Teams** share vision, map tacks, research boosts and victory. Team chat and pings are on the map.
 * **Hotseat** with a privacy screen. **Async** play-by-cloud or play-by-email using the same command log.

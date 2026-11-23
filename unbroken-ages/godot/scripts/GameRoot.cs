@@ -199,8 +199,10 @@ public partial class GameRoot
         int next = WorldSystem.Forecast(s, w.WorldEra + 1);
         string age = WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age";
         string forecast = next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age";
+        // Dynamic and sequential turns: say whose phase it is (only when there is more than one).
+        string phase = s.TurnPhases.Count > 1 ? $"   {TurnPhases.Describe(s)}" : "";
         return $"{age}   Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}   " +
-               $"→ if a new era began now: {forecast}   [L] supply  [C] chronicle  [V] divergence";
+               $"→ if a new era began now: {forecast}{phase}   [L] supply  [C] chronicle  [V] divergence";
     }
 }
 

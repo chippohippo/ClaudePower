@@ -26,7 +26,8 @@ public sealed class HostOptions
 ///  1. Clients send intents (SubmitMsg). The host validates against ITS state, rewrites the
 ///     issuer to the connection's slot (anti-spoofing), applies, stamps a global sequence number
 ///     and broadcasts. Every peer applies the identical ordered command stream.
-///  2. The host alone decides when a turn ends and issues AdvanceTurn; AI runs only here.
+///  2. The host alone decides when a turn ends and issues AdvanceTurn; AI runs only here. It enforces the turn
+///     phases (simultaneous, sequential, or dynamic: enemies never move at once) and runs each AI when its phase opens.
 ///  3. After each AdvanceTurn every client reports a state hash. On mismatch the host sends a
 ///     full snapshot (ResyncMsg) — the game heals itself instead of ending in "desync".
 ///  4. Reconnect tokens let a dropped player rejoin the same slot mid-game.
@@ -58,6 +59,17 @@ public sealed class HostSession : IDisposable
     public List<string> Log { get; } = new();
     public List<ChatMsg> Chat { get; } = new();
     public event Action<IReadOnlyList<GameEvent>>? EventsRaised;
+    private bool _driving;
+
+    /// <summary>Players allowed to act right now (the current turn phase).</summary>
+    public IReadOnlyList<int> ActivePlayers
+    {
+        get
+        {
+            int current = State == null ? -1 : TurnPhases.Current(State);
+            return current < 0 ? Array.Empty<int>() : State!.TurnPhases[current];
+        }
+    }
 
     public HostSession(GameDatabase db, IServerTransport transport, GameSetup setup, HostOptions? options = null)
     {
@@ -85,7 +97,7 @@ public sealed class HostSession : IDisposable
         var start = new StartGameMsg { Setup = GameSetupCodec.Serialize(Setup), InitialHash = GameStateSerializer.Hash(State) };
         BroadcastToAll(start);
         Log.Add($"Game started: {Setup.Players.Count} players, seed {Setup.Seed}.");
-        RunAi();
+        CheckTurnEnd();
     }
 
     public void Poll()
@@ -247,6 +259,8 @@ public sealed class HostSession : IDisposable
     {
         if (State == null) return CommandResult.Fail("Game not started.");
         if (Paused && cmd.Type != CommandType.AdvanceTurn) return CommandResult.Fail("Game is paused.");
+        if (cmd.Type != CommandType.OneMoreTurn && !TurnPhases.MayAct(State, cmd.Player))
+            return CommandResult.Fail($"Not your phase yet. {TurnPhases.Describe(State)}.");
         var events = new List<GameEvent>();
         var result = CommandProcessor.Execute(State, cmd, events);
         if (!result.Ok) return result;
@@ -267,36 +281,48 @@ public sealed class HostSession : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Drives the turn forward: runs the AI of the phase that is moving, auto-ends disconnected players there, opens the next
+    /// phase when everyone in this one has ended, and advances the turn after the last phase. Stops to wait for humans.
+    /// </summary>
     private void CheckTurnEnd()
     {
-        if (State == null || Paused) return;
-        bool anyHuman = false;
-        foreach (var p in State.Players)
+        if (State == null || Paused || _driving) return;
+        if (!State.Players.Any(p => !p.IsFreeCities && p.IsAlive && Setup.Players[p.Id].IsHuman)) return; // the host never plays alone
+        _driving = true;
+        try
         {
-            if (p.IsFreeCities || !p.IsAlive || !Setup.Players[p.Id].IsHuman) continue;
-            anyHuman = true;
-            if (p.HasEndedTurn) continue;
-            if (_options.AutoEndDisconnectedPlayers && !IsSlotConnected(p.Id) && _slotTokens.ContainsKey(p.Id))
+            for (int guard = 0; guard < 256; guard++)
             {
-                Process(new EndTurnCommand { Player = p.Id }, -1, 0);
-                return; // Process re-enters CheckTurnEnd
+                if (State.Victory.AwaitingChoice) return;
+                int phase = TurnPhases.Current(State);
+                if (phase < 0)
+                {
+                    if (!Process(new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = State.Turn }, -1, 0).Ok) return;
+                    continue;
+                }
+                foreach (int slot in State.TurnPhases[phase])
+                {
+                    var p = State.Players[slot];
+                    if (!p.IsAlive || p.HasEndedTurn) continue;
+                    if (_ai.TryGetValue(slot, out var ai))
+                    {
+                        foreach (var cmd in ai.TakeTurn(State, slot).ToList())
+                        {
+                            cmd.Player = slot;
+                            Process(cmd, slot, 0);
+                        }
+                        if (!p.HasEndedTurn) Process(new EndTurnCommand { Player = slot }, slot, 0);
+                    }
+                    else if (_options.AutoEndDisconnectedPlayers && !IsSlotConnected(slot) && _slotTokens.ContainsKey(slot))
+                    {
+                        Process(new EndTurnCommand { Player = slot }, -1, 0);
+                    }
+                }
+                if (TurnPhases.Current(State) == phase) return; // waiting for the humans of this phase
             }
-            return;
         }
-        if (!anyHuman) return;
-        Process(new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = State.Turn }, -1, 0);
-        RunAi();
-    }
-
-    private void RunAi()
-    {
-        if (State == null) return;
-        foreach (var (slot, ai) in _ai.OrderBy(kv => kv.Key))
-            foreach (var cmd in ai.TakeTurn(State, slot).ToList())
-            {
-                cmd.Player = slot;
-                Process(cmd, slot, 0);
-            }
+        finally { _driving = false; }
     }
 
     // ----- Helpers -------------------------------------------------------------------------------

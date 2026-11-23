@@ -72,6 +72,7 @@ public static class TurnProcessor
         VictorySystem.Check(s, events, endOfTurn: true);
         s.Turn++;
         foreach (var p in s.Players) p.HasEndedTurn = false;
+        TurnPhases.Begin(s);
         events.Add(new GameEvent(GameEventType.TurnAdvanced, Value: s.Turn));
         return events;
     }

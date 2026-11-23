@@ -35,7 +35,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Living Governors: experience, ranks and 9 data-driven traits earned from where they serve | ✔ |
 | Outposts: Waymakers, radius-1 claims, supply source, one harvested resource, raids, promotion to a city | ✔ |
 | Unit upgrades with 2–3 variants each (honest trade-offs), unique-unit substitution, gold and resource costs | ✔ |
-| 170 automated tests | ✔ |
+| Turn modes: dynamic (war-graph phases), sequential and simultaneous; phases in the state; host-enforced over real sockets | ✔ |
+| 174 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -72,7 +73,7 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 
 **Goal:** Direct IP, LAN and relay multiplayer good enough for weekly community games of 8–12 players.
 
-* Turn modes: simultaneous, **dynamic**, sequential, hybrid timers; pause voting; AI takeover of dropped players; teams with shared vision and tacks.
+* Turn modes: ~~simultaneous, dynamic, sequential~~ (built in M0), hybrid timers; pause voting; AI takeover of dropped players; teams with shared vision and tacks.
 * NAT: UPnP/PCP port mapping, connection doctor ("your port is closed", reachability test), **relay service** with room codes (open-source server).
 * Chaos-test transport (latency, loss, reorder) in CI; reconnect at any phase; spectators with optional delay; in-game chat and pings.
 * Late-game management: **provinces**, puppets, empire-wide queue templates, ~~Outposts~~ (built in M0), **Private Enterprise**.

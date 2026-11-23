@@ -263,6 +263,8 @@ public sealed class GameState
     public List<Relation> Relations = new();
     public List<Grievance> Grievances = new();
     public VictoryState Victory = new();
+    /// <summary>Who moves in which order this turn (see TurnPhases).</summary>
+    public List<int[]> TurnPhases = new();
     public Pcg32 GameplayRng;
     public Pcg32 DisasterRng;
     public Pcg32 CombatRng;

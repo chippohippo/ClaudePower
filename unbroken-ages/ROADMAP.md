@@ -23,7 +23,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **5. Living Governors**: experience and data-driven traits earned from where they serve.
 - [x] **6. Outposts**: cheap claims (radius 1, supply source, one resource), with no city screen; promotable to a city.
 - [x] **7. Unit variants**: choose 1 of 2–3 variants at upgrade; `UpgradeUnitCommand` with gold and resource costs.
-- [ ] **8. Dynamic turn mode**: phase ordering by war graph in `HostSession`, with tests over sockets.
+- [x] **8. Dynamic turn mode**: phase ordering by war graph in `HostSession`, with tests over sockets.
 - [ ] **9. AI v2**: expansion (settlers), builders, war planning (declare war on weak neighbours, attack with odds > 60%, retreat when out of supply), peace.
 - [ ] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
 
@@ -39,5 +39,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
   release on elimination, `worldRules.outposts`, map marker, snapshot v9, 8 tests (163 total).
 - 7. Unit variants: `unitVariant` data (Swordsman, Archer, River Monitor), `UnitStats` (variant-aware strength, range, moves, river fording),
   `UpgradeSystem` + `UpgradeUnitCommand` (unique-unit substitution, gold × variant %, resource cost), AI preset upgrades, snapshot v10, 7 tests (170 total).
+- 8. Dynamic turn mode: `TurnPhases` (dynamic war-graph colouring, sequential, simultaneous) stored in the state at each turn start, host-side phase
+  gate and phase-by-phase AI/turn driver in `HostSession`, HUD phase line, snapshot v11, 4 tests including a real-socket game (174 total).
 
 (see git log for full detail)
