@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 11;
+    public const int Version = 12;
 
     public static byte[] Serialize(GameState s)
     {
@@ -59,6 +59,7 @@ public static class GameStateSerializer
             w.Write(p.CurrentTech); w.Write(p.CurrentCivic); WriteFx(w, p.TechProgress); WriteFx(w, p.CivicProgress);
             WriteBools(w, p.Techs); WriteBools(w, p.Civics);
             WriteArray<int>(w, p.Stockpile);
+            WriteBools(w, p.Revealed);
             w.Write((byte)p.Age); w.Write(p.GovernorTitles);
             w.Write(p.Governors.Count);
             foreach (var g in p.Governors)
@@ -195,6 +196,7 @@ public static class GameStateSerializer
             p.Civics = ReadBools(r);
             p.Stockpile = new int[r.ReadInt32()];
             ReadArrayBody(r, p.Stockpile);
+            p.Revealed = ReadBools(r);
             p.Age = (AgeState)r.ReadByte();
             p.GovernorTitles = r.ReadInt32();
             int govs = r.ReadInt32();

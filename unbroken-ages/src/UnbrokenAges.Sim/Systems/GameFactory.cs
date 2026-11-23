@@ -72,6 +72,7 @@ public static class GameFactory
             Stockpile = new int[db.Resources.Count],
         });
         TurnPhases.Begin(s);
+        VisibilitySystem.RevealAll(s);
         return s;
     }
 

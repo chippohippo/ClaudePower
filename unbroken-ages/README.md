@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 189 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 195 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -60,11 +60,33 @@ Civilization VII's age resets or civ-swapping.
 * **Direct IP multiplayer**: dynamic turns (civilizations at peace move together, enemies alternate phases), authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
+## Play it (first playable)
+
+1. Install the [.NET 8 SDK](https://dotnet.microsoft.com/download) and **Godot 4.3, .NET edition**.
+2. `dotnet build godot/UnbrokenAges.Client.csproj`, then open `godot/project.godot` in Godot and press Play (F5).
+3. In the lobby choose **Single player** and **Launch**. Your Settler is selected: press **B** to found your capital.
+
+| Do this | How |
+|---|---|
+| Select a unit or city | Left-click (click a city again to cycle through the units inside) |
+| Move or attack | Right-click a tile (hovering an enemy shows the combat preview first) |
+| Next unit · Found city · Fortify | Space · B · F (or the buttons in the unit panel) |
+| Research and civics | T |
+| City production | Click your city: queue, reorder, buy |
+| End turn | Enter or the End Turn button (it names anything still waiting for you) |
+| Diplomacy · Chronicle · Divergence · Supply lens | P · C · V · L |
+| Save · Load | F5 · F9 |
+| Pan · Zoom · Close a screen | WASD or arrows · mouse wheel · Esc |
+
+Graphics are placeholders: coloured hexes, discs for armies, beads for civilians, columns for cities. Fog of war hides what you have
+not explored. `tools/client-smoke.sh` plays 45 turns of the real client with scripted input and saves screenshots (it runs headless
+with `xvfb-run` and a software Vulkan driver).
+
 ## Quick start
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 189 tests, ~2 s
+dotnet test                                        # 195 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

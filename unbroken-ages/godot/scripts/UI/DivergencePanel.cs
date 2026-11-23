@@ -117,7 +117,7 @@ public partial class DivergencePanel : PanelContainer
         if (@event is InputEventKey { Pressed: true, Keycode: Key.V })
         {
             Visible = !Visible;
-            if (Visible) Refresh();
+            if (Visible) { _root.CloseOverlaysExcept(this); Refresh(); }
         }
     }
 }

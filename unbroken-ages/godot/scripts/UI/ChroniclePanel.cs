@@ -43,7 +43,7 @@ public partial class ChroniclePanel : PanelContainer
         if (@event is InputEventKey { Pressed: true, Keycode: Key.C })
         {
             Visible = !Visible;
-            if (Visible) Refresh();
+            if (Visible) { _root.CloseOverlaysExcept(this); Refresh(); }
         }
     }
 }

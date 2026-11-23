@@ -143,6 +143,8 @@ public static class CommandProcessor
         WorldSystem.Push(s, events, from);
         DiplomacySystem.OnEvents(s, events, from);
         VictorySystem.Check(s, events, endOfTurn: false);   // e.g. the capture that completes Hegemony
+        if (cmd.Player >= 0) VisibilitySystem.Reveal(s, cmd.Player);
+        else VisibilitySystem.RevealAll(s);                  // turn end: everyone's units moved
         ChronicleSystem.Record(s, events, from);
         return CommandResult.Success;
     }

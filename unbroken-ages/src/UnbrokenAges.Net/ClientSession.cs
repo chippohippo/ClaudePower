@@ -37,7 +37,8 @@ public sealed class ClientSession : IDisposable
     public long LastSeq { get; private set; }
     public bool Paused { get; private set; }
     public string? RejectReason { get; private set; }
-    public string? LastCommandError { get; private set; }
+    /// <summary>The host's last refusal; the UI shows it and clears it.</summary>
+    public string? LastCommandError { get; set; }
     public int ResyncsApplied { get; private set; }
     public LobbyMsg? Lobby { get; private set; }
     public List<ChatMsg> Chat { get; } = new();

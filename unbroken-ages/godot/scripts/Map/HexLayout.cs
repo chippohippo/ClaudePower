@@ -97,6 +97,13 @@ public partial class StrategyCamera : Camera3D
         }
     }
 
+    /// <summary>Multiplies the camera distance (scripted views, a future zoom slider).</summary>
+    public void Zoom(float factor)
+    {
+        _distance = Mathf.Clamp(_distance * factor, 5f, 90f);
+        UpdateTransform();
+    }
+
     private void UpdateTransform()
     {
         // Steeper when zoomed out (strategic view), lower when close (city view).

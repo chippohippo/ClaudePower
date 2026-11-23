@@ -6,7 +6,8 @@ commits, pushes to the session branch, and checks the item off here with the com
 
 **Verification before every commit:** `dotnet build UnbrokenAges.sln` · `dotnet test UnbrokenAges.sln` (all green) ·
 content schema check (`content/schemas`) · `ua validate mods/example-river-trade` · `ua simulate --turns 200` (no crash; note ms/turn) ·
-`dotnet build godot/UnbrokenAges.Client.csproj` (then delete `godot/.godot`, `godot/bin`, `godot/obj`).
+`dotnet build godot/UnbrokenAges.Client.csproj` · `GODOT=<godot 4.3 .NET binary> tools/client-smoke.sh` (plays the real client 45 turns; check the screenshots)
+(then delete `godot/.godot`, `godot/bin`, `godot/obj`).
 
 Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original names only; deterministic sim (Fx, seeded RNG streams, id-ordered iteration).
 
@@ -47,6 +48,11 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
   grievances, actions with validation tooltips), `VictoryPanel` (headline, itemized scores, One More Turn, defeat), red double borders for
   enemies at war; sim-side text (`CombatSystem.Describe/Verdict/OddsPercent`, `DiplomacySystem.StatusName`, `VictorySystem.Headline`); wireframes
   §4, §7c–7e; 7 tests (189 total).
+
+**First playable (done):** units drawn on the map, selection ring, fog of war (`VisibilitySystem`, revealed tiles in the state), unit panel
+(found city, outpost, improvements, fortify, upgrades with variants), research and civics picker, notification feed (`EventText`), end-turn bar
+with to-dos, save/load (`SaveGame`), exclusive overlays with an opaque theme, city-first clicks, and `tools/client-smoke.sh` with the `--autostart/--do/--shots`
+automation hook. 6 tests (195 total).
 
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.

@@ -14,7 +14,7 @@ namespace UnbrokenAges.Client.Map;
 /// </summary>
 public partial class HexMapView : Node3D
 {
-    private MultiMeshInstance3D _flat = null!, _hills = null!, _mountains = null!, _districts = null!, _cities = null!;
+    private MultiMeshInstance3D _flat = null!, _hills = null!, _mountains = null!, _districts = null!, _cities = null!, _military = null!, _civilians = null!;
     private MeshInstance3D _rivers = null!, _borders = null!, _selection = null!;
     private readonly Dictionary<string, Color> _palette = new()
     {
@@ -36,9 +36,16 @@ public partial class HexMapView : Node3D
         _mountains = Make(new CylinderMesh { TopRadius = 0.02f, BottomRadius = 0.9f, Height = 1.6f, RadialSegments = 6, Rings = 1 }, vertexColor);
         _districts = Make(new BoxMesh { Size = new Vector3(0.7f, 0.45f, 0.7f) }, vertexColor);
         _cities = Make(new CylinderMesh { TopRadius = 0.5f, BottomRadius = 0.6f, Height = 0.9f, RadialSegments = 8 }, vertexColor);
+        _military = Make(new CylinderMesh { TopRadius = 0.34f, BottomRadius = 0.38f, Height = 0.22f, RadialSegments = 12 }, vertexColor);
+        _civilians = Make(new SphereMesh { Radius = 0.22f, Height = 0.44f, RadialSegments = 10, Rings = 6 }, vertexColor);
         _rivers = new MeshInstance3D();
         _borders = new MeshInstance3D();
-        _selection = new MeshInstance3D();
+        _selection = new MeshInstance3D
+        {
+            Mesh = new TorusMesh { InnerRadius = 0.72f, OuterRadius = 0.88f, Rings = 24, RingSegments = 6 },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("#ffd54a"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded },
+            Visible = false,
+        };
         AddChild(_rivers);
         AddChild(_borders);
         AddChild(_selection);
@@ -55,7 +62,17 @@ public partial class HexMapView : Node3D
         return mmi;
     }
 
-    public void Render(GameState s, int viewer)
+    private Color CivColor(GameState s, int player)
+    {
+        int civ = player >= 0 ? s.Players[player].CivIndex : -1;
+        return civ >= 0 ? new Color(s.Db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
+    }
+
+    /// <summary>
+    /// Draws the map as <paramref name="viewer"/> knows it: unexplored tiles are not drawn, explored-but-unseen tiles are dimmed
+    /// and show no foreign units, and the selected tile gets a ring.
+    /// </summary>
+    public void Render(GameState s, int viewer, int selectedTile = -1)
     {
         var map = s.Map;
         var db = s.Db;
@@ -64,33 +81,50 @@ public partial class HexMapView : Node3D
         var mountains = new List<(Transform3D, Color)>();
         var districts = new List<(Transform3D, Color)>();
         var cities = new List<(Transform3D, Color)>();
+        var military = new List<(Transform3D, Color)>();
+        var civilians = new List<(Transform3D, Color)>();
         var rotate = new Basis(Vector3.Up, Mathf.Pi / 6f); // cylinder hexagon → pointy-top
+        var visible = VisibilitySystem.Visible(s, viewer);
+        var revealed = s.Players[viewer].Revealed;
+        bool Known(int t) => t < revealed.Length && revealed[t];
 
         for (int t = 0; t < map.Count; t++)
         {
+            if (!Known(t)) continue;
             var hex = map.CoordOf(t);
             var color = TileColor(s, t);
+            if (!visible[t]) color = color.Darkened(0.45f);
             bool water = map.IsWater(t);
             var pos = HexLayout.ToWorld(hex, water ? -0.12f : 0f);
             flat.Add((new Transform3D(rotate, pos), color));
-            if (map.IsMountain(t)) mountains.Add((new Transform3D(rotate, pos + Vector3.Up * 0.8f), new Color("#8a8178")));
+            if (map.IsMountain(t)) mountains.Add((new Transform3D(rotate, pos + Vector3.Up * 0.8f), visible[t] ? new Color("#8a8178") : new Color("#4a4540")));
             else if (map.Relief[t] == db.Ids.Hills) hills.Add((new Transform3D(rotate, pos + Vector3.Up * 0.3f), color.Darkened(0.1f)));
             if (map.District[t] >= 0 && map.District[t] != db.Ids.CityCenter)
                 districts.Add((new Transform3D(Basis.Identity, pos + Vector3.Up * 0.35f), DistrictColor(db.Districts[map.District[t]])));
         }
         foreach (var c in s.Cities)
-        {
-            var civ = s.Players[c.Owner].CivIndex;
-            var color = civ >= 0 ? new Color(db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
-            cities.Add((new Transform3D(Basis.Identity, HexLayout.ToWorld(map.CoordOf(c.Tile), 0.5f)), color));
-        }
+            if (Known(c.Tile)) cities.Add((new Transform3D(Basis.Identity, HexLayout.ToWorld(map.CoordOf(c.Tile), 0.5f)), CivColor(s, c.Owner)));
         // Outposts: a slim post in the owner's colour (no city screen to open).
         foreach (var o in s.Outposts)
         {
-            var civ = s.Players[o.Owner].CivIndex;
-            var color = civ >= 0 ? new Color(db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
+            if (!Known(o.Tile)) continue;
             var post = new Transform3D(Basis.Identity.Scaled(new Vector3(0.5f, 1.6f, 0.5f)), HexLayout.ToWorld(map.CoordOf(o.Tile), 0.45f));
-            districts.Add((post, color.Lightened(0.25f)));
+            districts.Add((post, CivColor(s, o.Owner).Lightened(0.25f)));
+        }
+        // Units: discs for military, beads for civilians, in the owner's colour; stacked units fan out around the tile.
+        var perTile = new Dictionary<int, int>();
+        foreach (var u in s.Units)
+        {
+            if (u.Tile < 0 || !visible[u.Tile]) continue;
+            int k = perTile.GetValueOrDefault(u.Tile);
+            perTile[u.Tile] = k + 1;
+            bool inCity = s.Cities.Any(c => c.Tile == u.Tile);
+            var offset = k == 0 && !inCity ? Vector3.Zero : new Vector3(Mathf.Cos(k * 2.1f + 0.6f), 0, Mathf.Sin(k * 2.1f + 0.6f)) * 0.55f;
+            var pos = HexLayout.ToWorld(map.CoordOf(u.Tile), map.IsWater(u.Tile) ? 0.12f : 0.3f) + offset;
+            var color = CivColor(s, u.Owner);
+            if (u.Owner == viewer) color = color.Lightened(0.15f);
+            if (SupplySystem.IsMilitary(db, u)) military.Add((new Transform3D(Basis.Identity, pos), color));
+            else civilians.Add((new Transform3D(Basis.Identity, pos + Vector3.Up * 0.1f), color));
         }
 
         Fill(_flat, flat);
@@ -98,8 +132,11 @@ public partial class HexMapView : Node3D
         Fill(_mountains, mountains);
         Fill(_districts, districts);
         Fill(_cities, cities);
-        DrawRivers(map);
+        Fill(_military, military);
+        Fill(_civilians, civilians);
+        DrawRivers(map, revealed);
         DrawBorders(s, viewer);
+        Select(selectedTile, map);
     }
 
     private static void Fill(MultiMeshInstance3D mmi, List<(Transform3D T, Color C)> items)
@@ -152,7 +189,7 @@ public partial class HexMapView : Node3D
     };
 
     /// <summary>Edge rivers are drawn exactly on hex edges, matching the adjacency rules players read.</summary>
-    private void DrawRivers(MapGrid map)
+    private void DrawRivers(MapGrid map, bool[] revealed)
     {
         var mesh = new ImmediateMesh();
         var mat = new StandardMaterial3D { AlbedoColor = new Color("#7fd3ff"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
@@ -162,7 +199,7 @@ public partial class HexMapView : Node3D
         {
             for (int d = 0; d < 3; d++) // each edge once: E, NE, NW
             {
-                if (!map.HasRiverEdge(t, d)) continue;
+                if (!map.HasRiverEdge(t, d) || t >= revealed.Length || !revealed[t]) continue;
                 var (a, b) = HexLayout.Edge(map.CoordOf(t), d, 0.12f);
                 mesh.SurfaceAddVertex(a);
                 mesh.SurfaceAddVertex(b);
@@ -189,7 +226,7 @@ public partial class HexMapView : Node3D
         for (int t = 0; t < map.Count; t++)
         {
             int owner = map.OwnerPlayer[t];
-            if (owner < 0) continue;
+            if (owner < 0 || viewer < 0 || t >= s.Players[viewer].Revealed.Length || !s.Players[viewer].Revealed[t]) continue;
             int civ = s.Players[owner].CivIndex;
             var color = civ >= 0 ? new Color(s.Db.Civilizations[civ].Colors.Primary) : Colors.White;
             bool enemy = owner != viewer && DiplomacySystem.AtWar(s, viewer, owner) && !s.Players[owner].IsFreeCities;
@@ -241,9 +278,9 @@ public partial class HexMapView : Node3D
         Fill(_supply, items);
     }
 
-    public void Select(int tile)
+    public void Select(int tile, MapGrid map)
     {
-        // Selection ring; unit/tile info panels subscribe to this in the full UI.
-        _selection.Position = Vector3.Zero;
+        _selection.Visible = tile >= 0;
+        if (tile >= 0) _selection.Position = HexLayout.ToWorld(map.CoordOf(tile), map.IsWater(tile) ? 0.02f : 0.14f);
     }
 }

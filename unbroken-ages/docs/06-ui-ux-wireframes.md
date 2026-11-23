@@ -233,6 +233,15 @@ panel is tinted green, amber or red with the verdict word always written out, so
 Opens by itself when the game is won (the game then accepts only One More Turn). "VICTORY" or "DEFEAT" depends on your team. Every
 civilization's score is itemized. An eliminated player sees "Your civilization has fallen." **Implemented:** `godot/scripts/UI/VictoryPanel.cs`.
 
+## 7f. First-playable HUD (implemented)
+* **Unit panel** (bottom-left, `UnitPanel.cs`): name with variant, strength, HP, moves, charges, and every action available here. Impossible
+  actions stay visible and disabled, with the host's reason as the tooltip.
+* **Research and civics** (T, `ResearchPanel.cs`): the current choices with progress and rates, and every available node with cost and turns.
+* **Notification feed** (left, `NotificationFeed.cs` over `EventText`): your news in the second person, the world's news by name, warnings.
+* **Turn bar** (bottom-centre, `TurnBar.cs`): what still needs you ("Choose research (T)", "1 city needs production"), End Turn, Save, Load.
+* Fog of war: unexplored tiles are not drawn, explored ones are dimmed when out of sight, and foreign units show only in sight.
+* Full-screen overlays (research, diplomacy, Chronicle, Divergence) are exclusive, and Esc closes them.
+
 ## 7e. Borders and fronts
 Borders are drawn in the owner's colour, your own brighter. A civilization **at war with you** gets a **red double line**: the doubling
 carries the meaning for colourblind players, and the red is a reinforcement. **Implemented:** `HexMapView.DrawBorders`.

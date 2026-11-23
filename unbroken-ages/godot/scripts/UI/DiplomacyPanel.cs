@@ -76,7 +76,7 @@ public partial class DiplomacyPanel : PanelContainer
         if (@event is InputEventKey { Pressed: true, Keycode: Key.P })
         {
             Visible = !Visible;
-            if (Visible) Refresh();
+            if (Visible) { _root.CloseOverlaysExcept(this); Refresh(); }
         }
     }
 }
