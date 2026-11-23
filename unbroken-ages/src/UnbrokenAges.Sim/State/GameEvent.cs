@@ -1,0 +1,36 @@
+namespace UnbrokenAges.Sim.State;
+
+public enum GameEventType : byte
+{
+    CityFounded,
+    ProductionCompleted,
+    QueueItemInvalidated,
+    CityGrew,
+    CityStarved,
+    TechResearched,
+    CivicCompleted,
+    GovernorEstablished,
+    CityDeclaredIndependence,
+    CityFlipped,
+    LoyaltyWarning,
+    PowerShortage,
+    ClimatePhaseChanged,
+    TileFlooded,
+    TileSubmerged,
+    Disaster,
+    ImprovementBuilt,
+    TurnAdvanced,
+}
+
+/// <summary>
+/// Facts emitted by the simulation for the presentation layer (notifications, animations,
+/// timeline/replay). Events are outputs only; they never feed back into the simulation.
+/// </summary>
+public readonly record struct GameEvent(
+    GameEventType Type,
+    int Player = -1,
+    int City = -1,
+    int Tile = -1,
+    int Def = -1,
+    int Value = 0,
+    string? Detail = null);

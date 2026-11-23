@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../content/schemas/content.schema.json",
+
+  // 1) ADD a brand-new building.
+  "buildings": [
+    { "id": "BUILDING_TOLL_HOUSE", "name": "Toll House", "district": "DISTRICT_RIVER_PORT", "cost": 150, "maintenance": 1,
+      "yields": { "gold": 3 }, "prereqTech": "TECH_CURRENCY", "requiresBuildings": ["BUILDING_RIVER_DOCKS"],
+      "modifiers": [ { "effect": "CityYieldFlat", "yield": "Gold", "amount": 2, "requirements": [ { "type": "CityOnGreatRiver" } ] } ] }
+  ],
+
+  // 2) PATCH an existing district: append one adjacency rule, leave the rest untouched.
+  "districts": [
+    { "$op": "patch", "id": "DISTRICT_SANCTUARY",
+      "adjacency": { "$append": [ { "yield": "Faith", "amount": 1, "source": { "district": "DISTRICT_RIVER_PORT" }, "label": "+1 Faith per adjacent River Port (pilgrim boats)" } ] } }
+  ],
+
+  // 3) PATCH a scalar.
+  "units": [
+    { "$op": "patch", "id": "UNIT_RIVER_BARGE", "moves": 5 }
+  ],
+
+  // 4) PATCH a nested list inside a governor.
+  "governors": [
+    { "$op": "patch", "id": "GOVERNOR_TREASURER",
+      "promotions": { "$append": [
+        { "id": "TREASURER_RIVER_GUILD", "name": "River Guild", "tier": 3, "requires": ["TREASURER_RIVER_TOLLS"],
+          "modifiers": [ { "effect": "CityProductionPercent", "category": "District", "amount": 20, "requirements": [ { "type": "CityHasDistrict", "id": "DISTRICT_RIVER_PORT" } ] } ] }
+      ] } }
+  ]
+}

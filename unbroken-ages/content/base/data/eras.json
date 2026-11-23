@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/content.schema.json",
+  "eras": [
+    { "id": "ERA_ANCIENT",     "name": "Ancient Era",     "order": 0 },
+    { "id": "ERA_CLASSICAL",   "name": "Classical Era",   "order": 1 },
+    { "id": "ERA_MEDIEVAL",    "name": "Medieval Era",    "order": 2 },
+    { "id": "ERA_RENAISSANCE", "name": "Renaissance Era", "order": 3 },
+    { "id": "ERA_INDUSTRIAL",  "name": "Industrial Era",  "order": 4 },
+    { "id": "ERA_MODERN",      "name": "Modern Era",      "order": 5 },
+    { "id": "ERA_ATOMIC",      "name": "Atomic Era",      "order": 6 },
+    { "id": "ERA_INFORMATION", "name": "Information Era", "order": 7 },
+    { "id": "ERA_FUTURE",      "name": "Future Era",      "order": 8 }
+  ],
+  "mapSizes": [
+    { "id": "MAPSIZE_DUEL",     "name": "Duel",     "width": 44,  "height": 26, "defaultPlayers": 2,  "greatRivers": 1 },
+    { "id": "MAPSIZE_SMALL",    "name": "Small",    "width": 64,  "height": 40, "defaultPlayers": 4,  "greatRivers": 2 },
+    { "id": "MAPSIZE_STANDARD", "name": "Standard", "width": 84,  "height": 54, "defaultPlayers": 8,  "greatRivers": 4 },
+    { "id": "MAPSIZE_LARGE",    "name": "Large",    "width": 104, "height": 64, "defaultPlayers": 10, "greatRivers": 5 },
+    { "id": "MAPSIZE_HUGE",     "name": "Huge",     "width": 128, "height": 80, "defaultPlayers": 12, "greatRivers": 7 }
+  ]
+}

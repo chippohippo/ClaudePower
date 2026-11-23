@@ -1,0 +1,10 @@
+{
+  "id": "example-river-trade",
+  "name": "River Trade Expanded (example mod)",
+  "version": "1.0.0",
+  "description": "Demonstrates add / patch / $append against the base game: a River Port building, a Sanctuary adjacency, a faster barge and a new Treasurer promotion.",
+  "authors": ["Unbroken Ages modding docs"],
+  "dependsOn": [ { "id": "base", "minVersion": "0.1.0" } ],
+  "affectsGameplay": true,
+  "localization": ["localization/en.json"]
+}

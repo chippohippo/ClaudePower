@@ -1,0 +1,44 @@
+{
+  // Separate technology and civic trees. Costs here are "Standard speed, standard era pacing";
+  // GameOptions.EraPacingPercent stretches them ("Extended Eras") so unique units stay relevant.
+  "$schema": "../../schemas/content.schema.json",
+  "techs": [
+    { "id": "TECH_POTTERY",              "name": "Pottery",              "era": "ERA_ANCIENT",     "cost": 25 },
+    { "id": "TECH_ANIMAL_HUSBANDRY",     "name": "Animal Husbandry",     "era": "ERA_ANCIENT",     "cost": 25 },
+    { "id": "TECH_MINING",               "name": "Mining",               "era": "ERA_ANCIENT",     "cost": 25 },
+    { "id": "TECH_SAILING",              "name": "Sailing",              "era": "ERA_ANCIENT",     "cost": 50, "boost": "Found a city on a coast or Great River." },
+    { "id": "TECH_ASTROLOGY",            "name": "Astrology",            "era": "ERA_ANCIENT",     "cost": 50 },
+    { "id": "TECH_IRRIGATION",           "name": "Irrigation",           "era": "ERA_ANCIENT",     "cost": 50, "prereqs": ["TECH_POTTERY"] },
+    { "id": "TECH_WRITING",              "name": "Writing",              "era": "ERA_ANCIENT",     "cost": 50, "prereqs": ["TECH_POTTERY"] },
+    { "id": "TECH_ARCHERY",              "name": "Archery",              "era": "ERA_ANCIENT",     "cost": 50, "prereqs": ["TECH_ANIMAL_HUSBANDRY"] },
+    { "id": "TECH_MASONRY",              "name": "Masonry",              "era": "ERA_ANCIENT",     "cost": 80, "prereqs": ["TECH_MINING"] },
+    { "id": "TECH_BRONZE_WORKING",       "name": "Bronze Working",       "era": "ERA_ANCIENT",     "cost": 80, "prereqs": ["TECH_MINING"] },
+    { "id": "TECH_CELESTIAL_NAVIGATION", "name": "Celestial Navigation", "era": "ERA_CLASSICAL",   "cost": 120, "prereqs": ["TECH_SAILING", "TECH_ASTROLOGY"] },
+    { "id": "TECH_CURRENCY",             "name": "Currency",             "era": "ERA_CLASSICAL",   "cost": 120, "prereqs": ["TECH_WRITING"] },
+    { "id": "TECH_ENGINEERING",          "name": "Engineering",          "era": "ERA_CLASSICAL",   "cost": 200, "prereqs": ["TECH_MASONRY"], "boost": "Build an Aqueduct... or a Canal." },
+    { "id": "TECH_APPRENTICESHIP",       "name": "Apprenticeship",       "era": "ERA_MEDIEVAL",    "cost": 290, "prereqs": ["TECH_CURRENCY", "TECH_MINING"] },
+    { "id": "TECH_EDUCATION",            "name": "Education",            "era": "ERA_MEDIEVAL",    "cost": 330, "prereqs": ["TECH_APPRENTICESHIP"] },
+    { "id": "TECH_INDUSTRIALIZATION",    "name": "Industrialization",    "era": "ERA_INDUSTRIAL",  "cost": 700, "prereqs": ["TECH_EDUCATION"] },
+    { "id": "TECH_ELECTRICITY",          "name": "Electricity",          "era": "ERA_INDUSTRIAL",  "cost": 985, "prereqs": ["TECH_INDUSTRIALIZATION"] },
+    { "id": "TECH_REFINING",             "name": "Refining",             "era": "ERA_MODERN",      "cost": 1250, "prereqs": ["TECH_ELECTRICITY"] },
+    { "id": "TECH_FLIGHT",               "name": "Flight",               "era": "ERA_MODERN",      "cost": 1250, "prereqs": ["TECH_ELECTRICITY"] },
+    { "id": "TECH_NUCLEAR_FISSION",      "name": "Nuclear Fission",      "era": "ERA_ATOMIC",      "cost": 1480, "prereqs": ["TECH_REFINING"] },
+    { "id": "TECH_ROCKETRY",             "name": "Rocketry",             "era": "ERA_ATOMIC",      "cost": 1480, "prereqs": ["TECH_FLIGHT"] },
+    { "id": "TECH_RENEWABLE_ENERGY",     "name": "Renewable Energy",     "era": "ERA_INFORMATION", "cost": 1850, "prereqs": ["TECH_ELECTRICITY"] },
+    { "id": "TECH_ROBOTICS",             "name": "Robotics",             "era": "ERA_INFORMATION", "cost": 2155, "prereqs": ["TECH_ROCKETRY"] }
+  ],
+  "civics": [
+    { "id": "CIVIC_CODE_OF_LAWS",         "name": "Code of Laws",         "era": "ERA_ANCIENT",     "cost": 20 },
+    { "id": "CIVIC_CRAFTSMANSHIP",        "name": "Craftsmanship",        "era": "ERA_ANCIENT",     "cost": 40, "prereqs": ["CIVIC_CODE_OF_LAWS"] },
+    { "id": "CIVIC_FOREIGN_TRADE",        "name": "Foreign Trade",        "era": "ERA_ANCIENT",     "cost": 40, "prereqs": ["CIVIC_CODE_OF_LAWS"] },
+    { "id": "CIVIC_MYSTICISM",            "name": "Mysticism",            "era": "ERA_ANCIENT",     "cost": 50, "prereqs": ["CIVIC_CODE_OF_LAWS"] },
+    { "id": "CIVIC_STATE_WORKFORCE",      "name": "State Workforce",      "era": "ERA_ANCIENT",     "cost": 70, "prereqs": ["CIVIC_CRAFTSMANSHIP"], "governorTitles": 1 },
+    { "id": "CIVIC_EARLY_EMPIRE",         "name": "Early Empire",         "era": "ERA_ANCIENT",     "cost": 70, "prereqs": ["CIVIC_FOREIGN_TRADE"], "governorTitles": 1 },
+    { "id": "CIVIC_RECORDED_HISTORY",     "name": "Recorded History",     "era": "ERA_CLASSICAL",   "cost": 110, "prereqs": ["CIVIC_MYSTICISM"] },
+    { "id": "CIVIC_POLITICAL_PHILOSOPHY", "name": "Political Philosophy", "era": "ERA_CLASSICAL",   "cost": 110, "prereqs": ["CIVIC_STATE_WORKFORCE", "CIVIC_EARLY_EMPIRE"], "governorTitles": 1 },
+    { "id": "CIVIC_PUBLIC_GAMES",         "name": "Public Games",         "era": "ERA_CLASSICAL",   "cost": 220, "prereqs": ["CIVIC_STATE_WORKFORCE"] },
+    { "id": "CIVIC_CIVIL_ENGINEERING",    "name": "Civil Engineering",    "era": "ERA_RENAISSANCE", "cost": 920, "prereqs": ["CIVIC_POLITICAL_PHILOSOPHY"], "governorTitles": 1 },
+    { "id": "CIVIC_URBANIZATION",         "name": "Urbanization",         "era": "ERA_INDUSTRIAL",  "cost": 1060, "prereqs": ["CIVIC_CIVIL_ENGINEERING"] },
+    { "id": "CIVIC_ENVIRONMENTALISM",     "name": "Environmentalism",     "era": "ERA_INFORMATION", "cost": 2200, "prereqs": ["CIVIC_URBANIZATION"], "governorTitles": 1 }
+  ]
+}

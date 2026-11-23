@@ -1,0 +1,146 @@
+{
+  // Districts are the heart of city planning. Adjacency rules are pure data: the same rules drive
+  // yields, the placement lens, map-tack previews and the AI planner.
+  "$schema": "../../schemas/content.schema.json",
+  "districts": [
+    { "id": "DISTRICT_CITY_CENTER", "name": "City Center", "category": "CityCenter", "cost": 0, "countsTowardLimit": false,
+      "tags": ["CityCenter"],
+      "description": "The capital's City Center also hosts the Palace.",
+      "modifiers": [
+        { "effect": "CityYieldFlat", "yield": "Science", "amount": 2, "requirements": [ { "type": "CityIsCapital" } ] },
+        { "effect": "CityYieldFlat", "yield": "Culture", "amount": 1, "requirements": [ { "type": "CityIsCapital" } ] },
+        { "effect": "CityYieldFlat", "yield": "Gold", "amount": 3, "requirements": [ { "type": "CityIsCapital" } ] },
+        { "effect": "CityYieldFlat", "yield": "Production", "amount": 2, "requirements": [ { "type": "CityIsCapital" } ] },
+        { "effect": "CityAmenities", "amount": 1, "requirements": [ { "type": "CityIsCapital" } ] }
+      ] },
+
+    { "id": "DISTRICT_ACADEMY", "name": "Academy", "category": "Specialty", "primaryYield": "Science", "cost": 54,
+      "prereqTech": "TECH_WRITING", "tags": ["Specialty", "Science"],
+      "description": "Seat of learning. Loves mountains, geothermal vents, reefs and dense rainforest.",
+      "adjacency": [
+        { "yield": "Science", "amount": 1, "source": { "relief": "RELIEF_MOUNTAIN" } },
+        { "yield": "Science", "amount": 2, "source": { "feature": "FEATURE_GEOTHERMAL" } },
+        { "yield": "Science", "amount": 1, "source": { "feature": "FEATURE_REEF" } },
+        { "yield": "Science", "amount": 1, "per": 2, "source": { "feature": "FEATURE_RAINFOREST" } },
+        { "yield": "Science", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_SANCTUARY", "name": "Sanctuary", "category": "Specialty", "primaryYield": "Faith", "cost": 54,
+      "prereqTech": "TECH_ASTROLOGY", "tags": ["Specialty", "Faith"],
+      "adjacency": [
+        { "yield": "Faith", "amount": 1, "source": { "relief": "RELIEF_MOUNTAIN" } },
+        { "yield": "Faith", "amount": 1, "source": { "terrainClass": "Channel" }, "label": "+1 Faith per adjacent Great River (sacred waters)" },
+        { "yield": "Faith", "amount": 1, "per": 2, "source": { "featureTag": "Woods" } },
+        { "yield": "Faith", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_MARKET", "name": "Market Quarter", "category": "Specialty", "primaryYield": "Gold", "cost": 54,
+      "prereqTech": "TECH_CURRENCY", "tags": ["Specialty", "Gold"],
+      "adjacency": [
+        { "yield": "Gold", "amount": 2, "scope": "Self", "source": { "riverEdge": true }, "label": "+2 Gold: a river runs along this district" },
+        { "yield": "Gold", "amount": 2, "source": { "districtTag": "Port" }, "label": "+2 Gold per adjacent Harbor or River Port" },
+        { "yield": "Gold", "amount": 1, "source": { "terrainClass": "Channel" }, "label": "+1 Gold per adjacent Great River" },
+        { "yield": "Gold", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_HARBOR", "name": "Harbor", "category": "Specialty", "primaryYield": "Gold", "cost": 54,
+      "prereqTech": "TECH_CELESTIAL_NAVIGATION", "tags": ["Specialty", "Gold", "Port"],
+      "placement": { "onWater": true, "allowedTerrainClasses": ["Coast", "Lake"], "requiresAdjacentAny": [ { "terrainClass": "Land" } ] },
+      "adjacency": [
+        { "yield": "Gold", "amount": 2, "source": { "cityCenter": true } },
+        { "yield": "Gold", "amount": 1, "source": { "terrainClass": "Coast", "hasResource": true }, "label": "+1 Gold per adjacent sea resource" },
+        { "yield": "Gold", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_RIVER_PORT", "name": "River Port", "category": "Specialty", "primaryYield": "Gold", "cost": 54,
+      "prereqTech": "TECH_SAILING", "tags": ["Specialty", "Gold", "Port"],
+      "description": "Built on a Great River. Trains river boats, hosts river trade routes, and links Markets and Foundries.",
+      "placement": { "onWater": true, "allowedTerrainClasses": ["Channel"] },
+      "adjacency": [
+        { "yield": "Gold", "amount": 2, "source": { "district": "DISTRICT_MARKET" } },
+        { "yield": "Gold", "amount": 1, "per": 2, "source": { "terrainClass": "Channel" }, "label": "+1 Gold per 2 adjacent Great River tiles" },
+        { "yield": "Production", "amount": 1, "source": { "district": "DISTRICT_FOUNDRY" } },
+        { "yield": "Gold", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_CULTURAL_QUARTER", "name": "Cultural Quarter", "category": "Specialty", "primaryYield": "Culture", "cost": 54,
+      "prereqCivic": "CIVIC_RECORDED_HISTORY", "tags": ["Specialty", "Culture"],
+      "adjacency": [
+        { "yield": "Culture", "amount": 2, "source": { "districtTag": "Wonder" }, "label": "+2 Culture per adjacent Wonder" },
+        { "yield": "Culture", "amount": 1, "source": { "district": "DISTRICT_ARENA" } },
+        { "yield": "Culture", "amount": 1, "per": 2, "source": { "freshWater": true }, "label": "+1 Culture per 2 adjacent lakes, oases or Great River tiles" },
+        { "yield": "Culture", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_FOUNDRY", "name": "Foundry", "category": "Specialty", "primaryYield": "Production", "cost": 54,
+      "prereqTech": "TECH_APPRENTICESHIP", "tags": ["Specialty", "Production"],
+      "adjacency": [
+        { "yield": "Production", "amount": 1, "source": { "improvement": "IMPROVEMENT_MINE" } },
+        { "yield": "Production", "amount": 2, "source": { "districtTag": "Waterworks" }, "label": "+2 Production per adjacent Aqueduct, Dam or Canal" },
+        { "yield": "Production", "amount": 1, "source": { "district": "DISTRICT_RIVER_PORT" } },
+        { "yield": "Production", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] },
+
+    { "id": "DISTRICT_GARRISON", "name": "Garrison", "category": "Specialty", "cost": 54, "prereqTech": "TECH_BRONZE_WORKING",
+      "tags": ["Specialty", "Military"], "placement": { "forbidAdjacentCityCenter": true } },
+
+    { "id": "DISTRICT_ARENA", "name": "Arena Quarter", "category": "Specialty", "cost": 54, "prereqCivic": "CIVIC_PUBLIC_GAMES",
+      "amenities": 1, "appeal": 1, "tags": ["Specialty", "Entertainment"] },
+
+    { "id": "DISTRICT_CIVIC_PLAZA", "name": "Civic Plaza", "category": "Specialty", "cost": 30, "uniquePerCiv": true,
+      "prereqCivic": "CIVIC_POLITICAL_PHILOSOPHY", "tags": ["Specialty", "Government"],
+      "description": "One per empire. Grants +1 adjacency to every adjacent specialty district and steadies loyalty.",
+      "providesAdjacency": [ { "toTag": "Specialty", "amount": 1, "label": "+1 from adjacent Civic Plaza" } ],
+      "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 4 } ] },
+
+    { "id": "DISTRICT_AQUEDUCT", "name": "Aqueduct", "category": "Infrastructure", "cost": 36, "countsTowardLimit": false,
+      "prereqTech": "TECH_ENGINEERING", "housing": 6, "tags": ["Infrastructure", "Waterworks"],
+      "placement": {
+        "requiresAdjacentCityCenter": true,
+        "requiresAdjacentAny": [
+          { "relief": "RELIEF_MOUNTAIN" }, { "terrainClass": "Lake" }, { "terrainClass": "Channel" },
+          { "feature": "FEATURE_OASIS" }, { "riverEdge": true }
+        ] } },
+
+    { "id": "DISTRICT_DAM", "name": "Dam", "category": "Infrastructure", "cost": 81, "countsTowardLimit": false,
+      "prereqTech": "TECH_ENGINEERING", "tags": ["Infrastructure", "Waterworks"],
+      "description": "Tames a river: the city ignores river floods. Enables Hydroelectric power.",
+      "placement": { "requiresFeature": "FEATURE_FLOODPLAINS", "minRiverEdges": 2 },
+      "modifiers": [ { "effect": "CityDisasterImmunity", "disaster": "RiverFlood", "amount": 1 }, { "effect": "CityAmenities", "amount": 1 } ] },
+
+    { "id": "DISTRICT_CANAL", "name": "Canal", "category": "Infrastructure", "cost": 81, "countsTowardLimit": false, "maxPerCity": 3,
+      "prereqTech": "TECH_ENGINEERING", "tags": ["Infrastructure", "Waterworks"],
+      "placement": { "special": "Canal", "allowedReliefs": ["RELIEF_FLAT"] } },
+
+    { "id": "DISTRICT_NEIGHBORHOOD", "name": "Neighborhood", "category": "Infrastructure", "cost": 54, "countsTowardLimit": false, "maxPerCity": 10,
+      "prereqCivic": "CIVIC_URBANIZATION", "tags": ["Infrastructure", "Residential"],
+      "description": "Housing scales with Appeal (3–6)." },
+
+    { "id": "DISTRICT_AIRFIELD", "name": "Airfield", "category": "Specialty", "cost": 54, "prereqTech": "TECH_FLIGHT",
+      "tags": ["Specialty", "Military"], "placement": { "allowedReliefs": ["RELIEF_FLAT"] } },
+
+    { "id": "DISTRICT_SPACEPORT", "name": "Spaceport", "category": "Infrastructure", "cost": 1800, "countsTowardLimit": false,
+      "prereqTech": "TECH_ROCKETRY", "tags": ["Infrastructure"], "placement": { "allowedReliefs": ["RELIEF_FLAT"] } },
+
+    { "id": "DISTRICT_ARSENAL", "name": "Arsenal", "category": "Specialty", "primaryYield": "Production", "cost": 27,
+      "prereqTech": "TECH_APPRENTICESHIP", "civilization": "CIV_VENICE", "replaces": "DISTRICT_FOUNDRY", "tags": ["Specialty", "Production"],
+      "description": "Venetian Foundry. Half cost; must touch water; thrives next to ports.",
+      "placement": { "requiresAdjacentAny": [ { "terrainClass": "Coast" }, { "terrainClass": "Lake" }, { "terrainClass": "Channel" } ] },
+      "adjacency": [
+        { "yield": "Production", "amount": 2, "source": { "districtTag": "Port" } },
+        { "yield": "Production", "amount": 2, "source": { "districtTag": "Waterworks" } },
+        { "yield": "Production", "amount": 1, "source": { "improvement": "IMPROVEMENT_MINE" } },
+        { "yield": "Production", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ],
+      "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 25 } ] },
+
+    { "id": "DISTRICT_HANLIN_ACADEMY", "name": "Hanlin Academy", "category": "Specialty", "primaryYield": "Science", "cost": 27,
+      "prereqTech": "TECH_WRITING", "civilization": "CIV_SONG", "replaces": "DISTRICT_ACADEMY", "tags": ["Specialty", "Science"],
+      "adjacency": [
+        { "yield": "Science", "amount": 1, "source": { "relief": "RELIEF_MOUNTAIN" } },
+        { "yield": "Science", "amount": 2, "source": { "district": "DISTRICT_CULTURAL_QUARTER" } },
+        { "yield": "Culture", "amount": 1, "per": 2, "source": { "anyDistrict": true } },
+        { "yield": "Science", "amount": 1, "per": 2, "source": { "anyDistrict": true } }
+      ] }
+  ]
+}

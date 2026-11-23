@@ -1,0 +1,122 @@
+{
+  // Eight original governors. Each: a base effect active once established, plus a small
+  // promotion tree. Effects are ordinary modifiers, so mods can add governors or promotions.
+  "$schema": "../../schemas/content.schema.json",
+  "governors": [
+    { "id": "GOVERNOR_STEWARD", "name": "The Steward", "title": "Steward of the Granaries",
+      "description": "Growth, housing and the tall-city fantasy.",
+      "baseModifiers": [ { "effect": "CityYieldPercent", "yield": "Food", "amount": 15 }, { "effect": "CityHousing", "amount": 2 } ],
+      "promotions": [
+        { "id": "STEWARD_PUBLIC_WORKS", "name": "Public Works", "tier": 1, "description": "Builders trained here get +1 charge.",
+          "modifiers": [ { "effect": "BuilderCharges", "amount": 1 } ] },
+        { "id": "STEWARD_FESTIVALS", "name": "Festivals", "tier": 1, "modifiers": [ { "effect": "CityAmenities", "amount": 2 } ] },
+        { "id": "STEWARD_URBAN_PLANNER", "name": "Urban Planner", "tier": 2, "requires": ["STEWARD_PUBLIC_WORKS"],
+          "description": "+1 specialty district slot in this city.", "modifiers": [ { "effect": "CityDistrictCapacity", "amount": 1 } ] },
+        { "id": "STEWARD_SWIFT_HAND", "name": "Swift Hand", "tier": 2, "requires": ["STEWARD_FESTIVALS"],
+          "description": "Establishes in 2 fewer turns.", "modifiers": [ { "effect": "GovernorEstablishTurns", "amount": -2 } ] },
+        { "id": "STEWARD_METROPOLITAN", "name": "Metropolitan", "tier": 3, "requires": ["STEWARD_URBAN_PLANNER"],
+          "modifiers": [
+            { "effect": "CityProductionPercent", "category": "District", "amount": 25 },
+            { "effect": "CityHousing", "amount": 4, "requirements": [ { "type": "CityMinPopulation", "value": 15 } ] } ] }
+      ] },
+
+    { "id": "GOVERNOR_CASTELLAN", "name": "The Castellan", "title": "Warden of the Marches",
+      "description": "Frontier stability: loyalty pressure, defence and disaster resilience.",
+      "baseModifiers": [ { "effect": "CityPressurePercent", "amount": 50 } ],
+      "promotions": [
+        { "id": "CASTELLAN_GARRISON_COMMAND", "name": "Garrison Command", "tier": 1, "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 25 } ] },
+        { "id": "CASTELLAN_LEVEE_ENGINEERS", "name": "Levee Engineers", "tier": 1,
+          "modifiers": [ { "effect": "CityDisasterImmunity", "disaster": "RiverFlood", "amount": 1 }, { "effect": "CityDisasterImmunity", "disaster": "Storm", "amount": 1 } ] },
+        { "id": "CASTELLAN_IRON_RESOLVE", "name": "Iron Resolve", "tier": 2, "requires": ["CASTELLAN_GARRISON_COMMAND"],
+          "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 4 } ] },
+        { "id": "CASTELLAN_FRONTIER_DOCTRINE", "name": "Frontier Doctrine", "tier": 2, "requires": ["CASTELLAN_LEVEE_ENGINEERS"],
+          "modifiers": [ { "effect": "CityPressurePercent", "amount": 50 } ] },
+        { "id": "CASTELLAN_CITADEL", "name": "Citadel", "tier": 3, "requires": ["CASTELLAN_IRON_RESOLVE"],
+          "modifiers": [ { "effect": "CityAmenities", "amount": 2 }, { "effect": "CityLoyaltyPerTurn", "amount": 2 } ] }
+      ] },
+
+    { "id": "GOVERNOR_TREASURER", "name": "The Treasurer", "title": "Master of Coin",
+      "baseModifiers": [ { "effect": "CityYieldPercent", "yield": "Gold", "amount": 20 } ],
+      "promotions": [
+        { "id": "TREASURER_EXCHEQUER", "name": "Exchequer", "tier": 1, "modifiers": [ { "effect": "CityPurchaseDiscountPercent", "amount": 15 } ] },
+        { "id": "TREASURER_CUSTOMS", "name": "Customs House", "tier": 1, "modifiers": [ { "effect": "CityYieldFlat", "yield": "Gold", "amount": 4 } ] },
+        { "id": "TREASURER_RIVER_TOLLS", "name": "River Tolls", "tier": 2, "requires": ["TREASURER_CUSTOMS"],
+          "description": "Great River cities levy tolls on passing barges.",
+          "modifiers": [
+            { "effect": "CityYieldFlat", "yield": "Gold", "amount": 4, "requirements": [ { "type": "CityOnGreatRiver" } ] },
+            { "effect": "CityYieldFlat", "yield": "Production", "amount": 2, "requirements": [ { "type": "CityOnGreatRiver" } ] } ] },
+        { "id": "TREASURER_BANKING_HOUSE", "name": "Banking House", "tier": 2, "requires": ["TREASURER_EXCHEQUER"],
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Gold", "amount": 15 } ] },
+        { "id": "TREASURER_FINANCIER", "name": "Financier", "tier": 3, "requires": ["TREASURER_BANKING_HOUSE"],
+          "modifiers": [ { "effect": "CityPurchaseDiscountPercent", "amount": 15 } ] }
+      ] },
+
+    { "id": "GOVERNOR_ARCHIVIST", "name": "The Archivist", "title": "Keeper of the Archive",
+      "baseModifiers": [ { "effect": "CityYieldPercent", "yield": "Science", "amount": 15 }, { "effect": "CityYieldPercent", "yield": "Culture", "amount": 15 } ],
+      "promotions": [
+        { "id": "ARCHIVIST_LIBRARIAN", "name": "Librarian", "tier": 1, "description": "+50% Science adjacency in this city.",
+          "modifiers": [ { "effect": "CityAdjacencyPercent", "yield": "Science", "amount": 50 } ] },
+        { "id": "ARCHIVIST_CURATOR", "name": "Curator", "tier": 1, "description": "+50% Culture adjacency in this city.",
+          "modifiers": [ { "effect": "CityAdjacencyPercent", "yield": "Culture", "amount": 50 } ] },
+        { "id": "ARCHIVIST_SCHOLARS", "name": "Resident Scholars", "tier": 2, "requires": ["ARCHIVIST_LIBRARIAN"],
+          "modifiers": [ { "effect": "CityYieldFlat", "yield": "Science", "amount": 3, "requirements": [ { "type": "CityHasDistrict", "id": "DISTRICT_ACADEMY" } ] } ] },
+        { "id": "ARCHIVIST_PATRON", "name": "Patron of the Arts", "tier": 2, "requires": ["ARCHIVIST_CURATOR"],
+          "modifiers": [ { "effect": "CityYieldFlat", "yield": "Culture", "amount": 3 } ] },
+        { "id": "ARCHIVIST_GRAND_ARCHIVE", "name": "Grand Archive", "tier": 3, "requires": ["ARCHIVIST_SCHOLARS"],
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Science", "amount": 15 } ] }
+      ] },
+
+    { "id": "GOVERNOR_PRELATE", "name": "The Prelate", "title": "Voice of the Faithful",
+      "baseModifiers": [ { "effect": "CityYieldPercent", "yield": "Faith", "amount": 25 }, { "effect": "CityLoyaltyPerTurn", "amount": 2 } ],
+      "promotions": [
+        { "id": "PRELATE_PILGRIMS", "name": "Pilgrim Roads", "tier": 1, "modifiers": [ { "effect": "CityYieldFlat", "yield": "Faith", "amount": 3 } ] },
+        { "id": "PRELATE_CHARITY", "name": "Almshouses", "tier": 1, "modifiers": [ { "effect": "CityAmenities", "amount": 1 }, { "effect": "CityHousing", "amount": 1 } ] },
+        { "id": "PRELATE_SACRED_RIVERS", "name": "Sacred Rivers", "tier": 2, "requires": ["PRELATE_PILGRIMS"],
+          "modifiers": [ { "effect": "CityAdjacencyPercent", "yield": "Faith", "amount": 50 } ] },
+        { "id": "PRELATE_CONCORD", "name": "Concord", "tier": 2, "requires": ["PRELATE_CHARITY"], "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 3 } ] },
+        { "id": "PRELATE_HOLY_SEE", "name": "Holy See", "tier": 3, "requires": ["PRELATE_SACRED_RIVERS"],
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Faith", "amount": 25 } ] }
+      ] },
+
+    { "id": "GOVERNOR_ENGINEER", "name": "The Engineer", "title": "Chief of Works",
+      "description": "Industry, power grids and clean growth.",
+      "baseModifiers": [ { "effect": "CityProductionPercent", "category": "District", "amount": 20 }, { "effect": "CityProductionPercent", "category": "Building", "amount": 10 } ],
+      "promotions": [
+        { "id": "ENGINEER_GRID_MASTER", "name": "Grid Master", "tier": 1, "description": "Plants here produce +2 power and reach 3 tiles farther.",
+          "modifiers": [ { "effect": "CityPowerOutput", "amount": 2 }, { "effect": "PowerRangeBonus", "amount": 3 } ] },
+        { "id": "ENGINEER_CLEAN_INDUSTRY", "name": "Clean Industry", "tier": 1, "description": "-50% CO2 from this city.",
+          "modifiers": [ { "effect": "CityEmissionsPercent", "amount": -50 } ] },
+        { "id": "ENGINEER_WATERWORKS", "name": "Waterworks", "tier": 2, "requires": ["ENGINEER_GRID_MASTER"],
+          "modifiers": [ { "effect": "CityProductionPercent", "category": "Project", "amount": 50 } ] },
+        { "id": "ENGINEER_FOUNDRY_MASTER", "name": "Foundry Master", "tier": 2, "requires": ["ENGINEER_CLEAN_INDUSTRY"],
+          "modifiers": [ { "effect": "CityAdjacencyPercent", "yield": "Production", "amount": 50 } ] },
+        { "id": "ENGINEER_MEGAPROJECTS", "name": "Megaprojects", "tier": 3, "requires": ["ENGINEER_WATERWORKS"],
+          "modifiers": [ { "effect": "CityProductionPercent", "category": "Wonder", "amount": 30 }, { "effect": "CityProductionPercent", "category": "Any", "amount": 10 } ] }
+      ] },
+
+    { "id": "GOVERNOR_ENVOY", "name": "The Envoy", "title": "High Envoy",
+      "description": "Diplomacy and soft power. (Diplomatic favor and minor-nation effects arrive with the diplomacy milestone.)",
+      "baseModifiers": [ { "effect": "CityYieldFlat", "yield": "Gold", "amount": 2 }, { "effect": "CityAmenities", "amount": 1 } ],
+      "promotions": [
+        { "id": "ENVOY_EMBASSY", "name": "Embassy", "tier": 1, "modifiers": [ { "effect": "CityPressurePercent", "amount": 25 } ] },
+        { "id": "ENVOY_TRADE_MISSION", "name": "Trade Mission", "tier": 1, "modifiers": [ { "effect": "CityYieldFlat", "yield": "Gold", "amount": 3 } ] },
+        { "id": "ENVOY_CULTURAL_EXCHANGE", "name": "Cultural Exchange", "tier": 2, "requires": ["ENVOY_EMBASSY"],
+          "modifiers": [ { "effect": "CityYieldFlat", "yield": "Culture", "amount": 3 } ] },
+        { "id": "ENVOY_ACCORD", "name": "Accord", "tier": 2, "requires": ["ENVOY_TRADE_MISSION"], "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 3 } ] },
+        { "id": "ENVOY_CONGRESS_DELEGATE", "name": "Congress Delegate", "tier": 3, "requires": ["ENVOY_CULTURAL_EXCHANGE"],
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Culture", "amount": 10 } ] }
+      ] },
+
+    { "id": "GOVERNOR_SPYMASTER", "name": "The Spymaster", "title": "Master of Whispers",
+      "description": "Counter-intelligence from the Classical era onward.",
+      "baseModifiers": [ { "effect": "EspionageDefense", "amount": 2 }, { "effect": "CityLoyaltyPerTurn", "amount": 1 } ],
+      "promotions": [
+        { "id": "SPYMASTER_NETWORK", "name": "Informant Network", "tier": 1, "modifiers": [ { "effect": "SpyCapacity", "amount": 1 } ] },
+        { "id": "SPYMASTER_CIPHER_BUREAU", "name": "Cipher Bureau", "tier": 1, "modifiers": [ { "effect": "EspionageDefense", "amount": 1 } ] },
+        { "id": "SPYMASTER_DOUBLE_AGENTS", "name": "Double Agents", "tier": 2, "requires": ["SPYMASTER_NETWORK"], "modifiers": [ { "effect": "SpyCapacity", "amount": 1 } ] },
+        { "id": "SPYMASTER_SAFEHOUSES", "name": "Safehouses", "tier": 2, "requires": ["SPYMASTER_CIPHER_BUREAU"], "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 2 } ] },
+        { "id": "SPYMASTER_SHADOW_COUNCIL", "name": "Shadow Council", "tier": 3, "requires": ["SPYMASTER_DOUBLE_AGENTS"],
+          "modifiers": [ { "effect": "EspionageDefense", "amount": 2 }, { "effect": "SpyCapacity", "amount": 1 } ] }
+      ] }
+  ]
+}

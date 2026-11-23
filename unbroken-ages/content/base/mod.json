@@ -1,0 +1,8 @@
+{
+  "id": "base",
+  "name": "Unbroken Ages — Base Game",
+  "version": "0.1.0",
+  "description": "The base game is loaded exactly like a mod. Everything here can be patched, replaced or deleted by other mods.",
+  "authors": ["Unbroken Ages team"],
+  "affectsGameplay": true
+}

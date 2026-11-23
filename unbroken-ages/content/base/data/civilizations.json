@@ -1,0 +1,42 @@
+{
+  "$schema": "../../schemas/content.schema.json",
+  "civilizations": [
+    { "id": "CIV_EGYPT", "name": "Egypt", "adjective": "Egyptian", "startBias": ["TERRAIN_CHANNEL", "FEATURE_FLOODPLAINS"],
+      "ability": { "name": "Gift of the Great River", "description": "+15% Production toward districts in cities on a Great River.",
+        "modifiers": [ { "effect": "CityProductionPercent", "category": "District", "amount": 15, "requirements": [ { "type": "CityOnGreatRiver" } ] } ] },
+      "cityNames": ["Waset", "Men-nefer", "Abydos", "Iunu", "Swenett", "Khmun", "Zau", "Djedu", "Behdet", "Nekhen"],
+      "colors": { "primary": "#E3C16F", "secondary": "#1F4E79" } },
+    { "id": "CIV_VENICE", "name": "Venice", "adjective": "Venetian", "startBias": ["TERRAIN_COAST", "TERRAIN_LAKE"],
+      "ability": { "name": "Queen of the Lagoon", "description": "+2 Gold in coastal cities; +25% naval unit production with a Harbor.",
+        "modifiers": [
+          { "effect": "CityYieldFlat", "yield": "Gold", "amount": 2, "requirements": [ { "type": "CityIsCoastal" } ] },
+          { "effect": "CityProductionPercent", "category": "Unit", "amount": 25, "requirements": [ { "type": "CityHasDistrict", "id": "DISTRICT_HARBOR" } ] } ] },
+      "cityNames": ["Venezia", "Torcello", "Murano", "Chioggia", "Padova", "Treviso", "Zara", "Candia", "Ragusa", "Corfu"],
+      "colors": { "primary": "#8E1B2E", "secondary": "#F2D06B" } },
+    { "id": "CIV_SONG", "name": "Song China", "adjective": "Song", "startBias": ["TERRAIN_CHANNEL", "RELIEF_HILLS"],
+      "ability": { "name": "Imperial Examinations", "description": "+1 Science in cities of population 3 or more.",
+        "modifiers": [ { "effect": "CityYieldFlat", "yield": "Science", "amount": 1, "requirements": [ { "type": "CityMinPopulation", "value": 3 } ] } ] },
+      "cityNames": ["Kaifeng", "Lin'an", "Luoyang", "Yangzhou", "Suzhou", "Quanzhou", "Chengdu", "Guangzhou", "Mingzhou", "Jiangling"],
+      "colors": { "primary": "#2E7D5B", "secondary": "#F5E6C8" } }
+  ],
+  "leaders": [
+    { "id": "LEADER_THUTMOSE", "name": "Thutmose III", "civilization": "CIV_EGYPT",
+      "ability": { "name": "Megiddo Campaign", "description": "+10% Production toward units.",
+        "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 10 } ] },
+      "agenda": { "name": "Restorer of Order", "description": "Respects civilizations whose cities are loyal; scorns those whose cities rebel.",
+        "likes": ["HighLoyalty"], "dislikes": ["CitiesInRevolt"] },
+      "personality": { "war": 1.2, "expansion": 1.1, "science": 1.0 } },
+    { "id": "LEADER_DANDOLO", "name": "Enrico Dandolo", "civilization": "CIV_VENICE",
+      "ability": { "name": "The Blind Doge", "description": "Purchases cost 10% less gold.",
+        "modifiers": [ { "effect": "CityPurchaseDiscountPercent", "amount": 10 } ] },
+      "agenda": { "name": "Merchant Prince", "description": "Likes trading partners; dislikes anyone who blockades trade.",
+        "likes": ["TradePartner"], "dislikes": ["Blockade"] },
+      "personality": { "gold": 1.4, "war": 0.8, "naval": 1.5 } },
+    { "id": "LEADER_TAIZU_SONG", "name": "Emperor Taizu", "civilization": "CIV_SONG",
+      "ability": { "name": "A Cup of Wine", "description": "+2 Loyalty per turn in all cities.",
+        "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 2 } ] },
+      "agenda": { "name": "Civil Over Martial", "description": "Likes peaceful scholars; dislikes warmongers.",
+        "likes": ["HighScience", "Peaceful"], "dislikes": ["Warmonger"] },
+      "personality": { "science": 1.3, "war": 0.7 } }
+  ]
+}

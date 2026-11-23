@@ -1,0 +1,75 @@
+{
+  "$schema": "../../schemas/content.schema.json",
+  "buildings": [
+    { "id": "BUILDING_MONUMENT", "name": "Monument", "district": "DISTRICT_CITY_CENTER", "cost": 60, "yields": { "culture": 2 },
+      "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 1 } ] },
+    { "id": "BUILDING_GRANARY", "name": "Granary", "district": "DISTRICT_CITY_CENTER", "cost": 65, "yields": { "food": 1 }, "housing": 2, "prereqTech": "TECH_POTTERY" },
+    { "id": "BUILDING_WATER_MILL", "name": "Water Mill", "district": "DISTRICT_CITY_CENTER", "cost": 80, "yields": { "food": 1, "production": 1 }, "prereqTech": "TECH_IRRIGATION" },
+    { "id": "BUILDING_ANCIENT_WALLS", "name": "Ancient Walls", "district": "DISTRICT_CITY_CENTER", "cost": 80, "prereqTech": "TECH_MASONRY" },
+    { "id": "BUILDING_FLOOD_BARRIER", "name": "Flood Barrier", "district": "DISTRICT_CITY_CENTER", "cost": 480, "maintenance": 3,
+      "prereqTech": "TECH_ELECTRICITY", "protectsFromFlood": true,
+      "description": "Protects every coastal lowland tile this city owns from rising seas, and drains flooded ones." },
+    { "id": "BUILDING_NILOMETER", "name": "Nilometer", "district": "DISTRICT_CITY_CENTER", "cost": 65, "yields": { "food": 2 }, "housing": 3,
+      "prereqTech": "TECH_POTTERY", "civilization": "CIV_EGYPT", "replaces": "BUILDING_GRANARY",
+      "modifiers": [ { "effect": "CityYieldFlat", "yield": "Food", "amount": 2, "requirements": [ { "type": "CityOnGreatRiver" } ] } ] },
+
+    { "id": "BUILDING_LIBRARY", "name": "Library", "district": "DISTRICT_ACADEMY", "cost": 90, "maintenance": 1, "yields": { "science": 2 }, "prereqTech": "TECH_WRITING" },
+    { "id": "BUILDING_UNIVERSITY", "name": "University", "district": "DISTRICT_ACADEMY", "cost": 250, "maintenance": 2, "yields": { "science": 4 }, "housing": 1,
+      "prereqTech": "TECH_EDUCATION", "requiresBuildings": ["BUILDING_LIBRARY"] },
+    { "id": "BUILDING_RESEARCH_LAB", "name": "Research Lab", "district": "DISTRICT_ACADEMY", "cost": 580, "maintenance": 3, "yields": { "science": 5 },
+      "powerDemand": 3, "poweredYields": { "science": 5 }, "prereqTech": "TECH_ELECTRICITY", "requiresBuildings": ["BUILDING_UNIVERSITY"] },
+
+    { "id": "BUILDING_SHRINE", "name": "Shrine", "district": "DISTRICT_SANCTUARY", "cost": 70, "maintenance": 1, "yields": { "faith": 2 }, "prereqTech": "TECH_ASTROLOGY" },
+    { "id": "BUILDING_TEMPLE", "name": "Temple", "district": "DISTRICT_SANCTUARY", "cost": 120, "maintenance": 2, "yields": { "faith": 4 },
+      "prereqCivic": "CIVIC_MYSTICISM", "requiresBuildings": ["BUILDING_SHRINE"] },
+
+    { "id": "BUILDING_MARKETPLACE", "name": "Marketplace", "district": "DISTRICT_MARKET", "cost": 120, "yields": { "gold": 3 }, "prereqTech": "TECH_CURRENCY" },
+    { "id": "BUILDING_BANK", "name": "Bank", "district": "DISTRICT_MARKET", "cost": 290, "yields": { "gold": 5 }, "prereqTech": "TECH_EDUCATION",
+      "requiresBuildings": ["BUILDING_MARKETPLACE"] },
+    { "id": "BUILDING_STOCK_EXCHANGE", "name": "Stock Exchange", "district": "DISTRICT_MARKET", "cost": 390, "yields": { "gold": 7 },
+      "powerDemand": 3, "poweredYields": { "gold": 7 }, "prereqTech": "TECH_ELECTRICITY", "requiresBuildings": ["BUILDING_BANK"] },
+
+    { "id": "BUILDING_LIGHTHOUSE", "name": "Lighthouse", "district": "DISTRICT_HARBOR", "cost": 120, "yields": { "food": 1, "gold": 1 }, "housing": 1,
+      "prereqTech": "TECH_CELESTIAL_NAVIGATION" },
+    { "id": "BUILDING_SEAPORT", "name": "Seaport", "district": "DISTRICT_HARBOR", "cost": 580, "yields": { "food": 2, "gold": 2 }, "powerDemand": 1,
+      "prereqTech": "TECH_ELECTRICITY", "requiresBuildings": ["BUILDING_LIGHTHOUSE"] },
+
+    { "id": "BUILDING_RIVER_DOCKS", "name": "River Docks", "district": "DISTRICT_RIVER_PORT", "cost": 120, "yields": { "gold": 2, "production": 1 }, "housing": 1,
+      "prereqTech": "TECH_SAILING" },
+    { "id": "BUILDING_GRAIN_EXCHANGE", "name": "Grain Exchange", "district": "DISTRICT_RIVER_PORT", "cost": 290, "yields": { "food": 2, "gold": 2 },
+      "prereqTech": "TECH_EDUCATION", "requiresBuildings": ["BUILDING_RIVER_DOCKS"] },
+
+    { "id": "BUILDING_AMPHITHEATER", "name": "Amphitheater", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 150, "maintenance": 1, "yields": { "culture": 2 },
+      "prereqCivic": "CIVIC_RECORDED_HISTORY" },
+    { "id": "BUILDING_MUSEUM", "name": "Museum", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 290, "maintenance": 2, "yields": { "culture": 3 },
+      "prereqCivic": "CIVIC_CIVIL_ENGINEERING", "requiresBuildings": ["BUILDING_AMPHITHEATER"] },
+
+    { "id": "BUILDING_WORKSHOP", "name": "Workshop", "district": "DISTRICT_FOUNDRY", "cost": 195, "maintenance": 1, "yields": { "production": 2 },
+      "prereqTech": "TECH_APPRENTICESHIP" },
+    { "id": "BUILDING_FACTORY", "name": "Factory", "district": "DISTRICT_FOUNDRY", "cost": 330, "maintenance": 3, "yields": { "production": 3 },
+      "powerDemand": 1, "poweredYields": { "production": 3 }, "co2PerTurn": 0.5, "prereqTech": "TECH_INDUSTRIALIZATION", "requiresBuildings": ["BUILDING_WORKSHOP"] },
+    { "id": "BUILDING_COAL_PLANT", "name": "Coal Power Plant", "district": "DISTRICT_FOUNDRY", "cost": 300, "maintenance": 3, "yields": { "production": 1 },
+      "prereqTech": "TECH_ELECTRICITY", "requiresBuildings": ["BUILDING_FACTORY"],
+      "power": { "kind": "Coal", "output": 4, "fuel": "RESOURCE_COAL", "fuelPerTurn": 1, "co2PerTurn": 4, "range": 6 } },
+    { "id": "BUILDING_OIL_PLANT", "name": "Oil Power Plant", "district": "DISTRICT_FOUNDRY", "cost": 300, "maintenance": 3, "yields": { "production": 1 },
+      "prereqTech": "TECH_REFINING", "requiresBuildings": ["BUILDING_FACTORY"],
+      "power": { "kind": "Oil", "output": 4, "fuel": "RESOURCE_OIL", "fuelPerTurn": 1, "co2PerTurn": 3, "range": 6 } },
+    { "id": "BUILDING_NUCLEAR_PLANT", "name": "Nuclear Power Plant", "district": "DISTRICT_FOUNDRY", "cost": 600, "maintenance": 4,
+      "prereqTech": "TECH_NUCLEAR_FISSION", "requiresBuildings": ["BUILDING_FACTORY"],
+      "power": { "kind": "Nuclear", "output": 16, "fuel": "RESOURCE_URANIUM", "fuelPerTurn": 1, "co2PerTurn": 0, "range": 6 } },
+    { "id": "BUILDING_HYDROELECTRIC_DAM", "name": "Hydroelectric Dam", "district": "DISTRICT_DAM", "cost": 580, "maintenance": 2,
+      "prereqTech": "TECH_ELECTRICITY", "power": { "kind": "Renewable", "output": 6, "range": 6 } },
+
+    { "id": "BUILDING_ARENA", "name": "Arena", "district": "DISTRICT_ARENA", "cost": 150, "maintenance": 1, "amenities": 1, "prereqCivic": "CIVIC_PUBLIC_GAMES" },
+    { "id": "BUILDING_STADIUM", "name": "Stadium", "district": "DISTRICT_ARENA", "cost": 660, "maintenance": 3, "amenities": 2, "powerDemand": 2,
+      "prereqCivic": "CIVIC_URBANIZATION", "requiresBuildings": ["BUILDING_ARENA"] },
+
+    { "id": "BUILDING_BARRACKS", "name": "Barracks", "district": "DISTRICT_GARRISON", "cost": 90, "maintenance": 1, "yields": { "production": 1 }, "housing": 1,
+      "prereqTech": "TECH_BRONZE_WORKING", "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 15 } ] }
+  ],
+  "projects": [
+    { "id": "PROJECT_CARBON_RECAPTURE", "name": "Carbon Recapture", "district": "DISTRICT_FOUNDRY", "cost": 400, "repeatable": true,
+      "prereqTech": "TECH_RENEWABLE_ENERGY", "description": "Removes 8 ppm of atmospheric CO2.",
+      "onComplete": [ { "effect": "ClimateCo2Reduction", "amount": 8 } ] }
+  ]
+}
