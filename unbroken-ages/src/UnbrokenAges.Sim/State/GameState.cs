@@ -117,6 +117,9 @@ public sealed class CityState
     public bool StruckThisTurn;
     /// <summary>First city its founder ever built (used by the Hegemony victory).</summary>
     public bool WasOriginalCapital;
+    /// <summary>Culture banked toward the next border tile.</summary>
+    public Fx BorderProgress;
+    public int TilesClaimed;
 
     public DistrictInstance? FindDistrict(int defIndex) => Districts.Find(d => d.DefIndex == defIndex);
     public bool HasBuilding(int buildingIndex) => Districts.Any(d => d.Buildings.Contains(buildingIndex));

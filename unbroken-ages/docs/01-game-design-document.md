@@ -94,7 +94,9 @@ Mississippi baked in as Great Rivers. The World Builder (see §17) authors these
 ## 4. Cities & empire
 
 ### 4.1 Cities
-* **Founding:** a settler founds a city at least 4 tiles from any other city. The city claims radius 1, and borders grow with culture or by purchase.
+* **Founding:** a settler founds a city at least 4 tiles from any other city. The city claims radius 1, and borders grow with culture
+  (the most valuable adjacent tile, up to 5 tiles out) or by gold purchase (up to 3 tiles out); the city panel always names the next tile.
+  See [05/10-borders](05-key-systems/10-borders.md).
 * **Citizens:** each works a tile (auto-assigned with focus presets, or locked manually) or a district specialist slot.
   Each citizen also produces 0.5 Science and 0.3 Culture, so every city contributes to progress.
 * **Housing and amenities** work as in Civ VI: housing slows and caps growth, and amenities modify yields and feed loyalty.

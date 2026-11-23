@@ -29,6 +29,7 @@ public enum CommandType : byte
     Attack = 70,
     Fortify = 71,
     CityStrike = 72,
+    PurchaseTile = 73,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -113,6 +114,7 @@ public abstract class GameCommand
         CommandType.Attack => new AttackCommand(),
         CommandType.Fortify => new FortifyCommand(),
         CommandType.CityStrike => new CityStrikeCommand(),
+        CommandType.PurchaseTile => new PurchaseTileCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

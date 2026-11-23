@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer, placement lens, city panel and production queue, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 135 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 139 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -45,6 +45,8 @@ Civilization VII's age resets or civ-swapping.
   ([05/08](docs/05-key-systems/08-diplomacy.md)).
 * **Combat v1**: melee and ranged attacks, terrain, rivers, fortification, flanking, unit counters, besieging and capturing cities, and a preview
   that lists every modifier ([05/09](docs/05-key-systems/09-combat.md)).
+* **Border growth**: culture claims the most valuable adjacent tile (up to 5 out), or buy one with gold; the next tile is always previewed
+  ([05/10](docs/05-key-systems/10-borders.md)).
 * **Direct IP multiplayer**: authoritative sequencing, issuer rewriting (anti-spoofing), per-turn state hashes,
   automatic desync healing with snapshots, reconnect tokens, spectators, content-hash checks for mod mismatches, LAN beacons.
 
@@ -52,7 +54,7 @@ Civilization VII's age resets or civ-swapping.
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 135 tests, ~2 s
+dotnet test                                        # 139 tests, ~2 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

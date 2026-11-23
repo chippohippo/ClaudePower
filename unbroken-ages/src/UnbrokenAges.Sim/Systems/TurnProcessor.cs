@@ -36,6 +36,7 @@ public static class TurnProcessor
                 Fx fabricated = fx.FabricationPercent > 0 && city.IsPowered ? report.Total.Production * fx.FabricationPercent / 100 : Fx.Zero;
                 Grow(s, city, report, fabricated, events);
                 ProductionSystem.Process(s, city, report.Total.Production - fabricated, fx, events);
+                BorderSystem.Grow(s, city, report.Total.Culture, events);
                 city.YieldsLastTurnProduction = report.Total.Production;
                 science += report.Total.Science;
                 culture += report.Total.Culture;

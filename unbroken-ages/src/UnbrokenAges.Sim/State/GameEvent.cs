@@ -38,6 +38,7 @@ public enum GameEventType : byte
     UnitDestroyed,
     CityCaptured,
     CivilianCaptured,
+    TileClaimed,
 }
 
 /// <summary>

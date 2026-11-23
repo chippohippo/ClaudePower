@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 5;
+    public const int Version = 6;
 
     public static byte[] Serialize(GameState s)
     {
@@ -95,7 +95,7 @@ public static class GameStateSerializer
             WriteFx(w, c.OverflowProduction);
             w.Write(c.IsPowered); w.Write(c.PowerDemand); w.Write(c.PowerPriority); w.Write(c.GovernorDef);
             WriteFx(w, c.YieldsLastTurnProduction);
-            w.Write(c.Hp); w.Write(c.StruckThisTurn); w.Write(c.WasOriginalCapital);
+            w.Write(c.Hp); w.Write(c.StruckThisTurn); w.Write(c.WasOriginalCapital); WriteFx(w, c.BorderProgress); w.Write(c.TilesClaimed);
         }
 
         w.Write(s.Units.Count);
@@ -225,6 +225,7 @@ public static class GameStateSerializer
             c.IsPowered = r.ReadBoolean(); c.PowerDemand = r.ReadInt32(); c.PowerPriority = r.ReadInt32(); c.GovernorDef = r.ReadInt32();
             c.YieldsLastTurnProduction = ReadFx(r);
             c.Hp = r.ReadInt32(); c.StruckThisTurn = r.ReadBoolean(); c.WasOriginalCapital = r.ReadBoolean();
+            c.BorderProgress = ReadFx(r); c.TilesClaimed = r.ReadInt32();
             s.Cities.Add(c);
         }
 

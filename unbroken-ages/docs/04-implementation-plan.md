@@ -30,7 +30,8 @@ M0 Foundations ──► M1 Prototype ──► M2 Vertical Slice ──► M3 M
 | Depth from Millennia & Shadow Empire: World Currents & Ages, Supply lens and attrition, Industries and goods, the Chronicle | ✔ |
 | Diplomacy core (war, peace, denounce, open borders, itemized grievances, attitude; closed borders; supply attrition only at war) | ✔ |
 | Combat v1 (melee, ranged, terrain/river/fortify/flanking/counters/supply, cities with HP, bombard and capture, full preview) | ✔ |
-| 135 automated tests | ✔ |
+| Border growth from culture (best adjacent tile, radius 5) and gold tile purchase | ✔ |
+| 139 automated tests | ✔ |
 
 **Exit criteria met:** two independent simulations stay hash-identical for 60 AI turns; three real TCP peers stay in lockstep with zero desyncs;
 an injected desync heals within one turn; a 200-turn, 4-player headless game runs at about 3 ms per turn.
@@ -41,7 +42,7 @@ an injected desync heals within one turn; a 200-turn, 4-player headless game run
 
 **Goal:** a complete single-player loop on a Small map with greybox art. *Is the city-planning puzzle fun?*
 
-* **Sim:** citizen management (locks, focus); border growth and tile purchase; roads and trade routes (land and river); combat v1
+* **Sim:** citizen management (locks, focus); ~~border growth and tile purchase~~ (done in M0); roads and trade routes (land and river); combat v1
   (melee, ranged, ZOC, fortify, walls, city strike); builder actions (chop, harvest, repair); great people v1; boosts; policy cards and governments v1;
   religion v0 (pantheon + founding); era score with Golden and Dark Ages.
 * **Client:** chunked terrain, unit models as placeholders, selection and movement UI with path preview and ETA, city screen with production queue,

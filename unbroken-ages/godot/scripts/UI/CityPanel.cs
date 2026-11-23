@@ -109,6 +109,10 @@ public partial class CityPanel : PanelContainer
         _yields.Text = $"{report.Total}\nHousing {city.Population}/{report.Housing}   Amenities {report.AmenitiesAvailable}/{report.AmenitiesNeeded} ({report.AmenityStatus})" +
                        $"\nDistricts {DistrictPlacement.UsedCapacity(s, city)}/{DistrictPlacement.Capacity(city, fx)}" +
                        (city.PowerDemand > 0 ? $"   Power {(city.IsPowered ? "✔" : "✖")} ({city.PowerDemand} needed)" : "");
+        var (nextTile, borderTurns) = BorderSystem.Forecast(s, city, report.Total.Culture);
+        if (nextTile >= 0)
+            _yields.Text += borderTurns > 0 ? $"\nNext tile in {borderTurns} turns: {BorderSystem.Describe(s, nextTile)}"
+                                            : $"\nNext tile (needs culture): {BorderSystem.Describe(s, nextTile)}";
 
         var loyalty = LoyaltySystem.Compute(s, city, LoyaltySystem.Snapshot(s));
         _loyalty.Text = $"Loyalty {city.Loyalty}/100 ({(loyalty.Total >= Fx.Zero ? "+" : "")}{loyalty.Total}/turn" +

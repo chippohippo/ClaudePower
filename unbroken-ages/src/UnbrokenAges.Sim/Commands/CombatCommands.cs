@@ -41,3 +41,14 @@ public sealed class CityStrikeCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(CityId); w.Write(TargetTile); }
     protected override void ReadPayload(BinaryReader r) { CityId = r.ReadInt32(); TargetTile = r.ReadInt32(); }
 }
+
+/// <summary>Buy an unclaimed tile touching a city's borders.</summary>
+public sealed class PurchaseTileCommand : GameCommand
+{
+    public int CityId, Tile;
+    public override CommandType Type => CommandType.PurchaseTile;
+    public override string? Validate(GameState s) => OwnCity(s, CityId) is not { } c ? "Not your city." : BorderSystem.ValidatePurchase(s, c, Tile);
+    public override void Apply(GameState s, List<GameEvent> events) => BorderSystem.Purchase(s, s.GetCity(CityId)!, Tile, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(CityId); w.Write(Tile); }
+    protected override void ReadPayload(BinaryReader r) { CityId = r.ReadInt32(); Tile = r.ReadInt32(); }
+}
