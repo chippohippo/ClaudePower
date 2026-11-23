@@ -27,7 +27,10 @@ vec3 hsv2rgb(vec3 c) {
 	return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
 }
 
+varying vec4 glow;   // INSTANCE_CUSTOM: rgb = glow colour, a = strength (future cities, path units)
+
 void vertex() {
+	glow = INSTANCE_CUSTOM;
 	UV = UV * uv_scale + uv_offset;
 	if (sway > 0.0) {
 		vec3 origin = MODEL_MATRIX[3].xyz;
@@ -41,6 +44,7 @@ void vertex() {
 void fragment() {
 	vec4 tint = COLOR;
 	vec3 c = (palette > 0.5 ? textureLod(albedo_tex, UV, 0.0).rgb : texture(albedo_tex, UV).rgb) * albedo_color.rgb;
+	float lum0 = dot(c, vec3(0.3, 0.59, 0.11));
 	vec3 hsv = rgb2hsv(c);
 	if (hsv.x > 0.13 && hsv.x < 0.21 && hsv.y > 0.45) {            // olive / yellow grass → meadow green
 		hsv.x = 0.25; hsv.y *= 0.75; hsv.z *= 0.72;
@@ -59,6 +63,12 @@ void fragment() {
 		c = mix(vec3(0.24, 0.16, 0.10), vec3(0.70, 0.59, 0.42), 0.3 + 0.55 * shade * smoothstep(0.1, 0.7, l + 0.25));
 	}
 	ALBEDO = c;
+	if (tint.a >= 0.75 && glow.a > 0.0) {
+		// light from within: the bright parts of the model (windows, panels, veins) shine in the path's colour
+		// at full strength the whole surface breathes faintly (living things), not only its bright details
+		float base = 0.06 + 0.3 * smoothstep(0.85, 1.0, glow.a) * (0.75 + 0.25 * sin(TIME * 1.4 + MODEL_MATRIX[3].x));
+		EMISSION = glow.rgb * glow.a * (base + 1.6 * smoothstep(0.72, 0.95, lum0));
+	}
 	ROUGHNESS = roughness;
 	SPECULAR = 0.3;
 }

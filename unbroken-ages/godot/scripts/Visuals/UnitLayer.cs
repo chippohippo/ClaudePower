@@ -19,6 +19,7 @@ public partial class UnitLayer : Node3D
         public List<AnimationPlayer> Players = new();
         public int Tile;
         public int Def;
+        public string Key = "";
         public bool Ranged;
         public Tween? Move;
     }
@@ -30,29 +31,82 @@ public partial class UnitLayer : Node3D
 
     public UnitLayer(ModelLibrary models) => _models = models;
 
-    /// <summary>Model, how many figures, and the size each is fitted to (height for people, length for ships and horses).</summary>
+    /// <summary>How a unit is drawn: model, figures, fitted size (height, or length for ships, horses and craft), a tint and
+    /// glow, hover height, and an optional piece mounted on top (a tank's turret).</summary>
+    public sealed record UnitLook(string Model, int Count, float Size, bool ByLength, Color Tint, Color Glow = default, float Hover = 0f, string? Addon = null)
+    {
+        public string Key => $"{Model}|{Count}|{Tint.ToHtml()}|{Glow.ToHtml()}|{Addon}";
+    }
+
+    /// <summary>The look of the unit itself, before its owner's research is applied (kept for callers that only need the model).</summary>
     public static (string Model, int Count, float Size, bool ByLength) Look(UnitDef d)
     {
+        var l = Look(d, TechLook.Default);
+        return (l.Model, l.Count, l.Size, l.ByLength);
+    }
+
+    /// <summary>
+    /// A unit's look follows what it is and what its owner has researched. Ancient to modern units are their period's
+    /// soldiers; tanks are armoured hulls with turrets. The three futures each have their own forms — white ceramic
+    /// Augmented with cyan light (Sovereign), grafted living beasts and spore-pods (Symbiont), hollow black machine frames
+    /// and monoliths lit violet (Discarnate) — and every unit of a committed civilization takes on its people's finish.
+    /// Civilians modernise with research: settlers travel by van and builders drive tractors after Industrialization.
+    /// </summary>
+    public static UnitLook Look(UnitDef d, TechLook owner)
+    {
         bool has(string tag) => d.Tags.Contains(tag);
-        if (d.FoundsCity) return ("units/civilian_a", 3, 0.5f, false);
-        if (d.FoundsOutpost) return ("units/Mage", 2, 0.7f, false);
-        if (d.Charges > 0 && d.Domain == UnitDomain.Civilian) return ("units/civilian_b", 2, 0.5f, false);
-        if (d.Domain == UnitDomain.Naval)
-            return d.Strength == 0 ? ("units/ship_small", 1, 1.15f, true)
-                 : d.OceanGoing && d.RangedStrength > 0 ? ("units/ship_large", 1, 1.55f, true)
-                 : d.OceanGoing ? ("units/ship_medium", 1, 1.4f, true)
-                 : ("units/ship_small", 2, 0.95f, true);
-        if (d.Domain == UnitDomain.Air || has("Drone")) return ("units/drone", 3, 0.36f, true);
-        if (has("Exoframe") || has("Armor")) return ("units/mech", 2, 0.85f, false);
-        if (has("ElectronicWarfare")) return ("units/modern_soldier", 4, 0.66f, false);
-        return d.UnitClass switch
+        var white = Colors.White;
+        // The three futures' own units.
+        if (has("Augmented"))
         {
-            "LightCavalry" or "HeavyCavalry" => ("units/horse", 3, 0.82f, true),
-            "Ranged" => ("life/Ranger", 4, 0.72f, false),
-            "Recon" => ("units/Rogue_Hooded", 2, 0.7f, false),
-            "Melee" when d.Strength < 30 => ("units/Barbarian", 4, 0.72f, false),
-            _ => ("units/Knight", 4, 0.74f, false),
+            var t = TechLook.PathTint(TechLook.Sovereign); var g = TechLook.PathGlow(TechLook.Sovereign) * 0.6f;
+            if (d.Domain == UnitDomain.Air) return new UnitLook("life/racer_craft", 2, 0.42f, true, t, g, 0.9f);
+            if (has("Armor")) return new UnitLook("units/mech", 2, 0.95f, false, t, g);
+            return new UnitLook("units/Knight", 4, 0.78f, false, t, g);
+        }
+        if (has("Living"))
+        {
+            var t = new Color(0.62f, 0.95f, 0.78f); var g = TechLook.PathGlow(TechLook.Symbiont) * 0.5f;
+            if (d.Domain == UnitDomain.Air) return new UnitLook("future/mushroom_tall", 3, 0.32f, false, new Color(0.85f, 0.6f, 1.1f), TechLook.PathGlow(TechLook.Symbiont), 0.7f);
+            if (d.Domain == UnitDomain.Naval) return new UnitLook("units/trex", 1, 1.5f, true, new Color(0.4f, 0.75f, 0.8f), g, -0.12f);
+            return new UnitLook("units/trex", 1, 1.25f, true, t, g);
+        }
+        if (has("Machine"))
+        {
+            var t = TechLook.PathTint(TechLook.Discarnate); var g = TechLook.PathGlow(TechLook.Discarnate);
+            if (d.Domain == UnitDomain.Air || has("Drone")) return new UnitLook("units/drone", 5, 0.26f, true, t, g, 0.5f);
+            if (d.UnitClass == "Siege") return new UnitLook("era/skyscraper_c", 1, 1.0f, false, t, g, 0.25f);
+            return new UnitLook("units/Skeleton_Warrior", 4, 0.74f, false, t, g * 0.35f);
+        }
+
+        UnitLook look;
+        bool industrial = owner.Architecture >= Architecture.Industrial;
+        if (d.FoundsCity) look = industrial ? new UnitLook("life/van", 1, 0.5f, true, white) : new UnitLook("units/civilian_a", 3, 0.5f, false, white);
+        else if (d.FoundsOutpost) look = new UnitLook("units/Mage", 2, 0.7f, false, white);
+        else if (d.Charges > 0 && d.Domain == UnitDomain.Civilian)
+            look = owner.Path == TechLook.Discarnate ? new UnitLook("units/drone", 2, 0.3f, true, white, default, 0.35f)
+                 : industrial ? new UnitLook("life/tractor", 1, 0.42f, true, white) : new UnitLook("units/civilian_b", 2, 0.5f, false, white);
+        else if (d.Domain == UnitDomain.Naval)
+            look = d.Strength == 0 ? new UnitLook("units/ship_small", 1, 1.15f, true, white)
+                 : d.OceanGoing && d.RangedStrength > 0 ? new UnitLook("units/ship_large", 1, 1.55f, true, industrial ? new Color(0.55f, 0.55f, 0.58f) : white)
+                 : d.OceanGoing ? new UnitLook("units/ship_medium", 1, 1.4f, true, white)
+                 : new UnitLook("units/ship_small", 2, 0.95f, true, white);
+        else if (d.Domain == UnitDomain.Air || has("Drone")) look = new UnitLook("units/drone", 3, 0.36f, true, white, default, 0.35f);
+        else if (has("Exoframe")) look = new UnitLook("units/mech", 2, 0.85f, false, white);
+        else if (has("Armor")) look = new UnitLook("units/rover", 2, 0.5f, true, new Color(0.62f, 0.66f, 0.45f), default, 0f, "units/turret");
+        else if (has("ElectronicWarfare")) look = new UnitLook("units/modern_soldier", 4, 0.66f, false, white);
+        else look = d.UnitClass switch
+        {
+            "LightCavalry" or "HeavyCavalry" => new UnitLook("units/horse", 3, 0.82f, true, SceneTint.Chestnut),
+            "Ranged" => new UnitLook("life/Ranger", 4, 0.72f, false, white),
+            "Recon" => new UnitLook("units/Rogue_Hooded", 2, 0.7f, false, white),
+            "Melee" when d.Strength < 30 => new UnitLook("units/Barbarian", 4, 0.72f, false, white),
+            _ => new UnitLook("units/Knight", 4, 0.74f, false, white),
         };
+        // A committed civilization's people finish everything they field in their own way.
+        if (owner.IsFuture)
+            look = look with { Tint = look.Tint * Colors.White.Lerp(TechLook.PathTint(owner.Path), 0.5f), Glow = TechLook.PathGlow(owner.Path) * 0.35f };
+        return look;
     }
 
     /// <summary>Squad formations: a loose wedge facing the camera, wide enough that each figure reads on its own.</summary>
@@ -64,8 +118,12 @@ public partial class UnitLayer : Node3D
         _ => new[] { new Vector3(-0.13f, 0, -0.2f), new Vector3(0.17f, 0, -0.17f), new Vector3(-0.24f, 0, 0.15f), new Vector3(0.1f, 0, 0.2f) },
     };
 
+    private readonly Dictionary<int, TechLook> _looks = new();
+    private TechLook Looks(GameState s, int player) => _looks.TryGetValue(player, out var l) ? l : _looks[player] = TechLook.For(s, player);
+
     public void Sync(GameState s, int viewer, bool[] visible)
     {
+        _looks.Clear();
         var seen = new HashSet<int>();
         var perTile = new Dictionary<int, int>();
         foreach (var u in s.Units)
@@ -75,10 +133,11 @@ public partial class UnitLayer : Node3D
             int slot = perTile.GetValueOrDefault(u.Tile);
             perTile[u.Tile] = slot + 1;
             var target = Anchor(s, u.Tile, slot);
-            if (!_views.TryGetValue(u.Id, out var view) || view.Def != u.DefIndex)
+            var look = Look(s.Db.Units[u.DefIndex], Looks(s, u.Owner));
+            if (!_views.TryGetValue(u.Id, out var view) || view.Def != u.DefIndex || view.Key != look.Key)
             {
-                if (view != null) view.Root.QueueFree();
-                view = Create(s, u);
+                if (view != null) { view.Move?.Kill(); view.Root.QueueFree(); }
+                view = Create(s, u, look);
                 view.Root.Position = target;
                 _views[u.Id] = view;
             }
@@ -90,6 +149,7 @@ public partial class UnitLayer : Node3D
         }
         foreach (var id in _views.Keys.Where(id => !seen.Contains(id)).ToList())
         {
+            _views[id].Move?.Kill();
             _views[id].Root.QueueFree();
             _views.Remove(id);
         }
@@ -112,12 +172,11 @@ public partial class UnitLayer : Node3D
 
     public Vector3? WorldOf(int unitId) => _views.TryGetValue(unitId, out var v) ? v.Root.GlobalPosition : null;
 
-    private View Create(GameState s, UnitState u)
+    private View Create(GameState s, UnitState u, UnitLook look)
     {
         var def = s.Db.Units[u.DefIndex];
-        var view = new View { Root = new Node3D { Name = $"unit{u.Id}" }, Def = u.DefIndex, Tile = u.Tile };
+        var view = new View { Root = new Node3D { Name = $"unit{u.Id}" }, Def = u.DefIndex, Tile = u.Tile, Key = look.Key };
         AddChild(view.Root);
-        var (model, count, size, byLength) = Look(def);
         view.Ranged = def.RangedStrength > 0 && def.Domain == UnitDomain.Land;
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
@@ -125,22 +184,35 @@ public partial class UnitLayer : Node3D
         if (def.Domain != UnitDomain.Naval)
             view.Root.AddChild(new MeshInstance3D { Mesh = Disc, MaterialOverride = mat, Position = new Vector3(0, 0.02f, 0), Scale = new Vector3(1, 0.25f, 1), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
 
-        var scene = _models.LoadScene(model);
-        var bounds = _models.SceneBounds(model);
-        float extent = byLength ? Mathf.Max(bounds.Size.X, bounds.Size.Z) : bounds.Size.Y;
-        float scale = extent > 0.001f ? size / extent : 0.1f;
-        if (OS.GetCmdlineUserArgs().Contains("--debug-units")) GD.Print($"[unit] {model} bounds {bounds} scale {scale}");
-        var offsets = Formation(count);
+        var scene = _models.LoadScene(look.Model);
+        var bounds = _models.SceneBounds(look.Model);
+        float extent = look.ByLength ? Mathf.Max(bounds.Size.X, bounds.Size.Z) : bounds.Size.Y;
+        float scale = extent > 0.001f ? look.Size / extent : 0.1f;
+        if (OS.GetCmdlineUserArgs().Contains("--debug-units")) GD.Print($"[unit] {look.Model} bounds {bounds} scale {scale}");
         if (scene == null) return view;
-        foreach (var offset in offsets)
+        float lift = (def.Domain == UnitDomain.Air ? 0.35f : 0.03f) + look.Hover;
+        var centre = new Vector3(bounds.Position.X + bounds.Size.X / 2, bounds.Position.Y, bounds.Position.Z + bounds.Size.Z / 2) * scale;
+        foreach (var offset in Formation(look.Count))
         {
             var figure = scene.Instantiate<Node3D>();
-            figure.Scale = Vector3.One * scale;
-            figure.Position = offset + new Vector3(0, def.Domain == UnitDomain.Air ? 0.35f : 0.03f, 0) - new Vector3(0, bounds.Position.Y * scale, 0);
-            figure.RotationDegrees = new Vector3(0, (offset.X * 40) + (float)GD.RandRange(-8.0, 8.0), 0);   // KayKit faces +Z: toward the camera
-            figure.Scale *= (float)GD.RandRange(0.94, 1.05);   // a squad of people, not clones
-            view.Root.AddChild(figure);
-            if (model.EndsWith("horse")) SceneTint.Apply(figure, SceneTint.Chestnut);
+            float jitter = (float)GD.RandRange(0.94, 1.05);   // a squad of people, not clones
+            figure.Scale = Vector3.One * scale * jitter;
+            figure.Position = -centre * jitter;
+            var holder = new Node3D { Position = offset + new Vector3(0, lift, 0), RotationDegrees = new Vector3(0, (offset.X * 40) + (float)GD.RandRange(-8.0, 8.0), 0) };   // KayKit faces +Z: toward the camera
+            holder.AddChild(figure);
+            view.Root.AddChild(holder);
+            if (look.Tint != Colors.White || look.Glow.R + look.Glow.G + look.Glow.B > 0.01f) SceneTint.Apply(figure, look.Tint, look.Glow);
+            if (look.Addon != null && _models.LoadScene(look.Addon) is { } addon)
+            {
+                // A turret on the hull, sized to it.
+                var ab = _models.SceneBounds(look.Addon);
+                float ak = look.Size * 0.55f / Mathf.Max(0.001f, Mathf.Max(ab.Size.X, ab.Size.Z));
+                var top = addon.Instantiate<Node3D>();
+                top.Scale = Vector3.One * ak;
+                top.Position = new Vector3(0, bounds.Size.Y * scale * jitter * 0.85f, 0) - new Vector3(ab.Position.X + ab.Size.X / 2, ab.Position.Y, ab.Position.Z + ab.Size.Z / 2) * ak;
+                holder.AddChild(top);
+                SceneTint.Apply(top, look.Tint);
+            }
             foreach (var ap in figure.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
             {
                 view.Players.Add(ap);
@@ -153,6 +225,7 @@ public partial class UnitLayer : Node3D
 
     private static string? Find(AnimationPlayer ap, params string[] names)
     {
+        if (!GodotObject.IsInstanceValid(ap)) return null;   // the view was rebuilt while a tween was running
         var all = ap.GetAnimationList();
         foreach (var n in names)
         {
@@ -164,7 +237,7 @@ public partial class UnitLayer : Node3D
 
     private static void PlayLoop(AnimationPlayer ap, params string[] names)
     {
-        if (Find(ap, names) is not { } name) return;
+        if (Find(ap, names) is not { } name || !GodotObject.IsInstanceValid(ap)) return;
         var anim = ap.GetAnimation(name);
         anim.LoopMode = Animation.LoopModeEnum.Linear;
         ap.Play(name, 0.2);

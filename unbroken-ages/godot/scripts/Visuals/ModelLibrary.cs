@@ -138,7 +138,7 @@ public sealed class ModelLibrary
 public static class SceneTint
 {
     /// <summary>Multiplies every material's albedo under <paramref name="root"/> (e.g. the kit's orange horse → chestnut).</summary>
-    public static void Apply(Node root, Color tint)
+    public static void Apply(Node root, Color tint, Color glow = default)
     {
         foreach (var mi in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
             for (int i = 0; i < mi.GetSurfaceOverrideMaterialCount(); i++)
@@ -146,6 +146,14 @@ public static class SceneTint
                 {
                     var copy = (BaseMaterial3D)b.Duplicate();
                     copy.AlbedoColor = b.AlbedoColor * tint;
+                    if (glow.R + glow.G + glow.B > 0.01f)
+                    {
+                        // light from within: the brightest parts of the texture glow in the path's colour
+                        copy.EmissionEnabled = true;
+                        copy.Emission = glow;
+                        copy.EmissionEnergyMultiplier = 0.35f;
+                        if (b.AlbedoTexture != null) copy.EmissionTexture = b.AlbedoTexture;
+                    }
                     mi.SetSurfaceOverrideMaterial(i, copy);
                 }
     }

@@ -13,7 +13,7 @@ namespace UnbrokenAges.Client;
 ///   --autostart[=seed]     start a single-player game at once (Small map, you + 2 AI)
 ///   --do=a,b,c             actions, one every few frames: found, research, produce, end, next, move-east, attack,
 ///                          panel:T|P|C|V, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
-///                          select-city, focus-road, era:N, reveal (debug), wait
+///                          select-city, focus-road, era:N, tech:A+B, path:N, paths, spawn:A+B, reveal (debug), wait
 ///   --shots=dir            screenshot after every action (dir/NN-action.png)
 ///   --shot=file.png        screenshot at the end
 ///   --quit                 exit when done (exit code 1 if an action failed)
@@ -150,9 +150,10 @@ public partial class GameRoot
             case "load": QuickLoad(); return null;
             case "zoom-out": Camera.Zoom(2.2f); return null;
             case var z when z.StartsWith("zoom:"): Camera.Zoom(float.Parse(z[5..], System.Globalization.CultureInfo.InvariantCulture)); return null;
-            case "focus-city" or "focus-ai":
+            case var fc when fc is "focus-city" or "focus-ai" || fc.StartsWith("focus-city:"):
             {
-                var city = s.Cities.Where(c => step == "focus-city" ? c.Owner == LocalPlayer : c.Owner != LocalPlayer).OrderByDescending(c => c.Population).FirstOrDefault();
+                int nth = fc.StartsWith("focus-city:") ? int.Parse(fc[11..]) : 0;
+                var city = s.Cities.Where(c => fc.StartsWith("focus-city") ? c.Owner == LocalPlayer : c.Owner != LocalPlayer).OrderByDescending(c => c.Population).ThenBy(c => c.Id).Skip(nth).FirstOrDefault();
                 if (city == null) return "no city";
                 Camera.LookAtHex(s.Map.CoordOf(city.Tile));
                 return null;
@@ -168,6 +169,38 @@ public partial class GameRoot
                 return null;
             }
             case "lens:resources": ToggleByKey("R"); return null;
+            case var pa when pa.StartsWith("path:") || pa == "paths":
+            {
+                // Debug: research the whole shared tree and commit to a Divergence (path:0 Sovereign, 1 Symbiont, 2 Discarnate
+                // for you; "paths" gives every civilization a path in turn) — to preview the futures.
+                var order = new[] { "SOVEREIGN", "SYMBIONT", "DISCARNATE" };
+                for (int pi = 0; pi < s.Players.Count; pi++)
+                {
+                    if (pa != "paths" && pi != LocalPlayer) continue;
+                    var pl = s.Players[pi];
+                    int which = pa == "paths" ? pi % 3 : int.Parse(pa[5..]);
+                    int div = s.Db.Divergences.ToList().FindIndex(d => d.Id.Contains(order[which]));
+                    if (div < 0) return "no such divergence";
+                    for (int i = 0; i < s.Db.Techs.Count; i++)
+                        if (s.Db.Techs[i].DivergenceIndex < 0 || s.Db.Techs[i].DivergenceIndex == div) pl.Techs[i] = true;
+                    pl.Divergence = div;
+                    pl.DivergenceTurn = s.Turn;
+                }
+                _localVersion++;
+                return null;
+            }
+            case var te when te.StartsWith("tech:"):
+            {
+                // Debug: research exactly these technologies for every civilization (tech:MASONRY+ENGINEERING).
+                foreach (var id in te[5..].Split('+'))
+                {
+                    int i = s.Db.Techs.IndexOf("TECH_" + id.ToUpperInvariant());
+                    if (i < 0) return $"no tech {id}";
+                    foreach (var p in s.Players) p.Techs[i] = true;
+                }
+                _localVersion++;
+                return null;
+            }
             case "reveal":
                 Array.Fill(me.Revealed, true);
                 _localVersion++;
@@ -181,6 +214,32 @@ public partial class GameRoot
                                      .OrderByDescending(t => vis[t]).ThenByDescending(t => me.Revealed[t]).DefaultIfEmpty(-1).First();
                 if (tile < 0) return "no such resource";
                 Camera.LookAtHex(s.Map.CoordOf(tile));
+                return null;
+            }
+            case var sp when sp.StartsWith("spawn:"):
+            {
+                // Debug: place units of the given types (comma-free list joined by '+') around your capital, one per tile.
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+                if (city == null) return "no city";
+                var ring = Enumerable.Range(0, 6).Select(d => s.Map.Neighbor(city.Tile, d)).Where(n => n >= 0).ToList();
+                foreach (var id in sp[6..].Split('+'))
+                {
+                    int def = s.Db.Units.IndexOf("UNIT_" + id.ToUpperInvariant());
+                    if (def < 0) return $"no unit {id}";
+                    var d = s.Db.Units[def];
+                    var tiles = ring.Where(t => d.Domain == UnitDomain.Naval ? s.Map.IsWater(t) : s.Map.IsLand(t) && !s.Map.IsMountain(t)).ToList();
+                    if (tiles.Count == 0) continue;
+                    int tile = tiles.OrderBy(t => s.Units.Count(x => x.Tile == t)).First();
+                    s.AddUnit(new UnitState { Id = s.AllocateId(), Owner = LocalPlayer, DefIndex = def, Tile = tile, MovesLeft = d.Moves });
+                }
+                _localVersion++;
+                return null;
+            }
+            case "focus-last":
+            {
+                var u = s.Units.Where(x => x.Owner == LocalPlayer).OrderByDescending(x => x.Id).FirstOrDefault();
+                if (u == null) return "no unit";
+                Camera.LookAtHex(s.Map.CoordOf(u.Tile));
                 return null;
             }
             case "debug-life": GD.Print("[life] " + MapView.Life.Describe()); return null;

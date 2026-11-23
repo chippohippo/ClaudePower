@@ -253,27 +253,67 @@ public partial class HexMapView : Node3D
 
     // ----- Render ------------------------------------------------------------------------------------
 
-    private readonly Dictionary<string, List<(Transform3D T, Color C)>> _propItems = new();
+    private readonly Dictionary<string, List<(Transform3D T, Color C, Color Glow)>> _propItems = new();
 
-    private void AddProp(string prop, Vector3 at, float scale, float yaw, Color tint, float flatten = 1f)
+    private void AddProp(string prop, Vector3 at, float scale, float yaw, Color tint, float flatten = 1f, Color glow = default, float lift = 0f)
     {
         if (!_propItems.TryGetValue(prop, out var list)) _propItems[prop] = list = new();
-        at.Y = HeightField.Current.Surface(at.X, at.Z) - 0.01f;   // everything stands on the ground
-        list.Add((new Transform3D(new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale * flatten, scale)), at), tint));
+        at.Y = HeightField.Current.Surface(at.X, at.Z) - 0.01f + lift;   // everything stands on the ground
+        list.Add((new Transform3D(new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale * flatten, scale)), at), tint, glow));
     }
 
     /// <summary>Adds a prop fitted to a size in world units (its longest horizontal side), whatever scale the model was authored at.</summary>
-    private void AddFit(string prop, Vector3 at, float size, float yaw, Color tint, bool byHeight = false)
+    private void AddFit(string prop, Vector3 at, float size, float yaw, Color tint, bool byHeight = false, Color glow = default, float lift = 0f)
     {
         var model = _models.GetProp(prop);
         if (model == null) return;
         var b = model.Bounds.Size;
         float extent = byHeight ? b.Y : Mathf.Max(b.X, b.Z);
-        AddProp(prop, at, extent > 0.0001f ? size / extent : 1f, yaw, tint);
+        AddProp(prop, at, extent > 0.0001f ? size / extent : 1f, yaw, tint, 1f, glow, lift);
     }
 
     /// <summary>The kit's bale is peach with red bands; a golden multiply turns it to straw with twine.</summary>
     private static Color Hay(Color memory) => new(1.08f, 1.0f, 0.5f, memory.A);
+
+    private readonly Dictionary<int, TechLook> _looks = new();
+
+    /// <summary>A player's look, computed once per render (TechLook reads their researched techs).</summary>
+    private TechLook LookOf(GameState s, int player)
+    {
+        if (player < 0) return TechLook.Default;
+        if (!_looks.TryGetValue(player, out var look)) _looks[player] = look = TechLook.For(s, player);
+        return look;
+    }
+
+    /// <summary>A farmstead by technology: a cottage and haystacks, then a suburban farmhouse and silo, solar fields with
+    /// renewables; sealed hydroponic hangars (Sovereign), fungus gardens (Symbiont), solar and server farms (Discarnate).</summary>
+    private void DressFarm(int t, Vector3 top, float yaw, string team, Color memory, TechLook look, float k)
+    {
+        bool lit = memory.A >= 0.75f;
+        switch (look.Architecture)
+        {
+            case Architecture.Sovereign:
+                AddFit("future/hangar_round", top + new Vector3(0.15f, 0, 0.1f), 0.55f, yaw, new Color(TechLook.PathTint(0), memory.A), false, lit ? TechLook.GlowData(0, 0.3f) : default);
+                return;
+            case Architecture.Symbiont:
+                AddFit("future/dome_glass", top + new Vector3(0.18f, 0, 0.1f), 0.42f, yaw, new Color(0.7f, 1.05f, 0.9f, memory.A), false, lit ? TechLook.GlowData(1, 0.5f) : default);
+                AddFit("future/mushroom_group", top + new Vector3(-0.25f, 0, 0.3f), 0.3f, yaw, new Color(0.8f, 0.55f, 1.1f, memory.A), false, lit ? TechLook.GlowData(1, 0.8f) : default);
+                return;
+            case Architecture.Discarnate:
+                AddFit("era/solar_field", top + new Vector3(-0.1f, 0, 0.15f), 0.7f, yaw, new Color(0.5f, 0.48f, 0.62f, memory.A), false, lit ? TechLook.GlowData(2, 0.4f) : default);
+                AddFit("future/structure_detailed", top + new Vector3(0.35f, 0, -0.2f), 0.2f, yaw, new Color(TechLook.PathTint(2), memory.A), false, lit ? TechLook.GlowData(2, 0.8f) : default);
+                return;
+        }
+        if (look.Architecture >= Architecture.Industrial)
+        {
+            AddFit("era/suburb_a", top + new Vector3(0.18f, 0, 0.12f), 0.3f, yaw, memory);
+            AddFit(look.Renewable ? "era/solar_field" : "era/tank_storage", top + new Vector3(-0.22f, 0, 0.3f), look.Renewable ? 0.45f : 0.2f, yaw, memory);
+            return;
+        }
+        AddProp(Rand(t, 8) < 0.5f ? $"buildings/home_A_{team}" : $"buildings/home_B_{team}", top + new Vector3(0.18f, 0, 0.12f), k * 0.42f, yaw, memory);
+        AddFit("resources/hay", top + new Vector3(-0.2f, 0, 0.3f), 0.14f, yaw + 0.5f, Hay(memory));
+        AddFit("resources/hay", top + new Vector3(-0.05f, 0, 0.4f), 0.12f, yaw + 1.3f, Hay(memory));
+    }
 
     private int _viewer;
     private bool _seeAll;
@@ -307,6 +347,7 @@ public partial class HexMapView : Node3D
         float k = ModelLibrary.KitScale;
         _viewer = viewer;
         _seeAll = seeEverything;
+        _looks.Clear();
 
         UpdateTileData(s, visible, revealed);
         HeightField.Current.Update(s, revealed);
@@ -401,12 +442,14 @@ public partial class HexMapView : Node3D
             switch (id)
             {
                 case "IMPROVEMENT_FARM":
-                    // The fields are painted into the ground (terrain shader); a farmstead and its haystacks stand among them.
-                    AddProp(Rand(t, 8) < 0.5f ? $"buildings/home_A_{team}" : $"buildings/home_B_{team}", top + new Vector3(0.18f, 0, 0.12f), k * 0.42f, yaw, memory);
-                    AddFit("resources/hay", top + new Vector3(-0.2f, 0, 0.3f), 0.14f, yaw + 0.5f, Hay(memory));
-                    AddFit("resources/hay", top + new Vector3(-0.05f, 0, 0.4f), 0.12f, yaw + 1.3f, Hay(memory));
+                    // The fields are painted into the ground (terrain shader); what stands among them follows the owner's research.
+                    DressFarm(t, top, yaw, team, memory, LookOf(s, owner), k);
                     break;
-                case "IMPROVEMENT_MINE": AddProp($"buildings/mine_{team}", top, k * 0.6f, yaw, memory); break;
+                case "IMPROVEMENT_MINE":
+                    AddProp($"buildings/mine_{team}", top, k * 0.6f, yaw, memory);
+                    if (LookOf(s, owner).Architecture is >= Architecture.Industrial and < Architecture.Sovereign)
+                        AddFit("era/chimney_industrial", top + new Vector3(0.3f, 0, -0.25f), 0.55f, 0, memory, true);
+                    break;
                 case "IMPROVEMENT_PASTURE": AddProp("buildings/building-sheep", top, 0.09f, yaw, memory); break;
                 case "IMPROVEMENT_PLANTATION": AddProp($"buildings/windmill_{team}", top, k * 0.7f, yaw, memory); break;
                 case "IMPROVEMENT_CAMP": AddProp($"buildings/lumbermill_{team}", top, k * 0.75f, yaw, memory); break;
@@ -483,20 +526,9 @@ public partial class HexMapView : Node3D
         string team = TeamColor(s, c.Owner);
         var memory = new Color(1, 1, 1, visible ? 1 : 0.5f);
         var at = HexLayout.ToWorld(map.CoordOf(c.Tile), LandTop);
-        AddProp(c.IsCapital ? $"buildings/castle_{team}" : $"buildings/tower_A_{team}", at, k * (c.IsCapital ? 0.62f : 0.6f), 0, memory);
-        int houses = Math.Clamp(1 + c.Population / 2, 1, 6);
-        for (int i = 0; i < houses; i++)
-        {
-            float a = Mathf.DegToRad(30 + 60 * i);
-            var p = at + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.62f;
-            AddProp(i % 2 == 0 ? $"buildings/home_A_{team}" : $"buildings/home_B_{team}", p, k * 0.75f, -a + Mathf.Pi / 2, memory);
-        }
-        if (c.HasBuilding(db.Buildings.IndexOf(db.Rules.Combat.WallsBuilding)))
-            for (int i = 0; i < 3; i++)
-            {
-                float a = Mathf.DegToRad(90 + 120 * i);
-                AddProp($"buildings/tower_B_{team}", at + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.8f, k * 0.35f, 0, memory);
-            }
+        var look = TechLook.For(s, c.Owner);
+        bool walls = c.HasBuilding(db.Buildings.IndexOf(db.Rules.Combat.WallsBuilding));
+        foreach (var piece in CityLayout.Centre(look, c, walls)) Draw(piece, at, team, memory, look, k);
         foreach (var d in c.Districts)
         {
             if (d.DefIndex == db.Ids.CityCenter) continue;
@@ -504,13 +536,28 @@ public partial class HexMapView : Node3D
             var p = HexLayout.ToWorld(map.CoordOf(d.Tile), LandTop);
             var tint = d.Pillaged ? new Color(0.5f, 0.45f, 0.4f, memory.A) : memory;
             if (d.Pillaged) { AddProp("buildings/destroyed", p, k * 0.9f, 0, tint); continue; }
-            foreach (var (prop, scale, offset) in DistrictLook(def, team))
-                AddProp(prop, p + offset, scale, 0, tint);
+            bool any = false;
+            foreach (var piece in CityLayout.District(look, def)) { Draw(piece, p, team, tint, look, k); any = true; }
+            if (!any)
+                foreach (var (prop, scale, offset) in DistrictLook(def, team))
+                    AddProp(prop, p + offset, scale, 0, tint);
         }
         // Reserved tiles for queued districts show scaffolding (Civ VI's "under construction").
         foreach (var item in c.Queue.Items)
             if (item.Kind == ProductionKind.District && item.Tile >= 0 && map.District[item.Tile] < 0)
                 AddProp("buildings/scaffolding", HexLayout.ToWorld(map.CoordOf(item.Tile), LandTop), k * 0.4f, 0, memory);
+    }
+
+    /// <summary>Places one <see cref="CityLayout.Piece"/>: team colour, the path's tint and glow, remembered tiles in sepia.</summary>
+    private void Draw(CityLayout.Piece piece, Vector3 origin, string team, Color memory, TechLook look, float k)
+    {
+        string prop = piece.Prop.Replace("{team}", team);
+        var tint = piece.Tint ?? Colors.White;
+        tint.A = memory.A;
+        if (memory.A < 0.75f) tint = new Color(tint.R, tint.G, tint.B, memory.A);
+        var glow = piece.Glow > 0 && memory.A >= 0.75f ? TechLook.GlowData(look.Path, piece.Glow) : default;
+        if (piece.Mode == CityLayout.Fit.Kit) AddProp(prop, origin + piece.Offset, k * piece.Size, piece.Yaw, tint, 1f, glow);
+        else AddFit(prop, origin + piece.Offset, piece.Size, piece.Yaw, tint, piece.Mode == CityLayout.Fit.Height, glow);
     }
 
     private static IEnumerable<(string Prop, float Scale, Vector3 Offset)> DistrictLook(DistrictDef def, string team)
@@ -560,7 +607,7 @@ public partial class HexMapView : Node3D
                 {
                     mmi = new MultiMeshInstance3D
                     {
-                        Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = model.Parts[part].Mesh },
+                        Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, UseCustomData = true, Mesh = model.Parts[part].Mesh },
                     };
                     AddChild(mmi);
                     _propMeshes[(prop, part)] = mmi;
@@ -572,6 +619,7 @@ public partial class HexMapView : Node3D
                 {
                     mm.SetInstanceTransform(i, items[i].T * local);
                     mm.SetInstanceColor(i, items[i].C);
+                    mm.SetInstanceCustomData(i, items[i].Glow);
                 }
             }
         }

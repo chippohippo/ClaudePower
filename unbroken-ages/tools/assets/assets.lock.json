@@ -375,6 +375,16 @@
    "models/units/Rogue_Hooded.glb"
   ]
  },
+ "model:Skeleton_Warrior": {
+  "id": "kaykit:skeletons/characters/Skeleton_Warrior.glb",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Skeleton warrior\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-skeletons), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its Minion (2.2 units, 1.6 m), on KayKit's character scale), 132 animation clips added from KayKit Character Animations (same rig, matched by bone name).",
+  "url": "https://kaylousberg.itch.io/kaykit-skeletons",
+  "files": [
+   "models/units/Skeleton_Warrior.glb"
+  ]
+ },
  "model:archeryrange_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_archeryrange_blue.gltf",
   "license": "CC0-1.0",
@@ -585,6 +595,16 @@
    "models/life/car.glb"
   ]
  },
+ "model:cargo_craft": {
+  "id": "kenney:space-kit/craft_cargoA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Craft cargo a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/life/cargo_craft.glb"
+  ]
+ },
  "model:castle_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_castle_blue.gltf",
   "license": "CC0-1.0",
@@ -623,6 +643,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_castle_yellow.gltf",
   "files": [
    "models/buildings/castle_yellow.glb"
+  ]
+ },
+ "model:chimney_industrial": {
+  "id": "kenney:city-kit-industrial/chimney-basic.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Chimney basic\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/chimney_industrial.glb"
   ]
  },
  "model:church_blue": {
@@ -735,6 +765,16 @@
    "models/props/crate_open.glb"
   ]
  },
+ "model:crystal_large": {
+  "id": "kenney:tower-defense-kit/detail-crystal-large.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Detail crystal large\" by Kenney (Kenney, https://kenney.nl/assets/tower-defense-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d72.5 to real-world size (calibrated on the cannon (0.6 units; about 1.5 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/tower-defense-kit",
+  "files": [
+   "models/future/crystal_large.glb"
+  ]
+ },
  "model:crystals": {
   "id": "kenney:space-kit/rock_crystalsLargeA.glb",
   "license": "CC0-1.0",
@@ -775,6 +815,26 @@
    "models/buildings/dirt.glb"
   ]
  },
+ "model:dish": {
+  "id": "kenney:space-kit/satelliteDish_large.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Satellite dish large\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/era/dish.glb"
+  ]
+ },
+ "model:dome_glass": {
+  "id": "kenney:space-kit/hangar_roundGlass.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Hangar round glass\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/dome_glass.glb"
+  ]
+ },
  "model:drone": {
   "id": "polyfork:survey-drone-7c71f9",
   "license": "CC-BY-4.0",
@@ -783,6 +843,36 @@
   "url": "https://polyfork.dev/asset/survey-drone-7c71f9",
   "files": [
    "models/units/drone.glb"
+  ]
+ },
+ "model:factory_a": {
+  "id": "kenney:city-kit-industrial/building-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building a\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_a.glb"
+  ]
+ },
+ "model:factory_b": {
+  "id": "kenney:city-kit-industrial/building-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building b\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_b.glb"
+  ]
+ },
+ "model:factory_c": {
+  "id": "kenney:city-kit-industrial/building-c.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building c\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_c.glb"
   ]
  },
  "model:fishing_boat": {
@@ -833,6 +923,26 @@
   "url": "https://kenney.nl/assets/food-kit",
   "files": [
    "models/resources/grapes.glb"
+  ]
+ },
+ "model:hangar_large": {
+  "id": "kenney:space-kit/hangar_largeA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Hangar large a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/hangar_large.glb"
+  ]
+ },
+ "model:hangar_round": {
+  "id": "kenney:space-kit/hangar_roundA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Hangar round a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/hangar_round.glb"
   ]
  },
  "model:hay": {
@@ -1165,6 +1275,56 @@
    "models/nature/mountain_C.glb"
   ]
  },
+ "model:mushroom_group": {
+  "id": "kenney:nature-kit/mushroom_redGroup.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Mushroom red group\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/future/mushroom_group.glb"
+  ]
+ },
+ "model:mushroom_tall": {
+  "id": "kenney:nature-kit/mushroom_redTall.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Mushroom red tall\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/future/mushroom_tall.glb"
+  ]
+ },
+ "model:office_a": {
+  "id": "kenney:city-kit-commercial/building-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building a\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_a.glb"
+  ]
+ },
+ "model:office_b": {
+  "id": "kenney:city-kit-commercial/building-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building b\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_b.glb"
+  ]
+ },
+ "model:office_c": {
+  "id": "kenney:city-kit-commercial/building-c.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building c\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_c.glb"
+  ]
+ },
  "model:ore": {
   "id": "polyfork:copper-ore-deposit-d5e58b",
   "license": "CC-BY-4.0",
@@ -1195,6 +1355,26 @@
    "models/resources/pig.glb"
   ]
  },
+ "model:race_future": {
+  "id": "kenney:car-kit/race-future.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Race future\" by Kenney (Kenney, https://kenney.nl/assets/car-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71.2 to real-world size (calibrated on the sedan (1.5 units wide; a car is about 1.8 m)).",
+  "url": "https://kenney.nl/assets/car-kit",
+  "files": [
+   "models/life/race_future.glb"
+  ]
+ },
+ "model:racer_craft": {
+  "id": "kenney:space-kit/craft_racer.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Craft racer\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/life/racer_craft.glb"
+  ]
+ },
  "model:resource_lumber": {
   "id": "kaykit:medieval-hexagon/decoration/props/resource_lumber.gltf",
   "license": "CC0-1.0",
@@ -1215,6 +1395,16 @@
    "models/props/resource_stone.glb"
   ]
  },
+ "model:rock_crystals": {
+  "id": "kenney:space-kit/rock_crystals.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Rock crystals\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/rock_crystals.glb"
+  ]
+ },
  "model:rock_single_A": {
   "id": "kaykit:medieval-hexagon/decoration/nature/rock_single_A.gltf",
   "license": "CC0-1.0",
@@ -1223,6 +1413,26 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/nature/rock_single_A.gltf",
   "files": [
    "models/nature/rock_single_A.glb"
+  ]
+ },
+ "model:rocket_base": {
+  "id": "kenney:space-kit/rocket_baseA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Rocket base a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/rocket_base.glb"
+  ]
+ },
+ "model:rover": {
+  "id": "kenney:space-kit/rover.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Rover\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/units/rover.glb"
   ]
  },
  "model:sack": {
@@ -1295,6 +1505,86 @@
    "models/units/ship_small.glb"
   ]
  },
+ "model:skyscraper_a": {
+  "id": "kenney:city-kit-commercial/building-skyscraper-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building skyscraper a\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/skyscraper_a.glb"
+  ]
+ },
+ "model:skyscraper_b": {
+  "id": "kenney:city-kit-commercial/building-skyscraper-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building skyscraper b\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/skyscraper_b.glb"
+  ]
+ },
+ "model:skyscraper_c": {
+  "id": "kenney:city-kit-commercial/building-skyscraper-c.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building skyscraper c\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/skyscraper_c.glb"
+  ]
+ },
+ "model:skyscraper_d": {
+  "id": "kenney:city-kit-commercial/building-skyscraper-d.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building skyscraper d\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/skyscraper_d.glb"
+  ]
+ },
+ "model:skyscraper_e": {
+  "id": "kenney:city-kit-commercial/building-skyscraper-e.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building skyscraper e\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/skyscraper_e.glb"
+  ]
+ },
+ "model:solar_field": {
+  "id": "kenney:city-kit-industrial/solar-panel-landscape-group.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Solar panel landscape group\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/solar_field.glb"
+  ]
+ },
+ "model:space_chimney": {
+  "id": "kenney:space-kit/chimney_detailed.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Chimney detailed\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/space_chimney.glb"
+  ]
+ },
+ "model:speeder": {
+  "id": "kenney:space-kit/craft_speederA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Craft speeder a\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/life/speeder.glb"
+  ]
+ },
  "model:stage_A": {
   "id": "kaykit:medieval-hexagon/buildings/neutral/building_stage_A.gltf",
   "license": "CC0-1.0",
@@ -1303,6 +1593,66 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/neutral/building_stage_A.gltf",
   "files": [
    "models/buildings/stage_A.glb"
+  ]
+ },
+ "model:structure_detailed": {
+  "id": "kenney:space-kit/structure_detailed.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Structure detailed\" by Kenney (Kenney, https://kenney.nl/assets/space-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.25 to real-world size (calibrated on the astronaut (0.79 units; about 1.8 m)).",
+  "url": "https://kenney.nl/assets/space-kit",
+  "files": [
+   "models/future/structure_detailed.glb"
+  ]
+ },
+ "model:suburb_a": {
+  "id": "kenney:city-kit-suburban/building-type-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type a\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_a.glb"
+  ]
+ },
+ "model:suburb_b": {
+  "id": "kenney:city-kit-suburban/building-type-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type b\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_b.glb"
+  ]
+ },
+ "model:suburb_c": {
+  "id": "kenney:city-kit-suburban/building-type-c.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type c\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_c.glb"
+  ]
+ },
+ "model:suburb_d": {
+  "id": "kenney:city-kit-suburban/building-type-d.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type d\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_d.glb"
+  ]
+ },
+ "model:tank_storage": {
+  "id": "kenney:city-kit-industrial/detail-tank-large.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Detail tank large\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/tank_storage.glb"
   ]
  },
  "model:tavern_blue": {
@@ -1525,6 +1875,16 @@
    "models/nature/trees_B_small.glb"
   ]
  },
+ "model:trex": {
+  "id": "anymove:trex",
+  "license": "CC0-1.0",
+  "source": "anymove",
+  "credit": "Animated T-rex with 7 clips by Patch, made with anymove (mesh and motion generated with AI), CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). https://github.com/patch-gg/anymove",
+  "url": "https://github.com/patch-gg/anymove",
+  "files": [
+   "models/units/trex.glb"
+  ]
+ },
  "model:truck": {
   "id": "kenney:car-kit/delivery.glb",
   "license": "CC0-1.0",
@@ -1533,6 +1893,26 @@
   "url": "https://kenney.nl/assets/car-kit",
   "files": [
    "models/life/truck.glb"
+  ]
+ },
+ "model:turret": {
+  "id": "kenney:tower-defense-kit/weapon-cannon.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Weapon cannon\" by Kenney (Kenney, https://kenney.nl/assets/tower-defense-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d72.5 to real-world size (calibrated on the cannon (0.6 units; about 1.5 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/tower-defense-kit",
+  "files": [
+   "models/units/turret.glb"
+  ]
+ },
+ "model:van": {
+  "id": "kenney:car-kit/van.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Van\" by Kenney (Kenney, https://kenney.nl/assets/car-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71.2 to real-world size (calibrated on the sedan (1.5 units wide; a car is about 1.8 m)).",
+  "url": "https://kenney.nl/assets/car-kit",
+  "files": [
+   "models/life/van.glb"
   ]
  },
  "model:wagon": {

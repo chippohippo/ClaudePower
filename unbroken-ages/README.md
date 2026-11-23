@@ -69,7 +69,12 @@ terrains blend across soft, hand-painted borders; coasts have turquoise shallows
 mountains, team-coloured cities and districts are 3D; units are animated squads of four. The world is alive: farms are
 patchworks of crop plots, roads link your cities with wagons (later cars and lorries) carrying the harvest, fishing boats
 work the coasts, cattle and horses graze, birds wheel overhead and every chimney smokes. Every resource stands on its tile,
-and the resource lens (R) shows what each one yields and whether it is improved. The unexplored world is an inked parchment
+and the resource lens (R) shows what each one yields and whether it is improved. What a civilization builds follows
+**only the technologies it has researched**: tents become stone keeps, walled burghs, factory towns with coal stacks and
+then skylines; footpaths become cobbles, macadam, asphalt and smart roads; carts become lorries, cars and autonomous pods.
+At the top of the tree the three Divergence futures look nothing alike: Sovereign (destructive) white arcologies and
+bastions, Symbiont (harmonized) cities grown around great luminous trees, Discarnate (syncretic) black monoliths lit violet
+with hovercraft and drones. The unexplored world is an inked parchment
 chart, places you have seen but cannot see now are a sepia watercolour with cross-hatched scenery, and the frontier is a
 burnt edge on the paper. The interface follows Civ V and VI: top bar with yield icons, research and civic trackers, city
 banners and unit flags, a minimap and a turn button that names the next thing to do. Music, effects and a synthesised
@@ -80,7 +85,7 @@ wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited
 |---|---|
 | ![Close-up](docs/screenshots/close-up.png) | ![City screen](docs/screenshots/city-screen.png) |
 | ![Farms, roads and wagons around a capital](docs/screenshots/village-fields.png) | ![Resource lens](docs/screenshots/resource-lens.png) |
-| ![The industrial age: asphalt, cars and coal smoke](docs/screenshots/living-world.png) | |
+| ![The industrial age: asphalt, cars and coal smoke](docs/screenshots/living-world.png) | ![One city through every technology look and the three futures](docs/screenshots/tech-ages.png) |
 
 ## Play it (first playable)
 

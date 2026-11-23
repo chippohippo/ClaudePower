@@ -63,6 +63,11 @@ procedural ambience, living title backdrop. See docs/06 §9.
 client-side road networks with era-appropriate traffic (wagons → cars and lorries), boats, grazing animals, bird flocks,
 chimney smoke and tree sway (`Visuals/LifeLayer.cs`). Debug automation steps `era:N`, `reveal`, `focus-*` for screenshots.
 
+**Technology-driven look (done):** buildings, roads, traffic, ships, farms and units follow researched techs only
+(`Visuals/TechLook.cs`, `Visuals/CityLayout.cs`), through nine looks: Tribal, Classical, Medieval, Industrial, Modern, Atomic,
+Information, and the three Divergence futures (Sovereign destructive, Symbiont harmonized, Discarnate syncretic), each with
+its own architecture, roads, traffic, aircraft, plumes, townsfolk and units. Debug steps `tech:A+B`, `path:N`, `paths`, `spawn:A+B`.
+
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.
 

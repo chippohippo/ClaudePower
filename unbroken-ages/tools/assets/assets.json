@@ -1360,6 +1360,234 @@
    "type": "sprite",
    "id": "kenney:animal-pack-remastered/round-moose.png",
    "dest": "ui/resources"
+  },
+  {
+   "name": "suburb_a",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-a.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_b",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-b.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_c",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-c.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_d",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-d.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_a",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-a.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_b",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-b.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_c",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-c.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "chimney_industrial",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/chimney-basic.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "tank_storage",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/detail-tank-large.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_a",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-a.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_b",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-b.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_c",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-c.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "skyscraper_a",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-skyscraper-a.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "skyscraper_b",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-skyscraper-b.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "skyscraper_c",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-skyscraper-c.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "skyscraper_d",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-skyscraper-d.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "skyscraper_e",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-skyscraper-e.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "solar_field",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/solar-panel-landscape-group.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "dish",
+   "type": "model",
+   "id": "kenney:space-kit/satelliteDish_large.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "hangar_large",
+   "type": "model",
+   "id": "kenney:space-kit/hangar_largeA.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "hangar_round",
+   "type": "model",
+   "id": "kenney:space-kit/hangar_roundA.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "dome_glass",
+   "type": "model",
+   "id": "kenney:space-kit/hangar_roundGlass.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "structure_detailed",
+   "type": "model",
+   "id": "kenney:space-kit/structure_detailed.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "rocket_base",
+   "type": "model",
+   "id": "kenney:space-kit/rocket_baseA.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "space_chimney",
+   "type": "model",
+   "id": "kenney:space-kit/chimney_detailed.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "crystal_large",
+   "type": "model",
+   "id": "kenney:tower-defense-kit/detail-crystal-large.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "rock_crystals",
+   "type": "model",
+   "id": "kenney:space-kit/rock_crystals.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "mushroom_tall",
+   "type": "model",
+   "id": "kenney:nature-kit/mushroom_redTall.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "mushroom_group",
+   "type": "model",
+   "id": "kenney:nature-kit/mushroom_redGroup.glb",
+   "dest": "models/future"
+  },
+  {
+   "name": "race_future",
+   "type": "model",
+   "id": "kenney:car-kit/race-future.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "van",
+   "type": "model",
+   "id": "kenney:car-kit/van.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "speeder",
+   "type": "model",
+   "id": "kenney:space-kit/craft_speederA.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "cargo_craft",
+   "type": "model",
+   "id": "kenney:space-kit/craft_cargoA.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "racer_craft",
+   "type": "model",
+   "id": "kenney:space-kit/craft_racer.glb",
+   "dest": "models/life"
+  },
+  {
+   "name": "rover",
+   "type": "model",
+   "id": "kenney:space-kit/rover.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "turret",
+   "type": "model",
+   "id": "kenney:tower-defense-kit/weapon-cannon.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "Skeleton_Warrior",
+   "type": "model",
+   "id": "kaykit:skeletons/characters/Skeleton_Warrior.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "trex",
+   "type": "model",
+   "id": "anymove:trex",
+   "dest": "models/units"
   }
  ]
 }
