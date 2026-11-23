@@ -25,7 +25,8 @@ public partial class HexMapView : Node3D
     public const float WaterTop = 0.035f;
 
     private readonly ModelLibrary _models = new();
-    private MultiMeshInstance3D _land = null!, _water = null!;
+    private TerrainMesh _terrain = null!;
+    private MeshInstance3D _waterPlane = null!;
     private MeshInstance3D _rivers = null!, _borders = null!, _selection = null!, _hover = null!;
     private readonly Dictionary<(string Prop, int Part), MultiMeshInstance3D> _propMeshes = new();
     public UnitLayer Units { get; private set; } = null!;
@@ -41,13 +42,16 @@ public partial class HexMapView : Node3D
         _terrainMat.SetShaderParameter("normal_tex", BuildArray("normal"));
         _terrainMat.SetShaderParameter("paper_noise", PaperNoise);
         _terrainMat.SetShaderParameter("layer_tint", LayerTints);
-        _land = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.6f, RadialSegments = 6, Rings = 1 }, _terrainMat);
+        _terrain = new TerrainMesh();
+        _terrain.Configure(_terrainMat);
+        AddChild(_terrain);
 
         _waterMat = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/water.gdshader") };
         _waterMat.SetShaderParameter("wave_a", WaveTexture(11, 0.9f));
         _waterMat.SetShaderParameter("wave_b", WaveTexture(23, 1.6f));
         _waterMat.SetShaderParameter("paper_noise", PaperNoise);
-        _water = MakeMulti(new CylinderMesh { TopRadius = 1f, BottomRadius = 1f, Height = 0.12f, RadialSegments = 6, Rings = 1 }, _waterMat);
+        _waterPlane = new MeshInstance3D { MaterialOverride = _waterMat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+        AddChild(_waterPlane);
 
         _rivers = new MeshInstance3D { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         _borders = new MeshInstance3D { CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -67,7 +71,7 @@ public partial class HexMapView : Node3D
             MaterialOverride = new StandardMaterial3D
             {
                 AlbedoColor = color, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha, NoDepthTest = false,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha, NoDepthTest = true, RenderPriority = 2,
             },
             Scale = new Vector3(1, 0.15f, 1), Visible = false, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             RotationDegrees = new Vector3(0, 30, 0),
@@ -232,6 +236,7 @@ public partial class HexMapView : Node3D
     private void AddProp(string prop, Vector3 at, float scale, float yaw, Color tint, float flatten = 1f)
     {
         if (!_propItems.TryGetValue(prop, out var list)) _propItems[prop] = list = new();
+        at.Y = HeightField.Current.Surface(at.X, at.Z) - 0.01f;   // everything stands on the ground
         list.Add((new Transform3D(new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale * flatten, scale)), at), tint));
     }
 
@@ -244,8 +249,6 @@ public partial class HexMapView : Node3D
         var map = s.Map;
         var db = s.Db;
         foreach (var list in _propItems.Values) list.Clear();
-        var land = new List<(Transform3D, Color, Color)>();
-        var water = new List<(Transform3D, Color, Color)>();
         var rotate = Basis.Identity; // Godot's 6-sided cylinder already has corners on ±Z (pointy-top), matching HexLayout
         var visible = seeEverything ? Enumerable.Repeat(true, map.Count).ToArray() : VisibilitySystem.Visible(s, viewer);
         var revealed = seeEverything ? visible : s.Players[viewer].Revealed;
@@ -253,16 +256,13 @@ public partial class HexMapView : Node3D
         float k = ModelLibrary.KitScale;
 
         UpdateTileData(s, visible, revealed);
+        HeightField.Current.Update(s, revealed);
+        _terrain.Sync(s);
+        PlaceWater(map);
         for (int t = 0; t < map.Count; t++)
         {
-            var hex = map.CoordOf(t);
-            var top = HexLayout.ToWorld(hex, LandTop);
-            // Unexplored tiles are all parchment at land height, so the coastline of the unknown never leaks.
-            bool waterHere = Known(t) && map.IsWater(t) && !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].Id == "FEATURE_ICE");
-            if (waterHere) water.Add((new Transform3D(rotate, HexLayout.ToWorld(hex, WaterTop - 0.06f)), Colors.White, default));
-            else land.Add((new Transform3D(rotate, top - new Vector3(0, 0.3f, 0)), Colors.White, default));
-            if (!Known(t) || waterHere) continue;
-            DressTile(s, t, top, new Color(1, 1, 1, visible[t] ? 1f : 0.5f), k);
+            if (!Known(t) || map.IsWater(t)) continue;
+            DressTile(s, t, HexLayout.ToWorld(map.CoordOf(t), 0), new Color(1, 1, 1, visible[t] ? 1f : 0.5f), k);
         }
 
         foreach (var c in s.Cities) if (Known(c.Tile)) DressCity(s, c, visible[c.Tile], k);
@@ -274,8 +274,6 @@ public partial class HexMapView : Node3D
             AddProp($"buildings/tower_A_{TeamColor(s, o.Owner)}", at + new Vector3(0.25f, 0, -0.1f), k * 0.55f, 0, new Color(1, 1, 1, visible[o.Tile] ? 1 : 0.5f));
         }
 
-        Fill(_land, land);
-        Fill(_water, water);
         FlushProps();
         DrawRivers(map, revealed);
         DrawBorders(s, viewer, revealed);
@@ -299,33 +297,48 @@ public partial class HexMapView : Node3D
 
         if (map.IsMountain(t))
         {
-            string m = feature == "FEATURE_VOLCANO" ? "nature/mountain_C" : db.Terrains[map.Terrain[t]].Id is "TERRAIN_SNOW" or "TERRAIN_TUNDRA"
-                ? "nature/mountain_" + "ABC"[(int)(Rand(t, 5) * 3)]
-                : Rand(t, 5) < 0.5f ? "nature/mountain_A_grass_trees" : "nature/mountain_B_grass";
-            var mt = feature == "FEATURE_VOLCANO" ? new Color(0.65f, 0.45f, 0.4f, memory.A) : db.Terrains[map.Terrain[t]].Id == "TERRAIN_SNOW" ? new Color(0.95f, 0.97f, 1f, memory.A) : new Color(0.68f, 0.66f, 0.63f, memory.A);
-            AddProp(m, top, k * 0.88f, yaw, mt, flatten: 0.9f);
+            // The peak itself is the landscape (HeightField); scatter a few boulders on its flanks.
+            var stone = feature == "FEATURE_VOLCANO" ? new Color(0.45f, 0.32f, 0.3f, memory.A) : new Color(0.8f, 0.78f, 0.74f, memory.A);
+            for (int i = 0; i < 3; i++)
+            {
+                float ang = Rand(t, 40 + i) * Mathf.Tau, rad = 0.55f + Rand(t, 50 + i) * 0.35f;
+                AddProp("nature/rock_single_A", top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * rad, k * (0.8f + 0.6f * Rand(t, 60 + i)), ang, stone);
+            }
+            if (Rand(t, 70) < 0.5f && db.Terrains[map.Terrain[t]].Id is not ("TERRAIN_SNOW" or "TERRAIN_DESERT"))
+                for (int i = 0; i < 3; i++)
+                {
+                    float ang = Rand(t, 80 + i) * Mathf.Tau;
+                    AddProp("nature/tree_single_B", top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * 0.9f, k * 0.5f, ang, memory);
+                }
             return;
         }
-        if (hasDistrict)
+        if (hasDistrict) return;   // districts are drawn by DressCity (they belong to a city); keep the ground clear
+        if (forest && !hasImprovement)
         {
-            // districts are drawn by DressCity (they belong to a city); keep the ground clear
-            return;
+            // A real wood: a dozen trees of two kinds and many sizes, scattered so the canopy runs into the neighbours.
+            int trees = feature == "FEATURE_RAINFOREST" ? 22 : 18;
+            for (int i = 0; i < trees; i++)
+            {
+                float ang = Rand(t, 100 + i) * Mathf.Tau;
+                float rad = Mathf.Sqrt(Rand(t, 200 + i)) * 0.95f;
+                var at = top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * rad;
+                string kind = feature == "FEATURE_FOREST" ? (Rand(t, 300 + i) < 0.7f ? "A" : "B") : (Rand(t, 300 + i) < 0.7f ? "B" : "A");
+                var shade = greenery * (0.82f + 0.3f * Rand(t, 400 + i));
+                shade.A = memory.A;
+                AddProp($"nature/tree_single_{kind}", at, k * (0.42f + 0.3f * Rand(t, 500 + i)), ang, shade);
+            }
         }
-        if (hills && forest) AddProp("nature/hills_A_trees", top, k * 0.85f, yaw, greenery, flatten: 0.6f);
-        else if (hills) AddProp("nature/hills_" + "ABC"[(int)(Rand(t, 7) * 3)], top, k * 0.85f, yaw, memory, flatten: 0.55f);
-        else if (forest && !hasImprovement)
-        {
-            string size = Rand(t, 9) < 0.5f ? "large" : "medium";
-            string kind = feature == "FEATURE_FOREST" ? "A" : "B";
-            AddProp($"nature/trees_{kind}_{size}", top, k, yaw, greenery);
-        }
+        else if (hills && Rand(t, 7) < 0.6f) AddProp("nature/rock_single_A", top + new Vector3(0.3f, 0, -0.2f), k * 1.4f, yaw, memory);
         if (feature == "FEATURE_MARSH")
         {
-            AddProp("nature/waterplant_B", top + new Vector3(0.3f, 0, 0.2f), k * 1.4f, yaw, memory);
-            AddProp("nature/waterlily_A", top + new Vector3(-0.3f, 0, -0.1f), k * 1.6f, yaw, memory);
+            for (int i = 0; i < 4; i++)
+            {
+                float ang = Rand(t, 600 + i) * Mathf.Tau;
+                AddProp(i % 2 == 0 ? "nature/waterplant_B" : "nature/waterlily_A", top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * 0.5f, k * 1.5f, ang, memory);
+            }
         }
-        if (feature == "FEATURE_OASIS") AddProp("nature/tree_single_B", top, k * 1.2f, yaw, memory);
-        if (feature is "FEATURE_GEOTHERMAL" or "FEATURE_VOLCANO") AddProp("nature/rock_single_A", top, k * 2f, yaw, memory);
+        if (feature == "FEATURE_OASIS") AddProp("nature/tree_single_B", top, k * 0.7f, yaw, memory);
+        if (feature is "FEATURE_GEOTHERMAL") AddProp("nature/rock_single_A", top, k * 2f, yaw, memory);
         if (hasImprovement && !map.HasFlag(t, TileFlags.Pillaged))
         {
             string id = db.Improvements[map.Improvement[t]].Id;
@@ -333,9 +346,9 @@ public partial class HexMapView : Node3D
             string team = TeamColor(s, owner);
             switch (id)
             {
-                case "IMPROVEMENT_FARM": AddProp("buildings/grain", top, k * 0.95f, yaw, memory); break;
-                case "IMPROVEMENT_MINE": AddProp($"buildings/mine_{team}", top, k * 0.9f, yaw, memory); break;
-                case "IMPROVEMENT_PASTURE": AddProp("buildings/building-sheep", top, 0.155f, yaw, memory); break;
+                case "IMPROVEMENT_FARM": AddProp("buildings/grain", top + new Vector3(0.2f, 0, 0.1f), k * 0.55f, yaw, memory); AddProp("buildings/grain", top - new Vector3(0.25f, 0, 0.2f), k * 0.45f, yaw + 1f, memory); break;
+                case "IMPROVEMENT_MINE": AddProp($"buildings/mine_{team}", top, k * 0.6f, yaw, memory); break;
+                case "IMPROVEMENT_PASTURE": AddProp("buildings/building-sheep", top, 0.09f, yaw, memory); break;
                 case "IMPROVEMENT_PLANTATION": AddProp($"buildings/windmill_{team}", top, k * 0.7f, yaw, memory); break;
                 case "IMPROVEMENT_CAMP": AddProp($"buildings/lumbermill_{team}", top, k * 0.75f, yaw, memory); break;
                 case "IMPROVEMENT_OIL_WELL": AddProp($"buildings/blacksmith_{team}", top, k * 0.7f, yaw, memory); break;
@@ -383,7 +396,7 @@ public partial class HexMapView : Node3D
         // Reserved tiles for queued districts show scaffolding (Civ VI's "under construction").
         foreach (var item in c.Queue.Items)
             if (item.Kind == ProductionKind.District && item.Tile >= 0 && map.District[item.Tile] < 0)
-                AddProp("buildings/scaffolding", HexLayout.ToWorld(map.CoordOf(item.Tile), LandTop), k * 0.6f, 0, memory);
+                AddProp("buildings/scaffolding", HexLayout.ToWorld(map.CoordOf(item.Tile), LandTop), k * 0.4f, 0, memory);
     }
 
     private static IEnumerable<(string Prop, float Scale, Vector3 Offset)> DistrictLook(DistrictDef def, string team)
@@ -393,8 +406,8 @@ public partial class HexMapView : Node3D
         var side = new Vector3(0.45f, 0, 0.25f);
         switch (def.Id)
         {
-            case "DISTRICT_HARBOR": yield return ("buildings/building-port", kenney, Vector3.Zero); yield break;
-            case "DISTRICT_RIVER_PORT": yield return ("buildings/building-dock", kenney, Vector3.Zero); yield break;
+            case "DISTRICT_HARBOR": yield return ("buildings/building-port", kenney * 0.6f, Vector3.Zero); yield break;
+            case "DISTRICT_RIVER_PORT": yield return ("buildings/building-dock", kenney * 0.6f, Vector3.Zero); yield break;
             case "DISTRICT_GARRISON": yield return ($"buildings/barracks_{team}", k * 0.8f, Vector3.Zero); yield return ($"buildings/archeryrange_{team}", k * 0.5f, side); yield break;
             case "DISTRICT_AQUEDUCT": case "DISTRICT_DAM": case "DISTRICT_CANAL": yield return ($"buildings/watermill_{team}", k * 0.8f, Vector3.Zero); yield break;
             case "DISTRICT_NEIGHBORHOOD":
@@ -404,13 +417,21 @@ public partial class HexMapView : Node3D
         }
         switch (def.PrimaryYield)
         {
-            case YieldType.Science: yield return ("buildings/building-wizard-tower", kenney, Vector3.Zero); break;
+            case YieldType.Science: yield return ($"buildings/tower_B_{team}", k * 0.75f, Vector3.Zero); yield return ($"buildings/home_B_{team}", k * 0.5f, side); break;
             case YieldType.Faith: yield return ($"buildings/church_{team}", k * 0.85f, Vector3.Zero); break;
             case YieldType.Gold: yield return ($"buildings/market_{team}", k * 0.85f, Vector3.Zero); break;
             case YieldType.Culture: yield return ($"buildings/tavern_{team}", k * 0.8f, Vector3.Zero); yield return ("buildings/stage_A", k * 0.45f, side); break;
             case YieldType.Production: yield return ($"buildings/blacksmith_{team}", k * 0.8f, Vector3.Zero); yield return ($"buildings/lumbermill_{team}", k * 0.5f, side); break;
             default: yield return ($"buildings/well_{team}", k, Vector3.Zero); break;
         }
+    }
+
+    private void PlaceWater(MapGrid map)
+    {
+        float w = Mathf.Sqrt(3f) * (map.Width + 1) + 60f, h = 1.5f * map.Height + 60f;
+        if (_waterPlane.Mesh is not PlaneMesh pm || !Mathf.IsEqualApprox(pm.Size.X, w))
+            _waterPlane.Mesh = new PlaneMesh { Size = new Vector2(w, h), SubdivideWidth = 0, SubdivideDepth = 0 };
+        _waterPlane.Position = new Vector3(Mathf.Sqrt(3f) * map.Width / 2f, 0f, 1.5f * map.Height / 2f);
     }
 
     private void FlushProps()
@@ -460,11 +481,8 @@ public partial class HexMapView : Node3D
     private void DrawRivers(MapGrid map, bool[] revealed)
     {
         var mesh = new ImmediateMesh();
-        var mat = new StandardMaterial3D
-        {
-            AlbedoColor = new Color("#3d9ad1"), Roughness = 0.1f, Metallic = 0.1f,
-            EmissionEnabled = true, Emission = new Color("#1b5f8c"), EmissionEnergyMultiplier = 0.25f,
-        };
+        var mat = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/river.gdshader") };
+        mat.SetShaderParameter("noise", PaperNoise);
         mesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, mat);
         int quads = 0;
         for (int t = 0; t < map.Count; t++)
@@ -473,14 +491,41 @@ public partial class HexMapView : Node3D
             for (int d = 0; d < 3; d++) // each edge once: E, NE, NW
             {
                 if (!map.HasRiverEdge(t, d)) continue;
-                var (a, b) = HexLayout.Edge(map.CoordOf(t), d, LandTop + 0.012f);
-                Ribbon(mesh, a, b, 0.09f, 0.09f);
+                var (a, b) = HexLayout.Edge(map.CoordOf(t), d, 0);
+                Draped(mesh, a, b, 0.11f, 0.11f, null, null, null, 0.02f, uv: true);
                 quads++;
             }
         }
         if (quads == 0) { mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); }
         mesh.SurfaceEnd();
         _rivers.Mesh = mesh;
+    }
+
+    /// <summary>A ribbon laid over the ground: split into short pieces, each vertex lifted to the terrain height.</summary>
+    private static void Draped(ImmediateMesh mesh, Vector3 a, Vector3 b, float halfIn, float halfOut, Vector3? inward, Color? cIn, Color? cOut, float lift, bool uv = false)
+    {
+        const int pieces = 4;
+        var dir = (b - a).Normalized();
+        var n = inward ?? new Vector3(-dir.Z, 0, dir.X);
+        var hf = HeightField.Current;
+        Vector3 At(Vector3 p) => new(p.X, hf.Surface(p.X, p.Z) + lift, p.Z);
+        for (int i = 0; i < pieces; i++)
+        {
+            var p0 = a.Lerp(b, i / (float)pieces);
+            var p1 = a.Lerp(b, (i + 1) / (float)pieces);
+            var o0 = At(p0 - n * halfOut); var o1 = At(p1 - n * halfOut);
+            var i0 = At(p0 + n * halfIn); var i1 = At(p1 + n * halfIn);
+            float v0 = (a.X + a.Z) * 0.7f + i / (float)pieces, v1 = v0 + 1f / pieces;
+            void V(Vector3 p, Color? c, float u, float v)
+            {
+                if (c is { } col) mesh.SurfaceSetColor(col);
+                if (uv) mesh.SurfaceSetUV(new Vector2(u, v));
+                mesh.SurfaceSetNormal(Vector3.Up);
+                mesh.SurfaceAddVertex(p);
+            }
+            V(o0, cOut, 0, v0); V(o1, cOut, 0, v1); V(i1, cIn, 1, v1);
+            V(o0, cOut, 0, v0); V(i1, cIn, 1, v1); V(i0, cIn, 1, v0);
+        }
     }
 
     private static void Ribbon(ImmediateMesh mesh, Vector3 a, Vector3 b, float halfIn, float halfOut, Vector3? inward = null, Color? cIn = null, Color? cOut = null)
@@ -527,10 +572,10 @@ public partial class HexMapView : Node3D
                 var (a, b) = HexLayout.Edge(map.CoordOf(t), d, center.Y);
                 var inward = (center - (a + b) / 2).Normalized();
                 var solid = new Color(color, 0.95f);
-                Ribbon(mesh, a + inward * 0.02f, b + inward * 0.02f, 0.05f, 0f, inward, solid, solid);
-                Ribbon(mesh, a + inward * 0.07f, b + inward * 0.07f, 0.16f, 0f, inward, new Color(color, 0f), new Color(color, 0.35f));
+                Draped(mesh, a + inward * 0.02f, b + inward * 0.02f, 0.05f, 0f, inward, solid, solid, 0.04f);
+                Draped(mesh, a + inward * 0.07f, b + inward * 0.07f, 0.16f, 0f, inward, new Color(color, 0f), new Color(color, 0.35f), 0.04f);
                 quads += 2;
-                if (enemy) { Ribbon(mesh, a + inward * 0.2f, b + inward * 0.2f, 0.035f, 0f, inward, solid, solid); quads++; }
+                if (enemy) { Draped(mesh, a + inward * 0.2f, b + inward * 0.2f, 0.035f, 0f, inward, solid, solid, 0.04f); quads++; }
             }
         }
         if (quads == 0) { mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); mesh.SurfaceAddVertex(Vector3.Zero); }
@@ -556,16 +601,20 @@ public partial class HexMapView : Node3D
             {
                 if (supply[t] < 0) continue;
                 float k = Mathf.Clamp(supply[t] / 12f, 0.15f, 1f);
-                items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(t), LandTop + 0.04f)), new Color(0.3f, 0.9f, 0.4f, 0.18f + 0.3f * k), default));
+                items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(t), SurfaceY(s.Map, t) + 0.04f)), new Color(0.3f, 0.9f, 0.4f, 0.18f + 0.3f * k), default));
             }
             foreach (var u in s.Units)
                 if (u.Owner == viewer && supply[u.Tile] < 0 && SupplySystem.IsMilitary(s.Db, u))
-                    items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(u.Tile), LandTop + 0.05f)), new Color(0.95f, 0.2f, 0.2f, 0.6f), default));
+                    items.Add((new Transform3D(rotate, HexLayout.ToWorld(s.Map.CoordOf(u.Tile), SurfaceY(s.Map, u.Tile) + 0.05f)), new Color(0.95f, 0.2f, 0.2f, 0.6f), default));
         }
         Fill(_supply, items);
     }
 
-    public static float SurfaceY(MapGrid map, int tile) => map.IsWater(tile) ? WaterTop : LandTop;
+    public static float SurfaceY(MapGrid map, int tile)
+    {
+        var c = HexLayout.ToWorld(map.CoordOf(tile));
+        return HeightField.Current.Surface(c.X, c.Z);
+    }
 
     public void Select(int tile, MapGrid map)
     {

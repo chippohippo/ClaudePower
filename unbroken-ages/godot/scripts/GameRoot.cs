@@ -64,7 +64,7 @@ public partial class GameRoot : Node3D
 
         AddChild(new DirectionalLight3D
         {
-            RotationDegrees = new Vector3(-52, 38, 0), ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#ffe2bd"),
+            RotationDegrees = new Vector3(-38, 42, 0), ShadowEnabled = true, LightEnergy = 1.0f, LightColor = new Color("#ffe2bd"),
             DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits, DirectionalShadowMaxDistance = 60f, ShadowBlur = 1.5f,
         });
         AddChild(new WorldEnvironment { Environment = BuildEnvironment() });
@@ -74,17 +74,17 @@ public partial class GameRoot : Node3D
         AddChild(_map);
         _lens = new PlacementLens();
         AddChild(_lens);
-        // The paper finish over the whole 3D view (grain, warm grade, aged vignette); the interface stays crisp above it.
+        // The paper finish over the whole 3D frame (grain, warm grade, aged vignette), on a layer under the interface.
         var grade = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/paper_grade.gdshader") };
         grade.SetShaderParameter("paper_noise", HexMapView.PaperNoise);
-        _camera.AddChild(new MeshInstance3D
-        {
-            Mesh = new QuadMesh { Size = Vector2.One }, MaterialOverride = grade, Position = new Vector3(0, 0, -0.5f),
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, CustomAabb = new Aabb(new Vector3(-1e4f, -1e4f, -1e4f), new Vector3(2e4f, 2e4f, 2e4f)),
-        });
+        var gradeLayer = new CanvasLayer { Layer = 0 };
+        AddChild(gradeLayer);
+        var gradeRect = new ColorRect { Material = grade, MouseFilter = Control.MouseFilterEnum.Ignore };
+        gradeRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        gradeLayer.AddChild(gradeRect);
 
         var theme = UiTheme.Build();
-        var ui = new CanvasLayer();
+        var ui = new CanvasLayer { Layer = 1 };
         AddChild(ui);
         _overlay = new MapOverlay(this);
         ui.AddChild(_overlay);

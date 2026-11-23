@@ -25,7 +25,7 @@ public partial class UnitLayer : Node3D
     private readonly ModelLibrary _models;
     private readonly Dictionary<int, View> _views = new();
     private readonly Dictionary<int, StandardMaterial3D> _discs = new();
-    private static readonly CylinderMesh Disc = new() { TopRadius = 0.42f, BottomRadius = 0.44f, Height = 0.035f, RadialSegments = 24 };
+    private static readonly TorusMesh Disc = new() { InnerRadius = 0.36f, OuterRadius = 0.42f, Rings = 24, RingSegments = 6 };
 
     public UnitLayer(ModelLibrary models) => _models = models;
 
@@ -90,10 +90,14 @@ public partial class UnitLayer : Node3D
     {
         var map = s.Map;
         bool city = s.Cities.Any(c => c.Tile == tile);
-        var center = HexLayout.ToWorld(map.CoordOf(tile), HexMapView.SurfaceY(map, tile) + (map.IsWater(tile) ? 0.02f : 0.01f));
-        if (slot == 0 && !city) return center;
-        float a = slot * 2.2f + (city ? 2.4f : 0.6f);
-        return center + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.55f;
+        var center = HexLayout.ToWorld(map.CoordOf(tile), 0);
+        if (slot > 0 || city)
+        {
+            float a = slot * 2.2f + (city ? 2.4f : 0.6f);
+            center += new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.55f;
+        }
+        center.Y = HeightField.Current.Surface(center.X, center.Z) + 0.01f;
+        return center;
     }
 
     public Vector3? WorldOf(int unitId) => _views.TryGetValue(unitId, out var v) ? v.Root.GlobalPosition : null;
@@ -106,9 +110,9 @@ public partial class UnitLayer : Node3D
         var (model, count, size, byLength) = Look(def);
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
-            _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.5f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.15f };
+            _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.4f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.35f };
         if (def.Domain != UnitDomain.Naval)
-            view.Root.AddChild(new MeshInstance3D { Mesh = Disc, MaterialOverride = mat, Position = new Vector3(0, 0.015f, 0) });
+            view.Root.AddChild(new MeshInstance3D { Mesh = Disc, MaterialOverride = mat, Position = new Vector3(0, 0.02f, 0), Scale = new Vector3(1, 0.25f, 1), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
 
         var scene = _models.LoadScene(model);
         var bounds = _models.SceneBounds(model);

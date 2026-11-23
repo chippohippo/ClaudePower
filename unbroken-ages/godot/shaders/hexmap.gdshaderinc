@@ -92,8 +92,8 @@ vec3 paper(vec2 wp) {
 vec3 sepia_drawing(vec3 col, vec2 wp) {
 	float l = dot(col, vec3(0.3, 0.59, 0.11));
 	vec3 p = paper(wp);
-	vec3 wash = mix(vec3(l), col, 0.5) * 1.45;
-	vec3 c = p * mix(vec3(1.0), wash, 0.45);
-	c = mix(c, ink_color, (1.0 - smoothstep(0.06, 0.36, l)) * 0.35);
+	vec3 wash = mix(vec3(l), col, 0.5) * 1.6;
+	vec3 c = p * mix(vec3(1.0), wash, 0.38);
+	c = mix(c, ink_color, (1.0 - smoothstep(0.05, 0.3, l)) * 0.22);
 	return c;
 }
