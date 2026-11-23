@@ -113,7 +113,7 @@ public static class Movement
         if (unit.Destination < 0) return;
         var path = FindPath(s, unit, unit.Destination);
         if (path == null) { unit.Destination = -1; return; }
-        int full = s.Db.Units[unit.DefIndex].Moves;
+        int full = UnitStats.Moves(s, unit);
         foreach (int next in path)
         {
             int cost = EnterCost(s, unit, unit.Tile, next);

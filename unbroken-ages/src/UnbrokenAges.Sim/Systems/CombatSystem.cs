@@ -55,7 +55,7 @@ public static class CombatSystem
         b.Add("Era", rules.CityStrengthPerEra * s.PlayerEra(s.Players[city.Owner]));
         if (HasWalls(s, city)) b.Add("Walls", rules.WallsStrength);
         var garrison = s.Units.Where(u => u.Tile == city.Tile && u.Owner == city.Owner && SupplySystem.IsMilitary(s.Db, u))
-            .Select(u => s.Db.Units[u.DefIndex].Strength).DefaultIfEmpty(0).Max();
+            .Select(u => UnitStats.Strength(s, u)).DefaultIfEmpty(0).Max();
         b.Add("Garrison", garrison / 5);
         b.Add("Damaged", -(CityMaxHp(s, city) - city.Hp) / 20);
         return b;
@@ -70,7 +70,14 @@ public static class CombatSystem
         var def = db.Units[unit.DefIndex];
         var map = s.Map;
         var b = new StrengthBreakdown();
-        b.Add(attacking && ranged ? "Ranged strength" : "Strength", attacking && ranged ? def.RangedStrength : def.Strength);
+        bool rangedLine = attacking && ranged;
+        b.Add(rangedLine ? "Ranged strength" : "Strength", rangedLine ? def.RangedStrength : def.Strength);
+        if (UnitStats.VariantOf(s, unit) is { } variant)
+        {
+            int adjusted = rangedLine ? UnitStats.RangedStrength(s, unit) : UnitStats.Strength(s, unit);
+            int raw = rangedLine ? def.RangedStrength : def.Strength;
+            if (adjusted != raw) b.Add($"{variant.Name} variant", adjusted - raw);
+        }
         b.Add("Wounds", -rules.HpPenaltyPerTen * ((100 - unit.Hp) / 10));
 
         if (!attacking)
@@ -81,7 +88,11 @@ public static class CombatSystem
         else if (!ranged)
         {
             int dir = map.DirectionTo(fromTile, targetTile);
-            if (dir >= 0 && map.HasRiverEdge(fromTile, dir) && !map.HasFlag(targetTile, TileFlags.Bridge)) b.Add("Attacking across a river", -rules.RiverCrossingPenalty);
+            if (dir >= 0 && map.HasRiverEdge(fromTile, dir) && !map.HasFlag(targetTile, TileFlags.Bridge))
+            {
+                if (UnitStats.IgnoresRiverCrossing(s, unit)) b.Lines.Add(("Across a river (fords it)", 0));   // shown so the player sees why
+                else b.Add("Attacking across a river", -rules.RiverCrossingPenalty);
+            }
         }
 
         // Flanking (attacker) / support (defender): other friendly military units next to the defender.
@@ -129,7 +140,7 @@ public static class CombatSystem
         var db = s.Db;
         var map = s.Map;
         var def = db.Units[attacker.DefIndex];
-        bool ranged = def.RangedStrength > 0;
+        bool ranged = UnitStats.IsRanged(s, attacker);
         var empty = new StrengthBreakdown();
         CombatPreview Illegal(string why) => new(false, why, ranged, false, false, empty, empty, 0, 0, 0, 0, 0, attacker.Hp);
 
@@ -139,14 +150,14 @@ public static class CombatSystem
         if (attacker.MovesLeft <= Fx.Zero) return Illegal("No moves left.");
 
         bool vsCity = IsCity(s, targetTile, out var city);
-        var defender = s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => db.Units[u.DefIndex].Strength).ThenBy(u => u.Id).FirstOrDefault();
+        var defender = s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => UnitStats.Strength(s, u)).ThenBy(u => u.Id).FirstOrDefault();
         int targetOwner = vsCity ? city!.Owner : defender?.Owner ?? -1;
         if (targetOwner < 0) return Illegal("Nothing to attack there.");
         if (targetOwner == attacker.Owner) return Illegal("That is yours.");
         if (!DiplomacySystem.AtWar(s, attacker.Owner, targetOwner)) return Illegal("You are not at war with them.");
 
         int distance = map.Distance(attacker.Tile, targetTile);
-        if (ranged ? distance > Math.Max(1, def.Range) : distance != 1) return Illegal(ranged ? "Out of range." : "Melee units must be adjacent.");
+        if (ranged ? distance > UnitStats.Range(s, attacker) : distance != 1) return Illegal(ranged ? "Out of range." : "Melee units must be adjacent.");
         if (!ranged && !vsCity && Movement.TerrainCost(s, attacker, attacker.Tile, targetTile) == Movement.Impassable) return Illegal("Cannot reach that tile.");
 
         if (!vsCity && defender != null && !SupplySystem.IsMilitary(db, defender))
@@ -201,7 +212,7 @@ public static class CombatSystem
             return;
         }
 
-        var defender = s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => db.Units[u.DefIndex].Strength).ThenBy(u => u.Id).First();
+        var defender = s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => UnitStats.Strength(s, u)).ThenBy(u => u.Id).First();
         defender.Hp -= toDefender;
         attacker.Hp -= toAttacker;
         events.Add(new GameEvent(GameEventType.BattleFought, attacker.Owner, Tile: targetTile, Def: attacker.DefIndex, Value: toDefender,

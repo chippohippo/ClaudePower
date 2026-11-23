@@ -420,7 +420,7 @@ Architecture: [02-technical-architecture.md §8](02-technical-architecture.md#8-
 The game borrows the *stories* those games create (alternate-history ages, logistics that decide wars, production chains, leaders who are people,
 an auto-written history) through an **Ease Charter**: automatic by default, surfaces instead of screens, shortages stall and never delete, and the AI plays it
 or it ships off. A **Depth Dial** (Classic / Enhanced / Grand Strategy) sets granularity. Built now: **World Currents & Ages**, **Supply lens**, **Industries**,
-**the Chronicle**, **Living Governors** (experience and traits from service) and **Outposts**. Planned: Unit Variants, National Character, Private Enterprise, Battle Reports, Fog of Strength, World Genesis.
+**the Chronicle**, **Living Governors** (experience and traits from service), **Outposts** and **Unit Variants**. Planned: National Character, Private Enterprise, Battle Reports, Fog of Strength, World Genesis.
 Full design: [09-genre-defining-depth.md](09-genre-defining-depth.md).
 
 ## Appendix A — Community request traceability

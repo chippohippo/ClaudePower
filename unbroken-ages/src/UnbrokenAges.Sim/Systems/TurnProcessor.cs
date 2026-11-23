@@ -63,7 +63,7 @@ public static class TurnProcessor
         SupplySystem.ProcessTurn(s, events);
         foreach (var unit in s.Units.ToList())
         {
-            unit.MovesLeft = db.Units[unit.DefIndex].Moves;
+            unit.MovesLeft = UnitStats.Moves(s, unit);
             if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
         }
 

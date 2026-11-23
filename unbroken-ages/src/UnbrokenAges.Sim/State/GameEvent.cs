@@ -45,6 +45,7 @@ public enum GameEventType : byte
     OutpostFounded,
     OutpostPromoted,
     OutpostRazed,
+    UnitUpgraded,
 }
 
 /// <summary>

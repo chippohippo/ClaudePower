@@ -12,9 +12,17 @@
     { "id": "UNIT_SLINGER", "name": "Slinger", "domain": "Land", "unitClass": "Ranged", "era": "ERA_ANCIENT", "cost": 35, "strength": 5, "rangedStrength": 15, "range": 1,
       "upgradesTo": ["UNIT_ARCHER"] },
     { "id": "UNIT_ARCHER", "name": "Archer", "domain": "Land", "unitClass": "Ranged", "era": "ERA_ANCIENT", "cost": 60, "maintenance": 1, "strength": 15, "rangedStrength": 25, "range": 2,
-      "prereqTech": "TECH_ARCHERY" },
+      "prereqTech": "TECH_ARCHERY",
+      "variants": [
+        { "id": "BOWMEN", "name": "Bowmen", "description": "The standard company." },
+        { "id": "LONGBOW", "name": "Longbow", "description": "+1 range, −15% ranged strength.", "rangeDelta": 1, "rangedStrengthPercent": -15, "upgradeCostPercent": 25 },
+        { "id": "SKIRMISHERS", "name": "Skirmishers", "description": "+1 move, −10% ranged strength.", "movesDelta": 1, "rangedStrengthPercent": -10 } ] },
     { "id": "UNIT_SWORDSMAN", "name": "Swordsman", "domain": "Land", "unitClass": "Melee", "era": "ERA_CLASSICAL", "cost": 90, "maintenance": 2, "strength": 35,
-      "prereqTech": "TECH_BRONZE_WORKING", "resourceCost": { "resource": "RESOURCE_IRON", "amount": 10 } },
+      "prereqTech": "TECH_BRONZE_WORKING", "resourceCost": { "resource": "RESOURCE_IRON", "amount": 10 },
+      "variants": [
+        { "id": "LINE", "name": "Line", "description": "The standard drill." },
+        { "id": "HEAVY", "name": "Heavy", "description": "+15% strength, −1 move.", "strengthPercent": 15, "movesDelta": -1, "upgradeCostPercent": 20 },
+        { "id": "FORDSMEN", "name": "Fordsmen", "description": "No penalty attacking across rivers, −10% strength.", "strengthPercent": -10, "ignoresRiverCrossing": true } ] },
     { "id": "UNIT_HORSEMAN", "name": "Horseman", "domain": "Land", "unitClass": "LightCavalry", "era": "ERA_CLASSICAL", "cost": 80, "maintenance": 2, "strength": 36, "moves": 4,
       "prereqTech": "TECH_ANIMAL_HUSBANDRY", "resourceCost": { "resource": "RESOURCE_HORSES", "amount": 10 }, "weakAgainst": ["AntiCavalry"] },
 
@@ -26,7 +34,10 @@
       "oceanGoing": true, "riverCapable": false, "prereqTech": "TECH_CELESTIAL_NAVIGATION" },
     { "id": "UNIT_IRONCLAD", "name": "River Monitor", "domain": "Naval", "unitClass": "NavalRaider", "era": "ERA_INDUSTRIAL", "cost": 380, "maintenance": 4, "strength": 60,
       "rangedStrength": 65, "range": 2, "moves": 4, "oceanGoing": true, "prereqTech": "TECH_INDUSTRIALIZATION",
-      "resourceCost": { "resource": "RESOURCE_COAL", "amount": 10 }, "upkeep": { "resource": "RESOURCE_COAL", "amount": 1 } },
+      "resourceCost": { "resource": "RESOURCE_COAL", "amount": 10 }, "upkeep": { "resource": "RESOURCE_COAL", "amount": 1 },
+      "variants": [
+        { "id": "GUN_MONITOR", "name": "Gun Monitor", "description": "Bombards from two tiles away." },
+        { "id": "RAM", "name": "Ram", "description": "+20% strength, no bombardment: it closes and strikes.", "strengthPercent": 20, "rangedStrengthPercent": -100 } ] },
 
     { "id": "UNIT_TANK", "name": "Tank", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_MODERN", "cost": 480, "maintenance": 6, "strength": 80, "moves": 4,
       "prereqTech": "TECH_REFINING", "resourceCost": { "resource": "RESOURCE_STEEL", "amount": 10 }, "upkeep": { "resource": "RESOURCE_OIL", "amount": 1 }, "tags": ["Armor"] },

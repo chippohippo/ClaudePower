@@ -12,6 +12,7 @@ public enum CommandType : byte
     BuildImprovement = 12,
     FoundOutpost = 13,
     PromoteOutpost = 14,
+    UpgradeUnit = 15,
     Enqueue = 20,
     RemoveQueueItem = 21,
     MoveQueueItem = 22,
@@ -121,6 +122,7 @@ public abstract class GameCommand
         CommandType.OneMoreTurn => new OneMoreTurnCommand(),
         CommandType.FoundOutpost => new FoundOutpostCommand(),
         CommandType.PromoteOutpost => new PromoteOutpostCommand(),
+        CommandType.UpgradeUnit => new UpgradeUnitCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

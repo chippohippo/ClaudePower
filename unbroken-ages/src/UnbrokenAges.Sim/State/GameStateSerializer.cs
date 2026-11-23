@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 9;
+    public const int Version = 10;
 
     public static byte[] Serialize(GameState s)
     {
@@ -108,7 +108,7 @@ public static class GameStateSerializer
         foreach (var u in s.Units)
         {
             w.Write(u.Id); w.Write(u.Owner); w.Write(u.DefIndex); w.Write(u.Tile); WriteFx(w, u.MovesLeft);
-            w.Write(u.Hp); w.Write(u.Charges); w.Write(u.Destination); w.Write(u.Fortified); w.Write(u.AttackedThisTurn);
+            w.Write(u.Hp); w.Write(u.Charges); w.Write(u.Destination); w.Write(u.Fortified); w.Write(u.AttackedThisTurn); w.Write(u.Variant);
         }
 
         var cl = s.Climate;
@@ -255,7 +255,7 @@ public static class GameStateSerializer
             s.Units.Add(new UnitState
             {
                 Id = r.ReadInt32(), Owner = r.ReadInt32(), DefIndex = r.ReadInt32(), Tile = r.ReadInt32(), MovesLeft = ReadFx(r),
-                Hp = r.ReadInt32(), Charges = r.ReadInt32(), Destination = r.ReadInt32(), Fortified = r.ReadBoolean(), AttackedThisTurn = r.ReadBoolean(),
+                Hp = r.ReadInt32(), Charges = r.ReadInt32(), Destination = r.ReadInt32(), Fortified = r.ReadBoolean(), AttackedThisTurn = r.ReadBoolean(), Variant = r.ReadInt32(),
             });
 
         s.Climate = new ClimateState

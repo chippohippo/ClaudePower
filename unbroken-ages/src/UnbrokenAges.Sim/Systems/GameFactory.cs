@@ -77,7 +77,8 @@ public static class GameFactory
     private static void Spawn(GameState s, PlayerState p, int def, int tile)
     {
         var d = s.Db.Units[def];
-        s.AddUnit(new UnitState { Id = s.AllocateId(), Owner = p.Id, DefIndex = def, Tile = tile, MovesLeft = d.Moves, Charges = d.Charges });
+        s.AddUnit(new UnitState { Id = s.AllocateId(), Owner = p.Id, DefIndex = def, Tile = tile, MovesLeft = d.Moves, Charges = d.Charges,
+                                  Variant = UnitStats.DefaultVariant(s.Db, def) });
     }
 
     private static int FirstLandNeighbor(MapGrid map, int tile)

@@ -1648,6 +1648,19 @@
         "foundsOutpost": {
           "type": "boolean",
           "description": "Can plant an Outpost."
+        },
+        "variants": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/unitVariant"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
         }
       },
       "required": [
@@ -2742,6 +2755,12 @@
             },
             "wallsBuilding": {
               "type": "string"
+            },
+            "upgradeGoldPerProduction": {
+              "type": "integer"
+            },
+            "minUpgradeGold": {
+              "type": "integer"
             }
           }
         },
@@ -2984,6 +3003,46 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        }
+      }
+    },
+    "unitVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "description": "An honest trade-off chosen at upgrade.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "strengthPercent": {
+          "type": "integer"
+        },
+        "rangedStrengthPercent": {
+          "type": "integer",
+          "minimum": -100
+        },
+        "movesDelta": {
+          "type": "integer"
+        },
+        "rangeDelta": {
+          "type": "integer"
+        },
+        "ignoresRiverCrossing": {
+          "type": "boolean"
+        },
+        "upgradeCostPercent": {
+          "type": "integer"
         }
       }
     }

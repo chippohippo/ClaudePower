@@ -81,6 +81,16 @@ public sealed class SimpleAi : IAiController
 
         commands.AddRange(Governors(s, player));
 
+        // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
+        foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))
+            foreach (int target in UpgradeSystem.Targets(s, unit))
+            {
+                int variant = UnitStats.DefaultVariant(db, target);
+                if (UpgradeSystem.Validate(s, unit, target, variant) != null || player.Gold < UpgradeSystem.GoldCost(s, unit, target, variant) + 100) continue;
+                commands.Add(new UpgradeUnitCommand { Player = playerId, UnitId = unit.Id, Target = target, Variant = variant });
+                break;
+            }
+
         // Diplomacy (baseline): accept any peace offer; offer peace once a war has run its minimum length.
         foreach (var rel in s.Relations)
         {

@@ -519,6 +519,25 @@ public sealed class ResourceCost
     [JsonIgnore] public int ResourceIndex { get; internal set; } = -1;
 }
 
+/// <summary>
+/// Unit Variants (docs/09 §3): one honest trade-off picked when a unit is upgraded ("Heavy: +15% strength, −1 move").
+/// Units built in a city get the first variant. A civilization's unique unit inherits the variants of the unit it replaces.
+/// </summary>
+public sealed class UnitVariantDef
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string? Description { get; init; }
+    public int StrengthPercent { get; init; }
+    /// <summary>−100 removes the ranged attack (the unit fights in melee).</summary>
+    public int RangedStrengthPercent { get; init; }
+    public int MovesDelta { get; init; }
+    public int RangeDelta { get; init; }
+    public bool IgnoresRiverCrossing { get; init; }
+    /// <summary>Extra percent on the upgrade's gold cost.</summary>
+    public int UpgradeCostPercent { get; init; }
+}
+
 public sealed class UnitDef : Definition
 {
     public UnitDomain Domain { get; init; }
@@ -549,6 +568,7 @@ public sealed class UnitDef : Definition
     public string? Replaces { get; init; }
     public List<string> StrongAgainst { get; init; } = new();
     public List<string> WeakAgainst { get; init; } = new();
+    public List<UnitVariantDef> Variants { get; init; } = new();
 
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqCivicIndex { get; private set; } = -1;
@@ -565,6 +585,8 @@ public sealed class UnitDef : Definition
         ReplacesIndex = ctx.Resolve(ctx.Db.Units, Replaces, this, "replaces");
         if (ResourceCost != null) ResourceCost.ResourceIndex = ctx.Resolve(ctx.Db.Resources, ResourceCost.Resource, this, "resourceCost.resource", true);
         if (Upkeep != null) Upkeep.ResourceIndex = ctx.Resolve(ctx.Db.Resources, Upkeep.Resource, this, "upkeep.resource", true);
+        foreach (var dup in Variants.GroupBy(v => v.Id).Where(g => g.Count() > 1)) ctx.Error(this, $"duplicate variant '{dup.Key}'.");
+        if (Variants.Count == 1) ctx.Error(this, "a unit with variants needs at least two to choose from.");
     }
 }
 
@@ -976,6 +998,9 @@ public sealed class CombatRules
     public int CityHealPerTurn { get; init; } = 20;
     public int CityStrikeRange { get; init; } = 2;
     public string WallsBuilding { get; init; } = "BUILDING_ANCIENT_WALLS";
+    /// <summary>Upgrade gold = max(minUpgradeGold, (target cost − current cost) × this), then the variant's percent.</summary>
+    public int UpgradeGoldPerProduction { get; init; } = 2;
+    public int MinUpgradeGold { get; init; } = 20;
 }
 
 /// <summary>Outposts: cheap claims that hold land, extend supply and harvest one resource; promotable to cities.</summary>

@@ -211,8 +211,9 @@ public static class ProductionSystem
                 var unit = new UnitState
                 {
                     Id = s.AllocateId(), Owner = city.Owner, DefIndex = item.DefIndex, Tile = city.Tile,
-                    MovesLeft = def.Moves, Charges = def.Charges > 0 ? def.Charges + fx.BuilderCharges : 0,
+                    Charges = def.Charges > 0 ? def.Charges + fx.BuilderCharges : 0, Variant = UnitStats.DefaultVariant(db, item.DefIndex),
                 };
+                unit.MovesLeft = UnitStats.Moves(s, unit);
                 if (def.Domain == UnitDomain.Naval) unit.Tile = FindNavalSpawn(s, city) ?? city.Tile;
                 s.AddUnit(unit);
                 if (def.FoundsCity) city.Population = Math.Max(1, city.Population - 1);

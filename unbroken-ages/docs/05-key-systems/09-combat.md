@@ -42,3 +42,29 @@ Battles emit `BattleFought` (a one-line battle report); deaths emit `UnitDestroy
 
 ## Next (Combat v2, M3)
 Corps and armies, naval classes and blockades, air missions and air superiority, support units, promotions, Fog of Strength, battle replay.
+
+## Unit variants and upgrades
+**Code:** [`UpgradeSystem.cs`](../../src/UnbrokenAges.Sim/Systems/UpgradeSystem.cs), [`UnitStats.cs`](../../src/UnbrokenAges.Sim/Systems/UnitStats.cs) ·
+`UpgradeUnitCommand` · tests [`UnitVariantTests.cs`](../../tests/UnbrokenAges.Tests/UnitVariantTests.cs)
+
+Taken from Shadow Empire's model designer and kept to one click ([09 §3](../09-genre-defining-depth.md)): when a unit upgrades, the player picks
+**one of 2–3 variants**, each an honest trade-off. Units built in a city take the first (standard) variant, and the AI uses that preset.
+
+| Unit | Variants |
+|---|---|
+| Swordsman | **Line** (standard) · **Heavy**: +15% strength, −1 move, +20% upgrade cost · **Fordsmen**: no river-crossing penalty, −10% strength |
+| Archer | **Bowmen** (standard) · **Longbow**: +1 range, −15% ranged strength, +25% upgrade cost · **Skirmishers**: +1 move, −10% ranged strength |
+| River Monitor | **Gun Monitor** (standard) · **Ram**: +20% strength, no bombardment (fights in melee) |
+
+A civilization's unique unit inherits the variants of the unit it replaces (Song's Fire Lance Corps offers Line, Heavy and Fordsmen).
+Variant fields (`unitVariant` schema): `strengthPercent`, `rangedStrengthPercent` (−100 removes the ranged attack), `movesDelta`, `rangeDelta`,
+`ignoresRiverCrossing`, `upgradeCostPercent`. `UnitStats` applies them everywhere a unit fights or moves. The combat preview shows a
+"Heavy variant +5" line, and "Across a river (fords it) 0" for Fordsmen, so the trade-off is visible at the moment it matters.
+
+**Upgrading** (`UpgradeUnitCommand {unit, target, variant}`):
+* Targets are the unit's `upgradesTo`. A civilization with a unique replacement gets that instead (Song: Warrior → Fire Lance Corps).
+* Needs the target's tech or civic, its strategic resource (Swordsman: 10 Iron), and gold = max(20, 2 × (target cost − current cost)) × the
+  variant's percent (`worldRules.combat.upgradeGoldPerProduction`, `minUpgradeGold`).
+* The unit must be in its own territory and have moves left. It keeps its health, and the upgrade ends its turn.
+* Every refusal says what is missing ("Needs 10 Iron.", "Choose a variant: Line, Heavy, Fordsmen.").
+

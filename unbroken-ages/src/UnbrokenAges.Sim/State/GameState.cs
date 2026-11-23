@@ -189,6 +189,8 @@ public sealed class UnitState
     public int Destination = -1;
     public bool Fortified;
     public bool AttackedThisTurn;
+    /// <summary>Index into the unit's variants (-1 when it has none).</summary>
+    public int Variant = -1;
 }
 
 /// <summary>Shared state of the whole world: currents and the age history.</summary>

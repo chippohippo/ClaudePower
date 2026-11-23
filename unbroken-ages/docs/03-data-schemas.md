@@ -29,7 +29,9 @@ Added in [09](09-genre-defining-depth.md): **worldAges** (`priority`, `minEra`, 
 foreignCost, roughExtra, channelCost, waterCost, attritionHp, healHp}`, `combat{…}` ([05/09](05-key-systems/09-combat.md)),
 `victory{hegemonySharePercent, hegemonyMinLoyalty, scorePer*, tilesPerPoint, scoreForAscension}` ([05/11](05-key-systems/11-victory.md))); **chronicle** (`event`, `text` with `{year} {civ} {leader} {city} {detail} {value}`,
 `minValue`, `oncePerPlayer`, `requiresPlayer`); **governorTraits** (`requirements`, `turns` or `event` + `count`, `governors[]`, `modifiers`);
-requirement types `CityOnFrontier` (value = radius) and `OwnerAtWar`; unit `foundsOutpost`;
+requirement types `CityOnFrontier` (value = radius) and `OwnerAtWar`; unit `foundsOutpost` and
+`variants[{id, name, strengthPercent, rangedStrengthPercent, movesDelta, rangeDelta, ignoresRiverCrossing, upgradeCostPercent}]`;
+`worldRules.combat.upgradeGoldPerProduction`, `minUpgradeGold`;
 `worldRules.outposts{claimRadius, minDistance, supplyRange, goldPerTurn, bonusGold, luxuryGold, strategicPerTurn, promoteGold, promoteGoldPerCity}`; building `recipe {inputs, outputs, requiresPower}`; resource class `Good`.
 
 Every definition has: `id` (required), `name`, `description`, `tags[]`.

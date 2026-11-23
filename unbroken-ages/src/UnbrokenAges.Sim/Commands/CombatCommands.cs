@@ -52,3 +52,14 @@ public sealed class PurchaseTileCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(CityId); w.Write(Tile); }
     protected override void ReadPayload(BinaryReader r) { CityId = r.ReadInt32(); Tile = r.ReadInt32(); }
 }
+
+/// <summary>Upgrade a unit to one of its successors, choosing a variant when the successor offers them.</summary>
+public sealed class UpgradeUnitCommand : GameCommand
+{
+    public int UnitId, Target, Variant = -1;
+    public override CommandType Type => CommandType.UpgradeUnit;
+    public override string? Validate(GameState s) => OwnUnit(s, UnitId) is not { } u ? "Not your unit." : UpgradeSystem.Validate(s, u, Target, Variant);
+    public override void Apply(GameState s, List<GameEvent> events) => UpgradeSystem.Apply(s, s.GetUnit(UnitId)!, Target, Variant, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(Target); w.Write(Variant); }
+    protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); Target = r.ReadInt32(); Variant = r.ReadInt32(); }
+}
