@@ -186,6 +186,14 @@ Each leader's **doctrine** changes how the nation plays: a large bonus paired wi
 | Greece | Ioannis Metaxas, *Prime Minister of Greece* | **The Day of No**: Units +10 strength inside Greek borders; +3 Loyalty a turn and +20% Production toward units in every city. But −20% Culture everywhere, and −1 Amenity while at war. | **The Metaxas Line**: Melee units fight +10 at war; the bonus for peaceful neighbours is lost. |
 | Norway | Haakon VII, *King of Norway* | **The Home Front**: Units +6 strength inside Norwegian borders; war weariness −50%; +2 Loyalty in every city. But −5% Production. | **The Merchant Fleet**: Norse ships +12 strength and +2 movement; plunder pays 100%. |
 | Arabia | Faisal I, *Leader of the Arab Revolt* | **The Arab Revolt**: Units +6 strength outside Arab borders; cavalry +4 more; +3 influence a turn and +10% Gold. But −15% Production toward buildings. | **Desert Scholars**: 35% of Gold income becomes Science at 140%. |
+| Germany | Wilhelm II, *German Emperor* | **Weltpolitik**: A world policy: +25% Production toward units, +20% Science and +10% Production in every city. Its price: war weariness +40%, and −1 Amenity in every city while at war. | **The High Seas Fleet**: German ships fight +10 stronger and move +1; every city keeps its extra district slot. |
+| Germany | Adolf Hitler, *Chancellor of Germany* | **Blitzkrieg**: Rearmament and mobile war: +40% Production toward units, units +6 strength outside German borders. The costs: diplomatic isolation (−3 Diplomatic Favor and −2 influence a turn), −25% Gold, −20% Culture, war weariness +30%. | **Combined-Arms Doctrine**: Armour (heavy cavalry) fights +5 stronger and moves +1. |
+| Italy | Vittorio Emanuele Orlando, *Premier of Victory* | **The Piave Line**: Units +6 strength inside Italian borders; +3 Diplomatic Favor a turn; +2 Loyalty in every city at war. But −10% Production and −10% Gold. | **Vittorio Veneto**: Every wonder and great work pays +3 Culture and +3 Gold. |
+| Italy | Benito Mussolini, *Prime Minister of Italy* | **Mare Nostrum**: Public works and a navy: +25% Production toward districts and wonders, +3 Loyalty a turn in every city. But an overstretched army: units −4 strength outside Italian borders, −15% Science, −2 Diplomatic Favor a turn. | **The Regia Marina**: Italian ships fight +8 stronger and move +1. |
+| China | Mao Zedong, *Chairman of the Communist Party* | **People's Republic**: Land reform and a people's army: +10% Food and +10% Production, +2 Housing in every city, units +5 strength inside Chinese borders, war weariness −40%. The upheavals: −30% Culture, −25% Science, −1 Amenity everywhere. | **No More Dynasties**: The Mandate rises faster (+5 per loyal city) but its Golden Dynasties are shorter (6 turns). |
+| China | Chiang Kai-shek, *Generalissimo* | **National Revolution**: +20% Gold and +10% Science in every city, +2 influence a turn, units +4 strength inside Chinese borders. But a divided country: −1 Loyalty a turn and −10% Production everywhere. | **The Northern Expedition**: War drains the Mandate less (2 a turn instead of 4). |
+| Russia | Vladimir Lenin, *Chairman of the People's Commissars* | **Peace, Land and Bread**: +2 Food and +2 Housing in every city, +15% Production. The cost: −30% Gold, war weariness +50%, and −1 Amenity in every city while at war. | **All Power to the Soviets**: Every Russian city claims its third ring when founded. |
+| Spain | Francisco Franco, *Head of State of Spain* | **Non-Belligerence**: +15% Production in peacetime, +2 Loyalty a turn in every city, units +6 strength inside Spanish borders. But isolation: −25% Culture, −15% Science, −1 influence a turn. | **The Fortress of Spain**: Captured cities pay 120 Gold per citizen. |
 
 ### The engine behind the doctrines (`Systems/LeaderSystem.cs`)
 
@@ -217,4 +225,13 @@ the two runs' scores were compared (`simulate --leaders`).
 * **Where they ended up:**
   * Most wartime leaders score between 0.7× and 1.2× their classic counterpart.
   * Stalin's ratio stays high (Peter, Russia's classic leader, is the weakest baseline), but his absolute score is mid-pack.
+* **Second soak, for the eight leaders added later.** Opponents had to change to exclude China: Thutmose, Dandolo, Genghis, Pachacuti
+  and Mansa Musa. Germany and Italy have no classic leaders, so they were compared with the field average of five classic leaders.
+  * Hitler 1.05 × the field, Lenin 1.10 × Peter, Chiang 0.94 × Taizu.
+  * Wilhelm II was eliminated in four seeds of five. He lost his Gold cost and gained +20% Science and +10% Production, and now scores
+    1.28 × the field.
+  * Mao was well ahead of Taizu (1.69). He was trimmed to +10% Food and Production and +2 Housing, with −25% Science, and now scores
+    0.81 × Taizu. One small step of tuning swung his ratio by 0.9, which shows how much the noise outweighs a few percent.
+  * Franco was trimmed to 1.13 × Isabella.
+  * Orlando and Mussolini score about 0.7 × the field, within the spread of the classic leaders (0.35–1.68).
   * The AI plays the defensive doctrines passively. A human Churchill or Atatürk will get more from them.

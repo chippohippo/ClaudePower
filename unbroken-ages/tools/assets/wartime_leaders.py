@@ -184,9 +184,9 @@ LEADERS = [
 LEADERS += [
     ("LEADER_WILHELM_II", "Wilhelm II", "German Emperor", "CIV_GERMANY",
      "Weltpolitik",
-     "A world policy: +25% Production toward units and +15% Science in every city. "
-     "Its price: war weariness +40%, −15% Gold, and −1 Amenity in every city while at war.",
-     [prod("Unit", 25), pct("Science", 15), eff("WarWearinessPercent", 40), pct("Gold", -15), eff("CityAmenities", -1, WAR)],
+     "A world policy: +25% Production toward units, +20% Science and +10% Production in every city. "
+     "Its price: war weariness +40%, and −1 Amenity in every city while at war.",
+     [prod("Unit", 25), pct("Science", 20), pct("Production", 10), eff("WarWearinessPercent", 40), eff("CityAmenities", -1, WAR)],
      "The High Seas Fleet", "German ships fight +10 stronger and move +1; every city keeps its extra district slot.",
      {"navalStrength": 10, "navalMoves": 1, "extraDistricts": 1},
      ("Place in the Sun", "Respects power; resents trading empires.", ["Warmonger"], ["TradePartner"]),
@@ -217,10 +217,10 @@ LEADERS += [
      {"war": 1.4, "naval": 1.3}),
     ("LEADER_MAO", "Mao Zedong", "Chairman of the Communist Party", "CIV_SONG",
      "People's Republic",
-     "Land reform and a people's army: +20% Food and +15% Production, +3 Housing in every city, units +5 strength inside Chinese borders, "
-     "war weariness −40%. The upheavals: −30% Culture, −20% Science, −1 Amenity everywhere.",
-     [pct("Food", 20), pct("Production", 15), eff("CityHousing", 3), strength(5, HOME), eff("WarWearinessPercent", -40),
-      pct("Culture", -30), pct("Science", -20), eff("CityAmenities", -1)],
+     "Land reform and a people's army: +10% Food and +10% Production, +2 Housing in every city, units +5 strength inside Chinese borders, "
+     "war weariness −40%. The upheavals: −30% Culture, −25% Science, −1 Amenity everywhere.",
+     [pct("Food", 10), pct("Production", 10), eff("CityHousing", 2), strength(5, HOME), eff("WarWearinessPercent", -40),
+      pct("Culture", -30), pct("Science", -25), eff("CityAmenities", -1)],
      "No More Dynasties", "The Mandate rises faster (+5 per loyal city) but its Golden Dynasties are shorter (6 turns).", {"gainPerLoyalCity": 5, "dynastyTurns": 6},
      ("Revolution", "Dislikes trading empires and warmongers.", ["HighLoyalty"], ["TradePartner", "Warmonger"]),
      {"war": 1.1, "expansion": 1.3}),
@@ -241,9 +241,9 @@ LEADERS += [
      {"war": 0.7, "expansion": 1.2}),
     ("LEADER_FRANCO", "Francisco Franco", "Head of State of Spain", "CIV_SPAIN",
      "Non-Belligerence",
-     "+20% Production in peacetime, +3 Loyalty a turn in every city, units +6 strength inside Spanish borders. "
+     "+15% Production in peacetime, +2 Loyalty a turn in every city, units +6 strength inside Spanish borders. "
      "But isolation: −25% Culture, −15% Science, −1 influence a turn.",
-     [pct("Production", 20, PEACE), eff("CityLoyaltyPerTurn", 3), strength(6, HOME), pct("Culture", -25), pct("Science", -15), eff("InfluencePerTurn", -1)],
+     [pct("Production", 15, PEACE), eff("CityLoyaltyPerTurn", 2), strength(6, HOME), pct("Culture", -25), pct("Science", -15), eff("InfluencePerTurn", -1)],
      "The Fortress of Spain", "Captured cities pay 120 Gold per citizen.", {"goldPerPop": 120},
      ("Neutrality", "Respects the loyal; dislikes cities in revolt.", ["HighLoyalty"], ["CitiesInRevolt"]),
      {"war": 0.7}),

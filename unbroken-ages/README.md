@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 297 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 300 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -51,7 +51,7 @@ Civilization VII's age resets or civ-swapping.
   "Levee-builder"…), which travel with them ([05/02](docs/05-key-systems/02-loyalty-governors.md#living-governors-experience-and-traits)).
 * **Outposts**: Waymakers plant cheap claims that hold land, extend supply and harvest one resource, with no city screen; buy one up into a
   city later ([05/12](docs/05-key-systems/12-outposts.md)).
-* **36 nations and 72 leaders that play differently** ([05/14](docs/05-key-systems/14-nations.md)). Every nation plays one
+* **38 nations and 94 leaders that play differently** ([05/14](docs/05-key-systems/14-nations.md)). Every nation plays one
   rule differently. Some examples:
   * Egypt grows in flood pulses from a royal granary.
   * Venice never trains Settlers, and buys outposts and cities instead.
@@ -67,7 +67,9 @@ Civilization VII's age resets or civ-swapping.
   * The Haudenosaunee may never declare war.
 
   Each nation has two leaders whose augments bend that rule. Pick them in the lobby, which shows a dossier of how each plays.
-* **Leaders of the World Wars** ([05/14](docs/05-key-systems/14-nations.md#leaders-of-the-world-wars)): 16 twentieth-century leaders
+* **Leaders of the World Wars** ([05/14](docs/05-key-systems/14-nations.md#leaders-of-the-world-wars)): 24 twentieth-century leaders,
+  famous and infamous, with new nations **Germany** (Wilhelm II, Hitler) and **Italy** (Orlando, Mussolini). Mao and Chiang lead China,
+  Lenin and Stalin lead Russia, and Franco leads Spain. They come
   with doctrines that change their nation's game, each pairing a large bonus with a real cost.
   * Churchill's fortress Britain, Stalin's Five-Year Plans, Tojo's expeditionary war cabinet.
   * Roosevelt's Arsenal of Democracy (isolation in peace, a war economy in war), Wilson's Fourteen Points, de Gaulle's Grandeur,
@@ -187,7 +189,7 @@ with `xvfb-run` and a software Vulkan driver).
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 297 tests, ~4 s
+dotnet test                                        # 300 tests, ~4 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade
