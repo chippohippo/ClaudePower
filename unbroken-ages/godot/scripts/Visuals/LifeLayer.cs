@@ -516,7 +516,7 @@ public partial class LifeLayer : Node3D
     private Node3D Merchantman(TechLook look) => look.Architecture switch
     {
         Architecture.Tribal => Fitted("units/ship_small", 0.5f, 0),
-        Architecture.Classical or Architecture.Medieval => Fitted("units/ship_medium", 0.62f, 0),
+        Architecture.Classical or Architecture.Medieval or Architecture.Renaissance => Fitted("units/ship_medium", 0.62f, 0),
         Architecture.Industrial => Fitted("units/ship_large", 0.75f, 0),
         < Architecture.Sovereign => Fitted("life/fishing_boat", 0.7f, 0),
         _ => Tinted(Fitted("life/cargo_craft", 0.6f, 0), TechLook.PathTint(look.Path), TechLook.PathGlow(look.Path) * 0.8f),

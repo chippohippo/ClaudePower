@@ -26,7 +26,7 @@
       ],
       "combat": { "baseDamage": 30, "doublingDelta": 17, "randomMinPercent": 80, "randomMaxPercent": 120, "hpPenaltyPerTen": 1,
                   "riverCrossingPenalty": 5, "fortifyBonus": 4, "flankingBonus": 2, "supportBonus": 2, "counterBonus": 10, "outOfSupplyPenalty": 5,
-                  "cityBaseStrength": 15, "cityStrengthPerEra": 4, "wallsStrength": 10, "cityBaseHp": 100, "wallsHp": 100, "cityHealPerTurn": 20,
+                  "cityBaseStrength": 15, "cityStrengthPerEra": 7, "wallsStrength": 10, "cityBaseHp": 100, "wallsHp": 100, "cityHealPerTurn": 20,
                   "cityStrikeRange": 2, "wallsBuilding": "BUILDING_ANCIENT_WALLS",
                   "upgradeGoldPerProduction": 2, "minUpgradeGold": 20 },
       "supply": { "cityRange": 10, "militaryDistrictBonus": 4, "portRange": 12, "ownCost": 2, "neutralCost": 3, "foreignCost": 5,

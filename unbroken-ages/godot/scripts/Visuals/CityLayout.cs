@@ -12,8 +12,9 @@ namespace UnbrokenAges.Client.Visuals;
 /// <item><term>Tribal</term><description>a longhouse among tents and huts</description></item>
 /// <item><term>Classical</term><description>a stone keep (a castle for the capital), timber-and-stone houses, towers on the walls</description></item>
 /// <item><term>Medieval</term><description>bigger towns: a church, a windmill, an inner ring of houses</description></item>
-/// <item><term>Industrial</term><description>a red-brick factory and coal stacks at the heart, terraced suburbs; the old palace kept</description></item>
-/// <item><term>Modern</term><description>office blocks downtown, suburbs, a storage tank, the first tower</description></item>
+/// <item><term>Renaissance</term><description>half-timbered town houses and tall gabled terraces, a market hall, a gatehouse in the walls, farmsteads and stables at the edge</description></item>
+/// <item><term>Industrial</term><description>a red-brick factory and coal stacks at the heart, brick tenement blocks and terraces, a water tower; the old palace kept</description></item>
+/// <item><term>Modern</term><description>office blocks downtown among brick blocks, green-roofed suburbs, a storage tank, the first tower</description></item>
 /// <item><term>Atomic</term><description>a skyline rises; satellite dishes</description></item>
 /// <item><term>Information</term><description>a full skyline that grows with population; solar fields with renewables</description></item>
 /// <item><term>Sovereign</term><description>white arcology spires, bunkers, a bastion wall of sealed blocks, smog stacks, rocket silos</description></item>
@@ -54,7 +55,7 @@ public static class CityLayout
             bool house = piece.Prop.Contains("home_");
             if (civ == "CIV_MONGOLIA" && preIndustrial && house)
                 yield return piece with { Prop = "landmarks/yurt", Size = 0.3f, Mode = Fit.Width, Team = false };
-            else if (piece.Team && material != Colors.White)
+            else if ((piece.Team || piece.Prop.StartsWith("era/village") || piece.Prop.StartsWith("era/townhouse") || piece.Prop.StartsWith("era/farmhouse")) && material != Colors.White)
                 yield return piece with { Tint = (piece.Tint ?? Colors.White) * material };
             else yield return piece;
         }
@@ -133,16 +134,50 @@ public static class CityLayout
                 if (walls) for (int i = 0; i < 3; i++) yield return new Piece("buildings/tower_B_{team}", Ring(90 + 120 * i, 0.8f), 0.35f, Fit.Kit, Team: true);
                 yield break;
 
+            case Architecture.Renaissance:
+            {
+                // The early-modern town: a market hall (the palace in a capital), half-timbered houses and tall gabled terraces,
+                // a gatehouse in the walls; farmsteads and stables where the town meets the fields.
+                yield return capital ? new Piece("buildings/castle_{team}", new Vector3(0, 0, -0.1f), 0.48f, Fit.Kit, Team: true)
+                                     : new Piece("era/village_tavern", new Vector3(0, 0, -0.05f), 0.58f, Fit.Width, 0.2f);
+                string[] street = { "era/village_house", "era/townhouse_b", "era/townhouse_a", "era/village_house", "era/townhouse_c", "era/townhouse_b" };
+                for (int i = 0; i < houses; i++)
+                {
+                    float a = 30 + 60 * i;
+                    if (i == 2) { yield return new Piece("buildings/church_{team}", Ring(a, 0.7f), 0.75f, Fit.Kit, -Mathf.DegToRad(a) + Mathf.Pi / 2, Team: true); continue; }
+                    string prop = street[(i + c.Id) % street.Length];
+                    yield return new Piece(prop, Ring(a, 0.7f), prop.Contains("_c") ? 0.46f : 0.38f, Fit.Width, -Mathf.DegToRad(a) - Mathf.Pi / 2);
+                }
+                if (houses >= 4)
+                {
+                    yield return new Piece("era/farmhouse", Ring(105, 0.95f), 0.34f, Fit.Width, -Mathf.DegToRad(105));
+                    yield return new Piece("era/stable", Ring(225, 0.95f), 0.3f, Fit.Width, -Mathf.DegToRad(225));
+                    yield return new Piece("era/grain_silo", Ring(345, 0.95f), 0.42f, Fit.Height);
+                }
+                if (walls)
+                {
+                    yield return new Piece("era/village_gatehouse", Ring(90, 0.86f), 0.4f, Fit.Width, -Mathf.DegToRad(90) + Mathf.Pi / 2);
+                    for (int i = 1; i < 3; i++) yield return new Piece("buildings/tower_B_{team}", Ring(90 + 120 * i, 0.8f), 0.35f, Fit.Kit, Team: true);
+                }
+                yield break;
+            }
+
             case Architecture.Industrial:
                 yield return new Piece("era/factory_a", new Vector3(0.05f, 0, -0.12f), 0.75f, Fit.Width);
                 yield return new Piece("era/chimney_industrial", new Vector3(-0.36f, 0, 0.22f), 0.95f, Fit.Height, 0, new Color(0.85f, 0.55f, 0.45f));
                 yield return new Piece("era/chimney_industrial", new Vector3(-0.18f, 0, 0.3f), 0.8f, Fit.Height, 0, new Color(0.85f, 0.55f, 0.45f));
                 if (capital) yield return new Piece("buildings/castle_{team}", Ring(270, 0.62f), 0.42f, Fit.Kit, Team: true);
-                for (int i = 0; i < houses; i++)
                 {
-                    float a = 30 + 60 * i;
-                    if (capital && i == 4) continue;
-                    yield return new Piece($"era/suburb_{"abcd"[i % 4]}", Ring(a, 0.66f), 0.42f, Fit.Width, -Mathf.DegToRad(a) - Mathf.Pi / 2);
+                    string[] industrial = { "era/citybits_a", "era/townhouse_b", "era/suburb_a", "era/citybits_b", "era/townhouse_a", "era/suburb_c", "era/citybits_e", "era/suburb_b" };
+                    for (int i = 0; i < houses; i++)
+                    {
+                        float a = 30 + 60 * i;
+                        if (capital && i == 4) continue;
+                        string prop = industrial[(i + c.Id) % industrial.Length];
+                        float w = prop.Contains("citybits") ? 0.42f : prop.Contains("townhouse") ? 0.38f : 0.44f;
+                        yield return new Piece(prop, Ring(a, 0.66f), w, Fit.Width, -Mathf.DegToRad(a) - Mathf.Pi / 2);
+                    }
+                    if (houses >= 3) yield return new Piece("era/watertower", Ring(200, 0.92f), 0.4f, Fit.Height);
                 }
                 yield break;
 
@@ -150,14 +185,18 @@ public static class CityLayout
             case Architecture.Atomic:
                 bool atomic = look.Architecture == Architecture.Atomic;
                 yield return new Piece(atomic ? "era/skyscraper_a" : "era/office_a", new Vector3(-0.12f, 0, 0), atomic ? tall : 0.8f, Fit.Height);
-                yield return new Piece("era/office_b", new Vector3(0.22f, 0, 0.12f), 0.62f, Fit.Height, 0.3f);
-                yield return new Piece("era/office_c", new Vector3(0.1f, 0, -0.3f), 0.42f, Fit.Height, 1.2f);
-                for (int i = 0; i < houses; i++)
                 {
-                    float a = 30 + 60 * i;
-                    yield return i == 3
-                        ? new Piece("era/factory_c", Ring(a, 0.7f), 0.5f, Fit.Width, -Mathf.DegToRad(a))
-                        : new Piece($"era/suburb_{"abcd"[i % 4]}", Ring(a, 0.66f), 0.42f, Fit.Width, -Mathf.DegToRad(a) - Mathf.Pi / 2);
+                    string[] offices = { "era/office_b", "era/office_f", "era/office_g", "era/office_i", "era/office_d" };
+                    yield return new Piece(offices[c.Id % offices.Length], new Vector3(0.22f, 0, 0.12f), 0.62f, Fit.Height, 0.3f);
+                    yield return new Piece(offices[(c.Id + 2) % offices.Length], new Vector3(0.1f, 0, -0.3f), 0.48f, Fit.Height, 1.2f);
+                    string[] blocks = { "era/citybits_c", "era/suburb_e", "era/citybits_d", "era/suburb_g", "era/citybits_g", "era/suburb_j", "era/citybits_h", "era/suburb_k" };
+                    for (int i = 0; i < houses; i++)
+                    {
+                        float a = 30 + 60 * i;
+                        if (i == 3) { yield return new Piece(c.Id % 2 == 0 ? "era/factory_c" : "era/factory_e", Ring(a, 0.7f), 0.5f, Fit.Width, -Mathf.DegToRad(a)); continue; }
+                        string prop = blocks[(i + c.Id) % blocks.Length];
+                        yield return new Piece(prop, Ring(a, 0.66f), prop.Contains("citybits") ? 0.42f : 0.42f, Fit.Width, -Mathf.DegToRad(a) - Mathf.Pi / 2);
+                    }
                 }
                 yield return new Piece("era/tank_storage", Ring(200, 0.9f), 0.32f, Fit.Width);
                 if (atomic && capital) yield return new Piece("era/dish", Ring(320, 0.92f), 0.32f, Fit.Width, 2.4f);
@@ -170,7 +209,9 @@ public static class CityLayout
                 for (int i = 0; i < houses; i++)
                 {
                     float a = 30 + 60 * i;
-                    yield return new Piece(i % 3 == 0 ? "era/skyscraper_a" : i % 3 == 1 ? "era/office_a" : "era/office_c", Ring(a, 0.68f), i % 3 == 0 ? tall * 0.6f : 0.55f, Fit.Height, -Mathf.DegToRad(a));
+                    string[] towers = { "era/skyscraper_a", "era/office_j", "era/office_i", "era/skyscraper_a", "era/office_f", "era/office_g" };
+                    string prop = towers[(i + c.Id) % towers.Length];
+                    yield return new Piece(prop, Ring(a, 0.68f), prop.Contains("skyscraper") ? tall * 0.6f : 0.6f, Fit.Height, -Mathf.DegToRad(a));
                 }
                 if (look.Renewable) yield return new Piece("era/solar_field", Ring(250, 0.9f), 0.5f, Fit.Width, 0.5f);
                 yield return new Piece("era/dish", Ring(320, 0.92f), 0.3f, Fit.Width, 2.4f);
@@ -240,6 +281,7 @@ public static class CityLayout
             case Architecture.Tribal:
             case Architecture.Classical:
             case Architecture.Medieval:
+            case Architecture.Renaissance:
                 for (int i = 0; i < Math.Min(houses, 4); i++) yield return (Ring(30 + 60 * i, 0.62f), 0.4f, Plume.Hearth);
                 yield break;
             case Architecture.Industrial:
@@ -269,7 +311,7 @@ public static class CityLayout
     }
 
     /// <summary>A district's buildings, by what it is and how far its owner has come.</summary>
-    public static IEnumerable<Piece> District(TechLook look, DistrictDef def)
+    public static IEnumerable<Piece> District(TechLook look, DistrictDef def, int seed = 0)
     {
         // World wonders keep their own form in every age.
         if (def.Model is { } model)
@@ -298,6 +340,13 @@ public static class CityLayout
                 yield return new Piece("future/structure_detailed", -side, 0.26f, Fit.Width, 0, steel, 0.8f);
                 yield break;
         }
+        if (look.Architecture == Architecture.Renaissance && def.Id == "DISTRICT_NEIGHBORHOOD")
+        {
+            string[] street = { "era/village_house", "era/townhouse_b", "era/townhouse_a", "era/village_house" };
+            for (int i = 0; i < 4; i++)
+                yield return new Piece(street[(i + seed) % 4], new Vector3((i % 2) * 0.6f - 0.3f, 0, (i / 2) * 0.6f - 0.3f), 0.38f, Fit.Width, Mathf.Pi * (i % 2));
+            yield break;
+        }
         if (look.Architecture >= Architecture.Industrial)
         {
             bool info = look.Architecture == Architecture.Information;
@@ -308,7 +357,7 @@ public static class CityLayout
                     for (int i = 0; i < 4; i++)
                         yield return info
                             ? new Piece(i % 2 == 0 ? "era/skyscraper_e" : "era/office_a", new Vector3((i % 2) * 0.6f - 0.3f, 0, (i / 2) * 0.6f - 0.3f), i % 2 == 0 ? 1.0f : 0.55f, Fit.Height)
-                            : new Piece($"era/suburb_{"abcd"[i]}", new Vector3((i % 2) * 0.6f - 0.3f, 0, (i / 2) * 0.6f - 0.3f), 0.42f, Fit.Width);
+                            : new Piece($"era/suburb_{"abcdefghijkl"[(i * 3 + seed) % 12]}", new Vector3((i % 2) * 0.6f - 0.3f, 0, (i / 2) * 0.6f - 0.3f), 0.42f, Fit.Width);
                     yield break;
                 case "DISTRICT_HARBOR":
                     yield return new Piece("buildings/building-port", Vector3.Zero, 0.155f * 0.6f, Fit.Kit);
@@ -321,8 +370,16 @@ public static class CityLayout
             switch (def.PrimaryYield)
             {
                 case YieldType.Production:
-                    yield return new Piece("era/factory_b", Vector3.Zero, 0.8f, Fit.Width);
+                {
+                    string[] works = atomic ? new[] { "era/factory_f", "era/factory_t", "era/factory_e" } : new[] { "era/factory_b", "era/factory_d", "era/factory_s" };
+                    yield return new Piece(works[seed % works.Length], Vector3.Zero, 0.8f, Fit.Width);
                     yield return new Piece("era/chimney_industrial", new Vector3(-0.3f, 0, -0.3f), 0.8f, Fit.Height);
+                    yield break;
+                }
+                case YieldType.Food:
+                    yield return new Piece("era/farmhouse", Vector3.Zero, 0.45f, Fit.Width);
+                    yield return new Piece("era/grain_silo", side, 0.5f, Fit.Height);
+                    yield return new Piece("era/grain_silo", side + new Vector3(0.14f, 0, -0.1f), 0.42f, Fit.Height);
                     yield break;
                 case YieldType.Science:
                     yield return new Piece(info ? "era/skyscraper_c" : "era/office_b", Vector3.Zero, info ? 1.0f : 0.6f, Fit.Height);

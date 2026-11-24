@@ -273,6 +273,14 @@ public partial class GameRoot
                 _localVersion++;
                 return null;
             }
+            case var gr when gr.StartsWith("grow:"):
+            {
+                // Debug: set every city's population (to preview how towns fill out).
+                int pop = int.Parse(gr[5..]);
+                foreach (var c in s.Cities) c.Population = pop;
+                _localVersion++;
+                return null;
+            }
             case var ln when ln.StartsWith("lineup:"):
             {
                 // Debug: one of each given unit (UNIT_ ids without the prefix, joined by '+'; "lineup:all" for every military unit)

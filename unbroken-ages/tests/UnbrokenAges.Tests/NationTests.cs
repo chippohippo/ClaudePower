@@ -343,7 +343,7 @@ public class NationTests
         var target = TestWorld.City(sp, 1, 11, 10, population: 3);
         CommandProcessor.Execute(sp, new DeclareWarCommand { Player = 0, Target = 1 }, new());
         target.Hp = 0;
-        var tercio = TestWorld.Unit(sp, 0, "UNIT_SWORDSMAN", 10, 10);
+        var tercio = TestWorld.Unit(sp, 0, "UNIT_MECH_INFANTRY", 10, 10);   // a line unit of the age (the test world knows every technology)
         Fx gold = sp.Players[0].Gold;
         Assert.True(CommandProcessor.Execute(sp, new AttackCommand { Player = 0, UnitId = tercio.Id, TargetTile = target.Tile }, new()).Ok);
         Assert.Equal(360, (sp.Players[0].Gold - gold).FloorToInt());   // Philip: 120 per citizen

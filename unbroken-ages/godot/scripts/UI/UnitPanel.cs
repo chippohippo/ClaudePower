@@ -131,7 +131,7 @@ public partial class UnitPanel : PanelContainer
                            $"Upgrade: {variants[v].Description} · {UpgradeSystem.GoldCost(s, u, target, v)} gold");
             }
         }
-        var skip = Icons.Button("arrow", "Next", UiTheme.TextDim, _root.SelectNextUnit, "Next unit (Space)");
+        var skip = Icons.Button("arrow", "Skip", UiTheme.TextDim, _root.SkipUnit, "Skip this unit for the turn and select the next (Space)");
         _actions.AddChild(skip);
     }
 

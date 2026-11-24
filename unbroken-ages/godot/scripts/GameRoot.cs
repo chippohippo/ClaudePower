@@ -326,11 +326,31 @@ public partial class GameRoot : Node3D
     }
 
     /// <summary>Cycles through your units that still have moves and no orders.</summary>
+    /// <summary>Units the player has passed over this turn (Space / Skip): they stop asking for orders until next turn.</summary>
+    private readonly HashSet<int> _skipped = new();
+    private int _skippedTurn = -1;
+
+    public bool IsSkipped(GameState s, int unitId)
+    {
+        if (_skippedTurn != s.Turn) { _skipped.Clear(); _skippedTurn = s.Turn; }
+        return _skipped.Contains(unitId);
+    }
+
+    /// <summary>Space: pass over the selected unit for this turn, then select the next one still waiting.</summary>
+    public void SkipUnit()
+    {
+        var s = State;
+        if (s == null) return;
+        IsSkipped(s, -1);   // roll the set over on a new turn
+        if (SelectedUnit >= 0 && s.GetUnit(SelectedUnit) is { } u && u.Owner == LocalPlayer) _skipped.Add(u.Id);
+        SelectNextUnit();
+    }
+
     public void SelectNextUnit()
     {
         var s = State;
         if (s == null) return;
-        var ready = s.Units.Where(u => u.Owner == LocalPlayer && u.MovesLeft > Sim.Core.Fx.Zero && u.Destination < 0 && !u.Fortified)
+        var ready = s.Units.Where(u => u.Owner == LocalPlayer && u.MovesLeft > Sim.Core.Fx.Zero && u.Destination < 0 && !u.Fortified && !IsSkipped(s, u.Id))
                            .OrderBy(u => u.Id).ToList();
         if (ready.Count == 0) { SelectedUnit = -1; _selectedTile = -1; _renderedVersion = -1; return; }
         var next = ready.FirstOrDefault(u => u.Id > SelectedUnit) ?? ready[0];
@@ -449,7 +469,7 @@ public partial class GameRoot : Node3D
         switch (key.Keycode)
         {
             case Key.Enter or Key.KpEnter: Submit(new EndTurnCommand()); break;
-            case Key.Space: SelectNextUnit(); break;
+            case Key.Space: SkipUnit(); break;
             case Key.B when s.GetUnit(SelectedUnit) is { } settler: Submit(new FoundCityCommand { UnitId = settler.Id }); break;
             case Key.F when s.GetUnit(SelectedUnit) is { } guard: Submit(new FortifyCommand { UnitId = guard.Id }); break;
             case Key.F5: QuickSave(); break;

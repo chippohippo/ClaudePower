@@ -80,7 +80,7 @@ public partial class MiniMapAndTurn : VBoxContainer
             p.CurrentTech < 0 && s.Db.Techs.Any(t => ResearchSystem.CanResearch(p, t)) ? ("CHOOSE RESEARCH", "Pick what your scholars study next.", () => _root.ToggleByKey("T")) :
             p.CurrentCivic < 0 && s.Db.Civics.Any(c => ResearchSystem.CanStudy(p, c)) ? ("CHOOSE CIVIC", "Pick the next civic.", () => _root.ToggleByKey("T")) :
             s.CitiesOf(p.Id).FirstOrDefault(c => c.Queue.Items.Count == 0) is { } idle ? ("CHOOSE PRODUCTION", $"{idle.Name} has nothing to build.", () => _root.OpenCity(idle)) :
-            ReadyUnits(s, p.Id) > 0 ? ("UNIT NEEDS ORDERS", $"{ReadyUnits(s, p.Id)} unit(s) waiting. Fortify (F) or skip (Space) the ones you do not need.", _root.SelectNextUnit) :
+            ReadyUnits(s, p.Id) is var waiting and > 0 ? ("UNIT NEEDS ORDERS", $"{waiting} unit(s) waiting: move, Fortify (F) or Skip (Space). Enter ends the turn anyway.", _root.SelectNextUnit) :
             ("NEXT TURN", "Enter", () => _root.Submit(new EndTurnCommand()));
         _turn.Text = state.Label;
         _hint.Text = state.Hint;
@@ -88,8 +88,8 @@ public partial class MiniMapAndTurn : VBoxContainer
         _action = state.Do;
     }
 
-    private static int ReadyUnits(GameState s, int player) =>
-        s.Units.Count(u => u.Owner == player && u.MovesLeft > Sim.Core.Fx.Zero && u.Destination < 0 && !u.Fortified && !s.Db.Units[u.DefIndex].FoundsCity && u.Charges == 0 && SupplySystem.IsMilitary(s.Db, u) && !s.Cities.Any(c => c.Tile == u.Tile));
+    private int ReadyUnits(GameState s, int player) =>
+        s.Units.Count(u => u.Owner == player && !_root.IsSkipped(s, u.Id) && u.MovesLeft > Sim.Core.Fx.Zero && u.Destination < 0 && !u.Fortified && !s.Db.Units[u.DefIndex].FoundsCity && u.Charges == 0 && SupplySystem.IsMilitary(s.Db, u) && !s.Cities.Any(c => c.Tile == u.Tile));
 
     private void DrawMap(GameState s)
     {

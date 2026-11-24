@@ -4,7 +4,7 @@ using UnbrokenAges.Sim.State;
 namespace UnbrokenAges.Client.Visuals;
 
 /// <summary>How a civilization's towns are built, from tribal camps to the three Divergence futures.</summary>
-public enum Architecture { Tribal, Classical, Medieval, Industrial, Modern, Atomic, Information, Sovereign, Symbiont, Discarnate }
+public enum Architecture { Tribal, Classical, Medieval, Renaissance, Industrial, Modern, Atomic, Information, Sovereign, Symbiont, Discarnate }
 
 /// <summary>What its roads are made of. The order matters: a trade road between two civilizations uses the lower of the two.</summary>
 public enum RoadKind { Footpath, Track, Stone, Macadam, Asphalt, Smart, Sovereign, Symbiont, Discarnate }
@@ -59,7 +59,8 @@ public sealed record TechLook(Architecture Architecture, RoadKind Road, Traffic 
 
         var arch = Architecture.Tribal;
         if (Has("TECH_MASONRY")) arch = Architecture.Classical;
-        if (Has("TECH_APPRENTICESHIP") || Has("TECH_EDUCATION")) arch = Architecture.Medieval;
+        if (Has("TECH_APPRENTICESHIP")) arch = Architecture.Medieval;
+        if (Has("TECH_EDUCATION") || Has("TECH_GUNPOWDER")) arch = Architecture.Renaissance;
         if (Has("TECH_INDUSTRIALIZATION")) arch = Architecture.Industrial;
         if (Has("TECH_ELECTRICITY") || Has("TECH_REFINING")) arch = Architecture.Modern;
         if (Has("TECH_NUCLEAR_FISSION") || Has("TECH_ROCKETRY") || Has("TECH_FLIGHT")) arch = Architecture.Atomic;

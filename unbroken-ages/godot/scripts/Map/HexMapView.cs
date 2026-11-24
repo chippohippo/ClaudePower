@@ -567,7 +567,7 @@ public partial class HexMapView : Node3D
             var tint = d.Pillaged ? new Color(0.5f, 0.45f, 0.4f, memory.A) : memory;
             if (d.Pillaged) { AddProp("buildings/destroyed", p, k * 0.9f, 0, tint); continue; }
             bool any = false;
-            foreach (var piece in CityLayout.District(look, def)) { Draw(piece, p, team, tint, look, k); any = true; }
+            foreach (var piece in CityLayout.District(look, def, d.Tile)) { Draw(piece, p, team, tint, look, k); any = true; }
             if (!any)
                 foreach (var (prop, scale, offset) in DistrictLook(def, team))
                     AddProp(prop, p + offset, scale, 0, tint);

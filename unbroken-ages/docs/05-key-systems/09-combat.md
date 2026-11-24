@@ -22,12 +22,33 @@ An even fight deals 24–36. Every 17 points of advantage doubles damage and hal
 | Flanking (attacker) / Support (defender) | +2 per other friendly military unit next to the defender |
 | Strong / weak against | ±10 from `strongAgainst` / `weakAgainst` vs the opponent's tags and class (Drone > Armor, EW > Drone/Exoframe, Augmented > Machine > Living > Augmented) |
 | Out of supply | −5 (Grand Strategy dial only: `GameOptions.SupplyCombatPenalty`) |
+| Siege weapons (attacker with the `Siege` tag) | +12 against a city's walls, −8 against troops in the field (`siegeVsCityBonus`, `siegeVsUnitsPenalty`) |
+| Anti-air (defender) | a defender whose `antiAirStrength` beats its strength meets aircraft with it |
 
 ## Cities
-City strength = 15 + 4 × owner's era + walls 10 + garrison strength / 5 − damage / 20. HP = 100 (+100 with walls); heals 20 per turn.
+City strength = 15 + 7 × owner's era + walls 10 + garrison strength / 5 − damage / 20. HP = 100 (+100 with walls); heals 20 per turn.
 Units cannot walk into foreign cities: they are **besieged** (ranged and melee damage) and **captured by melee at 0 HP**. Capture: defending units are destroyed,
 the city changes hands (queue cleared, governor recalled), HP is reset to a quarter, loyalty 50, −1 population, and the victim gains a 20-point grievance
 ("Captured Abydos"). Walled cities **bombard** one enemy military unit within 2 tiles per turn.
+
+## The line through the ages
+The generic roster has a unit for every era, so armies and walls rise together (7 strength per era for cities; the line gains 7–13 per era).
+
+| Line | Ancient | Classical | Medieval | Renaissance | Industrial | Modern | Atomic |
+|---|---|---|---|---|---|---|---|
+| Melee | Warrior 20 | Swordsman 35 | | Musketman 55 | Line Infantry 65 | Infantry 75 | Mechanized Infantry 88 |
+| Anti-cavalry | Spearman 25 | | Pikeman 41 | | | | Anti-Tank Crew 72 (strong against Armor) |
+| Ranged | Slinger, Archer 25 | | Crossbowman 40 | | | | |
+| Mounted | | Horseman 36 | Knight 48 | | Cavalry 62 | Tank 80 | Modern Armor 98 |
+| Siege | | Catapult 34 | | Field Cannon 55 | Artillery 75 (range 3) | | Bomber 90 (air, range 4) |
+| Naval | Galley | Caravel | | | River Monitor, Battleship (range 3) | Destroyer | Submarine |
+| Air | | | | | | Fighter (hunts aircraft) | Bomber |
+
+Mounted units are weak against anti-cavalry (`weakAgainst: AntiCavalry`). Aircraft fly over any tile, water and mountains included.
+Upgrades follow the chains (Warrior → Swordsman → Musketman → Line Infantry → Infantry → Mechanized Infantry; Spearman → Pikeman → Anti-Tank
+Crew; Catapult → Field Cannon → Artillery; Horseman → Cavalry; Knight → Tank → Modern Armor; Galley → River Monitor → Battleship; Caravel →
+Destroyer). A unique unit with no upgrade path of its own follows the unit it replaces (a Samurai becomes a Musketman). At war the AI brings one
+siege engine for every four soldiers.
 
 ## Civilians
 A melee unit moving onto an enemy civilian captures it (settlers and builders change owner). Ranged units cannot capture.
@@ -41,7 +62,8 @@ Battles emit `BattleFought` (a one-line battle report); deaths emit `UnitDestroy
 `CityCaptured` (+8 Strife; "Egypt captures Abydos." in the Chronicle). Captured original capitals are tracked (`WasOriginalCapital`) for the Hegemony victory.
 
 ## Next (Combat v2, M3)
-Corps and armies, naval classes and blockades, air missions and air superiority, support units, promotions, Fog of Strength, battle replay.
+Naval blockades, air missions and air superiority (aircraft are currently mobile ranged units), support units, Fog of Strength, battle replay.
+(Corps and armies, promotions, siege engines and aircraft have shipped.)
 
 ## Unit variants and upgrades
 **Code:** [`UpgradeSystem.cs`](../../src/UnbrokenAges.Sim/Systems/UpgradeSystem.cs), [`UnitStats.cs`](../../src/UnbrokenAges.Sim/Systems/UnitStats.cs) ·
