@@ -479,6 +479,7 @@ def build():
                      "signature": {"kind": kind, "name": sname, "description": sdesc, "playstyle": play, "params": params},
                      "cityNames": cities, "colors": {"primary": primary, "secondary": secondary}})
         for (lid, lname, epithet, lab, aug, agenda, personality) in ls:
+            if lid in SUPERSEDED: continue   # redefined as a World Wars leader (tools/assets/wartime_leaders.py)
             for key in aug[2]:
                 assert key in params, f"{lid} augments unknown param {key} of {cid}"
             leaders.append({"id": lid, "name": lname, "epithet": epithet, "civilization": cid,
@@ -487,6 +488,10 @@ def build():
                             "agenda": {"name": agenda[0], "description": agenda[1], "likes": agenda[2], "dislikes": agenda[3]},
                             "personality": personality})
     return civs, leaders
+
+
+# Leaders redefined with stronger doctrines by tools/assets/wartime_leaders.py.
+SUPERSEDED = {"LEADER_WILHELMINA", "LEADER_VARGAS"}
 
 
 def splice(text, marker, items):

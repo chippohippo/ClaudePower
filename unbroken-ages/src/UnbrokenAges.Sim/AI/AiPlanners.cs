@@ -190,7 +190,7 @@ public static class MilitaryAi
         if (NationSystem.Kind(s, p) == SignatureKind.Horde) war *= 1.25;   // the steppe must ride to learn
         int firstTurn = Math.Max(EarliestWarTurn, (int)(FirstWarTurn / Math.Max(0.5, war)));
         if (s.Turn < firstTurn || MajorEnemies(s, p.Id).Count > 0) return null;
-        if (p.WarWeariness >= 2 * SocietySystem.WearinessPerAmenity) return null;   // the people are tired of war
+        if (SocietySystem.EffectiveWeariness(s, p) >= 2 * SocietySystem.WearinessPerAmenity) return null;   // the people are tired of war
         if (s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u)) < 3) return null;
         int mine = Strength(s, p.Id);
         foreach (int target in Neighbours(s, p.Id).OrderBy(t => Strength(s, t)).ThenBy(t => t))
@@ -289,7 +289,7 @@ public static class MilitaryAi
             if (rel.A != p.Id && rel.B != p.Id) continue;
             int other = rel.A == p.Id ? rel.B : rel.A;
             int mine = Strength(s, p.Id), theirs = Strength(s, other), warTurns = s.Turn - rel.Since;
-            bool weary = p.WarWeariness >= 3 * SocietySystem.WearinessPerAmenity;
+            bool weary = SocietySystem.EffectiveWeariness(s, p) >= 3 * SocietySystem.WearinessPerAmenity;
             bool winning = mine > 0 && mine >= theirs * 2 && warTurns < 30 && !weary;
             bool sated = s.Cities.Count(c => c.Owner == other) <= 1 && s.Turn < SparedUntilTurn && !s.Players[other].IsFreeCities;
             if (rel.PeaceProposedBy == other)

@@ -269,7 +269,7 @@ public partial class SocietyPanel : PanelContainer
                           "natural wonders (+2), scattering camps (+1), taking cities (+2), veteran companies (+1). The age is decided as you enter the next era.",
                           UiTheme.TextDim, 12));
         col.AddChild(new HSeparator());
-        int penalty = SocietySystem.WearinessPenalty(me);
+        int penalty = SocietySystem.WearinessPenalty(s, me);
         col.AddChild(Text($"War weariness: {me.WarWeariness}" + (penalty > 0 ? $" — −{penalty} Amenity in every city" : ""), penalty > 0 ? new Color("#ff9a9a") : null));
         col.AddChild(Text("Rises with every attack abroad, unit lost and city taken; fades by 1 a turn at war and 3 in peace.", UiTheme.TextDim, 12));
         var wonders = SocietySystem.Wonders(s, me.Id).ToList();

@@ -325,7 +325,10 @@
             "PlayerHasTech",
             "PlayerHasCivic",
             "CityOnFrontier",
-            "OwnerAtWar"
+            "OwnerAtWar",
+            "OwnerAtPeace",
+            "UnitInOwnTerritory",
+            "UnitInForeignTerritory"
           ]
         },
         "id": {
@@ -371,7 +374,10 @@
             "CompleteAscension",
             "UnitStrength",
             "LaunchSatellite",
-            "ExodusStage"
+            "ExodusStage",
+            "WarWearinessPercent",
+            "InfluencePerTurn",
+            "FavorPerTurn"
           ]
         },
         "yield": {

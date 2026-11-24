@@ -97,7 +97,7 @@ public static class SocietySystem
         if (AgeSystem.Modifiers(owner.Age) is { Count: > 0 } age) yield return (age, $"{owner.Age} Age");
         foreach (var w in Wonders(s, city.Owner))
             if (w.EmpireModifiers.Count > 0) yield return (w.EmpireModifiers, w.Name);
-        if (WearinessPenalty(owner) is > 0 and var penalty) yield return (WearinessModifiers[penalty], "War weariness");
+        if (WearinessPenalty(s, owner) is > 0 and var penalty) yield return (WearinessModifiers[penalty], "War weariness");
     }
 
     // ----- War weariness -------------------------------------------------------------------------------
@@ -107,6 +107,13 @@ public static class SocietySystem
 
     /// <summary>Amenities lost in every city: one per eight weariness, at most four.</summary>
     public static int WearinessPenalty(PlayerState p) => Math.Min(MaxWearinessPenalty, p.WarWeariness / WearinessPerAmenity);
+
+    /// <summary>Weariness as the people feel it: leaders' doctrines steel or sap them (WarWearinessPercent).</summary>
+    public static int EffectiveWeariness(GameState s, PlayerState p) =>
+        Math.Max(0, p.WarWeariness * (100 + LeaderSystem.PlayerEffect(s, p, ModifierEffect.WarWearinessPercent)) / 100);
+
+    /// <summary>Amenities lost in every city to the weariness the people feel.</summary>
+    public static int WearinessPenalty(GameState s, PlayerState p) => Math.Min(MaxWearinessPenalty, EffectiveWeariness(s, p) / WearinessPerAmenity);
 
     private static readonly List<ModifierDef>[] WearinessModifiers = Enumerable.Range(0, MaxWearinessPenalty + 1)
         .Select(n => new List<ModifierDef> { new() { Effect = ModifierEffect.CityAmenities, Amount = Fx.FromInt(-n) } }).ToArray();
@@ -175,6 +182,7 @@ public static class SocietySystem
             yield return (budget == 0 ? $"{source} (society cap)" : source, total);
         }
         if (unit.Formation > 0) yield return (FormationName[unit.Formation], FormationStrength[unit.Formation]);
+        foreach (var line in LeaderSystem.CombatLines(s, unit)) yield return line;
         foreach (int pr in unit.Promotions)
         {
             var promo = db.Promotions[pr];

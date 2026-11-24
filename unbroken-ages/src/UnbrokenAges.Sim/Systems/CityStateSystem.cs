@@ -27,7 +27,8 @@ public static class CityStateSystem
         if (p.Government >= 0) n += s.Db.Governments[p.Government].Diplomatic;
         n += p.Policies.Count(c => s.Db.Policies[c].Slot == PolicySlot.Diplomatic);
         n += TradeSystem.InfluenceFromRoutes(s, p.Id);
-        return n;
+        n += LeaderSystem.PlayerEffect(s, p, ModifierEffect.InfluencePerTurn);
+        return Math.Max(0, n);
     }
 
     public static (YieldType Yield, string District) TypeBonus(CityStateType type) => type switch

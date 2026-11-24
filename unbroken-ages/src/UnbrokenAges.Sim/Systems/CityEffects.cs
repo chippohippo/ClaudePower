@@ -142,7 +142,8 @@ public sealed class CityEffects
                 RequirementType.PlayerHasTech => owner.HasTech(r.ResolvedIndex),
                 RequirementType.PlayerHasCivic => owner.HasCivic(r.ResolvedIndex),
                 RequirementType.CityOnFrontier => OnFrontier(s, city, r.Value > 0 ? r.Value : 3),
-                RequirementType.OwnerAtWar => s.Players.Any(o => o.IsAlive && !o.IsFreeCities && o.Id != owner.Id && DiplomacySystem.AtWar(s, owner.Id, o.Id)),
+                RequirementType.OwnerAtWar => LeaderSystem.AtWar(s, owner.Id),
+                RequirementType.OwnerAtPeace => !LeaderSystem.AtWar(s, owner.Id),
                 _ => false,
             };
             if (!ok) return false;

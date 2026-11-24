@@ -94,7 +94,14 @@ void Simulate()
     // One leader per nation in turn (offset 1 picks each nation's second leader), so a 6-player game seats every nation.
     var byNation = db.Civilizations.Select(c => db.Leaders.Where(l => l.CivilizationIndex == c.Index).Select(l => l.Id).ToList()).ToList();
     int nationOffset = int.Parse(Opt("--nation-offset", "0"));
-    string LeaderFor(int i) { var ls = byNation[(i + nationOffset) % byNation.Count]; return ls[(offset + i / byNation.Count) % ls.Count]; }
+    // --leaders A,B,C seats exactly these leaders (LEADER_ prefix optional); otherwise one leader per nation in turn.
+    var chosen = Opt("--leaders", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.StartsWith("LEADER_") ? x : "LEADER_" + x.ToUpperInvariant()).ToList();
+    string LeaderFor(int i)
+    {
+        if (i < chosen.Count) return chosen[i];
+        var ls = byNation[(i + nationOffset) % byNation.Count];
+        return ls[(offset + i / byNation.Count) % ls.Count];
+    }
     bool big = players > 4, huge = players > 8;
     var setup = new GameSetup
     {

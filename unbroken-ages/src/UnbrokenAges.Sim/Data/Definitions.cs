@@ -51,6 +51,12 @@ public enum ModifierEffect
     CitizenPowerDemandTenths,
     /// <summary>Project one-shot: lowers the global temperature anomaly directly (geoengineering).</summary>
     ClimateCooling,
+    /// <summary>Leader doctrine (player-level): percent change to war weariness gained.</summary>
+    WarWearinessPercent,
+    /// <summary>Leader doctrine (player-level): influence toward envoys each turn.</summary>
+    InfluencePerTurn,
+    /// <summary>Leader doctrine (player-level): Diplomatic Favor each turn once the Congress has convened.</summary>
+    FavorPerTurn,
     /// <summary>Project one-shot: launches a satellite of kind <c>amount</c> (SpaceSystem.SatelliteKind) over the city.</summary>
     LaunchSatellite,
     /// <summary>Project one-shot: the builder reaches Exodus stage <c>amount</c> (4 = the ark departs: Exodus victory).</summary>
@@ -79,6 +85,12 @@ public enum RequirementType
     CityOnFrontier,
     /// <summary>The city's owner is at war with another civilization (Free Cities do not count).</summary>
     OwnerAtWar,
+    /// <summary>The owner is at war with no civilization.</summary>
+    OwnerAtPeace,
+    /// <summary>UnitStrength only: the unit stands inside its owner's borders.</summary>
+    UnitInOwnTerritory,
+    /// <summary>UnitStrength only: the unit stands outside its owner's borders.</summary>
+    UnitInForeignTerritory,
 }
 
 public abstract class Definition

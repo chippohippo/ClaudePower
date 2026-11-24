@@ -41,7 +41,8 @@ public static class CongressSystem
         int n = 1 + CityStateSystem.CityStates(s).Count(cs => cs.Suzerain == p.Id);
         if (p.Government >= 0 && s.Db.Governments[p.Government].Diplomatic >= 2) n++;
         if (p.Age is AgeState.Golden or AgeState.Heroic) n++;
-        return n;
+        n += LeaderSystem.PlayerEffect(s, p, ModifierEffect.FavorPerTurn);
+        return Math.Max(0, n);
     }
 
     /// <summary>Favor for <paramref name="extra"/> extra votes: 10 + 20 + … + 10k.</summary>
