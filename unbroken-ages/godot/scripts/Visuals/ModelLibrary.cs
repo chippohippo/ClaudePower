@@ -173,6 +173,23 @@ public static class SceneTint
                 }
     }
 
+    /// <summary>The marker colour generated vehicles paint their team parts in (tools/assets/vehicles.py: TEAM).</summary>
+    private static readonly Color TeamMarker = new(0.18f, 0.42f, 0.85f);
+
+    /// <summary>Repaints the team-marker parts of a generated model (pennants, turret roofs, sails) in the owner's colour.</summary>
+    public static void Team(Node root, Color team)
+    {
+        foreach (var mi in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
+            for (int i = 0; i < mi.GetSurfaceOverrideMaterialCount(); i++)
+                if (mi.GetActiveMaterial(i) is BaseMaterial3D b && b.AlbedoTexture == null &&
+                    Mathf.Abs(b.AlbedoColor.R - TeamMarker.R) + Mathf.Abs(b.AlbedoColor.G - TeamMarker.G) + Mathf.Abs(b.AlbedoColor.B - TeamMarker.B) < 0.08f)
+                {
+                    var copy = (BaseMaterial3D)b.Duplicate();
+                    copy.AlbedoColor = team;
+                    mi.SetSurfaceOverrideMaterial(i, copy);
+                }
+    }
+
     public static readonly Color Chestnut = new(0.66f, 0.6f, 0.62f);
 }
 

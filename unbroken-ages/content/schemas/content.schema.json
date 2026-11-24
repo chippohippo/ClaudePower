@@ -1749,6 +1749,22 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "look": {
+          "type": "object",
+          "description": "How the client draws the unit (ignored by the simulation).",
+          "properties": {
+            "model": { "type": "string", "description": "Model path under assets/models, without extension (e.g. units/rifleman)." },
+            "count": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Figures in the squad." },
+            "size": { "type": "number", "description": "Fitted size in tile units: height, or length when byLength." },
+            "byLength": { "type": "boolean" },
+            "tint": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+            "hover": { "type": "number" },
+            "addon": { "type": "string" },
+            "rider": { "type": "string", "description": "Figure seated on the mount (cavalry, elephants, camels)." }
+          },
+          "required": ["model"],
+          "additionalProperties": false
         }
       },
       "required": [

@@ -39,6 +39,7 @@ public static class Movement
         var def = db.Units[unit.DefIndex];
         if (map.HasFlag(to, TileFlags.Submerged) && map.IsLand(to)) return Impassable;
         if (map.Feature[to] >= 0 && db.Features[map.Feature[to]].Impassable) return Impassable;
+        if (def.Domain == UnitDomain.Air) return 1;   // aircraft fly over land, water and mountains alike
 
         if (def.Domain == UnitDomain.Naval)
         {

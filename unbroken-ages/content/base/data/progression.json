@@ -18,6 +18,7 @@
     { "id": "TECH_ENGINEERING",          "name": "Engineering",          "era": "ERA_CLASSICAL",   "cost": 200, "prereqs": ["TECH_MASONRY"], "boost": "Build an Aqueduct... or a Canal." },
     { "id": "TECH_APPRENTICESHIP",       "name": "Apprenticeship",       "era": "ERA_MEDIEVAL",    "cost": 290, "prereqs": ["TECH_CURRENCY", "TECH_MINING"] },
     { "id": "TECH_EDUCATION",            "name": "Education",            "era": "ERA_MEDIEVAL",    "cost": 330, "prereqs": ["TECH_APPRENTICESHIP"] },
+    { "id": "TECH_GUNPOWDER",            "name": "Gunpowder",            "era": "ERA_RENAISSANCE", "cost": 420, "prereqs": ["TECH_APPRENTICESHIP"], "boost": "Build a Knight or a Pikeman." },
     { "id": "TECH_INDUSTRIALIZATION",    "name": "Industrialization",    "era": "ERA_INDUSTRIAL",  "cost": 700, "prereqs": ["TECH_EDUCATION"] },
     { "id": "TECH_ELECTRICITY",          "name": "Electricity",          "era": "ERA_INDUSTRIAL",  "cost": 985, "prereqs": ["TECH_INDUSTRIALIZATION"] },
     { "id": "TECH_REFINING",             "name": "Refining",             "era": "ERA_MODERN",      "cost": 1250, "prereqs": ["TECH_ELECTRICITY"] },

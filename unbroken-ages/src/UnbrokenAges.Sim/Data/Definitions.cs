@@ -575,6 +575,24 @@ public sealed class UnitVariantDef
     public int UpgradeCostPercent { get; init; }
 }
 
+/// <summary>
+/// How the client draws a unit (the simulation ignores it): a model under assets/models, how many figures make the squad,
+/// the fitted size in tile units (height, or length when <see cref="ByLength"/>), an optional tint ("#rrggbb"), a hover
+/// height and an optional piece mounted on top (a tank's turret).
+/// </summary>
+public sealed class UnitLookDef
+{
+    public string Model { get; init; } = "";
+    public int Count { get; init; } = 1;
+    public Fx Size { get; init; } = Fx.Ratio(7, 10);
+    public bool ByLength { get; init; }
+    public string? Tint { get; init; }
+    public Fx Hover { get; init; }
+    public string? Addon { get; init; }
+    /// <summary>A figure seated on the mount (cavalry, elephants, camels), in its sitting pose.</summary>
+    public string? Rider { get; init; }
+}
+
 public sealed class UnitDef : Definition
 {
     public UnitDomain Domain { get; init; }
@@ -606,6 +624,8 @@ public sealed class UnitDef : Definition
     public List<string> StrongAgainst { get; init; } = new();
     public List<string> WeakAgainst { get; init; } = new();
     public List<UnitVariantDef> Variants { get; init; } = new();
+    /// <summary>How the client draws it; without one the client picks a figure by class and era.</summary>
+    public UnitLookDef? Look { get; init; }
 
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqCivicIndex { get; private set; } = -1;
@@ -1133,6 +1153,9 @@ public sealed class CombatRules
     public int FlankingBonus { get; init; } = 2;
     public int SupportBonus { get; init; } = 2;
     public int CounterBonus { get; init; } = 10;
+    /// <summary>Siege weapons (the "Siege" tag): a bonus against cities and a penalty against troops.</summary>
+    public int SiegeVsCityBonus { get; init; } = 12;
+    public int SiegeVsUnitsPenalty { get; init; } = 8;
     public int OutOfSupplyPenalty { get; init; } = 5;
     public int CityBaseStrength { get; init; } = 15;
     public int CityStrengthPerEra { get; init; } = 4;

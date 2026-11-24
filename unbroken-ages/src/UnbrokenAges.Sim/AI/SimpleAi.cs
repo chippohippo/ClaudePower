@@ -94,7 +94,13 @@ public sealed class SimpleAi : IAiController
         var db = s.Db;
         if (PickDivergenceProduction(s, player, city) is { } divergenceItem) return (divergenceItem.Kind, divergenceItem.Def, -1);
         var soldier = MilitaryAi.BestLandUnit(s, city);
-        if (atWar && soldier != null && military < 2 * cityCount + 2 && player.Gold > -50) return (ProductionKind.Unit, soldier.Index, -1);
+        if (atWar && soldier != null && military < 2 * cityCount + 2 && player.Gold > -50)
+        {
+            // One siege engine for every four soldiers: walls do not fall to swords.
+            int siege = s.Units.Count(u => u.Owner == player.Id && db.Units[u.DefIndex].HasTag("Siege") && db.Units[u.DefIndex].Domain == UnitDomain.Land);
+            if (siege * 4 < military && MilitaryAi.BestSiegeUnit(s, city) is { } engine) return (ProductionKind.Unit, engine.Index, -1);
+            return (ProductionKind.Unit, soldier.Index, -1);
+        }
         if (wantSettler && db.Units.FirstOrDefault(u => NationSystem.IsColonist(s, player, u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } settler)
         {
             wantSettler = false;

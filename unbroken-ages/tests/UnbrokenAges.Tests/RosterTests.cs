@@ -20,7 +20,7 @@ public class RosterTests
                 bool better = u.Strength > g.Strength || u.RangedStrength > g.RangedStrength || u.Moves > g.Moves || u.Range > g.Range ||
                               u.Cost < g.Cost || (g.ResourceCost != null && u.ResourceCost == null) || u.StrongAgainst.Count > g.StrongAgainst.Count;
                 Assert.True(better, $"{u.Id} is no better than {g.Id}");
-                Assert.Equal(g.UpgradesTo, u.UpgradesTo);   // they keep the generic's upgrade path
+                Assert.True(u.UpgradesTo.Count == 0 || u.UpgradesTo.SequenceEqual(g.UpgradesTo), $"{u.Id} strays from {g.Id}'s upgrade path");   // unset: inherited
             }
         }
     }

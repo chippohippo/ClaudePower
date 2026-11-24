@@ -308,10 +308,16 @@ public static class MilitaryAi
     private static bool Spared(GameState s, CityState city) =>
         s.Turn < SparedUntilTurn && !s.Players[city.Owner].IsFreeCities && s.Cities.Count(c => c.Owner == city.Owner) <= 1;
 
-    /// <summary>The strongest land unit the city can build now.</summary>
+    /// <summary>The strongest line unit the city can build now (siege engines and anti-cavalry are chosen separately).</summary>
     public static UnitDef? BestLandUnit(GameState s, CityState city) =>
-        s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.Strength > 0 && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
-                  .OrderByDescending(u => Math.Max(u.Strength, u.RangedStrength)).ThenBy(u => u.Index).FirstOrDefault();
+        s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.Strength > 0 && !u.HasTag("Siege") && u.UnitClass != "AntiCavalry" &&
+                              ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
+                  .OrderByDescending(u => Math.Max(u.Strength, u.RangedStrength * 9 / 10)).ThenBy(u => u.Index).FirstOrDefault();
+
+    /// <summary>The best siege engine the city can build now, if any: armies at war bring one for every few line units.</summary>
+    public static UnitDef? BestSiegeUnit(GameState s, CityState city) =>
+        s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.HasTag("Siege") && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
+                  .OrderByDescending(u => u.RangedStrength).ThenBy(u => u.Index).FirstOrDefault();
 }
 
 /// <summary>

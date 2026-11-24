@@ -7,8 +7,10 @@ using UnbrokenAges.Sim.Systems;
 namespace UnbrokenAges.Client.Visuals;
 
 /// <summary>
-/// Units as animated figures (KayKit adventurers, Kenney ships and civilians, a mech for the information era):
-/// armies are a squad of four, settlers and builders a small party, ships a single hull, each standing on a disc in the owner's colour.
+/// Units as figures of their period: each unit's look comes from its data ("look": model, squad size, tint), so spearmen,
+/// musketeers, riflemen and infantry, knights and cavalry, catapults to howitzers, tanks of each war, triremes to destroyers
+/// and fighters all read apart. Settlers, builders, traders and missionaries modernise with their owner's research.
+/// Armies are a squad, ships a single hull, each standing on a disc in the owner's colour; generated vehicles carry it too.
 /// Units breathe (idle), walk between tiles, and swing when they fight. Hidden units (fog) are not drawn.
 /// </summary>
 public partial class UnitLayer : Node3D
@@ -17,6 +19,8 @@ public partial class UnitLayer : Node3D
     {
         public Node3D Root = null!;
         public List<AnimationPlayer> Players = new();
+        /// <summary>Riders keep their seat while the mount walks; they swing with it in an attack.</summary>
+        public List<AnimationPlayer> Riders = new();
         public int Tile;
         public int Def;
         public string Key = "";
@@ -47,9 +51,9 @@ public partial class UnitLayer : Node3D
 
     /// <summary>How a unit is drawn: model, figures, fitted size (height, or length for ships, horses and craft), a tint and
     /// glow, hover height, and an optional piece mounted on top (a tank's turret).</summary>
-    public sealed record UnitLook(string Model, int Count, float Size, bool ByLength, Color Tint, Color Glow = default, float Hover = 0f, string? Addon = null)
+    public sealed record UnitLook(string Model, int Count, float Size, bool ByLength, Color Tint, Color Glow = default, float Hover = 0f, string? Addon = null, string? Rider = null)
     {
-        public string Key => $"{Model}|{Count}|{Tint.ToHtml()}|{Glow.ToHtml()}|{Addon}";
+        public string Key => $"{Model}|{Count}|{Tint.ToHtml()}|{Glow.ToHtml()}|{Addon}|{Rider}";
     }
 
     /// <summary>The look of the unit itself, before its owner's research is applied (kept for callers that only need the model).</summary>
@@ -95,13 +99,16 @@ public partial class UnitLayer : Node3D
 
         UnitLook look;
         bool industrial = owner.Architecture >= Architecture.Industrial;
-        if (d.FoundsCity) look = industrial ? new UnitLook("life/van", 1, 0.5f, true, white) : new UnitLook("units/civilian_a", 3, 0.5f, false, white);
-        else if (d.FoundsOutpost) look = new UnitLook("units/Mage", 2, 0.7f, false, white);
-        else if (d.HasTag("Trader")) look = new UnitLook("units/horse", 1, 0.8f, true, SceneTint.Chestnut, default, 0f, "props/sack");
-        else if (d.HasTag("Missionary")) look = new UnitLook("units/Mage", 1, 0.72f, false, new Color(0.95f, 0.85f, 1.15f), new Color(0.8f, 0.6f, 1f, 0.25f));
+        if (d.Look is { } data && !string.IsNullOrEmpty(data.Model))
+            look = new UnitLook(data.Model, data.Count, (float)data.Size.ToDouble(), data.ByLength,
+                                data.Tint != null ? Color.FromHtml(data.Tint) : white, default, (float)data.Hover.ToDouble(), data.Addon, data.Rider);
+        else if (d.FoundsCity) look = industrial ? new UnitLook("life/van", 1, 0.5f, true, white) : new UnitLook("units/villager", 3, 0.6f, false, white);
+        else if (d.FoundsOutpost) look = industrial ? new UnitLook("life/wagon_covered", 1, 0.55f, true, white) : new UnitLook("units/merchant", 2, 0.62f, false, white);
+        else if (d.HasTag("Trader")) look = industrial ? new UnitLook("units/cargo_truck", 1, 0.55f, true, white) : new UnitLook("units/camel", 1, 0.8f, true, white, default, 0f, "props/sack");
+        else if (d.HasTag("Missionary")) look = new UnitLook("units/monk", 2, 0.66f, false, white, new Color(0.8f, 0.6f, 1f, 0.2f));
         else if (d.Charges > 0 && d.Domain == UnitDomain.Civilian)
             look = owner.Path == TechLook.Discarnate ? new UnitLook("units/drone", 2, 0.3f, true, white, default, 0.35f)
-                 : industrial ? new UnitLook("life/tractor", 1, 0.42f, true, white) : new UnitLook("units/civilian_b", 2, 0.5f, false, white);
+                 : industrial ? new UnitLook("life/tractor", 1, 0.42f, true, white) : new UnitLook("units/farmer", 2, 0.6f, false, white);
         else if (d.Domain == UnitDomain.Naval)
             look = d.Strength == 0 ? new UnitLook("units/ship_small", 1, 1.15f, true, white)
                  : d.OceanGoing && d.RangedStrength > 0 ? new UnitLook("units/ship_large", 1, 1.55f, true, industrial ? new Color(0.55f, 0.55f, 0.58f) : white)
@@ -238,6 +245,7 @@ public partial class UnitLayer : Node3D
             var holder = new Node3D { Position = offset + new Vector3(0, lift, 0), RotationDegrees = new Vector3(0, (offset.X * 40) + (float)GD.RandRange(-8.0, 8.0), 0) };   // KayKit faces +Z: toward the camera
             holder.AddChild(figure);
             view.Root.AddChild(holder);
+            SceneTint.Team(figure, color);   // before any tint: generated vehicles carry their owner's colour
             if (look.Tint != Colors.White || look.Glow.R + look.Glow.G + look.Glow.B > 0.01f) SceneTint.Apply(figure, look.Tint, look.Glow);
             if (look.Addon != null && _models.LoadScene(look.Addon) is { } addon)
             {
@@ -250,7 +258,32 @@ public partial class UnitLayer : Node3D
                 holder.AddChild(top);
                 SceneTint.Apply(top, look.Tint);
             }
-            foreach (var ap in figure.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
+            if (look.Rider != null && _models.LoadScene(look.Rider) is { } riderScene)
+            {
+                // A rider in the saddle: a seated figure about two-thirds the mount's height, sat a little behind its middle.
+                var rb = _models.SceneBounds(look.Rider);
+                float mountHeight = bounds.Size.Y * scale * jitter;
+                float rk = mountHeight * 0.62f / Mathf.Max(0.001f, rb.Size.Y);
+                var rider = riderScene.Instantiate<Node3D>();
+                rider.Scale = Vector3.One * rk;
+                rider.Position = new Vector3(0, mountHeight * 0.5f, -0.04f * look.Size) - new Vector3(rb.Position.X + rb.Size.X / 2, rb.Position.Y, rb.Position.Z + rb.Size.Z / 2) * rk;
+                holder.AddChild(rider);
+                if (look.Glow.R + look.Glow.G + look.Glow.B > 0.01f) SceneTint.Apply(rider, Colors.White, look.Glow);
+                foreach (var ap in rider.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
+                {
+                    PlayLoop(ap, "Sit_Chair_Idle", "Sit_Floor_Idle", "Sit");
+                    ap.Seek(GD.Randf() * 2.0, true);
+                    view.Riders.Add(ap);
+                }
+            }
+            var players = figure.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().ToList();
+            if (StaticFigures.Contains(look.Model) || !players.Any(ap => Find(ap, "Idle_A", "Idle", "idle") != null))
+            {
+                // Figures without an idle (the Polyfork period soldiers) would stand in their T-pose: lower the arms instead.
+                RestArms(figure);
+                players.Clear();
+            }
+            foreach (var ap in players)
             {
                 view.Players.Add(ap);
                 PlayLoop(ap, "Idle_A", "Idle", "idle", "static");
@@ -258,6 +291,34 @@ public partial class UnitLayer : Node3D
             }
         }
         return view;
+    }
+
+    /// <summary>Figures whose own idle holds the arms out like a T-pose: they stand at rest instead.</summary>
+    private static readonly HashSet<string> StaticFigures = new() { "units/modern_soldier" };
+
+    /// <summary>Lowers a T-posed humanoid's arms to its sides (Mixamo-style bone names; the figure faces +Z).</summary>
+    public static void RestArms(Node figure)
+    {
+        foreach (var skel in figure.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>())
+        {
+            void Lower(string bone, float degrees, string fore, float foreDegrees)
+            {
+                int b = skel.FindBone(bone);
+                if (b < 0) return;
+                Turn(b, Vector3.Back, degrees);
+                int f = skel.FindBone(fore);
+                if (f >= 0) Turn(f, Vector3.Right, foreDegrees);   // a slight bend at the elbow, hands forward
+            }
+            void Turn(int b, Vector3 axis, float degrees)
+            {
+                int parent = skel.GetBoneParent(b);
+                var parentGlobal = parent >= 0 ? skel.GetBoneGlobalPose(parent).Basis : Basis.Identity;
+                var turned = new Basis(axis, Mathf.DegToRad(degrees)) * skel.GetBoneGlobalPose(b).Basis;
+                skel.SetBonePoseRotation(b, (parentGlobal.Inverse() * turned).GetRotationQuaternion());
+            }
+            Lower("LeftArm", -72, "LeftForeArm", -25);
+            Lower("RightArm", 72, "RightForeArm", -25);
+        }
     }
 
     private static string? Find(AnimationPlayer ap, params string[] names)

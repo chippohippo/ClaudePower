@@ -14,7 +14,10 @@ public static class UpgradeSystem
         var db = s.Db;
         int civ = s.Players[u.Owner].CivIndex;
         var result = new List<int>();
-        foreach (int t in db.Units[u.DefIndex].UpgradesToIndices)
+        var own = db.Units[u.DefIndex];
+        // A unique unit with no upgrade path of its own follows the unit it replaces.
+        var paths = own.UpgradesToIndices.Length == 0 && own.ReplacesIndex >= 0 ? db.Units[own.ReplacesIndex].UpgradesToIndices : own.UpgradesToIndices;
+        foreach (int t in paths)
         {
             int target = t;
             if (civ >= 0 && db.Units.FirstOrDefault(x => x.ReplacesIndex == t && x.CivilizationIndex == civ) is { } unique) target = unique.Index;

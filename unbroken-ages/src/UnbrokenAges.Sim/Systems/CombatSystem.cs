@@ -119,6 +119,10 @@ public static class CombatSystem
 
         if (s.Options.SupplyCombatPenalty && SupplySystem.Compute(s, unit.Owner)[unit.Tile] < 0) b.Add("Out of supply", -rules.OutOfSupplyPenalty);
         bool vsCity = s.Cities.Any(c => c.Tile == targetTile && c.Owner != unit.Owner);
+        if (attacking && def.HasTag("Siege")) b.Add(vsCity ? "Siege weapons against walls" : "Siege weapons against troops", vsCity ? rules.SiegeVsCityBonus : -rules.SiegeVsUnitsPenalty);
+        // Anti-air: a defender with flak meets aircraft with its anti-air strength instead of its ground strength.
+        if (!attacking && opponent != null && db.Units[opponent.DefIndex].Domain == UnitDomain.Air && def.AntiAirStrength > def.Strength)
+            b.Add("Anti-air", def.AntiAirStrength - def.Strength);
         foreach (var (label, value) in NationSystem.CombatLines(s, unit, opponent, attacking, ranged, vsCity, targetTile)) b.Add(label, value);
         foreach (var (label, value) in SocietySystem.CombatLines(s, unit, attacking, vsCity, targetTile)) b.Add(label, value);
         return b;

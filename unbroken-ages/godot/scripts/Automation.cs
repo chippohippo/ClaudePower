@@ -273,6 +273,74 @@ public partial class GameRoot
                 _localVersion++;
                 return null;
             }
+            case var ln when ln.StartsWith("lineup:"):
+            {
+                // Debug: one of each given unit (UNIT_ ids without the prefix, joined by '+'; "lineup:all" for every military unit)
+                // on its own tile around your capital, nearest first, so their looks can be compared side by side.
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+                if (city == null) return "no city";
+                var area = new List<int>();
+                s.Map.CollectRadius(city.Tile, 4, area);
+                area = area.Where(t => t != city.Tile).OrderBy(t => s.Map.Distance(t, city.Tile)).ThenBy(t => t).ToList();
+                var ids = ln[7..] == "all" ? s.Db.Units.Where(x => x.Strength > 0).Select(x => x.Id).ToList()
+                        : ln[7..].Split('+').Select(x => x.StartsWith("UNIT_") ? x : "UNIT_" + x.ToUpperInvariant()).ToList();
+                var used = new HashSet<int>(s.Units.Select(x => x.Tile));
+                foreach (var id in ids)
+                {
+                    int def = s.Db.Units.IndexOf(id);
+                    if (def < 0) return $"no unit {id}";
+                    var d = s.Db.Units[def];
+                    int tile = area.FirstOrDefault(t => !used.Contains(t) && (d.Domain == UnitDomain.Naval ? s.Map.IsWater(t) : s.Map.IsLand(t) && !s.Map.IsMountain(t)), -1);
+                    if (tile < 0) continue;
+                    used.Add(tile);
+                    me.Revealed[tile] = true;
+                    s.AddUnit(new UnitState { Id = s.AllocateId(), Owner = LocalPlayer, DefIndex = def, Tile = tile, MovesLeft = d.Moves });
+                }
+                foreach (int t in area) me.Revealed[t] = true;
+                _localVersion++;
+                return null;
+            }
+            case var ms when ms.StartsWith("model-sheet:"):
+            {
+                // Debug: a contact sheet of models (paths under assets/models joined by '+', or a folder name for all of it),
+                // each fitted to one unit and labelled, on a plain floor far from the map; prints each model's animations.
+                var arg = ms[12..];
+                var names = arg.Contains('/') ? arg.Split('+').ToList()
+                          : DirAccess.GetFilesAt($"res://assets/models/{arg}").Where(f => f.EndsWith(".glb")).Select(f => $"{arg}/{f[..^4]}").OrderBy(f => f).ToList();
+                var sheet = new Node3D { Name = "ModelSheet", Position = new Vector3(0, 200, 0) };
+                AddChild(sheet);
+                sheet.AddChild(new MeshInstance3D { Mesh = new PlaneMesh { Size = new Vector2(80, 80) }, MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.55f, 0.6f, 0.5f) } });
+                int cols = Math.Max(4, (int)Math.Ceiling(Math.Sqrt(names.Count * 1.6)));
+                for (int i = 0; i < names.Count; i++)
+                {
+                    var scene = MapView.Models.LoadScene(names[i]);
+                    if (scene == null) continue;
+                    var bounds = MapView.Models.SceneBounds(names[i]);
+                    float extent = Mathf.Max(bounds.Size.Y, Mathf.Max(bounds.Size.X, bounds.Size.Z));
+                    float k = extent > 0.001f ? 1.2f / extent : 1f;
+                    var fig = scene.Instantiate<Node3D>();
+                    fig.Scale = Vector3.One * k;
+                    var cell = new Node3D { Position = new Vector3((i % cols - cols / 2f) * 1.9f, 0, (i / cols) * 1.9f) };
+                    fig.Position = -new Vector3(bounds.Position.X + bounds.Size.X / 2, bounds.Position.Y, bounds.Position.Z + bounds.Size.Z / 2) * k;
+                    cell.AddChild(fig);
+                    cell.AddChild(new Label3D { Text = names[i][(names[i].IndexOf('/') + 1)..], FontSize = 48, PixelSize = 0.005f, Position = new Vector3(0, 0.05f, 0.8f), RotationDegrees = new Vector3(-60, 0, 0), Modulate = Colors.Black, OutlineSize = 0 });
+                    sheet.AddChild(cell);
+                    var anims = fig.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().SelectMany(ap => ap.GetAnimationList()).ToList();
+                    GD.Print($"[sheet] {names[i]} size {bounds.Size} anims {anims.Count}: {string.Join(",", anims.Take(14))}");
+                    bool idled = false;
+                    foreach (var ap in fig.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>())
+                        if (ap.GetAnimationList().FirstOrDefault(n => n.Contains("Idle", StringComparison.OrdinalIgnoreCase)) is { } idle) { ap.Play(idle); idled = true; }
+                    if (!idled) UnbrokenAges.Client.Visuals.UnitLayer.RestArms(fig);
+                }
+                int rows = (names.Count + cols - 1) / cols;
+                var cam = new Camera3D { Fov = 40 };
+                sheet.AddChild(cam);
+                float span = Math.Max(cols * 1.9f, rows * 1.9f * 1.6f);
+                cam.Position = new Vector3(0, span * 0.62f, rows * 1.9f / 2f + span * 0.7f);
+                cam.LookAt(sheet.GlobalPosition + new Vector3(0, 0, rows * 1.9f / 2f - 0.6f));
+                cam.MakeCurrent();
+                return null;
+            }
             case "focus-last":
             {
                 var u = s.Units.Where(x => x.Owner == LocalPlayer).OrderByDescending(x => x.Id).FirstOrDefault();
