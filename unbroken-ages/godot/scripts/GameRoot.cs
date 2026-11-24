@@ -477,6 +477,7 @@ public partial class GameRoot : Node3D
             _unitPanel.Refresh();
             _topBar.Refresh();
             _tracker.Refresh();
+            FollowPaths();
             _turnCorner.Refresh();
             Advisor.Refresh();
             if (_research.Visible) _research.Refresh();
@@ -604,6 +605,43 @@ public partial class GameRoot : Node3D
     {
         foreach (Control panel in new Control[] { _research, _diplomacy, _chronicle, _divergence, _society, _espionage })
             if (panel != keep) panel.Visible = false;
+    }
+
+    /// <summary>Planned research: what to study after the current node, in order (the tree's "click a locked node").</summary>
+    public readonly List<int> TechPath = new(), CivicPath = new();
+
+    /// <summary>Study a node now if it is available; otherwise plan a path to it, its missing prerequisites first.</summary>
+    public void PlanResearch(int node, bool civics)
+    {
+        var s = State;
+        if (s == null) return;
+        var p = s.Players[LocalPlayer];
+        var path = civics ? CivicPath : TechPath;
+        path.Clear();
+        var order = new List<int>();
+        void Visit(int i)
+        {
+            if (order.Contains(i) || (civics ? p.Civics[i] : p.Techs[i])) return;
+            foreach (int pre in (civics ? (ProgressNodeDef)s.Db.Civics[i] : s.Db.Techs[i]).PrereqIndices) Visit(pre);
+            order.Add(i);
+        }
+        Visit(node);
+        path.AddRange(order);
+        // Start on the first step now (accumulated progress carries over to the new choice).
+        int first = path.FirstOrDefault(i => civics ? ResearchSystem.CanStudy(p, s.Db.Civics[i]) : ResearchSystem.CanResearch(p, s.Db.Techs[i]), -1);
+        if (first >= 0) Submit(civics ? new SetCivicCommand { Civic = first } : new SetResearchCommand { Tech = first });
+    }
+
+    /// <summary>When nothing is being studied, start the next planned node that is available.</summary>
+    private void FollowPaths()
+    {
+        var s = State;
+        if (s == null || AiBusy || (TechPath.Count == 0 && CivicPath.Count == 0)) return;
+        var p = s.Players[LocalPlayer];
+        TechPath.RemoveAll(i => p.Techs[i]);
+        CivicPath.RemoveAll(i => p.Civics[i]);
+        if (p.CurrentTech < 0 && TechPath.FirstOrDefault(i => ResearchSystem.CanResearch(p, s.Db.Techs[i]), -1) is var t and >= 0) Submit(new SetResearchCommand { Tech = t });
+        if (p.CurrentCivic < 0 && CivicPath.FirstOrDefault(i => ResearchSystem.CanStudy(p, s.Db.Civics[i]), -1) is var c and >= 0) Submit(new SetCivicCommand { Civic = c });
     }
 
     public void ToggleResearch() { PanelsOpened.Add("T"); _research.Visible = !_research.Visible; if (_research.Visible) { CloseOverlaysExcept(_research); _research.Refresh(); } }
