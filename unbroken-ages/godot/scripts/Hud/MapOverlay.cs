@@ -27,6 +27,7 @@ public partial class MapOverlay : Control
     private readonly Dictionary<int, (PanelContainer Flag, TextureRect Icon, ProgressBar Hp)> _flags = new();
 
     private readonly Dictionary<int, (PanelContainer Panel, VBoxContainer Detail, int Res, bool Lens, int Improvement)> _badges = new();
+    private readonly Dictionary<int, Button> _buy = new();
 
     /// <summary>The resource lens: full badges with yields and improvement status for every known resource.</summary>
     public bool ResourceLens { get; set; }
@@ -58,8 +59,10 @@ public partial class MapOverlay : Control
             var world = HexLayout.ToWorld(s.Map.CoordOf(c.Tile), 2.1f);
             Place(b.Panel, cam, world, view, center: true);
             UpdateBanner(s, c, b, visible[c.Tile]);
+            UpdateBuy(s, c, b.Panel);
         }
         foreach (var id in _banners.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _banners[id].Panel.QueueFree(); _banners.Remove(id); }
+        foreach (var id in _buy.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _buy[id].QueueFree(); _buy.Remove(id); }
 
         // Resource icons (always, when close enough to read them) and the resource lens (R).
         bool showIcons = ResourceLens || cam.GlobalPosition.Y < 24f;
@@ -99,6 +102,34 @@ public partial class MapOverlay : Control
         c.Visible = view.Grow(80).HasPoint(p);
         var size = c.Size;
         c.Position = center ? p - new Vector2(size.X / 2, size.Y) : p;
+    }
+
+    // ----- Venice: cities on the market ---------------------------------------------------------------
+
+    /// <summary>A "Buy" button under the banner of every city a merchant republic could purchase (greyed while short of gold).</summary>
+    private void UpdateBuy(GameState s, CityState c, PanelContainer banner)
+    {
+        var me = s.Players[_root.LocalPlayer];
+        string? reason = c.Owner != me.Id && NationSystem.Kind(s, me) == SignatureKind.Ledger ? NationSystem.CanBuy(s, me, c) : "n/a";
+        bool onMarket = reason == null || reason.StartsWith("Not enough gold");
+        if (!onMarket)
+        {
+            if (_buy.TryGetValue(c.Id, out var gone)) gone.Visible = false;
+            return;
+        }
+        if (!_buy.TryGetValue(c.Id, out var b))
+        {
+            int id = c.Id;
+            b = Icons.Button("gold", "", UiTheme.GoldYield, () => _root.Submit(new Sim.Commands.BuyCityCommand { Player = _root.LocalPlayer, CityId = id }));
+            b.AddThemeFontSizeOverride("font_size", 13);
+            AddChild(b);
+            _buy[c.Id] = b;
+        }
+        b.Text = $"Buy {c.Name} · {NationSystem.CityPrice(s, me, c).FloorToInt()}";
+        b.Disabled = reason != null;
+        b.TooltipText = reason ?? $"Buy {c.Name} for {NationSystem.CityPrice(s, me, c).FloorToInt()} gold (Ledger Republic).";
+        b.Visible = banner.Visible;
+        b.Position = banner.Position + new Vector2((banner.Size.X - b.Size.X) / 2, banner.Size.Y + 4);
     }
 
     // ----- Resources ---------------------------------------------------------------------------------

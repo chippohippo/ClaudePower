@@ -20,6 +20,7 @@ public partial class LobbyScreen : PanelContainer
     private ItemList _lanGames = null!;
     private Label _message = null!;
     private Button _launch = null!;
+    private NationPicker _nations = null!;
     private LanBrowser? _browser;
     private double _lanRefresh;
     private readonly List<string> _lanAddresses = new();
@@ -29,10 +30,10 @@ public partial class LobbyScreen : PanelContainer
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.Center);
-        CustomMinimumSize = new Vector2(720, 540);
+        CustomMinimumSize = new Vector2(1120, 640);
         GrowHorizontal = GrowDirection.Both;
         GrowVertical = GrowDirection.Both;
-        OffsetLeft = -360; OffsetRight = 360; OffsetTop = -230; OffsetBottom = 310;
+        OffsetLeft = -560; OffsetRight = 560; OffsetTop = -330; OffsetBottom = 330;
         AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(UiTheme.Navy, 0.9f), UiTheme.Gold, 2, 10, 18));
         var v = new VBoxContainer();
         v.AddThemeConstantOverride("separation", 8);
@@ -51,9 +52,14 @@ public partial class LobbyScreen : PanelContainer
         var tabs = new TabContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
         v.AddChild(tabs);
 
-        // --- Game setup (shared by single player and host) ---
-        var setup = new VBoxContainer { Name = "New Game" };
-        tabs.AddChild(setup);
+        // --- Game setup (shared by single player and host): settings on the left, your nation on the right ---
+        var newGame = new HBoxContainer { Name = "New Game" };
+        newGame.AddThemeConstantOverride("separation", 18);
+        tabs.AddChild(newGame);
+        var setup = new VBoxContainer { CustomMinimumSize = new Vector2(430, 0) };
+        newGame.AddChild(setup);
+        _nations = new NationPicker(_root.Db) { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
+        newGame.AddChild(_nations);
         _mapSize = new OptionButton();
         foreach (var size in _root.Db.MapSizes) _mapSize.AddItem($"{size.Name} ({size.Width}×{size.Height})");
         _mapSize.Selected = Math.Min(1, _root.Db.MapSizes.Count - 1);
@@ -145,8 +151,9 @@ public partial class LobbyScreen : PanelContainer
     {
         var size = _root.Db.MapSizes[Math.Max(0, _mapSize.Selected)];
         int humans = (int)_humans.Value, ais = (int)_ais.Value;
-        var leaders = _root.Db.Leaders.Select(l => l.Id).ToList();
         ulong seed = _seed.Value > 0 ? (ulong)_seed.Value : (ulong)System.Environment.TickCount64;
+        string mine = _nations.SelectedLeader;
+        var others = NationPicker.Opponents(_root.Db, mine, humans + ais - 1, seed);
         return new GameSetup
         {
             Seed = seed,
@@ -161,7 +168,7 @@ public partial class LobbyScreen : PanelContainer
             {
                 Name = i == 0 ? _name.Text : i < humans ? $"Player {i + 1}" : $"AI {i + 1}",
                 IsHuman = i < humans,
-                Leader = leaders[i % leaders.Count],
+                Leader = i == 0 ? mine : others[i - 1],
             }).ToList(),
         };
     }
@@ -169,7 +176,7 @@ public partial class LobbyScreen : PanelContainer
     private static Control Labeled(string label, Control control)
     {
         var h = new HBoxContainer();
-        h.AddChild(new Label { Text = label, CustomMinimumSize = new Vector2(260, 0) });
+        h.AddChild(new Label { Text = label, CustomMinimumSize = new Vector2(200, 0) });
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         h.AddChild(control);
         return h;

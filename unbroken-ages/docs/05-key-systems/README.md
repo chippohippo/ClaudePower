@@ -17,6 +17,7 @@ Each document covers rules, formulas, pseudocode, the **real implementation** (f
 | 12 | [Victory, elimination and One More Turn](11-victory.md) | `Systems/VictorySystem.cs` | `VictoryTests.cs` |
 | 13 | [Outposts](12-outposts.md) | `Systems/OutpostSystem.cs` | `OutpostTests.cs` |
 | 14 | [AI v2: expansion, builders, war and peace](13-ai.md) | `AI/SimpleAi.cs`, `AI/AiPlanners.cs` | `AiTests.cs` |
+| 15 | [Nations: signatures and leaders](14-nations.md) | `Systems/NationSystem.cs`, `AI/AiPlanners.cs` (`NationAi`) | `NationTests.cs` |
 | 8 | [World Ages, Supply, Industries, Chronicle](../09-genre-defining-depth.md#4-what-we-built-in-this-iteration) | `Systems/WorldSystem.cs`, `SupplySystem.cs`, `IndustrySystem.cs`, `ChronicleSystem.cs` | `DepthTests.cs` |
 
 Paths are relative to `src/UnbrokenAges.Sim/` unless noted; tests live in `tests/UnbrokenAges.Tests/`.

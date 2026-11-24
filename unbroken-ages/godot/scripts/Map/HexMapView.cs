@@ -190,6 +190,7 @@ public partial class HexMapView : Node3D
                 "IMPROVEMENT_FARM" => 9, "IMPROVEMENT_PLANTATION" => 10, "IMPROVEMENT_PASTURE" => 11, _ => 0,
             };
         if (code == 0 && map.Resource[t] >= 0 && db.Resources[map.Resource[t]].Id == "RESOURCE_WHEAT") code = 12;
+        if (code == 0 && (map.IsMountain(t) || map.Relief[t] == db.Ids.Hills) && NationSystem.WorksMountains(s, map.OwnerPlayer[t])) code = 13;
         if (map.HasFlag(t, TileFlags.Flooded)) code = 4;
         if (map.HasFlag(t, TileFlags.Pillaged)) code = 5;
         return (layer, code);
@@ -266,6 +267,7 @@ public partial class HexMapView : Node3D
     private void AddFit(string prop, Vector3 at, float size, float yaw, Color tint, bool byHeight = false, Color glow = default, float lift = 0f)
     {
         var model = _models.GetProp(prop);
+        if (OS.GetCmdlineUserArgs().Contains("--debug-props") && prop.StartsWith("landmarks")) GD.Print($"[prop] {prop} at {at} model {(model == null ? "null" : model.Parts.Count + " parts " + model.Bounds)}");
         if (model == null) return;
         var b = model.Bounds.Size;
         float extent = byHeight ? b.Y : Mathf.Max(b.X, b.Z);
@@ -528,7 +530,8 @@ public partial class HexMapView : Node3D
         var at = HexLayout.ToWorld(map.CoordOf(c.Tile), LandTop);
         var look = TechLook.For(s, c.Owner);
         bool walls = c.HasBuilding(db.Buildings.IndexOf(db.Rules.Combat.WallsBuilding));
-        foreach (var piece in CityLayout.Centre(look, c, walls)) Draw(piece, at, team, memory, look, k);
+        string? civ = s.Players[c.Owner].CivIndex >= 0 ? db.Civilizations[s.Players[c.Owner].CivIndex].Id : null;
+        foreach (var piece in CityLayout.Centre(look, c, walls, civ)) Draw(piece, at, team, memory, look, k);
         foreach (var d in c.Districts)
         {
             if (d.DefIndex == db.Ids.CityCenter) continue;

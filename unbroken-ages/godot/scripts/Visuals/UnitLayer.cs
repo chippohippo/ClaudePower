@@ -126,7 +126,9 @@ public partial class UnitLayer : Node3D
         _looks.Clear();
         var seen = new HashSet<int>();
         var perTile = new Dictionary<int, int>();
-        foreach (var u in s.Units)
+        var cityTiles = s.Cities.Select(c => c.Tile).ToHashSet();
+        // Military units first, so a city's lead squad is its strongest garrison rather than whoever arrived first.
+        foreach (var u in s.Units.OrderBy(u => s.Db.Units[u.DefIndex].Strength > 0 ? 0 : 1).ThenByDescending(u => s.Db.Units[u.DefIndex].Strength).ThenBy(u => u.Id))
         {
             if (u.Tile < 0 || !visible[u.Tile]) continue;
             seen.Add(u.Id);
@@ -146,6 +148,8 @@ public partial class UnitLayer : Node3D
                 MoveTo(view, target);
             }
             view.Tile = u.Tile;
+            // A garrison shows one squad in front of the city; the rest stay inside the walls (their flags still show).
+            view.Root.Visible = !(cityTiles.Contains(u.Tile) && slot > 0);
         }
         foreach (var id in _views.Keys.Where(id => !seen.Contains(id)).ToList())
         {

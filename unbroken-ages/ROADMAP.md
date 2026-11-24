@@ -68,6 +68,11 @@ chimney smoke and tree sway (`Visuals/LifeLayer.cs`). Debug automation steps `er
 Information, and the three Divergence futures (Sovereign destructive, Symbiont harmonized, Discarnate syncretic), each with
 its own architecture, roads, traffic, aircraft, plumes, townsfolk and units. Debug steps `tech:A+B`, `path:N`, `paths`, `spawn:A+B`.
 
+**Nations (done):** six major nations with rule-changing signatures (NationSystem) and two leaders each whose augments
+bend them; new unique units; nation picker and dossier in the lobby, a live signature badge, Venice's Buy buttons;
+capitals' landmarks, Mongol yurts, national building materials and Inca terraces on the map; NationAi; bankruptcy, early-war
+restraint and AI production fixes from 6-nation soak tests. See docs/05-key-systems/14-nations.md.
+
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.
 

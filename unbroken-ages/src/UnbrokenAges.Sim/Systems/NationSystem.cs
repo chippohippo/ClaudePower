@@ -416,7 +416,7 @@ public static class NationSystem
         {
             SignatureKind.Inundation => TurnsToFlood(s, p) == 0
                 ? $"Granary {p.SignatureMeter.FloorToInt()} food · the river floods this turn"
-                : $"Granary {p.SignatureMeter.FloorToInt()} food · flood in {TurnsToFlood(s, p)} turns",
+                : $"Granary {p.SignatureMeter.FloorToInt()} food · flood in {TurnsToFlood(s, p)} turn{(TurnsToFlood(s, p) == 1 ? "" : "s")}",
             SignatureKind.Mandate => p.SignatureTimer > 0
                 ? $"Golden Dynasty · {p.SignatureTimer} turns left"
                 : $"Mandate {p.SignatureMeter.FloorToInt()} / 100",

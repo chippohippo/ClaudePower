@@ -4,7 +4,7 @@
 //   G = fog: 0 visible · 1 remembered · 2 unexplored
 //   B = water: 0 land · 1 coast · 2 ocean · 3 lake / Great River channel
 //   A = feature tint: 0 none · 1 floodplains · 2 marsh · 3 bloom · 4 flooded · 5 pillaged · 6 oasis · 7 engineered · 8 substrate
-//       · 9 farm fields · 10 plantation rows · 11 pasture paddocks · 12 wild grain
+//       · 9 farm fields · 10 plantation rows · 11 pasture paddocks · 12 wild grain · 13 Inca terraces
 // Every pixel finds its tile and the neighbour across the nearest edge, so terrains blend over soft, wobbly, hand-painted
 // borders instead of hard hexagons (the Civ VI look), while the tile itself stays exactly where the rules say it is.
 

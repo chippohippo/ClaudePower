@@ -11,6 +11,7 @@ namespace UnbrokenAges.Client;
 /// <summary>
 /// Scripted play for testing the real client (CI smoke tests, screenshots, bug repros). Pass user arguments after "--":
 ///   --autostart[=seed]     start a single-player game at once (Small map, you + 2 AI)
+///   --leader=LEADER_X      your leader for --autostart (the AIs get other nations)
 ///   --do=a,b,c             actions, one every few frames: found, research, produce, end, next, move-east, attack,
 ///                          panel:T|P|C|V, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
 ///                          select-city, focus-road, era:N, tech:A+B, path:N, paths, spawn:A+B, reveal (debug), wait
@@ -35,7 +36,10 @@ public partial class GameRoot
             {
                 ulong seed = a.Contains('=') ? ulong.Parse(a[(a.IndexOf('=') + 1)..]) : 7;
                 var size = Db.MapSizes["MAPSIZE_SMALL"];
-                var leaders = Db.Leaders.Select(l => l.Id).ToList();
+                // --leader=LEADER_X picks yours; the others get one leader of every other nation.
+                string mine = args.FirstOrDefault(x => x.StartsWith("--leader="))?[9..] ?? Db.Leaders[0].Id;
+                var others = UI.NationPicker.Opponents(Db, mine, 2, seed);
+                var leaders = new List<string> { mine }.Concat(others).ToList();
                 StartSinglePlayer(new GameSetup
                 {
                     Seed = seed,

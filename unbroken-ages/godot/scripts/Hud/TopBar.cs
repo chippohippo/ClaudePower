@@ -15,6 +15,8 @@ public partial class TopBar : PanelContainer
     private readonly GameRoot _root;
     private Label _science = null!, _culture = null!, _faith = null!, _gold = null!, _turn = null!, _age = null!, _climate = null!;
     private HBoxContainer _strategic = null!;
+    private Label _signature = null!;
+    private PanelContainer _signatureBox = null!;
     private Control _scienceBox = null!, _goldBox = null!, _ageBox = null!, _climateBox = null!;
 
     public TopBar(GameRoot root) => _root = root;
@@ -39,6 +41,12 @@ public partial class TopBar : PanelContainer
         _strategic = new HBoxContainer();
         _strategic.AddThemeConstantOverride("separation", 12);
         h.AddChild(_strategic);
+        // The nation's signature at a glance: the granary and the next flood, the Mandate, cities for sale…
+        _signatureBox = new PanelContainer { MouseFilter = MouseFilterEnum.Pass };
+        _signature = new Label { VerticalAlignment = VerticalAlignment.Center };
+        _signature.AddThemeFontSizeOverride("font_size", 14);
+        _signatureBox.AddChild(_signature);
+        h.AddChild(_signatureBox);
         h.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         h.AddChild(_climateBox = Icons.Stat("apple", new Color("#9fd0e8"), "", out _climate, 16));
         h.AddChild(_ageBox = Icons.Stat("crown", UiTheme.GoldBright, "", out _age, 18));
@@ -77,6 +85,21 @@ public partial class TopBar : PanelContainer
                               (s.TurnPhases.Count > 1 ? $"\n{TurnPhases.Describe(s)}" : "");
         _climate.Text = $"{s.Climate.Co2Ppm.FloorToInt()} ppm · +{s.Climate.Temperature}°C";
         _climateBox.TooltipText = $"Atmospheric CO₂ and warming. Climate phase {s.Climate.Phase} of 7: sea levels rise at higher phases.";
+
+        var sig = NationSystem.Signature(s, p);
+        _signatureBox.Visible = sig is { Kind: not Sim.Data.SignatureKind.None };
+        if (sig != null && p.CivIndex >= 0)
+        {
+            var civ = s.Db.Civilizations[p.CivIndex];
+            var colour = new Color(civ.Colors.Primary);
+            bool golden = sig.Kind == Sim.Data.SignatureKind.Mandate && p.SignatureTimer > 0;
+            _signatureBox.AddThemeStyleboxOverride("panel", UiTheme.Box(colour.Darkened(golden ? 0.2f : 0.6f), golden ? UiTheme.GoldBright : colour, golden ? 2 : 1, 10, 3));
+            _signature.Text = NationSystem.Status(s, p);
+            _signature.AddThemeColorOverride("font_color", golden ? Colors.White : colour.Lightened(0.55f));
+            var leader = p.LeaderIndex >= 0 ? s.Db.Leaders[p.LeaderIndex] : null;
+            _signatureBox.TooltipText = $"{civ.Name}: {sig.Name}\n{sig.Description}\n\n{sig.Playstyle}" +
+                                        (leader != null ? $"\n\n{leader.Name}, {leader.Augment.Name}: {leader.Augment.Description}" : "");
+        }
 
         foreach (var c in _strategic.GetChildren()) c.QueueFree();
         foreach (var res in s.Db.Resources.Where(r => r.Class == Sim.Data.ResourceClass.Strategic && p.Stockpile[r.Index] > 0))

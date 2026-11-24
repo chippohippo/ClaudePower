@@ -103,6 +103,14 @@ vec3 look(vec4 d, vec2 wp, float y, float slope) {
 	int fog = channel(d.g);
 	if (fog == 2) return paper(wp);
 	vec3 c = shaped(land_color(d, wp), wp, y, slope);
+	if (channel(d.a) == 13) {
+		// Inca terraces: green steps cut along the contours of owned hills and mountains, stone risers between them.
+		float band = fract(y * 7.0 + texture(paper_noise, wp * 0.3).r * 0.25);
+		float riser = smoothstep(0.0, 0.08, band) * (1.0 - smoothstep(0.82, 0.9, band));
+		vec3 field = mix(vec3(0.36, 0.5, 0.2), vec3(0.55, 0.6, 0.28), texture(paper_noise, wp * 1.3).g);
+		float steep = smoothstep(0.75, 0.95, slope);
+		c = mix(c, mix(vec3(0.42, 0.38, 0.32), field, riser), (1.0 - steep) * 0.85 * smoothstep(0.05, 0.2, y));
+	}
 	return fog == 1 ? sepia_drawing(c, wp) : c;
 }
 

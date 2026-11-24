@@ -39,8 +39,51 @@ public static class CityLayout
         return new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * radius;
     }
 
-    /// <summary>The buildings on the city-centre tile. Prop names with "{team}" get the owner's team colour.</summary>
-    public static IEnumerable<Piece> Centre(TechLook look, CityState c, bool walls)
+    /// <summary>
+    /// The buildings on the city-centre tile, with the nation's own character: every capital raises its landmark (the pyramid
+    /// of Egypt, Venice's campanile, a Song pagoda, the Khan's great ger, an Inca ushnu, Mali's mud mosque), Mongol towns are
+    /// tent cities of yurts until the industrial age, and houses before then are built in the nation's materials (sandstone,
+    /// terracotta, fieldstone, adobe). Prop names with "{team}" get the owner's team colour.
+    /// </summary>
+    public static IEnumerable<Piece> Centre(TechLook look, CityState c, bool walls, string? civ)
+    {
+        bool preIndustrial = look.Architecture < Architecture.Industrial;
+        var material = preIndustrial ? Material(civ) : Colors.White;
+        foreach (var piece in Centre(look, c, walls))
+        {
+            bool house = piece.Prop.Contains("home_");
+            if (civ == "CIV_MONGOLIA" && preIndustrial && house)
+                yield return piece with { Prop = "landmarks/yurt", Size = 0.3f, Mode = Fit.Width, Team = false };
+            else if (piece.Team && material != Colors.White)
+                yield return piece with { Tint = (piece.Tint ?? Colors.White) * material };
+            else yield return piece;
+        }
+        if (c.IsCapital && Landmark(civ) is { } landmark) yield return landmark;
+    }
+
+    /// <summary>Pre-industrial building stone: a multiply over the kit's timber-and-plaster houses.</summary>
+    public static Color Material(string? civ) => civ switch
+    {
+        "CIV_EGYPT" => new Color(1.06f, 0.96f, 0.78f),   // sandstone and whitewash
+        "CIV_MALI" => new Color(1.06f, 0.8f, 0.58f),     // banco adobe
+        "CIV_INCA" => new Color(0.86f, 0.86f, 0.9f),     // fitted fieldstone
+        "CIV_VENICE" => new Color(1.06f, 0.88f, 0.84f),  // terracotta and pastel stucco
+        _ => Colors.White,
+    };
+
+    /// <summary>The capital's landmark, standing at the back of the city so the banner and units stay clear.</summary>
+    public static Piece? Landmark(string? civ) => civ switch
+    {
+        "CIV_EGYPT" => new Piece("landmarks/pyramid", Ring(305, 0.92f), 0.78f, Fit.Width),
+        "CIV_SONG" => new Piece("landmarks/pagoda", Ring(305, 0.9f), 1.05f, Fit.Height),
+        "CIV_MONGOLIA" => new Piece("landmarks/yurt", Ring(305, 0.9f), 0.6f, Fit.Width),
+        "CIV_INCA" => new Piece("landmarks/ushnu", Ring(305, 0.92f), 0.7f, Fit.Width),
+        "CIV_MALI" => new Piece("landmarks/mosque", Ring(305, 0.92f), 0.8f, Fit.Width),
+        "CIV_VENICE" => new Piece("landmarks/campanile", Ring(305, 0.9f), 1.2f, Fit.Height),
+        _ => null,
+    };
+
+    private static IEnumerable<Piece> Centre(TechLook look, CityState c, bool walls)
     {
         int houses = Houses(c);
         bool capital = c.IsCapital;
