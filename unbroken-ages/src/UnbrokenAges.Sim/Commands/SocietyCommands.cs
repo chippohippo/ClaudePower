@@ -76,3 +76,13 @@ public sealed class PromoteUnitCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(Promotion); }
     protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); Promotion = r.ReadInt32(); }
 }
+
+public sealed class SendEnvoyCommand : GameCommand
+{
+    public int CityState;
+    public override CommandType Type => CommandType.SendEnvoy;
+    public override string? Validate(GameState s) => Issuer(s) is not { } p ? "Not a player." : CityStateSystem.CanSendEnvoy(s, p, CityState);
+    public override void Apply(GameState s, List<GameEvent> events) => CityStateSystem.SendEnvoy(s, s.Players[Player], CityState, events);
+    protected override void WritePayload(BinaryWriter w) => w.Write(CityState);
+    protected override void ReadPayload(BinaryReader r) => CityState = r.ReadInt32();
+}

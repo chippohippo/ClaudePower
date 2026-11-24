@@ -16,7 +16,7 @@ public static class TurnPhases
 {
     public static List<int[]> Compute(GameState s)
     {
-        var majors = s.Players.Where(p => p.IsAlive && !p.IsFreeCities).Select(p => p.Id).ToList();
+        var majors = s.Players.Where(p => p.IsAlive && p.IsMajor).Select(p => p.Id).ToList();
         switch (s.Options.TurnMode)
         {
             case TurnMode.Simultaneous:

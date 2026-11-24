@@ -45,9 +45,35 @@ public static class SocietyAi
 
         foreach (var cmd in Missionaries(s, p)) yield return cmd;
 
+        // Envoys: one at a time, where it wins or keeps a suzerainty soonest; otherwise where it pays the next tier.
+        if (p.EnvoyTokens > 0 && BestEnvoyTarget(s, p) is { } envoyTarget)
+            yield return new SendEnvoyCommand { Player = p.Id, CityState = envoyTarget.Id };
+
         foreach (var u in s.Units.Where(u => u.Owner == p.Id).ToList())
             if (SocietySystem.CanPromote(s, u) && SocietySystem.Available(s, u).OrderByDescending(Score).ThenBy(x => x.Index).FirstOrDefault() is { } promo)
                 yield return new PromoteUnitCommand { Player = p.Id, UnitId = u.Id, Promotion = promo.Index };
+    }
+
+    public static PlayerState? BestEnvoyTarget(GameState s, PlayerState p)
+    {
+        PlayerState? best = null;
+        double bestScore = double.MinValue;
+        foreach (var cs in CityStateSystem.CityStates(s))
+        {
+            if (CityStateSystem.CanSendEnvoy(s, p, cs.Id) != null) continue;
+            int mine = CityStateSystem.EnvoysFrom(cs, p.Id);
+            int rival = Enumerable.Range(0, cs.Envoys.Count).Where(o => o != p.Id).Select(o => cs.Envoys[o]).DefaultIfEmpty(0).Max();
+            double score = 0;
+            if (cs.Suzerain == p.Id) score += mine - rival <= 1 ? 6 : 0.5;                       // defend a narrow lead
+            else if (mine + 1 >= CityStateSystem.SuzerainMinimum && mine + 1 > rival) score += 8; // this envoy wins it
+            else if (rival - mine <= 2) score += 3;                                              // within reach
+            if (mine + 1 is CityStateSystem.FirstTier or CityStateSystem.SecondTier or CityStateSystem.ThirdTier) score += 2;
+            var capital = CityStateSystem.Capital(s, cs);
+            int near = capital == null ? 99 : s.CitiesOf(p.Id).Select(c => s.Map.Distance(c.Tile, capital.Tile)).DefaultIfEmpty(99).Min();
+            score -= near / 20.0;
+            if (score > bestScore || (score == bestScore && best != null && cs.Id < best.Id)) { best = cs; bestScore = score; }
+        }
+        return best;
     }
 
     private static int Score(PromotionDef p) => 2 * p.Strength + p.Defense + p.VsCity + p.Terrain / 2 + 8 * p.Moves + p.HealPerTurn / 2;

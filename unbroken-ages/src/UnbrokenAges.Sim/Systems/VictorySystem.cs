@@ -56,7 +56,7 @@ public static class VictorySystem
         int held = 0, total = 0;
         foreach (var c in s.Cities)
         {
-            if (!c.WasOriginalCapital || s.Players[c.OriginalOwner].IsFreeCities) continue;
+            if (!c.WasOriginalCapital || !s.Players[c.OriginalOwner].IsMajor) continue;
             total++;
             if (DiplomacySystem.SameTeam(s, c.Owner, player)) held++;
         }
@@ -148,7 +148,7 @@ public static class VictorySystem
 
     // ----- shared --------------------------------------------------------------------------------------
 
-    private static IEnumerable<PlayerState> Majors(GameState s) => s.Players.Where(p => p.IsAlive && !p.IsFreeCities);
+    private static IEnumerable<PlayerState> Majors(GameState s) => s.Players.Where(p => p.IsAlive && p.IsMajor);
 
     private static void Declare(GameState s, int player, VictoryKind kind, List<GameEvent> events)
     {

@@ -29,10 +29,10 @@ public static partial class NationSystem
         new() { Effect = e, Amount = amount, Category = category, Disaster = disaster };
 
     private static bool AtWarWithAnyone(GameState s, int player) =>
-        s.Players.Any(o => o.Id != player && o.IsAlive && !o.IsFreeCities && DiplomacySystem.AtWar(s, player, o.Id));
+        s.Players.Any(o => o.Id != player && o.IsAlive && o.IsMajor && DiplomacySystem.AtWar(s, player, o.Id));
 
     private static int PeacePartners(GameState s, int player) =>
-        s.Players.Count(o => o.Id != player && o.IsAlive && !o.IsFreeCities && DiplomacySystem.Find(s, player, o.Id) is { } r && r.Status != DiploStatus.War);
+        s.Players.Count(o => o.Id != player && o.IsAlive && o.IsMajor && DiplomacySystem.Find(s, player, o.Id) is { } r && r.Status != DiploStatus.War);
 
     private static string AugmentName(GameState s, PlayerState p, SignatureDef sig) =>
         p.LeaderIndex >= 0 ? $"{s.Db.Leaders[p.LeaderIndex].Name}: {s.Db.Leaders[p.LeaderIndex].Augment.Name}" : sig.Name;

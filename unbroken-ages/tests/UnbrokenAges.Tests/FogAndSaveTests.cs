@@ -38,7 +38,7 @@ public class FogAndSaveTests
     public void NewGames_StartWithTheStartingAreaRevealed()
     {
         var s = GameFactory.Create(TestWorld.Db, DeterminismTests.Setup());
-        foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+        foreach (var p in s.Players.Where(p => p.IsMajor))
         {
             var settler = s.Units.First(u => u.Owner == p.Id && s.Db.Units[u.DefIndex].FoundsCity);
             Assert.True(p.Revealed[settler.Tile]);

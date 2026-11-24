@@ -185,7 +185,7 @@ public static class ReligionSystem
         int converted = 0, total = 0;
         foreach (var other in s.Players)
         {
-            if (other.Id == founder.Id || other.IsFreeCities || !other.IsAlive) continue;
+            if (other.Id == founder.Id || !other.IsMajor || !other.IsAlive) continue;
             var cities = s.CitiesOf(other.Id).ToList();
             if (cities.Count == 0) continue;
             total++;
@@ -196,7 +196,7 @@ public static class ReligionSystem
 
     public static int SpiritualWinner(GameState s)
     {
-        foreach (var p in s.Players.Where(p => p.Religion >= 0 && p.IsAlive && !p.IsFreeCities).OrderBy(p => p.Id))
+        foreach (var p in s.Players.Where(p => p.Religion >= 0 && p.IsAlive && p.IsMajor).OrderBy(p => p.Id))
         {
             var (converted, total) = Reach(s, p);
             if (total >= 2 && converted == total && s.CitiesOf(p.Id).Any(c => c.Religion == p.Religion)) return p.Id;

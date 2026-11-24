@@ -272,6 +272,7 @@ public static partial class NationSystem
     /// <summary>Why <paramref name="buyer"/> may not buy <paramref name="city"/> now, or null.</summary>
     public static string? CanBuy(GameState s, PlayerState buyer, CityState city)
     {
+        if (s.Players[city.Owner].IsCityState) return "City-states are not for sale.";
         if (Kind(s, buyer) != SignatureKind.Ledger) return "Only a merchant republic can buy cities.";
         if (city.Owner == buyer.Id) return "Already yours.";
         var owner = s.Players[city.Owner];
@@ -309,7 +310,7 @@ public static partial class NationSystem
     {
         foreach (var p in s.Players)
         {
-            if (!p.IsAlive || p.IsFreeCities) continue;
+            if (!p.IsAlive || !p.IsMajor) continue;
             switch (Kind(s, p))
             {
                 case SignatureKind.Inundation: Inundation(s, p, events); break;
@@ -388,7 +389,7 @@ public static partial class NationSystem
             if (c.Loyalty >= loyal) change += Param(s, p, "gainPerLoyalCity", 3);
             else if (c.Loyalty < 50) change -= Param(s, p, "lossPerUnrestCity", 6);
         }
-        if (s.Players.Any(o => o.Id != p.Id && o.IsAlive && !o.IsFreeCities && DiplomacySystem.AtWar(s, p.Id, o.Id)))
+        if (s.Players.Any(o => o.Id != p.Id && o.IsAlive && o.IsMajor && DiplomacySystem.AtWar(s, p.Id, o.Id)))
             change -= Param(s, p, "warDrain", 4);
         p.SignatureMeter = Fx.Clamp(p.SignatureMeter + change, Fx.Zero, Fx.FromInt(100));
         if (p.SignatureMeter >= 100)

@@ -30,7 +30,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 
 - [x] **11. Society staples**: governments and policy cards, pantheons and religions (spread, missionaries, Spiritual victory), great people,
       era score and Golden/Dark/Heroic ages, unit promotions, barbarian camps, world and natural wonders, war weariness.
-- [ ] **12. City-states**: envoys, suzerain bonuses, quests (Free Cities as the seed).
+- [x] **12. City-states**: minor players, influence and envoys, type tiers, suzerain bonuses, self-defence (quests and levies later).
 - [ ] **13. Trade routes**: traders, roads along routes, gold and yields between cities, plunder at war.
 - [ ] **14. Espionage**: spies, offensive operations, counter-intelligence (the modifier hooks exist).
 - [ ] **15. Culture victory**: great works, tourism, theming.
@@ -90,3 +90,5 @@ policy cards and governments, the turn timer, and Grand-dial governor ageing.
 (see git log for full detail)
 - 11. Society staples: `SocietySystem`, `ReligionSystem`, `GreatPeopleSystem`, `AgeSystem`, `BarbarianSystem`, `SocietyAi`, `society.json`,
   14 wonders + 9 natural wonders with models, 6 commands, Society screen (G), snapshot v14, 28 tests (245 total).
+- 12. City-states: `CityStateSystem` (placement, influence, envoys, tiers, suzerains, keeping pace, defence), `PlayerState.IsMajor` audit,
+  18 city-states, `SendEnvoyCommand`, Diplomacy-screen section, lobby option, snapshot v15, 10 tests (255 total).

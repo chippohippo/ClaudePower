@@ -181,6 +181,12 @@
       "items": {
         "$ref": "#/$defs/promotion"
       }
+    },
+    "cityStates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/cityState"
+      }
     }
   },
   "additionalProperties": false,
@@ -3476,6 +3482,49 @@
         },
         "healPerTurn": {
           "type": "integer"
+        }
+      }
+    },
+    "cityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "enum": [
+            "Scientific",
+            "Cultural",
+            "Trade",
+            "Religious",
+            "Industrial",
+            "Militaristic"
+          ]
+        },
+        "color": {
+          "type": "string"
+        },
+        "suzerain": {
+          "$ref": "#/$defs/ability"
         }
       }
     }

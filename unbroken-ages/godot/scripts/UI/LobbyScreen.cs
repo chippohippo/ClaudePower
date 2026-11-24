@@ -15,7 +15,7 @@ public partial class LobbyScreen : PanelContainer
 {
     private readonly GameRoot _root;
     private LineEdit _name = null!, _address = null!, _password = null!;
-    private SpinBox _port = null!, _humans = null!, _ais = null!, _seed = null!;
+    private SpinBox _port = null!, _humans = null!, _ais = null!, _seed = null!, _cityStates = null!;
     private OptionButton _mapSize = null!, _disasters = null!, _pacing = null!;
     private ItemList _lanGames = null!;
     private Label _message = null!;
@@ -75,6 +75,8 @@ public partial class LobbyScreen : PanelContainer
         _pacing = new OptionButton();
         foreach (var p in new[] { "Standard eras (100%)", "Extended eras (150%)", "Epic eras (200%)" }) _pacing.AddItem(p);
         setup.AddChild(Labeled("Era pacing", _pacing));
+        _cityStates = new SpinBox { MinValue = -1, MaxValue = _root.Db.CityStates.Count, Value = -1, TooltipText = "-1: one per civilization" };
+        setup.AddChild(Labeled("City-states (-1 = one per civ)", _cityStates));
         _seed = new SpinBox { MinValue = 0, MaxValue = int.MaxValue, Value = 0, Prefix = "Seed" };
         setup.AddChild(Labeled("Map seed (0 = random)", _seed));
         var spButtons = new HBoxContainer();
@@ -163,6 +165,7 @@ public partial class LobbyScreen : PanelContainer
                 DisasterIntensity = _disasters.Selected,
                 ClimateEnabled = _disasters.Selected > 0,
                 EraPacingPercent = new[] { 100, 150, 200 }[Math.Max(0, _pacing.Selected)],
+                CityStates = (int)_cityStates.Value,
             },
             Players = Enumerable.Range(0, humans + ais).Select(i => new PlayerSetup
             {

@@ -19,7 +19,7 @@ public static class BarbarianSystem
     public const int ClearGold = 50;
     public const int Sight = 6;
 
-    public static int MaxCamps(GameState s) => Math.Max(1, s.Players.Count(p => p.IsAlive && !p.IsFreeCities) / 2);
+    public static int MaxCamps(GameState s) => Math.Max(1, s.Players.Count(p => p.IsAlive && p.IsMajor) / 2);
 
     public static bool IsCamp(GameState s, int tile) => s.Camps.Any(c => c.Tile == tile);
 
@@ -59,7 +59,7 @@ public static class BarbarianSystem
         for (int i = s.Camps.Count - 1; i >= 0; i--)
         {
             int tile = s.Camps[i].Tile;
-            var hero = s.Units.Where(u => u.Tile == tile && !s.Players[u.Owner].IsFreeCities && SupplySystem.IsMilitary(s.Db, u)).OrderBy(u => u.Id).FirstOrDefault();
+            var hero = s.Units.Where(u => u.Tile == tile && s.Players[u.Owner].IsMajor && SupplySystem.IsMilitary(s.Db, u)).OrderBy(u => u.Id).FirstOrDefault();
             if (hero == null) continue;
             s.Camps.RemoveAt(i);
             var p = s.Players[hero.Owner];
@@ -103,7 +103,7 @@ public static class BarbarianSystem
     /// <summary>The strongest generic land melee unit that most civilizations can already field.</summary>
     public static int? RaiderDef(GameState s)
     {
-        var majors = s.Players.Where(p => p.IsAlive && !p.IsFreeCities).ToList();
+        var majors = s.Players.Where(p => p.IsAlive && p.IsMajor).ToList();
         return s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.UnitClass == "Melee" && u.CivilizationIndex < 0 && u.Strength > 0 &&
                                      u.ResourceCost == null && majors.Count(p => p.HasTech(u.PrereqTechIndex)) * 2 >= majors.Count)
                          .OrderByDescending(u => u.Strength).ThenBy(u => u.Index).Select(u => (int?)u.Index).FirstOrDefault();

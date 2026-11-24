@@ -76,6 +76,12 @@ public static class EventText
             GameEventType.CampSpawned when Seen(s, e.Tile, viewer) => "Barbarians have made camp in the wilds.",
             GameEventType.CampCleared when mine => $"You scattered a barbarian camp: +{e.Value} gold.",
             GameEventType.TilePillaged when mine => "Raiders pillaged an improvement in your lands.",
+            GameEventType.EnvoyEarned when mine => $"A new envoy is ready ({e.Value} to send): diplomacy (P).",
+            GameEventType.CityStateMet when mine => $"You meet the city-state of {e.Detail}.",
+            GameEventType.EnvoySent when mine => $"Your envoy arrives in {e.Detail}.",
+            GameEventType.SuzerainChanged when mine => $"You are now suzerain of {e.Detail}.",
+            GameEventType.SuzerainChanged when e.Value >= 0 && e.Value < s.Players.Count && CityStateSystem.EnvoysFrom(s.Players[e.Value], viewer) > 0 =>
+                e.Player >= 0 ? $"{who} is now suzerain of {e.Detail}." : $"{e.Detail} has no suzerain now.",
             GameEventType.VictoryAchieved => e.Detail,
             GameEventType.PlayerEliminated => mine ? "Your civilization has fallen." : $"{who} has fallen.",
             _ => null,

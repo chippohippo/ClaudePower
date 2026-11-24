@@ -288,7 +288,7 @@ public sealed class HostSession : IDisposable
     private void CheckTurnEnd()
     {
         if (State == null || Paused || _driving) return;
-        if (!State.Players.Any(p => !p.IsFreeCities && p.IsAlive && Setup.Players[p.Id].IsHuman)) return; // the host never plays alone
+        if (!State.Players.Any(p => p.IsMajor && p.IsAlive && Setup.Players[p.Id].IsHuman)) return; // the host never plays alone
         _driving = true;
         try
         {

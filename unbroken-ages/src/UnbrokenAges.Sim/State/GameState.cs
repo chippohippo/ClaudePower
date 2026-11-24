@@ -36,6 +36,8 @@ public sealed class GameOptions
     public int MaxQueueLength { get; set; } = 8;
     public TurnMode TurnMode { get; set; } = TurnMode.Dynamic;
     public int StartingGovernorTitles { get; set; } = 1;
+    /// <summary>City-states placed at the start (-1 = one per civilization, as many as fit).</summary>
+    public int CityStates { get; set; } = -1;
     /// <summary>Wars require a denunciation at least 5 turns earlier.</summary>
     public bool NoSurpriseWars { get; set; }
     /// <summary>Grand Strategy dial: out-of-supply units fight at a penalty.</summary>
@@ -82,6 +84,11 @@ public sealed class PlayerState
     public int Team;
     public bool IsHuman;
     public bool IsFreeCities;
+    /// <summary>City-states: index into CityStates (-1 for everyone else).</summary>
+    public int CityStateIndex = -1;
+    public bool IsCityState => CityStateIndex >= 0;
+    /// <summary>A full civilization: neither the Free Cities nor a city-state.</summary>
+    public bool IsMajor => !IsFreeCities && CityStateIndex < 0;
     public bool IsAlive = true;
     public bool HasEndedTurn;
 
@@ -137,6 +144,15 @@ public sealed class PlayerState
     public int AgeEra;
     /// <summary>War weariness: battles fought abroad, cities taken and units lost; costs amenities empire-wide.</summary>
     public int WarWeariness;
+
+    // ----- City-states (CityStateSystem) -----
+    /// <summary>Majors: influence toward the next envoy, unspent envoys, and envoys earned so far (the next costs more).</summary>
+    public int Influence;
+    public int EnvoyTokens;
+    public int EnvoysEarned;
+    /// <summary>City-states: envoys each player has sent here (indexed by player id), and the current suzerain (-1 = none).</summary>
+    public List<int> Envoys = new();
+    public int Suzerain = -1;
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);

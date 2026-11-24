@@ -59,6 +59,7 @@ public static class TurnProcessor
         NationSystem.ProcessTurn(s, events);
         ReligionSystem.ProcessTurn(s, events);
         GreatPeopleSystem.ProcessTurn(s, events);
+        CityStateSystem.ProcessTurn(s, events);
         AgeSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);

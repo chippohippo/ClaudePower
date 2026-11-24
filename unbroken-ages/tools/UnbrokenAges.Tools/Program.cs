@@ -108,7 +108,7 @@ void Simulate()
     var tally = new Dictionary<GameEventType, int>();
     for (int t = 0; t < turns; t++)
     {
-        foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+        foreach (var p in s.Players.Where(p => p.IsMajor))
             foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
         ContinueIfWon(s);
         var events = new List<GameEvent>();
@@ -124,7 +124,7 @@ void Simulate()
                 if (line.Contains(traced)) Console.WriteLine(line);
             }
         if (s.Turn % 25 == 0 && HasOpt("--nations"))
-            Console.WriteLine($"   t{s.Turn}: " + string.Join(" | ", s.Players.Where(p => !p.IsFreeCities).Select(p =>
+            Console.WriteLine($"   t{s.Turn}: " + string.Join(" | ", s.Players.Where(p => p.IsMajor).Select(p =>
                 $"{(p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name[..3] : "?")} c{s.CitiesOf(p.Id).Count()} o{s.Outposts.Count(o => o.Owner == p.Id)} u{s.Units.Count(u => u.Owner == p.Id)} g{p.Gold.FloorToInt()} w{MilitaryAi.MajorEnemies(s, p.Id).Count}")));
         if (s.Turn % 25 == 0)
             Console.WriteLine($"turn {s.Turn,4}: cities={s.Cities.Count} pop={s.Cities.Sum(c => c.Population)} districts={s.Cities.Sum(c => c.Districts.Count - 1)} " +
@@ -133,9 +133,9 @@ void Simulate()
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
     Console.WriteLine("events: " + string.Join(", ", tally.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
-    Console.WriteLine("score: " + string.Join(", ", s.Players.Where(p => !p.IsFreeCities).Select(p => $"{p.Name} {VictorySystem.Score(s, p.Id)}")));
+    Console.WriteLine("score: " + string.Join(", ", s.Players.Where(p => p.IsMajor).Select(p => $"{p.Name} {VictorySystem.Score(s, p.Id)}")));
     Console.WriteLine("nations:");
-    foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+    foreach (var p in s.Players.Where(p => p.IsMajor))
     {
         string nation = p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name : "-";
         string leader = p.LeaderIndex >= 0 ? db.Leaders[p.LeaderIndex].Name : "-";
@@ -148,6 +148,9 @@ void Simulate()
                           $"followers={s.Cities.Count(c => p.Religion >= 0 && c.Religion == p.Religion)} greatPeople={p.GreatPeopleRecruited.Sum()} age={p.Age} " +
                           $"wonders=[{string.Join(", ", SocietySystem.Wonders(s, p.Id).Select(w => w.Name))}] promoted={s.Units.Count(u => u.Owner == p.Id && u.Promotions.Count > 0)}");
     }
+    foreach (var cs in s.Players.Where(p => p.IsCityState))
+        Console.WriteLine($"  city-state {cs.Name,-11} {db.CityStates[cs.CityStateIndex].Type,-12} alive={cs.IsAlive,-5} envoys=[{string.Join(",", cs.Envoys)}] " +
+                          $"suzerain={(cs.Suzerain >= 0 ? s.Players[cs.Suzerain].Name : "-")} met={s.Players.Count(m => m.IsMajor && CityStateSystem.HasMet(s, cs, m.Id))} units={s.Units.Count(u => u.Owner == cs.Id)}");
     Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
                       $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
@@ -234,7 +237,7 @@ void Future()
     var s = GameFactory.Create(db, setup);
     FutureScenario.Build(s, paths);
     Console.WriteLine($"THE DIVERGENCE — {turns} turns after the Threshold (seed {seed})");
-    foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+    foreach (var p in s.Players.Where(p => p.IsMajor))
         Console.WriteLine($"  {p.Id + 1} {p.Name,-7} → {db.Divergences[p.Divergence].People,-16} \"{db.Divergences[p.Divergence].Creed}\"");
     Console.WriteLine();
     Console.WriteLine(FutureScenario.Render(s, "THE WORLD AT THE THRESHOLD"));
@@ -243,7 +246,7 @@ void Future()
     var tally = new Dictionary<GameEventType, int>();
     for (int t = 0; t < turns; t++)
     {
-        foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+        foreach (var p in s.Players.Where(p => p.IsMajor))
             foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
         ContinueIfWon(s);
         var events = new List<GameEvent>();
@@ -362,7 +365,7 @@ static class FutureScenario
     {
         var db = s.Db;
         s.Turn = 296; // the calendar reads AD 2000: a world arriving at the Threshold
-        var humans = s.Players.Where(p => !p.IsFreeCities).ToList();
+        var humans = s.Players.Where(p => p.IsMajor).ToList();
         for (int i = 0; i < humans.Count; i++)
         {
             var p = humans[i];

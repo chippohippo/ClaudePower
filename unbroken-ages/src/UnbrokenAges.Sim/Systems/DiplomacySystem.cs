@@ -108,7 +108,7 @@ public static class DiplomacySystem
         s.Players[a].LastWarDeclaredTurn = s.Turn;
         AddGrievance(s, b, a, formal ? 15 : 40, formal ? "Declared war on us" : "Surprise war");
         foreach (var w in s.Players)
-            if (w.Id != a && w.Id != b && !w.IsFreeCities && w.IsAlive)
+            if (w.Id != a && w.Id != b && w.IsMajor && w.IsAlive)
                 AddGrievance(s, w.Id, a, formal ? 4 : 10, $"Warmongering against {Name(s, b)}");
         events.Add(new GameEvent(GameEventType.WarDeclared, a, Value: b, Detail: Name(s, b)));
     }
@@ -166,7 +166,7 @@ public static class DiplomacySystem
 
     public static void AddGrievance(GameState s, int holder, int against, Fx amount, string reason)
     {
-        if (holder == against || holder < 0 || against < 0 || s.Players[holder].IsFreeCities) return;
+        if (holder == against || holder < 0 || against < 0 || !s.Players[holder].IsMajor) return;
         s.Grievances.Add(new Grievance { Holder = holder, Against = against, Amount = amount, Turn = s.Turn, Reason = reason });
     }
 
@@ -226,8 +226,8 @@ public static class DiplomacySystem
         var cities = s.CitiesOf(player).ToList();
         return tag switch
         {
-            "HighScience" => p.Techs.Count(x => x) >= s.Players.Where(o => !o.IsFreeCities).Max(o => o.Techs.Count(x => x)) - 1,
-            "Peaceful" => !s.Players.Any(o => o.Id != player && AtWar(s, player, o.Id) && !o.IsFreeCities),
+            "HighScience" => p.Techs.Count(x => x) >= s.Players.Where(o => o.IsMajor).Max(o => o.Techs.Count(x => x)) - 1,
+            "Peaceful" => !s.Players.Any(o => o.Id != player && AtWar(s, player, o.Id) && o.IsMajor),
             "Warmonger" => p.LastWarDeclaredTurn >= 0 && s.Turn - p.LastWarDeclaredTurn <= 50,
             "HighLoyalty" => cities.Count > 0 && cities.Aggregate(Fx.Zero, (sum, c) => sum + c.Loyalty) / cities.Count >= 80,
             "CitiesInRevolt" => cities.Any(c => c.Loyalty < 15),

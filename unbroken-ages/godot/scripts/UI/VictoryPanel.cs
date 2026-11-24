@@ -45,7 +45,7 @@ public partial class VictoryPanel : PanelContainer
         _headline.Text = s.Victory.Decided
             ? (s.Victory.Winner == _root.LocalPlayer || DiplomacySystem.SameTeam(s, s.Victory.Winner, _root.LocalPlayer) ? "VICTORY\n" : "DEFEAT\n") + VictorySystem.Headline(s)
             : "Your civilization has fallen.";
-        var lines = s.Players.Where(p => !p.IsFreeCities).OrderByDescending(p => VictorySystem.Score(s, p.Id)).Select(p =>
+        var lines = s.Players.Where(p => p.IsMajor).OrderByDescending(p => VictorySystem.Score(s, p.Id)).Select(p =>
             $"{p.Name}: {VictorySystem.Score(s, p.Id)}  (" +
             string.Join(", ", VictorySystem.ScoreLines(s, p.Id).Where(l => l.Points != 0).Select(l => $"{l.Label} {l.Points}")) + ")");
         string story = s.Chronicle.LastOrDefault(c => c.Kind == UnbrokenAges.Sim.State.GameEventType.VictoryAchieved)?.Text ?? "";

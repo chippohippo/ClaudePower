@@ -19,7 +19,7 @@ public static class AgeSystem
 
     public static void Award(GameState s, PlayerState p, int points, string reason, List<GameEvent>? events)
     {
-        if (p.IsFreeCities || points <= 0) return;
+        if (!p.IsMajor || points <= 0) return;
         p.EraScore += points;
         events?.Add(new GameEvent(GameEventType.HistoricMoment, p.Id, Value: points, Detail: reason));
     }
@@ -27,7 +27,7 @@ public static class AgeSystem
     /// <summary>Called as a civilization enters a new era: the score of the era just ended sets the new age.</summary>
     public static void OnEraEntered(GameState s, PlayerState p, int eraOrder, List<GameEvent> events)
     {
-        if (p.IsFreeCities || eraOrder <= p.AgeEra) return;
+        if (!p.IsMajor || eraOrder <= p.AgeEra) return;
         int previousEra = Math.Max(0, eraOrder - 1);
         var before = p.Age;
         int cities = s.CitiesOf(p.Id).Count();
@@ -86,7 +86,7 @@ public static class AgeSystem
         if (wonders.Count == 0) return;
         foreach (var p in s.Players)
         {
-            if (p.IsFreeCities || !p.IsAlive || p.Revealed.Length != map.Count) continue;
+            if (!p.IsMajor || !p.IsAlive || p.Revealed.Length != map.Count) continue;
             foreach (int t in wonders)
             {
                 long key = (long)p.Id * 1_000_000 + t;

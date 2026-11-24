@@ -41,6 +41,7 @@ public enum CommandType : byte
     FoundReligion = 93,
     SpreadReligion = 94,
     PromoteUnit = 95,
+    SendEnvoy = 96,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -137,6 +138,7 @@ public abstract class GameCommand
         CommandType.FoundReligion => new FoundReligionCommand(),
         CommandType.SpreadReligion => new SpreadReligionCommand(),
         CommandType.PromoteUnit => new PromoteUnitCommand(),
+        CommandType.SendEnvoy => new SendEnvoyCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

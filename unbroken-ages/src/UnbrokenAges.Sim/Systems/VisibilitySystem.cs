@@ -35,7 +35,7 @@ public static class VisibilitySystem
     public static void Reveal(GameState s, int player)
     {
         var p = s.Players[player];
-        if (p.IsFreeCities || !p.IsAlive) return;
+        if (!p.IsMajor || !p.IsAlive) return;
         if (p.Revealed.Length != s.Map.Count) p.Revealed = new bool[s.Map.Count];
         var now = Visible(s, player);
         for (int t = 0; t < now.Length; t++) if (now[t]) p.Revealed[t] = true;

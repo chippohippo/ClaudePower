@@ -46,7 +46,7 @@ public static class WorldSystem
         foreach (var c in Enum.GetValues<WorldCurrent>())
             world.Set(c, world.Get(c) - world.Get(c) * decay / 100);
 
-        int era = s.Players.Where(p => !p.IsFreeCities && p.IsAlive).Select(s.PlayerEra).DefaultIfEmpty(0).Max();
+        int era = s.Players.Where(p => p.IsMajor && p.IsAlive).Select(s.PlayerEra).DefaultIfEmpty(0).Max();
         if (era <= world.WorldEra) return;
         world.WorldEra = era;
         int age = Forecast(s, era);

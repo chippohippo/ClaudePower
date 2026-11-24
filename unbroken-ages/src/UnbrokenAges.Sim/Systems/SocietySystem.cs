@@ -114,7 +114,7 @@ public static class SocietySystem
     /// <summary>Weariness from fighting: attacks, cities taken, units lost. Defending at home costs nothing.</summary>
     public static void AddWeariness(GameState s, int player, int amount)
     {
-        if (player < 0 || player >= s.Players.Count || s.Players[player].IsFreeCities) return;
+        if (player < 0 || player >= s.Players.Count || !s.Players[player].IsMajor) return;
         s.Players[player].WarWeariness = Math.Min(80, s.Players[player].WarWeariness + amount);
     }
 
@@ -160,6 +160,7 @@ public static class SocietySystem
             foreach (int c in p.Policies) yield return (db.Policies[c].Modifiers, db.Policies[c].Name);
             if (p.Pantheon >= 0) yield return (db.Beliefs[p.Pantheon].Modifiers, db.Beliefs[p.Pantheon].Name);
             foreach (var w in Wonders(s, p.Id)) yield return (w.EmpireModifiers, w.Name);
+            foreach (var cs in CityStateSystem.SuzerainSources(s, p.Id)) yield return cs;
         }
         // Government, cards, pantheon and wonders together add at most +6: they shape an army, they do not replace it.
         int budget = MaxSocietyStrength;
@@ -241,7 +242,7 @@ public static class SocietySystem
     {
         foreach (var p in s.Players)
         {
-            if (p.WarWeariness <= 0 || p.IsFreeCities) continue;
+            if (p.WarWeariness <= 0 || !p.IsMajor) continue;
             bool atWar = s.Players.Any(o => o.Id != p.Id && o.IsAlive && !o.IsFreeCities && DiplomacySystem.AtWar(s, p.Id, o.Id));
             p.WarWeariness = Math.Max(0, p.WarWeariness - (atWar ? 1 : 3));
         }

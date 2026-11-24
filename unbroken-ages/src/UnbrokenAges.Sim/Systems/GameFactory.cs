@@ -72,6 +72,7 @@ public static class GameFactory
             Civics = new bool[db.Civics.Count],
             Stockpile = new int[db.Resources.Count],
         });
+        CityStateSystem.Place(s, generated.StartTiles.Take(setup.Players.Count).ToList(), setup.Seed);
         TurnPhases.Begin(s);
         VisibilitySystem.RevealAll(s);
         return s;

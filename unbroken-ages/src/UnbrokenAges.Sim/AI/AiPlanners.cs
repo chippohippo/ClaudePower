@@ -173,13 +173,13 @@ public static class MilitaryAi
     public static IEnumerable<int> Neighbours(GameState s, int player)
     {
         var mine = s.CitiesOf(player).ToList();
-        return s.Players.Where(o => o.IsAlive && !o.IsFreeCities && o.Id != player &&
+        return s.Players.Where(o => o.IsAlive && o.IsMajor && o.Id != player &&
                                     s.CitiesOf(o.Id).Any(c => mine.Any(m => s.Map.Distance(m.Tile, c.Tile) <= NeighbourRange)))
                         .Select(o => o.Id);
     }
 
     public static List<int> MajorEnemies(GameState s, int player) =>
-        s.Players.Where(o => o.IsAlive && !o.IsFreeCities && o.Id != player && DiplomacySystem.AtWar(s, player, o.Id)).Select(o => o.Id).ToList();
+        s.Players.Where(o => o.IsAlive && o.IsMajor && o.Id != player && DiplomacySystem.AtWar(s, player, o.Id)).Select(o => o.Id).ToList();
 
     /// <summary>One war at a time, from turn 30, on a neighbour our army outweighs 3 : 2 (and with at least three units).</summary>
     /// The leader's "war" personality scales it: a Khan (1.8) attacks from turn 17 at near parity, a scholar-emperor (0.4)

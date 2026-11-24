@@ -53,7 +53,7 @@ public static class GreatPeopleSystem
 
     public static void ProcessTurn(GameState s, List<GameEvent> events)
     {
-        var majors = s.Players.Where(p => p.IsAlive && !p.IsFreeCities).ToList();
+        var majors = s.Players.Where(p => p.IsAlive && p.IsMajor).ToList();
         foreach (var p in majors)
         {
             var add = PointsPerTurn(s, p);

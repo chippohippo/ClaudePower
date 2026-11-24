@@ -149,7 +149,7 @@ public partial class GameRoot : Node3D
         var ai = new UnbrokenAges.Sim.AI.SimpleAi();
         for (int t = 0; t < 40; t++)
         {
-            foreach (var p in world.Players.Where(p => !p.IsFreeCities && p.IsAlive).ToList())
+            foreach (var p in world.Players.Where(p => p.IsMajor && p.IsAlive).ToList())
                 foreach (var cmd in ai.TakeTurn(world, p.Id).ToList()) CommandProcessor.Execute(world, cmd, new());
             CommandProcessor.Execute(world, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = world.Turn }, new());
         }
@@ -244,7 +244,7 @@ public partial class GameRoot : Node3D
         {
             // Single player: the AI moves, then the turn resolves.
             var ai = new UnbrokenAges.Sim.AI.SimpleAi();
-            foreach (var p in _local.Players.Where(p => !p.IsHuman && !p.IsFreeCities && p.IsAlive).ToList())
+            foreach (var p in _local.Players.Where(p => !p.IsHuman && p.IsMajor && p.IsAlive).ToList())
                 foreach (var aiCmd in ai.TakeTurn(_local, p.Id)) CommandProcessor.Execute(_local, aiCmd, events);
             CommandProcessor.Execute(_local, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = _local.Turn }, events);
             SelectNextUnit();

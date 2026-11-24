@@ -78,6 +78,14 @@ public enum GameEventType : byte
     CampCleared,
     /// <summary>Raiders burned an improvement (Player = its owner).</summary>
     TilePillaged,
+    // ----- City-states -----
+    /// <summary>A new envoy to send (Value = envoys in hand).</summary>
+    EnvoyEarned,
+    /// <summary>Value = the city-state's player id.</summary>
+    EnvoySent,
+    CityStateMet,
+    /// <summary>Player = the new suzerain (-1 = none); Value = the city-state's player id.</summary>
+    SuzerainChanged,
 }
 
 /// <summary>

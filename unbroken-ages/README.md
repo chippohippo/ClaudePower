@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 245 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 255 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -86,7 +86,11 @@ Civilization VII's age resets or civ-swapping.
   | | |
   |---|---|
   | ![World wonders around Waset](docs/screenshots/wonders.png) | ![The Society screen](docs/screenshots/society-panel.png) |
-  | ![Pamukkale, a natural wonder](docs/screenshots/natural-wonder.png) | |
+  | ![Pamukkale, a natural wonder](docs/screenshots/natural-wonder.png) | ![City-states in the Diplomacy screen](docs/screenshots/city-states.png) |
+* **City-states** ([05/16](docs/05-key-systems/16-city-states.md)): 18 minor powers of six types, each its own player.
+  * Influence buys envoys. 1, 3 and 6 envoys pay the type's yield in your capital and district cities.
+  * The suzerain (the most envoys, at least 3) gets each city-state's unique bonus.
+  * City-states keep pace with the world, defend themselves and accept peace.
 * **Unit variants**: upgrades offer 2–3 honest trade-offs (Heavy, Fordsmen, Longbow, Ram…), shown in the combat preview
   ([05/09](docs/05-key-systems/09-combat.md#unit-variants-and-upgrades)).
 * **Victory**: Ascension, Hegemony (every original capital, or 60% of the world's people and land) and an itemized Score at the turn limit;
@@ -149,7 +153,7 @@ with `xvfb-run` and a software Vulkan driver).
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 245 tests, ~3 s
+dotnet test                                        # 255 tests, ~3 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

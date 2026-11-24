@@ -1,0 +1,415 @@
+{
+  // City-states: minor powers of one city (docs/05-key-systems/16-city-states.md). Envoys pay the type bonus; the suzerain gets the unique one.
+
+ "$schema": "../../schemas/content.schema.json",
+ "cityStates": [
+  {
+   "id": "CITYSTATE_UGARIT",
+   "name": "Ugarit",
+   "type": "Scientific",
+   "color": "#4ea8de",
+   "description": "A scientific city-state.",
+   "suzerain": {
+    "name": "The First Alphabet",
+    "description": "+15% Science in cities with an Academy.",
+    "modifiers": [
+     {
+      "effect": "CityYieldPercent",
+      "yield": "Science",
+      "amount": 15,
+      "requirements": [
+       {
+        "type": "CityHasDistrict",
+        "id": "DISTRICT_ACADEMY"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_PERGAMON",
+   "name": "Pergamon",
+   "type": "Scientific",
+   "color": "#5fb3f5",
+   "description": "A scientific city-state.",
+   "suzerain": {
+    "name": "The Parchment Library",
+    "description": "+2 Science in every city of 8 or more citizens.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Science",
+      "amount": 2,
+      "requirements": [
+       {
+        "type": "CityMinPopulation",
+        "value": 8
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_NALANDA",
+   "name": "Nalanda",
+   "type": "Scientific",
+   "color": "#3a86ff",
+   "description": "A scientific city-state.",
+   "suzerain": {
+    "name": "Hall of Ten Thousand Monks",
+    "description": "+1 Science and +1 Faith in every city.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Science",
+      "amount": 1
+     },
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Faith",
+      "amount": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_KYRENE",
+   "name": "Kyrene",
+   "type": "Cultural",
+   "color": "#c77dff",
+   "description": "A cultural city-state.",
+   "suzerain": {
+    "name": "Silphium Festivals",
+    "description": "+1 Amenity in every city.",
+    "modifiers": [
+     {
+      "effect": "CityAmenities",
+      "amount": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_MITLA",
+   "name": "Mitla",
+   "type": "Cultural",
+   "color": "#b5179e",
+   "description": "A cultural city-state.",
+   "suzerain": {
+    "name": "Halls of the Dead",
+    "description": "+15% Culture in cities with a Cultural Quarter.",
+    "modifiers": [
+     {
+      "effect": "CityYieldPercent",
+      "yield": "Culture",
+      "amount": 15,
+      "requirements": [
+       {
+        "type": "CityHasDistrict",
+        "id": "DISTRICT_CULTURAL_QUARTER"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_RAGUSA",
+   "name": "Ragusa",
+   "type": "Cultural",
+   "color": "#9d4edd",
+   "description": "A cultural city-state.",
+   "suzerain": {
+    "name": "The Free Republic",
+    "description": "+2 Culture in the capital and +1 Loyalty a turn everywhere.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Culture",
+      "amount": 2,
+      "requirements": [
+       {
+        "type": "CityIsCapital"
+       }
+      ]
+     },
+     {
+      "effect": "CityLoyaltyPerTurn",
+      "amount": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_KILWA",
+   "name": "Kilwa",
+   "type": "Trade",
+   "color": "#f2c14e",
+   "description": "A trade city-state.",
+   "suzerain": {
+    "name": "Coral-Stone Mint",
+    "description": "+3 Gold in coastal cities.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Gold",
+      "amount": 3,
+      "requirements": [
+       {
+        "type": "CityIsCoastal"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_PALMYRA",
+   "name": "Palmyra",
+   "type": "Trade",
+   "color": "#e9c46a",
+   "description": "A trade city-state.",
+   "suzerain": {
+    "name": "Caravan City",
+    "description": "Purchases 15% cheaper.",
+    "modifiers": [
+     {
+      "effect": "CityPurchaseDiscountPercent",
+      "amount": 15
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_MALACCA",
+   "name": "Malacca",
+   "type": "Trade",
+   "color": "#f4a261",
+   "description": "A trade city-state.",
+   "suzerain": {
+    "name": "Straits Tolls",
+    "description": "+10% Gold in every city.",
+    "modifiers": [
+     {
+      "effect": "CityYieldPercent",
+      "yield": "Gold",
+      "amount": 10
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_LHASA",
+   "name": "Lhasa",
+   "type": "Religious",
+   "color": "#f8f9fa",
+   "description": "A religious city-state.",
+   "suzerain": {
+    "name": "Roof of the World",
+    "description": "+2 Faith and +1 Amenity in cities with a Sanctuary.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Faith",
+      "amount": 2,
+      "requirements": [
+       {
+        "type": "CityHasDistrict",
+        "id": "DISTRICT_SANCTUARY"
+       }
+      ]
+     },
+     {
+      "effect": "CityAmenities",
+      "amount": 1,
+      "requirements": [
+       {
+        "type": "CityHasDistrict",
+        "id": "DISTRICT_SANCTUARY"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_CAHOKIA",
+   "name": "Cahokia",
+   "type": "Religious",
+   "color": "#e9d8a6",
+   "description": "A religious city-state.",
+   "suzerain": {
+    "name": "The Great Mound",
+    "description": "+1 Faith and +1 Food in every city.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Faith",
+      "amount": 1
+     },
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Food",
+      "amount": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_BYBLOS",
+   "name": "Byblos",
+   "type": "Religious",
+   "color": "#ffd6a5",
+   "description": "A religious city-state.",
+   "suzerain": {
+    "name": "Temple of the Obelisks",
+    "description": "+3 Faith and +2 Housing in cities on a Great River.",
+    "modifiers": [
+     {
+      "effect": "CityYieldFlat",
+      "yield": "Faith",
+      "amount": 3,
+      "requirements": [
+       {
+        "type": "CityOnGreatRiver"
+       }
+      ]
+     },
+     {
+      "effect": "CityHousing",
+      "amount": 2,
+      "requirements": [
+       {
+        "type": "CityOnGreatRiver"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_HATTUSA",
+   "name": "Hattusa",
+   "type": "Industrial",
+   "color": "#e76f51",
+   "description": "A industrial city-state.",
+   "suzerain": {
+    "name": "Iron of the Hills",
+    "description": "+15% Production in cities with a Foundry.",
+    "modifiers": [
+     {
+      "effect": "CityYieldPercent",
+      "yield": "Production",
+      "amount": 15,
+      "requirements": [
+       {
+        "type": "CityHasDistrict",
+        "id": "DISTRICT_FOUNDRY"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_DILMUN",
+   "name": "Dilmun",
+   "type": "Industrial",
+   "color": "#d62828",
+   "description": "A industrial city-state.",
+   "suzerain": {
+    "name": "Copper Wharves",
+    "description": "+20% Production toward units.",
+    "modifiers": [
+     {
+      "effect": "CityProductionPercent",
+      "category": "Unit",
+      "amount": 20
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_NAN_MADOL",
+   "name": "Nan Madol",
+   "type": "Industrial",
+   "color": "#bc6c25",
+   "description": "A industrial city-state.",
+   "suzerain": {
+    "name": "Basalt Masons",
+    "description": "+15% Production toward districts.",
+    "modifiers": [
+     {
+      "effect": "CityProductionPercent",
+      "category": "District",
+      "amount": 15
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_MONEMVASIA",
+   "name": "Monemvasia",
+   "type": "Militaristic",
+   "color": "#9b2226",
+   "description": "A militaristic city-state.",
+   "suzerain": {
+    "name": "The Rock Fortress",
+    "description": "Every military unit +3 strength.",
+    "modifiers": [
+     {
+      "effect": "UnitStrength",
+      "amount": 3
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_VALLETTA",
+   "name": "Valletta",
+   "type": "Militaristic",
+   "color": "#ae2012",
+   "description": "A militaristic city-state.",
+   "suzerain": {
+    "name": "Knights of the Harbour",
+    "description": "+2 Loyalty a turn in frontier cities.",
+    "modifiers": [
+     {
+      "effect": "CityLoyaltyPerTurn",
+      "amount": 2,
+      "requirements": [
+       {
+        "type": "CityOnFrontier"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "CITYSTATE_NGAZARGAMU",
+   "name": "Ngazargamu",
+   "type": "Militaristic",
+   "color": "#6a040f",
+   "description": "A militaristic city-state.",
+   "suzerain": {
+    "name": "Lances of Bornu",
+    "description": "Light and heavy cavalry +4 strength.",
+    "modifiers": [
+     {
+      "effect": "UnitStrength",
+      "amount": 4,
+      "target": "LightCavalry"
+     },
+     {
+      "effect": "UnitStrength",
+      "amount": 4,
+      "target": "HeavyCavalry"
+     }
+    ]
+   }
+  }
+ ]
+}

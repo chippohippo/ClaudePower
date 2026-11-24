@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 14;
+    public const int Version = 15;
 
     public static byte[] Serialize(GameState s)
     {
@@ -40,7 +40,7 @@ public static class GameStateSerializer
         w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity);
         w.Write(o.ClimateEnabled); w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength);
         w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty);
-        w.Write(o.TurnLimit); w.Write((int)o.Victories);
+        w.Write(o.TurnLimit); w.Write((int)o.Victories); w.Write(o.CityStates);
 
         var m = s.Map;
         w.Write(m.Width); w.Write(m.Height); w.Write(m.WrapX);
@@ -150,6 +150,7 @@ public static class GameStateSerializer
             w.Write(p.Government); WriteList(w, p.Policies); w.Write(p.PolicySwapFree); w.Write(p.Pantheon); w.Write(p.Religion);
             WriteList(w, p.Beliefs); WriteArray<int>(w, p.GreatPersonPoints); WriteArray<int>(w, p.GreatPeopleRecruited);
             w.Write(p.EraScore); w.Write(p.AgeEra); w.Write(p.WarWeariness);
+            w.Write(p.CityStateIndex); w.Write(p.Influence); w.Write(p.EnvoyTokens); w.Write(p.EnvoysEarned); WriteList(w, p.Envoys); w.Write(p.Suzerain);
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
         foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
@@ -198,7 +199,7 @@ public static class GameStateSerializer
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(),
             ClimateEnabled = r.ReadBoolean(), LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(),
             TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(), NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(),
-            TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(),
+            TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(), CityStates = r.ReadInt32(),
         };
 
         int width = r.ReadInt32(), height = r.ReadInt32();
@@ -340,6 +341,7 @@ public static class GameStateSerializer
             p.GreatPersonPoints = new int[7]; ReadArray(r, p.GreatPersonPoints);
             p.GreatPeopleRecruited = new int[7]; ReadArray(r, p.GreatPeopleRecruited);
             p.EraScore = r.ReadInt32(); p.AgeEra = r.ReadInt32(); p.WarWeariness = r.ReadInt32();
+            p.CityStateIndex = r.ReadInt32(); p.Influence = r.ReadInt32(); p.EnvoyTokens = r.ReadInt32(); p.EnvoysEarned = r.ReadInt32(); p.Envoys = ReadList(r); p.Suzerain = r.ReadInt32();
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
         foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }
@@ -412,7 +414,7 @@ public static class GameSetupCodec
             w.Write(m.Players); w.Write(m.Temperature); w.Write(m.Rainfall);
             var o = g.Options;
             w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity); w.Write(o.ClimateEnabled);
-            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty); w.Write(o.TurnLimit); w.Write((int)o.Victories);
+            w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty); w.Write(o.TurnLimit); w.Write((int)o.Victories); w.Write(o.CityStates);
             w.Write(g.Players.Count);
             foreach (var p in g.Players) { w.Write(p.Name); w.Write(p.Leader ?? ""); w.Write(p.IsHuman); w.Write(p.Team); }
         }
@@ -433,7 +435,7 @@ public static class GameSetupCodec
         {
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(), ClimateEnabled = r.ReadBoolean(),
             LoyaltyEnabled = r.ReadBoolean(), MaxQueueLength = r.ReadInt32(), TurnMode = (TurnMode)r.ReadByte(), StartingGovernorTitles = r.ReadInt32(),
-            NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(), TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(),
+            NoSurpriseWars = r.ReadBoolean(), SupplyCombatPenalty = r.ReadBoolean(), TurnLimit = r.ReadInt32(), Victories = (VictoryKind)r.ReadInt32(), CityStates = r.ReadInt32(),
         };
         int n = r.ReadInt32();
         for (int i = 0; i < n; i++)

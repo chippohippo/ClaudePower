@@ -57,6 +57,14 @@ public static class NationColors
         {
             var p = s.Players[i];
             if (p.IsFreeCities) { result[i] = new Scheme(new Color("#b8b2a6"), new Color("#4a463f")); continue; }
+            if (p.IsCityState)
+            {
+                // City-states wear their own colour over white (the classic minor-civ look), shifted if it clashes.
+                var own = new Color(s.Db.CityStates[p.CityStateIndex].Color);
+                if (taken.Any(t => Distance(t, own) < 0.3f)) own = own.Darkened(0.35f);
+                result[i] = new Scheme(own, new Color("#f4f1ea"));
+                continue;
+            }
             if (p.CivIndex < 0) { result[i] = new Scheme(new Color("#cccccc"), new Color("#333333")); continue; }
             var colors = s.Db.Civilizations[p.CivIndex].Colors;
             var primary = new Color(colors.Primary);
