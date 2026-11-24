@@ -256,6 +256,10 @@ public static class CityStateSystem
         for (int i = order.Count - 1; i > 0; i--) { int j = rng.NextInt(i + 1); (order[i], order[j]) = (order[j], order[i]); }
 
         var taken = new List<int>(starts);
+        // On a scripted map, city-states in open regions are placed first and those among many great powers last, so a
+        // crowded corner of the world (the Near East has ten real sites) does not fill up with minor powers.
+        if (sites is { Count: > 0 })
+            order = order.OrderBy(d => sites.TryGetValue(d, out int site) ? starts.Count(st => map.Distance(st, site) <= 12) : 99).ToList();
         int warrior = db.Units.IndexOf("UNIT_WARRIOR");
         var around = new List<int>();
         foreach (int defIndex in order)
@@ -269,7 +273,7 @@ public static class CityStateSystem
                 map.CollectRadius(site, 2, around);
                 int at = around.Where(t => map.IsLand(t) && !map.IsMountain(t) && !map.IsChannel(t) &&
                                            !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].NaturalWonder) &&
-                                           starts.All(o => map.Distance(o, t) >= 4) && taken.Skip(starts.Count).All(o => map.Distance(o, t) >= 3))
+                                           starts.All(o => map.Distance(o, t) >= 5) && taken.Skip(starts.Count).All(o => map.Distance(o, t) >= 4))
                                .OrderBy(t => map.Distance(t, site)).ThenBy(t => t).DefaultIfEmpty(-1).First();
                 if (at < 0) continue;
                 Found(at, defIndex);
