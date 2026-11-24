@@ -236,21 +236,18 @@ public partial class HexMapView : Node3D
     private static float Rand(int t, int salt) => ((uint)(t * 2654435761u ^ (uint)salt * 40503u) % 1000) / 1000f;
 
     /// <summary>Team colour of KayKit buildings, the closest of blue / red / green / yellow to the civilization's colour.</summary>
-    public static string TeamColor(GameState s, int player)
-    {
-        int civ = player >= 0 ? s.Players[player].CivIndex : -1;
-        if (civ < 0) return "blue";
-        var c = new Color(s.Db.Civilizations[civ].Colors.Primary);
-        var options = new (string Name, Color C)[] { ("blue", new(0.2f, 0.4f, 0.85f)), ("red", new(0.75f, 0.15f, 0.2f)), ("green", new(0.2f, 0.6f, 0.35f)), ("yellow", new(0.9f, 0.75f, 0.35f)) };
-        return options.OrderBy(o => (o.C.R - c.R) * (o.C.R - c.R) + (o.C.G - c.G) * (o.C.G - c.G) + (o.C.B - c.B) * (o.C.B - c.B)).First().Name;
-    }
+    /// <summary>
+    /// The building-kit suffix for a player: the kit's blue variant, with its team-blue texels repainted in the nation's own
+    /// primary (ModelLibrary parses "blue#rrggbb"), so every nation's roofs, banners and awnings are its own colour.
+    /// </summary>
+    public static string TeamColor(GameState s, int player) =>
+        player < 0 || player >= s.Players.Count ? "blue" : $"blue#{NationColors.Primary(s, player).ToHtml(false)}";
 
-    public static Color CivColor(GameState s, int player)
-    {
-        int civ = player >= 0 && player < s.Players.Count ? s.Players[player].CivIndex : -1;
-        if (player >= 0 && player < s.Players.Count && s.Players[player].IsFreeCities) return new Color("#b8b2a6");
-        return civ >= 0 ? new Color(s.Db.Civilizations[civ].Colors.Primary) : new Color("#cccccc");
-    }
+    /// <summary>The player's primary colour (resolved so that no two players on the map look alike).</summary>
+    public static Color CivColor(GameState s, int player) => NationColors.Primary(s, player);
+
+    /// <summary>The player's secondary colour (border lines, ring and flag trims).</summary>
+    public static Color CivSecondary(GameState s, int player) => NationColors.Secondary(s, player);
 
     // ----- Render ------------------------------------------------------------------------------------
 
@@ -725,6 +722,7 @@ public partial class HexMapView : Node3D
             int owner = map.OwnerPlayer[t];
             if (owner < 0 || t >= revealed.Length || !revealed[t]) continue;
             var color = CivColor(s, owner);
+            var trim = CivSecondary(s, owner);
             bool enemy = owner != viewer && DiplomacySystem.AtWar(s, viewer, owner) && !s.Players[owner].IsFreeCities;
             if (owner == viewer) color = color.Lightened(0.2f);
             if (enemy) color = war;
@@ -736,10 +734,13 @@ public partial class HexMapView : Node3D
                 if (n >= 0 && map.OwnerPlayer[n] == owner) continue;
                 var (a, b) = HexLayout.Edge(map.CoordOf(t), d, center.Y);
                 var inward = (center - (a + b) / 2).Normalized();
+                // Civ VI style: a thin line in the secondary on the very edge, the primary band inside it, fading inward.
                 var solid = new Color(color, 0.95f);
-                Draped(mesh, a + inward * 0.02f, b + inward * 0.02f, 0.05f, 0f, inward, solid, solid, 0.04f);
-                Draped(mesh, a + inward * 0.07f, b + inward * 0.07f, 0.16f, 0f, inward, new Color(color, 0f), new Color(color, 0.35f), 0.04f);
-                quads += 2;
+                var line = new Color(enemy ? war : trim, 0.95f);
+                Draped(mesh, a + inward * 0.005f, b + inward * 0.005f, 0.025f, 0f, inward, line, line, 0.041f);
+                Draped(mesh, a + inward * 0.03f, b + inward * 0.03f, 0.05f, 0f, inward, solid, solid, 0.04f);
+                Draped(mesh, a + inward * 0.08f, b + inward * 0.08f, 0.16f, 0f, inward, new Color(color, 0f), new Color(color, 0.35f), 0.04f);
+                quads += 3;
                 if (enemy) { Draped(mesh, a + inward * 0.2f, b + inward * 0.2f, 0.035f, 0f, inward, solid, solid, 0.04f); quads++; }
             }
         }

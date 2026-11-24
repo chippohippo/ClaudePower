@@ -271,7 +271,7 @@ public partial class MapOverlay : Control
         bool mine = c.Owner == _root.LocalPlayer;
         var bg = color.Darkened(0.55f);
         bg.A = 0.93f;
-        b.Panel.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, color.Lightened(0.2f), 2, 14, 7));
+        b.Panel.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, HexMapView.CivSecondary(s, c.Owner), 2, 14, 7));
         b.Pop.Text = c.Population.ToString();
         b.Name.Text = (c.IsCapital ? "★ " : "") + c.Name.ToUpperInvariant();
         b.Name.AddThemeColorOverride("font_color", color.Lightened(0.55f));
@@ -332,7 +332,7 @@ public partial class MapOverlay : Control
         var color = HexMapView.CivColor(s, owner);
         var bg = color.Darkened(0.35f);
         bg.A = 0.95f;
-        var box = UiTheme.Box(bg, selected ? UiTheme.GoldBright : color.Lightened(0.35f), selected ? 3 : 2, 8, 4);
+        var box = UiTheme.Box(bg, selected ? UiTheme.GoldBright : HexMapView.CivSecondary(s, owner), selected ? 3 : 2, 8, 4);
         box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 14;   // a shield
         return box;
     }

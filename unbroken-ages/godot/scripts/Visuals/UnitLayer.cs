@@ -28,6 +28,20 @@ public partial class UnitLayer : Node3D
     private readonly Dictionary<int, View> _views = new();
     private readonly Dictionary<int, StandardMaterial3D> _discs = new();
     private static readonly TorusMesh Disc = new() { InnerRadius = 0.44f, OuterRadius = 0.52f, Rings = 32, RingSegments = 6 };
+    private static readonly TorusMesh Trim = new() { InnerRadius = 0.395f, OuterRadius = 0.43f, Rings = 32, RingSegments = 6 };
+    private readonly Dictionary<int, StandardMaterial3D> _trims = new();
+
+    /// <summary>A squad's standard: a pole with a pennant in the nation's primary, edged in its secondary.</summary>
+    private static Node3D Standard(StandardMaterial3D primary, StandardMaterial3D secondary)
+    {
+        var root = new Node3D();
+        var wood = new StandardMaterial3D { AlbedoColor = new Color(0.32f, 0.22f, 0.14f), Roughness = 0.8f };
+        root.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.008f, BottomRadius = 0.01f, Height = 0.62f, RadialSegments = 6 }, MaterialOverride = wood, Position = new Vector3(0, 0.31f, 0) });
+        root.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.2f, 0.13f, 0.008f) }, MaterialOverride = primary, Position = new Vector3(0.1f, 0.53f, 0) });
+        root.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.2f, 0.03f, 0.01f) }, MaterialOverride = secondary, Position = new Vector3(0.1f, 0.47f, 0) });
+        root.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.016f, Height = 0.032f, RadialSegments = 8, Rings = 4 }, MaterialOverride = secondary, Position = new Vector3(0, 0.63f, 0) });
+        return root;
+    }
 
     public UnitLayer(ModelLibrary models) => _models = models;
 
@@ -185,8 +199,22 @@ public partial class UnitLayer : Node3D
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
             _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.4f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.35f };
+        var second = HexMapView.CivSecondary(s, u.Owner);
+        if (!_trims.TryGetValue(u.Owner, out var trim))
+            _trims[u.Owner] = trim = new StandardMaterial3D { AlbedoColor = second, Roughness = 0.4f, EmissionEnabled = true, Emission = second, EmissionEnergyMultiplier = 0.25f };
         if (def.Domain != UnitDomain.Naval)
+        {
+            // A two-tone ring: the nation's primary, with its secondary inside it.
             view.Root.AddChild(new MeshInstance3D { Mesh = Disc, MaterialOverride = mat, Position = new Vector3(0, 0.02f, 0), Scale = new Vector3(1, 0.25f, 1), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            view.Root.AddChild(new MeshInstance3D { Mesh = Trim, MaterialOverride = trim, Position = new Vector3(0, 0.02f, 0), Scale = new Vector3(1, 0.25f, 1), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            // Every land army carries its nation's standard.
+            if (SupplySystem.IsMilitary(s.Db, u) && def.Domain == UnitDomain.Land)
+            {
+                var standard = Standard(mat, trim);
+                standard.Position = new Vector3(0.3f, 0.02f, -0.05f);
+                view.Root.AddChild(standard);
+            }
+        }
 
         var scene = _models.LoadScene(look.Model);
         var bounds = _models.SceneBounds(look.Model);

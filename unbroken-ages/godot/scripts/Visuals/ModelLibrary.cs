@@ -34,12 +34,24 @@ public sealed class ModelLibrary
     /// <summary>Foliage sways in the wind (a vertex shader on its own material copy); buildings stay still.</summary>
     public static bool IsFoliage(string relative) => relative.Contains("tree") || relative.Contains("waterplant") || relative.Contains("grapes");
 
+    /// <summary>
+    /// A prop, optionally repainted for a nation: "buildings/home_A_blue#c8102e" loads the blue kit variant and turns its
+    /// team-blue texels into #c8102e (model_tint.gdshader), so any number of nations each get their own colour.
+    /// </summary>
     public Prop? GetProp(string relative)
     {
         if (_props.TryGetValue(relative, out var cached)) return cached;
         _foliage = IsFoliage(relative);
+        _team = null;
+        string path = relative;
+        int hash = relative.IndexOf('#');
+        if (hash >= 0)
+        {
+            path = relative[..hash];
+            _team = new Color("#" + relative[(hash + 1)..]);
+        }
         Prop? prop = null;
-        var scene = LoadScene(relative);
+        var scene = LoadScene(path);
         if (scene != null)
         {
             var root = scene.Instantiate<Node3D>();
@@ -69,14 +81,17 @@ public sealed class ModelLibrary
         foreach (var child in node.GetChildren()) Collect(child, xf, prop, ref first);
     }
 
-    private readonly Dictionary<(Material, bool), ShaderMaterial> _tinted = new();
+    private readonly Dictionary<(Material, bool, Color?), ShaderMaterial> _tinted = new();
     private bool _foliage;
+    private Color? _team;
 
     private ShaderMaterial Tinted(Material? original)
     {
-        if (original != null && _tinted.TryGetValue((original, _foliage), out var done)) return done;
+        if (original != null && _tinted.TryGetValue((original, _foliage, _team), out var done)) return done;
         var m = new ShaderMaterial { Shader = TintShader };
         m.SetShaderParameter("sway", _foliage ? 1f : 0f);
+        m.SetShaderParameter("team_on", _team.HasValue ? 1f : 0f);
+        if (_team is { } team) m.SetShaderParameter("team_color", team);
         if (original is BaseMaterial3D b)
         {
             m.SetShaderParameter("albedo_tex", b.AlbedoTexture);
@@ -89,7 +104,7 @@ public sealed class ModelLibrary
             else m.SetShaderParameter("palette", b.AlbedoTexture.ResourcePath.Contains("colormap") || b.AlbedoTexture.GetWidth() <= 128 ? 1f : 0f);
         }
         else m.SetShaderParameter("albedo_tex", WhiteTexture);
-        if (original != null) _tinted[(original, _foliage)] = m;
+        if (original != null) _tinted[(original, _foliage, _team)] = m;
         return m;
     }
 

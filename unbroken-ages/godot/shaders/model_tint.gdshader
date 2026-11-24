@@ -11,7 +11,9 @@ uniform vec2 uv_scale = vec2(1.0);
 uniform vec2 uv_offset = vec2(0.0);
 uniform float roughness = 0.85;
 uniform float saturation = 0.82;
-uniform float palette = 0.0;   // palette-textured kits: sample the top mip only
+uniform float palette = 0.0;
+uniform float team_on = 0.0;                                      // repaint the kit's team-blue in this nation's colour
+uniform vec3 team_color : source_color = vec3(0.2, 0.4, 0.85);   // palette-textured kits: sample the top mip only
 uniform float sway = 0.0;   // foliage: tops move in the wind, each tree on its own rhythm
 
 vec3 rgb2hsv(vec3 c) {
@@ -46,7 +48,12 @@ void fragment() {
 	vec3 c = (palette > 0.5 ? textureLod(albedo_tex, UV, 0.0).rgb : texture(albedo_tex, UV).rgb) * albedo_color.rgb;
 	float lum0 = dot(c, vec3(0.3, 0.59, 0.11));
 	vec3 hsv = rgb2hsv(c);
-	if (hsv.x > 0.13 && hsv.x < 0.21 && hsv.y > 0.45) {            // olive / yellow grass → meadow green
+	bool team = team_on > 0.5 && hsv.x > 0.5 && hsv.x < 0.68 && hsv.y > 0.45;
+	if (team) {
+		// the kit's team blue: keep its light and shade, take the nation's hue
+		c = team_color * clamp(hsv.z / 0.88, 0.35, 1.25);
+		hsv = rgb2hsv(c);
+	} else if (hsv.x > 0.13 && hsv.x < 0.21 && hsv.y > 0.45) {            // olive / yellow grass → meadow green
 		hsv.x = 0.25; hsv.y *= 0.75; hsv.z *= 0.72;
 	} else if (hsv.x > 0.36 && hsv.x < 0.5 && hsv.y > 0.5) {         // emerald foliage → deeper forest green
 		hsv.x = 0.33; hsv.y *= 0.8; hsv.z *= 0.7;
