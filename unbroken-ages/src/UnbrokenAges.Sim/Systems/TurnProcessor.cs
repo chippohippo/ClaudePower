@@ -45,6 +45,7 @@ public static class TurnProcessor
                 maintenance += city.AllBuildings().Sum(b => db.Buildings[b].Maintenance);
             }
             maintenance += s.Units.Where(u => u.Owner == player.Id).Sum(u => db.Units[u.DefIndex].Maintenance);
+            NationSystem.AdjustEmpireYields(s, player, ref science, ref culture, ref gold, ref faith);
             player.Gold += gold - maintenance;
             player.Faith += faith;
             if (player.Gold < Fx.Zero) Bankrupt(s, player, events);
@@ -95,7 +96,7 @@ public static class TurnProcessor
             }
             return;
         }
-        Fx threshold = CityYields.GrowthThreshold(city.Population);
+        Fx threshold = CityYields.GrowthThreshold(city.Population) * (100 + NationSystem.GrowthThresholdPercent(s, city)) / 100;
         if (city.FoodStored >= threshold)
         {
             city.FoodStored -= threshold;
@@ -129,7 +130,7 @@ public static class TurnProcessor
             var res = db.Resources[map.Resource[t]];
             if (res.Class != ResourceClass.Strategic || !player.HasTech(res.RevealTechIndex)) continue;
             int cap = res.StockpileCap > 0 ? res.StockpileCap : 50;
-            player.Stockpile[res.Index] = Math.Min(cap, player.Stockpile[res.Index] + 2);
+            player.Stockpile[res.Index] = Math.Min(cap, player.Stockpile[res.Index] + 2 + NationSystem.StrategicBonus(s, player));
         }
     }
 }

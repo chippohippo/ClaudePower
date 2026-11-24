@@ -749,6 +749,66 @@ public enum SignatureKind
     SkyRoads,
     /// <summary>Mali: slow production, rich land and cheap purchases; gold earns interest.</summary>
     GoldenRoad,
+    /// <summary>Rome: a dense, connected empire (production from neighbouring Roman cities, swift legions at home).</summary>
+    Imperium,
+    /// <summary>Greece: every peace treaty feeds science and culture; phalanxes fight harder at war.</summary>
+    Polis,
+    /// <summary>Zulu: melee units grow stronger for every comrade beside the foe; a war economy.</summary>
+    Impi,
+    /// <summary>Norway: sea raiders; kills pay gold, longships range far.</summary>
+    Raiders,
+    /// <summary>Japan: units fight at full strength however wounded.</summary>
+    Bushido,
+    /// <summary>England: coal and steam; powered cities out-produce the world.</summary>
+    Workshop,
+    /// <summary>France: borders spread at twice the pace; culture is power.</summary>
+    Grandeur,
+    /// <summary>Russia: vast claims at every founding; tundra prospers; winter kills invaders.</summary>
+    Winter,
+    /// <summary>Persia: governed cities are loyal and rich.</summary>
+    Satrapy,
+    /// <summary>Aztec: every captive feeds the nearest city's works; luxuries delight.</summary>
+    FlowerWar,
+    /// <summary>Maya: everything within six tiles of the capital thrives; the far provinces do not.</summary>
+    LongCount,
+    /// <summary>Ethiopia: faith from the highlands becomes science and culture.</summary>
+    Highland,
+    /// <summary>Ottomans: masters of the siege; captured cities stay whole and loyal.</summary>
+    Siege,
+    /// <summary>Arabia: a quarter of the treasury's income becomes science.</summary>
+    Wisdom,
+    /// <summary>Korea: academies and mines feed science.</summary>
+    Seowon,
+    /// <summary>India: stepwells and great cities; large cities give faith.</summary>
+    Stepwell,
+    /// <summary>Khmer: farms fed by reservoirs grow food and faith.</summary>
+    Baray,
+    /// <summary>Netherlands: the sea is farmland; floods and storms spare the Dutch.</summary>
+    Polder,
+    /// <summary>Portugal: cities only on the coast; ships range far; trade pays.</summary>
+    Navigators,
+    /// <summary>Spain: conquered cities pay treasure.</summary>
+    Treasure,
+    /// <summary>Byzantium: every city strengthens the army; the walls are the strongest in the world.</summary>
+    Themes,
+    /// <summary>Carthage: armies are hired, not raised.</summary>
+    Mercenaries,
+    /// <summary>Babylon: little science from scholars; every building and district completed is a discovery.</summary>
+    Eureka,
+    /// <summary>Kongo: the forest is home: forest and rainforest tiles are rich.</summary>
+    Forest,
+    /// <summary>Poland: every victory pushes the border out.</summary>
+    Commonwealth,
+    /// <summary>Scotland: luxuries make the people inventive and industrious.</summary>
+    Enlightenment,
+    /// <summary>Brazil: a great carnival every few turns.</summary>
+    Carnival,
+    /// <summary>America: cities grow fast and house many.</summary>
+    Frontier,
+    /// <summary>Vietnam: the land fights for its people: units in forest, marsh and hills are stronger and swifter.</summary>
+    Guerrilla,
+    /// <summary>Haudenosaunee: may never declare war; peace with everyone makes every city thrive.</summary>
+    GreatLaw,
 }
 
 public sealed class SignatureDef

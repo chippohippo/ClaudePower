@@ -86,6 +86,7 @@ public static class DiplomacySystem
     {
         if (!Valid(s, a, b)) return "Invalid target.";
         if (SameTeam(s, a, b)) return "Cannot declare war on a teammate.";
+        if (NationSystem.ForbidWar(s, a) is { } forbidden) return forbidden;
         var r = Find(s, a, b);
         if (r?.Status == DiploStatus.War) return "Already at war.";
         if (r?.Status == DiploStatus.Alliance) return "Dissolve the alliance first.";

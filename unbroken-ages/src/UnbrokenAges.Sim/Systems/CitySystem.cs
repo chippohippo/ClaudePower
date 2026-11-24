@@ -38,6 +38,7 @@ public static class CitySystem
             int n = map.Neighbor(tile, d);
             if (n >= 0 && map.OwnerPlayer[n] < 0) ClaimTile(s, city, n);
         }
+        NationSystem.OnCityFounded(s, city);
         return city;
     }
 

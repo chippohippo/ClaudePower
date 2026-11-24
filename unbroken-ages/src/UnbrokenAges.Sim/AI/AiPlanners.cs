@@ -39,6 +39,7 @@ public static class ExpansionAi
         var map = s.Map;
         if (!map.IsLand(tile) || map.IsMountain(tile)) return false;
         if (map.OwnerPlayer[tile] >= 0 && map.OwnerPlayer[tile] != player) return false;
+        if (NationSystem.ForbidFound(s, player, tile) != null) return false;
         // Venice's Waymakers plant trading outposts, which need unclaimed land away from other outposts.
         if (NationSystem.Is(s, player, SignatureKind.Ledger) && s.Cities.Any(c => c.Owner == player)
             && (map.OwnerPlayer[tile] >= 0 || s.Outposts.Any(o => map.Distance(o.Tile, tile) < s.Db.Rules.Outposts.MinDistance)))
@@ -337,12 +338,15 @@ public static class NationAi
                 break;
             }
             case SignatureKind.GoldenRoad:
+            case SignatureKind.Mercenaries:
             {
+                bool unitsOnly = NationSystem.Kind(s, p) == SignatureKind.Mercenaries;   // Carthage hires its armies
                 // Buy one city's current unit or building outright each turn while the treasury stays healthy.
                 foreach (var city in s.CitiesOf(p.Id).OrderBy(c => c.Id))
                 {
                     var item = city.Queue.Items.FirstOrDefault();
                     if (item == null || item.Kind is not (ProductionKind.Unit or ProductionKind.Building)) continue;
+                    if (unitsOnly && item.Kind != ProductionKind.Unit) continue;
                     var cmd = new PurchaseCommand { Player = p.Id, CityId = city.Id, Kind = item.Kind, DefIndex = item.DefIndex };
                     if (cmd.Validate(s) == null && p.Gold >= ProductionSystem.PurchaseCost(s, city, item.Kind, item.DefIndex) + 80)
                     {

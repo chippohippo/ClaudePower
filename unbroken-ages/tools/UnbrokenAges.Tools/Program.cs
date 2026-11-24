@@ -93,12 +93,13 @@ void Simulate()
     int offset = int.Parse(Opt("--leader-offset", "0"));
     // One leader per nation in turn (offset 1 picks each nation's second leader), so a 6-player game seats every nation.
     var byNation = db.Civilizations.Select(c => db.Leaders.Where(l => l.CivilizationIndex == c.Index).Select(l => l.Id).ToList()).ToList();
-    string LeaderFor(int i) { var ls = byNation[i % byNation.Count]; return ls[(offset + i / byNation.Count) % ls.Count]; }
-    bool big = players > 4;
+    int nationOffset = int.Parse(Opt("--nation-offset", "0"));
+    string LeaderFor(int i) { var ls = byNation[(i + nationOffset) % byNation.Count]; return ls[(offset + i / byNation.Count) % ls.Count]; }
+    bool big = players > 4, huge = players > 8;
     var setup = new GameSetup
     {
         Seed = seed,
-        Map = new MapGenSettings { Width = big ? 84 : 64, Height = big ? 54 : 40, Seed = seed },
+        Map = new MapGenSettings { Width = huge ? 128 : big ? 84 : 64, Height = huge ? 80 : big ? 54 : 40, Seed = seed },
         Players = Enumerable.Range(0, players).Select(i => new PlayerSetup { Name = $"AI {i}", Leader = LeaderFor(i) }).ToList(),
     };
     var s = GameFactory.Create(db, setup);

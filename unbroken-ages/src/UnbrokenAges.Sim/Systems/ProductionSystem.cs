@@ -245,6 +245,7 @@ public static class ProductionSystem
                 break;
         }
         events.Add(new GameEvent(GameEventType.ProductionCompleted, city.Owner, city.Id, item.Tile, item.DefIndex, (int)item.Kind, ItemName(db, item)));
+        NationSystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
     }
 
     private static int? FindNavalSpawn(GameState s, CityState city)

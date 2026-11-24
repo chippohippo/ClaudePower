@@ -22,7 +22,7 @@ public static class BorderSystem
 
     public static void Grow(GameState s, CityState city, Fx culture, List<GameEvent> events)
     {
-        city.BorderProgress += culture;
+        city.BorderProgress += culture * (100 + NationSystem.BorderCulturePercent(s, city.Owner)) / 100;
         if (city.BorderProgress < Threshold(city)) return;
         int best = BestCandidate(s, city, MaxGrowthRadius);
         if (best < 0) return; // nothing left to claim: keep banking

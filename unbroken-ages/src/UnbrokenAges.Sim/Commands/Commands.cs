@@ -60,6 +60,7 @@ public sealed class FoundCityCommand : GameCommand
         var map = s.Map;
         if (!map.IsLand(u.Tile) || map.IsMountain(u.Tile)) return "Cities must be founded on land.";
         if (map.OwnerPlayer[u.Tile] >= 0 && map.OwnerPlayer[u.Tile] != Player) return "Tile belongs to another civilization.";
+        if (NationSystem.ForbidFound(s, Player, u.Tile) is { } forbidden) return forbidden;
         if (s.Cities.Any(c => map.Distance(c.Tile, u.Tile) < MinCityDistance)) return "Too close to another city.";
         return null;
     }

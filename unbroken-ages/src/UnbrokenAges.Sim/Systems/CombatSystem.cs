@@ -58,6 +58,7 @@ public static class CombatSystem
             .Select(u => UnitStats.Strength(s, u)).DefaultIfEmpty(0).Max();
         b.Add("Garrison", garrison / 5);
         b.Add("Damaged", -(CityMaxHp(s, city) - city.Hp) / 20);
+        foreach (var (label, value) in NationSystem.CityDefenseLines(s, city)) b.Add(label, value);
         return b;
     }
 
@@ -117,6 +118,8 @@ public static class CombatSystem
         }
 
         if (s.Options.SupplyCombatPenalty && SupplySystem.Compute(s, unit.Owner)[unit.Tile] < 0) b.Add("Out of supply", -rules.OutOfSupplyPenalty);
+        bool vsCity = s.Cities.Any(c => c.Tile == targetTile && c.Owner != unit.Owner);
+        foreach (var (label, value) in NationSystem.CombatLines(s, unit, opponent, attacking, ranged, vsCity, targetTile)) b.Add(label, value);
         return b;
     }
 

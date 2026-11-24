@@ -265,4 +265,128 @@ public class NationTests
         var copy = GameStateSerializer.Deserialize(GameStateSerializer.Serialize(s), TestWorld.Db);
         Assert.Equal((42, 3, 7), (copy.Players[0].SignatureMeter.FloorToInt(), copy.Players[0].SignatureTimer, copy.Players[0].SignatureTally));
     }
+
+    // ----- The thirty further nations: one test per engine hook ------------------------------------
+
+    [Fact]
+    public void Zulu_HornsStrengthenTheAttack_Japan_IgnoresWounds()
+    {
+        var s = World("LEADER_SHAKA", "LEADER_TOKUGAWA");
+        CommandProcessor.Execute(s, new DeclareWarCommand { Player = 0, Target = 1 }, new());
+        var impi = TestWorld.Unit(s, 0, "UNIT_WARRIOR", 10, 10);
+        TestWorld.Unit(s, 0, "UNIT_WARRIOR", 11, 9);
+        var samurai = TestWorld.Unit(s, 1, "UNIT_WARRIOR", 11, 10);
+        samurai.Hp = 40;
+        var p = CombatSystem.Preview(s, impi, samurai.Tile);
+        Assert.Contains(p.Attacker.Lines, l => l.Label.Contains("horns") && l.Value == 6);
+        Assert.Contains(p.Defender.Lines, l => l.Label.Contains("wounds ignored"));
+        Assert.Equal(0, p.Defender.Lines.Where(l => l.Label is "Wounds" || l.Label.Contains("wounds ignored")).Sum(l => l.Value));
+    }
+
+    [Fact]
+    public void Russia_ClaimsTheSecondRing_Portugal_FoundsOnlyOnTheCoast_Haudenosaunee_NeverDeclareWar()
+    {
+        var s = World("LEADER_PETER", "LEADER_HIAWATHA");
+        var moskva = TestWorld.City(s, 0, 8, 8);
+        Assert.Equal(19, Enumerable.Range(0, s.Map.Count).Count(t => s.Map.OwnerCity[t] == moskva.Id));
+        Assert.NotNull(DiplomacySystem.ValidateDeclareWar(s, 1, 0));
+        Assert.Null(DiplomacySystem.ValidateDeclareWar(s, 0, 1));
+
+        var pt = World("LEADER_HENRY");
+        Assert.NotNull(NationSystem.ForbidFound(pt, 0, TestWorld.Tile(pt, 10, 10)));
+        pt.Map.Terrain[TestWorld.Tile(pt, 11, 10)] = (byte)pt.Db.Terrains.IndexOf("TERRAIN_COAST");
+        Assert.Null(NationSystem.ForbidFound(pt, 0, TestWorld.Tile(pt, 10, 10)));
+    }
+
+    [Fact]
+    public void Babylon_LearnsFromEveryBuilding_Arabia_TurnsGoldIntoScience()
+    {
+        var s = World("LEADER_HAMMURABI");
+        var city = TestWorld.City(s, 0, 8, 8, population: 4);
+        Fx science = s.Players[0].TechProgress;
+        int district = s.Db.Districts.First(d => d.Category == DistrictCategory.Specialty).Index;
+        NationSystem.OnCompleted(s, city, ProductionKind.District, district, new());
+        Assert.True(s.Players[0].TechProgress > science);
+        Assert.True(s.Players[0].CivicProgress > Fx.Zero);   // Hammurabi: culture too
+
+        var a = World("LEADER_HARUN");
+        Fx sci = 10, cul = 0, gold = 40, faith = 0;
+        NationSystem.AdjustEmpireYields(a, a.Players[0], ref sci, ref cul, ref gold, ref faith);
+        Assert.Equal(30, gold.FloorToInt());     // a quarter of 40 went to the scholars
+        Assert.Equal(25, sci.FloorToInt());      // 10 + 10 × 150%
+    }
+
+    [Fact]
+    public void France_BordersGrowTwiceAsFast_America_GrowsFaster()
+    {
+        Assert.Equal(100, NationSystem.BorderCulturePercent(World("LEADER_LOUIS_XIV"), 0));
+        var s = World("LEADER_TEDDY");
+        var c = TestWorld.City(s, 0, 8, 8);
+        Assert.Equal(-35, NationSystem.GrowthThresholdPercent(s, c));
+    }
+
+    [Fact]
+    public void Poland_VictoriesPushTheBorder_Spain_TakesTreasure()
+    {
+        var s = World("LEADER_JADWIGA", "LEADER_TOKUGAWA");
+        var krakow = TestWorld.City(s, 0, 8, 8);
+        CommandProcessor.Execute(s, new DeclareWarCommand { Player = 0, Target = 1 }, new());
+        var lancer = TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 8);
+        var foe = TestWorld.Unit(s, 1, "UNIT_WARRIOR", 13, 8);
+        foe.Hp = 1;
+        Assert.True(CommandProcessor.Execute(s, new AttackCommand { Player = 0, UnitId = lancer.Id, TargetTile = foe.Tile }, new()).Ok);
+        Assert.Equal(krakow.Id, s.Map.OwnerCity[TestWorld.Tile(s, 13, 8)]);
+
+        var sp = World("LEADER_PHILIP", "LEADER_TOKUGAWA");
+        TestWorld.City(sp, 0, 4, 4);
+        TestWorld.City(sp, 1, 20, 4);
+        var target = TestWorld.City(sp, 1, 11, 10, population: 3);
+        CommandProcessor.Execute(sp, new DeclareWarCommand { Player = 0, Target = 1 }, new());
+        target.Hp = 0;
+        var tercio = TestWorld.Unit(sp, 0, "UNIT_SWORDSMAN", 10, 10);
+        Fx gold = sp.Players[0].Gold;
+        Assert.True(CommandProcessor.Execute(sp, new AttackCommand { Player = 0, UnitId = tercio.Id, TargetTile = target.Tile }, new()).Ok);
+        Assert.Equal(360, (sp.Players[0].Gold - gold).FloorToInt());   // Philip: 120 per citizen
+    }
+
+    [Fact]
+    public void Byzantium_EveryCityStrengthensTheArmy_AndTheWalls()
+    {
+        var s = World("LEADER_BASIL", "LEADER_TOKUGAWA");
+        for (int i = 0; i < 4; i++) TestWorld.City(s, 0, 3 + 5 * i, 3);
+        var city = s.CitiesOf(0).First();
+        Assert.Contains(CombatSystem.CityStrength(s, city).Lines, l => l.Label.Contains("great walls") && l.Value == 10);
+        CommandProcessor.Execute(s, new DeclareWarCommand { Player = 0, Target = 1 }, new());
+        var cat = TestWorld.Unit(s, 0, "UNIT_HORSEMAN", 10, 10);
+        var foe = TestWorld.Unit(s, 1, "UNIT_WARRIOR", 11, 10);
+        var p = CombatSystem.Preview(s, cat, foe.Tile);
+        Assert.Contains(p.Attacker.Lines, l => l.Label.Contains("themes") && l.Value == 4);
+        Assert.Contains(p.Attacker.Lines, l => l.Value == 6 && l.Label.Contains("Cataphracts"));
+    }
+
+    [Fact]
+    public void Tiles_Kongo_Forests_Netherlands_Sea_Korea_Mines()
+    {
+        var k = World("LEADER_MVEMBA");
+        int wood = TestWorld.Tile(k, 5, 5);
+        k.Map.Feature[wood] = (short)k.Db.Ids.Forest;
+        Assert.Equal((1, 1, 2), (NationSystem.TileBonus(k, 0, wood).Food.FloorToInt(), NationSystem.TileBonus(k, 0, wood).Production.FloorToInt(), NationSystem.TileBonus(k, 0, wood).Culture.FloorToInt()));
+
+        var n = World("LEADER_WILHELMINA");
+        int sea = TestWorld.Tile(n, 5, 5);
+        n.Map.Terrain[sea] = (byte)n.Db.Terrains.IndexOf("TERRAIN_COAST");
+        Assert.Equal(2, NationSystem.TileBonus(n, 0, sea).Production.FloorToInt());
+    }
+
+    [Fact]
+    public void Carthage_HiresItsArmies_AtHalfPrice()
+    {
+        var s = World("LEADER_DIDO", "LEADER_TOKUGAWA");
+        var qart = TestWorld.City(s, 0, 6, 6, population: 3);
+        var edo = TestWorld.City(s, 1, 20, 6, population: 3);
+        int warrior = s.Db.Units.IndexOf("UNIT_WARRIOR");
+        var mine = ProductionSystem.PurchaseCost(s, qart, ProductionKind.Unit, warrior);
+        var theirs = ProductionSystem.PurchaseCost(s, edo, ProductionKind.Unit, warrior);
+        Assert.Equal(theirs.FloorToInt() / 2, mine.FloorToInt(), 1.0);
+    }
 }

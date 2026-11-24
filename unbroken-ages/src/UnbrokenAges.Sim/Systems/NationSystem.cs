@@ -20,7 +20,7 @@ namespace UnbrokenAges.Sim.Systems;
 /// </list>
 /// Everything here is deterministic and reads only the game state, so every peer reaches the same result.
 /// </summary>
-public static class NationSystem
+public static partial class NationSystem
 {
     // ----- Signature and parameters ------------------------------------------------------------------
 
@@ -98,6 +98,7 @@ public static class NationSystem
                 break;
             }
         }
+        foreach (var more in PeoplesCityModifiers(s, city, p, sig)) yield return more;
     }
 
     // ----- Tiles (CityYields) --------------------------------------------------------------------------
@@ -128,6 +129,9 @@ public static class NationSystem
                 if (map.Improvement[tile] >= 0 && s.Db.Improvements[map.Improvement[tile]].Id == "IMPROVEMENT_MINE" && !map.HasFlag(tile, TileFlags.Pillaged))
                     y.Gold += Param(s, p, "mineGold", 2);
                 break;
+            default:
+                y += PeoplesTileBonus(s, p, tile);
+                break;
         }
         return y;
     }
@@ -142,7 +146,8 @@ public static class NationSystem
 
     /// <summary>Extra movement: Mongol riders.</summary>
     public static int MovesBonus(GameState s, UnitState u) =>
-        Is(s, u.Owner, SignatureKind.Horde) && IsMounted(s.Db.Units[u.DefIndex]) ? Param(s, s.Players[u.Owner], "mountedMoves", 1) : 0;
+        (Is(s, u.Owner, SignatureKind.Horde) && IsMounted(s.Db.Units[u.DefIndex]) ? Param(s, s.Players[u.Owner], "mountedMoves", 1) : 0)
+        + PeoplesMovesBonus(s, u);
 
     /// <summary>Why a nation may not train a unit at all (Venice founds no colonies), or null.</summary>
     public static string? ForbidUnit(GameState s, PlayerState p, UnitDef u) =>
@@ -159,7 +164,7 @@ public static class NationSystem
 
     /// <summary>Extra purchase discount for a category (Sundiata's units).</summary>
     public static int PurchaseDiscount(GameState s, PlayerState p, ProductionKind kind) =>
-        Kind(s, p) == SignatureKind.GoldenRoad && kind == ProductionKind.Unit ? Param(s, p, "unitDiscount", 0) : 0;
+        Kind(s, p) is SignatureKind.GoldenRoad or SignatureKind.Mercenaries && kind == ProductionKind.Unit ? Param(s, p, "unitDiscount", 0) : 0;
 
     /// <summary>After a purchase: Mansa Musa's pilgrimage turns spending into science and faith.</summary>
     public static void OnPurchase(GameState s, PlayerState p, Fx price)
@@ -192,6 +197,7 @@ public static class NationSystem
     /// <summary>A unit was destroyed in battle by <paramref name="killerOwner"/>'s <paramref name="killer"/> (null: a city's guns).</summary>
     public static void OnUnitDestroyed(GameState s, int killerOwner, UnitState? killer, UnitState victim, List<GameEvent> events)
     {
+        PeoplesOnUnitDestroyed(s, killerOwner, killer, victim, events);
         if (!Is(s, killerOwner, SignatureKind.Horde)) return;
         var p = s.Players[killerOwner];
         int strength = Math.Max(UnitStats.Strength(s, victim), UnitStats.RangedStrength(s, victim));
@@ -212,6 +218,7 @@ public static class NationSystem
     /// <summary>A city was taken by force (after the default capture rules ran).</summary>
     public static void OnCityCaptured(GameState s, int captor, CityState city, int victim, int populationBefore, List<GameEvent> events)
     {
+        PeoplesOnCityCaptured(s, captor, city, victim, populationBefore, events);
         if (!Is(s, captor, SignatureKind.Horde)) return;
         var p = s.Players[captor];
         var db = s.Db;
@@ -315,6 +322,7 @@ public static class NationSystem
                     break;
                 }
                 case SignatureKind.Horde: Terror(s, p); break;
+                default: PeoplesTurn(s, p, events); break;
             }
         }
     }
@@ -423,6 +431,7 @@ public static class NationSystem
             SignatureKind.Ledger => BuyableCount(s, p) is var n and > 0 ? $"{n} cities for sale · {p.SignatureTally} bought" : $"{p.SignatureTally} cities bought",
             SignatureKind.Horde => $"{p.SignatureTally} victories plundered",
             SignatureKind.SkyRoads => "Mountains are roads and farmland",
+            _ when PeoplesStatus(s, p) is { } other => other,
             SignatureKind.GoldenRoad => $"Interest {Fx.Min(Fx.Max(Fx.Zero, p.Gold) * Param(s, p, "interestPercent", 2) / 100, Fx.FromInt(Param(s, p, "interestCap", 25))).FloorToInt()} gold/turn",
             _ => null,
         };
