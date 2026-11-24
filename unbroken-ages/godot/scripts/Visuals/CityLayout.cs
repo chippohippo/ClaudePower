@@ -271,6 +271,13 @@ public static class CityLayout
     /// <summary>A district's buildings, by what it is and how far its owner has come.</summary>
     public static IEnumerable<Piece> District(TechLook look, DistrictDef def)
     {
+        // World wonders keep their own form in every age.
+        if (def.Model is { } model)
+        {
+            bool tall = model is "wonders/eiffel" or "wonders/big_ben" or "wonders/colossus" or "wonders/launch_complex";
+            yield return tall ? new Piece(model, Vector3.Zero, 1.35f, Fit.Height) : new Piece(model, Vector3.Zero, 1.3f, Fit.Width);
+            yield break;
+        }
         var side = new Vector3(0.42f, 0, 0.25f);
         var steel = TechLook.PathTint(look.Path);
         switch (look.Architecture)

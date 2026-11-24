@@ -120,6 +120,7 @@ public static class CombatSystem
         if (s.Options.SupplyCombatPenalty && SupplySystem.Compute(s, unit.Owner)[unit.Tile] < 0) b.Add("Out of supply", -rules.OutOfSupplyPenalty);
         bool vsCity = s.Cities.Any(c => c.Tile == targetTile && c.Owner != unit.Owner);
         foreach (var (label, value) in NationSystem.CombatLines(s, unit, opponent, attacking, ranged, vsCity, targetTile)) b.Add(label, value);
+        foreach (var (label, value) in SocietySystem.CombatLines(s, unit, attacking, vsCity, targetTile)) b.Add(label, value);
         return b;
     }
 
@@ -226,6 +227,9 @@ public static class CombatSystem
         if (!preview.Legal) return;
         attacker.AttackedThisTurn = true;
         attacker.Fortified = false;
+        if (s.Map.OwnerPlayer[targetTile] != attacker.Owner && !s.Players[attacker.Owner].IsFreeCities &&
+            !(IsCity(s, targetTile, out var targetCity) ? s.Players[targetCity!.Owner].IsFreeCities : s.Units.Any(u => u.Tile == targetTile && s.Players[u.Owner].IsFreeCities)))
+            SocietySystem.AddWeariness(s, attacker.Owner, 1);
         attacker.MovesLeft = Fx.Zero;
         var atkDef = db.Units[attacker.DefIndex];
 
@@ -254,6 +258,7 @@ public static class CombatSystem
             events.Add(new GameEvent(GameEventType.BattleFought, attacker.Owner, city.Id, targetTile, attacker.DefIndex, toDefender,
                 $"{atkDef.Name} ({preview.Attacker.Total}) vs {city.Name} ({preview.Defender.Total}): {toDefender} damage dealt, {toAttacker} taken"));
             if (attacker.Hp <= 0) { Destroy(s, attacker, events, city.Owner, null); return; }
+            SocietySystem.GainExperience(s, attacker, attacking: true, vsCity: true, killed: city.Hp == 0 && !preview.Ranged);
             if (city.Hp == 0 && !preview.Ranged) Capture(s, attacker, city, victim, events);
             return;
         }
@@ -264,6 +269,8 @@ public static class CombatSystem
         events.Add(new GameEvent(GameEventType.BattleFought, attacker.Owner, Tile: targetTile, Def: attacker.DefIndex, Value: toDefender,
             Detail: $"{atkDef.Name} ({preview.Attacker.Total}) vs {db.Units[defender.DefIndex].Name} ({preview.Defender.Total}): {toDefender} damage dealt, {toAttacker} taken"));
         bool defenderDied = defender.Hp <= 0;
+        SocietySystem.GainExperience(s, attacker, attacking: true, vsCity: false, killed: defenderDied);
+        SocietySystem.GainExperience(s, defender, attacking: false, vsCity: false, killed: attacker.Hp <= 0);
         if (defenderDied) Destroy(s, defender, events, attacker.Owner, attacker);
         if (attacker.Hp <= 0) { Destroy(s, attacker, events, defender.Owner, defenderDied ? null : defender); return; }
         if (defenderDied && !preview.Ranged && !s.Units.Any(u => u.Tile == targetTile && u.Owner != attacker.Owner))
@@ -300,6 +307,7 @@ public static class CombatSystem
     private static void Destroy(GameState s, UnitState unit, List<GameEvent> events, int killerOwner = -1, UnitState? killer = null)
     {
         s.RemoveUnit(unit);
+        if (killerOwner >= 0 && !s.Players[killerOwner].IsFreeCities) SocietySystem.AddWeariness(s, unit.Owner, 1);
         events.Add(new GameEvent(GameEventType.UnitDestroyed, unit.Owner, Tile: unit.Tile, Def: unit.DefIndex, Detail: s.Db.Units[unit.DefIndex].Name));
         if (killerOwner >= 0) NationSystem.OnUnitDestroyed(s, killerOwner, killer, unit, events);
     }
@@ -313,6 +321,8 @@ public static class CombatSystem
         city.Loyalty = 50;
         if (city.Population > 1) city.Population--;
         NationSystem.OnCityCaptured(s, attacker.Owner, city, victim, populationBefore, events);
+        AgeSystem.Award(s, s.Players[attacker.Owner], 2, $"Took {city.Name}", events);
+        if (!s.Players[victim].IsFreeCities) SocietySystem.AddWeariness(s, attacker.Owner, 6);
         attacker.Tile = city.Tile;
         DiplomacySystem.AddGrievance(s, victim, attacker.Owner, 20, $"Captured {city.Name}");
     }

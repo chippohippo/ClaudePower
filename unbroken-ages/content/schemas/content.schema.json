@@ -145,6 +145,42 @@
       "items": {
         "$ref": "#/$defs/governorTrait"
       }
+    },
+    "governments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/government"
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/policy"
+      }
+    },
+    "beliefs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/belief"
+      }
+    },
+    "religions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/religion"
+      }
+    },
+    "greatPeople": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/greatPerson"
+      }
+    },
+    "promotions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/promotion"
+      }
     }
   },
   "additionalProperties": false,
@@ -326,7 +362,8 @@
             "CityFabricationPercent",
             "CitizenPowerDemandTenths",
             "ClimateCooling",
-            "CompleteAscension"
+            "CompleteAscension",
+            "UnitStrength"
           ]
         },
         "yield": {
@@ -376,6 +413,10 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "target": {
+          "type": "string",
+          "description": "UnitStrength: the unit class or tag it applies to (empty = every military unit)."
         }
       }
     },
@@ -734,6 +775,14 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "naturalWonder": {
+          "type": "boolean",
+          "description": "Placed once per map by the generator; never removed."
+        },
+        "model": {
+          "type": "string",
+          "description": "Client model under assets/models (natural wonders)."
         }
       },
       "required": [
@@ -1240,6 +1289,21 @@
               "$ref": "#/$defs/arrayPatch"
             }
           ]
+        },
+        "empireModifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier"
+          },
+          "description": "World wonders: modifiers on every city of the owner."
+        },
+        "wildcardSlots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model": {
+          "type": "string",
+          "description": "Client model under assets/models, drawn in every era (world wonders)."
         }
       },
       "required": [
@@ -2051,6 +2115,73 @@
             }
           },
           "additionalProperties": false
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "name"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "None",
+                "Inundation",
+                "Ledger",
+                "Mandate",
+                "Horde",
+                "SkyRoads",
+                "GoldenRoad",
+                "Imperium",
+                "Polis",
+                "Impi",
+                "Raiders",
+                "Bushido",
+                "Workshop",
+                "Grandeur",
+                "Winter",
+                "Satrapy",
+                "FlowerWar",
+                "LongCount",
+                "Highland",
+                "Siege",
+                "Wisdom",
+                "Seowon",
+                "Stepwell",
+                "Baray",
+                "Polder",
+                "Navigators",
+                "Treasure",
+                "Themes",
+                "Mercenaries",
+                "Eureka",
+                "Forest",
+                "Commonwealth",
+                "Enlightenment",
+                "Carnival",
+                "Frontier",
+                "Guerrilla",
+                "GreatLaw"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "playstyle": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "description": "Named integer parameters read by NationSystem.Param (leaders' augments override them)."
+            }
+          }
         }
       },
       "required": [
@@ -2145,6 +2276,28 @@
               "string"
             ],
             "description": "Decimal number (fixed-point in the simulation)."
+          }
+        },
+        "epithet": {
+          "type": "string"
+        },
+        "augment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "description": "Named integer parameters read by NationSystem.Param (leaders' augments override them)."
+            }
           }
         }
       },
@@ -3042,6 +3195,286 @@
           "type": "boolean"
         },
         "upgradeCostPercent": {
+          "type": "integer"
+        }
+      }
+    },
+    "government": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prereqCivic": {
+          "type": "string"
+        },
+        "military": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "economic": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "diplomatic": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wildcard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier"
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "slot"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "slot": {
+          "enum": [
+            "Military",
+            "Economic",
+            "Diplomatic",
+            "Wildcard"
+          ]
+        },
+        "prereqCivic": {
+          "type": "string"
+        },
+        "prereqTech": {
+          "type": "string"
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier"
+          }
+        }
+      }
+    },
+    "belief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kind": {
+          "enum": [
+            "Pantheon",
+            "Founder",
+            "Follower"
+          ]
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modifier"
+          }
+        },
+        "perFollowerCity": {
+          "$ref": "#/$defs/yields"
+        }
+      }
+    },
+    "religion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
+    "greatPerson": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "class",
+        "effect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "class": {
+          "enum": [
+            "Scientist",
+            "Engineer",
+            "Merchant",
+            "Artist",
+            "Prophet",
+            "General",
+            "Admiral"
+          ]
+        },
+        "era": {
+          "type": "string"
+        },
+        "effect": {
+          "enum": [
+            "Science",
+            "Culture",
+            "Production",
+            "Gold",
+            "Faith",
+            "Heal",
+            "Loyalty"
+          ]
+        },
+        "amount": {
+          "type": "integer"
+        }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tier": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "strength": {
+          "type": "integer"
+        },
+        "defense": {
+          "type": "integer"
+        },
+        "moves": {
+          "type": "integer"
+        },
+        "vsCity": {
+          "type": "integer"
+        },
+        "terrain": {
+          "type": "integer"
+        },
+        "healPerTurn": {
           "type": "integer"
         }
       }

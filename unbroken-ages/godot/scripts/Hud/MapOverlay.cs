@@ -349,6 +349,7 @@ public partial class MapOverlay : Control
             "Recon" => "moves",
             "LightCavalry" or "HeavyCavalry" => "moves",
             "Support" => "defense",
+            "Missionary" => "faith",
             _ => "strength",
         };
     }

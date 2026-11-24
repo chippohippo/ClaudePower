@@ -1,0 +1,1446 @@
+{
+  // Society: governments and policy cards, religion, great people, unit promotions (docs/05-key-systems/15-society.md).
+
+ "$schema": "../../schemas/content.schema.json",
+ "governments": [
+  {
+   "id": "GOVERNMENT_CHIEFDOM",
+   "name": "Chiefdom",
+   "description": "The council of elders. One military and one economic policy.",
+   "military": 1,
+   "economic": 1,
+   "modifiers": []
+  },
+  {
+   "id": "GOVERNMENT_AUTOCRACY",
+   "name": "Autocracy",
+   "description": "One ruler's will. +1 to every yield in the capital.",
+   "prereqCivic": "CIVIC_EARLY_EMPIRE",
+   "military": 2,
+   "economic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Food",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Production",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Gold",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Science",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Culture",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_OLIGARCHY",
+   "name": "Oligarchy",
+   "description": "The great houses rule. Melee units +3 strength.",
+   "prereqCivic": "CIVIC_CODE_OF_LAWS",
+   "military": 1,
+   "economic": 1,
+   "diplomatic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 3,
+     "target": "Melee"
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_CLASSICAL_REPUBLIC",
+   "name": "Classical Republic",
+   "description": "Citizens vote. +1 Amenity in every city; +10% Culture.",
+   "prereqCivic": "CIVIC_POLITICAL_PHILOSOPHY",
+   "economic": 2,
+   "diplomatic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "CityAmenities",
+     "amount": 1
+    },
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Culture",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_THEOCRACY",
+   "name": "Theocracy",
+   "description": "The faith governs. +2 Faith in every city; units +2 strength.",
+   "prereqCivic": "CIVIC_RECORDED_HISTORY",
+   "military": 2,
+   "economic": 1,
+   "diplomatic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 2
+    },
+    {
+     "effect": "UnitStrength",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_MERCHANT_REPUBLIC",
+   "name": "Merchant Republic",
+   "description": "Guilds and fleets. +15% Gold; purchases 10% cheaper.",
+   "prereqCivic": "CIVIC_FOREIGN_TRADE",
+   "military": 1,
+   "economic": 2,
+   "diplomatic": 2,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Gold",
+     "amount": 15
+    },
+    {
+     "effect": "CityPurchaseDiscountPercent",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_MONARCHY",
+   "name": "Monarchy",
+   "description": "Crown and nobility. +2 Loyalty a turn; +2 Housing in every city.",
+   "prereqCivic": "CIVIC_CIVIL_ENGINEERING",
+   "military": 3,
+   "economic": 1,
+   "diplomatic": 1,
+   "wildcard": 2,
+   "modifiers": [
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 2
+    },
+    {
+     "effect": "CityHousing",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_DEMOCRACY",
+   "name": "Democracy",
+   "description": "Every voice counts. +15% Science and Gold; +1 Amenity.",
+   "prereqCivic": "CIVIC_URBANIZATION",
+   "military": 1,
+   "economic": 3,
+   "diplomatic": 2,
+   "wildcard": 2,
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Science",
+     "amount": 15
+    },
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Gold",
+     "amount": 15
+    },
+    {
+     "effect": "CityAmenities",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_COMMUNISM",
+   "name": "Communism",
+   "description": "The plan is everything. +20% Production; +10% toward districts.",
+   "prereqCivic": "CIVIC_URBANIZATION",
+   "military": 3,
+   "economic": 3,
+   "diplomatic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Production",
+     "amount": 20
+    },
+    {
+     "effect": "CityProductionPercent",
+     "category": "District",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_FASCISM",
+   "name": "Fascism",
+   "description": "Total mobilization. Units +4 strength; +15% toward units.",
+   "prereqCivic": "CIVIC_URBANIZATION",
+   "military": 4,
+   "economic": 2,
+   "diplomatic": 1,
+   "wildcard": 1,
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 4
+    },
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 15
+    }
+   ]
+  },
+  {
+   "id": "GOVERNMENT_TECHNOCRACY",
+   "name": "Technocracy",
+   "description": "Rule by the expert networks. +25% Science; +1 Amenity.",
+   "prereqCivic": "CIVIC_ENVIRONMENTALISM",
+   "military": 2,
+   "economic": 3,
+   "diplomatic": 2,
+   "wildcard": 3,
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Science",
+     "amount": 25
+    },
+    {
+     "effect": "CityAmenities",
+     "amount": 1
+    }
+   ]
+  }
+ ],
+ "policies": [
+  {
+   "id": "POLICY_DISCIPLINE",
+   "name": "Discipline",
+   "slot": "Military",
+   "description": "Units +3 strength.",
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 3
+    }
+   ]
+  },
+  {
+   "id": "POLICY_AGOGE",
+   "name": "Training Grounds",
+   "slot": "Military",
+   "description": "+25% Production toward units.",
+   "prereqCivic": "CIVIC_CODE_OF_LAWS",
+   "modifiers": [
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 25
+    }
+   ]
+  },
+  {
+   "id": "POLICY_LIMITANEI",
+   "name": "Frontier Garrisons",
+   "slot": "Military",
+   "description": "+2 Loyalty a turn in cities on the frontier.",
+   "prereqCivic": "CIVIC_EARLY_EMPIRE",
+   "modifiers": [
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityOnFrontier"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_RAIDERS",
+   "name": "Mounted Raiders",
+   "slot": "Military",
+   "description": "Light and heavy cavalry +4 strength.",
+   "prereqCivic": "CIVIC_STATE_WORKFORCE",
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 4,
+     "target": "LightCavalry"
+    },
+    {
+     "effect": "UnitStrength",
+     "amount": 4,
+     "target": "HeavyCavalry"
+    }
+   ]
+  },
+  {
+   "id": "POLICY_LEVEE",
+   "name": "Levée en Masse",
+   "slot": "Military",
+   "description": "+30% Production toward units.",
+   "prereqCivic": "CIVIC_URBANIZATION",
+   "modifiers": [
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 30
+    }
+   ]
+  },
+  {
+   "id": "POLICY_COMBINED_ARMS",
+   "name": "Combined Arms",
+   "slot": "Military",
+   "description": "Units +4 strength.",
+   "prereqCivic": "CIVIC_ENVIRONMENTALISM",
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 4
+    }
+   ]
+  },
+  {
+   "id": "POLICY_GOD_KING",
+   "name": "Divine Right",
+   "slot": "Economic",
+   "description": "+1 Faith and +1 Gold in the capital.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Gold",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_URBAN_PLANNING",
+   "name": "Urban Planning",
+   "slot": "Economic",
+   "description": "+1 Production in every city.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Production",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "POLICY_ILKUM",
+   "name": "Corvée",
+   "slot": "Economic",
+   "description": "+15% Production toward units, +10% toward districts.",
+   "prereqCivic": "CIVIC_CRAFTSMANSHIP",
+   "modifiers": [
+    {
+     "effect": "CityProductionPercent",
+     "category": "District",
+     "amount": 10
+    },
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 15
+    }
+   ]
+  },
+  {
+   "id": "POLICY_LAND_SURVEYORS",
+   "name": "Land Surveyors",
+   "slot": "Economic",
+   "description": "Purchases 20% cheaper.",
+   "prereqCivic": "CIVIC_EARLY_EMPIRE",
+   "modifiers": [
+    {
+     "effect": "CityPurchaseDiscountPercent",
+     "amount": 20
+    }
+   ]
+  },
+  {
+   "id": "POLICY_NATURAL_PHILOSOPHY",
+   "name": "Natural Philosophy",
+   "slot": "Economic",
+   "description": "+20% Science in cities with an Academy.",
+   "prereqCivic": "CIVIC_RECORDED_HISTORY",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Science",
+     "amount": 20,
+     "requirements": [
+      {
+       "type": "CityHasDistrict",
+       "id": "DISTRICT_ACADEMY"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_TOWN_CHARTERS",
+   "name": "Town Charters",
+   "slot": "Economic",
+   "description": "+25% Gold in cities with a Market.",
+   "prereqCivic": "CIVIC_FOREIGN_TRADE",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Gold",
+     "amount": 25,
+     "requirements": [
+      {
+       "type": "CityHasDistrict",
+       "id": "DISTRICT_MARKET"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_GUILDS",
+   "name": "Craft Guilds",
+   "slot": "Economic",
+   "description": "+20% Production in cities with a Foundry.",
+   "prereqCivic": "CIVIC_CRAFTSMANSHIP",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Production",
+     "amount": 20,
+     "requirements": [
+      {
+       "type": "CityHasDistrict",
+       "id": "DISTRICT_FOUNDRY"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_RATIONALISM",
+   "name": "Rationalism",
+   "slot": "Economic",
+   "description": "+15% Science in every city of 6+ citizens.",
+   "prereqCivic": "CIVIC_CIVIL_ENGINEERING",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Science",
+     "amount": 15,
+     "requirements": [
+      {
+       "type": "CityMinPopulation",
+       "value": 6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_ECONOMIC_UNION",
+   "name": "Economic Union",
+   "slot": "Economic",
+   "description": "+15% Gold and Production.",
+   "prereqCivic": "CIVIC_URBANIZATION",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Gold",
+     "amount": 15
+    },
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Production",
+     "amount": 15
+    }
+   ]
+  },
+  {
+   "id": "POLICY_CHARISMATIC_LEADER",
+   "name": "Charismatic Leader",
+   "slot": "Diplomatic",
+   "description": "+2 Loyalty a turn in every city.",
+   "prereqCivic": "CIVIC_POLITICAL_PHILOSOPHY",
+   "modifiers": [
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "POLICY_DIPLOMATIC_LEAGUE",
+   "name": "Diplomatic League",
+   "slot": "Diplomatic",
+   "description": "+1 Culture and +1 Gold in every city.",
+   "prereqCivic": "CIVIC_FOREIGN_TRADE",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Culture",
+     "amount": 1
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Gold",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "POLICY_MERCHANT_CONFEDERATION",
+   "name": "Merchant Confederation",
+   "slot": "Diplomatic",
+   "description": "+2 Gold in coastal cities.",
+   "prereqCivic": "CIVIC_FOREIGN_TRADE",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Gold",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityIsCoastal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_RAJ",
+   "name": "Colonial Offices",
+   "slot": "Diplomatic",
+   "description": "+3 Loyalty a turn and +15% Food in cities on the frontier.",
+   "prereqCivic": "CIVIC_CIVIL_ENGINEERING",
+   "modifiers": [
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 3,
+     "requirements": [
+      {
+       "type": "CityOnFrontier"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Food",
+     "amount": 15,
+     "requirements": [
+      {
+       "type": "CityOnFrontier"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_STRATEGOS",
+   "name": "Strategos",
+   "slot": "Wildcard",
+   "description": "Units +2 strength; +10% toward units.",
+   "prereqCivic": "CIVIC_POLITICAL_PHILOSOPHY",
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 2
+    },
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "POLICY_INSPIRATION",
+   "name": "Patronage of Learning",
+   "slot": "Wildcard",
+   "description": "+2 Science in the capital.",
+   "prereqCivic": "CIVIC_MYSTICISM",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Science",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_REVELATION",
+   "name": "Revelation",
+   "slot": "Wildcard",
+   "description": "+2 Faith in cities with a Sanctuary.",
+   "prereqCivic": "CIVIC_MYSTICISM",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityHasDistrict",
+       "id": "DISTRICT_SANCTUARY"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_LITERARY_TRADITION",
+   "name": "Literary Tradition",
+   "slot": "Wildcard",
+   "description": "+2 Culture in cities with a Cultural Quarter.",
+   "prereqCivic": "CIVIC_RECORDED_HISTORY",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Culture",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityHasDistrict",
+       "id": "DISTRICT_CULTURAL_QUARTER"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "POLICY_BREAD_AND_CIRCUSES",
+   "name": "Bread and Circuses",
+   "slot": "Wildcard",
+   "description": "+1 Amenity in every city.",
+   "prereqCivic": "CIVIC_PUBLIC_GAMES",
+   "modifiers": [
+    {
+     "effect": "CityAmenities",
+     "amount": 1
+    }
+   ]
+  }
+ ],
+ "beliefs": [
+  {
+   "id": "BELIEF_GOD_OF_THE_FORGE",
+   "name": "God of the Forge",
+   "kind": "Pantheon",
+   "description": "+10% Production toward units.",
+   "modifiers": [
+    {
+     "effect": "CityProductionPercent",
+     "category": "Unit",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_FERTILITY_RITES",
+   "name": "Fertility Rites",
+   "kind": "Pantheon",
+   "description": "+10% Food in every city.",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Food",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_GODDESS_OF_THE_HUNT",
+   "name": "Goddess of the Hunt",
+   "kind": "Pantheon",
+   "description": "+1 Food and +1 Production in the capital.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Food",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Production",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCapital"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_RIVER_GODDESS",
+   "name": "River Goddess",
+   "kind": "Pantheon",
+   "description": "+2 Amenities and +2 Faith in cities on a Great River.",
+   "modifiers": [
+    {
+     "effect": "CityAmenities",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityOnGreatRiver"
+      }
+     ]
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 2,
+     "requirements": [
+      {
+       "type": "CityOnGreatRiver"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_GOD_OF_THE_SEA",
+   "name": "God of the Sea",
+   "kind": "Pantheon",
+   "description": "+1 Production in coastal cities.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Production",
+     "amount": 1,
+     "requirements": [
+      {
+       "type": "CityIsCoastal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_ORAL_TRADITION",
+   "name": "Oral Tradition",
+   "kind": "Pantheon",
+   "description": "+1 Culture in every city.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Culture",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_RELIGIOUS_SETTLEMENTS",
+   "name": "Religious Settlements",
+   "kind": "Pantheon",
+   "description": "+1 Housing and +1 Loyalty a turn in every city.",
+   "modifiers": [
+    {
+     "effect": "CityHousing",
+     "amount": 1
+    },
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_GOD_OF_WAR",
+   "name": "God of War",
+   "kind": "Pantheon",
+   "description": "Units +2 strength.",
+   "modifiers": [
+    {
+     "effect": "UnitStrength",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_TITHE",
+   "name": "Tithe",
+   "kind": "Founder",
+   "description": "+2 Gold for every city following your religion.",
+   "perFollowerCity": {
+    "gold": 2
+   }
+  },
+  {
+   "id": "BELIEF_PAPAL_PRIMACY",
+   "name": "Church Councils",
+   "kind": "Founder",
+   "description": "+1 Culture and +1 Faith for every city following your religion.",
+   "perFollowerCity": {
+    "culture": 1,
+    "faith": 1
+   }
+  },
+  {
+   "id": "BELIEF_WORLD_CHURCH",
+   "name": "World Church",
+   "kind": "Founder",
+   "description": "+2 Culture for every city following your religion.",
+   "perFollowerCity": {
+    "culture": 2
+   }
+  },
+  {
+   "id": "BELIEF_PILGRIMAGE",
+   "name": "Pilgrimage",
+   "kind": "Founder",
+   "description": "+3 Faith for every city following your religion.",
+   "perFollowerCity": {
+    "faith": 3
+   }
+  },
+  {
+   "id": "BELIEF_STEWARDSHIP",
+   "name": "Stewardship",
+   "kind": "Founder",
+   "description": "+1 Science and +1 Gold for every city following your religion.",
+   "perFollowerCity": {
+    "science": 1,
+    "gold": 1
+   }
+  },
+  {
+   "id": "BELIEF_FEED_THE_WORLD",
+   "name": "Feed the World",
+   "kind": "Follower",
+   "description": "Following cities: +2 Food, +1 Housing.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Food",
+     "amount": 2
+    },
+    {
+     "effect": "CityHousing",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_WORK_ETHIC",
+   "name": "Work Ethic",
+   "kind": "Follower",
+   "description": "Following cities: +10% Production.",
+   "modifiers": [
+    {
+     "effect": "CityYieldPercent",
+     "yield": "Production",
+     "amount": 10
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_CHORAL_MUSIC",
+   "name": "Choral Music",
+   "kind": "Follower",
+   "description": "Following cities: +2 Culture.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Culture",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_SCHOLASTICISM",
+   "name": "Scholasticism",
+   "kind": "Follower",
+   "description": "Following cities: +2 Science.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Science",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_ZEN",
+   "name": "Meditation Halls",
+   "kind": "Follower",
+   "description": "Following cities: +1 Amenity, +2 Loyalty a turn.",
+   "modifiers": [
+    {
+     "effect": "CityAmenities",
+     "amount": 1
+    },
+    {
+     "effect": "CityLoyaltyPerTurn",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "BELIEF_ALMSGIVING",
+   "name": "Almsgiving",
+   "kind": "Follower",
+   "description": "Following cities: +2 Gold, +1 Faith.",
+   "modifiers": [
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Gold",
+     "amount": 2
+    },
+    {
+     "effect": "CityYieldFlat",
+     "yield": "Faith",
+     "amount": 1
+    }
+   ]
+  }
+ ],
+ "religions": [
+  {
+   "id": "RELIGION_0",
+   "name": "The Way of the Sun",
+   "color": "#f2c14e"
+  },
+  {
+   "id": "RELIGION_1",
+   "name": "The Sky Covenant",
+   "color": "#4ea8de"
+  },
+  {
+   "id": "RELIGION_2",
+   "name": "The River Mysteries",
+   "color": "#2ec4b6"
+  },
+  {
+   "id": "RELIGION_3",
+   "name": "The Old Ways",
+   "color": "#8d6e63"
+  },
+  {
+   "id": "RELIGION_4",
+   "name": "The Silver Moon",
+   "color": "#c0c7d1"
+  },
+  {
+   "id": "RELIGION_5",
+   "name": "The Eternal Flame",
+   "color": "#e4572e"
+  },
+  {
+   "id": "RELIGION_6",
+   "name": "The Green Path",
+   "color": "#57cc99"
+  },
+  {
+   "id": "RELIGION_7",
+   "name": "The Starlit Order",
+   "color": "#7b5ea7"
+  },
+  {
+   "id": "RELIGION_8",
+   "name": "The Mountain Fathers",
+   "color": "#9a8c98"
+  },
+  {
+   "id": "RELIGION_9",
+   "name": "The Ocean Mother",
+   "color": "#1d3557"
+  }
+ ],
+ "greatPeople": [
+  {
+   "id": "GREAT_PERSON_HYPATIA",
+   "name": "Hypatia",
+   "class": "Scientist",
+   "era": "ERA_CLASSICAL",
+   "effect": "Science",
+   "amount": 120
+  },
+  {
+   "id": "GREAT_PERSON_ARYABHATA",
+   "name": "Aryabhata",
+   "class": "Scientist",
+   "era": "ERA_CLASSICAL",
+   "effect": "Science",
+   "amount": 140
+  },
+  {
+   "id": "GREAT_PERSON_IBN_AL_HAYTHAM",
+   "name": "Ibn al-Haytham",
+   "class": "Scientist",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Science",
+   "amount": 200
+  },
+  {
+   "id": "GREAT_PERSON_ISAAC_NEWTON",
+   "name": "Isaac Newton",
+   "class": "Scientist",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Science",
+   "amount": 300
+  },
+  {
+   "id": "GREAT_PERSON_MARIE_CURIE",
+   "name": "Marie Curie",
+   "class": "Scientist",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Science",
+   "amount": 450
+  },
+  {
+   "id": "GREAT_PERSON_ALAN_TURING",
+   "name": "Alan Turing",
+   "class": "Scientist",
+   "era": "ERA_MODERN",
+   "effect": "Science",
+   "amount": 600
+  },
+  {
+   "id": "GREAT_PERSON_IMHOTEP",
+   "name": "Imhotep",
+   "class": "Engineer",
+   "era": "ERA_ANCIENT",
+   "effect": "Production",
+   "amount": 80
+  },
+  {
+   "id": "GREAT_PERSON_ARCHIMEDES",
+   "name": "Archimedes",
+   "class": "Engineer",
+   "era": "ERA_CLASSICAL",
+   "effect": "Production",
+   "amount": 120
+  },
+  {
+   "id": "GREAT_PERSON_FILIPPO_BRUNELLESCHI",
+   "name": "Filippo Brunelleschi",
+   "class": "Engineer",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Production",
+   "amount": 220
+  },
+  {
+   "id": "GREAT_PERSON_JAMES_WATT",
+   "name": "James Watt",
+   "class": "Engineer",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Production",
+   "amount": 320
+  },
+  {
+   "id": "GREAT_PERSON_NIKOLA_TESLA",
+   "name": "Nikola Tesla",
+   "class": "Engineer",
+   "era": "ERA_MODERN",
+   "effect": "Production",
+   "amount": 420
+  },
+  {
+   "id": "GREAT_PERSON_COLAEUS",
+   "name": "Colaeus",
+   "class": "Merchant",
+   "era": "ERA_ANCIENT",
+   "effect": "Gold",
+   "amount": 120
+  },
+  {
+   "id": "GREAT_PERSON_MARCO_POLO",
+   "name": "Marco Polo",
+   "class": "Merchant",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Gold",
+   "amount": 250
+  },
+  {
+   "id": "GREAT_PERSON_JAKOB_FUGGER",
+   "name": "Jakob Fugger",
+   "class": "Merchant",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Gold",
+   "amount": 400
+  },
+  {
+   "id": "GREAT_PERSON_MARY_SEACOLE",
+   "name": "Mary Seacole",
+   "class": "Merchant",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Gold",
+   "amount": 500
+  },
+  {
+   "id": "GREAT_PERSON_HOMER",
+   "name": "Homer",
+   "class": "Artist",
+   "era": "ERA_CLASSICAL",
+   "effect": "Culture",
+   "amount": 100
+  },
+  {
+   "id": "GREAT_PERSON_MURASAKI_SHIKIBU",
+   "name": "Murasaki Shikibu",
+   "class": "Artist",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Culture",
+   "amount": 160
+  },
+  {
+   "id": "GREAT_PERSON_MICHELANGELO",
+   "name": "Michelangelo",
+   "class": "Artist",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Culture",
+   "amount": 240
+  },
+  {
+   "id": "GREAT_PERSON_LUDWIG_VAN_BEETHOVEN",
+   "name": "Ludwig van Beethoven",
+   "class": "Artist",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Culture",
+   "amount": 320
+  },
+  {
+   "id": "GREAT_PERSON_LAOZI",
+   "name": "Laozi",
+   "class": "Prophet",
+   "era": "ERA_ANCIENT",
+   "effect": "Faith",
+   "amount": 80
+  },
+  {
+   "id": "GREAT_PERSON_ZOROASTER",
+   "name": "Zoroaster",
+   "class": "Prophet",
+   "era": "ERA_ANCIENT",
+   "effect": "Faith",
+   "amount": 80
+  },
+  {
+   "id": "GREAT_PERSON_BODHIDHARMA",
+   "name": "Bodhidharma",
+   "class": "Prophet",
+   "era": "ERA_CLASSICAL",
+   "effect": "Faith",
+   "amount": 120
+  },
+  {
+   "id": "GREAT_PERSON_HILDEGARD_OF_BINGEN",
+   "name": "Hildegard of Bingen",
+   "class": "Prophet",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Faith",
+   "amount": 160
+  },
+  {
+   "id": "GREAT_PERSON_SUN_TZU",
+   "name": "Sun Tzu",
+   "class": "General",
+   "era": "ERA_CLASSICAL",
+   "effect": "Heal",
+   "amount": 50
+  },
+  {
+   "id": "GREAT_PERSON_JOAN_OF_ARC",
+   "name": "Joan of Arc",
+   "class": "General",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Heal",
+   "amount": 50
+  },
+  {
+   "id": "GREAT_PERSON_TOMOE_GOZEN",
+   "name": "Tomoe Gozen",
+   "class": "General",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Heal",
+   "amount": 50
+  },
+  {
+   "id": "GREAT_PERSON_SIMON_BOLIVAR",
+   "name": "Simón Bolívar",
+   "class": "General",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Heal",
+   "amount": 50
+  },
+  {
+   "id": "GREAT_PERSON_THEMISTOCLES",
+   "name": "Themistocles",
+   "class": "Admiral",
+   "era": "ERA_CLASSICAL",
+   "effect": "Loyalty",
+   "amount": 30
+  },
+  {
+   "id": "GREAT_PERSON_ZHENG_HE",
+   "name": "Zheng He",
+   "class": "Admiral",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Loyalty",
+   "amount": 30
+  },
+  {
+   "id": "GREAT_PERSON_YI_SUN_SIN",
+   "name": "Yi Sun-sin",
+   "class": "Admiral",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Loyalty",
+   "amount": 30
+  }
+ ],
+ "promotions": [
+  {
+   "id": "PROMOTION_BATTLECRY",
+   "name": "Battlecry",
+   "classes": [
+    "Melee",
+    "Recon"
+   ],
+   "tier": 1,
+   "strength": 5,
+   "description": "+5 strength."
+  },
+  {
+   "id": "PROMOTION_TORTOISE",
+   "name": "Shield Wall",
+   "classes": [
+    "Melee"
+   ],
+   "tier": 1,
+   "defense": 7,
+   "description": "+7 strength when defending."
+  },
+  {
+   "id": "PROMOTION_COMMANDO",
+   "name": "Pathfinder",
+   "classes": [
+    "Melee",
+    "Recon"
+   ],
+   "tier": 2,
+   "moves": 1,
+   "description": "+1 movement."
+  },
+  {
+   "id": "PROMOTION_AMPHIBIOUS",
+   "name": "Siegebreakers",
+   "classes": [
+    "Melee"
+   ],
+   "tier": 2,
+   "vsCity": 8,
+   "description": "+8 strength attacking cities."
+  },
+  {
+   "id": "PROMOTION_ZWEIHANDER",
+   "name": "Veterans",
+   "classes": [
+    "Melee"
+   ],
+   "tier": 3,
+   "strength": 6,
+   "description": "+6 strength."
+  },
+  {
+   "id": "PROMOTION_VOLLEY",
+   "name": "Volley",
+   "classes": [
+    "Ranged"
+   ],
+   "tier": 1,
+   "strength": 5,
+   "description": "+5 strength."
+  },
+  {
+   "id": "PROMOTION_GARRISON",
+   "name": "Garrison",
+   "classes": [
+    "Ranged"
+   ],
+   "tier": 1,
+   "defense": 8,
+   "description": "+8 strength when defending."
+  },
+  {
+   "id": "PROMOTION_ARROW_STORM",
+   "name": "Arrow Storm",
+   "classes": [
+    "Ranged"
+   ],
+   "tier": 2,
+   "strength": 7,
+   "description": "+7 strength."
+  },
+  {
+   "id": "PROMOTION_CAPARISON",
+   "name": "Caparison",
+   "classes": [
+    "LightCavalry",
+    "HeavyCavalry"
+   ],
+   "tier": 1,
+   "strength": 5,
+   "description": "+5 strength."
+  },
+  {
+   "id": "PROMOTION_PURSUIT",
+   "name": "Pursuit",
+   "classes": [
+    "LightCavalry",
+    "HeavyCavalry"
+   ],
+   "tier": 2,
+   "moves": 1,
+   "description": "+1 movement."
+  },
+  {
+   "id": "PROMOTION_CHARGE",
+   "name": "Charge",
+   "classes": [
+    "LightCavalry",
+    "HeavyCavalry"
+   ],
+   "tier": 3,
+   "strength": 7,
+   "description": "+7 strength."
+  },
+  {
+   "id": "PROMOTION_RANGER",
+   "name": "Woodsmen",
+   "classes": [],
+   "tier": 2,
+   "terrain": 7,
+   "description": "+7 strength in forest, rainforest, marsh or hills."
+  },
+  {
+   "id": "PROMOTION_MEDIC",
+   "name": "Field Medics",
+   "classes": [],
+   "tier": 2,
+   "healPerTurn": 10,
+   "description": "Heals 10 HP every turn."
+  },
+  {
+   "id": "PROMOTION_HELMSMAN",
+   "name": "Helmsman",
+   "classes": [
+    "NavalMelee",
+    "NavalRaider",
+    "NavalCivilian"
+   ],
+   "tier": 1,
+   "moves": 1,
+   "description": "+1 movement."
+  },
+  {
+   "id": "PROMOTION_BOARDING",
+   "name": "Boarding Parties",
+   "classes": [
+    "NavalMelee",
+    "NavalRaider"
+   ],
+   "tier": 1,
+   "strength": 6,
+   "description": "+6 strength."
+  },
+  {
+   "id": "PROMOTION_ELITE",
+   "name": "Elite",
+   "classes": [],
+   "tier": 3,
+   "strength": 5,
+   "defense": 5,
+   "description": "+5 strength, +5 more defending."
+  }
+ ]
+}

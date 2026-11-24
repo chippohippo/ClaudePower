@@ -156,6 +156,7 @@ public partial class PlacementLens : Node3D
         PlacementFailure.BlockedByResource => "A luxury or strategic resource is here.",
         PlacementFailure.Reserved => "Already planned for another queued district.",
         PlacementFailure.CanalConnection => "A canal must join two bodies of water across land.",
+        PlacementFailure.WonderBuiltElsewhere => "Another civilization has already built this wonder.",
         _ => System.Text.RegularExpressions.Regex.Replace(f.ToString(), "(?<!^)([A-Z])", " $1") + ".",
     };
 }

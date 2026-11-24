@@ -63,6 +63,7 @@ public static class ResearchSystem
                 p.Civics[civic.Index] = true;
                 p.GovernorTitles += civic.GovernorTitles;
                 p.CurrentCivic = -1;
+                p.PolicySwapFree = true;   // a new civic: cards and government may change for free next turn
                 events.Add(new GameEvent(GameEventType.CivicCompleted, p.Id, Def: civic.Index, Detail: civic.Name));
                 DivergenceSystem.OnNodeCompleted(s, p, civic, events);
             }
@@ -70,6 +71,9 @@ public static class ResearchSystem
 
         int eraAfter = s.PlayerEra(p);
         if (eraAfter > eraBefore && db.Eras.FirstOrDefault(e => e.Order == eraAfter) is { } era)
+        {
             events.Add(new GameEvent(GameEventType.EraEntered, p.Id, Def: era.Index, Value: eraAfter, Detail: era.Name));
+            AgeSystem.OnEraEntered(s, p, eraAfter, events);
+        }
     }
 }

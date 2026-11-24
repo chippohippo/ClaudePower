@@ -358,6 +358,26 @@ public partial class HexMapView : Node3D
             DressTile(s, t, HexLayout.ToWorld(map.CoordOf(t), 0), new Color(1, 1, 1, visible[t] ? 1f : 0.5f), k);
         }
 
+        // Natural wonders: one landmark model fills the hex (water ones float at the surface).
+        for (int t = 0; t < map.Count; t++)
+        {
+            if (!Known(t) || map.Feature[t] < 0 || db.Features[map.Feature[t]] is not { NaturalWonder: true, Model: { } model }) continue;
+            var at = HexLayout.ToWorld(map.CoordOf(t), 0);
+            float lift = map.IsWater(t) ? Mathf.Max(0f, WaterTop - HeightField.Current.Surface(at.X, at.Z)) - 0.012f : 0f;
+            AddFit(model, at, 1.5f, Mathf.DegToRad(60 * (int)(Rand(t, 9) * 6)), new Color(1, 1, 1, visible[t] ? 1f : 0.5f), false, default, lift);
+        }
+        // Barbarian camps: hide tents around a fire, a red banner over them.
+        foreach (var (campTile, _) in s.Camps)
+        {
+            if (!Known(campTile)) continue;
+            var at = HexLayout.ToWorld(map.CoordOf(campTile), LandTop);
+            var fade = new Color(1, 1, 1, visible[campTile] ? 1f : 0.5f);
+            AddProp("props/tent", at + new Vector3(-0.3f, 0, 0.12f), k * 1.25f, 0.4f, new Color(0.75f, 0.6f, 0.45f, fade.A));
+            AddProp("props/tent", at + new Vector3(0.28f, 0, -0.16f), k * 1.1f, 2.2f, new Color(0.7f, 0.55f, 0.42f, fade.A));
+            AddProp("props/crate_open", at + new Vector3(0.05f, 0, 0.3f), k * 0.9f, 0.9f, fade);
+            AddFit("props/flag_blue", at + new Vector3(0.02f, 0, -0.02f), 0.7f, 0, new Color(1.3f, 0.25f, 0.2f, fade.A), true);
+        }
+
         foreach (var c in s.Cities) if (Known(c.Tile)) DressCity(s, c, visible[c.Tile], k);
         foreach (var o in s.Outposts)
         {
@@ -389,6 +409,7 @@ public partial class HexMapView : Node3D
         var greenery = feature == "FEATURE_RAINFOREST" ? new Color(0.65f, 0.85f, 0.6f) : feature == "FEATURE_BLOOM" ? new Color(0.95f, 0.55f, 1f) : Colors.White;
         greenery.A = memory.A;
 
+        if (map.Feature[t] >= 0 && db.Features[map.Feature[t]].NaturalWonder) return;   // drawn whole, above
         if (map.IsMountain(t))
         {
             // The peak itself is the landscape (HeightField); scatter a few boulders on its flanks.

@@ -6,6 +6,8 @@
       "foundsOutpost": true, "prereqCivic": "CIVIC_FOREIGN_TRADE",
       "description": "Plant an Outpost on unclaimed land: it holds the ground around it, extends supply and harvests one resource. No city screen. Buy it up into a city later." },
     { "id": "UNIT_BUILDER", "name": "Builder", "domain": "Civilian", "unitClass": "Builder", "era": "ERA_ANCIENT", "cost": 50, "moves": 2, "charges": 3 },
+    { "id": "UNIT_MISSIONARY", "name": "Missionary", "domain": "Civilian", "unitClass": "Missionary", "era": "ERA_CLASSICAL", "cost": 70, "moves": 4,
+      "prereqTech": "TECH_ASTROLOGY", "tags": ["Missionary"], "description": "Spreads your religion to a city it stands in or beside (small cities convert at once). Needs a founded religion." },
     { "id": "UNIT_SCOUT", "name": "Scout", "domain": "Land", "unitClass": "Recon", "era": "ERA_ANCIENT", "cost": 30, "strength": 10, "moves": 3 },
     { "id": "UNIT_WARRIOR", "name": "Warrior", "domain": "Land", "unitClass": "Melee", "era": "ERA_ANCIENT", "cost": 40, "maintenance": 0, "strength": 20,
       "upgradesTo": ["UNIT_SWORDSMAN"] },

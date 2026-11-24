@@ -53,6 +53,8 @@ public enum ModifierEffect
     ClimateCooling,
     /// <summary>Project one-shot: completes the owner's Divergence (Ascension victory).</summary>
     CompleteAscension,
+    /// <summary>Unit combat strength (policies, governments, beliefs): <c>target</c> = a unit class, or empty for every military unit.</summary>
+    UnitStrength,
 }
 
 public enum LeaningKind { Building, District, DistrictTag, FeatureTagInBorders, PowerKind, Population, CumulativeEmissions }
@@ -128,6 +130,10 @@ public sealed class FeatureDef : Definition
     /// <summary>One-time emissions when the feature is cleared (deforestation).</summary>
     public Fx Co2OnRemoval { get; init; }
     public List<string> ValidTerrains { get; init; } = new();
+    /// <summary>A natural wonder: placed once per map by the generator, never removed, admired from afar.</summary>
+    public bool NaturalWonder { get; init; }
+    /// <summary>Client model under assets/models for natural wonders (e.g. "wonders/uluru").</summary>
+    public string? Model { get; init; }
 
     [JsonIgnore] public int[] ValidTerrainIndices { get; private set; } = Array.Empty<int>();
 
@@ -346,6 +352,12 @@ public sealed class DistrictDef : Definition
     public int Amenities { get; init; }
     public int Appeal { get; init; }
     public List<ModifierDef> Modifiers { get; init; } = new();
+    /// <summary>World wonders: modifiers on every city of the owner's empire (and UnitStrength on its units).</summary>
+    public List<ModifierDef> EmpireModifiers { get; init; } = new();
+    /// <summary>World wonders: extra wildcard policy slots while the owner holds it.</summary>
+    public int WildcardSlots { get; init; }
+    /// <summary>Client model under assets/models (e.g. "wonders/giza"); drawn instead of the era's district buildings.</summary>
+    public string? Model { get; init; }
 
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqCivicIndex { get; private set; } = -1;
@@ -362,6 +374,7 @@ public sealed class DistrictDef : Definition
         foreach (var rule in Adjacency) rule.Source.Link(ctx, this);
         foreach (var p in ProvidesAdjacency) p.Link(ctx, this);
         foreach (var m in Modifiers) m.Link(ctx, this);
+        foreach (var m in EmpireModifiers) m.Link(ctx, this);
     }
 }
 
@@ -488,6 +501,8 @@ public sealed class ModifierDef
     public Fx Amount { get; init; }
     public ProductionCategory? Category { get; init; }
     public DisasterKind? Disaster { get; init; }
+    /// <summary>For UnitStrength: the unit class it applies to (empty = all military units).</summary>
+    public string? Target { get; init; }
     public List<RequirementDef> Requirements { get; init; } = new();
 
     internal void Link(LinkContext ctx, Definition owner)

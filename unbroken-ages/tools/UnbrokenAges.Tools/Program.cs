@@ -143,7 +143,13 @@ void Simulate()
         Console.WriteLine($"  {nation,-11} {leader,-20} alive={p.IsAlive,-5} cities={cities.Count,2} pop={cities.Sum(c => c.Population),3} techs={p.Techs.Count(x => x),2} " +
                           $"civics={p.Civics.Count(x => x),2} gold={p.Gold.FloorToInt(),5} units={s.Units.Count(u => u.Owner == p.Id),2} score={VictorySystem.Score(s, p.Id),4} " +
                           $"signature: {NationSystem.Status(s, p)} (tally {p.SignatureTally})");
+        Console.WriteLine($"  {"",-11} society: {(p.Government >= 0 ? db.Governments[p.Government].Name : "none")} [{string.Join(", ", p.Policies.Select(c => db.Policies[c].Name))}] " +
+                          $"pantheon={(p.Pantheon >= 0 ? db.Beliefs[p.Pantheon].Name : "-")} religion={(p.Religion >= 0 ? db.Religions[p.Religion].Name : "-")} " +
+                          $"followers={s.Cities.Count(c => p.Religion >= 0 && c.Religion == p.Religion)} greatPeople={p.GreatPeopleRecruited.Sum()} age={p.Age} " +
+                          $"wonders=[{string.Join(", ", SocietySystem.Wonders(s, p.Id).Select(w => w.Name))}] promoted={s.Units.Count(u => u.Owner == p.Id && u.Promotions.Count > 0)}");
     }
+    Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
+                      $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
     Console.WriteLine();
     Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");

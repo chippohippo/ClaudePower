@@ -35,6 +35,12 @@ public enum CommandType : byte
     PurchaseTile = 73,
     BuyCity = 74,
     OneMoreTurn = 80,
+    SetGovernment = 90,
+    SetPolicies = 91,
+    FoundPantheon = 92,
+    FoundReligion = 93,
+    SpreadReligion = 94,
+    PromoteUnit = 95,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -125,6 +131,12 @@ public abstract class GameCommand
         CommandType.FoundOutpost => new FoundOutpostCommand(),
         CommandType.PromoteOutpost => new PromoteOutpostCommand(),
         CommandType.UpgradeUnit => new UpgradeUnitCommand(),
+        CommandType.SetGovernment => new SetGovernmentCommand(),
+        CommandType.SetPolicies => new SetPoliciesCommand(),
+        CommandType.FoundPantheon => new FoundPantheonCommand(),
+        CommandType.FoundReligion => new FoundReligionCommand(),
+        CommandType.SpreadReligion => new SpreadReligionCommand(),
+        CommandType.PromoteUnit => new PromoteUnitCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

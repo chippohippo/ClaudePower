@@ -8,7 +8,7 @@ public enum AgeState : byte { Normal, Golden, Dark, Heroic }
 public enum PowerDispatchPolicy : byte { CleanestFirst, CheapestFirst }
 public enum TurnMode : byte { Simultaneous, Dynamic, Sequential }
 
-/// <summary>Victory types; also the setup toggles (flags). Exodus, Culture, Spiritual and Concord are designed (GDD §14) and not yet built.</summary>
+/// <summary>Victory types; also the setup toggles (flags). Spiritual is built (ReligionSystem); Exodus, Culture and Concord are designed (GDD §14) and not yet built.</summary>
 [Flags]
 public enum VictoryKind
 {
@@ -120,6 +120,24 @@ public sealed class PlayerState
     /// <summary>Running tally for the signature (cities bought, floods, dynasties, battles won).</summary>
     public int SignatureTally;
 
+    // ----- Society (SocietySystem, ReligionSystem, GreatPeopleSystem, AgeSystem) -----
+    public int Government = -1;
+    public List<int> Policies = new();
+    /// <summary>Policies may be re-slotted for free this turn (a civic or government was just adopted).</summary>
+    public bool PolicySwapFree = true;
+    public int Pantheon = -1;
+    /// <summary>The religion this player founded (index into Religions), or -1.</summary>
+    public int Religion = -1;
+    public List<int> Beliefs = new();
+    /// <summary>Great person points per GreatPersonClass.</summary>
+    public int[] GreatPersonPoints = new int[7];
+    public int[] GreatPeopleRecruited = new int[7];
+    public int EraScore;
+    /// <summary>The era order whose age (Golden/Dark/Normal) was last decided.</summary>
+    public int AgeEra;
+    /// <summary>War weariness: battles fought abroad, cities taken and units lost; costs amenities empire-wide.</summary>
+    public int WarWeariness;
+
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
     public bool HasCivic(int index) => index < 0 || (index < Civics.Length && Civics[index]);
@@ -166,6 +184,11 @@ public sealed class CityState
     /// <summary>Culture banked toward the next border tile.</summary>
     public Fx BorderProgress;
     public int TilesClaimed;
+    /// <summary>The religion most of its people follow (index into Religions), or -1.</summary>
+    public int Religion = -1;
+    /// <summary>Pressure toward converting to <see cref="ReligionCandidate"/>.</summary>
+    public Fx ReligionProgress;
+    public int ReligionCandidate = -1;
 
     public DistrictInstance? FindDistrict(int defIndex) => Districts.Find(d => d.DefIndex == defIndex);
     public bool HasBuilding(int buildingIndex) => Districts.Any(d => d.Buildings.Contains(buildingIndex));
@@ -200,6 +223,8 @@ public sealed class UnitState
     public bool AttackedThisTurn;
     /// <summary>Index into the unit's variants (-1 when it has none).</summary>
     public int Variant = -1;
+    public int Experience;
+    public List<int> Promotions = new();
 }
 
 /// <summary>Shared state of the whole world: currents and the age history.</summary>
@@ -266,6 +291,12 @@ public sealed class GameState
     public List<CityState> Cities = new();
     public List<UnitState> Units = new();
     public List<OutpostState> Outposts = new();
+    /// <summary>Barbarian camps: tile and turns until the next raider.</summary>
+    public List<(int Tile, int Timer)> Camps = new();
+    /// <summary>Great people already recruited by someone (indexed by GreatPersonDef).</summary>
+    public HashSet<int> GreatPeopleTaken = new();
+    /// <summary>Natural wonders each player has discovered (for era score), as player * 100000 + tile.</summary>
+    public HashSet<long> Discoveries = new();
     public ClimateState Climate = new();
     public WorldState World = new();
     public List<ChronicleEntry> Chronicle = new();

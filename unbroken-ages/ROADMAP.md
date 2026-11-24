@@ -28,6 +28,15 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **9. AI v2**: expansion (settlers), builders, war planning (declare war on weak neighbours, attack with odds > 60%, retreat when out of supply), peace.
 - [x] **10. Client**: combat preview tooltip, diplomacy screen skeleton, victory screen, border and war colours.
 
+- [x] **11. Society staples**: governments and policy cards, pantheons and religions (spread, missionaries, Spiritual victory), great people,
+      era score and Golden/Dark/Heroic ages, unit promotions, barbarian camps, world and natural wonders, war weariness.
+- [ ] **12. City-states**: envoys, suzerain bonuses, quests (Free Cities as the seed).
+- [ ] **13. Trade routes**: traders, roads along routes, gold and yields between cities, plunder at war.
+- [ ] **14. Espionage**: spies, offensive operations, counter-intelligence (the modifier hooks exist).
+- [ ] **15. Culture victory**: great works, tourism, theming.
+- [ ] **16. World Congress**: resolutions, diplomatic favour, a Diplomatic victory.
+- [ ] **17. Corps and armies**; unique units for the 30 later nations; the orbital layer.
+
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
 - 2. Combat v1: `CombatSystem` (Fx.Pow2 damage curve, combat RNG stream), Attack/Fortify/CityStrike commands, city HP and capture, snapshot v5, 15 tests (135 total).
@@ -79,3 +88,5 @@ docs/05-key-systems/14-nations.md.
 policy cards and governments, the turn timer, and Grand-dial governor ageing.
 
 (see git log for full detail)
+- 11. Society staples: `SocietySystem`, `ReligionSystem`, `GreatPeopleSystem`, `AgeSystem`, `BarbarianSystem`, `SocietyAi`, `society.json`,
+  14 wonders + 9 natural wonders with models, 6 commands, Society screen (G), snapshot v14, 28 tests (245 total).

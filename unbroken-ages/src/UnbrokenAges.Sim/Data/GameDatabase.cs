@@ -97,6 +97,12 @@ public sealed class GameDatabase
     public DefTable<WorldRulesDef> WorldRules { get; } = new("worldRules");
     public DefTable<ChronicleTemplateDef> ChronicleTemplates { get; } = new("chronicle");
     public DefTable<GovernorTraitDef> GovernorTraits { get; } = new("governorTraits");
+    public DefTable<GovernmentDef> Governments { get; } = new("governments");
+    public DefTable<PolicyDef> Policies { get; } = new("policies");
+    public DefTable<BeliefDef> Beliefs { get; } = new("beliefs");
+    public DefTable<ReligionDef> Religions { get; } = new("religions");
+    public DefTable<GreatPersonDef> GreatPeople { get; } = new("greatPeople");
+    public DefTable<PromotionDef> Promotions { get; } = new("promotions");
 
     public WorldRulesDef Rules => WorldRules.Count > 0 ? WorldRules[0] : new WorldRulesDef { Id = "WORLD_RULES_DEFAULT" };
 
@@ -128,6 +134,7 @@ public sealed class GameDatabase
         Reg(Districts); Reg(Buildings); Reg(Projects); Reg(Units); Reg(Techs); Reg(Civics);
         Reg(Governors); Reg(Civilizations); Reg(Leaders); Reg(Disasters); Reg(Climate); Reg(MapSizes);
         Reg(Divergences); Reg(WorldAges); Reg(WorldRules); Reg(ChronicleTemplates); Reg(GovernorTraits);
+        Reg(Governments); Reg(Policies); Reg(Beliefs); Reg(Religions); Reg(GreatPeople); Reg(Promotions);
         return r;
     }
 
@@ -137,7 +144,8 @@ public sealed class GameDatabase
         all = all.Concat(Terrains).Concat(Reliefs).Concat(Features).Concat(Resources).Concat(Improvements)
             .Concat(Districts).Concat(Buildings).Concat(Projects).Concat(Units).Concat(Techs).Concat(Civics)
             .Concat(Governors).Concat(Civilizations).Concat(Leaders).Concat(Disasters).Concat(Climate).Concat(MapSizes).Concat(Divergences)
-            .Concat(WorldAges).Concat(WorldRules).Concat(ChronicleTemplates).Concat(GovernorTraits);
+            .Concat(WorldAges).Concat(WorldRules).Concat(ChronicleTemplates).Concat(GovernorTraits)
+            .Concat(Governments).Concat(Policies).Concat(Beliefs).Concat(Religions).Concat(GreatPeople).Concat(Promotions);
         return all;
     }
 

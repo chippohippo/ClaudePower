@@ -75,6 +75,7 @@ public sealed class CityEffects
             if (owner.HasTech(t)) fx.ApplyAll(s, city, db.Techs[t].Modifiers, db.Techs[t].Name);
         foreach (int c in db.CivicsWithModifiers)
             if (owner.HasCivic(c)) fx.ApplyAll(s, city, db.Civics[c].Modifiers, db.Civics[c].Name);
+        foreach (var (mods, source) in SocietySystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
 
         var gov = city.GovernorDef >= 0 ? owner.GetGovernor(city.GovernorDef) : null;
         if (gov is { Established: true })
@@ -172,6 +173,8 @@ public sealed class CityEffects
             case ModifierEffect.CityDisasterImmunity:
                 if (m.Disaster is { } kind) _immunities |= 1 << (int)kind;
                 break;
+            case ModifierEffect.UnitStrength:
+                break; // read by SocietySystem.CombatLines
             case ModifierEffect.ClimateCo2Reduction:
             case ModifierEffect.ClimateCooling:
             case ModifierEffect.CompleteAscension:

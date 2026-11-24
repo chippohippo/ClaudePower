@@ -62,6 +62,7 @@ public sealed class SimpleAi : IAiController
 
         commands.AddRange(Governors(s, player));
         commands.AddRange(NationAi.Commands(s, player));
+        commands.AddRange(SocietyAi.Commands(s, player));
 
         // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))
@@ -108,6 +109,8 @@ public sealed class SimpleAi : IAiController
         // A horde keeps a standing army even in peace: its research comes from the battlefield.
         int peaceArmy = NationSystem.Kind(s, player) == SignatureKind.Horde ? 2 * cityCount + 3 : cityCount + 2;
         if (soldier != null && military < peaceArmy) return (ProductionKind.Unit, soldier.Index, -1);
+        if (SocietyAi.WantsMissionary(s, player, city) is { } missionary) return (ProductionKind.Unit, missionary.Index, -1);
+        if (SocietyAi.WantsWonder(s, player, city) is var (wonder, wonderTile)) return (ProductionKind.District, wonder, wonderTile);
         // Prefer the best-scoring specialty district (same scorer the player's lens uses).
         var districtChoice = db.Districts
             .Where(d => d.Category == DistrictCategory.Specialty)

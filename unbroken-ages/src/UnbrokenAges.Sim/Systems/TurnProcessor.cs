@@ -22,6 +22,7 @@ public static class TurnProcessor
         var db = s.Db;
 
         var power = PowerSystem.Process(s, commit: true, events);
+        SocietySystem.CloseSwapWindow(s);
 
         foreach (var player in s.Players)
         {
@@ -45,6 +46,8 @@ public static class TurnProcessor
                 maintenance += city.AllBuildings().Sum(b => db.Buildings[b].Maintenance);
             }
             maintenance += s.Units.Where(u => u.Owner == player.Id).Sum(u => db.Units[u.DefIndex].Maintenance);
+            var tithes = ReligionSystem.FounderIncome(s, player);
+            science += tithes.Science; culture += tithes.Culture; gold += tithes.Gold; faith += tithes.Faith;
             NationSystem.AdjustEmpireYields(s, player, ref science, ref culture, ref gold, ref faith);
             player.Gold += gold - maintenance;
             player.Faith += faith;
@@ -54,6 +57,9 @@ public static class TurnProcessor
         }
 
         NationSystem.ProcessTurn(s, events);
+        ReligionSystem.ProcessTurn(s, events);
+        GreatPeopleSystem.ProcessTurn(s, events);
+        AgeSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);
         GovernorSystem.ProcessTurn(s, events);
@@ -69,6 +75,8 @@ public static class TurnProcessor
             unit.MovesLeft = UnitStats.Moves(s, unit);
             if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
         }
+        SocietySystem.ProcessTurn(s);
+        BarbarianSystem.ProcessTurn(s, events);
 
         GovernorSystem.GainExperience(s, events);
         WorldSystem.ProcessTurn(s, events);

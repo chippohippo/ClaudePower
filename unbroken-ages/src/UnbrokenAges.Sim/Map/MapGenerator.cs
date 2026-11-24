@@ -25,10 +25,10 @@ public sealed class MapGenSettings
 
 public sealed class MapGenStats
 {
-    public int LandTiles, Mountains, Hills, Lakes, ChannelTiles, RiverEdges, Floodplains, LowlandTiles, Resources;
+    public int LandTiles, Mountains, Hills, Lakes, ChannelTiles, RiverEdges, Floodplains, LowlandTiles, Resources, NaturalWonders;
     public override string ToString() =>
         $"land={LandTiles} mountains={Mountains} hills={Hills} lakeTiles={Lakes} greatRiverTiles={ChannelTiles} " +
-        $"riverEdges={RiverEdges} floodplains={Floodplains} lowlands={LowlandTiles} resources={Resources}";
+        $"riverEdges={RiverEdges} floodplains={Floodplains} lowlands={LowlandTiles} resources={Resources} naturalWonders={NaturalWonders}";
 }
 
 public sealed class GeneratedMap
@@ -198,6 +198,7 @@ public static class MapGenerator
         }
 
         var starts = ChooseStartPositions(map, ids, s.Players);
+        PlaceNaturalWonders(map, Pcg32.Derive(s.Seed, "natural-wonders"), starts, stats);
         return new GeneratedMap { Map = map, StartTiles = starts, GreatRivers = greatRivers, Stats = stats };
     }
 
@@ -316,6 +317,44 @@ public static class MapGenerator
             moisture[i] = Fx.Clamp(m, Fx.Zero, Fx.One);
         }
         return moisture;
+    }
+
+    /// <summary>
+    /// Natural wonders: one tile each, a few per map (more on bigger maps), on suitable terrain away from the starts and from
+    /// one another. Uses its own random stream so the rest of the world is unchanged by their presence.
+    /// </summary>
+    private static void PlaceNaturalWonders(MapGrid map, Pcg32 rng, List<int> starts, MapGenStats stats)
+    {
+        var db = map.Db;
+        var wonders = db.Features.Where(f => f.NaturalWonder).Select(f => f.Index).ToList();
+        if (wonders.Count == 0) return;
+        for (int i = wonders.Count - 1; i > 0; i--)
+        {
+            int j = rng.NextInt(i + 1);
+            (wonders[i], wonders[j]) = (wonders[j], wonders[i]);
+        }
+        int land = 0;
+        for (int t = 0; t < map.Count; t++) if (map.IsLand(t)) land++;
+        int count = Math.Clamp(land / 300, 2, wonders.Count);
+        var placed = new List<int>();
+        foreach (int f in wonders)
+        {
+            if (placed.Count >= count) break;
+            var candidates = new List<int>();
+            for (int t = 0; t < map.Count; t++)
+            {
+                if (!FeatureValid(map, f, t) || map.IsMountain(t) || map.IsChannel(t) || map.Resource[t] >= 0) continue;
+                if (map.Feature[t] >= 0 && !db.Features[map.Feature[t]].Removable) continue;
+                if (map.IsWater(t) && !Enumerable.Range(0, 6).Any(d => map.Neighbor(t, d) is int n and >= 0 && map.IsLand(n))) continue;   // near shore
+                if (starts.Any(st => map.Distance(st, t) < 4) || placed.Any(p => map.Distance(p, t) < 8)) continue;
+                candidates.Add(t);
+            }
+            if (candidates.Count == 0) continue;
+            int tile = candidates[rng.NextInt(candidates.Count)];
+            map.Feature[tile] = (short)f;
+            placed.Add(tile);
+        }
+        stats.NaturalWonders = placed.Count;
     }
 
     private static bool FeatureValid(MapGrid map, int feature, int tile)

@@ -39,6 +39,7 @@ public static class CitySystem
             if (n >= 0 && map.OwnerPlayer[n] < 0) ClaimTile(s, city, n);
         }
         NationSystem.OnCityFounded(s, city);
+        AgeSystem.Award(s, s.Players[city.Owner], 1, $"Founded {city.Name}", null);
         return city;
     }
 

@@ -97,6 +97,7 @@ public partial class UnitLayer : Node3D
         bool industrial = owner.Architecture >= Architecture.Industrial;
         if (d.FoundsCity) look = industrial ? new UnitLook("life/van", 1, 0.5f, true, white) : new UnitLook("units/civilian_a", 3, 0.5f, false, white);
         else if (d.FoundsOutpost) look = new UnitLook("units/Mage", 2, 0.7f, false, white);
+        else if (d.HasTag("Missionary")) look = new UnitLook("units/Mage", 1, 0.72f, false, new Color(0.95f, 0.85f, 1.15f), new Color(0.8f, 0.6f, 1f, 0.25f));
         else if (d.Charges > 0 && d.Domain == UnitDomain.Civilian)
             look = owner.Path == TechLook.Discarnate ? new UnitLook("units/drone", 2, 0.3f, true, white, default, 0.35f)
                  : industrial ? new UnitLook("life/tractor", 1, 0.42f, true, white) : new UnitLook("units/civilian_b", 2, 0.5f, false, white);

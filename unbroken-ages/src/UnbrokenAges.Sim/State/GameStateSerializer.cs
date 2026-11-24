@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 13;
+    public const int Version = 14;
 
     public static byte[] Serialize(GameState s)
     {
@@ -143,6 +143,35 @@ public static class GameStateSerializer
         foreach (var phase in s.TurnPhases) { w.Write(phase.Length); foreach (int p in phase) w.Write(p); }
         var v = s.Victory;
         w.Write(v.Winner); w.Write(v.WinnerTeam); w.Write((int)v.Kind); w.Write(v.Turn); w.Write(v.Continued);
+
+        // Society (version 14).
+        foreach (var p in s.Players)
+        {
+            w.Write(p.Government); WriteList(w, p.Policies); w.Write(p.PolicySwapFree); w.Write(p.Pantheon); w.Write(p.Religion);
+            WriteList(w, p.Beliefs); WriteArray<int>(w, p.GreatPersonPoints); WriteArray<int>(w, p.GreatPeopleRecruited);
+            w.Write(p.EraScore); w.Write(p.AgeEra); w.Write(p.WarWeariness);
+        }
+        foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
+        foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
+        w.Write(s.Camps.Count);
+        foreach (var (tile, timer) in s.Camps) { w.Write(tile); w.Write(timer); }
+        WriteList(w, s.GreatPeopleTaken.OrderBy(x => x).ToList());
+        w.Write(s.Discoveries.Count);
+        foreach (long d in s.Discoveries.OrderBy(x => x)) w.Write(d);
+    }
+
+    private static void WriteList(BinaryWriter w, List<int> list)
+    {
+        w.Write(list.Count);
+        foreach (int x in list) w.Write(x);
+    }
+
+    private static List<int> ReadList(BinaryReader r)
+    {
+        int n = r.ReadInt32();
+        var list = new List<int>(n);
+        for (int i = 0; i < n; i++) list.Add(r.ReadInt32());
+        return list;
     }
 
     public static GameState Deserialize(byte[] data, GameDatabase db)
@@ -303,6 +332,22 @@ public static class GameStateSerializer
             s.TurnPhases.Add(phase);
         }
         s.Victory = new VictoryState { Winner = r.ReadInt32(), WinnerTeam = r.ReadInt32(), Kind = (VictoryKind)r.ReadInt32(), Turn = r.ReadInt32(), Continued = r.ReadBoolean() };
+
+        foreach (var p in s.Players)
+        {
+            p.Government = r.ReadInt32(); p.Policies = ReadList(r); p.PolicySwapFree = r.ReadBoolean(); p.Pantheon = r.ReadInt32(); p.Religion = r.ReadInt32();
+            p.Beliefs = ReadList(r);
+            p.GreatPersonPoints = new int[7]; ReadArray(r, p.GreatPersonPoints);
+            p.GreatPeopleRecruited = new int[7]; ReadArray(r, p.GreatPeopleRecruited);
+            p.EraScore = r.ReadInt32(); p.AgeEra = r.ReadInt32(); p.WarWeariness = r.ReadInt32();
+        }
+        foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
+        foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }
+        int camps = r.ReadInt32();
+        for (int i = 0; i < camps; i++) s.Camps.Add((r.ReadInt32(), r.ReadInt32()));
+        foreach (int g in ReadList(r)) s.GreatPeopleTaken.Add(g);
+        int discoveries = r.ReadInt32();
+        for (int i = 0; i < discoveries; i++) s.Discoveries.Add(r.ReadInt64());
         return s;
     }
 

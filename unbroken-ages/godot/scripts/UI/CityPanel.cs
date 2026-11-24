@@ -163,7 +163,9 @@ public partial class CityPanel : PanelContainer
             if (effective != d.Index) continue;
             if (!player.HasTech(d.PrereqTechIndex) || !player.HasCivic(d.PrereqCivicIndex)) continue;
             if (d.CivilizationIndex >= 0 && d.CivilizationIndex != player.CivIndex) continue;
-            Offer(ProductionKind.District, d.Index, $"⬡ {d.Name} ({ProductionSystem.Cost(s, player, ProductionKind.District, d.Index).FloorToInt()})");
+            bool wonder = d.Category == DistrictCategory.Wonder;
+            if (wonder && s.Cities.Any(c => c.Districts.Any(x => x.DefIndex == d.Index))) continue;   // someone has built it
+            Offer(ProductionKind.District, d.Index, $"{(wonder ? "★ Wonder: " : "⬡ ")}{d.Name} ({ProductionSystem.Cost(s, player, ProductionKind.District, d.Index).FloorToInt()})");
         }
         foreach (var b in s.Db.Buildings)
             if (ProductionSystem.Validate(s, city, ProductionKind.Building, b.Index, -1) == null)

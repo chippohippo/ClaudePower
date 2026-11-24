@@ -69,7 +69,9 @@ public partial class UnitPanel : PanelContainer
         _portraitIcon.Texture = Icons.Get(MapOverlay.UnitIcon(def));
         _title.Text = UnitStats.Name(s, u).ToUpperInvariant();
         _subtitle.Text = (def.Domain == Sim.Data.UnitDomain.Civilian ? "Civilian" : def.UnitClass) +
-                         (u.Fortified ? " · Fortified" : "") + (u.Destination >= 0 ? " · En route" : "") + (u.Charges > 0 ? $" · {u.Charges} build charges" : "");
+                         (u.Fortified ? " · Fortified" : "") + (u.Destination >= 0 ? " · En route" : "") + (u.Charges > 0 ? $" · {u.Charges} build charges" : "") +
+                         (SupplySystem.IsMilitary(s.Db, u) ? $" · XP {u.Experience}/{SocietySystem.ExperienceFor(u.Promotions.Count)}" : "") +
+                         (u.Promotions.Count > 0 ? " · " + string.Join(", ", u.Promotions.Select(p => s.Db.Promotions[p].Name)) : "");
         foreach (var c in _stats.GetChildren()) c.QueueFree();
         if (def.Strength > 0) _stats.AddChild(Icons.Stat("strength", UiTheme.Text, UnitStats.Strength(s, u).ToString(), out _, 18, "Combat strength"));
         if (UnitStats.IsRanged(s, u)) _stats.AddChild(Icons.Stat("arrow", UiTheme.Text, $"{UnitStats.RangedStrength(s, u)} · range {UnitStats.Range(s, u)}", out _, 18, "Ranged strength and range"));
@@ -90,9 +92,13 @@ public partial class UnitPanel : PanelContainer
                 Action(imp.Id.Contains("FARM") ? "farm" : imp.Id.Contains("MINE") ? "iron" : "production", imp.Name, "", new BuildImprovementCommand { UnitId = u.Id, Improvement = imp.Index });
             }
         }
+        if (ReligionSystem.IsMissionary(def)) Action("faith", "Spread Religion", "", new SpreadReligionCommand { UnitId = u.Id });
         if (SupplySystem.IsMilitary(s.Db, u))
         {
             Action("defense", u.Fortified ? "Fortified" : "Fortify", "F", new FortifyCommand { UnitId = u.Id });
+            if (SocietySystem.CanPromote(s, u))
+                foreach (var promo in SocietySystem.Available(s, u))
+                    Action("crown", $"Promote: {promo.Name}", "", new PromoteUnitCommand { UnitId = u.Id, Promotion = promo.Index }, promo.Description);
             foreach (int target in UpgradeSystem.Targets(s, u))
             {
                 var variants = UnitStats.VariantsOf(s.Db, target);

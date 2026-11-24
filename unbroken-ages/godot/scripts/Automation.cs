@@ -13,8 +13,8 @@ namespace UnbrokenAges.Client;
 ///   --autostart[=seed]     start a single-player game at once (Small map, you + 2 AI)
 ///   --leader=LEADER_X      your leader for --autostart (the AIs get other nations)
 ///   --do=a,b,c             actions, one every few frames: found, research, produce, end, next, move-east, attack,
-///                          panel:T|P|C|V, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
-///                          select-city, focus-road, era:N, tech:A+B, path:N, paths, spawn:A+B, reveal (debug), wait
+///                          panel:T|P|C|V|G, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
+///                          select-city, focus-road, era:N, tech:A+B, path:N, paths, spawn:A+B, wonders:A+B, focus-wonder, focus-camp, reveal (debug), wait
 ///   --shots=dir            screenshot after every action (dir/NN-action.png)
 ///   --shot=file.png        screenshot at the end
 ///   --quit                 exit when done (exit code 1 if an action failed)
@@ -218,6 +218,38 @@ public partial class GameRoot
                                      .OrderByDescending(t => vis[t]).ThenByDescending(t => me.Revealed[t]).DefaultIfEmpty(-1).First();
                 if (tile < 0) return "no such resource";
                 Camera.LookAtHex(s.Map.CoordOf(tile));
+                return null;
+            }
+            case var wd when wd.StartsWith("wonders:"):
+            {
+                // Debug: raise the given world wonders (WONDER_ ids without the prefix, joined by '+') around your largest city.
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+                if (city == null) return "no city";
+                foreach (var id in wd[8..].Split('+'))
+                {
+                    int def = s.Db.Districts.IndexOf("WONDER_" + id.ToUpperInvariant());
+                    if (def < 0) return $"no wonder {id}";
+                    int tile = UnbrokenAges.Sim.Systems.Districts.DistrictPlacement.CandidateTiles(s, city)
+                        .Where(t => UnbrokenAges.Sim.Systems.Districts.DistrictPlacement.Check(s, city, def, t, new(IgnoreTech: true)).Count == 0)
+                        .OrderBy(t => s.Map.Distance(t, city.Tile)).ThenBy(t => t).DefaultIfEmpty(-1).First();
+                    if (tile >= 0) CitySystem.AddDistrict(s, city, def, tile);
+                }
+                _localVersion++;
+                return null;
+            }
+            case "focus-wonder" or "focus-camp":
+            {
+                // Debug: look at the nearest natural wonder (or barbarian camp) to your capital, revealing it.
+                var home = s.Cities.Where(c => c.Owner == LocalPlayer).Select(c => c.Tile).DefaultIfEmpty(0).First();
+                var tiles = step == "focus-camp" ? s.Camps.Select(c => c.Tile).ToList()
+                          : Enumerable.Range(0, s.Map.Count).Where(t => s.Map.Feature[t] >= 0 && s.Db.Features[s.Map.Feature[t]].NaturalWonder).ToList();
+                if (tiles.Count == 0) return "none on this map";
+                int tile = tiles.OrderBy(t => s.Map.Distance(t, home)).First();
+                var around = new List<int>();
+                s.Map.CollectRadius(tile, 3, around);
+                foreach (int t in around) me.Revealed[t] = true;
+                Camera.LookAtHex(s.Map.CoordOf(tile));
+                _localVersion++;
                 return null;
             }
             case var sp when sp.StartsWith("spawn:"):

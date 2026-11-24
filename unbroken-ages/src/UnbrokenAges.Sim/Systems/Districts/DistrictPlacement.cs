@@ -29,6 +29,8 @@ public enum PlacementFailure
     ForbidsAdjacentCityCenter,
     RequiresAdjacentSource,
     CanalConnection,
+    /// <summary>A world wonder: someone has already built it.</summary>
+    WonderBuiltElsewhere,
 }
 
 public readonly record struct PlacementOptions(bool IgnoreTech = false, bool IgnoreCapacity = false, int IgnoreQueueUid = -1);
@@ -88,6 +90,8 @@ public static class DistrictPlacement
                 c.Districts.Any(d => SameFamily(d.DefIndex)) ||
                 c.Queue.Items.Any(q => q.Kind == ProductionKind.District && q.Uid != opt.IgnoreQueueUid && SameFamily(q.DefIndex))))
             failures.Add(PlacementFailure.AlreadyBuiltInEmpire);
+        if (def.Category == DistrictCategory.Wonder && s.Cities.Any(c => c.Districts.Any(d => d.DefIndex == districtIndex)))
+            failures.Add(PlacementFailure.WonderBuiltElsewhere);
         if (def.CountsTowardLimit && !opt.IgnoreCapacity &&
             UsedCapacity(s, city, opt.IgnoreQueueUid) >= Capacity(city, CityEffects.Compute(s, city)))
             failures.Add(PlacementFailure.DistrictCapacity);

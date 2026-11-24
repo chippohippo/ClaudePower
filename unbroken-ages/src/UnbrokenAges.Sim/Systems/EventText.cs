@@ -60,16 +60,35 @@ public static class EventText
             GameEventType.DynastyFell when mine => $"The loss of {e.Detail} shatters the dynasty: every city loses {e.Value} loyalty.",
             GameEventType.DynastyFell => $"{who}'s dynasty has fallen.",
             GameEventType.UnitDisbanded when mine => $"The treasury is empty: unpaid, your {e.Detail} deserted.",
+            GameEventType.GovernmentAdopted when mine => $"You adopt {e.Detail}. Slot your policy cards (G).",
+            GameEventType.PantheonFounded when mine => $"Your people now worship: {e.Detail}.",
+            GameEventType.PantheonFounded => $"{who} founded a pantheon: {e.Detail}.",
+            GameEventType.ReligionFounded when mine => $"You founded {e.Detail}! {city} is its holy city.",
+            GameEventType.ReligionFounded => $"{who} founded {e.Detail}.",
+            GameEventType.CityConverted when mine => $"{city} now follows {e.Detail}.",
+            GameEventType.GreatPersonRecruited when mine => $"A great person joins you: {e.Detail}.",
+            GameEventType.GreatPersonRecruited => $"{who} recruited {e.Detail}.",
+            GameEventType.HistoricMoment when mine => $"Historic moment: {e.Detail} (+{e.Value} era score).",
+            GameEventType.AgeBegan when mine => $"Your people enter a {e.Detail}.",
+            GameEventType.AgeBegan when e.Value is (int)AgeState.Golden or (int)AgeState.Heroic => $"{who} enters a {(AgeState)e.Value} Age.",
+            GameEventType.NaturalWonderDiscovered when mine => $"You discovered {e.Detail}, a natural wonder!",
+            GameEventType.UnitPromoted when mine => $"Promoted: {e.Detail}.",
+            GameEventType.CampSpawned when Seen(s, e.Tile, viewer) => "Barbarians have made camp in the wilds.",
+            GameEventType.CampCleared when mine => $"You scattered a barbarian camp: +{e.Value} gold.",
+            GameEventType.TilePillaged when mine => "Raiders pillaged an improvement in your lands.",
             GameEventType.VictoryAchieved => e.Detail,
             GameEventType.PlayerEliminated => mine ? "Your civilization has fallen." : $"{who} has fallen.",
             _ => null,
         };
     }
 
+    private static bool Seen(GameState s, int tile, int viewer) =>
+        tile >= 0 && viewer >= 0 && viewer < s.Players.Count && tile < s.Players[viewer].Revealed.Length && s.Players[viewer].Revealed[tile];
+
     private static bool BattleAt(GameState s, GameEvent e, int viewer) =>
         e.Tile >= 0 && (s.Units.Any(u => u.Tile == e.Tile && u.Owner == viewer) || s.Cities.Any(c => c.Tile == e.Tile && c.Owner == viewer));
 
-    private static string Civ(GameState s, int player)
+    public static string Civ(GameState s, int player)
     {
         if (player < 0 || player >= s.Players.Count) return "Someone";
         var p = s.Players[player];

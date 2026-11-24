@@ -53,7 +53,7 @@ public partial class TopBar : PanelContainer
         _turn = new Label();
         _turn.AddThemeColorOverride("font_color", UiTheme.GoldBright);
         h.AddChild(_turn);
-        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
+        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("faith", "G", "Society (G): government and policy cards, faith, great people, ages"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
         {
             var b = Icons.Button(icon, key, UiTheme.GoldBright, () => _root.ToggleByKey(key), tip);
             b.CustomMinimumSize = new Vector2(46, 28);
@@ -78,7 +78,7 @@ public partial class TopBar : PanelContainer
         _scienceBox.TooltipText = $"Science per turn from your cities. Current research: {(p.CurrentTech >= 0 ? s.Db.Techs[p.CurrentTech].Name : "none (press T)")}.";
         _turn.Text = $"Turn {s.Turn} · {Calendar.Format(Calendar.Year(s.Turn, s.Options.GameSpeedPercent))}";
         var w = s.World;
-        _age.Text = WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age";
+        _age.Text = (WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age") + (p.Age != AgeState.Normal ? $" · your {p.Age} Age" : "");
         int next = WorldSystem.Forecast(s, w.WorldEra + 1);
         _ageBox.TooltipText = $"World currents: Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}\n" +
                               $"If a new era began now: {(next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age")}." +

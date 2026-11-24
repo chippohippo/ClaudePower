@@ -70,6 +70,7 @@ public static class ProductionSystem
                     && !city.Districts.Any(d => s.Map.IsWater(d.Tile)))
                     return "Naval units need a coastal or Great River city.";
                 if (NationSystem.ForbidUnit(s, player, u) is { } forbidden) return forbidden;
+                if (ReligionSystem.IsMissionary(u) && player.Religion < 0) return "Found a religion first.";
                 if (u.FoundsCity && city.Population < 2) return "Settlers require population 2.";
                 return null;
             }
@@ -246,6 +247,7 @@ public static class ProductionSystem
         }
         events.Add(new GameEvent(GameEventType.ProductionCompleted, city.Owner, city.Id, item.Tile, item.DefIndex, (int)item.Kind, ItemName(db, item)));
         NationSystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
+        AgeSystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
     }
 
     private static int? FindNavalSpawn(GameState s, CityState city)

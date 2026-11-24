@@ -58,6 +58,26 @@ public enum GameEventType : byte
     DynastyFell,
     /// <summary>An unpaid unit deserted (the treasury was empty).</summary>
     UnitDisbanded,
+    // ----- Society -----
+    GovernmentAdopted,
+    PantheonFounded,
+    /// <summary>A religion was founded (Value = religion index; City = holy city).</summary>
+    ReligionFounded,
+    /// <summary>A city converted (Value = religion index).</summary>
+    CityConverted,
+    /// <summary>Def = great person index.</summary>
+    GreatPersonRecruited,
+    /// <summary>Era score earned (Value = points, Detail = the moment).</summary>
+    HistoricMoment,
+    /// <summary>Value = (int)AgeState.</summary>
+    AgeBegan,
+    NaturalWonderDiscovered,
+    /// <summary>Value = promotion index.</summary>
+    UnitPromoted,
+    CampSpawned,
+    CampCleared,
+    /// <summary>Raiders burned an improvement (Player = its owner).</summary>
+    TilePillaged,
 }
 
 /// <summary>

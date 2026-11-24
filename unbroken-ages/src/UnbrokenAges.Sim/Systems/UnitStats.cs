@@ -31,7 +31,7 @@ public static class UnitStats
     public static bool IsRanged(GameState s, UnitState u) => RangedStrength(s, u) > 0;
     public static int Range(GameState s, UnitState u) => Math.Max(1, s.Db.Units[u.DefIndex].Range + (VariantOf(s, u)?.RangeDelta ?? 0));
     public static int Moves(GameState s, UnitState u) =>
-        Math.Max(1, s.Db.Units[u.DefIndex].Moves + (VariantOf(s, u)?.MovesDelta ?? 0) + NationSystem.MovesBonus(s, u));
+        Math.Max(1, s.Db.Units[u.DefIndex].Moves + (VariantOf(s, u)?.MovesDelta ?? 0) + NationSystem.MovesBonus(s, u) + SocietySystem.MovesBonus(s, u));
     public static bool IgnoresRiverCrossing(GameState s, UnitState u) => VariantOf(s, u)?.IgnoresRiverCrossing ?? false;
 
     /// <summary>"Swordsman (Heavy)".</summary>

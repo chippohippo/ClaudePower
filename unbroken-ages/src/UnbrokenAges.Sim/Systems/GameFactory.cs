@@ -50,6 +50,7 @@ public static class GameFactory
                 Civics = new bool[db.Civics.Count],
                 Stockpile = new int[db.Resources.Count],
                 GovernorTitles = setup.Options.StartingGovernorTitles,
+                Government = db.Governments.FirstOrDefault(g => g.PrereqCivicIndex < 0)?.Index ?? -1,
             };
             s.Players.Add(p);
             if (i >= generated.StartTiles.Count) continue;
