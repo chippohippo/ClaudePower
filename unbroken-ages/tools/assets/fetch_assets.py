@@ -20,6 +20,16 @@ def ext_of(name):
 
 def fetch(a):
     key = f'{a["type"]}:{a["name"]}'
+    for attempt in range(4):
+        try:
+            return fetch_once(a, key)
+        except Exception as e:   # flaky network: retry, then report without aborting the whole run
+            err = f"{type(e).__name__}: {e}"
+            import time; time.sleep(2 + 3 * attempt)
+    return key, None, err
+
+
+def fetch_once(a, key):
     d = patchlib.detail(a["type"], a["id"])
     if not d:
         return key, None, f'not found: {a["id"]}'
@@ -47,7 +57,7 @@ def fetch(a):
 
 
 errors = []
-with cf.ThreadPoolExecutor(8) as pool:
+with cf.ThreadPoolExecutor(3) as pool:
     for key, info, err in pool.map(fetch, manifest["assets"]):
         if err:
             errors.append(f"{key}: {err}")

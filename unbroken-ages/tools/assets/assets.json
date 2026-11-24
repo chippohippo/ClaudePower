@@ -1588,6 +1588,414 @@
    "type": "model",
    "id": "anymove:trex",
    "dest": "models/units"
+  },
+  {
+   "name": "rifleman",
+   "type": "model",
+   "id": "polyfork:infantry-rifleman-c1c0a5",
+   "dest": "models/units"
+  },
+  {
+   "name": "samurai",
+   "type": "model",
+   "id": "polyfork:samurai-warrior-f2ebbe",
+   "dest": "models/units"
+  },
+  {
+   "name": "ashigaru",
+   "type": "model",
+   "id": "polyfork:ashigaru-foot-soldier-806707",
+   "dest": "models/units"
+  },
+  {
+   "name": "guard",
+   "type": "model",
+   "id": "polyfork:village-guard-5f0f6f",
+   "dest": "models/units"
+  },
+  {
+   "name": "pilot",
+   "type": "model",
+   "id": "polyfork:aircrew-pilot-e6b732",
+   "dest": "models/units"
+  },
+  {
+   "name": "monk",
+   "type": "model",
+   "id": "polyfork:buddhist-monk-39f498",
+   "dest": "models/units"
+  },
+  {
+   "name": "merchant",
+   "type": "model",
+   "id": "polyfork:merchant-6f606b",
+   "dest": "models/units"
+  },
+  {
+   "name": "farmer",
+   "type": "model",
+   "id": "polyfork:farmer-304a43",
+   "dest": "models/units"
+  },
+  {
+   "name": "villager",
+   "type": "model",
+   "id": "polyfork:villager-40255c",
+   "dest": "models/units"
+  },
+  {
+   "name": "worker",
+   "type": "model",
+   "id": "polyfork:construction-worker-c1ad8c",
+   "dest": "models/units"
+  },
+  {
+   "name": "soldier_arena",
+   "type": "model",
+   "id": "kenney:mini-arena/character-soldier.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "archer_mini",
+   "type": "model",
+   "id": "kenney:mini-forest/character-archer.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "horse_saddled",
+   "type": "model",
+   "id": "polyfork:saddled-horse-da86d3",
+   "dest": "models/units"
+  },
+  {
+   "name": "elephant",
+   "type": "model",
+   "id": "polyfork:elephant-base",
+   "dest": "models/units"
+  },
+  {
+   "name": "camel",
+   "type": "model",
+   "id": "polyfork:camel-base",
+   "dest": "models/units"
+  },
+  {
+   "name": "catapult",
+   "type": "model",
+   "id": "kenney:castle-kit/siege-catapult.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "cannon",
+   "type": "model",
+   "id": "kenney:pirate-kit/cannon-mobile.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "howitzer",
+   "type": "model",
+   "id": "polyfork:towed-field-howitzer-bb9a08",
+   "dest": "models/units"
+  },
+  {
+   "name": "half_track",
+   "type": "model",
+   "id": "polyfork:armoured-half-track-3deded",
+   "dest": "models/units"
+  },
+  {
+   "name": "jeep",
+   "type": "model",
+   "id": "polyfork:scout-jeep-c02efe",
+   "dest": "models/units"
+  },
+  {
+   "name": "cargo_truck",
+   "type": "model",
+   "id": "polyfork:military-cargo-truck-652f66",
+   "dest": "models/units"
+  },
+  {
+   "name": "fighter",
+   "type": "model",
+   "id": "polyfork:single-engine-fighter-a6addf",
+   "dest": "models/units"
+  },
+  {
+   "name": "bomber",
+   "type": "model",
+   "id": "polyfork:heavy-bomber-62be39",
+   "dest": "models/units"
+  },
+  {
+   "name": "helicopter",
+   "type": "model",
+   "id": "polyfork:helicopter-9d1986",
+   "dest": "models/units"
+  },
+  {
+   "name": "galleon",
+   "type": "model",
+   "id": "polyfork:pirate-galleon-2e9aea",
+   "dest": "models/units"
+  },
+  {
+   "name": "boat_sail_a",
+   "type": "model",
+   "id": "kenney:watercraft-kit/boat-sail-a.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "boat_sail_b",
+   "type": "model",
+   "id": "kenney:watercraft-kit/boat-sail-b.glb",
+   "dest": "models/units"
+  },
+  {
+   "name": "suburb_e",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-e.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_f",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-f.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_g",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-g.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_h",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-h.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_i",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-i.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_j",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-j.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_k",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-k.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "suburb_l",
+   "type": "model",
+   "id": "kenney:city-kit-suburban/building-type-l.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_d",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-d.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_e",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-e.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_f",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-f.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_g",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-g.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_h",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-h.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_i",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-i.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "office_j",
+   "type": "model",
+   "id": "kenney:city-kit-commercial/building-j.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_d",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-d.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_e",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-e.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_f",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-f.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_s",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-s.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "factory_t",
+   "type": "model",
+   "id": "kenney:city-kit-industrial/building-t.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "townhouse_a",
+   "type": "model",
+   "id": "kenney:modular-buildings/building-sample-house-a.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "townhouse_b",
+   "type": "model",
+   "id": "kenney:modular-buildings/building-sample-house-b.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "townhouse_c",
+   "type": "model",
+   "id": "kenney:modular-buildings/building-sample-house-c.glb",
+   "dest": "models/era"
+  },
+  {
+   "name": "village_tavern",
+   "type": "model",
+   "id": "polyfork:village-tavern-4e94e3",
+   "dest": "models/era"
+  },
+  {
+   "name": "village_gatehouse",
+   "type": "model",
+   "id": "polyfork:village-gatehouse-181a9e",
+   "dest": "models/era"
+  },
+  {
+   "name": "village_house",
+   "type": "model",
+   "id": "polyfork:two-story-house-40f6dc",
+   "dest": "models/era"
+  },
+  {
+   "name": "farmhouse",
+   "type": "model",
+   "id": "polyfork:gabled-farmhouse-c7534f",
+   "dest": "models/era"
+  },
+  {
+   "name": "grain_silo",
+   "type": "model",
+   "id": "polyfork:grain-silo-58ca67",
+   "dest": "models/era"
+  },
+  {
+   "name": "stable",
+   "type": "model",
+   "id": "polyfork:open-stable-dbf2d5",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_a",
+   "type": "model",
+   "id": "kaykit:city-builder/building_A.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_b",
+   "type": "model",
+   "id": "kaykit:city-builder/building_B.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_c",
+   "type": "model",
+   "id": "kaykit:city-builder/building_C.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_d",
+   "type": "model",
+   "id": "kaykit:city-builder/building_D.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_e",
+   "type": "model",
+   "id": "kaykit:city-builder/building_E.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_f",
+   "type": "model",
+   "id": "kaykit:city-builder/building_F.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_g",
+   "type": "model",
+   "id": "kaykit:city-builder/building_G.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "citybits_h",
+   "type": "model",
+   "id": "kaykit:city-builder/building_H.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "watertower",
+   "type": "model",
+   "id": "kaykit:city-builder/watertower.gltf",
+   "dest": "models/era"
+  },
+  {
+   "name": "streetlight",
+   "type": "model",
+   "id": "kaykit:city-builder/streetlight.gltf",
+   "dest": "models/props"
+  },
+  {
+   "name": "car_police",
+   "type": "model",
+   "id": "kaykit:city-builder/car_police.gltf",
+   "dest": "models/life"
+  },
+  {
+   "name": "car_taxi",
+   "type": "model",
+   "id": "kaykit:city-builder/car_taxi.gltf",
+   "dest": "models/life"
   }
  ]
 }

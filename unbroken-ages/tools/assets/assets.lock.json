@@ -385,6 +385,16 @@
    "models/units/Skeleton_Warrior.glb"
   ]
  },
+ "model:archer_mini": {
+  "id": "kenney:mini-forest/character-archer.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Character archer\" by Kenney (Kenney, https://kenney.nl/assets/mini-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d72.4 to real-world size (calibrated on its wall (1 unit; about 2.4 m, which makes its characters about 1.8 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/mini-forest",
+  "files": [
+   "models/units/archer_mini.glb"
+  ]
+ },
  "model:archeryrange_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_archeryrange_blue.gltf",
   "license": "CC0-1.0",
@@ -423,6 +433,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_archeryrange_yellow.gltf",
   "files": [
    "models/buildings/archeryrange_yellow.glb"
+  ]
+ },
+ "model:ashigaru": {
+  "id": "polyfork:ashigaru-foot-soldier-806707",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Ashigaru Foot Soldier by Polyfork (https://polyfork.dev/asset/ashigaru-foot-soldier-806707), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/ashigaru-foot-soldier-806707",
+  "files": [
+   "models/units/ashigaru.glb"
   ]
  },
  "model:barracks_blue": {
@@ -515,6 +535,36 @@
    "models/buildings/blacksmith_yellow.glb"
   ]
  },
+ "model:boat_sail_a": {
+  "id": "kenney:watercraft-kit/boat-sail-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Boat sail a\" by Kenney (Kenney, https://kenney.nl/assets/watercraft-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71 to real-world size (calibrated on the rowing boat (2.85 units; about 3 m)).",
+  "url": "https://kenney.nl/assets/watercraft-kit",
+  "files": [
+   "models/units/boat_sail_a.glb"
+  ]
+ },
+ "model:boat_sail_b": {
+  "id": "kenney:watercraft-kit/boat-sail-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Boat sail b\" by Kenney (Kenney, https://kenney.nl/assets/watercraft-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71 to real-world size (calibrated on the rowing boat (2.85 units; about 3 m)).",
+  "url": "https://kenney.nl/assets/watercraft-kit",
+  "files": [
+   "models/units/boat_sail_b.glb"
+  ]
+ },
+ "model:bomber": {
+  "id": "polyfork:heavy-bomber-62be39",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Heavy Bomber by Polyfork (https://polyfork.dev/asset/heavy-bomber-62be39), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/heavy-bomber-62be39",
+  "files": [
+   "models/units/bomber.glb"
+  ]
+ },
  "model:bridge_A": {
   "id": "kaykit:medieval-hexagon/buildings/neutral/building_bridge_A.gltf",
   "license": "CC0-1.0",
@@ -575,6 +625,26 @@
    "models/buildings/building-wizard-tower.glb"
   ]
  },
+ "model:camel": {
+  "id": "polyfork:camel-base",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Camel by Polyfork (https://polyfork.dev/asset/camel-base), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/camel-base",
+  "files": [
+   "models/units/camel.glb"
+  ]
+ },
+ "model:cannon": {
+  "id": "kenney:pirate-kit/cannon-mobile.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Cannon mobile\" by Kenney (Kenney, https://kenney.nl/assets/pirate-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d71 to real-world size (calibrated on the rowing boat (2.85 units; about 3 m)).",
+  "url": "https://kenney.nl/assets/pirate-kit",
+  "files": [
+   "models/units/cannon.glb"
+  ]
+ },
  "model:canoe": {
   "id": "kenney:nature-kit/canoe.glb",
   "license": "CC0-1.0",
@@ -595,6 +665,26 @@
    "models/life/car.glb"
   ]
  },
+ "model:car_police": {
+  "id": "kaykit:city-builder/car_police.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Car police\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/car_police.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/car_police.gltf",
+  "files": [
+   "models/life/car_police.glb"
+  ]
+ },
+ "model:car_taxi": {
+  "id": "kaykit:city-builder/car_taxi.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Car taxi\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/car_taxi.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/car_taxi.gltf",
+  "files": [
+   "models/life/car_taxi.glb"
+  ]
+ },
  "model:cargo_craft": {
   "id": "kenney:space-kit/craft_cargoA.glb",
   "license": "CC0-1.0",
@@ -603,6 +693,16 @@
   "url": "https://kenney.nl/assets/space-kit",
   "files": [
    "models/life/cargo_craft.glb"
+  ]
+ },
+ "model:cargo_truck": {
+  "id": "polyfork:military-cargo-truck-652f66",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Military Cargo Truck by Polyfork (https://polyfork.dev/asset/military-cargo-truck-652f66), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/military-cargo-truck-652f66",
+  "files": [
+   "models/units/cargo_truck.glb"
   ]
  },
  "model:castle_blue": {
@@ -643,6 +743,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_castle_yellow.gltf",
   "files": [
    "models/buildings/castle_yellow.glb"
+  ]
+ },
+ "model:catapult": {
+  "id": "kenney:castle-kit/siege-catapult.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Siege catapult\" by Kenney (Kenney, https://kenney.nl/assets/castle-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d74 to real-world size (calibrated on its door), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/castle-kit",
+  "files": [
+   "models/units/catapult.glb"
   ]
  },
  "model:chimney_industrial": {
@@ -693,6 +803,86 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_church_yellow.gltf",
   "files": [
    "models/buildings/church_yellow.glb"
+  ]
+ },
+ "model:citybits_a": {
+  "id": "kaykit:city-builder/building_A.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building A\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_A.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_A.gltf",
+  "files": [
+   "models/era/citybits_a.glb"
+  ]
+ },
+ "model:citybits_b": {
+  "id": "kaykit:city-builder/building_B.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building B\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_B.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_B.gltf",
+  "files": [
+   "models/era/citybits_b.glb"
+  ]
+ },
+ "model:citybits_c": {
+  "id": "kaykit:city-builder/building_C.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building C\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_C.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_C.gltf",
+  "files": [
+   "models/era/citybits_c.glb"
+  ]
+ },
+ "model:citybits_d": {
+  "id": "kaykit:city-builder/building_D.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building D\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_D.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_D.gltf",
+  "files": [
+   "models/era/citybits_d.glb"
+  ]
+ },
+ "model:citybits_e": {
+  "id": "kaykit:city-builder/building_E.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building E\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_E.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_E.gltf",
+  "files": [
+   "models/era/citybits_e.glb"
+  ]
+ },
+ "model:citybits_f": {
+  "id": "kaykit:city-builder/building_F.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building F\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_F.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_F.gltf",
+  "files": [
+   "models/era/citybits_f.glb"
+  ]
+ },
+ "model:citybits_g": {
+  "id": "kaykit:city-builder/building_G.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building G\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_G.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_G.gltf",
+  "files": [
+   "models/era/citybits_g.glb"
+  ]
+ },
+ "model:citybits_h": {
+  "id": "kaykit:city-builder/building_H.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Building H\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_H.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/building_H.gltf",
+  "files": [
+   "models/era/citybits_h.glb"
   ]
  },
  "model:civilian_a": {
@@ -845,6 +1035,16 @@
    "models/units/drone.glb"
   ]
  },
+ "model:elephant": {
+  "id": "polyfork:elephant-base",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Elephant by Polyfork (https://polyfork.dev/asset/elephant-base), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/elephant-base",
+  "files": [
+   "models/units/elephant.glb"
+  ]
+ },
  "model:factory_a": {
   "id": "kenney:city-kit-industrial/building-a.glb",
   "license": "CC0-1.0",
@@ -875,6 +1075,86 @@
    "models/era/factory_c.glb"
   ]
  },
+ "model:factory_d": {
+  "id": "kenney:city-kit-industrial/building-d.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building d\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_d.glb"
+  ]
+ },
+ "model:factory_e": {
+  "id": "kenney:city-kit-industrial/building-e.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building e\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_e.glb"
+  ]
+ },
+ "model:factory_f": {
+  "id": "kenney:city-kit-industrial/building-f.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building f\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_f.glb"
+  ]
+ },
+ "model:factory_s": {
+  "id": "kenney:city-kit-industrial/building-s.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building s\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_s.glb"
+  ]
+ },
+ "model:factory_t": {
+  "id": "kenney:city-kit-industrial/building-t.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building t\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-industrial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "files": [
+   "models/era/factory_t.glb"
+  ]
+ },
+ "model:farmer": {
+  "id": "polyfork:farmer-304a43",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Farmer by Polyfork (https://polyfork.dev/asset/farmer-304a43), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/farmer-304a43",
+  "files": [
+   "models/units/farmer.glb"
+  ]
+ },
+ "model:farmhouse": {
+  "id": "polyfork:gabled-farmhouse-c7534f",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Gabled Farmhouse by Polyfork (https://polyfork.dev/asset/gabled-farmhouse-c7534f), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/gabled-farmhouse-c7534f",
+  "files": [
+   "models/era/farmhouse.glb"
+  ]
+ },
+ "model:fighter": {
+  "id": "polyfork:single-engine-fighter-a6addf",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Single-Engine Fighter by Polyfork (https://polyfork.dev/asset/single-engine-fighter-a6addf), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/single-engine-fighter-a6addf",
+  "files": [
+   "models/units/fighter.glb"
+  ]
+ },
  "model:fishing_boat": {
   "id": "kenney:watercraft-kit/boat-fishing-small.glb",
   "license": "CC0-1.0",
@@ -893,6 +1173,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/props/flag_blue.gltf",
   "files": [
    "models/props/flag_blue.glb"
+  ]
+ },
+ "model:galleon": {
+  "id": "polyfork:pirate-galleon-2e9aea",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Pirate Galleon by Polyfork (https://polyfork.dev/asset/pirate-galleon-2e9aea), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/pirate-galleon-2e9aea",
+  "files": [
+   "models/units/galleon.glb"
   ]
  },
  "model:gem": {
@@ -915,6 +1205,16 @@
    "models/buildings/grain.glb"
   ]
  },
+ "model:grain_silo": {
+  "id": "polyfork:grain-silo-58ca67",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Grain Silo by Polyfork (https://polyfork.dev/asset/grain-silo-58ca67), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/grain-silo-58ca67",
+  "files": [
+   "models/era/grain_silo.glb"
+  ]
+ },
  "model:grapes": {
   "id": "kenney:food-kit/grapes.glb",
   "license": "CC0-1.0",
@@ -923,6 +1223,26 @@
   "url": "https://kenney.nl/assets/food-kit",
   "files": [
    "models/resources/grapes.glb"
+  ]
+ },
+ "model:guard": {
+  "id": "polyfork:village-guard-5f0f6f",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Village Guard by Polyfork (https://polyfork.dev/asset/village-guard-5f0f6f), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/village-guard-5f0f6f",
+  "files": [
+   "models/units/guard.glb"
+  ]
+ },
+ "model:half_track": {
+  "id": "polyfork:armoured-half-track-3deded",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Armoured Half-Track by Polyfork (https://polyfork.dev/asset/armoured-half-track-3deded), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/armoured-half-track-3deded",
+  "files": [
+   "models/units/half_track.glb"
   ]
  },
  "model:hangar_large": {
@@ -953,6 +1273,16 @@
   "url": "https://kenney.nl/assets/graveyard-kit",
   "files": [
    "models/resources/hay.glb"
+  ]
+ },
+ "model:helicopter": {
+  "id": "polyfork:helicopter-9d1986",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Helicopter by Polyfork (https://polyfork.dev/asset/helicopter-9d1986), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/helicopter-9d1986",
+  "files": [
+   "models/units/helicopter.glb"
   ]
  },
  "model:hills_A": {
@@ -1085,6 +1415,36 @@
    "models/units/horse.glb"
   ]
  },
+ "model:horse_saddled": {
+  "id": "polyfork:saddled-horse-da86d3",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Saddled Horse by Polyfork (https://polyfork.dev/asset/saddled-horse-da86d3), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/saddled-horse-da86d3",
+  "files": [
+   "models/units/horse_saddled.glb"
+  ]
+ },
+ "model:howitzer": {
+  "id": "polyfork:towed-field-howitzer-bb9a08",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Towed Field Howitzer by Polyfork (https://polyfork.dev/asset/towed-field-howitzer-bb9a08), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/towed-field-howitzer-bb9a08",
+  "files": [
+   "models/units/howitzer.glb"
+  ]
+ },
+ "model:jeep": {
+  "id": "polyfork:scout-jeep-c02efe",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Scout Jeep by Polyfork (https://polyfork.dev/asset/scout-jeep-c02efe), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/scout-jeep-c02efe",
+  "files": [
+   "models/units/jeep.glb"
+  ]
+ },
  "model:lumbermill_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_lumbermill_blue.gltf",
   "license": "CC0-1.0",
@@ -1175,6 +1535,16 @@
    "models/units/mech.glb"
   ]
  },
+ "model:merchant": {
+  "id": "polyfork:merchant-6f606b",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Merchant by Polyfork (https://polyfork.dev/asset/merchant-6f606b), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/merchant-6f606b",
+  "files": [
+   "models/units/merchant.glb"
+  ]
+ },
  "model:mine_blue": {
   "id": "kaykit:medieval-hexagon/buildings/blue/building_mine_blue.gltf",
   "license": "CC0-1.0",
@@ -1223,6 +1593,16 @@
   "url": "https://kenney.nl/assets/animated-characters-survivors",
   "files": [
    "models/units/modern_soldier.glb"
+  ]
+ },
+ "model:monk": {
+  "id": "polyfork:buddhist-monk-39f498",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Buddhist Monk by Polyfork (https://polyfork.dev/asset/buddhist-monk-39f498), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/buddhist-monk-39f498",
+  "files": [
+   "models/units/monk.glb"
   ]
  },
  "model:mountain_A": {
@@ -1325,6 +1705,76 @@
    "models/era/office_c.glb"
   ]
  },
+ "model:office_d": {
+  "id": "kenney:city-kit-commercial/building-d.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building d\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_d.glb"
+  ]
+ },
+ "model:office_e": {
+  "id": "kenney:city-kit-commercial/building-e.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building e\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_e.glb"
+  ]
+ },
+ "model:office_f": {
+  "id": "kenney:city-kit-commercial/building-f.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building f\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_f.glb"
+  ]
+ },
+ "model:office_g": {
+  "id": "kenney:city-kit-commercial/building-g.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building g\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_g.glb"
+  ]
+ },
+ "model:office_h": {
+  "id": "kenney:city-kit-commercial/building-h.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building h\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_h.glb"
+  ]
+ },
+ "model:office_i": {
+  "id": "kenney:city-kit-commercial/building-i.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building i\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_i.glb"
+  ]
+ },
+ "model:office_j": {
+  "id": "kenney:city-kit-commercial/building-j.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building j\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-commercial), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed, simplified LODs added.",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "files": [
+   "models/era/office_j.glb"
+  ]
+ },
  "model:ore": {
   "id": "polyfork:copper-ore-deposit-d5e58b",
   "license": "CC-BY-4.0",
@@ -1353,6 +1803,16 @@
   "url": "https://kenney.nl/assets/cube-pets",
   "files": [
    "models/resources/pig.glb"
+  ]
+ },
+ "model:pilot": {
+  "id": "polyfork:aircrew-pilot-e6b732",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Aircrew Pilot by Polyfork (https://polyfork.dev/asset/aircrew-pilot-e6b732), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/aircrew-pilot-e6b732",
+  "files": [
+   "models/units/pilot.glb"
   ]
  },
  "model:race_future": {
@@ -1393,6 +1853,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/props/resource_stone.gltf",
   "files": [
    "models/props/resource_stone.glb"
+  ]
+ },
+ "model:rifleman": {
+  "id": "polyfork:infantry-rifleman-c1c0a5",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Infantry Rifleman by Polyfork (https://polyfork.dev/asset/infantry-rifleman-c1c0a5), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/infantry-rifleman-c1c0a5",
+  "files": [
+   "models/units/rifleman.glb"
   ]
  },
  "model:rock_crystals": {
@@ -1453,6 +1923,16 @@
   "url": "https://polyfork.dev/asset/sailboat-3ee283",
   "files": [
    "models/life/sailboat.glb"
+  ]
+ },
+ "model:samurai": {
+  "id": "polyfork:samurai-warrior-f2ebbe",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Samurai Warrior by Polyfork (https://polyfork.dev/asset/samurai-warrior-f2ebbe), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/samurai-warrior-f2ebbe",
+  "files": [
+   "models/units/samurai.glb"
   ]
  },
  "model:scaffolding": {
@@ -1565,6 +2045,16 @@
    "models/era/solar_field.glb"
   ]
  },
+ "model:soldier_arena": {
+  "id": "kenney:mini-arena/character-soldier.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Character soldier\" by Kenney (Kenney, https://kenney.nl/assets/mini-arena), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d72.4 to real-world size (calibrated on its wall (1 unit; about 2.4 m, which makes its characters about 1.8 m)).",
+  "url": "https://kenney.nl/assets/mini-arena",
+  "files": [
+   "models/units/soldier_arena.glb"
+  ]
+ },
  "model:space_chimney": {
   "id": "kenney:space-kit/chimney_detailed.glb",
   "license": "CC0-1.0",
@@ -1585,6 +2075,16 @@
    "models/life/speeder.glb"
   ]
  },
+ "model:stable": {
+  "id": "polyfork:open-stable-dbf2d5",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Open Stable by Polyfork (https://polyfork.dev/asset/open-stable-dbf2d5), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/open-stable-dbf2d5",
+  "files": [
+   "models/era/stable.glb"
+  ]
+ },
  "model:stage_A": {
   "id": "kaykit:medieval-hexagon/buildings/neutral/building_stage_A.gltf",
   "license": "CC0-1.0",
@@ -1593,6 +2093,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/neutral/building_stage_A.gltf",
   "files": [
    "models/buildings/stage_A.glb"
+  ]
+ },
+ "model:streetlight": {
+  "id": "kaykit:city-builder/streetlight.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Streetlight\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/streetlight.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/streetlight.gltf",
+  "files": [
+   "models/props/streetlight.glb"
   ]
  },
  "model:structure_detailed": {
@@ -1643,6 +2153,86 @@
   "url": "https://kenney.nl/assets/city-kit-suburban",
   "files": [
    "models/era/suburb_d.glb"
+  ]
+ },
+ "model:suburb_e": {
+  "id": "kenney:city-kit-suburban/building-type-e.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type e\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_e.glb"
+  ]
+ },
+ "model:suburb_f": {
+  "id": "kenney:city-kit-suburban/building-type-f.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type f\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_f.glb"
+  ]
+ },
+ "model:suburb_g": {
+  "id": "kenney:city-kit-suburban/building-type-g.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type g\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_g.glb"
+  ]
+ },
+ "model:suburb_h": {
+  "id": "kenney:city-kit-suburban/building-type-h.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type h\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_h.glb"
+  ]
+ },
+ "model:suburb_i": {
+  "id": "kenney:city-kit-suburban/building-type-i.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type i\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_i.glb"
+  ]
+ },
+ "model:suburb_j": {
+  "id": "kenney:city-kit-suburban/building-type-j.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type j\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_j.glb"
+  ]
+ },
+ "model:suburb_k": {
+  "id": "kenney:city-kit-suburban/building-type-k.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type k\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)).",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_k.glb"
+  ]
+ },
+ "model:suburb_l": {
+  "id": "kenney:city-kit-suburban/building-type-l.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building type l\" by Kenney (Kenney, https://kenney.nl/assets/city-kit-suburban), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d75 to real-world size (calibrated on its road signs (0.47 units; a sign post is about 2.4 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "files": [
+   "models/era/suburb_l.glb"
   ]
  },
  "model:tank_storage": {
@@ -1785,6 +2375,36 @@
    "models/buildings/tower_B_yellow.glb"
   ]
  },
+ "model:townhouse_a": {
+  "id": "kenney:modular-buildings/building-sample-house-a.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building sample house a\" by Kenney (Kenney, https://kenney.nl/assets/modular-buildings), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d74 to real-world size (calibrated on its door (0.5 units; about 2 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/modular-buildings",
+  "files": [
+   "models/era/townhouse_a.glb"
+  ]
+ },
+ "model:townhouse_b": {
+  "id": "kenney:modular-buildings/building-sample-house-b.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building sample house b\" by Kenney (Kenney, https://kenney.nl/assets/modular-buildings), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d74 to real-world size (calibrated on its door (0.5 units; about 2 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/modular-buildings",
+  "files": [
+   "models/era/townhouse_b.glb"
+  ]
+ },
+ "model:townhouse_c": {
+  "id": "kenney:modular-buildings/building-sample-house-c.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Building sample house c\" by Kenney (Kenney, https://kenney.nl/assets/modular-buildings), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, textures embedded, scaled \u00d74 to real-world size (calibrated on its door (0.5 units; about 2 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/modular-buildings",
+  "files": [
+   "models/era/townhouse_c.glb"
+  ]
+ },
  "model:tractor": {
   "id": "kenney:car-kit/tractor.glb",
   "license": "CC0-1.0",
@@ -1915,6 +2535,46 @@
    "models/life/van.glb"
   ]
  },
+ "model:village_gatehouse": {
+  "id": "polyfork:village-gatehouse-181a9e",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Village Gatehouse by Polyfork (https://polyfork.dev/asset/village-gatehouse-181a9e), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/village-gatehouse-181a9e",
+  "files": [
+   "models/era/village_gatehouse.glb"
+  ]
+ },
+ "model:village_house": {
+  "id": "polyfork:two-story-house-40f6dc",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Two-Story House by Polyfork (https://polyfork.dev/asset/two-story-house-40f6dc), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/two-story-house-40f6dc",
+  "files": [
+   "models/era/village_house.glb"
+  ]
+ },
+ "model:village_tavern": {
+  "id": "polyfork:village-tavern-4e94e3",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Village Tavern by Polyfork (https://polyfork.dev/asset/village-tavern-4e94e3), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/village-tavern-4e94e3",
+  "files": [
+   "models/era/village_tavern.glb"
+  ]
+ },
+ "model:villager": {
+  "id": "polyfork:villager-40255c",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Male Villager by Polyfork (https://polyfork.dev/asset/villager-40255c), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/villager-40255c",
+  "files": [
+   "models/units/villager.glb"
+  ]
+ },
  "model:wagon": {
   "id": "polyfork:four-wheel-wagon-adb946",
   "license": "CC-BY-4.0",
@@ -1993,6 +2653,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/decoration/nature/waterplant_B.gltf",
   "files": [
    "models/nature/waterplant_B.glb"
+  ]
+ },
+ "model:watertower": {
+  "id": "kaykit:city-builder/watertower.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Watertower\" by Kay Lousberg (KayKit, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/watertower.gltf), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d74.8 to real-world size (calibrated on its sedan (0.94 units long; a sedan is about 4.5 m)).",
+  "url": "https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0/blob/63976910ca04d16f0fc531b9c614244be8128713/addons/kaykit_city_builder_bits/Assets/gltf/watertower.gltf",
+  "files": [
+   "models/era/watertower.glb"
   ]
  },
  "model:well_blue": {
@@ -2083,6 +2753,16 @@
   "url": "https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/blob/84fa4e91af6a88989be7c99e0891cede11f2ca38/addons/kaykit_medieval_hexagon_pack/Assets/gltf/buildings/yellow/building_windmill_yellow.gltf",
   "files": [
    "models/buildings/windmill_yellow.glb"
+  ]
+ },
+ "model:worker": {
+  "id": "polyfork:construction-worker-c1ad8c",
+  "license": "CC-BY-4.0",
+  "source": "Polyfork",
+  "credit": "Construction Worker by Polyfork (https://polyfork.dev/asset/construction-worker-c1ad8c), CC BY 4.0. Licence: https://creativecommons.org/licenses/by/4.0/. Changed by Patch: a compressed preview copy added for the viewer (web and src are as published).",
+  "url": "https://polyfork.dev/asset/construction-worker-c1ad8c",
+  "files": [
+   "models/units/worker.glb"
   ]
  },
  "music:achaidh_cheide": {
