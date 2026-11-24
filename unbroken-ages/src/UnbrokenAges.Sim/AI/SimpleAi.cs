@@ -160,15 +160,34 @@ public sealed class SimpleAi : IAiController
         return soldier != null && military < 3 * cityCount + 3 && player.Gold > Fx.Zero ? (ProductionKind.Unit, soldier.Index, -1) : null;
     }
 
-    /// <summary>Seat idle governors in the largest ungoverned cities, then spend a title: appoint first, promote after.</summary>
+    private static readonly Fx Slipping = Fx.FromInt(90), Endangered = Fx.FromInt(70);
+
+    /// <summary>
+    /// Seat idle governors where loyalty is slipping first, then in the largest ungoverned cities. With none idle, a city
+    /// about to break away takes the governor of a contented city that will stay loyal without one. Then spend a title:
+    /// appoint first, promote after.
+    /// </summary>
     private static IEnumerable<GameCommand> Governors(GameState s, PlayerState player)
     {
-        var open = s.CitiesOf(player.Id).Where(c => c.GovernorDef < 0).OrderByDescending(c => c.Population).ThenBy(c => c.Id).ToList();
+        var open = s.CitiesOf(player.Id).Where(c => c.GovernorDef < 0)
+                    .OrderBy(c => c.Loyalty < Slipping ? 0 : 1).ThenBy(c => c.Loyalty < Slipping ? c.Loyalty : Fx.Zero)
+                    .ThenByDescending(c => c.Population).ThenBy(c => c.Id).ToList();
+        bool idle = false;
         foreach (var gov in player.Governors.Where(g => g.CityId < 0))
         {
+            idle = true;
             if (open.Count == 0) break;
             yield return new AssignGovernorCommand { Player = player.Id, Governor = gov.DefIndex, CityId = open[0].Id };
             open.RemoveAt(0);
+        }
+        if (!idle && open.FirstOrDefault(c => c.Loyalty < Endangered) is { } endangered)
+        {
+            var snapshot = LoyaltySystem.Snapshot(s);
+            var donor = s.CitiesOf(player.Id)
+                .Where(c => c.GovernorDef >= 0 && c.Loyalty >= LoyaltySystem.MaxLoyalty && player.GetGovernor(c.GovernorDef) is { Established: true })
+                .Where(c => LoyaltySystem.Compute(s, c, snapshot) is var b && b.Total - b.Governor >= Fx.FromInt(2))
+                .OrderBy(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+            if (donor != null) yield return new AssignGovernorCommand { Player = player.Id, Governor = donor.GovernorDef, CityId = endangered.Id };
         }
         if (player.GovernorTitles < 1) yield break;
         var next = s.Db.Governors.FirstOrDefault(g => player.GetGovernor(g.Index) == null);

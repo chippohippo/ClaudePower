@@ -68,13 +68,41 @@ public static class ExpansionAi
                 ranked.Add((t, SiteScore(s, player, t) - perTile * map.Distance(from, t)));
             }
             var mover = walker ?? Phantom(s, player, from);
-            foreach (var (t, _) in ranked.OrderByDescending(r => r.Score).ThenBy(r => r.Tile).Take(6))
+            int tries = 0;
+            foreach (var (t, _) in ranked.OrderByDescending(r => r.Score).ThenBy(r => r.Tile))
+            {
+                if (!Holdable(s, player, t)) continue;
                 if (mover == null || t == mover.Tile || Movement.FindPath(s, mover, t, 12000) != null) return t;
+                if (++tries >= 6) break;
+            }
         }
         return -1;
     }
 
     public const int OverseasRadius = 26;
+
+    /// <summary>
+    /// Whether a new town of one citizen could keep its loyalty at <paramref name="tile"/>: the citizen pressure it would feel
+    /// (as LoyaltySystem reckons it, less the age and policy adjustments), plus its homeland and garrison, must not drain it
+    /// faster than a point or two a turn. A site in a great neighbour's shadow only feeds that neighbour a free city.
+    /// </summary>
+    public static bool Holdable(GameState s, int player, int tile)
+    {
+        var map = s.Map;
+        long dom = 10, foreign = 0;   // tenths of pressure; the town's own citizen counts at full strength
+        foreach (var c in s.Cities)
+        {
+            int d = map.Distance(c.Tile, tile);
+            if (d > LoyaltySystem.Radius) continue;
+            long p = c.Population * (10 - d);
+            if (c.IsCapital) p += p / 4;
+            var owner = s.Players[c.Owner];
+            if (c.Owner == player) dom += p;
+            else foreign += owner.IsFreeCities || owner.IsCityState ? p / 2 : p;
+        }
+        long term = Math.Clamp(10 * (dom - foreign) / (Math.Min(dom, foreign) + 10), -LoyaltySystem.PressureCap, LoyaltySystem.PressureCap);
+        return term + LoyaltySystem.HomelandBonus + 2 >= -2;
+    }
 
     private static bool CanCrossOcean(GameState s, PlayerState p) => p.HasTech(s.Db.Techs.IndexOf(s.Db.Rules.Combat.OceanEmbarkTech));
     private static bool CanCrossOcean(GameState s, int player) => CanCrossOcean(s, s.Players[player]);
