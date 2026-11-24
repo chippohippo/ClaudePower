@@ -93,6 +93,7 @@ public class AiTests
         var home = TestWorld.City(s, 0, 3, 10);
         var enemyCity = TestWorld.City(s, 1, 22, 10);
         TestWorld.City(s, 1, 27, 17);   // a second city, so the first is not the last one the AI spares
+        s.Turn = MilitaryAi.CapitalsSparedUntilTurn;   // past the opening, when small rivals are left alone
         var fresh = TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 10);
         var hurt = TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 14);
         hurt.Hp = 35;

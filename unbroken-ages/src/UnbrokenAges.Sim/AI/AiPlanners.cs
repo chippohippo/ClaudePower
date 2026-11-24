@@ -363,9 +363,17 @@ public static class MilitaryAi
     /// <summary>Until this turn the AI also leaves rivals' capitals alone: a people has time to establish itself before its heart can fall.</summary>
     public const int CapitalsSparedUntilTurn = 100;
 
-    private static bool Spared(GameState s, CityState city) =>
-        !s.Players[city.Owner].IsFreeCities && s.Players[city.Owner].IsMajor &&
-        (s.Turn < SparedUntilTurn && s.Cities.Count(c => c.Owner == city.Owner) <= 1 || s.Turn < CapitalsSparedUntilTurn && city.IsCapital);
+    /// <summary>Until <see cref="CapitalsSparedUntilTurn"/> the AI also leaves alone a rival that has only this many cities:
+    /// early wars are border wars, and no people is crippled before it has grown.</summary>
+    public const int OpeningCities = 3;
+
+    private static bool Spared(GameState s, CityState city)
+    {
+        if (s.Players[city.Owner].IsFreeCities || !s.Players[city.Owner].IsMajor) return false;
+        int held = s.Cities.Count(c => c.Owner == city.Owner);
+        return s.Turn < SparedUntilTurn && held <= 1 ||
+               s.Turn < CapitalsSparedUntilTurn && (city.IsCapital || held <= OpeningCities);
+    }
 
     /// <summary>The strongest line unit the city can build now (siege engines and anti-cavalry are chosen separately).</summary>
     public static UnitDef? BestLandUnit(GameState s, CityState city) =>
