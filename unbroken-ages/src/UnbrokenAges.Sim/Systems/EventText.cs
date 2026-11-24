@@ -39,6 +39,7 @@ public static class EventText
             GameEventType.CivilianCaptured when mine => $"You captured a {e.Detail}.",
             GameEventType.CityCaptured when aboutMe => mine ? $"You captured {e.Detail}!" : $"{who} captured {e.Detail}!",
             GameEventType.CityCaptured => $"{who} captured {e.Detail}.",
+            GameEventType.CapitalMoved => mine ? $"The government has moved to {e.Detail}, your new capital." : $"{who} moved its capital to {e.Detail}.",
             GameEventType.CityFlipped when aboutMe => mine ? $"{e.Detail} chose to join you." : $"{e.Detail} left you for {who}.",
             GameEventType.CityDeclaredIndependence when e.Value == viewer => $"{e.Detail} declared independence.",
             GameEventType.Disaster when mine => $"{e.Detail} struck your lands.",

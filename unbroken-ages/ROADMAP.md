@@ -37,6 +37,11 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **16. World Congress**: sessions, six resolutions, favor and extra votes, public tallies, victory points, the Concord victory.
 - [x] **17. Corps and armies; unique units for the 30 later nations.** (The orbital layer remains: item 18.)
 - [x] **18. Orbital layer and Exodus**: satellites with coverage, the four-stage Exodus chain and victory, AI space race.
+- [x] **19. Visual pass and the line through the ages**: 19 period units and Gunpowder, data-driven unit looks (period figures, riders,
+      generated tanks and warships), a Renaissance town tier, varied industrial and modern cities.
+- [x] **20. First-playtest pass**: survival fixes (moved capitals, no last-city revolts, the AI spares a garrisoned last city), city
+      defence that keeps pace with the line, Skip for units, the playtest guide ([docs/PLAYTEST.md](docs/PLAYTEST.md)).
+- [ ] **21. After the first playtest**: a tutorial, air bases and interception, the AI turn off the UI thread, whatever playtesters find.
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).

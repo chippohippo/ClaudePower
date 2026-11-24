@@ -159,7 +159,8 @@ public static class LoyaltySystem
             city.Loyalty = Fx.Clamp(city.Loyalty + b.Total, Fx.Zero, MaxLoyalty);
             if (b.TurnsUntilFlip is > 0 and <= 5 && city.Loyalty > Fx.Zero)
                 events.Add(new GameEvent(GameEventType.LoyaltyWarning, city.Owner, city.Id, city.Tile, Value: b.TurnsUntilFlip, Detail: city.Name));
-            if (city.Loyalty == Fx.Zero && !city.IsCapital) flips.Add((city, b));
+            // Capitals never revolt, nor does a civilization's last city: loyalty shrinks realms, it does not end them.
+            if (city.Loyalty == Fx.Zero && !city.IsCapital && (!s.Players[city.Owner].IsMajor || s.Cities.Count(c => c.Owner == city.Owner) > 1)) flips.Add((city, b));
         }
 
         foreach (var (city, b) in flips)

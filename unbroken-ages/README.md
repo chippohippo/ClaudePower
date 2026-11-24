@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 300 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 309 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -121,7 +121,11 @@ Civilization VII's age resets or civ-swapping.
   * Carrying votes and holding city-states earn diplomatic victory points; 20 win the **Concord** victory.
 
   ![The World Congress in the Diplomacy screen](docs/screenshots/world-congress.png)
-* **Unique units for all 36 nations, plus corps and armies**: the Legion, the Hoplite, the Impi, the Samurai, the Cossack, the Hwacha, the
+* **A line through every era** ([05/09](docs/05-key-systems/09-combat.md#the-line-through-the-ages)): Spearmen and Pikemen
+  against cavalry, Knights, Musketmen, Line Infantry, Cavalry, Infantry, Mechanized Infantry and Modern Armor; Catapults, Field
+  Cannon and Artillery that break walls; Battleships, Destroyers and Submarines; Fighters and Bombers that fly over any tile.
+  Each unit upgrades along its line, and unique units follow the line of the unit they replace.
+* **Unique units for all 38 nations, plus corps and armies**: the Legion, the Hoplite, the Impi, the Samurai, the Cossack, the Hwacha, the
   Winged Hussar, the Sherman and more. Two units of a kind merge into a Corps (+10) and then an Army (+17), and march in deeper ranks.
 * **Space** ([05/21](docs/05-key-systems/21-space.md)): Spaceports launch survey, solar, weather and relay satellites that cover the
   cities below them for 40 turns.
@@ -173,23 +177,23 @@ wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited
 |---|---|
 | Select a unit or city | Left-click (click a city again to cycle through the units inside) |
 | Move or attack | Right-click a tile (hovering an enemy shows the combat preview first) |
-| Next unit · Found city · Fortify | Space · B · F (or the buttons in the unit panel) |
+| Skip a unit for the turn · Found city · Fortify | Space · B · F (or the buttons in the unit panel) |
 | Research and civics | T |
 | City production | Click your city: queue, reorder, buy |
 | End turn | Enter or the End Turn button (it names anything still waiting for you) |
-| Diplomacy · Chronicle · Divergence · Supply lens · Resource lens | P · C · V · L · R |
+| Diplomacy · Society · Espionage · Chronicle · Divergence · Supply lens · Resource lens | P · G · E · C · V · L · R |
 | Save · Load | F5 · F9 |
 | Pan · Zoom · Close a screen | WASD or arrows · mouse wheel · Esc |
 
-Graphics are placeholders: coloured hexes, discs for armies, beads for civilians, columns for cities. Fog of war hides what you have
-not explored. `tools/client-smoke.sh` plays 45 turns of the real client with scripted input and saves screenshots (it runs headless
+**Playtesters: start with [docs/PLAYTEST.md](docs/PLAYTEST.md)** (recommended settings, every control, what to look at,
+known limitations and how to report a problem). Fog of war hides what you have not explored. `tools/client-smoke.sh` plays 45 turns of the real client with scripted input and saves screenshots (it runs headless
 with `xvfb-run` and a software Vulkan driver).
 
 ## Quick start
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 300 tests, ~4 s
+dotnet test                                        # 309 tests, ~4 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

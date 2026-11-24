@@ -74,7 +74,8 @@ public static class CitySystem
         for (int i = city.Queue.Items.Count - 1; i >= 0; i--) ProductionSystem.Remove(s, city, i);
         city.ProgressLedger.Clear();
         GovernorSystem.Unassign(s, city);
-        if (oldPlayer.CapitalCityId == city.Id)
+        bool lostCapital = oldPlayer.CapitalCityId == city.Id;
+        if (lostCapital)
         {
             oldPlayer.CapitalCityId = -1;
             city.IsCapital = false;
@@ -84,6 +85,13 @@ public static class CitySystem
         for (int t = 0; t < s.Map.Count; t++)
             if (s.Map.OwnerCity[t] == city.Id) s.Map.OwnerPlayer[t] = newOwner;
         events.Add(new GameEvent(reason, newOwner, city.Id, city.Tile, Value: oldOwner, Detail: city.Name));
+        // A fallen capital: the government moves to the largest city left, so the realm keeps its capital's loyalty and bonuses.
+        if (lostCapital && oldPlayer.IsMajor && s.CitiesOf(oldOwner).OrderByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault() is { } seat)
+        {
+            seat.IsCapital = true;
+            oldPlayer.CapitalCityId = seat.Id;
+            events.Add(new GameEvent(GameEventType.CapitalMoved, oldOwner, seat.Id, seat.Tile, Detail: seat.Name));
+        }
         NationSystem.OnCityLost(s, oldOwner, city, events);
     }
 

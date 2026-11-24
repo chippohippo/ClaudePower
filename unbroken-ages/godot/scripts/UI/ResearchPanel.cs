@@ -1,3 +1,5 @@
+using UnbrokenAges.Sim.Data;
+using UnbrokenAges.Sim.State;
 using Godot;
 using UnbrokenAges.Sim.Commands;
 using UnbrokenAges.Sim.Systems;
@@ -62,16 +64,40 @@ public partial class ResearchPanel : PanelContainer
         foreach (var t in s.Db.Techs.Where(t => ResearchSystem.CanResearch(p, t) && !t.Doctrine).OrderBy(t => t.Cost).ThenBy(t => t.Index))
         {
             int cost = ResearchSystem.Cost(s, p, t).FloorToInt();
-            Add(_techs, $"{t.Name}  ·  {cost}  ·  {Turns(cost, science)}", t.Index == p.CurrentTech, t.Boost,
+            Add(_techs, $"{t.Name}  ·  {cost}  ·  {Turns(cost, science)}" + Unlocks(s, p, t.Index, -1), t.Index == p.CurrentTech, t.Boost,
                 new SetResearchCommand { Tech = t.Index });
         }
         foreach (var c in _civics.GetChildren()) c.QueueFree();
         foreach (var c in s.Db.Civics.Where(c => ResearchSystem.CanStudy(p, c)).OrderBy(c => c.Cost).ThenBy(c => c.Index))
         {
             int cost = ResearchSystem.Cost(s, p, c).FloorToInt();
-            Add(_civics, $"{c.Name}  ·  {cost}  ·  {Turns(cost, culture)}" + (c.GovernorTitles > 0 ? "  ·  +governor title" : ""), c.Index == p.CurrentCivic, c.Boost,
+            Add(_civics, $"{c.Name}  ·  {cost}  ·  {Turns(cost, culture)}" + (c.GovernorTitles > 0 ? "  ·  +governor title" : "") + Unlocks(s, p, -1, c.Index), c.Index == p.CurrentCivic, c.Boost,
                 new SetCivicCommand { Civic = c.Index });
         }
+    }
+
+    /// <summary>What a technology (or civic) opens, on a second line: your own units (your unique in place of the generic it
+    /// replaces), districts, buildings and improvements.</summary>
+    private static string Unlocks(GameState s, PlayerState p, int tech, int civic)
+    {
+        var db = s.Db;
+        bool Opens(int techIndex, int civicIndex) => tech >= 0 ? techIndex == tech : civicIndex == civic;
+        var names = new List<string>();
+        foreach (var u in db.Units)
+        {
+            if (!Opens(u.PrereqTechIndex, u.PrereqCivicIndex)) continue;
+            if (u.CivilizationIndex >= 0 && u.CivilizationIndex != p.CivIndex) continue;                    // others' uniques
+            if (u.CivilizationIndex < 0 && db.Units.Any(x => x.ReplacesIndex == u.Index && x.CivilizationIndex == p.CivIndex)) continue;   // replaced by yours
+            names.Add(u.Name);
+        }
+        // The same rule for districts and buildings: your unique in place of the generic, never another nation's.
+        bool MineD(DistrictDef d) => d.CivilizationIndex < 0 ? !db.Districts.Any(x => x.ReplacesIndex == d.Index && x.CivilizationIndex == p.CivIndex) : d.CivilizationIndex == p.CivIndex;
+        bool MineB(BuildingDef b) => b.CivilizationIndex < 0 ? !db.Buildings.Any(x => x.ReplacesIndex == b.Index && x.CivilizationIndex == p.CivIndex) : b.CivilizationIndex == p.CivIndex;
+        names.AddRange(db.Districts.Where(d => Opens(d.PrereqTechIndex, d.PrereqCivicIndex) && d.Model == null && MineD(d)).Select(d => d.Name));
+        names.AddRange(db.Buildings.Where(b => Opens(b.PrereqTechIndex, b.PrereqCivicIndex) && MineB(b)).Select(b => b.Name));
+        names.AddRange(db.Districts.Where(d => Opens(d.PrereqTechIndex, d.PrereqCivicIndex) && d.Model != null).Select(d => d.Name));   // wonders last
+        if (tech >= 0) names.AddRange(db.Improvements.Where(i => i.PrereqTechIndex == tech).Select(i => i.Name));
+        return names.Count == 0 ? "" : "\n      " + string.Join(", ", names.Distinct().Take(6)) + (names.Distinct().Count() > 6 ? "…" : "");
     }
 
     private static string Turns(int cost, int rate) => rate <= 0 ? "—" : $"{(cost + rate - 1) / rate} turns";

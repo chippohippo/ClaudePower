@@ -118,6 +118,8 @@ public enum GameEventType : byte
     SatelliteFell,
     /// <summary>Value = the stage reached.</summary>
     ExodusStageReached,
+    /// <summary>The capital fell and the government moved to this city (Player = its owner).</summary>
+    CapitalMoved,
 }
 
 /// <summary>

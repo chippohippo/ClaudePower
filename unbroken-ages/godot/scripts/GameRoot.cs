@@ -325,7 +325,6 @@ public partial class GameRoot : Node3D
         else TogglePanel(key);
     }
 
-    /// <summary>Cycles through your units that still have moves and no orders.</summary>
     /// <summary>Units the player has passed over this turn (Space / Skip): they stop asking for orders until next turn.</summary>
     private readonly HashSet<int> _skipped = new();
     private int _skippedTurn = -1;
@@ -346,6 +345,7 @@ public partial class GameRoot : Node3D
         SelectNextUnit();
     }
 
+    /// <summary>Cycles through your units that still have moves, no orders and were not skipped this turn.</summary>
     public void SelectNextUnit()
     {
         var s = State;

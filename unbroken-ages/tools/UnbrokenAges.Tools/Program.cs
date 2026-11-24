@@ -115,10 +115,10 @@ void Simulate()
     var tally = new Dictionary<GameEventType, int>();
     for (int t = 0; t < turns; t++)
     {
+        var events = new List<GameEvent>();   // the AI's own actions (captures, declarations) and the turn's resolution
         foreach (var p in s.Players.Where(p => p.IsMajor))
-            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
+            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, events);
         ContinueIfWon(s);
-        var events = new List<GameEvent>();
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
         ContinueIfWon(s);
         foreach (var e in events) tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
@@ -260,10 +260,10 @@ void Future()
     var tally = new Dictionary<GameEventType, int>();
     for (int t = 0; t < turns; t++)
     {
+        var events = new List<GameEvent>();   // the AI's own actions (captures, declarations) and the turn's resolution
         foreach (var p in s.Players.Where(p => p.IsMajor))
-            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, new());
+            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, events);
         ContinueIfWon(s);
-        var events = new List<GameEvent>();
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
         ContinueIfWon(s);
         foreach (var e in events)

@@ -44,7 +44,7 @@ Pressure is computed in tenths and divided once, so fixed-point results are exac
 | 40–69 Wavering | −15% | |
 | 15–39 Disloyal | −35% | Warning notifications start at ≤ 5 turns to flip |
 | 1–14 Unrest | −60% | |
-| 0 | — | **Declares independence** → Free City (loyalty reset to 50). A Free City at 0 joins the civ with the highest pressure. Capitals never flip. |
+| 0 | — | **Declares independence** → Free City (loyalty reset to 50). A Free City at 0 joins the civ with the highest pressure. Capitals never flip, nor does a civilization's last city. When a capital is captured, the government moves to the largest city left (it keeps the capital's +8). |
 
 Flipping goes through `CitySystem.ChangeOwner`: the queue and reservations are cleared, the governor returns to the pool, tiles are re-owned,
 and an event is emitted for notifications and diplomacy (planned: *Cultural Annexation* grievance, reduced when the flip was a liberation).

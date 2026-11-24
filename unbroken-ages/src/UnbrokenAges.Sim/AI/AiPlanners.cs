@@ -212,7 +212,11 @@ public static class MilitaryAi
         var hostile = new HashSet<int>();
         foreach (var o in s.Units) if (o.Owner != p.Id && DiplomacySystem.AtWar(s, p.Id, o.Owner)) hostile.Add(o.Tile);
         foreach (var c in s.Cities)
-            if (c.Owner != p.Id && DiplomacySystem.AtWar(s, p.Id, c.Owner) && !Spared(s, c)) hostile.Add(c.Tile);
+        {
+            if (c.Owner == p.Id || !DiplomacySystem.AtWar(s, p.Id, c.Owner)) continue;
+            if (Spared(s, c)) hostile.Remove(c.Tile);   // its garrison too: striking the last city's defenders would take the city
+            else hostile.Add(c.Tile);
+        }
         if (hostile.Count == 0) yield break;
         int[]? supply = null;
         foreach (var u in s.Units.Where(u => u.Owner == p.Id && SupplySystem.IsMilitary(db, u)).ToList())
