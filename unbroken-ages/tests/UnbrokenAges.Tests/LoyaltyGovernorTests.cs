@@ -8,6 +8,7 @@ public class LoyaltyTests
         TestWorld.City(s, 0, 2, 4, population: 3);          // P0 capital, far away (> 9 tiles)
         var small = TestWorld.City(s, 0, 14, 10, population: 1);
         var big = TestWorld.City(s, 1, 17, 10, population: 12); // P1 capital, 3 tiles away
+        foreach (var c in s.Cities) c.TurnsSinceOwnerChange = 99;   // long settled
         return (s, small, big);
     }
 
@@ -18,10 +19,11 @@ public class LoyaltyTests
         var b = LoyaltySystem.Compute(s, small, LoyaltySystem.Snapshot(s));
         Assert.Equal(Fx.One, b.DomesticPressure);
         Assert.Equal(Fx.Parse("10.5"), b.ForeignPressure);         // 12 × 0.7 × 1.25 (capital)
-        Assert.Equal(Fx.FromInt(-20), b.PressureTerm);              // clamped
+        Assert.Equal(Fx.FromInt(-LoyaltySystem.PressureCap), b.PressureTerm);   // clamped
         Assert.Equal(Fx.FromInt(-1), b.Amenities);                  // displeased
-        Assert.Equal(Fx.FromInt(-21), b.Total);
-        Assert.Equal(5, b.TurnsUntilFlip);
+        Assert.Equal(Fx.FromInt(LoyaltySystem.HomelandBonus), b.Homeland);    // still held by its founders
+        Assert.Equal(Fx.FromInt(-10), b.Total);
+        Assert.Equal(10, b.TurnsUntilFlip);
         Assert.Equal(1, b.TopForeignPlayer);
     }
 
@@ -30,7 +32,7 @@ public class LoyaltyTests
     {
         var (s, small, big) = Frontier();
         var events = new List<GameEvent>();
-        for (int i = 0; i < 5; i++) LoyaltySystem.ProcessTurn(s, events);
+        for (int i = 0; i < 10; i++) LoyaltySystem.ProcessTurn(s, events);
         Assert.True(s.Players[small.Owner].IsFreeCities);
         Assert.Contains(events, e => e.Type == GameEventType.CityDeclaredIndependence);
         Assert.Contains(events, e => e.Type == GameEventType.LoyaltyWarning);
@@ -53,7 +55,7 @@ public class LoyaltyTests
         p0.GetGovernor(steward)!.Established = true;
         var b = LoyaltySystem.Compute(s, small, LoyaltySystem.Snapshot(s));
         Assert.Equal(Fx.FromInt(8), b.Governor);
-        Assert.Equal(Fx.FromInt(-13), b.Total);
+        Assert.Equal(Fx.FromInt(-2), b.Total);
     }
 }
 

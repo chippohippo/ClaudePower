@@ -77,9 +77,10 @@ public class AiTests
         TestWorld.City(s, 1, 15, 10);
         for (int i = 0; i < 3; i++) TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 4 + i, 12);
         TestWorld.Unit(s, 1, "UNIT_WARRIOR", 15, 12);
-        s.Turn = MilitaryAi.EarliestWarTurn - 1;
+        int first = Math.Max(MilitaryAi.EarliestWarTurn, MilitaryAi.FirstWarTurn);   // a leader of ordinary temper
+        s.Turn = first - 1;
         Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[0]));
-        s.Turn = MilitaryAi.EarliestWarTurn;
+        s.Turn = first;
         var war = Assert.IsType<DeclareWarCommand>(MilitaryAi.WarDeclaration(s, s.Players[0]));
         Assert.Equal(1, war.Target);
         Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[1]));               // the weaker side does not start it

@@ -20,6 +20,7 @@ public static class CitySystem
             Tile = tile,
             Name = name ?? NextCityName(s, player),
             FoundedTurn = s.Turn,
+            TurnsSinceOwnerChange = 0,   // a new town settles in like a newly taken one
             IsCapital = player.CapitalCityId < 0,
             WasOriginalCapital = !s.Cities.Any(c => c.OriginalOwner == playerId),
         };

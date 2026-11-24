@@ -180,9 +180,9 @@ public static class BuilderAi
 public static class MilitaryAi
 {
     public const int OddsToAttack = 60;
-    public const int FirstWarTurn = 30;
+    public const int FirstWarTurn = 60;
     /// <summary>No AI starts a war before this turn, however warlike: young civilizations get a chance to found a second city.</summary>
-    public const int EarliestWarTurn = 35;
+    public const int EarliestWarTurn = 50;
     public const int NeighbourRange = 14;
 
     /// <summary>Health-weighted strength of a civilization's military.</summary>
@@ -215,9 +215,11 @@ public static class MilitaryAi
         if (SocietySystem.EffectiveWeariness(s, p) >= 2 * SocietySystem.WearinessPerAmenity) return null;   // the people are tired of war
         if (s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u)) < 3) return null;
         if (CombatSystem.LastStand(s, p.Id)) return null;   // a remnant rebuilds, it does not start wars
+        if (p.LastWarDeclaredTurn >= 0 && s.Turn - p.LastWarDeclaredTurn < WarCooldown) return null;   // one war at a time, with a breath between
         int mine = Strength(s, p.Id);
         // No dogpiles: leave a rival that is making its last stand, or already fighting another great power, alone.
-        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0)
+        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 &&
+                                                              !(DiplomacySystem.Find(s, p.Id, t) is { } rel && rel.Status != DiploStatus.War && s.Turn - rel.Since < WarCooldown))
                                                  .OrderBy(t => Strength(s, t)).ThenBy(t => t))
             if (mine * 2 * war >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
                 return new DeclareWarCommand { Player = p.Id, Target = target };
@@ -345,11 +347,18 @@ public static class MilitaryAi
         }
     }
 
+    /// <summary>Turns an AI waits after declaring one war before it declares another, and after a peace before attacking the same rival.</summary>
+    public const int WarCooldown = 40;
+
     /// <summary>Until this turn the AI leaves a rival its last city and makes peace instead: no nation is erased in the opening.</summary>
     public const int SparedUntilTurn = 150;
 
+    /// <summary>Until this turn the AI also leaves rivals' capitals alone: a people has time to establish itself before its heart can fall.</summary>
+    public const int CapitalsSparedUntilTurn = 100;
+
     private static bool Spared(GameState s, CityState city) =>
-        s.Turn < SparedUntilTurn && !s.Players[city.Owner].IsFreeCities && s.Cities.Count(c => c.Owner == city.Owner) <= 1;
+        !s.Players[city.Owner].IsFreeCities && s.Players[city.Owner].IsMajor &&
+        (s.Turn < SparedUntilTurn && s.Cities.Count(c => c.Owner == city.Owner) <= 1 || s.Turn < CapitalsSparedUntilTurn && city.IsCapital);
 
     /// <summary>The strongest line unit the city can build now (siege engines and anti-cavalry are chosen separately).</summary>
     public static UnitDef? BestLandUnit(GameState s, CityState city) =>
@@ -410,6 +419,29 @@ public static class NationAi
                         yield break;
                     }
                 }
+                break;
+            }
+            default:
+            {
+                // Everyone else spends a healthy treasury too: one purchase a turn, settlers and builders first, then the
+                // cheapest unit or building at the head of a queue, keeping a reserve that grows with the empire.
+                int reserve = 120 + 30 * s.CitiesOf(p.Id).Count();
+                if (p.Gold.FloorToInt() <= reserve) break;
+                PurchaseCommand? best = null;
+                int bestRank = int.MaxValue;
+                foreach (var city in s.CitiesOf(p.Id).OrderBy(c => c.Id))
+                {
+                    var item = city.Queue.Items.FirstOrDefault();
+                    if (item == null || item.Kind is not (ProductionKind.Unit or ProductionKind.Building)) continue;
+                    int cost = ProductionSystem.PurchaseCost(s, city, item.Kind, item.DefIndex).FloorToInt();
+                    if (cost > p.Gold.FloorToInt() - reserve) continue;
+                    var def = item.Kind == ProductionKind.Unit ? s.Db.Units[item.DefIndex] : null;
+                    int rank = def != null && (def.FoundsCity || def.FoundsOutpost) ? 0 : def != null && def.Charges > 0 ? 1 : 2;
+                    rank = rank * 100000 + cost;
+                    var cmd = new PurchaseCommand { Player = p.Id, CityId = city.Id, Kind = item.Kind, DefIndex = item.DefIndex };
+                    if (rank < bestRank && cmd.Validate(s) == null) { best = cmd; bestRank = rank; }
+                }
+                if (best != null) yield return best;
                 break;
             }
         }

@@ -188,6 +188,23 @@ void Simulate()
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
     Console.WriteLine($"time: AI {aiClock.ElapsedMilliseconds} ms, turn resolution {turnClock.ElapsedMilliseconds} ms");
+    // --dump-civ CIV_X: that people's research, cities and units at the end (to see why it is stuck).
+    if (Opt("--dump-civ", "") is { Length: > 0 } dumpCiv)
+        foreach (var p in s.Players.Where(p => p.IsMajor && p.CivIndex >= 0 && db.Civilizations[p.CivIndex].Id.Contains(dumpCiv.ToUpperInvariant())))
+        {
+            Console.WriteLine($"{db.Civilizations[p.CivIndex].Name}: era {s.PlayerEra(p)}, gold {p.Gold.FloorToInt()}, researching {(p.CurrentTech >= 0 ? db.Techs[p.CurrentTech].Id : "-")}");
+            Console.WriteLine("  techs: " + string.Join(" ", db.Techs.Where(t => p.Techs[t.Index]).Select(t => t.Id[5..])));
+            var snap = LoyaltySystem.Snapshot(s);
+            foreach (var c in s.CitiesOf(p.Id))
+            {
+                var lb = LoyaltySystem.Compute(s, c, snap);
+                Console.WriteLine($"  city {c.Name} pop {c.Population} at {c.Tile % s.Map.Width},{c.Tile / s.Map.Width} loyalty {c.Loyalty} ({lb.Total}: dom {lb.DomesticPressure} for {lb.ForeignPressure} | " +
+                                  string.Join(", ", lb.Lines().Select(l => $"{l.Label} {l.Value}")) + ")");
+            }
+            foreach (var u in s.Units.Where(u => u.Owner == p.Id))
+                Console.WriteLine($"  unit {db.Units[u.DefIndex].Id} at {u.Tile % s.Map.Width},{u.Tile / s.Map.Width} {(s.Map.IsWater(u.Tile) ? "(water)" : "")} dest {u.Destination}");
+            Console.WriteLine($"  wants settler: {ExpansionAi.WantsSettler(s, p)}; best site from capital: {(s.CitiesOf(p.Id).FirstOrDefault() is { } cap ? ExpansionAi.BestSite(s, p.Id, cap.Tile, Array.Empty<int>()) : -1)}; max cities {ExpansionAi.MaxCities(s, p)}");
+        }
     if (TurnProcessor.Profile != null)
         Console.WriteLine("profile: " + string.Join(", ", TurnProcessor.Profile.OrderByDescending(k => k.Value).Take(10).Select(k => $"{k.Key} {k.Value:0} ms")));
     if (Opt("--report", "") is { Length: > 0 } reportPath)

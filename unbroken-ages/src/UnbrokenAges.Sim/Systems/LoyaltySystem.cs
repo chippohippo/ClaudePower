@@ -12,6 +12,8 @@ public sealed class LoyaltyBreakdown
     public Fx Amenities;
     public Fx Garrison;
     public Fx Occupation;
+    /// <summary>A city still held by the people who founded it.</summary>
+    public Fx Homeland;
     public Fx Capital;
     public Fx Starvation;
     public Fx SettlingIn;
@@ -29,7 +31,7 @@ public sealed class LoyaltyBreakdown
         var all = new (string, Fx)[]
         {
             ("Citizen pressure (domestic vs foreign)", PressureTerm), ("Governor established", Governor),
-            ("Amenities", Amenities), ("Garrison", Garrison), ("Occupation", Occupation), ("Capital", Capital),
+            ("Amenities", Amenities), ("Garrison", Garrison), ("Occupation", Occupation), ("Homeland", Homeland), ("Capital", Capital),
             ("Starvation", Starvation), ("Settling in", SettlingIn), ("Policies, abilities & buildings", Modifiers),
         };
         return all.Where(l => l.Item2 != Fx.Zero);
@@ -54,6 +56,10 @@ public static class LoyaltySystem
     public const int Radius = 9;
     public static readonly Fx MaxLoyalty = 100;
     public const int SettlingInTurns = 5;
+    /// <summary>The most citizen pressure can move loyalty in a turn, either way (a town in a great neighbour's shadow
+    /// erodes over a couple of dozen turns, time to garrison it, grow it or send a governor).</summary>
+    public const int PressureCap = 12;
+    public const int HomelandBonus = 3;
 
     public readonly record struct CitySnapshot(int Id, int Owner, int Tile, int Population, bool IsCapital, AgeState Age, Fx PressurePercent, bool FreeCity);
 
@@ -64,7 +70,7 @@ public static class LoyaltySystem
         {
             var owner = s.Players[c.Owner];
             var fx = CityEffects.Compute(s, c);
-            list.Add(new CitySnapshot(c.Id, c.Owner, c.Tile, c.Population, c.IsCapital, owner.Age, fx.PressurePercent, owner.IsFreeCities));
+            list.Add(new CitySnapshot(c.Id, c.Owner, c.Tile, c.Population, c.IsCapital, owner.Age, fx.PressurePercent, owner.IsFreeCities || owner.IsCityState));
         }
         return list;
     }
@@ -86,7 +92,7 @@ public static class LoyaltySystem
         p *= AgeMultiplier(src.Age);
         p += p * src.PressurePercent / 100;
         if (src.IsCapital) p += p / 4;
-        if (src.FreeCity) p /= 2;
+        if (src.FreeCity) p /= 2;   // Free Cities and city-states: half the pull of a great power's people
         return p / 10;
     }
 
@@ -117,7 +123,7 @@ public static class LoyaltySystem
         }
 
         Fx diff = b.DomesticPressure - b.ForeignPressure;
-        b.PressureTerm = Fx.Clamp(10 * diff / (Fx.Min(b.DomesticPressure, b.ForeignPressure) + 1), -20, 20);
+        b.PressureTerm = Fx.Clamp(10 * diff / (Fx.Min(b.DomesticPressure, b.ForeignPressure) + 1), -PressureCap, PressureCap);
 
         var owner = s.Players[city.Owner];
         var fx = CityEffects.Compute(s, city);
@@ -137,11 +143,12 @@ public static class LoyaltySystem
         if (garrisoned) b.Garrison = 2;
         else if (city.Owner != city.OriginalOwner && !owner.IsFreeCities) b.Occupation = -4;
         if (city.IsCapital) b.Capital = 8;
+        if (city.Owner == city.OriginalOwner && !owner.IsFreeCities) b.Homeland = HomelandBonus;
         if (report.FoodSurplus < Fx.Zero) b.Starvation = -5;
         if (city.TurnsSinceOwnerChange < SettlingInTurns) b.SettlingIn = 2 * (SettlingInTurns - city.TurnsSinceOwnerChange);
         b.Modifiers = fx.LoyaltyPerTurn;
 
-        b.Total = b.PressureTerm + b.Governor + b.Amenities + b.Garrison + b.Occupation + b.Capital + b.Starvation + b.SettlingIn + b.Modifiers;
+        b.Total = b.PressureTerm + b.Governor + b.Amenities + b.Garrison + b.Occupation + b.Homeland + b.Capital + b.Starvation + b.SettlingIn + b.Modifiers;
         if (b.Total < Fx.Zero) b.TurnsUntilFlip = (city.Loyalty / -b.Total).CeilToInt();
         return b;
     }
