@@ -162,6 +162,7 @@ GREAT_RIVERS = {
     "Mekong": ["Mekong"],
 }
 MAX_RIVER_TILES = 16
+ISLAND_SCALE = 1.4
 NARROW_SEAS = [((29.5, 32.6), (12.6, 43.4)), ((35.95, -6.2), (36.05, -5.2))]   # Red Sea (Suez to Bab-el-Mandeb), Gibraltar
 
 
@@ -169,7 +170,9 @@ def load(path):
     return json.load(open(path, encoding="utf-8"))["features"]
 
 def main(ne):
-    land = prep(unary_union([shape(f["geometry"]) for f in load(os.path.join(ne, "ne_50m_land.geojson"))]))
+    land_geoms = [shape(f["geometry"]) for f in load(os.path.join(ne, "ne_50m_land.geojson"))]
+    land = prep(unary_union(land_geoms))
+    islands = [part for g in land_geoms for part in (g.geoms if g.geom_type == "MultiPolygon" else [g]) if 0.4 <= part.area <= 400]
     lakes_all = [f for f in load(os.path.join(ne, "ne_50m_lakes.geojson")) if (f["properties"].get("scalerank") or 9) <= 2]
     lakes = prep(unary_union([shape(f["geometry"]) for f in lakes_all]))
     glaciers = prep(unary_union([shape(f["geometry"]) for f in load(os.path.join(ne, "ne_50m_glaciated_areas.geojson"))]))
@@ -206,6 +209,39 @@ def main(ne):
     for row in range(H):
         for col in range(W):
             if frac(land, col, row) >= 0.34: T[row][col] = "L"
+    # Islands keep their true size: a thin or diagonal island (Japan, Britain, Ireland, the Philippines...) gets as many tiles
+    # as its area covers, its best-covered tiles first, instead of losing every tile that is less than a third land.
+    added = 0
+    for isle in islands:
+        minx, miny, maxx, maxy = isle.bounds
+        pisle = prep(isle)
+        cover = {}
+        c0, r0 = tile_of(minx, maxy); c1, r1 = tile_of(maxx, miny)
+        for row in range(max(0, r0 - 1), min(H, r1 + 2)):
+            cols = range(c0 - 1, c1 + 2) if c1 >= c0 else list(range(c0 - 1, W)) + list(range(0, c1 + 2))
+            for col in cols:
+                col %= W
+                pts = list(samples(col, row))
+                k = sum(1 for lon, lat in pts if pisle.contains(Point(lon, lat))) / len(pts)
+                if k > 0: cover[(col, row)] = k
+        expected = max(1, round(sum(cover.values())))
+        have = sum(1 for (c, r) in cover if T[r][c] == "L")
+        # Medium islands that host peoples (Japan, Britain, Ireland, Sri Lanka, Taiwan, New Zealand, Cuba...) are drawn 1.4x
+        # their true size, as maps of the world for play usually do, so an island people has room for a few cities.
+        if 2 <= isle.area <= 60: expected = round(expected * ISLAND_SCALE)
+        for (c, r), k in sorted(cover.items(), key=lambda kv: -kv[1]):
+            if have >= expected: break
+            if T[r][c] != "L": T[r][c] = "L"; have += 1; added += 1
+        cx, cy = isle.centroid.x, isle.centroid.y
+        while have < expected:
+            mine = [t for t in cover if T[t[1]][t[0]] == "L"]
+            ring = {nb for t in mine for nb in neighbours(*t) if T[nb[1]][nb[0]] != "L"}
+            # Grow into open water only (never fuse with another coast) toward the island's own centre.
+            ring = [t for t in ring if all(T[r][c] != "L" or (c, r) in cover for c, r in neighbours(*t))]
+            if not ring: break
+            pick = min(ring, key=lambda t: (abs(tile_center(*t)[0] - cx) + abs(tile_center(*t)[1] - cy), t))
+            T[pick[1]][pick[0]] = "L"; cover[pick] = 0.01; have += 1; added += 1
+    print(f"islands: {added} tiles restored")
     for lat, lon in FORCE_LAND + [(la, lo) for la, lo in (c for c in CITY_STATES.values())]:
         c, r = tile_of(lon, lat)
         T[r][c] = "L"

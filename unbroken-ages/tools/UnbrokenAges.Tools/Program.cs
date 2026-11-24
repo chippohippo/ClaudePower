@@ -202,7 +202,14 @@ void Simulate()
                                   string.Join(", ", lb.Lines().Select(l => $"{l.Label} {l.Value}")) + ")");
             }
             foreach (var u in s.Units.Where(u => u.Owner == p.Id))
-                Console.WriteLine($"  unit {db.Units[u.DefIndex].Id} at {u.Tile % s.Map.Width},{u.Tile / s.Map.Width} {(s.Map.IsWater(u.Tile) ? "(water)" : "")} dest {u.Destination}");
+            {
+                Console.WriteLine($"  unit {db.Units[u.DefIndex].Id} at {u.Tile % s.Map.Width},{u.Tile / s.Map.Width} {(s.Map.IsWater(u.Tile) ? "(water)" : "")} dest {u.Destination} moves {u.MovesLeft}");
+                if (db.Units[u.DefIndex].FoundsCity)
+                {
+                    int site = ExpansionAi.BestSite(s, p.Id, u.Tile, Array.Empty<int>(), u);
+                    Console.WriteLine($"    best site {(site >= 0 ? $"{site % s.Map.Width},{site / s.Map.Width}" : "none")}, path {(site >= 0 ? Movement.FindPath(s, u, site)?.Count.ToString() ?? "null" : "-")}, found here: {new FoundCityCommand { Player = p.Id, UnitId = u.Id }.Validate(s) ?? "ok"}");
+                }
+            }
             Console.WriteLine($"  wants settler: {ExpansionAi.WantsSettler(s, p)}; best site from capital: {(s.CitiesOf(p.Id).FirstOrDefault() is { } cap ? ExpansionAi.BestSite(s, p.Id, cap.Tile, Array.Empty<int>()) : -1)}; max cities {ExpansionAi.MaxCities(s, p)}");
         }
     if (TurnProcessor.Profile != null)

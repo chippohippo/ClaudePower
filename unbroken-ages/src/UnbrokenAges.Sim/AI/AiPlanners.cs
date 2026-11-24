@@ -68,8 +68,8 @@ public static class ExpansionAi
                 ranked.Add((t, SiteScore(s, player, t) - perTile * map.Distance(from, t)));
             }
             var mover = walker ?? Phantom(s, player, from);
-            foreach (var (t, _) in ranked.OrderByDescending(r => r.Score).ThenBy(r => r.Tile).Take(3))
-                if (mover == null || t == mover.Tile || Movement.FindPath(s, mover, t, 4000) != null) return t;
+            foreach (var (t, _) in ranked.OrderByDescending(r => r.Score).ThenBy(r => r.Tile).Take(6))
+                if (mover == null || t == mover.Tile || Movement.FindPath(s, mover, t, 12000) != null) return t;
         }
         return -1;
     }
@@ -115,7 +115,14 @@ public static class ExpansionAi
             int site = BestSite(s, p.Id, u.Tile, claimed, u);
             if (site < 0)
             {
-                if (legalHere) yield return found;
+                if (legalHere) { yield return found; continue; }
+                // Nowhere good within reach: settle the nearest legal spot it can walk or sail to rather than wait forever.
+                var near = new List<int>();
+                s.Map.CollectRadius(u.Tile, 6, near);
+                int fallback = near.Where(t => CanSettle(s, p.Id, t) && !claimed.Any(c => s.Map.Distance(c, t) < FoundCityCommand.MinCityDistance))
+                                   .OrderBy(t => s.Map.Distance(t, u.Tile)).ThenBy(t => t)
+                                   .FirstOrDefault(t => Movement.FindPath(s, u, t, 4000) != null, -1);
+                if (fallback >= 0) { claimed.Add(fallback); if (u.Destination != fallback) yield return new MoveUnitCommand { Player = p.Id, UnitId = u.Id, Destination = fallback }; }
                 continue;
             }
             claimed.Add(site);
