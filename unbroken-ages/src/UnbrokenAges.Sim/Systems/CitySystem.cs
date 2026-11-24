@@ -82,6 +82,7 @@ public static class CitySystem
         for (int t = 0; t < s.Map.Count; t++)
             if (s.Map.OwnerCity[t] == city.Id) s.Map.OwnerPlayer[t] = newOwner;
         events.Add(new GameEvent(reason, newOwner, city.Id, city.Tile, Value: oldOwner, Detail: city.Name));
+        NationSystem.OnCityLost(s, oldOwner, city, events);
     }
 
     public static string NextCityName(GameState s, PlayerState player)

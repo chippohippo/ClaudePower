@@ -58,6 +58,14 @@
     { "id": "UNIT_GREAT_GALLEY", "name": "Great Galley", "domain": "Naval", "unitClass": "NavalMelee", "era": "ERA_ANCIENT", "cost": 65, "strength": 30, "moves": 4,
       "prereqTech": "TECH_SAILING", "civilization": "CIV_VENICE", "replaces": "UNIT_GALLEY" },
     { "id": "UNIT_FIRE_LANCE_CORPS", "name": "Fire Lance Corps", "domain": "Land", "unitClass": "Melee", "era": "ERA_CLASSICAL", "cost": 90, "strength": 38,
-      "prereqTech": "TECH_BRONZE_WORKING", "civilization": "CIV_SONG", "replaces": "UNIT_SWORDSMAN" }
+      "prereqTech": "TECH_BRONZE_WORKING", "civilization": "CIV_SONG", "replaces": "UNIT_SWORDSMAN" },
+    { "id": "UNIT_KESHIG", "name": "Keshig", "domain": "Land", "unitClass": "LightCavalry", "era": "ERA_CLASSICAL", "cost": 75, "maintenance": 2, "strength": 34, "moves": 5,
+      "prereqTech": "TECH_ANIMAL_HUSBANDRY", "resourceCost": { "resource": "RESOURCE_HORSES", "amount": 10 }, "weakAgainst": ["AntiCavalry"],
+      "civilization": "CIV_MONGOLIA", "replaces": "UNIT_HORSEMAN", "description": "The Khan's guard: swift, and cheap to raise." },
+    { "id": "UNIT_WARAKAQ", "name": "Warak'aq", "domain": "Land", "unitClass": "Ranged", "era": "ERA_ANCIENT", "cost": 35, "strength": 6, "rangedStrength": 19, "range": 1,
+      "civilization": "CIV_INCA", "replaces": "UNIT_SLINGER", "upgradesTo": ["UNIT_ARCHER"], "description": "Highland slingers, deadly from the slopes." },
+    { "id": "UNIT_MANDEKALU", "name": "Mandekalu Cavalry", "domain": "Land", "unitClass": "LightCavalry", "era": "ERA_CLASSICAL", "cost": 90, "maintenance": 2, "strength": 42, "moves": 4,
+      "prereqTech": "TECH_ANIMAL_HUSBANDRY", "resourceCost": { "resource": "RESOURCE_HORSES", "amount": 10 }, "weakAgainst": ["AntiCavalry"],
+      "civilization": "CIV_MALI", "replaces": "UNIT_HORSEMAN", "description": "Mail-clad riders who guard the caravans." }
   ]
 }

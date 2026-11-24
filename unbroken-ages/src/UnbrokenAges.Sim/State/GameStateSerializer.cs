@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 12;
+    public const int Version = 13;
 
     public static byte[] Serialize(GameState s)
     {
@@ -76,6 +76,7 @@ public static class GameStateSerializer
             w.Write((byte)p.DispatchPolicy); WriteFx(w, p.EmissionsLastTurn); WriteFx(w, p.CumulativeEmissions);
             w.Write(p.CapitalCityId);
             w.Write(p.Divergence); w.Write(p.DivergenceTurn); w.Write(p.Ascended); w.Write(p.LastWarDeclaredTurn);
+            WriteFx(w, p.SignatureMeter); w.Write(p.SignatureTimer); w.Write(p.SignatureTally);
         }
 
         w.Write(s.Cities.Count);
@@ -220,6 +221,9 @@ public static class GameStateSerializer
             p.DivergenceTurn = r.ReadInt32();
             p.Ascended = r.ReadBoolean();
             p.LastWarDeclaredTurn = r.ReadInt32();
+            p.SignatureMeter = ReadFx(r);
+            p.SignatureTimer = r.ReadInt32();
+            p.SignatureTally = r.ReadInt32();
             s.Players.Add(p);
         }
 

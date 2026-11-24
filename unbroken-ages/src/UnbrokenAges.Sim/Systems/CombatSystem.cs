@@ -250,7 +250,7 @@ public static class CombatSystem
             attacker.Hp -= toAttacker;
             events.Add(new GameEvent(GameEventType.BattleFought, attacker.Owner, city.Id, targetTile, attacker.DefIndex, toDefender,
                 $"{atkDef.Name} ({preview.Attacker.Total}) vs {city.Name} ({preview.Defender.Total}): {toDefender} damage dealt, {toAttacker} taken"));
-            if (attacker.Hp <= 0) { Destroy(s, attacker, events); return; }
+            if (attacker.Hp <= 0) { Destroy(s, attacker, events, city.Owner, null); return; }
             if (city.Hp == 0 && !preview.Ranged) Capture(s, attacker, city, victim, events);
             return;
         }
@@ -261,8 +261,8 @@ public static class CombatSystem
         events.Add(new GameEvent(GameEventType.BattleFought, attacker.Owner, Tile: targetTile, Def: attacker.DefIndex, Value: toDefender,
             Detail: $"{atkDef.Name} ({preview.Attacker.Total}) vs {db.Units[defender.DefIndex].Name} ({preview.Defender.Total}): {toDefender} damage dealt, {toAttacker} taken"));
         bool defenderDied = defender.Hp <= 0;
-        if (defenderDied) Destroy(s, defender, events);
-        if (attacker.Hp <= 0) { Destroy(s, attacker, events); return; }
+        if (defenderDied) Destroy(s, defender, events, attacker.Owner, attacker);
+        if (attacker.Hp <= 0) { Destroy(s, attacker, events, defender.Owner, defenderDied ? null : defender); return; }
         if (defenderDied && !preview.Ranged && !s.Units.Any(u => u.Tile == targetTile && u.Owner != attacker.Owner))
         {
             foreach (var civ in s.Units.Where(u => u.Tile == targetTile && u.Owner != attacker.Owner).ToList()) civ.Owner = attacker.Owner;
@@ -291,22 +291,25 @@ public static class CombatSystem
         target.Hp -= damage;
         city.StruckThisTurn = true;
         events.Add(new GameEvent(GameEventType.BattleFought, city.Owner, city.Id, targetTile, -1, damage, $"{city.Name} bombards {s.Db.Units[target.DefIndex].Name}: {damage} damage"));
-        if (target.Hp <= 0) Destroy(s, target, events);
+        if (target.Hp <= 0) Destroy(s, target, events, city.Owner, null);
     }
 
-    private static void Destroy(GameState s, UnitState unit, List<GameEvent> events)
+    private static void Destroy(GameState s, UnitState unit, List<GameEvent> events, int killerOwner = -1, UnitState? killer = null)
     {
         s.RemoveUnit(unit);
         events.Add(new GameEvent(GameEventType.UnitDestroyed, unit.Owner, Tile: unit.Tile, Def: unit.DefIndex, Detail: s.Db.Units[unit.DefIndex].Name));
+        if (killerOwner >= 0) NationSystem.OnUnitDestroyed(s, killerOwner, killer, unit, events);
     }
 
     private static void Capture(GameState s, UnitState attacker, CityState city, int victim, List<GameEvent> events)
     {
-        foreach (var u in s.Units.Where(u => u.Tile == city.Tile && u.Owner == victim).ToList()) Destroy(s, u, events);
+        foreach (var u in s.Units.Where(u => u.Tile == city.Tile && u.Owner == victim).ToList()) Destroy(s, u, events, attacker.Owner, attacker);
+        int populationBefore = city.Population;
         CitySystem.ChangeOwner(s, city, attacker.Owner, events, GameEventType.CityCaptured);
         city.Hp = CityMaxHp(s, city) / 4;
         city.Loyalty = 50;
         if (city.Population > 1) city.Population--;
+        NationSystem.OnCityCaptured(s, attacker.Owner, city, victim, populationBefore, events);
         attacker.Tile = city.Tile;
         DiplomacySystem.AddGrievance(s, victim, attacker.Owner, 20, $"Captured {city.Name}");
     }

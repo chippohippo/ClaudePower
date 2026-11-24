@@ -730,11 +730,51 @@ public sealed class CivColors
     public string Secondary { get; init; } = "#000000";
 }
 
+/// <summary>
+/// A nation's signature: a rule of the game it plays differently (see <c>NationSystem</c> and docs/05-key-systems/14-nations.md).
+/// <see cref="Params"/> are the tunables; a leader's <see cref="AugmentDef"/> overrides or adds to them.
+/// </summary>
+public enum SignatureKind
+{
+    None,
+    /// <summary>Egypt: surplus food fills a royal granary that floods into the cities every few turns.</summary>
+    Inundation,
+    /// <summary>Venice: never trains Settlers; buys Free Cities and disloyal foreign cities with gold.</summary>
+    Ledger,
+    /// <summary>Song: a Mandate meter fed by loyal, peaceful cities triggers golden dynasties; losing a city ends one.</summary>
+    Mandate,
+    /// <summary>Mongolia: little science or culture at home; victories in battle and captured cities pay for progress.</summary>
+    Horde,
+    /// <summary>Inca: mountains are walkable and farmed in terraces.</summary>
+    SkyRoads,
+    /// <summary>Mali: slow production, rich land and cheap purchases; gold earns interest.</summary>
+    GoldenRoad,
+}
+
+public sealed class SignatureDef
+{
+    public SignatureKind Kind { get; init; }
+    public string Name { get; init; } = "";
+    public string? Description { get; init; }
+    /// <summary>How the nation plays, for the nation card ("You never build Settlers…").</summary>
+    public string? Playstyle { get; init; }
+    public Dictionary<string, int> Params { get; init; } = new();
+}
+
+/// <summary>How a leader bends their nation's signature (overrides or adds signature parameters).</summary>
+public sealed class AugmentDef
+{
+    public string Name { get; init; } = "";
+    public string? Description { get; init; }
+    public Dictionary<string, int> Params { get; init; } = new();
+}
+
 public sealed class CivilizationDef : Definition
 {
     public string Adjective { get; init; } = "";
     public List<string> StartBias { get; init; } = new();
     public AbilityDef Ability { get; init; } = new();
+    public SignatureDef Signature { get; init; } = new();
     public List<string> CityNames { get; init; } = new();
     public CivColors Colors { get; init; } = new();
 
@@ -752,7 +792,10 @@ public sealed class AgendaDef
 public sealed class LeaderDef : Definition
 {
     public string Civilization { get; init; } = "";
+    /// <summary>"Warrior Pharaoh", shown under the name on the leader card.</summary>
+    public string? Epithet { get; init; }
     public AbilityDef Ability { get; init; } = new();
+    public AugmentDef Augment { get; init; } = new();
     public AgendaDef Agenda { get; init; } = new();
     /// <summary>AI personality weights, e.g. {"science": 1.2, "war": 0.6}.</summary>
     public Dictionary<string, Fx> Personality { get; init; } = new();

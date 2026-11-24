@@ -56,6 +56,7 @@ public static class Movement
             return Math.Max(2, db.Terrains[map.Terrain[to]].FordCost);
         }
         if (map.IsWater(to)) return Impassable;
+        if (map.IsMountain(to) && NationSystem.MountainCost(s, unit) is var climb and > 0) return climb;   // Inca roads in the sky
         if (db.Reliefs[map.Relief[to]].Impassable) return Impassable;
 
         int cost = Math.Max(db.Terrains[map.Terrain[to]].MoveCost, db.Reliefs[map.Relief[to]].MoveCost);

@@ -113,6 +113,13 @@ public sealed class PlayerState
     /// <summary>Fog of war: every tile this player has ever seen (indexed by tile).</summary>
     public bool[] Revealed = Array.Empty<bool>();
 
+    /// <summary>The nation signature's state (NationSystem): Egypt's granary, Song's Mandate, Mongolia's plunder…</summary>
+    public Fx SignatureMeter;
+    /// <summary>Signature countdown (Song: dynasty turns left).</summary>
+    public int SignatureTimer;
+    /// <summary>Running tally for the signature (cities bought, floods, dynasties, battles won).</summary>
+    public int SignatureTally;
+
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
     public bool HasCivic(int index) => index < 0 || (index < Civics.Length && Civics[index]);

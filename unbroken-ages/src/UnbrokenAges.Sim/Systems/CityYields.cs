@@ -39,7 +39,7 @@ public static class CityYields
         var r = new CityYieldReport { Effects = fx };
 
         // City centre: guaranteed minimum of 2 food / 1 production plus +1 production.
-        var center = map.TileYields(city.Tile);
+        var center = map.TileYields(city.Tile) + NationSystem.TileBonus(s, city.Owner, city.Tile);
         center.Food = Fx.Max(center.Food, 2);
         center.Production = Fx.Max(center.Production, 1) + 1;
         r.Tiles += center;
@@ -50,15 +50,17 @@ public static class CityYields
         // Worked tiles (auto-assigned here; the UI layer adds citizen locks and focus presets).
         var candidates = new List<int>();
         map.CollectRadius(city.Tile, DistrictPlacement.CityRadius, candidates);
-        candidates.RemoveAll(t => t == city.Tile || map.OwnerCity[t] != city.Id || map.District[t] >= 0 || map.HasFlag(t, TileFlags.Submerged) || map.IsMountain(t));
+        candidates.RemoveAll(t => t == city.Tile || map.OwnerCity[t] != city.Id || map.District[t] >= 0 || map.HasFlag(t, TileFlags.Submerged)
+                                || (map.IsMountain(t) && !NationSystem.WorksMountains(s, city.Owner)));
         // Citizens who don't eat (the Discarnate) stop working farms and favour industry.
         bool fed = fx.CitizenFoodUpkeepPercent > -100;
-        var scored = candidates.Select(t => (Tile: t, Score: TileScore(map.TileYields(t), fed))).ToList();
+        YieldSet TileYield(int t) => map.TileYields(t) + NationSystem.TileBonus(s, city.Owner, t);
+        var scored = candidates.Select(t => (Tile: t, Score: TileScore(TileYield(t), fed))).ToList();
         scored.Sort((a, b) => a.Score != b.Score ? b.Score.CompareTo(a.Score) : a.Tile.CompareTo(b.Tile));
         for (int k = 0; k < Math.Min(city.Population, scored.Count); k++)
         {
             r.WorkedTiles.Add(scored[k].Tile);
-            r.Tiles += map.TileYields(scored[k].Tile);
+            r.Tiles += TileYield(scored[k].Tile);
         }
 
         // Districts & buildings.

@@ -51,6 +51,7 @@ public static class TurnProcessor
             AccumulateStrategicResources(s, player);
         }
 
+        NationSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);
         GovernorSystem.ProcessTurn(s, events);
@@ -81,6 +82,7 @@ public static class TurnProcessor
     {
         Fx surplus = report.FoodSurplus + fabricated;
         if (surplus > Fx.Zero) surplus = surplus * CityYields.HousingGrowthPercent(city.Population, report.Housing) / 100;
+        if (NationSystem.DivertSurplus(s, city, surplus)) surplus = Fx.Zero;   // Egypt: into the Royal Granary
         city.FoodStored += surplus;
         if (city.FoodStored < Fx.Zero)
         {

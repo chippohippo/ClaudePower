@@ -58,6 +58,12 @@ public sealed class CityEffects
             fx.ApplyAll(s, city, leader.Ability.Modifiers, $"{leader.Name}: {leader.Ability.Name}");
         }
 
+        foreach (var (source, modifier) in NationSystem.CityModifiers(s, city))
+        {
+            fx.Apply(modifier);
+            fx.Applied.Add((source, modifier));
+        }
+
         if (owner.Divergence >= 0)
         {
             var div = db.Divergences[owner.Divergence];

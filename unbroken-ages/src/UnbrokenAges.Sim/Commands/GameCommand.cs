@@ -33,6 +33,7 @@ public enum CommandType : byte
     Fortify = 71,
     CityStrike = 72,
     PurchaseTile = 73,
+    BuyCity = 74,
     OneMoreTurn = 80,
 }
 
@@ -119,6 +120,7 @@ public abstract class GameCommand
         CommandType.Fortify => new FortifyCommand(),
         CommandType.CityStrike => new CityStrikeCommand(),
         CommandType.PurchaseTile => new PurchaseTileCommand(),
+        CommandType.BuyCity => new BuyCityCommand(),
         CommandType.OneMoreTurn => new OneMoreTurnCommand(),
         CommandType.FoundOutpost => new FoundOutpostCommand(),
         CommandType.PromoteOutpost => new PromoteOutpostCommand(),

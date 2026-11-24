@@ -68,6 +68,7 @@ public static class ProductionSystem
                 if (u.Domain == UnitDomain.Naval && !s.Map.IsAdjacentToSea(city.Tile) && !s.Map.IsAdjacentToChannel(city.Tile)
                     && !city.Districts.Any(d => s.Map.IsWater(d.Tile)))
                     return "Naval units need a coastal or Great River city.";
+                if (NationSystem.ForbidUnit(s, player, u) is { } forbidden) return forbidden;
                 if (u.FoundsCity && city.Population < 2) return "Settlers require population 2.";
                 return null;
             }
@@ -292,6 +293,7 @@ public static class ProductionSystem
         Fx cost = Cost(s, player, kind, def) * PurchaseGoldPerProduction;
         city.ProgressLedger.TryGetValue(QueueItem.MakeKey(kind, def, -1), out Fx progress);
         cost -= progress * PurchaseGoldPerProduction;
-        return (cost - cost * fx.PurchaseDiscountPercent / 100).Floor();
+        int discount = Math.Min(80, fx.PurchaseDiscountPercent + NationSystem.PurchaseDiscount(s, player, kind));
+        return (cost - cost * discount / 100).Floor();
     }
 }

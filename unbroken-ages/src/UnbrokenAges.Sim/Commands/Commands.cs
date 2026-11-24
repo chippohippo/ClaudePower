@@ -203,7 +203,9 @@ public sealed class PurchaseCommand : GameCommand
     public override void Apply(GameState s, List<GameEvent> events)
     {
         var c = s.GetCity(CityId)!;
-        s.Players[Player].Gold -= ProductionSystem.PurchaseCost(s, c, Kind, DefIndex);
+        var price = ProductionSystem.PurchaseCost(s, c, Kind, DefIndex);
+        s.Players[Player].Gold -= price;
+        NationSystem.OnPurchase(s, s.Players[Player], price);
         var item = new QueueItem { Kind = Kind, DefIndex = DefIndex };
         c.ProgressLedger.Remove(item.ProgressKey);
         int queued = c.Queue.Items.FindIndex(q => q.Kind == Kind && q.DefIndex == DefIndex);
@@ -331,4 +333,16 @@ public sealed class PromoteOutpostCommand : GameCommand
     public override void Apply(GameState s, List<GameEvent> events) => OutpostSystem.Promote(s, s.Outposts.Find(o => o.Id == OutpostId)!, events);
     protected override void WritePayload(BinaryWriter w) => w.Write(OutpostId);
     protected override void ReadPayload(BinaryReader r) => OutpostId = r.ReadInt32();
+}
+
+/// <summary>Venice's Ledger: buy a Free City or a disloyal foreign city for gold (NationSystem.CanBuy explains the rules).</summary>
+public sealed class BuyCityCommand : GameCommand
+{
+    public int CityId;
+    public override CommandType Type => CommandType.BuyCity;
+    public override string? Validate(GameState s) =>
+        s.GetCity(CityId) is not { } c ? "No such city." : NationSystem.CanBuy(s, s.Players[Player], c);
+    public override void Apply(GameState s, List<GameEvent> events) => NationSystem.Buy(s, s.Players[Player], s.GetCity(CityId)!, events);
+    protected override void WritePayload(BinaryWriter w) => w.Write(CityId);
+    protected override void ReadPayload(BinaryReader r) => CityId = r.ReadInt32();
 }
