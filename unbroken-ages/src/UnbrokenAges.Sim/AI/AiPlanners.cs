@@ -95,7 +95,12 @@ public static class ExpansionAi
         bool settlerOut = s.Units.Any(u => u.Owner == p.Id && NationSystem.IsColonist(s, p, db.Units[u.DefIndex]))
                           || s.CitiesOf(p.Id).Any(c => c.Queue.Items.Any(i => i.Kind == ProductionKind.Unit && NationSystem.IsColonist(s, p, db.Units[i.DefIndex])));
         if (settlerOut || cities >= MaxCities(s, p)) return false;
-        return s.CitiesOf(p.Id).Any(c => BestSite(s, p.Id, c.Tile, Array.Empty<int>()) >= 0);
+        // Looking from the capital and the newest city covers the core and the frontier; searching from every city cost more
+        // than the rest of the AI's turn on a crowded Earth.
+        var mine = s.CitiesOf(p.Id).ToList();
+        var capital = mine.FirstOrDefault(c => c.IsCapital) ?? mine[0];
+        var newest = mine[^1];
+        return BestSite(s, p.Id, capital.Tile, Array.Empty<int>()) >= 0 || (newest != capital && BestSite(s, p.Id, newest.Tile, Array.Empty<int>()) >= 0);
     }
 
     /// <summary>The first city is founded where the settler stands; later settlers walk to the best site and found there.</summary>

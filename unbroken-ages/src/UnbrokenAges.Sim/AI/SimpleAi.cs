@@ -22,14 +22,35 @@ public interface IAiController
 
 public sealed class SimpleAi : IAiController
 {
+    /// <summary>Optional profiling (tools only): milliseconds spent in each planner. Null in games.</summary>
+    public static Dictionary<string, double>? Profile;
+
+    private static IEnumerable<GameCommand> Timed(string name, Func<IEnumerable<GameCommand>> plan)
+    {
+        if (Profile == null) return plan();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var list = plan().ToList();
+        Profile[name] = Profile.GetValueOrDefault(name) + clock.Elapsed.TotalMilliseconds;
+        return list;
+    }
+
+    private static T TimedValue<T>(string name, Func<T> work)
+    {
+        if (Profile == null) return work();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var result = work();
+        Profile[name] = Profile.GetValueOrDefault(name) + clock.Elapsed.TotalMilliseconds;
+        return result;
+    }
+
     public IEnumerable<GameCommand> TakeTurn(GameState s, int playerId)
     {
         var db = s.Db;
         var player = s.Players[playerId];
         var commands = new List<GameCommand>();
 
-        commands.AddRange(ExpansionAi.Settlers(s, player));
-        commands.AddRange(BuilderAi.Builders(s, player));
+        commands.AddRange(Timed("Settlers", () => ExpansionAi.Settlers(s, player)));
+        commands.AddRange(Timed("Builders", () => BuilderAi.Builders(s, player)));
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && db.Units[u.DefIndex].FoundsOutpost && !NationSystem.IsColonist(s, player, db.Units[u.DefIndex])).ToList())
         {
             var plant = new FoundOutpostCommand { Player = playerId, UnitId = unit.Id };
@@ -47,8 +68,9 @@ public sealed class SimpleAi : IAiController
         int military = s.Units.Count(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u));
         int cityCount = s.CitiesOf(playerId).Count();
         bool atWar = MilitaryAi.MajorEnemies(s, playerId).Count > 0;
-        bool wantSettler = ExpansionAi.WantsSettler(s, player);
-        bool wantBuilder = BuilderAi.WantsBuilder(s, player);
+        bool wantSettler = TimedValue("WantsSettler", () => ExpansionAi.WantsSettler(s, player));
+        bool wantBuilder = TimedValue("WantsBuilder", () => BuilderAi.WantsBuilder(s, player));
+        var productionClock = Profile != null ? System.Diagnostics.Stopwatch.StartNew() : null;
         foreach (var city in s.CitiesOf(playerId))
         {
             if (city.Queue.Items.Count > 0) continue;
@@ -60,9 +82,10 @@ public sealed class SimpleAi : IAiController
             }
         }
 
-        commands.AddRange(Governors(s, player));
-        commands.AddRange(NationAi.Commands(s, player));
-        commands.AddRange(SocietyAi.Commands(s, player));
+        if (productionClock != null) Profile!["Production"] = Profile.GetValueOrDefault("Production") + productionClock.Elapsed.TotalMilliseconds;
+        commands.AddRange(Timed("Governors", () => Governors(s, player)));
+        commands.AddRange(Timed("Nation", () => NationAi.Commands(s, player)));
+        commands.AddRange(Timed("Society", () => SocietyAi.Commands(s, player)));
 
         // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))
@@ -75,9 +98,9 @@ public sealed class SimpleAi : IAiController
             }
 
         // War and peace (AI v2): fight the wars we are in, maybe start one, and make peace on sensible terms.
-        commands.AddRange(MilitaryAi.Fight(s, player));
-        if (MilitaryAi.WarDeclaration(s, player) is { } war) commands.Add(war);
-        commands.AddRange(MilitaryAi.Diplomacy(s, player));
+        commands.AddRange(Timed("Fight", () => MilitaryAi.Fight(s, player)));
+        if (TimedValue("WarDeclaration", () => MilitaryAi.WarDeclaration(s, player)) is { } war) commands.Add(war);
+        commands.AddRange(Timed("Diplomacy", () => MilitaryAi.Diplomacy(s, player)));
 
         commands.Add(new EndTurnCommand { Player = playerId });
         return commands;

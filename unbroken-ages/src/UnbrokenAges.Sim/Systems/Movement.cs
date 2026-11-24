@@ -17,26 +17,49 @@ public static class Movement
     public const int Impassable = -1;
     public const int RiverCrossingCost = 2;
 
-    /// <summary>What a search knows once: tiles held by others (units or cities), and whether each owner's land may be entered.</summary>
+    /// <summary>
+    /// What a search knows once: tiles held by others (units or cities), and whether each owner's land may be entered. Its arrays
+    /// are reused from search to search (one set per thread: the AI may plan on a background thread); a generation stamp marks
+    /// which entries belong to the current search, so nothing needs clearing.
+    /// </summary>
     private sealed class SearchContext
     {
-        public readonly HashSet<int> Blocked = new();
+        public int[] BlockedAt = Array.Empty<int>(), SeenAt = Array.Empty<int>(), ClosedAt = Array.Empty<int>(), G = Array.Empty<int>(), From = Array.Empty<int>();
+        public int Generation;
         public readonly Dictionary<int, bool> MayEnter = new();
         public bool Military;
+        public bool Blocked(int tile) => BlockedAt[tile] == Generation;
+        public bool Seen(int tile) => SeenAt[tile] == Generation;
+        public bool Closed(int tile) => ClosedAt[tile] == Generation;
     }
+
+    [ThreadStatic] private static SearchContext? pool;
 
     private static SearchContext Context(GameState s, UnitState unit)
     {
-        var ctx = new SearchContext { Military = SupplySystem.IsMilitary(s.Db, unit) };
-        foreach (var other in s.Units) if (other.Owner != unit.Owner) ctx.Blocked.Add(other.Tile);
-        foreach (var c in s.Cities) if (c.Owner != unit.Owner) ctx.Blocked.Add(c.Tile);
+        var ctx = pool ??= new SearchContext();
+        int n = s.Map.Count;
+        if (ctx.G.Length < n)
+        {
+            ctx.BlockedAt = new int[n]; ctx.SeenAt = new int[n]; ctx.ClosedAt = new int[n]; ctx.G = new int[n]; ctx.From = new int[n];
+            ctx.Generation = 0;
+        }
+        if (++ctx.Generation == int.MaxValue)
+        {
+            Array.Clear(ctx.BlockedAt); Array.Clear(ctx.SeenAt); Array.Clear(ctx.ClosedAt);
+            ctx.Generation = 1;
+        }
+        ctx.MayEnter.Clear();
+        ctx.Military = SupplySystem.IsMilitary(s.Db, unit);
+        foreach (var other in s.Units) if (other.Owner != unit.Owner && other.Tile >= 0) ctx.BlockedAt[other.Tile] = ctx.Generation;
+        foreach (var c in s.Cities) if (c.Owner != unit.Owner) ctx.BlockedAt[c.Tile] = ctx.Generation;
         return ctx;
     }
 
     private static int EnterCost(GameState s, UnitState unit, int from, int to, SearchContext ctx)
     {
         if (s.Db.Units[unit.DefIndex].Domain == UnitDomain.Air) return 1;
-        if (ctx.Blocked.Contains(to)) return Impassable;
+        if (ctx.Blocked(to)) return Impassable;
         int owner = s.Map.OwnerPlayer[to];
         if (ctx.Military && owner >= 0 && owner != unit.Owner)
         {
@@ -128,34 +151,35 @@ public static class Movement
     {
         var map = s.Map;
         if (destination < 0 || destination >= map.Count || destination == unit.Tile) return null;
-        var gScore = new Dictionary<int, int> { [unit.Tile] = 0 };
-        var cameFrom = new Dictionary<int, int>();
+        var ctx = Context(s, unit);
+        int gen = ctx.Generation;
+        int[] g = ctx.G, from = ctx.From, seen = ctx.SeenAt, closed = ctx.ClosedAt;
+        g[unit.Tile] = 0; seen[unit.Tile] = gen;
         var open = new PriorityQueue<int, long>();
         open.Enqueue(unit.Tile, map.Distance(unit.Tile, destination));
-        var closed = new HashSet<int>();
-        var ctx = Context(s, unit);
         int expanded = 0;
         while (open.TryDequeue(out int cur, out _))
         {
             if (cur == destination)
             {
                 var path = new List<int>();
-                for (int t = cur; t != unit.Tile; t = cameFrom[t]) path.Add(t);
+                for (int t = cur; t != unit.Tile; t = from[t]) path.Add(t);
                 path.Reverse();
                 return path;
             }
-            if (!closed.Add(cur) || ++expanded > maxNodes) continue;
+            if (closed[cur] == gen) continue;
+            closed[cur] = gen;
+            if (++expanded > maxNodes) continue;
             for (int d = 0; d < 6; d++)
             {
                 int nb = map.Neighbor(cur, d);
-                if (nb < 0 || closed.Contains(nb)) continue;
+                if (nb < 0 || closed[nb] == gen) continue;
                 int cost = EnterCost(s, unit, cur, nb, ctx);
                 if (cost == Impassable) continue;
-                int g = gScore[cur] + cost;
-                if (gScore.TryGetValue(nb, out int old) && old <= g) continue;
-                gScore[nb] = g;
-                cameFrom[nb] = cur;
-                long f = g + map.Distance(nb, destination);
+                int ng = g[cur] + cost;
+                if (seen[nb] == gen && g[nb] <= ng) continue;
+                g[nb] = ng; from[nb] = cur; seen[nb] = gen;
+                long f = ng + map.Distance(nb, destination);
                 open.Enqueue(nb, (f << 24) | (uint)nb);
             }
         }
@@ -163,10 +187,10 @@ public static class Movement
     }
 
     /// <summary>Advances along the path toward unit.Destination as far as moves allow.</summary>
-    public static void MoveAlong(GameState s, UnitState unit)
+    public static void MoveAlong(GameState s, UnitState unit, List<int>? known = null)
     {
         if (unit.Destination < 0) return;
-        var path = FindPath(s, unit, unit.Destination);
+        var path = known ?? FindPath(s, unit, unit.Destination);
         if (path == null) { unit.Destination = -1; return; }
         int full = UnitStats.Moves(s, unit);
         foreach (int next in path)

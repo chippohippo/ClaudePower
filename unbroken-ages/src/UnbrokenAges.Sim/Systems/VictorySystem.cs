@@ -49,12 +49,38 @@ public static class VictorySystem
     /// <summary>Player (lowest id of the winning team) that has achieved Hegemony, or -1.</summary>
     public static int HegemonyWinner(GameState s)
     {
+        // It runs after every command, so the world is tallied once per owner rather than once per player (the same sums
+        // ShareOfWorld makes for one team).
+        var rules = s.Db.Rules.Victory;
+        int n = s.Players.Count;
+        var ownedLand = new int[n];
+        var loyalPop = new int[n];
+        int worldPop = 0, land = 0;
+        foreach (var c in s.Cities)
+        {
+            worldPop += c.Population;
+            if (c.Loyalty > rules.HegemonyMinLoyalty && c.Owner >= 0) loyalPop[c.Owner] += c.Population;
+        }
+        var map = s.Map;
+        for (int t = 0; t < map.Count; t++)
+        {
+            if (!map.IsLand(t)) continue;
+            land++;
+            if (map.OwnerPlayer[t] >= 0) ownedLand[map.OwnerPlayer[t]]++;
+        }
         foreach (var p in Majors(s))
         {
             var (held, total) = CapitalsHeld(s, p.Id);
             if (total >= 2 && held == total && EveryLivingMajorFounded(s)) return p.Id;
-            if (ShareOfWorld(s, p.Id) is var (pop, land) && pop >= s.Db.Rules.Victory.HegemonySharePercent && land >= s.Db.Rules.Victory.HegemonySharePercent)
-                return p.Id;
+            int teamPop = 0, teamLand = 0;
+            for (int q = 0; q < n; q++)
+            {
+                if (ownedLand[q] == 0 && loyalPop[q] == 0) continue;
+                if (!DiplomacySystem.SameTeam(s, q, p.Id)) continue;
+                teamPop += loyalPop[q]; teamLand += ownedLand[q];
+            }
+            int pop = worldPop == 0 ? 0 : teamPop * 100 / worldPop, share = land == 0 ? 0 : teamLand * 100 / land;
+            if (pop >= rules.HegemonySharePercent && share >= rules.HegemonySharePercent) return p.Id;
         }
         return -1;
     }

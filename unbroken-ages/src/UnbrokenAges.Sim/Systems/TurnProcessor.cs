@@ -19,7 +19,7 @@ public static class TurnProcessor
     /// <summary>Optional profiling (tools only): milliseconds spent in each part of turn resolution. Null in games.</summary>
     public static Dictionary<string, double>? Profile;
 
-    private static void Time(string name, Action step)
+    internal static void Time(string name, Action step)
     {
         if (Profile == null) { step(); return; }
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -27,7 +27,7 @@ public static class TurnProcessor
         Profile[name] = Profile.GetValueOrDefault(name) + clock.Elapsed.TotalMilliseconds;
     }
 
-    private static T Timed<T>(string name, Func<T> step)
+    internal static T Timed<T>(string name, Func<T> step)
     {
         if (Profile == null) return step();
         var clock = System.Diagnostics.Stopwatch.StartNew();

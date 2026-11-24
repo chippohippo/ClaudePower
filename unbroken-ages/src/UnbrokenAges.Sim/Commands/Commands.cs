@@ -36,14 +36,20 @@ public sealed class MoveUnitCommand : GameCommand
         if (OwnUnit(s, UnitId) is not { } u) return "Not your unit.";
         if (Destination < 0 || Destination >= s.Map.Count) return "Invalid destination.";
         if (AirSystem.IsAircraft(s.Db, u)) return AirSystem.ValidateRebase(s, u, Destination);
-        return Movement.FindPath(s, u, Destination) == null ? "No path." : null;
+        path = Movement.FindPath(s, u, Destination);
+        pathFrom = u.Tile;
+        return path == null ? "No path." : null;
     }
     public override void Apply(GameState s, List<GameEvent> events)
     {
         var u = s.GetUnit(UnitId)!;
         u.Destination = Destination;
-        Movement.MoveAlong(s, u);
+        // Apply follows Validate at once, so the path it found still holds (the state has not changed in between).
+        Movement.MoveAlong(s, u, path != null && pathFrom == u.Tile ? path : null);
+        path = null;
     }
+    private List<int>? path;
+    private int pathFrom = -1;
     protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(Destination); }
     protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); Destination = r.ReadInt32(); }
 }

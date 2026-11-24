@@ -146,14 +146,20 @@ void Simulate()
     });
     int captures = 0, wars = 0;
     var aiClock = new Stopwatch();
-    if (HasOpt("--profile")) TurnProcessor.Profile = new();
+    var execClock = new Stopwatch();
+    if (HasOpt("--profile")) { TurnProcessor.Profile = new(); SimpleAi.Profile = new(); }
     var turnClock = new Stopwatch();
     for (int t = 0; t < turns; t++)
     {
         var events = new List<GameEvent>();   // the AI's own actions (captures, declarations) and the turn's resolution
         aiClock.Start();
         foreach (var p in s.Players.Where(p => p.IsMajor))
-            foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, events);
+        {
+            var planned = ai.TakeTurn(s, p.Id).ToList();
+            execClock.Start();
+            foreach (var cmd in planned) CommandProcessor.Execute(s, cmd, events);
+            execClock.Stop();
+        }
         aiClock.Stop();
         RecordVictory();
         ContinueIfWon(s);
@@ -187,7 +193,9 @@ void Simulate()
                               $"| world: {WorldSystem.CurrentAge(s)?.Name ?? "an ordinary age"} (progress {s.World.Progress.FloorToInt()}, strife {s.World.Strife.FloorToInt()}, calamity {s.World.Calamity.FloorToInt()})");
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
-    Console.WriteLine($"time: AI {aiClock.ElapsedMilliseconds} ms, turn resolution {turnClock.ElapsedMilliseconds} ms");
+    Console.WriteLine($"time: AI {aiClock.ElapsedMilliseconds} ms (of which executing its commands {execClock.ElapsedMilliseconds} ms), turn resolution {turnClock.ElapsedMilliseconds} ms");
+    if (SimpleAi.Profile != null)
+        Console.WriteLine("AI profile: " + string.Join(", ", SimpleAi.Profile.OrderByDescending(k => k.Value).Select(k => $"{k.Key} {k.Value:0} ms")));
     // --dump-civ CIV_X: that people's research, cities and units at the end (to see why it is stuck).
     if (Opt("--dump-civ", "") is { Length: > 0 } dumpCiv)
         foreach (var p in s.Players.Where(p => p.IsMajor && p.CivIndex >= 0 && db.Civilizations[p.CivIndex].Id.Contains(dumpCiv.ToUpperInvariant())))
@@ -213,7 +221,7 @@ void Simulate()
             Console.WriteLine($"  wants settler: {ExpansionAi.WantsSettler(s, p)}; best site from capital: {(s.CitiesOf(p.Id).FirstOrDefault() is { } cap ? ExpansionAi.BestSite(s, p.Id, cap.Tile, Array.Empty<int>()) : -1)}; max cities {ExpansionAi.MaxCities(s, p)}");
         }
     if (TurnProcessor.Profile != null)
-        Console.WriteLine("profile: " + string.Join(", ", TurnProcessor.Profile.OrderByDescending(k => k.Value).Take(10).Select(k => $"{k.Key} {k.Value:0} ms")));
+        Console.WriteLine("profile: " + string.Join(", ", TurnProcessor.Profile.OrderByDescending(k => k.Value).Take(24).Select(k => $"{k.Key} {k.Value:0} ms")));
     if (Opt("--report", "") is { Length: > 0 } reportPath)
     {
         Checkpoint();
