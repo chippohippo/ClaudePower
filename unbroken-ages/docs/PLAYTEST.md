@@ -14,7 +14,7 @@ you normally would, and tell us where it confuses you, bores you or breaks.
 
 | Setting | Use | Why |
 |---|---|---|
-| Map size | the second size (the default) | room to expand, wars arrive in the Classical era |
+| Map size | Small (64×40, the default) | room to expand; wars arrive in the Classical era |
 | AI players | 3 | a full game takes an evening |
 | Disasters & climate | Standard | |
 | Era pacing | Standard | |
