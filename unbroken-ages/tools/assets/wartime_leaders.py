@@ -8,7 +8,7 @@ Each leader's doctrine changes how the nation plays, with a large bonus and a re
   * player-level effects (war weariness, influence, favor);
   * an augment that pushes the nation's signature parameters to extremes.
 Every description is neutral and historical. No mechanic rewards atrocities: the doctrines model war economies, strategy and diplomacy.
-Germany and Italy are not nations in this game, so their leaders are not included.
+Germany and Italy are added as nations here. No mechanic rewards or depicts atrocities, and no extremist iconography is used.
 """
 import json, os, re
 
@@ -180,6 +180,104 @@ LEADERS = [
      {"war": 1.1}),
 ]
 
+# ----- The leaders of the new nations, and more of the century's controversial heads of state -----
+LEADERS += [
+    ("LEADER_WILHELM_II", "Wilhelm II", "German Emperor", "CIV_GERMANY",
+     "Weltpolitik",
+     "A world policy: +25% Production toward units and +15% Science in every city. "
+     "Its price: war weariness +40%, −15% Gold, and −1 Amenity in every city while at war.",
+     [prod("Unit", 25), pct("Science", 15), eff("WarWearinessPercent", 40), pct("Gold", -15), eff("CityAmenities", -1, WAR)],
+     "The High Seas Fleet", "German ships fight +10 stronger and move +1; every city keeps its extra district slot.",
+     {"navalStrength": 10, "navalMoves": 1, "extraDistricts": 1},
+     ("Place in the Sun", "Respects power; resents trading empires.", ["Warmonger"], ["TradePartner"]),
+     {"war": 1.3, "naval": 1.6}),
+    ("LEADER_HITLER", "Adolf Hitler", "Chancellor of Germany", "CIV_GERMANY",
+     "Blitzkrieg",
+     "Rearmament and mobile war: +40% Production toward units, units +6 strength outside German borders. "
+     "The costs: diplomatic isolation (−3 Diplomatic Favor and −2 influence a turn), −25% Gold, −20% Culture, war weariness +30%.",
+     [prod("Unit", 40), strength(6, ABROAD), eff("FavorPerTurn", -3), eff("InfluencePerTurn", -2), pct("Gold", -25), pct("Culture", -20),
+      eff("WarWearinessPercent", 30)],
+     "Combined-Arms Doctrine", "Armour (heavy cavalry) fights +5 stronger and moves +1.", {"armorStrength": 5, "armorMoves": 1},
+     ("Expansionist", "Despises the peaceful and the loyal alike.", ["Warmonger"], ["Peaceful", "HighLoyalty"]),
+     {"war": 1.9, "expansion": 1.3}),
+    ("LEADER_ORLANDO", "Vittorio Emanuele Orlando", "Premier of Victory", "CIV_ITALY",
+     "The Piave Line",
+     "Units +6 strength inside Italian borders; +3 Diplomatic Favor a turn; +2 Loyalty in every city at war. But −10% Production and −10% Gold.",
+     [strength(6, HOME), eff("FavorPerTurn", 3), eff("CityLoyaltyPerTurn", 2, WAR), pct("Production", -10), pct("Gold", -10)],
+     "Vittorio Veneto", "Every wonder and great work pays +3 Culture and +3 Gold.", {"workCulture": 3, "workGold": 3},
+     ("The Big Four", "Likes the peaceful; dislikes warmongers.", ["Peaceful"], ["Warmonger"]),
+     {"war": 0.8}),
+    ("LEADER_MUSSOLINI", "Benito Mussolini", "Prime Minister of Italy", "CIV_ITALY",
+     "Mare Nostrum",
+     "Public works and a navy: +25% Production toward districts and wonders, +3 Loyalty a turn in every city. "
+     "But an overstretched army: units −4 strength outside Italian borders, −15% Science, −2 Diplomatic Favor a turn.",
+     [prod("District", 25), eff("CityLoyaltyPerTurn", 3), strength(-4, ABROAD), pct("Science", -15), eff("FavorPerTurn", -2)],
+     "The Regia Marina", "Italian ships fight +8 stronger and move +1.", {"navalStrength": 8, "navalMoves": 1},
+     ("Imperial Ambition", "Respects warmongers; scorns the peaceful.", ["Warmonger"], ["Peaceful"]),
+     {"war": 1.4, "naval": 1.3}),
+    ("LEADER_MAO", "Mao Zedong", "Chairman of the Communist Party", "CIV_SONG",
+     "People's Republic",
+     "Land reform and a people's army: +20% Food and +15% Production, +3 Housing in every city, units +5 strength inside Chinese borders, "
+     "war weariness −40%. The upheavals: −30% Culture, −20% Science, −1 Amenity everywhere.",
+     [pct("Food", 20), pct("Production", 15), eff("CityHousing", 3), strength(5, HOME), eff("WarWearinessPercent", -40),
+      pct("Culture", -30), pct("Science", -20), eff("CityAmenities", -1)],
+     "No More Dynasties", "The Mandate rises faster (+5 per loyal city) but its Golden Dynasties are shorter (6 turns).", {"gainPerLoyalCity": 5, "dynastyTurns": 6},
+     ("Revolution", "Dislikes trading empires and warmongers.", ["HighLoyalty"], ["TradePartner", "Warmonger"]),
+     {"war": 1.1, "expansion": 1.3}),
+    ("LEADER_CHIANG", "Chiang Kai-shek", "Generalissimo", "CIV_SONG",
+     "National Revolution",
+     "+20% Gold and +10% Science in every city, +2 influence a turn, units +4 strength inside Chinese borders. "
+     "But a divided country: −1 Loyalty a turn and −10% Production everywhere.",
+     [pct("Gold", 20), pct("Science", 10), eff("InfluencePerTurn", 2), strength(4, HOME), eff("CityLoyaltyPerTurn", -1), pct("Production", -10)],
+     "The Northern Expedition", "War drains the Mandate less (2 a turn instead of 4).", {"warDrain": 2},
+     ("Allied Cause", "Likes trading partners; despises warmongers.", ["TradePartner"], ["Warmonger"]),
+     {"war": 1.0}),
+    ("LEADER_LENIN", "Vladimir Lenin", "Chairman of the People's Commissars", "CIV_RUSSIA",
+     "Peace, Land and Bread",
+     "+2 Food and +2 Housing in every city, +15% Production. The cost: −30% Gold, war weariness +50%, and −1 Amenity in every city while at war.",
+     [flat("Food", 2), eff("CityHousing", 2), pct("Production", 15), pct("Gold", -30), eff("WarWearinessPercent", 50), eff("CityAmenities", -1, WAR)],
+     "All Power to the Soviets", "Every Russian city claims its third ring when founded.", {"claimRadius": 3},
+     ("World Revolution", "Dislikes trading empires.", ["Peaceful"], ["TradePartner"]),
+     {"war": 0.7, "expansion": 1.2}),
+    ("LEADER_FRANCO", "Francisco Franco", "Head of State of Spain", "CIV_SPAIN",
+     "Non-Belligerence",
+     "+20% Production in peacetime, +3 Loyalty a turn in every city, units +6 strength inside Spanish borders. "
+     "But isolation: −25% Culture, −15% Science, −1 influence a turn.",
+     [pct("Production", 20, PEACE), eff("CityLoyaltyPerTurn", 3), strength(6, HOME), pct("Culture", -25), pct("Science", -15), eff("InfluencePerTurn", -1)],
+     "The Fortress of Spain", "Captured cities pay 120 Gold per citizen.", {"goldPerPop": 120},
+     ("Neutrality", "Respects the loyal; dislikes cities in revolt.", ["HighLoyalty"], ["CitiesInRevolt"]),
+     {"war": 0.7}),
+]
+
+# ----- New nations: Germany and Italy (no extremist iconography: field grey and gold; Italian green and white) -----
+NATIONS = [
+    {"id": "CIV_GERMANY", "name": "Germany", "adjective": "German", "startBias": ["RELIEF_HILLS"],
+     "ability": {"name": "Ingenieurskunst", "description": "+1 Production in every city of 3 or more citizens.",
+                 "modifiers": [{"effect": "CityYieldFlat", "yield": "Production", "amount": 1, "requirements": [{"type": "CityMinPopulation", "value": 3}]}]},
+     "signature": {"kind": "Ruhr", "name": "The Engine of Europe",
+                   "description": "Every German city has one more district slot, and cities with a Foundry make +15% Production. Germany's leaders shape its armour and its fleet.",
+                   "playstyle": "Build tall and industrial: more districts per city than anyone, Foundries everywhere, then turn the industry to whatever your leader demands — a fleet or armoured columns.",
+                   "params": {"extraDistricts": 1, "foundryProduction": 15, "armorStrength": 0, "armorMoves": 0, "navalStrength": 0, "navalMoves": 0, "homeStrength": 0}},
+     "cityNames": ["Berlin", "Hamburg", "München", "Köln", "Frankfurt", "Leipzig", "Dresden", "Nürnberg", "Bremen", "Aachen"],
+     "colors": {"primary": "#5B6770", "secondary": "#D9B24C"}},
+    {"id": "CIV_ITALY", "name": "Italy", "adjective": "Italian", "startBias": ["TERRAIN_COAST"],
+     "ability": {"name": "Il Bel Paese", "description": "+1 Culture in coastal cities.",
+                 "modifiers": [{"effect": "CityYieldFlat", "yield": "Culture", "amount": 1, "requirements": [{"type": "CityIsCoastal"}]}]},
+     "signature": {"kind": "Rinascimento", "name": "Cities of Art",
+                   "description": "Every wonder and great work in an Italian city pays +2 Culture and +2 Gold, and Italian cities build districts and wonders 15% faster.",
+                   "playstyle": "Fill your cities with wonders and masterpieces; every one pays twice. A natural road to the Culture victory.",
+                   "params": {"workCulture": 2, "workGold": 2, "districtProduction": 15, "navalStrength": 0, "navalMoves": 0, "homeStrength": 0}},
+     "cityNames": ["Firenze", "Milano", "Napoli", "Torino", "Bologna", "Palermo", "Trieste", "Verona", "Pisa", "Siena"],
+     "colors": {"primary": "#1E7B3A", "secondary": "#F4F1EA"}},
+]
+
+UNITS = [
+    {"id": "UNIT_PANZER", "name": "Panzer", "replaces": "UNIT_TANK", "civilization": "CIV_GERMANY", "over": {"strength": 84, "moves": 5},
+     "description": "Fast armour built for breakthroughs."},
+    {"id": "UNIT_CONDOTTIERI", "name": "Condottieri", "replaces": "UNIT_HORSEMAN", "civilization": "CIV_ITALY", "over": {"strength": 38, "cost": 70},
+     "description": "Hired captains of the city-states: tougher and cheaper."},
+]
+
 
 def main():
     text = open(CIVS, encoding="utf-8").read()
@@ -209,8 +307,36 @@ def main():
         text = re.sub(r"    // WARTIME-LEADERS-BEGIN.*?// WARTIME-LEADERS-END\n", lambda _: block, text, flags=re.S)
     else:
         text = text.replace("    // MORE-LEADERS-END\n", "    // MORE-LEADERS-END\n" + block, 1)
+    # New nations, after the generated ones (the block opens with its own comma).
+    nblock = "    // WARTIME-NATIONS-BEGIN (generated by tools/assets/wartime_leaders.py)\n    ,\n" + \
+             ",\n".join("    " + json.dumps(n, ensure_ascii=False) for n in NATIONS) + "\n    // WARTIME-NATIONS-END\n"
+    if "WARTIME-NATIONS-BEGIN" in text:
+        text = re.sub(r"    // WARTIME-NATIONS-BEGIN.*?// WARTIME-NATIONS-END\n", lambda _: nblock, text, flags=re.S)
+    else:
+        text = text.replace("    // MORE-NATIONS-END\n", "    // MORE-NATIONS-END\n" + nblock, 1)
+    # China: with modern leaders, the nation is China (its id and its Mandate are unchanged).
+    text = text.replace('"name": "Song China", "adjective": "Song"', '"name": "China", "adjective": "Chinese"')
     open(CIVS, "w", encoding="utf-8").write(text)
-    print(f"wrote {len(LEADERS)} wartime leaders")
+
+    # Unique units of the new nations, copied from the generic they replace.
+    units_path = os.path.join(os.path.dirname(CIVS), "units.json")
+    raw = open(units_path, encoding="utf-8").read()
+    data = json.loads(re.sub(r"^\s*//.*$", "", raw, flags=re.M))
+    generic = {u["id"]: u for u in data["units"] if not u.get("civilization")}
+    lines = []
+    for spec in UNITS:
+        g = {k: v for k, v in generic[spec["replaces"]].items() if k not in ("id", "name", "variants", "description")}
+        u = {"id": spec["id"], "name": spec["name"], **g, **spec["over"], "civilization": spec["civilization"], "replaces": spec["replaces"],
+             "description": spec["description"]}
+        lines.append("    " + json.dumps(u, ensure_ascii=False))
+    ublock = "    // WARTIME-UNITS-BEGIN (generated by tools/assets/wartime_leaders.py)\n    ,\n" + ",\n".join(lines) + "\n    // WARTIME-UNITS-END\n"
+    if "WARTIME-UNITS-BEGIN" in raw:
+        raw = re.sub(r"    // WARTIME-UNITS-BEGIN.*?// WARTIME-UNITS-END\n", lambda _: ublock, raw, flags=re.S)
+    else:
+        last = raw.rindex("]")
+        raw = raw[:last].rstrip() + "\n" + ublock + "  " + raw[last:]
+    open(units_path, "w", encoding="utf-8").write(raw)
+    print(f"wrote {len(LEADERS)} wartime leaders, {len(NATIONS)} nations, {len(UNITS)} units")
 
 
 if __name__ == "__main__":

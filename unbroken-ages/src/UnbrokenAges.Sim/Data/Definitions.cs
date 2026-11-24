@@ -846,6 +846,10 @@ public enum SignatureKind
     Guerrilla,
     /// <summary>Haudenosaunee: may never declare war; peace with everyone makes every city thrive.</summary>
     GreatLaw,
+    /// <summary>Germany: an extra district slot in every city and industrial heartlands; leaders shape its armour and fleet.</summary>
+    Ruhr,
+    /// <summary>Italy: cities of art — wonders and great works pay culture and gold, districts and wonders rise faster.</summary>
+    Rinascimento,
 }
 
 public sealed class SignatureDef

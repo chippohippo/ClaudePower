@@ -10,11 +10,11 @@ public class WartimeLeaderTests
                                                  m.Effect == ModifierEffect.CityEmissionsPercent && m.Amount > Fx.Zero;
 
     [Fact]
-    public void SixteenWartimeLeaders_EachWithABigBonus_AndARealCost()
+    public void WartimeLeaders_EachWithABigBonus_AndARealCost()
     {
         var db = TestWorld.Db;
         var ww = db.Leaders.Where(l => l.HasTag("WorldWars")).ToList();
-        Assert.Equal(16, ww.Count);
+        Assert.Equal(24, ww.Count);
         Assert.Equal(ww.Count, ww.Select(l => l.Id).Distinct().Count());
         foreach (var l in ww)
         {
@@ -92,5 +92,54 @@ public class WartimeLeaderTests
         Assert.Contains(applied, m => m.Yield == YieldType.Production && m.Amount == Fx.FromInt(25));
         Assert.Contains(applied, m => m.Effect == ModifierEffect.CityAmenities && m.Amount == Fx.FromInt(-2));
         Assert.Contains(applied, m => m.Yield == YieldType.Culture && m.Amount < Fx.Zero);
+    }
+}
+
+/// <summary>Germany and Italy, and the doctrines of their leaders.</summary>
+public class NewNationTests
+{
+    [Fact]
+    public void Germany_HasAnExtraDistrictSlot_AndHeartlands_HitlersArmourMovesFaster()
+    {
+        var s = TestWorld.Blank(width: 30, height: 20, players: 2, leaders: new[] { "LEADER_HITLER", "LEADER_LINCOLN" });
+        var berlin = TestWorld.City(s, 0, 8, 10, population: 4);
+        var other = TestWorld.City(s, 1, 22, 10, population: 4);
+        Assert.Equal(1, CityEffects.Compute(s, berlin).DistrictCapacity - CityEffects.Compute(s, other).DistrictCapacity);
+        TestWorld.PlaceDistrict(s, berlin, "DISTRICT_FOUNDRY", TestWorld.Tile(s, 9, 10));
+        Assert.Contains(CityEffects.Compute(s, berlin).Applied, a => a.Source.Contains("industrial heartland"));
+
+        var panzer = TestWorld.Unit(s, 0, "UNIT_PANZER", 9, 11);
+        var tank = TestWorld.Unit(s, 1, "UNIT_TANK", 21, 10);
+        Assert.Equal(UnitStats.Moves(s, tank) + 1 + 1, UnitStats.Moves(s, panzer));   // Panzer +1, Hitler's armour doctrine +1
+        var lines = NationSystem.CombatLines(s, panzer, null, true, false, false, panzer.Tile).ToList();
+        Assert.True(lines.Any(l => l.Label.EndsWith("Combined-Arms Doctrine") && l.Value == 5), string.Join("; ", lines));
+        Assert.True(CityStateSystem.InfluencePerTurn(s, s.Players[0]) < CityStateSystem.InfluencePerTurn(s, s.Players[1]) + 1);
+        Assert.True(CongressSystem.FavorPerTurn(s, s.Players[0]) < CongressSystem.FavorPerTurn(s, s.Players[1]));   // diplomatic isolation
+    }
+
+    [Fact]
+    public void Italy_WondersAndWorksPayTwice()
+    {
+        var s = TestWorld.Blank(width: 30, height: 20, players: 2, leaders: new[] { "LEADER_ORLANDO", null });
+        var firenze = TestWorld.City(s, 0, 8, 10, population: 4);
+        TestWorld.PlaceDistrict(s, firenze, "WONDER_GREAT_LIBRARY", TestWorld.Tile(s, 9, 10));
+        GreatPeopleSystem.Recruit(s, s.Players[0], s.Db.GreatPeople["GREAT_PERSON_HOMER"], new());   // one work hangs in the palace
+        var art = CityEffects.Compute(s, firenze).Applied.Where(a => a.Source.Contains("wonders and works")).ToList();
+        Assert.Contains(art, a => a.Modifier.Yield == YieldType.Culture && a.Modifier.Amount == Fx.FromInt(2 * 3));   // Orlando: 3 each
+        Assert.Contains(art, a => a.Modifier.Yield == YieldType.Gold && a.Modifier.Amount == Fx.FromInt(2 * 3));
+        Assert.True(CityEffects.Compute(s, firenze).ProductionBonusFor(ProductionCategory.District) >= 15);
+    }
+
+    [Fact]
+    public void Mussolini_OverstretchesAbroad_Mao_HoldsHome()
+    {
+        var s = TestWorld.Blank(width: 30, height: 20, players: 2, leaders: new[] { "LEADER_MUSSOLINI", "LEADER_MAO" });
+        TestWorld.City(s, 0, 5, 10);
+        TestWorld.City(s, 1, 25, 10);
+        var italian = TestWorld.Unit(s, 0, "UNIT_WARRIOR", 15, 10);   // in no one's land
+        Assert.Contains(SocietySystem.CombatLines(s, italian, true, false, italian.Tile), l => l.Label == "Mare Nostrum" && l.Value == -4);
+        var chinese = TestWorld.Unit(s, 1, "UNIT_WARRIOR", 25, 11);
+        Assert.Contains(SocietySystem.CombatLines(s, chinese, false, false, chinese.Tile), l => l.Label == "People's Republic" && l.Value == 5);
+        Assert.Equal("China", s.Db.Civilizations["CIV_SONG"].Name);
     }
 }

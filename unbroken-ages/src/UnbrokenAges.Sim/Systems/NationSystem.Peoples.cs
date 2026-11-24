@@ -67,6 +67,24 @@ public static partial class NationSystem
                 }
                 break;
             }
+            case SignatureKind.Ruhr:
+                yield return (src, Effect(ModifierEffect.CityDistrictCapacity, P("extraDistricts", 1)));
+                if (s.Db.Districts.IndexOf("DISTRICT_FOUNDRY") is var foundry and >= 0 &&
+                    city.Districts.Any(d => !d.Pillaged && Districts.AdjacencyCalculator.DistrictMatches(s.Db, d.DefIndex, foundry)))
+                    yield return ($"{src}: industrial heartland", Pct(YieldType.Production, P("foundryProduction", 15)));
+                break;
+            case SignatureKind.Rinascimento:
+            {
+                int works = CultureSystem.WorksIn(s, city).Count() +
+                            city.Districts.Count(d => !d.Pillaged && s.Db.Districts[d.DefIndex].Category == DistrictCategory.Wonder);
+                if (works > 0)
+                {
+                    yield return ($"{src}: {works} wonders and works", Flat(YieldType.Culture, works * P("workCulture", 2)));
+                    yield return ($"{src}: {works} wonders and works", Flat(YieldType.Gold, works * P("workGold", 2)));
+                }
+                yield return (src, Effect(ModifierEffect.CityProductionPercent, P("districtProduction", 15), ProductionCategory.District));
+                break;
+            }
             case SignatureKind.Polis:
             {
                 int partners = PeacePartners(s, p.Id);
@@ -282,6 +300,14 @@ public static partial class NationSystem
             case SignatureKind.GreatLaw when !attacking:
                 yield return ($"{sig.Name}: defenders of the Longhouse", P("defense", 8));
                 break;
+            case SignatureKind.Ruhr or SignatureKind.Rinascimento:
+            {
+                int naval = def.Domain == UnitDomain.Naval ? P("navalStrength", 0) : 0;
+                int armour = def.UnitClass == "HeavyCavalry" ? P("armorStrength", 0) : 0;
+                int homeGuard = home && def.Domain == UnitDomain.Land ? P("homeStrength", 0) : 0;
+                if (naval + armour + homeGuard != 0) yield return (AugmentName(s, p, sig), naval + armour + homeGuard);
+                break;
+            }
             case SignatureKind.Treasure when attacking && P("attackStrength", 0) > 0:
                 yield return (AugmentName(s, p, sig), P("attackStrength", 0));
                 break;
@@ -326,6 +352,8 @@ public static partial class NationSystem
             SignatureKind.Stepwell when def.Domain == UnitDomain.Land && AtWarWithAnyone(s, p.Id) => P("warMoves", 0),
             SignatureKind.Mercenaries when IsMounted(def) => P("mountedMoves", 0),
             SignatureKind.Guerrilla when def.Domain == UnitDomain.Land && (map.Feature[u.Tile] >= 0 || map.Relief[u.Tile] == s.Db.Ids.Hills) => P("terrainMoves", 1),
+            SignatureKind.Ruhr when def.UnitClass == "HeavyCavalry" => P("armorMoves", 0),
+            SignatureKind.Ruhr or SignatureKind.Rinascimento when def.Domain == UnitDomain.Naval => P("navalMoves", 0),
             _ => 0,
         };
     }
@@ -536,6 +564,8 @@ public static partial class NationSystem
             SignatureKind.Eureka => $"{p.SignatureTally} discoveries",
             SignatureKind.Commonwealth => $"{p.SignatureTally} victories pushed the border",
             SignatureKind.Carnival => p.SignatureTimer > 0 ? "Carnival!" : $"Carnival in {Math.Max(3, P("interval", 10)) - 1 - ((s.Turn % Math.Max(3, P("interval", 10))) + Math.Max(3, P("interval", 10))) % Math.Max(3, P("interval", 10))} turns",
+            SignatureKind.Ruhr => $"{s.CitiesOf(p.Id).Count(c => HasDistrict(s, c, "DISTRICT_FOUNDRY"))} industrial heartlands",
+            SignatureKind.Rinascimento => $"{s.CitiesOf(p.Id).Sum(c => CultureSystem.WorksIn(s, c).Count())} works, {SocietySystem.Wonders(s, p.Id).Count()} wonders",
             SignatureKind.GreatLaw => AtWarWithAnyone(s, p.Id) ? "At war: the peace bonus is lost" : $"At peace with all: +{P("peacePercent", 15)}% everything",
             SignatureKind.Themes => $"Army +{Math.Min(P("maxStrength", 10), s.CitiesOf(p.Id).Count() * P("strengthPerCity", 1))} strength",
             SignatureKind.Wisdom => $"{P("goldToScience", 25)}% of gold income becomes Science",
