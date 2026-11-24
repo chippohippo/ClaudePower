@@ -143,6 +143,22 @@ public partial class LifeLayer : Node3D
                     if (path != null) AddRoad(map, path, Known, roads, look.Road, 0.65f, look, false);
                 }
         }
+        // Real trade routes: caravans along their land roads, merchantmen along their sea lanes.
+        foreach (var route in s.TradeRoutes)
+        {
+            if (route.Path.Count < 2 || !route.Path.Any(Known)) continue;
+            var look = looks[route.Owner];
+            int water = route.Path.Count(t => map.IsWater(t));
+            if (water * 2 < route.Path.Count) { AddRoad(map, route.Path, Known, roads, look.Road, 1.15f, look, true); continue; }
+            if (!route.Path.All(Known)) continue;
+            var pts = Smooth(route.Path.Select(t => HexLayout.ToWorld(map.CoordOf(t), 0) + new Vector3(Rand(t, 17) - 0.5f, 0, Rand(t, 18) - 0.5f) * 0.4f).ToList());
+            var ship = Merchantman(look);
+            _dynamic.AddChild(ship);
+            var m = new Mover { Node = ship, Path = pts, Speed = 0.3f, OnWater = true, Bob = Rand(route.Origin, 15) * 6 };
+            m.Length = Cumulative(pts);
+            m.At = Rand(route.Id, 16) * m.Length[^1];
+            _movers.Add(m);
+        }
         // Trade roads: the nearest pair of cities between each two civilizations, if they are close, joined by a caravan road.
         var known = s.Cities.Where(c => Known(c.Tile)).ToList();
         var owners = known.Select(c => c.Owner).Distinct().ToList();

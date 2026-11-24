@@ -86,3 +86,13 @@ public sealed class SendEnvoyCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) => w.Write(CityState);
     protected override void ReadPayload(BinaryReader r) => CityState = r.ReadInt32();
 }
+
+public sealed class EstablishTradeRouteCommand : GameCommand
+{
+    public int UnitId, DestinationCity;
+    public override CommandType Type => CommandType.EstablishTradeRoute;
+    public override string? Validate(GameState s) => OwnUnit(s, UnitId) is not { } u ? "Not your unit." : TradeSystem.CanEstablish(s, u, DestinationCity);
+    public override void Apply(GameState s, List<GameEvent> events) => TradeSystem.Establish(s, s.GetUnit(UnitId)!, DestinationCity, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(DestinationCity); }
+    protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); DestinationCity = r.ReadInt32(); }
+}

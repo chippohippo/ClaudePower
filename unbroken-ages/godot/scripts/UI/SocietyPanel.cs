@@ -246,6 +246,11 @@ public partial class SocietyPanel : PanelContainer
         var wonders = SocietySystem.Wonders(s, me.Id).ToList();
         col.AddChild(new HSeparator());
         col.AddChild(Text(wonders.Count == 0 ? "No world wonders yet. Build them as districts from a city's production list." : "Your wonders: " + string.Join(", ", wonders.Select(w => w.Name))));
+        col.AddChild(new HSeparator());
+        col.AddChild(Text($"Trade routes: {TradeSystem.Active(s, me.Id)} of {TradeSystem.Capacity(s, me)} (one per city with a Market or Harbor, +1 with Foreign Trade)"));
+        foreach (var r in s.TradeRoutes.Where(r => r.Owner == me.Id))
+            if (s.GetCity(r.Origin) is { } o && s.GetCity(r.Destination) is { } d)
+                col.AddChild(Text($"  {o.Name} → {d.Name} · {r.TurnsLeft} turns left", UiTheme.TextDim, 12));
         if (s.Camps.Count > 0) col.AddChild(Text($"Barbarian camps known in the world: {s.Camps.Count(c => me.Revealed.Length > c.Tile && me.Revealed[c.Tile])}", null, 13));
     }
 

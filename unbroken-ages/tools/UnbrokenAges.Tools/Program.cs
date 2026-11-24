@@ -151,6 +151,7 @@ void Simulate()
     foreach (var cs in s.Players.Where(p => p.IsCityState))
         Console.WriteLine($"  city-state {cs.Name,-11} {db.CityStates[cs.CityStateIndex].Type,-12} alive={cs.IsAlive,-5} envoys=[{string.Join(",", cs.Envoys)}] " +
                           $"suzerain={(cs.Suzerain >= 0 ? s.Players[cs.Suzerain].Name : "-")} met={s.Players.Count(m => m.IsMajor && CityStateSystem.HasMet(s, cs, m.Id))} units={s.Units.Count(u => u.Owner == cs.Id)}");
+    Console.WriteLine($"trade routes={s.TradeRoutes.Count} (" + string.Join(", ", s.Players.Where(p => p.IsMajor).Select(p => $"{p.Name} {TradeSystem.Active(s, p.Id)}/{TradeSystem.Capacity(s, p)}")) + ")");
     Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
                       $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");

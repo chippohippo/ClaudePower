@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 15;
+    public const int Version = 16;
 
     public static byte[] Serialize(GameState s)
     {
@@ -159,6 +159,13 @@ public static class GameStateSerializer
         WriteList(w, s.GreatPeopleTaken.OrderBy(x => x).ToList());
         w.Write(s.Discoveries.Count);
         foreach (long d in s.Discoveries.OrderBy(x => x)) w.Write(d);
+        // Trade (version 16).
+        w.Write(s.TradeRoutes.Count);
+        foreach (var r in s.TradeRoutes)
+        {
+            w.Write(r.Id); w.Write(r.Owner); w.Write(r.Origin); w.Write(r.Destination); w.Write(r.TurnsLeft); w.Write(r.TraderDef);
+            WriteList(w, r.Path);
+        }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -350,6 +357,13 @@ public static class GameStateSerializer
         foreach (int g in ReadList(r)) s.GreatPeopleTaken.Add(g);
         int discoveries = r.ReadInt32();
         for (int i = 0; i < discoveries; i++) s.Discoveries.Add(r.ReadInt64());
+        int routes = r.ReadInt32();
+        for (int i = 0; i < routes; i++)
+            s.TradeRoutes.Add(new TradeRouteState
+            {
+                Id = r.ReadInt32(), Owner = r.ReadInt32(), Origin = r.ReadInt32(), Destination = r.ReadInt32(), TurnsLeft = r.ReadInt32(),
+                TraderDef = r.ReadInt32(), Path = ReadList(r),
+            });
         return s;
     }
 

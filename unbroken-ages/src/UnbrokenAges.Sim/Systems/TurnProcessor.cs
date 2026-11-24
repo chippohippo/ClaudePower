@@ -60,6 +60,7 @@ public static class TurnProcessor
         ReligionSystem.ProcessTurn(s, events);
         GreatPeopleSystem.ProcessTurn(s, events);
         CityStateSystem.ProcessTurn(s, events);
+        TradeSystem.ProcessTurn(s, events);
         AgeSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);

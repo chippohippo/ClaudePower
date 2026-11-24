@@ -350,6 +350,7 @@ public partial class MapOverlay : Control
             "LightCavalry" or "HeavyCavalry" => "moves",
             "Support" => "defense",
             "Missionary" => "faith",
+            "Trader" => "gold",
             _ => "strength",
         };
     }

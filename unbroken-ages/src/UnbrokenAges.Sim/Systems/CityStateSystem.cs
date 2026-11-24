@@ -26,6 +26,7 @@ public static class CityStateSystem
         int n = 1;
         if (p.Government >= 0) n += s.Db.Governments[p.Government].Diplomatic;
         n += p.Policies.Count(c => s.Db.Policies[c].Slot == PolicySlot.Diplomatic);
+        n += TradeSystem.InfluenceFromRoutes(s, p.Id);
         return n;
     }
 

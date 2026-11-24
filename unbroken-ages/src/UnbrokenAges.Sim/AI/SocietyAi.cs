@@ -45,6 +45,18 @@ public static class SocietyAi
 
         foreach (var cmd in Missionaries(s, p)) yield return cmd;
 
+        // Traders: open the best route from where they stand; a trader in a city with nowhere to go walks to the capital.
+        foreach (var trader in s.Units.Where(u => u.Owner == p.Id && TradeSystem.IsTrader(s.Db.Units[u.DefIndex])).ToList())
+        {
+            var options = TradeSystem.Options(s, trader);
+            if (options.Count > 0) { yield return new EstablishTradeRouteCommand { Player = p.Id, UnitId = trader.Id, DestinationCity = options[0].City.Id }; continue; }
+            if (ReligionSystem.HolyCity(s, p) is { } capital && capital.Tile != trader.Tile && trader.Destination < 0)
+            {
+                var move = new MoveUnitCommand { Player = p.Id, UnitId = trader.Id, Destination = capital.Tile };
+                if (move.Validate(s) == null) yield return move;
+            }
+        }
+
         // Envoys: one at a time, where it wins or keeps a suzerainty soonest; otherwise where it pays the next tier.
         if (p.EnvoyTokens > 0 && BestEnvoyTarget(s, p) is { } envoyTarget)
             yield return new SendEnvoyCommand { Player = p.Id, CityState = envoyTarget.Id };
@@ -181,6 +193,15 @@ public static class SocietyAi
         if (s.CitiesOf(p.Id).SelectMany(c => c.Queue.Items).Any(q => q.Kind == ProductionKind.Unit && ReligionSystem.IsMissionary(s.Db.Units[q.DefIndex]))) return null;
         if (MissionTarget(s, p, city.Tile) == null) return null;
         return s.Db.Units.FirstOrDefault(u => ReligionSystem.IsMissionary(u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
+    }
+
+    /// <summary>A trader while route slots outnumber routes, traders and traders in the queues.</summary>
+    public static UnitDef? WantsTrader(GameState s, PlayerState p, CityState city)
+    {
+        int busy = TradeSystem.Active(s, p.Id) + s.Units.Count(u => u.Owner == p.Id && TradeSystem.IsTrader(s.Db.Units[u.DefIndex])) +
+                   s.CitiesOf(p.Id).SelectMany(c => c.Queue.Items).Count(q => q.Kind == ProductionKind.Unit && TradeSystem.IsTrader(s.Db.Units[q.DefIndex]));
+        if (busy >= TradeSystem.Capacity(s, p)) return null;
+        return s.Db.Units.FirstOrDefault(u => TradeSystem.IsTrader(u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
     }
 
     /// <summary>A wonder for the empire's most productive city, one at a time, once it has some districts.</summary>

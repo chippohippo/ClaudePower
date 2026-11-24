@@ -225,6 +225,19 @@ public sealed class OutpostState
     public List<int> Tiles = new();
 }
 
+/// <summary>A trade route: who runs it, between which cities, for how long, along which tiles.</summary>
+public sealed class TradeRouteState
+{
+    public int Id;
+    public int Owner;
+    public int Origin;
+    public int Destination;
+    public int TurnsLeft;
+    /// <summary>The trader's unit type (it comes home as one when the route ends).</summary>
+    public int TraderDef;
+    public List<int> Path = new();
+}
+
 public sealed class UnitState
 {
     public int Id;
@@ -313,6 +326,8 @@ public sealed class GameState
     public HashSet<int> GreatPeopleTaken = new();
     /// <summary>Natural wonders each player has discovered (for era score), as player * 100000 + tile.</summary>
     public HashSet<long> Discoveries = new();
+    /// <summary>Open trade routes (TradeSystem), in the order they were opened.</summary>
+    public List<TradeRouteState> TradeRoutes = new();
     public ClimateState Climate = new();
     public WorldState World = new();
     public List<ChronicleEntry> Chronicle = new();

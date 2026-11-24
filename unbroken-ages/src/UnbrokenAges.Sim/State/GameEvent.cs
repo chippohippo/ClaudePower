@@ -86,6 +86,12 @@ public enum GameEventType : byte
     CityStateMet,
     /// <summary>Player = the new suzerain (-1 = none); Value = the city-state's player id.</summary>
     SuzerainChanged,
+    // ----- Trade -----
+    /// <summary>City = origin, Tile = destination, Value = destination owner.</summary>
+    TradeRouteEstablished,
+    TradeRouteEnded,
+    /// <summary>Player = the route's owner, Value = the plunderer.</summary>
+    TradeRoutePlundered,
 }
 
 /// <summary>

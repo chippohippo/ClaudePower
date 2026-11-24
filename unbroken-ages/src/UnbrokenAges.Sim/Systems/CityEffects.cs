@@ -77,6 +77,7 @@ public sealed class CityEffects
             if (owner.HasCivic(c)) fx.ApplyAll(s, city, db.Civics[c].Modifiers, db.Civics[c].Name);
         foreach (var (mods, source) in SocietySystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
         foreach (var (mods, source) in CityStateSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
+        foreach (var (mods, source) in TradeSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
 
         var gov = city.GovernorDef >= 0 ? owner.GetGovernor(city.GovernorDef) : null;
         if (gov is { Established: true })

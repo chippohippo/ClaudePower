@@ -8,6 +8,8 @@
     { "id": "UNIT_BUILDER", "name": "Builder", "domain": "Civilian", "unitClass": "Builder", "era": "ERA_ANCIENT", "cost": 50, "moves": 2, "charges": 3 },
     { "id": "UNIT_MISSIONARY", "name": "Missionary", "domain": "Civilian", "unitClass": "Missionary", "era": "ERA_CLASSICAL", "cost": 70, "moves": 4,
       "prereqTech": "TECH_ASTROLOGY", "tags": ["Missionary"], "description": "Spreads your religion to a city it stands in or beside (small cities convert at once). Needs a founded religion." },
+    { "id": "UNIT_TRADER", "name": "Trader", "domain": "Civilian", "unitClass": "Trader", "era": "ERA_ANCIENT", "cost": 60, "moves": 2,
+      "prereqCivic": "CIVIC_FOREIGN_TRADE", "tags": ["Trader"], "description": "Opens a trade route from the city it stands in: Food and Production at home, Gold abroad, influence with city-states." },
     { "id": "UNIT_SCOUT", "name": "Scout", "domain": "Land", "unitClass": "Recon", "era": "ERA_ANCIENT", "cost": 30, "strength": 10, "moves": 3 },
     { "id": "UNIT_WARRIOR", "name": "Warrior", "domain": "Land", "unitClass": "Melee", "era": "ERA_ANCIENT", "cost": 40, "maintenance": 0, "strength": 20,
       "upgradesTo": ["UNIT_SWORDSMAN"] },

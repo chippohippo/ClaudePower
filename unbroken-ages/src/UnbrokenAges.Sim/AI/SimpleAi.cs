@@ -110,6 +110,7 @@ public sealed class SimpleAi : IAiController
         int peaceArmy = NationSystem.Kind(s, player) == SignatureKind.Horde ? 2 * cityCount + 3 : cityCount + 2;
         if (soldier != null && military < peaceArmy) return (ProductionKind.Unit, soldier.Index, -1);
         if (SocietyAi.WantsMissionary(s, player, city) is { } missionary) return (ProductionKind.Unit, missionary.Index, -1);
+        if (SocietyAi.WantsTrader(s, player, city) is { } trader) return (ProductionKind.Unit, trader.Index, -1);
         if (SocietyAi.WantsWonder(s, player, city) is var (wonder, wonderTile)) return (ProductionKind.District, wonder, wonderTile);
         // Prefer the best-scoring specialty district (same scorer the player's lens uses).
         var districtChoice = db.Districts

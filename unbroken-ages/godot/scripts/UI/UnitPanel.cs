@@ -93,6 +93,20 @@ public partial class UnitPanel : PanelContainer
             }
         }
         if (ReligionSystem.IsMissionary(def)) Action("faith", "Spread Religion", "", new SpreadReligionCommand { UnitId = u.Id });
+        if (TradeSystem.IsTrader(def))
+        {
+            var options = TradeSystem.Options(s, u);
+            if (options.Count == 0)
+                _subtitle.Text += TradeSystem.OriginOf(s, u) == null ? " · move into one of your cities to trade"
+                                : $" · no route open ({TradeSystem.Active(s, u.Owner)}/{TradeSystem.Capacity(s, s.Players[u.Owner])} slots)";
+            foreach (var (city, yields, influence, _) in options.Take(6))
+            {
+                string pays = string.Join(" ", Sim.Data.YieldSet.All.Where(y => yields[y] != Sim.Core.Fx.Zero).Select(y => $"+{yields[y].FloorToInt()} {y}")) +
+                              (influence > 0 ? $" +{influence} influence" : "");
+                Action("gold", $"→ {city.Name}: {pays}", "", new EstablishTradeRouteCommand { UnitId = u.Id, DestinationCity = city.Id },
+                       $"A {TradeSystem.Duration}-turn trade route to {city.Name} ({s.Players[city.Owner].Name}).");
+            }
+        }
         if (SupplySystem.IsMilitary(s.Db, u))
         {
             Action("defense", u.Fortified ? "Fortified" : "Fortify", "F", new FortifyCommand { UnitId = u.Id });
