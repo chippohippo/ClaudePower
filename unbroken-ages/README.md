@@ -131,6 +131,13 @@ Civilization VII's age resets or civ-swapping.
   cities below them for 40 turns.
   * The Exodus chain runs First Orbit, Moon Base, Mars Colony, then the Ark, which wins the **Exodus** victory.
   * Every victory type is now built.
+* **Earth with true start locations** ([05/22](docs/05-key-systems/22-earth.md)): a detailed 128 × 80 real-world map built from
+  Natural Earth, with real coastlines, mountain ranges, deserts, forests and 14 Great Rivers along their real courses. Every
+  civilization starts at its historical capital, and every city-state and natural wonder stands at its real site. Land units
+  embark to cross the sea (Sailing, then Celestial Navigation). `tools/maps/earth_soak.py` plays 12-civilization Earth games to
+  turn 500 against eight targets.
+
+  ![Earth](docs/screenshots/earth-map.png)
 * **Unit variants**: upgrades offer 2–3 honest trade-offs (Heavy, Fordsmen, Longbow, Ram…), shown in the combat preview
   ([05/09](docs/05-key-systems/09-combat.md#unit-variants-and-upgrades)).
 * **Victory**: Ascension, Hegemony (every original capital, or 60% of the world's people and land) and an itemized Score at the turn limit;
