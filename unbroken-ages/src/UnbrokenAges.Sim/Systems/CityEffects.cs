@@ -80,6 +80,7 @@ public sealed class CityEffects
         foreach (var (mods, source) in TradeSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
         foreach (var (mods, source) in CultureSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
         foreach (var (mods, source) in CongressSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
+        foreach (var (mods, source) in SpaceSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
 
         var gov = city.GovernorDef >= 0 ? owner.GetGovernor(city.GovernorDef) : null;
         if (gov is { Established: true })
@@ -182,6 +183,8 @@ public sealed class CityEffects
             case ModifierEffect.ClimateCo2Reduction:
             case ModifierEffect.ClimateCooling:
             case ModifierEffect.CompleteAscension:
+            case ModifierEffect.LaunchSatellite:
+            case ModifierEffect.ExodusStage:
                 break; // one-shot project effects, handled by ProductionSystem
         }
     }

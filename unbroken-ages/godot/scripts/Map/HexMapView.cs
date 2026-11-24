@@ -378,6 +378,15 @@ public partial class HexMapView : Node3D
             AddFit("props/flag_blue", at + new Vector3(0.02f, 0, -0.02f), 0.7f, 0, new Color(1.3f, 0.25f, 0.2f, fade.A), true);
         }
 
+        // Satellites: a dish high over the city that launched it, tinted by kind (solar gold, weather blue, relay violet, survey white).
+        foreach (var sat in s.Satellites)
+        {
+            if (!Known(sat.Center)) continue;
+            var at = HexLayout.ToWorld(map.CoordOf(sat.Center), 0) + new Vector3(0.35f * Mathf.Cos(sat.Id), 0, 0.35f * Mathf.Sin(sat.Id));
+            var tint = sat.Kind switch { 1 => new Color(1.4f, 1.15f, 0.4f), 2 => new Color(0.55f, 0.95f, 1.4f), 3 => new Color(1.1f, 0.7f, 1.45f), _ => new Color(1.3f, 1.3f, 1.3f) };
+            AddFit("era/dish", at, 0.32f, sat.Id * 0.7f, tint, false, default, 2.1f);
+        }
+
         foreach (var c in s.Cities) if (Known(c.Tile)) DressCity(s, c, visible[c.Tile], k);
         foreach (var o in s.Outposts)
         {

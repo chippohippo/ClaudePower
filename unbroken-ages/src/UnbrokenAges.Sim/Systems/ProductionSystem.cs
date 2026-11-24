@@ -111,6 +111,9 @@ public static class ProductionSystem
                         return $"The world must be remade first: {share.FloorToInt()}% of {p.RequiresWorldTransformedPercent}% of land.";
                 }
                 if (!p.Repeatable && player.Ascended && p.OnComplete.Any(m => m.Effect == ModifierEffect.CompleteAscension)) return "Already ascended.";
+                if (!p.Repeatable && player.CompletedProjects.Contains(def)) return "Already completed.";
+                foreach (int req in p.RequiresProjectIndices)
+                    if (!player.CompletedProjects.Contains(req)) return $"Requires {db.Projects[req].Name} first.";
                 if (p.DistrictIndex >= 0 && city.Districts.All(d => !AdjacencyCalculator.DistrictMatches(db, d.DefIndex, p.DistrictIndex)))
                     return $"Requires {db.Districts[p.DistrictIndex].Name}.";
                 return null;
@@ -245,7 +248,12 @@ public static class ProductionSystem
                         s.Climate.Temperature = Fx.Max(Fx.Zero, s.Climate.Temperature - m.Amount); // decays back unless renewed
                     else if (m.Effect == ModifierEffect.CompleteAscension)
                         DivergenceSystem.CompleteAscension(s, s.Players[city.Owner], events);
+                    else if (m.Effect == ModifierEffect.LaunchSatellite)
+                        SpaceSystem.Launch(s, city, m.Amount.FloorToInt(), events);
+                    else if (m.Effect == ModifierEffect.ExodusStage)
+                        SpaceSystem.Advance(s, s.Players[city.Owner], m.Amount.FloorToInt(), events);
                 }
+                if (!s.Players[city.Owner].CompletedProjects.Contains(item.DefIndex)) s.Players[city.Owner].CompletedProjects.Add(item.DefIndex);
                 break;
         }
         events.Add(new GameEvent(GameEventType.ProductionCompleted, city.Owner, city.Id, item.Tile, item.DefIndex, (int)item.Kind, ItemName(db, item)));

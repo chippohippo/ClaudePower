@@ -112,6 +112,12 @@ public enum GameEventType : byte
     DiplomaticPointEarned,
     /// <summary>A corps or army formed (Value = formation level).</summary>
     FormationCreated,
+    // ----- Space -----
+    /// <summary>Value = satellite kind; Tile = the centre of its coverage.</summary>
+    SatelliteLaunched,
+    SatelliteFell,
+    /// <summary>Value = the stage reached.</summary>
+    ExodusStageReached,
 }
 
 /// <summary>

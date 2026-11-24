@@ -1,0 +1,132 @@
+{
+  // Space: the orbital layer and the Exodus chain (docs/05-key-systems/21-space.md).
+
+ "$schema": "../../schemas/content.schema.json",
+ "projects": [
+  {
+   "id": "PROJECT_SURVEY_SATELLITE",
+   "name": "Survey Satellite",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 300,
+   "repeatable": true,
+   "prereqTech": "TECH_ROCKETRY",
+   "description": "Maps every tile within 9 of the city; orbits for 40 turns.",
+   "onComplete": [
+    {
+     "effect": "LaunchSatellite",
+     "amount": 0
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_SOLAR_ARRAY",
+   "name": "Orbital Solar Array",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 400,
+   "repeatable": true,
+   "prereqTech": "TECH_RENEWABLE_ENERGY",
+   "description": "+2 Production in your cities within 5 tiles for 40 turns.",
+   "onComplete": [
+    {
+     "effect": "LaunchSatellite",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_WEATHER_STATION",
+   "name": "Weather Station",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 400,
+   "repeatable": true,
+   "prereqTech": "TECH_ROCKETRY",
+   "description": "+2 Food in your cities within 5 tiles for 40 turns.",
+   "onComplete": [
+    {
+     "effect": "LaunchSatellite",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_RELAY_SATELLITE",
+   "name": "Relay Satellite",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 400,
+   "repeatable": true,
+   "prereqTech": "TECH_ROBOTICS",
+   "description": "+2 Science in your cities within 5 tiles for 40 turns.",
+   "onComplete": [
+    {
+     "effect": "LaunchSatellite",
+     "amount": 3
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_FIRST_ORBIT",
+   "name": "First Orbit",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 800,
+   "prereqTech": "TECH_ROCKETRY",
+   "description": "Exodus, stage 1: a crew in orbit.",
+   "onComplete": [
+    {
+     "effect": "ExodusStage",
+     "amount": 1
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_MOON_BASE",
+   "name": "Moon Base",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 1200,
+   "prereqTech": "TECH_NUCLEAR_FISSION",
+   "requiresProjects": [
+    "PROJECT_FIRST_ORBIT"
+   ],
+   "description": "Exodus, stage 2: a permanent base on the Moon.",
+   "onComplete": [
+    {
+     "effect": "ExodusStage",
+     "amount": 2
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_MARS_COLONY",
+   "name": "Mars Colony",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 1600,
+   "prereqTech": "TECH_ROBOTICS",
+   "requiresProjects": [
+    "PROJECT_MOON_BASE"
+   ],
+   "description": "Exodus, stage 3: a colony on Mars.",
+   "onComplete": [
+    {
+     "effect": "ExodusStage",
+     "amount": 3
+    }
+   ]
+  },
+  {
+   "id": "PROJECT_EXODUS_ARK",
+   "name": "The Exodus Ark",
+   "district": "DISTRICT_SPACEPORT",
+   "cost": 2200,
+   "prereqTech": "TECH_ROBOTICS",
+   "requiresProjects": [
+    "PROJECT_MARS_COLONY"
+   ],
+   "description": "Exodus, final stage: an ark for the stars. Launching it wins the Exodus victory.",
+   "onComplete": [
+    {
+     "effect": "ExodusStage",
+     "amount": 4
+    }
+   ]
+  }
+ ]
+}

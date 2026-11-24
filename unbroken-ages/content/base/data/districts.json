@@ -119,7 +119,7 @@
     { "id": "DISTRICT_AIRFIELD", "name": "Airfield", "category": "Specialty", "cost": 54, "prereqTech": "TECH_FLIGHT",
       "tags": ["Specialty", "Military"], "placement": { "allowedReliefs": ["RELIEF_FLAT"] } },
 
-    { "id": "DISTRICT_SPACEPORT", "name": "Spaceport", "category": "Infrastructure", "cost": 1800, "countsTowardLimit": false,
+    { "id": "DISTRICT_SPACEPORT", "name": "Spaceport", "category": "Infrastructure", "cost": 900, "countsTowardLimit": false,
       "prereqTech": "TECH_ROCKETRY", "tags": ["Infrastructure"], "placement": { "allowedReliefs": ["RELIEF_FLAT"] } },
 
     { "id": "DISTRICT_ARSENAL", "name": "Arsenal", "category": "Specialty", "primaryYield": "Production", "cost": 27,

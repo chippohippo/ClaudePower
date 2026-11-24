@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 20;
+    public const int Version = 21;
 
     public static byte[] Serialize(GameState s)
     {
@@ -153,7 +153,7 @@ public static class GameStateSerializer
             w.Write(p.CityStateIndex); w.Write(p.Influence); w.Write(p.EnvoyTokens); w.Write(p.EnvoysEarned); WriteList(w, p.Envoys); w.Write(p.Suzerain);
             w.Write(p.Spies.Count);
             foreach (var spy in p.Spies) { w.Write(spy.Id); w.Write(spy.Name); w.Write(spy.Level); w.Write(spy.CityId); w.Write((byte)spy.Mission); w.Write(spy.TurnsLeft); }
-            WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo); w.Write(p.Favor); w.Write(p.DiplomaticPoints);
+            WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo); w.Write(p.Favor); w.Write(p.DiplomaticPoints); WriteList(w, p.CompletedProjects); w.Write(p.ExodusStage);
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
         foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); w.Write(u.Formation); }
@@ -184,6 +184,9 @@ public static class GameStateSerializer
         }
         w.Write(congress.Active.Count);
         foreach (var a in congress.Active) { w.Write((byte)a.Kind); w.Write(a.Option); w.Write(a.Target); }
+        // Space (version 21).
+        w.Write(s.Satellites.Count);
+        foreach (var sat in s.Satellites) { w.Write(sat.Id); w.Write(sat.Owner); w.Write(sat.Kind); w.Write(sat.Center); w.Write(sat.TurnsLeft); }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -371,7 +374,7 @@ public static class GameStateSerializer
             for (int k = 0; k < spies; k++)
                 p.Spies.Add(new SpyState { Id = r.ReadInt32(), Name = r.ReadString(), Level = r.ReadInt32(), CityId = r.ReadInt32(),
                                            Mission = (Systems.SpyMission)r.ReadByte(), TurnsLeft = r.ReadInt32() });
-            p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r); p.Favor = r.ReadInt32(); p.DiplomaticPoints = r.ReadInt32();
+            p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r); p.Favor = r.ReadInt32(); p.DiplomaticPoints = r.ReadInt32(); p.CompletedProjects = ReadList(r); p.ExodusStage = r.ReadInt32();
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
         foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); u.Formation = r.ReadByte(); }
@@ -402,6 +405,9 @@ public static class GameStateSerializer
         }
         int active = r.ReadInt32();
         for (int i = 0; i < active; i++) congress.Active.Add(new ActiveResolutionState { Kind = (Systems.ResolutionKind)r.ReadByte(), Option = r.ReadInt32(), Target = r.ReadInt32() });
+        int satellites = r.ReadInt32();
+        for (int i = 0; i < satellites; i++)
+            s.Satellites.Add(new SatelliteState { Id = r.ReadInt32(), Owner = r.ReadInt32(), Kind = r.ReadInt32(), Center = r.ReadInt32(), TurnsLeft = r.ReadInt32() });
         return s;
     }
 

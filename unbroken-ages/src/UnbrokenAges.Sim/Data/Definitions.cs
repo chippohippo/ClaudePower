@@ -51,6 +51,10 @@ public enum ModifierEffect
     CitizenPowerDemandTenths,
     /// <summary>Project one-shot: lowers the global temperature anomaly directly (geoengineering).</summary>
     ClimateCooling,
+    /// <summary>Project one-shot: launches a satellite of kind <c>amount</c> (SpaceSystem.SatelliteKind) over the city.</summary>
+    LaunchSatellite,
+    /// <summary>Project one-shot: the builder reaches Exodus stage <c>amount</c> (4 = the ark departs: Exodus victory).</summary>
+    ExodusStage,
     /// <summary>Project one-shot: completes the owner's Divergence (Ascension victory).</summary>
     CompleteAscension,
     /// <summary>Unit combat strength (policies, governments, beliefs): <c>target</c> = a unit class, or empty for every military unit.</summary>
@@ -453,13 +457,17 @@ public sealed class ProjectDef : Definition
     public string? Divergence { get; init; }
     /// <summary>The builder's Divergence must have remade at least this percent of the world's land.</summary>
     public int RequiresWorldTransformedPercent { get; init; }
+    /// <summary>Projects the builder must have completed first (the Exodus chain).</summary>
+    public List<string> RequiresProjects { get; init; } = new();
 
     [JsonIgnore] public int DistrictIndex { get; private set; } = -1;
     [JsonIgnore] public int PrereqTechIndex { get; private set; } = -1;
     [JsonIgnore] public int DivergenceIndex { get; private set; } = -1;
+    [JsonIgnore] public int[] RequiresProjectIndices { get; private set; } = Array.Empty<int>();
 
     internal override void Link(LinkContext ctx)
     {
+        RequiresProjectIndices = ctx.ResolveAll(ctx.Db.Projects, RequiresProjects, this, "requiresProjects");
         DivergenceIndex = ctx.Resolve(ctx.Db.Divergences, Divergence, this, "divergence");
         DistrictIndex = ctx.Resolve(ctx.Db.Districts, District, this, "district");
         PrereqTechIndex = ctx.Resolve(ctx.Db.Techs, PrereqTech, this, "prereqTech");

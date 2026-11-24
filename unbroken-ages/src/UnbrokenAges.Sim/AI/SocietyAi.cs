@@ -303,6 +303,36 @@ public static class SocietyAi
         return s.Db.Units.FirstOrDefault(u => TradeSystem.IsTrader(u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
     }
 
+    /// <summary>
+    /// The space race: once Rocketry is known, the most productive city raises a Spaceport; a Spaceport city works through the
+    /// Exodus chain and keeps two satellites in orbit (Solar Array first).
+    /// </summary>
+    public static (ProductionKind Kind, int Def, int Tile)? WantsSpace(GameState s, PlayerState p, CityState city)
+    {
+        var db = s.Db;
+        int port = db.Districts.IndexOf("DISTRICT_SPACEPORT");
+        if (port < 0 || !p.HasTech(db.Districts[port].PrereqTechIndex)) return null;
+        bool HasPort(CityState c) => c.Districts.Any(d => d.DefIndex == port) || c.Queue.Items.Any(q => q.Kind == ProductionKind.District && q.DefIndex == port);
+        var cities = s.CitiesOf(p.Id).ToList();
+        if (!cities.Any(HasPort))
+        {
+            var best = cities.Where(c => c.Districts.Count >= 4).OrderByDescending(c => c.YieldsLastTurnProduction).ThenBy(c => c.Id).FirstOrDefault();
+            if (best?.Id != city.Id) return null;
+            return DistrictPlanner.Rank(s, city, port, DistrictPlanner.BalancedWeights, 1).FirstOrDefault() is { } spot ? (ProductionKind.District, port, spot.Tile) : null;
+        }
+        if (!city.Districts.Any(d => d.DefIndex == port)) return null;
+        if (city.Queue.Items.Any(q => q.Kind == ProductionKind.Project && db.Projects[q.DefIndex].DistrictIndex == port)) return null;
+        string[] chain = { "PROJECT_FIRST_ORBIT", "PROJECT_MOON_BASE", "PROJECT_MARS_COLONY", "PROJECT_EXODUS_ARK" };
+        foreach (string id in chain)
+            if (db.Projects.IndexOf(id) is var proj and >= 0 && ProductionSystem.CanEnqueue(s, city, ProductionKind.Project, proj, -1) == null)
+                return (ProductionKind.Project, proj, -1);
+        if (s.Satellites.Count(x => x.Owner == p.Id) < 2)
+            foreach (string id in new[] { "PROJECT_SOLAR_ARRAY", "PROJECT_RELAY_SATELLITE", "PROJECT_WEATHER_STATION", "PROJECT_SURVEY_SATELLITE" })
+                if (db.Projects.IndexOf(id) is var sat and >= 0 && ProductionSystem.CanEnqueue(s, city, ProductionKind.Project, sat, -1) == null)
+                    return (ProductionKind.Project, sat, -1);
+        return null;
+    }
+
     /// <summary>A wonder for the empire's most productive city, one at a time, once it has some districts.</summary>
     public static (int Def, int Tile)? WantsWonder(GameState s, PlayerState p, CityState city)
     {

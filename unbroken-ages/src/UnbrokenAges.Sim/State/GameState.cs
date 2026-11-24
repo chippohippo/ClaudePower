@@ -8,7 +8,7 @@ public enum AgeState : byte { Normal, Golden, Dark, Heroic }
 public enum PowerDispatchPolicy : byte { CleanestFirst, CheapestFirst }
 public enum TurnMode : byte { Simultaneous, Dynamic, Sequential }
 
-/// <summary>Victory types; also the setup toggles (flags). Spiritual, Culture and Concord are built; Exodus is designed (GDD §14) and not yet built.</summary>
+/// <summary>Victory types; also the setup toggles (flags). every victory is built (GDD §14) and not yet built.</summary>
 [Flags]
 public enum VictoryKind
 {
@@ -161,6 +161,10 @@ public sealed class PlayerState
     /// <summary>World Congress: Diplomatic Favor (buys extra votes) and diplomatic victory points (20 win the Concord victory).</summary>
     public int Favor;
     public int DiplomaticPoints;
+    /// <summary>Projects this player has completed at least once (SpaceSystem's chain, one-off projects).</summary>
+    public List<int> CompletedProjects = new();
+    /// <summary>Exodus stage reached: 1 First Orbit, 2 Moon Base, 3 Mars Colony, 4 the ark departs.</summary>
+    public int ExodusStage;
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
@@ -231,6 +235,16 @@ public sealed class OutpostState
     public int HarvestTile = -1;
     /// <summary>Tiles this outpost claimed (released if it is razed).</summary>
     public List<int> Tiles = new();
+}
+
+/// <summary>A satellite: its owner, kind, the tile it orbits over, and turns until it falls.</summary>
+public sealed class SatelliteState
+{
+    public int Id;
+    public int Owner;
+    public int Kind;
+    public int Center;
+    public int TurnsLeft;
 }
 
 /// <summary>The World Congress: when it next meets, what is before it, what is in force, and how many sessions it has held.</summary>
@@ -390,6 +404,8 @@ public sealed class GameState
     public HashSet<int> GreatPeopleTaken = new();
     /// <summary>Natural wonders each player has discovered (for era score), as player * 100000 + tile.</summary>
     public HashSet<long> Discoveries = new();
+    /// <summary>Satellites in orbit (SpaceSystem).</summary>
+    public List<SatelliteState> Satellites = new();
     /// <summary>The World Congress (CongressSystem).</summary>
     public CongressState Congress = new();
     /// <summary>Great works of art and relics (CultureSystem).</summary>

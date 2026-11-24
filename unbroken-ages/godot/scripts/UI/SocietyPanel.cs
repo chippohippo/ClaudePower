@@ -276,6 +276,14 @@ public partial class SocietyPanel : PanelContainer
         col.AddChild(new HSeparator());
         col.AddChild(Text(wonders.Count == 0 ? "No world wonders yet. Build them as districts from a city's production list." : "Your wonders: " + string.Join(", ", wonders.Select(w => w.Name))));
         col.AddChild(new HSeparator());
+        var sats = s.Satellites.Where(x => x.Owner == me.Id).ToList();
+        col.AddChild(Text($"Space: Exodus {(me.ExodusStage == 0 ? "not begun" : SpaceSystem.Stages[me.ExodusStage])} ({me.ExodusStage}/{SpaceSystem.FinalStage}) · " +
+                          $"{sats.Count} satellite{(sats.Count == 1 ? "" : "s")} in orbit"));
+        foreach (var sat in sats)
+            col.AddChild(Text($"  {SpaceSystem.Name(sat.Kind)} over {s.Cities.FirstOrDefault(c => c.Tile == sat.Center)?.Name ?? "the wilds"} · {sat.TurnsLeft} turns", UiTheme.TextDim, 12));
+        foreach (var rival in s.Players.Where(o => o.IsMajor && o.IsAlive && o.Id != me.Id && o.ExodusStage > 0))
+            col.AddChild(Text($"  {rival.Name} has reached {SpaceSystem.Stages[rival.ExodusStage]}", new Color("#ff9a9a"), 12));
+        col.AddChild(new HSeparator());
         col.AddChild(Text($"Trade routes: {TradeSystem.Active(s, me.Id)} of {TradeSystem.Capacity(s, me)} (one per city with a Market or Harbor, +1 with Foreign Trade)"));
         foreach (var r in s.TradeRoutes.Where(r => r.Owner == me.Id))
             if (s.GetCity(r.Origin) is { } o && s.GetCity(r.Destination) is { } d)

@@ -24,6 +24,7 @@ Each document covers rules, formulas, pseudocode, the **real implementation** (f
 | 19 | [Espionage](18-espionage.md) | `Systems/EspionageSystem.cs`, `AI/SocietyAi.cs` | `EspionageTests.cs` |
 | 20 | [Great works, tourism, Culture victory](19-culture.md) | `Systems/CultureSystem.cs` | `CultureTests.cs` |
 | 21 | [World Congress and the Concord victory](20-congress.md) | `Systems/CongressSystem.cs`, `AI/SocietyAi.cs` | `CongressTests.cs` |
+| 22 | [Orbital layer and the Exodus victory](21-space.md) | `Systems/SpaceSystem.cs`, `AI/SocietyAi.cs` | `SpaceTests.cs` |
 | 8 | [World Ages, Supply, Industries, Chronicle](../09-genre-defining-depth.md#4-what-we-built-in-this-iteration) | `Systems/WorldSystem.cs`, `SupplySystem.cs`, `IndustrySystem.cs`, `ChronicleSystem.cs` | `DepthTests.cs` |
 
 Paths are relative to `src/UnbrokenAges.Sim/` unless noted; tests live in `tests/UnbrokenAges.Tests/`.

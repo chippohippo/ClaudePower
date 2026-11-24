@@ -369,7 +369,9 @@
             "CitizenPowerDemandTenths",
             "ClimateCooling",
             "CompleteAscension",
-            "UnitStrength"
+            "UnitStrength",
+            "LaunchSatellite",
+            "ExodusStage"
           ]
         },
         "yield": {
@@ -1536,6 +1538,12 @@
         },
         "requiresWorldTransformedPercent": {
           "type": "integer"
+        },
+        "requiresProjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
