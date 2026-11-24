@@ -27,9 +27,8 @@ public partial class CityPanel : PanelContainer
     private HBoxContainer _yieldRow = null!;
     private Label _title = null!, _yields = null!, _loyalty = null!, _hover = null!;
     private ItemList _queue = null!;
-    private OptionButton _add = null!;
+    private VBoxContainer _build = null!;
     private CheckBox _repeat = null!;
-    private readonly List<(ProductionKind Kind, int Def)> _addOptions = new();
 
     public CityPanel(GameRoot root, PlacementLens lens)
     {
@@ -41,7 +40,7 @@ public partial class CityPanel : PanelContainer
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.RightWide);
         CustomMinimumSize = new Vector2(390, 0);
-        OffsetLeft = -402; OffsetRight = -12; OffsetTop = 50; OffsetBottom = -330;   // below the top bar, above the turn button
+        OffsetLeft = -402; OffsetRight = -12; OffsetTop = 50; OffsetBottom = -294;   // below the top bar, above the turn button
         var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         AddChild(scroll);
         var v = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -60,7 +59,7 @@ public partial class CityPanel : PanelContainer
         v.AddChild(new HSeparator());
         v.AddChild(new Label { Text = "PRODUCTION QUEUE" });
 
-        _queue = new ItemList { CustomMinimumSize = new Vector2(0, 220), SelectMode = ItemList.SelectModeEnum.Single };
+        _queue = new ItemList { CustomMinimumSize = new Vector2(0, 96), SelectMode = ItemList.SelectModeEnum.Single, AutoHeight = true };
         v.AddChild(_queue);
 
         var row = new HBoxContainer();
@@ -70,13 +69,14 @@ public partial class CityPanel : PanelContainer
         row.AddChild(Button("Remove", RemoveSelected));
         row.AddChild(Button("Buy", BuySelected));
 
-        var addRow = new HBoxContainer();
-        v.AddChild(addRow);
-        _add = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        addRow.AddChild(_add);
+        var buildHead = new HBoxContainer();
+        v.AddChild(buildHead);
+        buildHead.AddChild(new Label { Text = "BUILD  (click to queue)", SizeFlagsHorizontal = SizeFlags.ExpandFill });
         _repeat = new CheckBox { Text = "Repeat" };
-        addRow.AddChild(_repeat);
-        addRow.AddChild(Button("Add", AddSelectedOption));
+        buildHead.AddChild(_repeat);
+        _build = new VBoxContainer();
+        _build.AddThemeConstantOverride("separation", 3);
+        v.AddChild(_build);
 
         v.AddChild(new HSeparator());
         _hover = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -149,12 +149,24 @@ public partial class CityPanel : PanelContainer
             _queue.AddItem($"{e.Name}{where}{(item.Repeat ? " ↻" : "")}   {e.Progress.FloorToInt()}/{e.Cost.FloorToInt()}   {when}");
         }
 
-        _add.Clear();
-        _addOptions.Clear();
+        foreach (var c in _build.GetChildren()) c.QueueFree();
+        var groups = new SortedDictionary<int, (string Title, Color Tone, List<(ProductionKind Kind, int Def, string Name, string Tip)> Items)>
+        {
+            [0] = ("Units", UiTheme.Danger, new()), [1] = ("Districts", UiTheme.Science, new()), [2] = ("Buildings", UiTheme.Production, new()),
+            [3] = ("Wonders", UiTheme.GoldBright, new()), [4] = ("Projects", UiTheme.Culture, new()),
+        };
+        int production = Math.Max(1, report.Total.Production.FloorToInt());
         void Offer(ProductionKind kind, int def, string name)
         {
-            _addOptions.Add((kind, def));
-            _add.AddItem(name);
+            int group = kind switch { ProductionKind.Unit => 0, ProductionKind.Building => 2, ProductionKind.Project => 4, _ => s.Db.Districts[def].Category == DistrictCategory.Wonder ? 3 : 1 };
+            string description = kind switch
+            {
+                ProductionKind.Unit => s.Db.Units[def].Description ?? "",
+                ProductionKind.District => s.Db.Districts[def].Description ?? "",
+                ProductionKind.Building => s.Db.Buildings[def].Description ?? "",
+                _ => s.Db.Projects[def].Description ?? "",
+            };
+            groups[group].Items.Add((kind, def, name, description));
         }
         var player = s.Players[city.Owner];
         foreach (var d in s.Db.Districts)
@@ -166,24 +178,48 @@ public partial class CityPanel : PanelContainer
             if (d.CivilizationIndex >= 0 && d.CivilizationIndex != player.CivIndex) continue;
             bool wonder = d.Category == DistrictCategory.Wonder;
             if (wonder && s.Cities.Any(c => c.Districts.Any(x => x.DefIndex == d.Index))) continue;   // someone has built it
-            Offer(ProductionKind.District, d.Index, $"{(wonder ? "★ Wonder: " : "⬡ ")}{d.Name} ({ProductionSystem.Cost(s, player, ProductionKind.District, d.Index).FloorToInt()})");
+            Offer(ProductionKind.District, d.Index, d.Name);
         }
         foreach (var b in s.Db.Buildings)
             if (ProductionSystem.Validate(s, city, ProductionKind.Building, b.Index, -1) == null)
-                Offer(ProductionKind.Building, b.Index, $"▣ {b.Name} ({b.Cost.FloorToInt()})");
+                Offer(ProductionKind.Building, b.Index, b.Name);
         foreach (var u in s.Db.Units)
             if (ProductionSystem.Validate(s, city, ProductionKind.Unit, u.Index, -1) == null)
-                Offer(ProductionKind.Unit, u.Index, $"♞ {u.Name} ({u.Cost.FloorToInt()})");
+                Offer(ProductionKind.Unit, u.Index, u.Name);
         foreach (var p in s.Db.Projects)
             if (ProductionSystem.Validate(s, city, ProductionKind.Project, p.Index, -1) == null)
-                Offer(ProductionKind.Project, p.Index, $"✪ {p.Name} ({p.Cost.FloorToInt()})");
+                Offer(ProductionKind.Project, p.Index, p.Name);
+
+        // Cards by group: name, turns at this city's production, cost; the description as the tooltip.
+        foreach (var (title, tone, items) in groups.Values)
+        {
+            if (items.Count == 0) continue;
+            var header = new Label { Text = title.ToUpperInvariant(), ThemeTypeVariation = "Caption" };
+            header.AddThemeColorOverride("font_color", tone);
+            _build.AddChild(header);
+            foreach (var (kind, def, name, tip) in items.OrderBy(i => ProductionSystem.Cost(s, player, i.Kind, i.Def)))
+            {
+                int cost = ProductionSystem.Cost(s, player, kind, def).FloorToInt();
+                var card = new Button { Alignment = HorizontalAlignment.Left, TooltipText = tip, CustomMinimumSize = new Vector2(0, 30), ClipText = true,
+                                        Text = $"{name}    {(cost + production - 1) / production} t  ·  {cost}" };
+                var box = UiTheme.Box(new Color("#12233acc"), new Color(tone, 0.35f), 1, 5, 6);
+                box.BorderWidthLeft = 3;
+                box.BorderColor = new Color(tone, 0.85f);
+                card.AddThemeStyleboxOverride("normal", box);
+                var hover = (StyleBoxFlat)box.Duplicate();
+                hover.BgColor = new Color("#1d3a5c");
+                card.AddThemeStyleboxOverride("hover", hover);
+                var (k, d2) = (kind, def);
+                card.Pressed += () => Queue(k, d2);
+                _build.AddChild(card);
+            }
+        }
     }
 
-    private void AddSelectedOption()
+    private void Queue(ProductionKind kind, int def)
     {
         var s = _root.State;
-        if (s == null || _add.Selected < 0 || _add.Selected >= _addOptions.Count) return;
-        var (kind, def) = _addOptions[_add.Selected];
+        if (s == null) return;
         if (kind == ProductionKind.District)
         {
             _pendingDistrict = def;

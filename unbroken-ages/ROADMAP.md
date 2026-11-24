@@ -41,7 +41,9 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       generated tanks and warships), a Renaissance town tier, varied industrial and modern cities.
 - [x] **20. First-playtest pass**: survival fixes (moved capitals, no last-city revolts, the AI spares a garrisoned last city), city
       defence that keeps pace with the line, Skip for units, the playtest guide ([docs/PLAYTEST.md](docs/PLAYTEST.md)).
-- [ ] **21. After the first playtest**: a tutorial, air bases and interception, the AI turn off the UI thread, whatever playtesters find.
+- [x] **21. Rough edges**: the advisor (tutorial), the air war (bases, carriers, interception), the AI turn off the UI thread,
+      last stands and no dogpiles; a visual overhaul (woods, research tree, reach and routes, battle effects, cards).
+- [ ] **22. After the first playtest**: whatever playtesters find.
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).

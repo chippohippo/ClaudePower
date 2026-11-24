@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 309 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 314 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -144,6 +144,22 @@ Civilization VII's age resets or civ-swapping.
 
 ## Look and sound
 
+**The latest pass** adds:
+- a period look for every unit (riders on their mounts, tanks of each war, triremes to carriers);
+- Renaissance towns and varied industrial and modern cities;
+- woods of their climate;
+- a research screen laid out as a tree, with planned paths;
+- the selected unit's reach and route on the map;
+- battles you can see: arrows and shells in flight, impacts, fire and smoke, damage numbers;
+- notification cards, build cards in the city screen, and an advisor that teaches the first game.
+
+| | |
+|---|---|
+| ![The research tree](docs/screenshots/tech-tree.png) | ![Battle effects](docs/screenshots/battle-effects.png) |
+| ![Period units with riders and warships](docs/screenshots/period-units.png) | ![A Renaissance town](docs/screenshots/renaissance-town.png) |
+| ![Woods of their climate](docs/screenshots/woodland.png) | ![The advisor and notification cards](docs/screenshots/advisor-and-feed.png) |
+
+
 Civ VI's painted art direction on an old paper map ([06 §9](docs/06-ui-ux-wireframes.md#9-art-direction-a-painted-world-on-an-old-chart)):
 terrains blend across soft, hand-painted borders; coasts have turquoise shallows, rolling surf and foam; forests, hills,
 mountains, team-coloured cities and districts are 3D; units are animated squads of four. The world is alive: farms are
@@ -193,7 +209,7 @@ with `xvfb-run` and a software Vulkan driver).
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 309 tests, ~4 s
+dotnet test                                        # 314 tests, ~4 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade
