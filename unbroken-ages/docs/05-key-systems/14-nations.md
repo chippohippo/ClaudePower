@@ -1,5 +1,7 @@
 # 14. Nations: signatures and leaders
 
+There are **36 nations and 72 leaders**: the six below, and the thirty further nations after them.
+
 Every major nation plays **one rule of the game differently**: its *signature*. A signature is not a percentage bonus. It
 changes what you do every turn. Each nation has two historical leaders, and each leader's *augment* bends the signature
 further, so Egypt under Thutmose III plays differently from Egypt under Hatshepsut.
@@ -23,6 +25,67 @@ further, so Egypt under Thutmose III plays differently from Egypt under Hatsheps
 New unique units: **Keshig** (Mongolia, replaces Horseman: cheap, 5 moves before the Horde's bonus), **Warak'aq** (Inca,
 replaces Slinger), and **Mandekalu Cavalry** (Mali, replaces Horseman). Egypt keeps the Medjay, Venice the Great Galley and
 Song the Fire Lance Corps.
+
+## The thirty further nations
+
+The data comes from `tools/assets/nations_data.py`, which writes the block between the MORE-NATIONS and MORE-LEADERS markers
+in `civilizations.json`. The rules are in `Systems/NationSystem.Peoples.cs`.
+
+| Nation | Signature | The rule, and how to play it | Leaders and their augments |
+|---|---|---|---|
+| **Rome** | **The Cursus Publicus** (`Imperium`) | Every Roman city makes +6% Production for each other Roman city within 6 tiles (up to +30%), and Roman land units have +1 movement inside Roman borders. *Build a dense, interlocking empire: every city you plant beside another makes both stronger, and your legions race along home roads.* | **Augustus**: The neighbourhood bonus applies to Culture as well, and reaches 8 tiles.<br>**Trajan**: Legions move +2 inside Roman borders and the bonus grows by 8% per city (up to 40%). |
+| **Greece** | **The League of Cities** (`Polis`) | For every civilization at peace with Greece, every Greek city gains +6% Science and Culture. While Greece is at war, its melee units fight with +4 strength. *Diplomacy is your engine: keep many neighbours at peace and the poleis flourish; when war comes, the phalanx holds.* | **Pericles**: Each peace partner also adds +4% more Culture.<br>**Gorgo**: The phalanx fights with +9 strength at war. |
+| **Zulu** | **The Horns of the Buffalo** (`Impi`) | Zulu melee units attack with +4 strength for every other Zulu melee unit next to the defender. Units are raised 25% faster, but Zulu cities make 20% less Science. *Fight in formation: surround the enemy and strike with the horns. A war economy that must keep moving.* | **Shaka**: +6 strength per comrade; units are raised 40% faster.<br>**Cetshwayo**: Units fight with +7 strength defending inside Zulu land; the Science penalty is only 10%. |
+| **Norway** | **Sea Kings** (`Raiders`) | Every enemy unit a Norse unit destroys pays Gold worth 150% of its strength. Norse ships have +1 movement and +5 strength. *Raid for your treasury: strike from the sea, kill what you can catch, and spend the plunder at home.* | **Harald Hardrada**: Kills also pay Science worth 100% of the victim's strength.<br>**Cnut the Great**: Ships have +2 movement and +8 strength; raids pay 200%. |
+| **Japan** | **The Way of the Warrior** (`Bushido`) | Japanese units fight at full strength however wounded: they never suffer the wounds penalty. *Fight to the last: a damaged Japanese army is as dangerous as a fresh one, so press attacks other nations would break off.* | **Tokugawa Ieyasu**: Units defending next to the coast fight with +6 strength.<br>**Hōjō Tokimune**: Units defending next to the coast fight with +10 strength. |
+| **England** | **Workshop of the World** (`Workshop`) | Powered English cities make +25% Production, and every improved strategic resource yields 2 more each turn. *Industrialise first: dig coal, raise power plants and out-produce the world once the furnaces are lit.* | **Victoria**: Cities with a Harbor make +4 Gold; powered cities +35% Production.<br>**Elizabeth I**: Improved strategic resources yield 4 more each turn. |
+| **France** | **La Grandeur** (`Grandeur`) | French borders grow twice as fast from Culture, and French cities make +15% Culture. *Out-shine your neighbours: culture claims the land before their settlers can, and the frontier moves your way.* | **Louis XIV**: +20% Production toward buildings; culture +25%.<br>**Catherine de' Medici**: Foreign cities within 6 tiles of a French city lose 2 loyalty a turn. |
+| **Russia** | **The Endless Land** (`Winter`) | Every Russian city claims its whole second ring when founded. Tundra and snow yield +1 Food and +1 Production. Enemy units standing in Russian tundra or snow lose 10 HP a turn. *Spread wide into the cold: what others call wasteland feeds you, and invaders freeze in it.* | **Peter the Great**: Tundra and snow also yield +1 Science.<br>**Catherine the Great**: Invaders lose 20 HP a turn; cities claim out to the third ring. |
+| **Persia** | **The Satrapies** (`Satrapy`) | Persian governors take 3 turns less to establish. Every governed city gains +3 loyalty a turn, +1 amenity and +15% Gold. *Govern everything: appoint and place governors early and widely, and the empire holds together where others fragment.* | **Cyrus the Great**: At war, Persian land units have +1 movement.<br>**Darius I**: Governed cities make +30% Gold and +5 loyalty a turn. |
+| **Aztec** | **The Flower Wars** (`FlowerWar`) | Every enemy unit the Aztecs destroy adds Production worth 150% of its strength to the nearest Aztec city's current build, and +2 loyalty there. Each improved luxury gives an extra amenity. *War builds your cities: send armies out to take captives, and the temples rise at home.* | **Montezuma I**: Each improved luxury gives two extra amenities.<br>**Itzcoatl**: Captives give Production worth 250% of their strength. |
+| **Maya** | **The Long Count** (`LongCount`) | Cities within 6 tiles of the Maya capital make +15% Food, Production, Science, Culture and Gold; cities farther away make 15% less. *Build tall and tight around the capital: a ring of great cities, and nothing left on the frontier.* | **K'inich Janaab Pakal**: The capital makes +4 Science; the realm reaches 7 tiles.<br>**Lady Six Sky**: Near cities make +20%, far cities only 5% less. |
+| **Ethiopia** | **The Roof of Africa** (`Highland`) | Hills yield +2 Faith. Each turn 40% of Ethiopia's Faith income is also earned as Science and 20% as Culture. *Settle the highlands and keep the faith: devotion becomes learning and art.* | **Menelik II**: Units on hills fight with +6 strength.<br>**Ezana**: Faith becomes Science at 60% and Culture at 30%. |
+| **Ottomans** | **Masters of the Siege** (`Siege`) | Ottoman units attack cities with +10 strength. Captured cities keep all their citizens and start at 75 loyalty. *Take cities, not just battles: your armies crack walls, and the cities you win stay whole.* | **Suleiman**: Captured cities start fully loyal.<br>**Mehmed II**: Units attack cities with +18 strength. |
+| **Arabia** | **The House of Wisdom** (`Wisdom`) | Each turn a quarter of Arabia's Gold income goes to its scholars, returning 120% of it as Science. *Get rich to get clever: trade, markets and mines pay for the fastest research in the world.* | **Harun al-Rashid**: Gold becomes Science at 150%.<br>**Saladin**: Half the gold sent to the scholars also returns as Faith. |
+| **Korea** | **Seowon** (`Seowon`) | Science adjacency bonuses are doubled, and mines yield +1 Science. *Place your academies with care and mine the hills: every district and quarry feeds the scholars.* | **Sejong the Great**: Every city makes +1 Science per 2 citizens.<br>**Seondeok**: Every city makes +1 Culture per 3 citizens; mines +2 Science. |
+| **India** | **Stepwells** (`Stepwell`) | Cities by fresh water or the sea gain +3 Housing. Cities of 6 or more citizens give +2 Faith. *Build great cities: India out-grows its neighbours, and its largest cities become centres of faith.* | **Ashoka**: At peace, every city makes +15% Food; great cities give +4 Faith.<br>**Chandragupta Maurya**: At war, land units have +1 movement. |
+| **Khmer** | **The Barays** (`Baray`) | Farms yield +1 Food, and farms beside a river also +1 Faith. *Irrigate everything: cover the river plains with farms and the reservoirs feed both bodies and spirits.* | **Jayavarman VII**: Every city gains +2 Housing.<br>**Suryavarman II**: Farms also yield +1 Culture. |
+| **Netherlands** | **Polders** (`Polder`) | Coast tiles worked by Dutch cities yield +1 Food and +1 Production. River floods and storms never harm Dutch cities. *Make land from the sea: settle every shore and work the shallows as other nations work fields.* | **William of Orange**: Coastal cities make +3 Gold.<br>**Wilhelmina**: Coast tiles yield +2 Production. |
+| **Portugal** | **Casa da Índia** (`Navigators`) | Portuguese cities may only be founded on the coast or a Great River. Ships have +2 movement. Every port city makes +3 Gold and +10% Science. *Live on the shore: a necklace of ports, fast ships and rich trade, never far from the sea.* | **Henry the Navigator**: Port cities make +25% Science.<br>**João III**: Port cities make +6 Gold; ships +3 movement. |
+| **Spain** | **The Treasure Fleets** (`Treasure`) | Every city Spain captures pays 80 Gold per citizen. *Conquest pays for everything: take rich cities, and the treasure funds the next campaign.* | **Isabella I**: Captured cities also give 30 Faith per citizen.<br>**Philip II**: Spanish units attack with +5 strength; treasure is 120 Gold per citizen. |
+| **Byzantium** | **The Themes** (`Themes`) | Every Byzantine unit fights with +1 strength for each city Byzantium owns (up to +10). Byzantine cities defend with +10 strength. *Every city is a recruiting ground: grow wide, and every soldier grows stronger; the walls almost never fall.* | **Justinian I**: Every city gains +3 loyalty a turn; walls +15.<br>**Basil II**: Mounted units fight with +6 more strength; the theme bonus reaches +14. |
+| **Carthage** | **Hired Swords** (`Mercenaries`) | Carthage raises units 30% slower, but buys them 50% cheaper. Every port city makes +2 Gold. *Pay, don't draft: trade fills the treasury and the treasury hires the army, wherever it is needed.* | **Hannibal Barca**: Mounted units have +1 movement; units are bought 60% cheaper.<br>**Dido**: Port cities gain +2 Housing and +4 Gold. |
+| **Babylon** | **Enuma Anu Enlil** (`Eureka`) | Babylonian cities make 40% less Science, but every building and district completed yields Science worth 60% of its Production cost. *Build to learn: discovery comes from construction, so keep every city building something.* | **Hammurabi**: Completions also yield Culture worth 30% of their cost.<br>**Nebuchadnezzar II**: +25% Production toward districts; completions yield 80% as Science. |
+| **Kongo** | **Children of the Forest** (`Forest`) | Forest and rainforest tiles yield +1 Food, +1 Production and +1 Culture. *Keep the forest standing: settle in the woods and never clear them, for they give everything.* | **Mvemba a Nzinga**: Forest tiles yield +2 Culture.<br>**Nzinga Mbande**: Units in forest or rainforest fight with +7 strength. |
+| **Poland** | **The Commonwealth** (`Commonwealth`) | When a Polish unit destroys an enemy within 4 tiles of a Polish city, the tiles around the fight join that city. *Win battles at the border and the border moves: every victory is a land grab.* | **Jadwiga**: Victories claim land two tiles around the fight, up to 6 tiles from a city.<br>**Jan III Sobieski**: Polish units fight with +6 strength inside Polish land. |
+| **Scotland** | **The Scottish Enlightenment** (`Enlightenment`) | Each improved luxury near a Scottish city gives it +8% Science and Production (up to +30%). *Keep the people content and they invent and build: hunt down every luxury and improve it.* | **Robert the Bruce**: Units fight with +7 strength inside Scottish land.<br>**Saint Margaret**: Each luxury gives +12% (up to +40%). |
+| **Brazil** | **Carnival** (`Carnival`) | Every 10 turns Brazil holds a Carnival for 2 turns: every city gains +3 amenities, and the nation earns Culture worth 6 per citizen. Rainforest tiles yield +1 Science. *Grow big and celebrate: carnivals carry your culture forward in great bursts, and the rainforest is your laboratory.* | **Pedro II**: Carnival comes every 8 turns.<br>**Getúlio Vargas**: During Carnival every city makes +40% Production. |
+| **America** | **The Open Frontier** (`Frontier`) | American cities need 25% less Food to grow and have +2 Housing. *Grow fast and settle wide: cities balloon, so plan the amenities and the districts to keep up.* | **Abraham Lincoln**: Every city makes +15% Production.<br>**Theodore Roosevelt**: Every city makes +3 Culture; cities grow 35% faster. |
+| **Vietnam** | **The Land Fights Back** (`Guerrilla`) | Vietnamese units standing in forest, rainforest, marsh or hills fight with +5 strength and move +1. *Fight where the land is wild: draw invaders into the jungle and hills, and never fight in the open.* | **Trưng Trắc**: Units in wild land fight with +9 strength.<br>**Lý Thường Kiệt**: Units in wild land move +2. |
+| **Haudenosaunee** | **The Great Law of Peace** (`GreatLaw`) | The Confederacy may never declare war. While at peace with every civilization, every city makes +15% of every yield. Units and cities defend with +8 strength. *A league of peace: grow strong in harmony and make any aggressor regret the attempt.* | **Hiawatha**: At peace with all, every city makes +25% of every yield.<br>**Jigonhsasee**: At peace with all, every city gains +4 loyalty a turn; defenders +12. |
+
+New engine hooks for these nations:
+* combat lines in the strength breakdown, and city defence;
+* empire-level yield conversion (Ethiopia's faith, Arabia's gold);
+* growth thresholds (America) and border growth (France);
+* founding rules (Portugal founds only on the coast; Russia claims its second ring);
+* a nation that can never declare war (the Haudenosaunee);
+* completions as discoveries (Babylon);
+* extra strategic stockpiles (England);
+* winter attrition (Russia) and carnivals (Brazil).
+
+Each capital raises a landmark:
+* pyramid: Egypt;
+* pagoda: Song, Japan, Korea, Vietnam, Khmer;
+* great ger: Mongolia;
+* stepped temple (ushnu): Inca, Maya, Aztec, Babylon;
+* mosque: Mali, Arabia, Ottomans, Persia;
+* longhouse: Norway, Haudenosaunee;
+* kraal: Zulu, Kongo;
+* stele: Ethiopia, Carthage;
+* campanile: everyone else.
+
+Pre-industrial houses take regional building materials.
 
 ## Design rules
 

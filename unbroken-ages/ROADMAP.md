@@ -71,7 +71,9 @@ its own architecture, roads, traffic, aircraft, plumes, townsfolk and units. Deb
 **Nations (done):** six major nations with rule-changing signatures (NationSystem) and two leaders each whose augments
 bend them; new unique units; nation picker and dossier in the lobby, a live signature badge, Venice's Buy buttons;
 capitals' landmarks, Mongol yurts, national building materials and Inca terraces on the map; NationAi; bankruptcy, early-war
-restraint and AI production fixes from 6-nation soak tests. See docs/05-key-systems/14-nations.md.
+restraint and AI production fixes from 6-nation soak tests. Then thirty more nations and sixty more leaders (36 and 72 in
+all), each with its own rule, nine new engine hooks, a scrollable picker and three more landmarks. See
+docs/05-key-systems/14-nations.md.
 
 **Queue complete.** Next candidates (not scheduled): naval and air AI, the deal table and World Congress, religion v0, great people,
 policy cards and governments, the turn timer, and Grand-dial governor ageing.

@@ -51,19 +51,27 @@ Civilization VII's age resets or civ-swapping.
   "Levee-builder"…), which travel with them ([05/02](docs/05-key-systems/02-loyalty-governors.md#living-governors-experience-and-traits)).
 * **Outposts**: Waymakers plant cheap claims that hold land, extend supply and harvest one resource, with no city screen; buy one up into a
   city later ([05/12](docs/05-key-systems/12-outposts.md)).
-* **Six nations that play differently** ([05/14](docs/05-key-systems/14-nations.md)):
+* **36 nations and 72 leaders that play differently** ([05/14](docs/05-key-systems/14-nations.md)). Every nation plays one
+  rule differently. Some examples:
   * Egypt grows in flood pulses from a royal granary.
   * Venice never trains Settlers, and buys outposts and cities instead.
   * Song rides a Mandate meter into golden dynasties.
   * Mongolia learns by conquest.
   * The Inca walk and farm the mountains.
   * Mali buys rather than builds.
+  * Zulu armies strike from the horns.
+  * Japanese units ignore their wounds.
+  * Russia freezes invaders.
+  * Portugal founds only on the coast.
+  * Babylon learns by building.
+  * The Haudenosaunee may never declare war.
 
   Each nation has two leaders whose augments bend that rule. Pick them in the lobby, which shows a dossier of how each plays.
 
   | | |
   |---|---|
   | ![Choosing a nation and leader](docs/screenshots/nation-picker.png) | ![Six capitals and their landmarks](docs/screenshots/nations.png) |
+  | ![More nations: Rome, Zulu, Norway, Ethiopia, Japan, Aztec](docs/screenshots/nations-more.png) | |
 * **Unit variants**: upgrades offer 2–3 honest trade-offs (Heavy, Fordsmen, Longbow, Ram…), shown in the combat preview
   ([05/09](docs/05-key-systems/09-combat.md#unit-variants-and-upgrades)).
 * **Victory**: Ascension, Hegemony (every original capital, or 60% of the world's people and land) and an itemized Score at the turn limit;

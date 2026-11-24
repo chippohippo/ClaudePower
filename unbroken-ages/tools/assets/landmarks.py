@@ -9,6 +9,9 @@ Each landmark stands on y = 0, is centred on x/z, and is about 1 unit tall/wide 
   ushnu       Inca      a terraced stone platform with a shrine on top
   mosque      Mali      a Djenné-style mud mosque: a long hall, three towers bristling with toron beams
   campanile   Venice    a brick bell tower with a white belfry and a green pyramid spire
+  longhouse   Norway, Haudenosaunee   a long bark-and-timber hall with a ridged roof and smoke holes
+  kraal       Zulu, Kongo   a ring of round beehive huts around a cattle enclosure
+  stele       Ethiopia, Carthage   a towering carved stone stele on a stepped base
 """
 import json, math, os, struct
 
@@ -66,7 +69,9 @@ class Mesh:
     def write(self, path):
         materials, meshes_prims, buffer, views, accessors = [], [], bytearray(), [], []
         for colour, (pos, nor) in self.parts.items():
-            materials.append({"pbrMetallicRoughness": {"baseColorFactor": list(colour) + [1.0], "metallicFactor": 0.0, "roughnessFactor": 0.85}})
+            # Colours here are written as seen on screen (sRGB); glTF wants linear factors.
+            linear = [round(c ** 2.2, 4) for c in colour]
+            materials.append({"pbrMetallicRoughness": {"baseColorFactor": linear + [1.0], "metallicFactor": 0.0, "roughnessFactor": 0.85}})
             prim = {"attributes": {}, "material": len(materials) - 1}
             for name, data in (("POSITION", pos), ("NORMAL", nor)):
                 off = len(buffer)
@@ -172,8 +177,51 @@ def campanile():
     return m
 
 
+THATCH, BARK, GRANITE = (0.78, 0.64, 0.36), (0.5, 0.36, 0.24), (0.58, 0.56, 0.54)
+
+
+def longhouse():
+    m = Mesh()
+    m.box(BARK, -0.55, 0, -0.2, 0.55, 0.22, 0.2)
+    for x0 in (-0.55, 0.55):   # rounded ends
+        m.box(BARK, x0 - 0.04 if x0 < 0 else x0, 0, -0.14, x0 if x0 < 0 else x0 + 0.04, 0.2, 0.14)
+    m.quad(THATCH, (-0.6, 0.2, -0.24), (-0.6, 0.36, 0), (0.6, 0.36, 0), (0.6, 0.2, -0.24))
+    m.quad(THATCH, (-0.6, 0.2, 0.24), (0.6, 0.2, 0.24), (0.6, 0.36, 0), (-0.6, 0.36, 0))
+    m.tri(BARK, (-0.6, 0.2, -0.24), (-0.6, 0.2, 0.24), (-0.6, 0.36, 0))
+    m.tri(BARK, (0.6, 0.2, 0.24), (0.6, 0.2, -0.24), (0.6, 0.36, 0))
+    for x in (-0.3, 0.0, 0.3):
+        m.box(STONE_DARK, x - 0.04, 0.34, -0.04, x + 0.04, 0.4, 0.04)
+    return m
+
+
+def kraal():
+    m = Mesh()
+    m.cylinder(BARK, 0, 0, 0.62, 0, 0.06, sides=20, top=(0.6, 0.5, 0.3))
+    for i in range(7):
+        a = i * 2 * math.pi / 7
+        x, z = math.cos(a) * 0.48, math.sin(a) * 0.48
+        m.cylinder(MUD, x, z, 0.13, 0, 0.08, sides=10)
+        m.pyramid(THATCH, x, z, 0.15, 0.08, 0.32, sides=10, rot=0)
+    m.cylinder(MUD, 0, 0, 0.18, 0, 0.12, sides=12)
+    m.pyramid(THATCH, 0, 0, 0.21, 0.12, 0.45, sides=12, rot=0)
+    return m
+
+
+def stele():
+    m = Mesh()
+    m.box(GRANITE, -0.3, 0, -0.3, 0.3, 0.06, 0.3)
+    m.box(GRANITE, -0.22, 0.06, -0.22, 0.22, 0.12, 0.22)
+    m.box(GRANITE, -0.09, 0.12, -0.05, 0.09, 1.1, 0.05)
+    for y in (0.3, 0.5, 0.7, 0.9):   # carved storeys: false windows and beam ends
+        m.box(STONE_DARK, -0.06, y, 0.05, 0.06, y + 0.07, 0.065)
+    m.quad(GRANITE, (-0.09, 1.1, -0.05), (-0.09, 1.1, 0.05), (0.0, 1.2, 0.05), (0.0, 1.2, -0.05))
+    m.quad(GRANITE, (0.09, 1.1, 0.05), (0.09, 1.1, -0.05), (0.0, 1.2, -0.05), (0.0, 1.2, 0.05))
+    return m
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    for name, make in [("pyramid", pyramid), ("pagoda", pagoda), ("yurt", yurt), ("ushnu", ushnu), ("mosque", mosque), ("campanile", campanile)]:
+    for name, make in [("pyramid", pyramid), ("pagoda", pagoda), ("yurt", yurt), ("ushnu", ushnu), ("mosque", mosque), ("campanile", campanile),
+                       ("longhouse", longhouse), ("kraal", kraal), ("stele", stele)]:
         make().write(os.path.join(OUT, f"{name}.glb"))
         print("wrote", os.path.join("models", "landmarks", f"{name}.glb"))

@@ -32,17 +32,22 @@ public partial class NationPicker : VBoxContainer
         title.AddThemeColorOverride("font_color", UiTheme.GoldBright);
         title.AddThemeFontSizeOverride("font_size", 18);
         AddChild(title);
+        AddChild(new Label { Text = $"{_db.Civilizations.Count} nations, each playing one rule of the game differently. Hover a card for how it plays.", ThemeTypeVariation = "Caption", AutowrapMode = TextServer.AutowrapMode.WordSmart });
 
-        var grid = new GridContainer { Columns = 3 };
-        grid.AddThemeConstantOverride("h_separation", 8);
-        grid.AddThemeConstantOverride("v_separation", 8);
-        AddChild(grid);
+        // Thirty-six nations: a compact, scrollable grid of cards.
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 196), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        AddChild(scroll);
+        var grid = new GridContainer { Columns = 4, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        grid.AddThemeConstantOverride("h_separation", 6);
+        grid.AddThemeConstantOverride("v_separation", 6);
+        scroll.AddChild(grid);
         foreach (var civ in _db.Civilizations)
         {
             int index = civ.Index;
             var b = new Button
             {
-                Text = $"{civ.Name}\n{civ.Signature.Name}", ToggleMode = true, CustomMinimumSize = new Vector2(150, 58),
+                Text = $"{civ.Name}\n{civ.Signature.Name}", ToggleMode = true, CustomMinimumSize = new Vector2(120, 46),
+                ClipText = true,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = civ.Signature.Playstyle ?? "",
             };
             Style(b, civ);
@@ -81,7 +86,7 @@ public partial class NationPicker : VBoxContainer
         b.AddThemeColorOverride("font_color", primary.Lightened(0.55f));
         b.AddThemeColorOverride("font_pressed_color", Colors.White);
         b.AddThemeColorOverride("font_hover_color", secondary.Lightened(0.6f));
-        b.AddThemeFontSizeOverride("font_size", 14);
+        b.AddThemeFontSizeOverride("font_size", 11);
     }
 
     private void SelectNation(int index)
@@ -115,9 +120,9 @@ public partial class NationPicker : VBoxContainer
         var uniques = _db.Units.Where(u => u.CivilizationIndex == civ.Index).ToList();
         string text =
             $"[font_size=22][color=#{colour}]{civ.Name.ToUpperInvariant()}[/color][/font_size]   [color=#{dim}]led by[/color] [color=#ffffff]{leader.Name}[/color], {leader.Epithet}\n\n" +
-            $"[color=#{gold}][color=#ffffff]{civ.Signature.Name}[/color][/color]\n{civ.Signature.Description}\n" +
+            $"[color=#{gold}]{civ.Signature.Name}[/color]\n{civ.Signature.Description}\n" +
             $"[color=#{dim}]{civ.Signature.Playstyle}[/color]\n\n" +
-            $"[color=#{gold}][color=#ffffff]{leader.Name}: {leader.Augment.Name}[/color][/color]\n{leader.Augment.Description}\n\n" +
+            $"[color=#{gold}]{leader.Name}: {leader.Augment.Name}[/color]\n{leader.Augment.Description}\n\n" +
             $"[color=#ffffff]{civ.Ability.Name}[/color] — {civ.Ability.Description}\n" +
             $"[color=#ffffff]{leader.Ability.Name}[/color] — {leader.Ability.Description}\n" +
             (uniques.Count > 0 ? $"[color=#ffffff]Unique units[/color] — {string.Join("; ", uniques.Select(u => $"{u.Name}{(u.ReplacesIndex >= 0 ? $" (replaces {_db.Units[u.ReplacesIndex].Name})" : "")}"))}\n" : "") +

@@ -64,24 +64,35 @@ public static class CityLayout
     /// <summary>Pre-industrial building stone: a multiply over the kit's timber-and-plaster houses.</summary>
     public static Color Material(string? civ) => civ switch
     {
-        "CIV_EGYPT" => new Color(1.06f, 0.96f, 0.78f),   // sandstone and whitewash
-        "CIV_MALI" => new Color(1.06f, 0.8f, 0.58f),     // banco adobe
-        "CIV_INCA" => new Color(0.86f, 0.86f, 0.9f),     // fitted fieldstone
-        "CIV_VENICE" => new Color(1.06f, 0.88f, 0.84f),  // terracotta and pastel stucco
+        "CIV_EGYPT" or "CIV_BABYLON" or "CIV_PERSIA" => new Color(1.06f, 0.96f, 0.78f),     // sandstone, mud brick and whitewash
+        "CIV_MALI" or "CIV_ARABIA" => new Color(1.06f, 0.8f, 0.58f),                      // banco adobe
+        "CIV_INCA" or "CIV_MAYA" or "CIV_AZTEC" => new Color(0.86f, 0.86f, 0.9f),          // fitted fieldstone and stucco
+        "CIV_VENICE" or "CIV_SPAIN" or "CIV_PORTUGAL" => new Color(1.06f, 0.88f, 0.84f),   // terracotta and pastel stucco
+        "CIV_ROME" or "CIV_GREECE" or "CIV_BYZANTIUM" or "CIV_CARTHAGE" => new Color(1.08f, 1.06f, 1.0f),   // marble and limestone
+        "CIV_ZULU" or "CIV_KONGO" or "CIV_ETHIOPIA" => new Color(1.02f, 0.9f, 0.7f),       // thatch and daub
+        "CIV_JAPAN" or "CIV_KOREA" or "CIV_VIETNAM" or "CIV_KHMER" => new Color(0.9f, 0.86f, 0.84f),   // dark timber and tile
+        "CIV_NORWAY" or "CIV_SCOTLAND" or "CIV_RUSSIA" or "CIV_POLAND" => new Color(0.88f, 0.84f, 0.8f),   // grey stone and pine
         _ => Colors.White,
     };
 
     /// <summary>The capital's landmark, standing at the back of the city so the banner and units stay clear.</summary>
-    public static Piece? Landmark(string? civ) => civ switch
+    public static Piece? Landmark(string? civ)
     {
-        "CIV_EGYPT" => new Piece("landmarks/pyramid", Ring(305, 0.92f), 0.78f, Fit.Width),
-        "CIV_SONG" => new Piece("landmarks/pagoda", Ring(305, 0.9f), 1.05f, Fit.Height),
-        "CIV_MONGOLIA" => new Piece("landmarks/yurt", Ring(305, 0.9f), 0.6f, Fit.Width),
-        "CIV_INCA" => new Piece("landmarks/ushnu", Ring(305, 0.92f), 0.7f, Fit.Width),
-        "CIV_MALI" => new Piece("landmarks/mosque", Ring(305, 0.92f), 0.8f, Fit.Width),
-        "CIV_VENICE" => new Piece("landmarks/campanile", Ring(305, 0.9f), 1.2f, Fit.Height),
-        _ => null,
-    };
+        var at = Ring(305, 0.9f);
+        return civ switch
+        {
+            "CIV_EGYPT" => new Piece("landmarks/pyramid", at, 0.78f, Fit.Width),
+            "CIV_SONG" or "CIV_JAPAN" or "CIV_KOREA" or "CIV_VIETNAM" or "CIV_KHMER" => new Piece("landmarks/pagoda", at, 1.05f, Fit.Height),
+            "CIV_MONGOLIA" => new Piece("landmarks/yurt", at, 0.6f, Fit.Width),
+            "CIV_INCA" or "CIV_MAYA" or "CIV_AZTEC" or "CIV_BABYLON" => new Piece("landmarks/ushnu", at, 0.7f, Fit.Width),
+            "CIV_MALI" or "CIV_ARABIA" or "CIV_OTTOMAN" or "CIV_PERSIA" => new Piece("landmarks/mosque", at, 0.8f, Fit.Width),
+            "CIV_NORWAY" or "CIV_HAUDENOSAUNEE" => new Piece("landmarks/longhouse", at, 0.8f, Fit.Width),
+            "CIV_ZULU" or "CIV_KONGO" => new Piece("landmarks/kraal", at, 0.8f, Fit.Width),
+            "CIV_ETHIOPIA" or "CIV_CARTHAGE" => new Piece("landmarks/stele", at, 1.1f, Fit.Height),
+            null => null,
+            _ => new Piece("landmarks/campanile", at, 1.2f, Fit.Height),   // Europe and the Americas: the bell tower over the square
+        };
+    }
 
     private static IEnumerable<Piece> Centre(TechLook look, CityState c, bool walls)
     {
