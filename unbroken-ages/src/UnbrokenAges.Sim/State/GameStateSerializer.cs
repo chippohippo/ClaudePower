@@ -469,7 +469,7 @@ public static class GameSetupCodec
             var m = g.Map;
             w.Write(m.Width); w.Write(m.Height); w.Write(m.WrapX); w.Write(m.Seed); w.Write(m.LandPercent);
             w.Write(m.ContinentSeeds); w.Write(m.GreatRivers); w.Write(m.MinGreatRiverLength); w.Write(m.MinorRiverPercent);
-            w.Write(m.Players); w.Write(m.Temperature); w.Write(m.Rainfall);
+            w.Write(m.Players); w.Write(m.Temperature); w.Write(m.Rainfall); w.Write(m.MapId ?? "");
             var o = g.Options;
             w.Write(o.GameSpeedPercent); w.Write(o.EraPacingPercent); w.Write(o.DisasterIntensity); w.Write(o.ClimateEnabled);
             w.Write(o.LoyaltyEnabled); w.Write(o.MaxQueueLength); w.Write((byte)o.TurnMode); w.Write(o.StartingGovernorTitles); w.Write(o.NoSurpriseWars); w.Write(o.SupplyCombatPenalty); w.Write(o.TurnLimit); w.Write((int)o.Victories); w.Write(o.CityStates);
@@ -489,6 +489,7 @@ public static class GameSetupCodec
             ContinentSeeds = r.ReadInt32(), GreatRivers = r.ReadInt32(), MinGreatRiverLength = r.ReadInt32(), MinorRiverPercent = r.ReadInt32(),
             Players = r.ReadInt32(), Temperature = r.ReadInt32(), Rainfall = r.ReadInt32(),
         };
+        g.Map.MapId = r.ReadString() is { Length: > 0 } mapId ? mapId : null;
         g.Options = new GameOptions
         {
             GameSpeedPercent = r.ReadInt32(), EraPacingPercent = r.ReadInt32(), DisasterIntensity = r.ReadInt32(), ClimateEnabled = r.ReadBoolean(),

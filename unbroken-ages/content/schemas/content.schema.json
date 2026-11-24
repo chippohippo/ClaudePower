@@ -187,10 +187,42 @@
       "items": {
         "$ref": "#/$defs/cityState"
       }
+    },
+    "maps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/map"
+      }
     }
   },
   "additionalProperties": false,
   "$defs": {
+    "map": {
+      "type": "object",
+      "description": "A scripted map: one character per tile, row by row, plus true start locations as [column, row].",
+      "properties": {
+        "id": { "type": "string", "pattern": "^MAP_[A-Z0-9_]*$" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "$op": { "enum": ["add", "replace", "patch", "delete"] },
+        "width": { "type": "integer", "minimum": 8 },
+        "height": { "type": "integer", "minimum": 8 },
+        "wrapX": { "type": "boolean" },
+        "terrain": { "type": "array", "items": { "type": "string", "pattern": "^[ocGPDTSl]*$" } },
+        "relief": { "type": "array", "items": { "type": "string", "pattern": "^[.hm]*$" } },
+        "features": { "type": "array", "items": { "type": "string", "pattern": "^[.fjmpiovgr]*$" } },
+        "elevation": { "type": "array", "items": { "type": "string", "pattern": "^[0-9]*$" } },
+        "greatRivers": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" },
+          "tiles": { "type": "array", "items": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 } } },
+          "required": ["tiles"], "additionalProperties": false } },
+        "starts": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 } } },
+        "cityStates": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 } },
+        "naturalWonders": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 } }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
     "yields": {
       "type": "object",
       "additionalProperties": false,

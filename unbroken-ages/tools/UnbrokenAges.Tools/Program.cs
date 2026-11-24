@@ -106,7 +106,9 @@ void Simulate()
     var setup = new GameSetup
     {
         Seed = seed,
-        Map = new MapGenSettings { Width = huge ? 128 : big ? 84 : 64, Height = huge ? 80 : big ? 54 : 40, Seed = seed },
+        // --map earth plays on a scripted map (MAP_EARTH) with true start locations.
+        Map = new MapGenSettings { Width = huge ? 128 : big ? 84 : 64, Height = huge ? 80 : big ? 54 : 40, Seed = seed,
+                                   MapId = Opt("--map", "") is { Length: > 0 } m ? (m.StartsWith("MAP_") ? m : "MAP_" + m.ToUpperInvariant()) : null },
         Players = Enumerable.Range(0, players).Select(i => new PlayerSetup { Name = $"AI {i}", Leader = LeaderFor(i) }).ToList(),
     };
     var s = GameFactory.Create(db, setup);

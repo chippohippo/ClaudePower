@@ -36,15 +36,18 @@ public partial class GameRoot
             {
                 ulong seed = a.Contains('=') ? ulong.Parse(a[(a.IndexOf('=') + 1)..]) : 7;
                 var size = Db.MapSizes["MAPSIZE_SMALL"];
+                // --map=earth plays a scripted map; --players=N seats that many (you and N-1 AIs).
+                string? mapId = args.FirstOrDefault(x => x.StartsWith("--map="))?[6..] is { } m ? (m.StartsWith("MAP_") ? m : "MAP_" + m.ToUpperInvariant()) : null;
+                int seats = args.FirstOrDefault(x => x.StartsWith("--players="))?[10..] is { } pc ? int.Parse(pc) : 3;
                 // --leader=LEADER_X picks yours; the others get one leader of every other nation.
                 string mine = args.FirstOrDefault(x => x.StartsWith("--leader="))?[9..] ?? Db.Leaders[0].Id;
-                var others = UI.NationPicker.Opponents(Db, mine, 2, seed);
+                var others = UI.NationPicker.Opponents(Db, mine, seats - 1, seed);
                 var leaders = new List<string> { mine }.Concat(others).ToList();
                 StartSinglePlayer(new GameSetup
                 {
                     Seed = seed,
-                    Map = new MapGenSettings { Width = size.Width, Height = size.Height, GreatRivers = size.GreatRivers, Seed = seed },
-                    Players = Enumerable.Range(0, 3).Select(i => new PlayerSetup { Name = i == 0 ? "You" : $"AI {i + 1}", IsHuman = i == 0, Leader = leaders[i % leaders.Count] }).ToList(),
+                    Map = new MapGenSettings { Width = size.Width, Height = size.Height, GreatRivers = size.GreatRivers, Seed = seed, MapId = mapId },
+                    Players = Enumerable.Range(0, seats).Select(i => new PlayerSetup { Name = i == 0 ? "You" : $"AI {i + 1}", IsHuman = i == 0, Leader = leaders[i % leaders.Count] }).ToList(),
                 });
                 _scripted = true;
             }

@@ -243,7 +243,7 @@ public static class CityStateSystem
     /// Places city-states at game start: good land (fresh water, open neighbours), at least six tiles from every start and from
     /// each other, chosen from the best candidates by the setup seed. Each gets a city and a warrior.
     /// </summary>
-    public static void Place(GameState s, IReadOnlyList<int> starts, ulong seed)
+    public static void Place(GameState s, IReadOnlyList<int> starts, ulong seed, IReadOnlyDictionary<int, int>? sites = null)
     {
         var db = s.Db;
         var map = s.Map;
@@ -261,6 +261,20 @@ public static class CityStateSystem
         foreach (int defIndex in order)
         {
             if (wanted == 0) break;
+            if (sites is { Count: > 0 })
+            {
+                // A scripted map: the city-state stands at its real site (or the nearest good tile within two), or not at all.
+                if (!sites.TryGetValue(defIndex, out int site)) continue;
+                around.Clear();
+                map.CollectRadius(site, 2, around);
+                int at = around.Where(t => map.IsLand(t) && !map.IsMountain(t) && !map.IsChannel(t) &&
+                                           !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].NaturalWonder) &&
+                                           starts.All(o => map.Distance(o, t) >= 4) && taken.Skip(starts.Count).All(o => map.Distance(o, t) >= 3))
+                               .OrderBy(t => map.Distance(t, site)).ThenBy(t => t).DefaultIfEmpty(-1).First();
+                if (at < 0) continue;
+                Found(at, defIndex);
+                continue;
+            }
             var candidates = new List<(int Tile, int Score)>();
             for (int t = 0; t < map.Count; t++)
             {
@@ -275,7 +289,11 @@ public static class CityStateSystem
             }
             if (candidates.Count == 0) break;
             var best = candidates.OrderByDescending(c => c.Score).ThenBy(c => c.Tile).Take(Math.Max(1, candidates.Count / 6)).ToList();
-            int tile = best[rng.NextInt(best.Count)].Tile;
+            Found(best[rng.NextInt(best.Count)].Tile, defIndex);
+        }
+
+        void Found(int tile, int defIndex)
+        {
             var def = db.CityStates[defIndex];
             var cs = new PlayerState
             {

@@ -62,6 +62,7 @@ public partial class LobbyScreen : PanelContainer
         newGame.AddChild(_nations);
         _mapSize = new OptionButton();
         foreach (var size in _root.Db.MapSizes) _mapSize.AddItem($"{size.Name} ({size.Width}×{size.Height})");
+        foreach (var scripted in _root.Db.Maps) _mapSize.AddItem($"{scripted.Name}: true start locations ({scripted.Width}×{scripted.Height})");
         _mapSize.Selected = Math.Min(1, _root.Db.MapSizes.Count - 1);
         setup.AddChild(Labeled("Map size", _mapSize));
         _humans = new SpinBox { MinValue = 1, MaxValue = 12, Value = 1 };
@@ -151,7 +152,9 @@ public partial class LobbyScreen : PanelContainer
 
     private GameSetup BuildSetup()
     {
-        var size = _root.Db.MapSizes[Math.Max(0, _mapSize.Selected)];
+        int pick = Math.Max(0, _mapSize.Selected);
+        var size = _root.Db.MapSizes[Math.Min(pick, _root.Db.MapSizes.Count - 1)];
+        string? mapId = pick >= _root.Db.MapSizes.Count ? _root.Db.Maps[pick - _root.Db.MapSizes.Count].Id : null;
         int humans = (int)_humans.Value, ais = (int)_ais.Value;
         ulong seed = _seed.Value > 0 ? (ulong)_seed.Value : (ulong)System.Environment.TickCount64;
         string mine = _nations.SelectedLeader;
@@ -159,7 +162,7 @@ public partial class LobbyScreen : PanelContainer
         return new GameSetup
         {
             Seed = seed,
-            Map = new MapGenSettings { Width = size.Width, Height = size.Height, GreatRivers = size.GreatRivers, Seed = seed },
+            Map = new MapGenSettings { Width = size.Width, Height = size.Height, GreatRivers = size.GreatRivers, Seed = seed, MapId = mapId },
             Options = new GameOptions
             {
                 DisasterIntensity = _disasters.Selected,

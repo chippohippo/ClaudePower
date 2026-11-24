@@ -225,6 +225,56 @@ public sealed class ImprovementDef : Definition
     }
 }
 
+/// <summary>A Great River on a scripted map: its channel tiles as [column, row], from the mouth upstream.</summary>
+public sealed class MapRiverDef
+{
+    public string Name { get; init; } = "";
+    public List<int[]> Tiles { get; init; } = new();
+}
+
+/// <summary>
+/// A scripted map (e.g. Earth): every tile's terrain, relief, feature and elevation as one character per tile, row by row;
+/// its Great Rivers; and true start locations for civilizations (with alternates, in order of preference), city-states and
+/// natural wonders, as [column, row]. The generator keeps its own drainage, minor rivers, floodplains, lowlands and resources.
+/// <para>Terrain: o ocean, c coast, l lake, G grassland, P plains, D desert, T tundra, S snow. Relief: . flat, h hills, m mountain.
+/// Features: . none, f forest, j rainforest, m marsh, p floodplains, i ice, o oasis, v volcano, g geothermal, r reef. Elevation 0-9.</para>
+/// </summary>
+public sealed class MapDef : Definition
+{
+    public int Width { get; init; }
+    public int Height { get; init; }
+    public bool WrapX { get; init; } = true;
+    public List<string> Terrain { get; init; } = new();
+    public List<string> Relief { get; init; } = new();
+    public List<string> Features { get; init; } = new();
+    public List<string> Elevation { get; init; } = new();
+    public List<MapRiverDef> GreatRivers { get; init; } = new();
+    public Dictionary<string, List<int[]>> Starts { get; init; } = new();
+    public Dictionary<string, int[]> CityStates { get; init; } = new();
+    public Dictionary<string, int[]> NaturalWonders { get; init; } = new();
+
+    internal override void Link(LinkContext ctx)
+    {
+        if (Width <= 0 || Height <= 0) { ctx.Error(this, "width and height must be positive."); return; }
+        foreach (var (name, rows, chars) in new[] { ("terrain", Terrain, "ocGPDTSl"), ("relief", Relief, ".hm"), ("features", Features, ".fjmpiovgr"), ("elevation", Elevation, "0123456789") })
+        {
+            if (rows.Count != Height || rows.Any(r => r.Length != Width)) { ctx.Error(this, $"'{name}' must be {Height} rows of {Width} characters."); continue; }
+            foreach (var row in rows)
+                foreach (char ch in row)
+                    if (!chars.Contains(ch)) { ctx.Error(this, $"'{name}' has an unknown character '{ch}'."); break; }
+        }
+        bool OnMap(int[] t) => t.Length == 2 && t[0] >= 0 && t[0] < Width && t[1] >= 0 && t[1] < Height;
+        foreach (var (civ, spots) in Starts)
+        {
+            ctx.Resolve(ctx.Db.Civilizations, civ, this, "starts");
+            if (spots.Count == 0 || !spots.All(OnMap)) ctx.Error(this, $"start '{civ}' needs [column, row] tiles on the map.");
+        }
+        foreach (var (cs, at) in CityStates) { ctx.Resolve(ctx.Db.CityStates, cs, this, "cityStates"); if (!OnMap(at)) ctx.Error(this, $"city-state '{cs}' is off the map."); }
+        foreach (var (f, at) in NaturalWonders) { ctx.Resolve(ctx.Db.Features, f, this, "naturalWonders"); if (!OnMap(at)) ctx.Error(this, $"wonder '{f}' is off the map."); }
+        foreach (var r in GreatRivers) if (r.Tiles.Count < 2 || !r.Tiles.All(OnMap)) ctx.Error(this, $"river '{r.Name}' needs two or more tiles on the map.");
+    }
+}
+
 public sealed class MapSizeDef : Definition
 {
     public int Width { get; init; }

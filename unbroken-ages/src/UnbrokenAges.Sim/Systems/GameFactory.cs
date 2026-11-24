@@ -27,6 +27,8 @@ public static class GameFactory
     {
         setup.Map.Players = setup.Players.Count;
         if (setup.Map.Seed == 0) setup.Map.Seed = setup.Seed;
+        setup.Map.StartCivs = setup.Players.Select(p => db.Leaders.IndexOf(p.Leader ?? "") is int l and >= 0 && db.Leaders[l].CivilizationIndex >= 0
+                                                       ? db.Civilizations[db.Leaders[l].CivilizationIndex].Id : null).ToList();
         var generated = MapGenerator.Generate(db, setup.Map);
         var s = new GameState(db, setup.Options, generated.Map, setup.Seed);
 
@@ -72,7 +74,7 @@ public static class GameFactory
             Civics = new bool[db.Civics.Count],
             Stockpile = new int[db.Resources.Count],
         });
-        CityStateSystem.Place(s, generated.StartTiles.Take(setup.Players.Count).ToList(), setup.Seed);
+        CityStateSystem.Place(s, generated.StartTiles.Take(setup.Players.Count).ToList(), setup.Seed, generated.CityStateSites);
         TurnPhases.Begin(s);
         VisibilitySystem.RevealAll(s);
         return s;

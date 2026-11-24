@@ -21,6 +21,10 @@ public sealed class MapGenSettings
     public int Temperature { get; set; }
     /// <summary>-1 arid, 0 normal, +1 wet.</summary>
     public int Rainfall { get; set; }
+    /// <summary>A scripted map (a <see cref="MapDef"/> id such as MAP_EARTH) instead of a generated one; its size replaces Width/Height.</summary>
+    public string? MapId { get; set; }
+    /// <summary>Each player's civilization id, in seat order (scripted maps seat them at their true start locations).</summary>
+    public List<string?> StartCivs { get; set; } = new();
 }
 
 public sealed class MapGenStats
@@ -38,6 +42,8 @@ public sealed class GeneratedMap
     /// <summary>Each Great River as an ordered list of channel tiles from mouth to source.</summary>
     public required List<List<int>> GreatRivers { get; init; }
     public required MapGenStats Stats { get; init; }
+    /// <summary>Scripted maps: each city-state's true site (city-state index → tile).</summary>
+    public Dictionary<int, int> CityStateSites { get; init; } = new();
 }
 
 /// <summary>
@@ -57,6 +63,7 @@ public static class MapGenerator
 {
     public static GeneratedMap Generate(GameDatabase db, MapGenSettings s)
     {
+        if (s.MapId != null && db.Maps.IndexOf(s.MapId) is int scripted and >= 0) return GenerateScripted(db, s, db.Maps[scripted]);
         var map = new MapGrid(db, s.Width, s.Height, s.WrapX);
         var ids = db.Ids;
         var rng = Pcg32.Derive(s.Seed, "mapgen");
@@ -200,6 +207,142 @@ public static class MapGenerator
         var starts = ChooseStartPositions(map, ids, s.Players);
         PlaceNaturalWonders(map, Pcg32.Derive(s.Seed, "natural-wonders"), starts, stats);
         return new GeneratedMap { Map = map, StartTiles = starts, GreatRivers = greatRivers, Stats = stats };
+    }
+
+    /// <summary>
+    /// A scripted map: terrain, relief, features, elevation and Great Rivers come from the <see cref="MapDef"/>; the generator adds
+    /// minor rivers by drainage, floodplains, lowlands and resources, places the natural wonders at their sites and seats every
+    /// civilization at its true start (or the first free alternate, or the nearest good tile when two would crowd each other).
+    /// </summary>
+    public static GeneratedMap GenerateScripted(GameDatabase db, MapGenSettings s, MapDef def)
+    {
+        s.Width = def.Width; s.Height = def.Height; s.WrapX = def.WrapX;
+        var map = new MapGrid(db, def.Width, def.Height, def.WrapX);
+        var ids = db.Ids;
+        var rng = Pcg32.Derive(s.Seed, "mapgen");
+        var stats = new MapGenStats();
+        int n = map.Count;
+        int Tile(int[] t) => t[1] * def.Width + t[0];
+        for (int i = 0; i < n; i++)
+        {
+            int col = i % def.Width, row = i / def.Width;
+            map.Terrain[i] = (byte)(def.Terrain[row][col] switch
+            {
+                'o' => ids.Ocean, 'c' => ids.Coast, 'l' => ids.Lake, 'G' => ids.Grassland, 'P' => ids.Plains, 'D' => ids.Desert, 'T' => ids.Tundra, _ => ids.Snow,
+            });
+            map.Relief[i] = (byte)(map.IsWater(i) ? ids.Flat : def.Relief[row][col] switch { 'h' => ids.Hills, 'm' => ids.Mountain, _ => ids.Flat });
+            int f = def.Features[row][col] switch
+            {
+                'f' => ids.Forest, 'j' => ids.Rainforest, 'm' => ids.Marsh, 'p' => ids.Floodplains, 'i' => ids.Ice, 'o' => ids.Oasis,
+                'v' => ids.Volcano, 'g' => ids.Geothermal, 'r' => ids.Reef, _ => -1,
+            };
+            map.Feature[i] = (short)(FeatureValid(map, f, i) ? f : -1);
+            // Elevation 0..9 from the map, with a little per-tile variation so drainage has a direction on plateaus.
+            map.Elevation[i] = (short)((def.Elevation[row][col] - '0') * 1000 + (int)(Hash((uint)i, 77) % 400));
+        }
+
+        // Great Rivers: navigable channels along the real courses, from the mouth upstream.
+        var greatRivers = new List<List<int>>();
+        foreach (var river in def.GreatRivers)
+        {
+            var course = river.Tiles.Select(Tile).Where(t => map.IsLand(t) || map.IsChannel(t)).ToList();
+            foreach (int t in course)
+            {
+                map.Terrain[t] = (byte)ids.Channel;
+                map.Relief[t] = (byte)ids.Flat;
+                map.Feature[t] = -1;
+                map.Elevation[t] = 0;
+            }
+            if (course.Count >= 2) { greatRivers.Add(course); stats.ChannelTiles += course.Count; }
+        }
+
+        // Minor rivers by drainage, floodplains, lowlands, resources (as for a generated map).
+        var rain = new Fx[n];
+        for (int i = 0; i < n; i++)
+        {
+            if (!map.IsLand(i)) continue;
+            int t = map.Terrain[i];
+            Fx m = t == ids.Desert ? Fx.Ratio(10, 100) : t == ids.Snow ? Fx.Ratio(20, 100) : t == ids.Tundra ? Fx.Ratio(35, 100)
+                 : t == ids.Plains ? Fx.Ratio(42, 100) : Fx.Ratio(62, 100);
+            if (map.Feature[i] == ids.Rainforest || map.Feature[i] == ids.Marsh) m += Fx.Ratio(25, 100);
+            rain[i] = m + Fx.Ratio(25, 100) + (map.IsMountain(i) ? Fx.Ratio(4, 10) : Fx.Zero);
+        }
+        var (filled, _, _) = PriorityFlood(map);
+        var vertexAcc = TraceEdgeRivers(map, s, filled, rain, stats, out Fx riverThreshold);
+        PlaceFloodplains(map, ids, rng, vertexAcc, riverThreshold, stats);
+        MarkLowlands(map, stats);
+
+        // Natural wonders at their real sites (before resources, so none lands under a wonder).
+        foreach (var (featureId, at) in def.NaturalWonders)
+        {
+            int f = db.Features.IndexOf(featureId), t = Tile(at);
+            if (f < 0 || map.IsChannel(t) || !FeatureValid(map, f, t)) continue;
+            map.Feature[t] = (short)f;
+            if (map.IsLand(t)) map.Relief[t] = (byte)ids.Flat;
+            stats.NaturalWonders++;
+        }
+        PlaceResources(map, db, rng, stats);
+        for (int i = 0; i < n; i++)
+            if (map.Feature[i] >= 0 && db.Features[map.Feature[i]].NaturalWonder) map.Resource[i] = -1;
+
+        for (int i = 0; i < n; i++)
+        {
+            if (!map.IsLand(i)) continue;
+            stats.LandTiles++;
+            if (map.Relief[i] == ids.Mountain) stats.Mountains++;
+            else if (map.Relief[i] == ids.Hills) stats.Hills++;
+        }
+
+        // True start locations, in seat order; a civilization without one (or whose sites are all crowded) takes the best free land.
+        var starts = new List<int>();
+        bool Good(int t) => map.IsLand(t) && !map.IsMountain(t) && !map.IsChannel(t) &&
+                            !(map.Feature[t] >= 0 && db.Features[map.Feature[t]].NaturalWonder) && starts.All(o => map.Distance(o, t) >= MinStartDistance);
+        var near = new List<int>();
+        for (int p = 0; p < s.Players; p++)
+        {
+            string? civ = p < s.StartCivs.Count ? s.StartCivs[p] : null;
+            int chosen = -1;
+            if (civ != null && def.Starts.TryGetValue(civ, out var spots))
+                foreach (var spot in spots)
+                {
+                    // The site itself, else the closest good tile within two (a capital on a river bank, not in it).
+                    near.Clear();
+                    map.CollectRadius(Tile(spot), 2, near);
+                    chosen = near.Where(Good).OrderBy(t => map.Distance(t, Tile(spot))).ThenByDescending(t => map.RiverEdges[t] != 0).ThenBy(t => t).DefaultIfEmpty(-1).First();
+                    if (chosen >= 0) break;
+                }
+            if (chosen < 0) chosen = Enumerable.Range(0, n).Where(Good).OrderByDescending(t => StartScore(map, ids, t)).ThenBy(t => t).DefaultIfEmpty(0).First();
+            starts.Add(chosen);
+        }
+        var sites = new Dictionary<int, int>();
+        foreach (var (cs, at) in def.CityStates)
+            if (db.CityStates.IndexOf(cs) is int index and >= 0) sites[index] = Tile(at);
+        return new GeneratedMap { Map = map, StartTiles = starts, GreatRivers = greatRivers, Stats = stats, CityStateSites = sites };
+    }
+
+    /// <summary>Civilizations start at least this far apart on scripted maps.</summary>
+    public const int MinStartDistance = 5;
+
+    private static uint Hash(uint x, uint salt)
+    {
+        x ^= salt * 0x9E3779B9u;
+        x ^= x >> 16; x *= 0x7FEB352Du; x ^= x >> 15; x *= 0x846CA68Bu; x ^= x >> 16;
+        return x;
+    }
+
+    /// <summary>How good a fallback start is: workable land and water nearby, fresh water, no ice.</summary>
+    private static int StartScore(MapGrid map, WellKnownIds ids, int t)
+    {
+        var around = new List<int>();
+        map.CollectRadius(t, 2, around);
+        int score = 0;
+        foreach (int a in around)
+        {
+            if (map.IsLand(a) && !map.IsMountain(a)) score += map.Terrain[a] == ids.Grassland || map.Terrain[a] == ids.Plains ? 3 : map.Terrain[a] == ids.Snow ? -2 : 1;
+            if (map.IsWater(a)) score += 1;
+        }
+        if (map.RiverEdges[t] != 0) score += 6;
+        return score;
     }
 
     private static void MarkLakes(MapGrid map, WellKnownIds ids, int maxLakeSize, MapGenStats stats)
