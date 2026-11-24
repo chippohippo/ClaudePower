@@ -74,6 +74,7 @@ LOOKS = {
     "UNIT_BATTLESHIP": ship("battleship", 1.6),
     "UNIT_DESTROYER": ship("destroyer", 1.4),
     "UNIT_SUBMARINE": ship("submarine", 1.3),
+    "UNIT_CARRIER": ship("carrier", 1.65),
     # --- unique units: each in its people's own form ---
     "UNIT_MEDJAY": foot("soldier_arena", GOLD),
     "UNIT_GREAT_GALLEY": ship("trireme", 1.4, tint=GOLD),

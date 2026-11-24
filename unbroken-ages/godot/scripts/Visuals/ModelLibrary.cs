@@ -32,7 +32,7 @@ public sealed class ModelLibrary
     public static string Path(string relative) => $"res://assets/models/{relative}.glb";
 
     /// <summary>Foliage sways in the wind (a vertex shader on its own material copy); buildings stay still.</summary>
-    public static bool IsFoliage(string relative) => relative.Contains("tree") || relative.Contains("waterplant") || relative.Contains("grapes");
+    public static bool IsFoliage(string relative) => relative.Contains("tree") || relative.Contains("bush") || relative.Contains("waterplant") || relative.Contains("grapes");
 
     /// <summary>
     /// A prop, optionally repainted for a nation: "buildings/home_A_blue#c8102e" loads the blue kit variant and turns its

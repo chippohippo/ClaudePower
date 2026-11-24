@@ -404,6 +404,37 @@ public partial class HexMapView : Node3D
         Select(selectedTile, map);
     }
 
+    private static readonly string[] Bushes = { "nature/kk_bush_1_a", "nature/kk_bush_1_e", "nature/kk_bush_2_b", "nature/kk_bush_2_e", "nature/kk_bush_3_a", "nature/kk_bush_3_c" };
+    private static readonly Color Palm = new(0.62f, 1.05f, 0.55f), Cactus = new(0.6f, 1.0f, 0.55f), Pine = new(0.9f, 1f, 0.9f);
+
+    /// <summary>The trees of a wood, by climate: (model, height in world units, tint).</summary>
+    private static (string Prop, float Height, Color Tint)[] Woodland(string? feature, string terrain, bool hills)
+    {
+        var w = Colors.White;
+        if (feature == "FEATURE_RAINFOREST")
+            return new[] { ("nature/tree_palmtall", 0.75f, Palm), ("nature/tree_palmbend", 0.7f, Palm), ("nature/kk_tree_1_c", 0.8f, new Color(0.75f, 1.0f, 0.7f)),
+                           ("nature/kk_tree_3_b", 0.65f, new Color(0.7f, 0.95f, 0.65f)), ("nature/tree_palmdetailedshort", 0.5f, Palm), ("nature/kk_tree_1_b", 0.7f, new Color(0.7f, 0.95f, 0.7f)) };
+        if (terrain is "TERRAIN_TUNDRA" or "TERRAIN_SNOW")
+            return new[] { ("nature/tree_single_A", 0.75f, Pine), ("nature/tree_single_B", 0.7f, Pine), ("nature/tree_pinesmalla", 0.5f, w),
+                           ("nature/kk_tree_bare_1_b", 0.6f, w), ("nature/kk_tree_bare_2_a", 0.65f, w) };
+        if (terrain == "TERRAIN_DESERT")
+            return new[] { ("nature/tree_palm", 0.7f, Palm), ("nature/tree_palmtall", 0.75f, Palm), ("nature/kk_tree_bare_1_a", 0.5f, w) };
+        if (hills)
+            return new[] { ("nature/tree_single_A", 0.75f, w), ("nature/tree_single_B", 0.7f, w), ("nature/kk_tree_4_a", 0.7f, w), ("nature/kk_tree_2_b", 0.7f, w) };
+        if (terrain == "TERRAIN_PLAINS")
+            return new[] { ("nature/kk_tree_2_a", 0.65f, w), ("nature/kk_tree_2_b", 0.75f, w), ("nature/kk_tree_4_a", 0.7f, w), ("nature/kk_tree_4_b", 0.85f, w), ("nature/tree_single_B", 0.7f, w) };
+        return new[] { ("nature/kk_tree_1_a", 0.6f, w), ("nature/kk_tree_1_b", 0.7f, w), ("nature/kk_tree_3_a", 0.55f, w), ("nature/kk_tree_3_b", 0.65f, w),
+                       ("nature/kk_tree_1_c", 0.85f, w), ("nature/tree_single_A", 0.7f, w) };
+    }
+
+    /// <summary>A plant fitted to a height in world units, whatever its kit's own scale.</summary>
+    private void AddTree(string prop, Vector3 at, float height, float yaw, Color tint)
+    {
+        var model = _models.GetProp(prop);
+        if (model == null || model.Bounds.Size.Y < 0.001f) return;
+        AddProp(prop, at, height / model.Bounds.Size.Y, yaw, tint);
+    }
+
     /// <summary>Forests, hills, mountains, marsh, improvements and districts on one revealed land tile.</summary>
     private void DressTile(GameState s, int t, Vector3 top, Color memory, float k)
     {
@@ -437,19 +468,46 @@ public partial class HexMapView : Node3D
             return;
         }
         if (hasDistrict) return;   // districts are drawn by DressCity (they belong to a city); keep the ground clear
+        string terrain = db.Terrains[map.Terrain[t]].Id;
         if (forest && !hasImprovement)
         {
-            // A real wood: a dozen trees of two kinds and many sizes, scattered so the canopy runs into the neighbours.
-            int trees = feature == "FEATURE_RAINFOREST" ? 22 : 18;
+            // A real wood of its climate: broadleaf mixes on grassland, open woods on plains, conifers and bare birches in the
+            // cold, palms and tangled canopy in the rainforest; many sizes, a little autumn colour, bushes for undergrowth, and
+            // scattered so the canopy runs into the neighbours.
+            var species = Woodland(feature, terrain, hills);
+            int trees = feature == "FEATURE_RAINFOREST" ? 20 : 15;
             for (int i = 0; i < trees; i++)
             {
                 float ang = Rand(t, 100 + i) * Mathf.Tau;
                 float rad = Mathf.Sqrt(Rand(t, 200 + i)) * 0.95f;
                 var at = top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * rad;
-                string kind = feature == "FEATURE_FOREST" ? (Rand(t, 300 + i) < 0.7f ? "A" : "B") : (Rand(t, 300 + i) < 0.7f ? "B" : "A");
-                var shade = greenery * (0.82f + 0.3f * Rand(t, 400 + i));
+                var (prop, height, tint) = species[(int)(Rand(t, 300 + i) * species.Length) % species.Length];
+                var shade = greenery * tint * (0.86f + 0.24f * Rand(t, 400 + i));
+                if (feature == "FEATURE_FOREST" && terrain == "TERRAIN_GRASSLAND" && Rand(t, 450 + i) < 0.12f) shade *= new Color(1.25f, 0.82f, 0.55f);   // a turning leaf
                 shade.A = memory.A;
-                AddProp($"nature/tree_single_{kind}", at, k * (0.42f + 0.3f * Rand(t, 500 + i)), ang, shade);
+                AddTree(prop, at, height * (0.75f + 0.5f * Rand(t, 500 + i)), ang, shade);
+            }
+            for (int i = 0; i < 5; i++)   // undergrowth
+            {
+                float ang = Rand(t, 700 + i) * Mathf.Tau, rad = Mathf.Sqrt(Rand(t, 710 + i)) * 0.9f;
+                AddTree(Bushes[(int)(Rand(t, 720 + i) * Bushes.Length) % Bushes.Length], top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * rad, 0.14f + 0.1f * Rand(t, 730 + i), ang, greenery * memory);
+            }
+        }
+        else if (!hasImprovement && !map.HasFlag(t, TileFlags.Pillaged) && map.OwnerCity[t] < 0 || !hasImprovement && Rand(t, 760) < 0.35f)
+        {
+            // Open country is not bare: a bush or two on grass and plains, cacti in the desert, a wind-bent tree on the tundra.
+            int n = terrain switch { "TERRAIN_GRASSLAND" => 3, "TERRAIN_PLAINS" => 2, "TERRAIN_DESERT" => 1, "TERRAIN_TUNDRA" => 2, _ => 0 };
+            for (int i = 0; i < n; i++)
+            {
+                if (Rand(t, 740 + i) > 0.55f) continue;
+                float ang = Rand(t, 750 + i) * Mathf.Tau, rad = 0.35f + Rand(t, 770 + i) * 0.55f;
+                var at = top + new Vector3(Mathf.Cos(ang), 0, Mathf.Sin(ang)) * rad;
+                switch (terrain)
+                {
+                    case "TERRAIN_DESERT": AddTree(Rand(t, 780 + i) < 0.5f ? "nature/cactus_tall" : "nature/cactus_short", at, 0.18f + 0.1f * Rand(t, 790 + i), ang, Cactus * memory); break;
+                    case "TERRAIN_TUNDRA": AddTree(Rand(t, 780 + i) < 0.5f ? "nature/kk_tree_bare_1_a" : "nature/tree_pinesmalla", at, 0.3f + 0.15f * Rand(t, 790 + i), ang, memory); break;
+                    default: AddTree(Bushes[(int)(Rand(t, 780 + i) * Bushes.Length) % Bushes.Length], at, 0.12f + 0.1f * Rand(t, 790 + i), ang, memory); break;
+                }
             }
         }
         else if (hills && Rand(t, 7) < 0.6f) AddProp("nature/rock_single_A", top + new Vector3(0.3f, 0, -0.2f), k * 1.4f, yaw, memory);

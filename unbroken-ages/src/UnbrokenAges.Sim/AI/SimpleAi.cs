@@ -99,6 +99,9 @@ public sealed class SimpleAi : IAiController
             // One siege engine for every four soldiers: walls do not fall to swords.
             int siege = s.Units.Count(u => u.Owner == player.Id && db.Units[u.DefIndex].HasTag("Siege") && db.Units[u.DefIndex].Domain == UnitDomain.Land);
             if (siege * 4 < military && MilitaryAi.BestSiegeUnit(s, city) is { } engine) return (ProductionKind.Unit, engine.Index, -1);
+            // One aircraft for every five soldiers once flight is known: fighters to cover, bombers to strike, by turns.
+            int air = s.Units.Count(u => u.Owner == player.Id && db.Units[u.DefIndex].Domain == UnitDomain.Air);
+            if (air * 5 < military && MilitaryAi.BestAirUnit(s, city, fighter: air % 2 == 0) is { } plane) return (ProductionKind.Unit, plane.Index, -1);
             return (ProductionKind.Unit, soldier.Index, -1);
         }
         if (wantSettler && db.Units.FirstOrDefault(u => NationSystem.IsColonist(s, player, u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } settler)

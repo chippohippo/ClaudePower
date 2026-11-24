@@ -625,6 +625,26 @@
    "models/buildings/building-wizard-tower.glb"
   ]
  },
+ "model:cactus_short": {
+  "id": "kenney:nature-kit/cactus_short.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Cactus short\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/cactus_short.glb"
+  ]
+ },
+ "model:cactus_tall": {
+  "id": "kenney:nature-kit/cactus_tall.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Cactus tall\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/cactus_tall.glb"
+  ]
+ },
  "model:camel": {
   "id": "polyfork:camel-base",
   "license": "CC-BY-4.0",
@@ -1443,6 +1463,196 @@
   "url": "https://polyfork.dev/asset/scout-jeep-c02efe",
   "files": [
    "models/units/jeep.glb"
+  ]
+ },
+ "model:kk_bush_1_a": {
+  "id": "kaykit:forest/Bush_1_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 1 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_1_a.glb"
+  ]
+ },
+ "model:kk_bush_1_e": {
+  "id": "kaykit:forest/Bush_1_E_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 1 E (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_1_e.glb"
+  ]
+ },
+ "model:kk_bush_2_b": {
+  "id": "kaykit:forest/Bush_2_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 2 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_2_b.glb"
+  ]
+ },
+ "model:kk_bush_2_e": {
+  "id": "kaykit:forest/Bush_2_E_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 2 E (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_2_e.glb"
+  ]
+ },
+ "model:kk_bush_3_a": {
+  "id": "kaykit:forest/Bush_3_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 3 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_3_a.glb"
+  ]
+ },
+ "model:kk_bush_3_c": {
+  "id": "kaykit:forest/Bush_3_C_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Bush 3 C (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_bush_3_c.glb"
+  ]
+ },
+ "model:kk_tree_1_a": {
+  "id": "kaykit:forest/Tree_1_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 1 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_1_a.glb"
+  ]
+ },
+ "model:kk_tree_1_b": {
+  "id": "kaykit:forest/Tree_1_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 1 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_1_b.glb"
+  ]
+ },
+ "model:kk_tree_1_c": {
+  "id": "kaykit:forest/Tree_1_C_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 1 C (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_1_c.glb"
+  ]
+ },
+ "model:kk_tree_2_a": {
+  "id": "kaykit:forest/Tree_2_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 2 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_2_a.glb"
+  ]
+ },
+ "model:kk_tree_2_b": {
+  "id": "kaykit:forest/Tree_2_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 2 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_2_b.glb"
+  ]
+ },
+ "model:kk_tree_2_c": {
+  "id": "kaykit:forest/Tree_2_C_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 2 C (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_2_c.glb"
+  ]
+ },
+ "model:kk_tree_3_a": {
+  "id": "kaykit:forest/Tree_3_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 3 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_3_a.glb"
+  ]
+ },
+ "model:kk_tree_3_b": {
+  "id": "kaykit:forest/Tree_3_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 3 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_3_b.glb"
+  ]
+ },
+ "model:kk_tree_4_a": {
+  "id": "kaykit:forest/Tree_4_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 4 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_4_a.glb"
+  ]
+ },
+ "model:kk_tree_4_b": {
+  "id": "kaykit:forest/Tree_4_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree 4 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_4_b.glb"
+  ]
+ },
+ "model:kk_tree_bare_1_a": {
+  "id": "kaykit:forest/Tree_Bare_1_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree bare 1 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_bare_1_a.glb"
+  ]
+ },
+ "model:kk_tree_bare_1_b": {
+  "id": "kaykit:forest/Tree_Bare_1_B_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree bare 1 B (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_bare_1_b.glb"
+  ]
+ },
+ "model:kk_tree_bare_2_a": {
+  "id": "kaykit:forest/Tree_Bare_2_A_Color1.gltf",
+  "license": "CC0-1.0",
+  "source": "KayKit",
+  "credit": "\"Tree bare 2 A (colour 1)\" by Kay Lousberg (KayKit, https://kaylousberg.itch.io/kaykit-forest), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d70.75 to real-world size (calibrated on its grass tufts (0.55 units, 0.4 m), on KayKit's character scale (trees 2.6\u20135.9 m)).",
+  "url": "https://kaylousberg.itch.io/kaykit-forest",
+  "files": [
+   "models/nature/kk_tree_bare_2_a.glb"
   ]
  },
  "model:lumbermill_blue": {
@@ -2413,6 +2623,76 @@
   "url": "https://kenney.nl/assets/car-kit",
   "files": [
    "models/life/tractor.glb"
+  ]
+ },
+ "model:tree_oak": {
+  "id": "kenney:nature-kit/tree_oak.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree oak\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_oak.glb"
+  ]
+ },
+ "model:tree_oak_fall": {
+  "id": "kenney:nature-kit/tree_oak_fall.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree oak fall\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_oak_fall.glb"
+  ]
+ },
+ "model:tree_palm": {
+  "id": "kenney:nature-kit/tree_palm.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree palm\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_palm.glb"
+  ]
+ },
+ "model:tree_palmbend": {
+  "id": "kenney:nature-kit/tree_palmBend.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree palm bend\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)), duplicate faces removed.",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_palmbend.glb"
+  ]
+ },
+ "model:tree_palmdetailedshort": {
+  "id": "kenney:nature-kit/tree_palmDetailedShort.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree palm detailed short\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_palmdetailedshort.glb"
+  ]
+ },
+ "model:tree_palmtall": {
+  "id": "kenney:nature-kit/tree_palmTall.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree palm tall\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_palmtall.glb"
+  ]
+ },
+ "model:tree_pinesmalla": {
+  "id": "kenney:nature-kit/tree_pineSmallA.glb",
+  "license": "CC0-1.0",
+  "source": "Kenney",
+  "credit": "\"Tree pine small a\" by Kenney (Kenney, https://kenney.nl/assets/nature-kit), licensed CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Changed by Patch: re-packed GLB, pivot moved to the bottom centre, credit added to the file, scaled \u00d72.5 to real-world size (calibrated on the camp bed (0.75 units; about 1.9 m)).",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "files": [
+   "models/nature/tree_pinesmalla.glb"
   ]
  },
  "model:tree_single_A": {

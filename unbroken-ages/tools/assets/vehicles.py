@@ -181,8 +181,21 @@ def submarine():
     return m
 
 
+def carrier():
+    m = Mesh()
+    hull_shape(m, NAVY_GREY, 0.3, 1.15, 0.0, 0.1, bow=0.2, deck=NAVY_GREY)
+    m.box((0.32, 0.34, 0.36), -0.17, 0.1, -0.56, 0.17, 0.13, 0.5)          # the flight deck, wider than the hull
+    m.box(WHITE, -0.005, 0.131, -0.5, 0.005, 0.132, 0.44)                   # centre line
+    for z in (-0.4, -0.2, 0.0, 0.2):
+        m.box(WHITE, -0.06, 0.131, z, 0.06, 0.132, z + 0.012)
+    m.box(NAVY_GREY, 0.1, 0.13, -0.12, 0.16, 0.3, 0.06)                    # the island
+    m.box(STEEL_DARK, 0.11, 0.3, -0.08, 0.15, 0.38, 0.0)
+    m.box(TEAM, 0.1, 0.24, -0.121, 0.16, 0.27, 0.061)
+    return m
+
+
 ALL = [("tank_ww1", tank_ww1), ("tank_ww2", tank_ww2), ("tank_modern", tank_modern), ("trireme", trireme),
-       ("ironclad", ironclad), ("battleship", battleship), ("destroyer", destroyer), ("submarine", submarine)]
+       ("ironclad", ironclad), ("battleship", battleship), ("destroyer", destroyer), ("submarine", submarine), ("carrier", carrier)]
 
 if __name__ == "__main__":
     for name, make in ALL:

@@ -51,7 +51,8 @@ when nothing does.
 1. **The first 50 turns.** Is it clear what to do next? Do you find your first city sites, builders and research choices
    without a manual?
 2. **Your first war.** Read the combat preview before you attack. The roster now runs through every era: Spearmen and
-   Pikemen stop cavalry, Catapults to Artillery break walls but fight troops badly, and Fighters hunt Bombers. Does the
+   Pikemen stop cavalry, Catapults to Artillery break walls but fight troops badly. Aircraft fly from your cities and
+   carriers; Fighters intercept enemy strikes in their range. Does the
    preview tell you enough? Do battles feel fair?
 3. **Upgrades.** Units in your own territory upgrade along their line (Warrior → Swordsman → Musketman → Line Infantry →
    Infantry → Mechanized Infantry). Does the unit panel make the choice clear?
@@ -66,8 +67,6 @@ when nothing does.
 
 ## Known limitations
 
-- **Aircraft are mobile ranged units.** They fly over any tile and strike up to 3–4 tiles away. There are no carriers,
-  air bases or interception yet.
 - **Loading is single-player.** In multiplayer, the host saves and restarts from the save.
 - **Balance is from simulations.** Eight AI civilizations over 300 turns typically leave 3–4 standing. Human players will
   find things the AI does not.

@@ -35,6 +35,7 @@ public sealed class MoveUnitCommand : GameCommand
     {
         if (OwnUnit(s, UnitId) is not { } u) return "Not your unit.";
         if (Destination < 0 || Destination >= s.Map.Count) return "Invalid destination.";
+        if (AirSystem.IsAircraft(s.Db, u)) return AirSystem.ValidateRebase(s, u, Destination);
         return Movement.FindPath(s, u, Destination) == null ? "No path." : null;
     }
     public override void Apply(GameState s, List<GameEvent> events)

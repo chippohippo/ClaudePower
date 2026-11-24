@@ -1156,6 +1156,9 @@ public sealed class CombatRules
     /// <summary>Siege weapons (the "Siege" tag): a bonus against cities and a penalty against troops.</summary>
     public int SiegeVsCityBonus { get; init; } = 12;
     public int SiegeVsUnitsPenalty { get; init; } = 8;
+    /// <summary>A civilization down to two cities (having lost one) defends harder: city strength and units at home.</summary>
+    public int LastStandCity { get; init; } = 8;
+    public int LastStandUnits { get; init; } = 5;
     public int OutOfSupplyPenalty { get; init; } = 5;
     public int CityBaseStrength { get; init; } = 15;
     public int CityStrengthPerEra { get; init; } = 4;

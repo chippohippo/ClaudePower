@@ -23,6 +23,7 @@ An even fight deals 24–36. Every 17 points of advantage doubles damage and hal
 | Strong / weak against | ±10 from `strongAgainst` / `weakAgainst` vs the opponent's tags and class (Drone > Armor, EW > Drone/Exoframe, Augmented > Machine > Living > Augmented) |
 | Out of supply | −5 (Grand Strategy dial only: `GameOptions.SupplyCombatPenalty`) |
 | Siege weapons (attacker with the `Siege` tag) | +12 against a city's walls, −8 against troops in the field (`siegeVsCityBonus`, `siegeVsUnitsPenalty`) |
+| Last stand | a major civilization down to two cities (having lost one): +8 city strength, +5 for units defending at home |
 | Anti-air (defender) | a defender whose `antiAirStrength` beats its strength meets aircraft with it |
 
 ## Cities
@@ -50,6 +51,15 @@ Crew; Catapult → Field Cannon → Artillery; Horseman → Cavalry; Knight → 
 Destroyer). A unique unit with no upgrade path of its own follows the unit it replaces (a Samurai becomes a Musketman). At war the AI brings one
 siege engine for every four soldiers.
 
+## The air war
+Aircraft (Fighter, Bomber, Drone Swarm) are **based**: they stand in your cities or on your Aircraft Carriers (three to a deck,
+and they sail with the carrier). A flight rebases them to another base within their moves; from a base they strike anything in
+range (Fighter 3, Bomber 4). An aircraft left without a base (its city taken, its carrier sunk) loses 25 health a turn.
+**Interception**: when an aircraft strikes, the strongest enemy Fighter (`Interceptor` tag) within its own range of the target that
+has not fought this turn meets it first. The striker takes the fighter's attack; if it survives, the strike goes on. Carriers cannot
+attack. Defenders with `antiAirStrength` meet aircraft with it. The AI builds one aircraft per five soldiers at war (fighters and bombers
+by turns), strikes what is in range and rebases toward the front.
+
 ## Civilians
 A melee unit moving onto an enemy civilian captures it (settlers and builders change owner). Ranged units cannot capture.
 
@@ -62,7 +72,7 @@ Battles emit `BattleFought` (a one-line battle report); deaths emit `UnitDestroy
 `CityCaptured` (+8 Strife; "Egypt captures Abydos." in the Chronicle). Captured original capitals are tracked (`WasOriginalCapital`) for the Hegemony victory.
 
 ## Next (Combat v2, M3)
-Naval blockades, air missions and air superiority (aircraft are currently mobile ranged units), support units, Fog of Strength, battle replay.
+Naval blockades, air superiority missions and paradrops, support units, Fog of Strength, battle replay.
 (Corps and armies, promotions, siege engines and aircraft have shipped.)
 
 ## Unit variants and upgrades

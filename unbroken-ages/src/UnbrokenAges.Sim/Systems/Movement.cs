@@ -21,6 +21,7 @@ public static class Movement
     {
         var db = s.Db;
         var map = s.Map;
+        if (db.Units[unit.DefIndex].Domain == UnitDomain.Air) return 1;   // aircraft overfly units, cities and borders (they land only at bases)
         foreach (var other in s.Units)
             if (other.Tile == to && other.Owner != unit.Owner) return Impassable;
         if (s.Cities.Any(c => c.Tile == to && c.Owner != unit.Owner)) return Impassable; // cities are captured, not walked into
@@ -124,6 +125,7 @@ public static class Movement
             if (unit.MovesLeft < cost && unit.MovesLeft < full) break;
             if (unit.MovesLeft <= Fx.Zero) break;
             unit.MovesLeft = Fx.Max(Fx.Zero, unit.MovesLeft - cost);
+            AirSystem.CarryAircraft(s, unit, unit.Tile, next);
             unit.Tile = next;
             unit.Fortified = false;
         }

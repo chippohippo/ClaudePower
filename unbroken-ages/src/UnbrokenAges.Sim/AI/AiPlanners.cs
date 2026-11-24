@@ -192,8 +192,11 @@ public static class MilitaryAi
         if (s.Turn < firstTurn || MajorEnemies(s, p.Id).Count > 0) return null;
         if (SocietySystem.EffectiveWeariness(s, p) >= 2 * SocietySystem.WearinessPerAmenity) return null;   // the people are tired of war
         if (s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u)) < 3) return null;
+        if (CombatSystem.LastStand(s, p.Id)) return null;   // a remnant rebuilds, it does not start wars
         int mine = Strength(s, p.Id);
-        foreach (int target in Neighbours(s, p.Id).OrderBy(t => Strength(s, t)).ThenBy(t => t))
+        // No dogpiles: leave a rival that is making its last stand, or already fighting another great power, alone.
+        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0)
+                                                 .OrderBy(t => Strength(s, t)).ThenBy(t => t))
             if (mine * 2 * war >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
                 return new DeclareWarCommand { Player = p.Id, Target = target };
         return null;
@@ -223,6 +226,18 @@ public static class MilitaryAi
         {
             if (u.MovesLeft <= Core.Fx.Zero || u.AttackedThisTurn) continue;
             var (target, odds, preview) = BestAttack(s, u, hostile);
+            if (AirSystem.IsAircraft(db, u))
+            {
+                // Aircraft strike what is in range, and otherwise rebase to the base nearest the front within one flight.
+                if (target >= 0 && odds > OddsToAttack && u.Hp >= 40) { yield return new AttackCommand { Player = p.Id, UnitId = u.Id, TargetTile = target }; continue; }
+                var front = s.Cities.Where(c => enemies.Contains(c.Owner)).OrderBy(c => map.Distance(c.Tile, u.Tile)).ThenBy(c => c.Id).FirstOrDefault();
+                if (front == null) continue;
+                int here = map.Distance(u.Tile, front.Tile);
+                var rebase = s.CitiesOf(p.Id).Select(c => c.Tile).Where(t => t != u.Tile && AirSystem.ValidateRebase(s, u, t) == null)
+                              .OrderBy(t => map.Distance(t, front.Tile)).ThenBy(t => t).DefaultIfEmpty(-1).First();
+                if (rebase >= 0 && map.Distance(rebase, front.Tile) < here) yield return new MoveUnitCommand { Player = p.Id, UnitId = u.Id, Destination = rebase };
+                continue;
+            }
             bool wounded = u.Hp < 40;
             if (!wounded && u.Hp < 70)
             {
@@ -295,7 +310,9 @@ public static class MilitaryAi
             int mine = Strength(s, p.Id), theirs = Strength(s, other), warTurns = s.Turn - rel.Since;
             bool weary = SocietySystem.EffectiveWeariness(s, p) >= 3 * SocietySystem.WearinessPerAmenity;
             bool winning = mine > 0 && mine >= theirs * 2 && warTurns < 30 && !weary;
-            bool sated = s.Cities.Count(c => c.Owner == other) <= 1 && s.Turn < SparedUntilTurn && !s.Players[other].IsFreeCities;
+            // Sated: a rival down to its last city in the opening, or to a last stand after a long war, is left in peace.
+            bool sated = !s.Players[other].IsFreeCities &&
+                         (s.Cities.Count(c => c.Owner == other) <= 1 && s.Turn < SparedUntilTurn || CombatSystem.LastStand(s, other) && warTurns >= 15);
             if (rel.PeaceProposedBy == other)
             {
                 if (!winning || sated) yield return new AcceptPeaceCommand { Player = p.Id, Target = other };
@@ -317,6 +334,11 @@ public static class MilitaryAi
         s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.Strength > 0 && !u.HasTag("Siege") && u.UnitClass != "AntiCavalry" &&
                               ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
                   .OrderByDescending(u => Math.Max(u.Strength, u.RangedStrength * 9 / 10)).ThenBy(u => u.Index).FirstOrDefault();
+
+    /// <summary>The best aircraft the city can build now (fighters and bombers by turns), if any.</summary>
+    public static UnitDef? BestAirUnit(GameState s, CityState city, bool fighter) =>
+        s.Db.Units.Where(u => u.Domain == UnitDomain.Air && u.HasTag("Interceptor") == fighter && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
+                  .OrderByDescending(u => u.RangedStrength).ThenBy(u => u.Index).FirstOrDefault();
 
     /// <summary>The best siege engine the city can build now, if any: armies at war bring one for every few line units.</summary>
     public static UnitDef? BestSiegeUnit(GameState s, CityState city) =>

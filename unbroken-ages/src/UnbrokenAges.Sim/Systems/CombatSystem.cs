@@ -58,8 +58,26 @@ public static class CombatSystem
             .Select(u => UnitStats.Strength(s, u)).DefaultIfEmpty(0).Max();
         b.Add("Garrison", garrison / 5);
         b.Add("Damaged", -(CityMaxHp(s, city) - city.Hp) / 20);
+        if (LastStand(s, city.Owner)) b.Add("Last stand", s.Db.Rules.Combat.LastStandCity);
         foreach (var (label, value) in NationSystem.CityDefenseLines(s, city)) b.Add(label, value);
         return b;
+    }
+
+    /// <summary>
+    /// A major civilization reduced to two cities or fewer, having lost at least one: its people fight for what is left
+    /// (city strength and units defending in their own territory gain). Conquest stays possible, but the end is a siege.
+    /// </summary>
+    public static bool LastStand(GameState s, int player)
+    {
+        var p = s.Players[player];
+        if (!p.IsMajor) return false;
+        int held = 0, lost = 0;
+        foreach (var c in s.Cities)
+        {
+            if (c.Owner == player) held++;
+            else if (c.OriginalOwner == player) lost++;
+        }
+        return held is > 0 and <= 2 && lost > 0;
     }
 
     private static HashSet<string> TagsOf(UnitDef d) => new(d.Tags.Append(d.UnitClass), StringComparer.Ordinal);
@@ -81,6 +99,7 @@ public static class CombatSystem
         }
         b.Add("Wounds", -rules.HpPenaltyPerTen * ((100 - unit.Hp) / 10));
 
+        if (!attacking && map.OwnerPlayer[unit.Tile] == unit.Owner && LastStand(s, unit.Owner)) b.Add("Last stand", rules.LastStandUnits);
         if (!attacking)
         {
             b.Add("Terrain", db.Reliefs[map.Relief[unit.Tile]].Defense + (map.Feature[unit.Tile] >= 0 ? db.Features[map.Feature[unit.Tile]].Defense : 0));
@@ -143,7 +162,7 @@ public static class CombatSystem
         return Math.Clamp((mean * percent / 100).RoundToInt(), 1, 100);
     }
 
-    public static CombatPreview Preview(GameState s, UnitState attacker, int targetTile)
+    public static CombatPreview Preview(GameState s, UnitState attacker, int targetTile, bool ignoreSpent = false)
     {
         var db = s.Db;
         var map = s.Map;
@@ -154,8 +173,9 @@ public static class CombatSystem
 
         if (targetTile < 0 || targetTile >= map.Count) return Illegal("Invalid target.");
         if (!SupplySystem.IsMilitary(db, attacker)) return Illegal("This unit cannot attack.");
-        if (attacker.AttackedThisTurn) return Illegal("Already attacked this turn.");
-        if (attacker.MovesLeft <= Fx.Zero) return Illegal("No moves left.");
+        if (def.HasTag("Carrier")) return Illegal("Carriers do not attack; their aircraft do.");
+        if (!ignoreSpent && attacker.AttackedThisTurn) return Illegal("Already attacked this turn.");
+        if (!ignoreSpent && attacker.MovesLeft <= Fx.Zero) return Illegal("No moves left.");
 
         bool vsCity = IsCity(s, targetTile, out var city);
         var defender = s.Units.Where(u => u.Tile == targetTile).OrderByDescending(u => UnitStats.Strength(s, u)).ThenBy(u => u.Id).FirstOrDefault();
@@ -236,6 +256,24 @@ public static class CombatSystem
             SocietySystem.AddWeariness(s, attacker.Owner, 1);
         attacker.MovesLeft = Fx.Zero;
         var atkDef = db.Units[attacker.DefIndex];
+
+        // Interception: an enemy fighter covering the target meets the strike first.
+        if (AirSystem.Interceptor(s, attacker, targetTile) is { } interceptor)
+        {
+            interceptor.AttackedThisTurn = true;
+            var hunter = UnitStrength(s, interceptor, attacker, attacking: true, ranged: true, interceptor.Tile, attacker.Tile);
+            var prey = UnitStrength(s, attacker, interceptor, attacking: false, ranged: true, interceptor.Tile, attacker.Tile);
+            int hit = RollDamage(s, hunter.Total - prey.Total);
+            int back = RollDamage(s, prey.Total - hunter.Total) / 2;
+            attacker.Hp -= hit;
+            interceptor.Hp -= back;
+            events.Add(new GameEvent(GameEventType.BattleFought, interceptor.Owner, Tile: attacker.Tile, Def: interceptor.DefIndex, Value: hit,
+                Detail: $"{db.Units[interceptor.DefIndex].Name} intercepts {atkDef.Name}: {hit} damage dealt, {back} taken"));
+            if (interceptor.Hp <= 0) Destroy(s, interceptor, events, attacker.Owner, attacker);
+            if (attacker.Hp <= 0) { Destroy(s, attacker, events, interceptor.Owner, interceptor.Hp > 0 ? interceptor : null); return; }
+            preview = Preview(s, attacker, targetTile, ignoreSpent: true);   // the strike goes on, weakened by its wounds
+            if (!preview.Legal) return;
+        }
 
         if (preview.CapturesCivilian)
         {

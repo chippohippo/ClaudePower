@@ -76,6 +76,7 @@ public static class TurnProcessor
         ClimateSystem.ProcessTurn(s, power, events);
 
         CombatSystem.ProcessTurn(s);
+        AirSystem.ProcessTurn(s, events);
         SupplySystem.ProcessTurn(s, events);
         foreach (var unit in s.Units.ToList())
         {

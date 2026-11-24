@@ -49,4 +49,27 @@ public class SurvivalTests
         s.Turn = MilitaryAi.SparedUntilTurn;
         Assert.Contains(MilitaryAi.Fight(s, s.Players[0]), c => c is AttackCommand a && a.TargetTile == last.Tile);
     }
+
+    [Fact]
+    public void ARemnant_MakesALastStand_AndIsNotDogpiled()
+    {
+        var s = TestWorld.Blank(width: 40, height: 20, players: 3);
+        TestWorld.City(s, 0, 4, 10);
+        var lost = TestWorld.City(s, 1, 14, 6);
+        var held = TestWorld.City(s, 1, 14, 14);
+        TestWorld.City(s, 2, 30, 10);
+        Assert.False(CombatSystem.LastStand(s, 1));
+        CitySystem.ChangeOwner(s, lost, 0, new(), GameEventType.CityCaptured);
+        Assert.True(CombatSystem.LastStand(s, 1));
+        Assert.Contains(CombatSystem.CityStrength(s, held).Lines, l => l.Label == "Last stand" && l.Value > 0);
+        var guard = TestWorld.Unit(s, 1, "UNIT_WARRIOR", 14, 13);
+        s.Map.OwnerPlayer[guard.Tile] = 1;
+        var raider = TestWorld.Unit(s, 2, "UNIT_WARRIOR", 15, 13);
+        Assert.Contains(CombatSystem.UnitStrength(s, guard, raider, false, false, raider.Tile, guard.Tile).Lines, l => l.Label == "Last stand");
+        // A strong neighbour does not declare on a remnant, and the remnant starts no wars.
+        s.Turn = 200;
+        for (int i = 0; i < 12; i++) TestWorld.Unit(s, 2, "UNIT_TANK", 29, 4 + i % 10);
+        Assert.False(MilitaryAi.WarDeclaration(s, s.Players[2]) is DeclareWarCommand { Target: 1 });
+        Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[1]));
+    }
 }
