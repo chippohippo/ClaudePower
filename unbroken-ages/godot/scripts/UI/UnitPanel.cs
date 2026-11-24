@@ -123,6 +123,9 @@ public partial class UnitPanel : PanelContainer
                     Action("crown", $"Promote: {promo.Name}", "", new PromoteUnitCommand { UnitId = u.Id, Promotion = promo.Index }, promo.Description);
             foreach (int target in UpgradeSystem.Targets(s, u))
             {
+                // Only upgrades you could make now (or soon: gold or territory short); not ones still behind research.
+                var into = s.Db.Units[target];
+                if (!s.Players[u.Owner].HasTech(into.PrereqTechIndex) || !s.Players[u.Owner].HasCivic(into.PrereqCivicIndex)) continue;
                 var variants = UnitStats.VariantsOf(s.Db, target);
                 if (variants.Count == 0) Action("crown", $"Upgrade → {s.Db.Units[target].Name}", "", new UpgradeUnitCommand { UnitId = u.Id, Target = target, Variant = -1 },
                                                 $"{UpgradeSystem.GoldCost(s, u, target, -1)} gold");
