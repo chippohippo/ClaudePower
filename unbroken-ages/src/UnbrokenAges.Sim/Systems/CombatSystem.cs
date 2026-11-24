@@ -144,6 +144,8 @@ public static class CombatSystem
             b.Add("Anti-air", def.AntiAirStrength - def.Strength);
         foreach (var (label, value) in NationSystem.CombatLines(s, unit, opponent, attacking, ranged, vsCity, targetTile)) b.Add(label, value);
         foreach (var (label, value) in SocietySystem.CombatLines(s, unit, attacking, vsCity, targetTile)) b.Add(label, value);
+        // A land unit caught at sea defends from its boats, whatever its strength ashore.
+        if (!attacking && Movement.IsEmbarked(s, unit) && b.Total > rules.EmbarkedStrength) b.Add("Embarked (at sea)", rules.EmbarkedStrength - b.Total);
         return b;
     }
 
@@ -174,6 +176,7 @@ public static class CombatSystem
         if (targetTile < 0 || targetTile >= map.Count) return Illegal("Invalid target.");
         if (!SupplySystem.IsMilitary(db, attacker)) return Illegal("This unit cannot attack.");
         if (def.HasTag("Carrier")) return Illegal("Carriers do not attack; their aircraft do.");
+        if (Movement.IsEmbarked(s, attacker)) return Illegal("Units at sea cannot attack; land first.");
         if (!ignoreSpent && attacker.AttackedThisTurn) return Illegal("Already attacked this turn.");
         if (!ignoreSpent && attacker.MovesLeft <= Fx.Zero) return Illegal("No moves left.");
 

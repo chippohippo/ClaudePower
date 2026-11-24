@@ -17,6 +17,35 @@ public static class Movement
     public const int Impassable = -1;
     public const int RiverCrossingCost = 2;
 
+    /// <summary>What a search knows once: tiles held by others (units or cities), and whether each owner's land may be entered.</summary>
+    private sealed class SearchContext
+    {
+        public readonly HashSet<int> Blocked = new();
+        public readonly Dictionary<int, bool> MayEnter = new();
+        public bool Military;
+    }
+
+    private static SearchContext Context(GameState s, UnitState unit)
+    {
+        var ctx = new SearchContext { Military = SupplySystem.IsMilitary(s.Db, unit) };
+        foreach (var other in s.Units) if (other.Owner != unit.Owner) ctx.Blocked.Add(other.Tile);
+        foreach (var c in s.Cities) if (c.Owner != unit.Owner) ctx.Blocked.Add(c.Tile);
+        return ctx;
+    }
+
+    private static int EnterCost(GameState s, UnitState unit, int from, int to, SearchContext ctx)
+    {
+        if (s.Db.Units[unit.DefIndex].Domain == UnitDomain.Air) return 1;
+        if (ctx.Blocked.Contains(to)) return Impassable;
+        int owner = s.Map.OwnerPlayer[to];
+        if (ctx.Military && owner >= 0 && owner != unit.Owner)
+        {
+            if (!ctx.MayEnter.TryGetValue(owner, out bool may)) ctx.MayEnter[owner] = may = DiplomacySystem.MayEnter(s, unit.Owner, owner);
+            if (!may) return Impassable;
+        }
+        return TerrainCost(s, unit, from, to);
+    }
+
     public static int EnterCost(GameState s, UnitState unit, int from, int to)
     {
         var db = s.Db;
@@ -57,7 +86,14 @@ public static class Movement
             if (!def.RiverCapable) return Impassable;
             return Math.Max(2, db.Terrains[map.Terrain[to]].FordCost);
         }
-        if (map.IsWater(to)) return Impassable;
+        if (map.IsWater(to))
+        {
+            // Embarkation: across the shallows with Sailing, the open ocean with Celestial Navigation; boarding takes longer.
+            if (!CanEmbark(s, unit, to)) return Impassable;
+            return map.IsWater(from) && !map.IsChannel(from) ? 1 : 2;
+        }
+        if (map.IsWater(from) && !map.IsChannel(from) && db.Units[unit.DefIndex].Domain is UnitDomain.Land or UnitDomain.Civilian)
+            return Math.Max(2, Math.Max(db.Terrains[map.Terrain[to]].MoveCost, db.Reliefs[map.Relief[to]].MoveCost));   // landing
         if (map.IsMountain(to) && NationSystem.MountainCost(s, unit) is var climb and > 0) return climb;   // Inca roads in the sky
         if (db.Reliefs[map.Relief[to]].Impassable) return Impassable;
 
@@ -68,6 +104,21 @@ public static class Movement
             cost += RiverCrossingCost;
         return Math.Max(1, cost);
     }
+
+    /// <summary>Whether a land unit may take to this water tile (coast and lakes, or open ocean), by its owner's research.</summary>
+    public static bool CanEmbark(GameState s, UnitState unit, int tile)
+    {
+        var db = s.Db;
+        if (db.Units[unit.DefIndex].Domain is not (UnitDomain.Land or UnitDomain.Civilian) || unit.Owner < 0 || unit.Owner >= s.Players.Count) return false;
+        var p = s.Players[unit.Owner];
+        var rules = db.Rules.Combat;
+        if (!p.HasTech(db.Techs.IndexOf(rules.EmbarkTech))) return false;
+        return s.Map.ClassAt(tile) != TerrainClass.Ocean || p.HasTech(db.Techs.IndexOf(rules.OceanEmbarkTech));
+    }
+
+    /// <summary>A land unit afloat (embarked on coast, lake or ocean; not fording a Great River).</summary>
+    public static bool IsEmbarked(GameState s, UnitState unit) =>
+        s.Db.Units[unit.DefIndex].Domain is UnitDomain.Land or UnitDomain.Civilian && unit.Tile >= 0 && s.Map.IsWater(unit.Tile) && !s.Map.IsChannel(unit.Tile);
 
     private static int FindCityTile(GameState s, int owner, int tile) =>
         s.Cities.Any(c => c.Tile == tile && c.Owner == owner) ? tile : -1;
@@ -82,6 +133,7 @@ public static class Movement
         var open = new PriorityQueue<int, long>();
         open.Enqueue(unit.Tile, map.Distance(unit.Tile, destination));
         var closed = new HashSet<int>();
+        var ctx = Context(s, unit);
         int expanded = 0;
         while (open.TryDequeue(out int cur, out _))
         {
@@ -97,7 +149,7 @@ public static class Movement
             {
                 int nb = map.Neighbor(cur, d);
                 if (nb < 0 || closed.Contains(nb)) continue;
-                int cost = EnterCost(s, unit, cur, nb);
+                int cost = EnterCost(s, unit, cur, nb, ctx);
                 if (cost == Impassable) continue;
                 int g = gScore[cur] + cost;
                 if (gScore.TryGetValue(nb, out int old) && old <= g) continue;

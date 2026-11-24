@@ -48,20 +48,42 @@ public static class ExpansionAi
     }
 
     /// <summary>Best site near <paramref name="from"/> (score − 2 per tile of travel), away from sites other settlers claimed; -1 if none.</summary>
-    public static int BestSite(GameState s, int player, int from, IReadOnlyCollection<int> claimed)
+    /// <remarks>
+    /// Only sites a settler could actually reach count (by land, or by sea once Sailing / Celestial Navigation allow): an
+    /// island people no longer marches its settlers to the shore and waits forever. When nothing is left nearby, a people that
+    /// can cross the ocean looks for new lands much further away (one point per tile of travel).
+    /// </remarks>
+    public static int BestSite(GameState s, int player, int from, IReadOnlyCollection<int> claimed, UnitState? walker = null)
     {
         var map = s.Map;
-        var tiles = new List<int>();
-        map.CollectRadius(from, SearchRadius, tiles);
-        tiles.Sort();
-        int best = -1, bestScore = int.MinValue;
-        foreach (int t in tiles)
+        foreach (var (radius, perTile) in new[] { (SearchRadius, 2), (OverseasRadius, 1) })
         {
-            if (!CanSettle(s, player, t) || claimed.Any(c => map.Distance(c, t) < FoundCityCommand.MinCityDistance)) continue;
-            int score = SiteScore(s, player, t) - 2 * map.Distance(from, t);
-            if (score > bestScore) { bestScore = score; best = t; }
+            if (radius == OverseasRadius && !CanCrossOcean(s, player)) break;
+            var tiles = new List<int>();
+            map.CollectRadius(from, radius, tiles);
+            var ranked = new List<(int Tile, int Score)>();
+            foreach (int t in tiles)
+            {
+                if (!CanSettle(s, player, t) || claimed.Any(c => map.Distance(c, t) < FoundCityCommand.MinCityDistance)) continue;
+                ranked.Add((t, SiteScore(s, player, t) - perTile * map.Distance(from, t)));
+            }
+            var mover = walker ?? Phantom(s, player, from);
+            foreach (var (t, _) in ranked.OrderByDescending(r => r.Score).ThenBy(r => r.Tile).Take(3))
+                if (mover == null || t == mover.Tile || Movement.FindPath(s, mover, t, 4000) != null) return t;
         }
-        return best;
+        return -1;
+    }
+
+    public const int OverseasRadius = 26;
+
+    private static bool CanCrossOcean(GameState s, PlayerState p) => p.HasTech(s.Db.Techs.IndexOf(s.Db.Rules.Combat.OceanEmbarkTech));
+    private static bool CanCrossOcean(GameState s, int player) => CanCrossOcean(s, s.Players[player]);
+
+    /// <summary>A stand-in settler at <paramref name="from"/> for asking whether a site can be reached (never added to the game).</summary>
+    private static UnitState? Phantom(GameState s, int player, int from)
+    {
+        var def = s.Db.Units.FirstOrDefault(u => u.FoundsCity);
+        return def == null ? null : new UnitState { Id = -1, Owner = player, DefIndex = def.Index, Tile = from, MovesLeft = Core.Fx.FromInt(def.Moves) };
     }
 
     /// <summary>One settler at a time, up to the city cap, and only while a site exists.</summary>
@@ -90,7 +112,7 @@ public static class ExpansionAi
                 if (legalHere) yield return found;
                 continue;
             }
-            int site = BestSite(s, p.Id, u.Tile, claimed);
+            int site = BestSite(s, p.Id, u.Tile, claimed, u);
             if (site < 0)
             {
                 if (legalHere) yield return found;

@@ -16,12 +16,33 @@ namespace UnbrokenAges.Sim.Systems;
 /// </summary>
 public static class TurnProcessor
 {
+    /// <summary>Optional profiling (tools only): milliseconds spent in each part of turn resolution. Null in games.</summary>
+    public static Dictionary<string, double>? Profile;
+
+    private static void Time(string name, Action step)
+    {
+        if (Profile == null) { step(); return; }
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        step();
+        Profile[name] = Profile.GetValueOrDefault(name) + clock.Elapsed.TotalMilliseconds;
+    }
+
+    private static T Timed<T>(string name, Func<T> step)
+    {
+        if (Profile == null) return step();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var result = step();
+        Profile[name] = Profile.GetValueOrDefault(name) + clock.Elapsed.TotalMilliseconds;
+        return result;
+    }
+
     public static List<GameEvent> Advance(GameState s)
     {
         var events = new List<GameEvent>();
         var db = s.Db;
 
-        var power = PowerSystem.Process(s, commit: true, events);
+        var power = Timed("PowerSystem", () => PowerSystem.Process(s, commit: true, events));
+        var cityClock = Profile != null ? System.Diagnostics.Stopwatch.StartNew() : null;
         SocietySystem.CloseSwapWindow(s);
 
         foreach (var player in s.Players)
@@ -57,38 +78,41 @@ public static class TurnProcessor
             AccumulateStrategicResources(s, player);
         }
 
-        NationSystem.ProcessTurn(s, events);
-        ReligionSystem.ProcessTurn(s, events);
-        GreatPeopleSystem.ProcessTurn(s, events);
-        CityStateSystem.ProcessTurn(s, events);
-        TradeSystem.ProcessTurn(s, events);
-        EspionageSystem.ProcessTurn(s, events);
-        CultureSystem.ProcessTurn(s, events);
-        CongressSystem.ProcessTurn(s, events);
-        SpaceSystem.ProcessTurn(s, events);
-        AgeSystem.ProcessTurn(s, events);
-        OutpostSystem.ProcessTurn(s, events);
-        IndustrySystem.ProcessTurn(s);
-        GovernorSystem.ProcessTurn(s, events);
-        LoyaltySystem.ProcessTurn(s, events);
-        DiplomacySystem.ProcessTurn(s);
-        DivergenceSystem.ProcessTurn(s, events);
-        ClimateSystem.ProcessTurn(s, power, events);
+        Time("NationSystem.ProcessTurn", () => NationSystem.ProcessTurn(s, events));
+        Time("ReligionSystem.ProcessTurn", () => ReligionSystem.ProcessTurn(s, events));
+        Time("GreatPeopleSystem.ProcessTurn", () => GreatPeopleSystem.ProcessTurn(s, events));
+        Time("CityStateSystem.ProcessTurn", () => CityStateSystem.ProcessTurn(s, events));
+        Time("TradeSystem.ProcessTurn", () => TradeSystem.ProcessTurn(s, events));
+        Time("EspionageSystem.ProcessTurn", () => EspionageSystem.ProcessTurn(s, events));
+        Time("CultureSystem.ProcessTurn", () => CultureSystem.ProcessTurn(s, events));
+        Time("CongressSystem.ProcessTurn", () => CongressSystem.ProcessTurn(s, events));
+        Time("SpaceSystem.ProcessTurn", () => SpaceSystem.ProcessTurn(s, events));
+        Time("AgeSystem.ProcessTurn", () => AgeSystem.ProcessTurn(s, events));
+        Time("OutpostSystem.ProcessTurn", () => OutpostSystem.ProcessTurn(s, events));
+        Time("IndustrySystem.ProcessTurn", () => IndustrySystem.ProcessTurn(s));
+        Time("GovernorSystem.ProcessTurn", () => GovernorSystem.ProcessTurn(s, events));
+        Time("LoyaltySystem.ProcessTurn", () => LoyaltySystem.ProcessTurn(s, events));
+        Time("DiplomacySystem.ProcessTurn", () => DiplomacySystem.ProcessTurn(s));
+        Time("DivergenceSystem.ProcessTurn", () => DivergenceSystem.ProcessTurn(s, events));
+        Time("ClimateSystem.ProcessTurn", () => ClimateSystem.ProcessTurn(s, power, events));
 
-        CombatSystem.ProcessTurn(s);
-        AirSystem.ProcessTurn(s, events);
-        SupplySystem.ProcessTurn(s, events);
-        foreach (var unit in s.Units.ToList())
+        Time("CombatSystem.ProcessTurn", () => CombatSystem.ProcessTurn(s));
+        Time("AirSystem.ProcessTurn", () => AirSystem.ProcessTurn(s, events));
+        Time("SupplySystem.ProcessTurn", () => SupplySystem.ProcessTurn(s, events));
+        Time("Unit moves", () =>
         {
-            unit.MovesLeft = UnitStats.Moves(s, unit);
-            if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
-        }
-        SocietySystem.ProcessTurn(s);
-        BarbarianSystem.ProcessTurn(s, events);
+            foreach (var unit in s.Units.ToList())
+            {
+                unit.MovesLeft = UnitStats.Moves(s, unit);
+                if (unit.Destination >= 0) Movement.MoveAlong(s, unit);
+            }
+        });
+        Time("SocietySystem.ProcessTurn", () => SocietySystem.ProcessTurn(s));
+        Time("BarbarianSystem.ProcessTurn", () => BarbarianSystem.ProcessTurn(s, events));
 
-        GovernorSystem.GainExperience(s, events);
-        WorldSystem.ProcessTurn(s, events);
-        VictorySystem.Check(s, events, endOfTurn: true);
+        Time("GovernorSystem.GainExperience", () => GovernorSystem.GainExperience(s, events));
+        Time("WorldSystem.ProcessTurn", () => WorldSystem.ProcessTurn(s, events));
+        Time("VictorySystem.Check", () => VictorySystem.Check(s, events, endOfTurn: true));
         s.Turn++;
         foreach (var p in s.Players) p.HasEndedTurn = false;
         TurnPhases.Begin(s);

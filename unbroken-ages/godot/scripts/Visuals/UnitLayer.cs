@@ -161,6 +161,10 @@ public partial class UnitLayer : Node3D
             perTile[u.Tile] = slot + 1;
             var target = Anchor(s, u.Tile, slot);
             var look = Look(s.Db.Units[u.DefIndex], Looks(s, u.Owner));
+            // Embarked: an army or settlers at sea travel in a sailing boat (a steamer from the industrial age).
+            if (Movement.IsEmbarked(s, u))
+                look = Looks(s, u.Owner).Architecture >= Architecture.Industrial ? new UnitLook("units/ship_small", 1, 0.85f, true, Colors.White)
+                                                                                : new UnitLook("units/boat_sail_a", 1, 0.75f, true, Colors.White);
             if (u.Formation > 0 && look.Count > 1) look = look with { Count = Math.Min(7, look.Count + 2 * u.Formation) };   // corps and armies march deeper
             if (!_views.TryGetValue(u.Id, out var view) || view.Def != u.DefIndex || view.Key != look.Key)
             {

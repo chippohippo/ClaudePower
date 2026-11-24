@@ -96,6 +96,15 @@ void Simulate()
     int nationOffset = int.Parse(Opt("--nation-offset", "0"));
     // --leaders A,B,C seats exactly these leaders (LEADER_ prefix optional); otherwise one leader per nation in turn.
     var chosen = Opt("--leaders", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.StartsWith("LEADER_") ? x : "LEADER_" + x.ToUpperInvariant()).ToList();
+    // --civs CIV_A,CIV_B seats these peoples (CIV_ prefix optional) with each one's first leader.
+    foreach (var civ in Opt("--civs", "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+    {
+        string id = civ.StartsWith("CIV_") ? civ : "CIV_" + civ.ToUpperInvariant();
+        int ci = db.Civilizations.IndexOf(id);
+        if (ci < 0) { Console.Error.WriteLine($"no civilization {id}"); Environment.ExitCode = 2; return; }
+        chosen.Add(db.Leaders.First(l => l.CivilizationIndex == ci).Id);
+    }
+    if (chosen.Count > 0 && !HasOpt("--players")) players = chosen.Count;
     string LeaderFor(int i)
     {
         if (i < chosen.Count) return chosen[i];
@@ -115,14 +124,51 @@ void Simulate()
     var ai = new SimpleAi();
     var sw = Stopwatch.StartNew();
     var tally = new Dictionary<GameEventType, int>();
+    // --report file.json: per-civ checkpoints every 25 turns, victories and eliminations, for tools/maps/earth_soak.py.
+    var checkpoints = new List<object>();
+    var victories = new List<object>();
+    var eliminated = new Dictionary<string, int>();
+    string CivName(int id) => id >= 0 && id < s.Players.Count && s.Players[id].CivIndex >= 0 ? db.Civilizations[s.Players[id].CivIndex].Id : $"p{id}";
+    void RecordVictory()
+    {
+        if (s.Victory.AwaitingChoice) victories.Add(new { turn = s.Victory.Turn, kind = s.Victory.Kind.ToString(), winner = CivName(s.Victory.Winner) });
+    }
+    void Checkpoint() => checkpoints.Add(new
+    {
+        turn = s.Turn,
+        majors = s.Players.Where(p => p.IsMajor).Select(p => new
+        {
+            civ = CivName(p.Id), alive = p.IsAlive && s.Cities.Any(c => c.Owner == p.Id), cities = s.CitiesOf(p.Id).Count(),
+            pop = s.CitiesOf(p.Id).Sum(c => c.Population), techs = p.Techs.Count(x => x), era = s.PlayerEra(p),
+            score = VictorySystem.Score(s, p.Id), units = s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(db, u)),
+            atWar = MilitaryAi.MajorEnemies(s, p.Id).Count,
+        }).ToList(),
+    });
+    int captures = 0, wars = 0;
+    var aiClock = new Stopwatch();
+    if (HasOpt("--profile")) TurnProcessor.Profile = new();
+    var turnClock = new Stopwatch();
     for (int t = 0; t < turns; t++)
     {
         var events = new List<GameEvent>();   // the AI's own actions (captures, declarations) and the turn's resolution
+        aiClock.Start();
         foreach (var p in s.Players.Where(p => p.IsMajor))
             foreach (var cmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, cmd, events);
+        aiClock.Stop();
+        RecordVictory();
         ContinueIfWon(s);
+        turnClock.Start();
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
+        turnClock.Stop();
+        RecordVictory();
         ContinueIfWon(s);
+        foreach (var e in events)
+        {
+            if (e.Type == GameEventType.PlayerEliminated) eliminated.TryAdd(CivName(e.Player), s.Turn);
+            if (e.Type == GameEventType.CityCaptured) captures++;
+            if (e.Type == GameEventType.WarDeclared) wars++;
+        }
+        if (s.Turn % 25 == 0) Checkpoint();
         foreach (var e in events) tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
         if (Opt("--trace-civ", "") is { Length: > 0 } traced)
             foreach (var e in events.Where(e => e.Type is GameEventType.CityCaptured or GameEventType.CityFlipped or GameEventType.CityDeclaredIndependence
@@ -141,6 +187,16 @@ void Simulate()
                               $"| world: {WorldSystem.CurrentAge(s)?.Name ?? "an ordinary age"} (progress {s.World.Progress.FloorToInt()}, strife {s.World.Strife.FloorToInt()}, calamity {s.World.Calamity.FloorToInt()})");
     }
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
+    Console.WriteLine($"time: AI {aiClock.ElapsedMilliseconds} ms, turn resolution {turnClock.ElapsedMilliseconds} ms");
+    if (TurnProcessor.Profile != null)
+        Console.WriteLine("profile: " + string.Join(", ", TurnProcessor.Profile.OrderByDescending(k => k.Value).Take(10).Select(k => $"{k.Key} {k.Value:0} ms")));
+    if (Opt("--report", "") is { Length: > 0 } reportPath)
+    {
+        Checkpoint();
+        var report = new { map = setup.Map.MapId, seed, turns, msPerTurn = sw.Elapsed.TotalMilliseconds / turns, captures, wars, victories, eliminated, checkpoints };
+        File.WriteAllText(reportPath, System.Text.Json.JsonSerializer.Serialize(report));
+        Console.WriteLine($"report: {reportPath}");
+    }
     Console.WriteLine("events: " + string.Join(", ", tally.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
     Console.WriteLine("score: " + string.Join(", ", s.Players.Where(p => p.IsMajor).Select(p => $"{p.Name} {VictorySystem.Score(s, p.Id)}")));
     Console.WriteLine("nations:");

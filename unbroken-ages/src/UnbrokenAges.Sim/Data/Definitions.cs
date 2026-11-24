@@ -1206,6 +1206,11 @@ public sealed class CombatRules
     /// <summary>Siege weapons (the "Siege" tag): a bonus against cities and a penalty against troops.</summary>
     public int SiegeVsCityBonus { get; init; } = 12;
     public int SiegeVsUnitsPenalty { get; init; } = 8;
+    /// <summary>Embarkation: land units may cross coast and lakes with the first tech, the open ocean with the second, and
+    /// defend at sea with this strength (they cannot attack from the water).</summary>
+    public string EmbarkTech { get; init; } = "TECH_SAILING";
+    public string OceanEmbarkTech { get; init; } = "TECH_CELESTIAL_NAVIGATION";
+    public int EmbarkedStrength { get; init; } = 10;
     /// <summary>A civilization down to two cities (having lost one) defends harder: city strength and units at home.</summary>
     public int LastStandCity { get; init; } = 8;
     public int LastStandUnits { get; init; } = 5;

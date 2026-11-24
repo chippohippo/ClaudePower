@@ -49,7 +49,7 @@ public class PeriodUnitTests
         s.Map.Terrain[TestWorld.Tile(s, 6, 10)] = (byte)s.Db.Terrains.First(t => t.Class == TerrainClass.Ocean).Index;
         Assert.Equal(1, Movement.TerrainCost(s, fighter, fighter.Tile, TestWorld.Tile(s, 6, 10)));
         var spear = TestWorld.Unit(s, 0, "UNIT_SPEARMAN", 5, 12);
-        Assert.Equal(Movement.Impassable, Movement.TerrainCost(s, spear, spear.Tile, TestWorld.Tile(s, 6, 10)));
+        Assert.Equal(2, Movement.TerrainCost(s, spear, spear.Tile, TestWorld.Tile(s, 6, 10)));   // foot soldiers must board boats (embark)
     }
 
     [Fact]
