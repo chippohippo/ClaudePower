@@ -10,7 +10,7 @@ namespace UnbrokenAges.Sim.Systems;
 /// <item><b>Great works</b>: each Great Artist creates their named works (two each); each Great Prophet leaves a relic. Works hang in
 /// slots — one in the capital's palace, two in an Amphitheater, three in a Museum, one in a Temple — filled automatically,
 /// largest cities first; works with no free slot wait in storage. A work on display gives its city +2 Culture.</item>
-/// <item><b>Tourism</b>: 2 per displayed work, 3 per world wonder, 2 per natural wonder in your territory; +25% per era from the
+/// <item><b>Tourism</b>: 2 per displayed work, 3 per world wonder, 2 per natural wonder in your territory; +35% per era from the
 /// Industrial on, +15% in a Golden or Heroic Age.</item>
 /// <item><b>Tourists</b>: every turn your tourism flows toward each other civilization, +25% each where a trade route of yours runs to
 /// them, where they grant you open borders, and where their capital follows your religion. Every 150 tourism there is one visiting
@@ -21,6 +21,8 @@ namespace UnbrokenAges.Sim.Systems;
 public static class CultureSystem
 {
     public const int CulturePerWork = 2, TourismPerWork = 2, TourismPerWonder = 3, TourismPerNaturalWonder = 2, TourismPerVisitor = 150, CulturePerDomestic = 100;
+    /// <summary>Tourism grows by this much per era from the Industrial on, to keep pace with late-era culture.</summary>
+    public const int TourismPerEraPercent = 35;
 
     public static int Slots(GameState s, CityState city) =>
         (city.IsCapital ? 1 : 0) + city.AllBuildings().Sum(b => s.Db.Buildings[b].GreatWorkSlots);
@@ -88,7 +90,7 @@ public static class CultureSystem
         for (int t = 0; t < s.Map.Count; t++)
             if (s.Map.OwnerPlayer[t] == p.Id && s.Map.Feature[t] >= 0 && s.Db.Features[s.Map.Feature[t]].NaturalWonder) natural++;
         int raw = works * TourismPerWork + wonders * TourismPerWonder + natural * TourismPerNaturalWonder;
-        int percent = 100 + 25 * Math.Max(0, s.PlayerEra(p) - 3) + (p.Age is AgeState.Golden or AgeState.Heroic ? 15 : 0);
+        int percent = 100 + TourismPerEraPercent * Math.Max(0, s.PlayerEra(p) - 3) + (p.Age is AgeState.Golden or AgeState.Heroic ? 15 : 0);
         return raw * percent / 100;
     }
 

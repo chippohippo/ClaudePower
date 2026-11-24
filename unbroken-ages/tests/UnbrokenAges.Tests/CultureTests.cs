@@ -67,7 +67,7 @@ public class CultureTests
         int tile = TestWorld.Tile(s, 4, 9);
         s.Map.Feature[tile] = (short)uluru;
         int era = s.PlayerEra(p);
-        int expected = (CultureSystem.TourismPerWork + CultureSystem.TourismPerWonder + CultureSystem.TourismPerNaturalWonder) * (100 + 25 * Math.Max(0, era - 3)) / 100;
+        int expected = (CultureSystem.TourismPerWork + CultureSystem.TourismPerWonder + CultureSystem.TourismPerNaturalWonder) * (100 + CultureSystem.TourismPerEraPercent * Math.Max(0, era - 3)) / 100;
         Assert.Equal(expected, CultureSystem.Tourism(s, p));
         p.Age = AgeState.Golden;
         Assert.True(CultureSystem.Tourism(s, p) > expected);

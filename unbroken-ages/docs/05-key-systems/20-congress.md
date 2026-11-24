@@ -36,7 +36,8 @@ Tests: `tests/UnbrokenAges.Tests/CongressTests.cs` (5). Snapshot version 19. Des
 
 * **Carrying a vote:** +1 to the civilization that put the most votes behind each winning option, if no one ties it.
 * **Suzerainties:** +1 at every session to each suzerain of three or more city-states.
-* **Victory:** 20 points win the **Concord** victory.
+* **Victory:** 16 points win the **Concord** victory (20 until the Earth soaks showed twelve peoples sharing two resolutions a session
+  could not reach it before turn 500).
 
 ## The AI
 

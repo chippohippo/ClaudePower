@@ -43,6 +43,7 @@ public static class SocietyAi
             ReligionSystem.FreeBeliefs(s, BeliefKind.Follower).FirstOrDefault() is { } follower)
             yield return new FoundReligionCommand { Player = p.Id, Religion = religion.Index, FounderBelief = founder.Index, FollowerBelief = follower.Index };
 
+        if (VictoryAi.FaithPurchase(s, p) is { } buy) yield return buy;
         foreach (var cmd in Missionaries(s, p)) yield return cmd;
 
         foreach (var cmd in Spies(s, p)) yield return cmd;
@@ -148,18 +149,36 @@ public static class SocietyAi
         if (pending.Count == 0) yield break;
         var leader = s.Players.Where(o => o.IsMajor && o.IsAlive).OrderByDescending(o => VictorySystem.Score(s, o.Id)).ThenBy(o => o.Id).First();
         bool contender = VictorySystem.Score(s, p.Id) * 5 >= VictorySystem.Score(s, leader.Id) * 4;
-        int budget = p.Favor / 2 / pending.Count;
+        // A civilization on the road to the Concord puts all its favor behind one resolution naming itself, to carry it alone;
+        // the others spend a third, shared.
+        bool diplomat = VictoryAi.Focus(s, p) == VictoryFocus.Concord;
+        int campaign = diplomat ? pending.FindIndex(r => CongressSystem.Info(r.Kind).Targeted) : -1;
+        int budget = p.Favor / 3 / pending.Count;
         int extra = 0;
         while (extra < 10 && CongressSystem.VoteCost(extra + 1) <= budget) extra++;
         for (int i = 0; i < pending.Count; i++)
         {
-            if (pending[i].Votes.Any(v => v.Player == p.Id)) continue;
+            if (pending[i].Votes.FirstOrDefault(v => v.Player == p.Id) is { } cast)
+            {
+                // On the eve of the session the diplomat switches to the winning side if the tally has turned against it.
+                if (i != campaign || s.Turn < s.Congress.NextSession - 1 || leader.Id == p.Id) continue;
+                var (ta, tb, _, _) = CongressSystem.Tally(s, pending[i]);
+                if ((tb > ta ? 1 : 0) == cast.Option) continue;
+            }
             var info = CongressSystem.Info(pending[i].Kind);
             int option, target = -1;
-            if (info.Targeted) (option, target) = contender || leader.Id == p.Id ? (0, p.Id) : (1, leader.Id);
+            if (info.Targeted && i == campaign && leader.Id != p.Id)
+            {
+                // The diplomat carries whichever side is winning: points go to the biggest backer of the winning option.
+                var (a, b, _, _) = CongressSystem.Tally(s, pending[i]);
+                (option, target) = b > a ? (1, leader.Id) : (0, p.Id);
+            }
+            else if (info.Targeted) (option, target) = contender || leader.Id == p.Id ? (0, p.Id) : (1, leader.Id);
             else if (pending[i].Kind == ResolutionKind.ArmsControl) option = atWar ? 1 : 0;
             else option = s.Climate.Phase >= 1 ? 0 : 1;
-            var vote = new VoteCommand { Player = p.Id, Resolution = i, Option = option, Target = target, Extra = extra };
+            int votes = extra;
+            if (diplomat) { votes = 0; while (votes < 20 && CongressSystem.VoteCost(votes + 1) <= (i == campaign ? p.Favor : 0)) votes++; }
+            var vote = new VoteCommand { Player = p.Id, Resolution = i, Option = option, Target = target, Extra = votes };
             if (vote.Validate(s) != null) vote.Extra = 0;
             if (vote.Validate(s) == null) yield return vote;
         }
@@ -264,7 +283,7 @@ public static class SocietyAi
         foreach (var u in s.Units.Where(u => u.Owner == p.Id && ReligionSystem.IsMissionary(s.Db.Units[u.DefIndex])).ToList())
         {
             if (ReligionSystem.CanSpread(s, u) == null) { yield return new SpreadReligionCommand { Player = p.Id, UnitId = u.Id }; continue; }
-            var target = MissionTarget(s, p, u.Tile);
+            var target = VictoryAi.MissionTarget(s, p, u.Tile);
             if (target == null) continue;
             int best = -1, bestDist = int.MaxValue;
             for (int d = 0; d < 6; d++)
@@ -294,6 +313,20 @@ public static class SocietyAi
         return s.Db.Units.FirstOrDefault(u => ReligionSystem.IsMissionary(u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null);
     }
 
+    /// <summary>
+    /// A Sanctuary in the capital for a civilization with no religion while religions remain to be founded and a prophet is on offer:
+    /// prophets come from Sanctuaries, and a world with one faith hands its founder the Spiritual victory.
+    /// </summary>
+    public static (int Def, int Tile)? WantsSanctuary(GameState s, PlayerState p, CityState city)
+    {
+        if (p.Religion >= 0 || !city.IsCapital || !ReligionSystem.FreeReligions(s).Any() || GreatPeopleSystem.Next(s, GreatPersonClass.Prophet) == null) return null;
+        int sanctuary = s.Db.Districts.IndexOf("DISTRICT_SANCTUARY");
+        if (sanctuary < 0 || s.CitiesOf(p.Id).Any(c => c.Districts.Any(d => d.DefIndex == sanctuary) ||
+                                                       c.Queue.Items.Any(q => q.Kind == ProductionKind.District && q.DefIndex == sanctuary))) return null;
+        return DistrictPlanner.Rank(s, city, sanctuary, DistrictPlanner.BalancedWeights, 1).FirstOrDefault() is { } spot &&
+               ProductionSystem.Validate(s, city, ProductionKind.District, sanctuary, spot.Tile) == null ? (sanctuary, spot.Tile) : null;
+    }
+
     /// <summary>A trader while route slots outnumber routes, traders and traders in the queues.</summary>
     public static UnitDef? WantsTrader(GameState s, PlayerState p, CityState city)
     {
@@ -316,7 +349,8 @@ public static class SocietyAi
         var cities = s.CitiesOf(p.Id).ToList();
         if (!cities.Any(HasPort))
         {
-            var best = cities.Where(c => c.Districts.Count >= 4).OrderByDescending(c => c.YieldsLastTurnProduction).ThenBy(c => c.Id).FirstOrDefault();
+            int districts = VictoryAi.Focus(s, p) == VictoryFocus.Exodus ? 2 : 4;
+            var best = cities.Where(c => c.Districts.Count >= districts).OrderByDescending(c => c.YieldsLastTurnProduction).ThenBy(c => c.Id).FirstOrDefault();
             if (best?.Id != city.Id) return null;
             return DistrictPlanner.Rank(s, city, port, DistrictPlanner.BalancedWeights, 1).FirstOrDefault() is { } spot ? (ProductionKind.District, port, spot.Tile) : null;
         }

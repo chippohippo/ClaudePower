@@ -54,6 +54,7 @@ continent and several seeds, and checks each game against these targets:
 | T6 decision | every game is decided by the turn limit, and at least a third end with a victory other than Score |
 | T7 conflict | every game has wars (5+ declarations) and conquests (10+ cities captured) |
 | T8 speed | under 500 ms per turn on average |
+| T9 variety | across the games, at least three kinds of victory, and no kind wins more than half of them |
 
 The results and the changes they led to are recorded below.
 

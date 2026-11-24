@@ -12,11 +12,11 @@ public enum ResolutionKind : byte { WorldsFair, TradeCharter, SovereigntyPact, P
 /// civilizations can see them, vote and change their votes. Every civilization has one free vote per resolution and buys more
 /// with Diplomatic Favor (the k-th extra vote costs 10 × k). The winning option takes effect until the next session.
 /// Diplomatic victory points: +1 to the civilization that put the most votes behind each winning option, and +1 to each
-/// suzerain of three or more city-states at every session. 20 points win the Concord victory.
+/// suzerain of three or more city-states at every session. 16 points win the Concord victory.
 /// </summary>
 public static class CongressSystem
 {
-    public const int FirstSession = 90, Interval = 30, Notice = 10, VictoryPoints = 20, VoteCostStep = 10;
+    public const int FirstSession = 90, Interval = 30, Notice = 10, VictoryPoints = 16, VoteCostStep = 10;
 
     public sealed record Resolution(ResolutionKind Kind, string Name, bool Targeted, string A, string B);
 

@@ -46,6 +46,7 @@ public enum CommandType : byte
     AssignSpy = 98,
     Vote = 99,
     FormCorps = 100,
+    FaithPurchase = 101,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -115,6 +116,7 @@ public abstract class GameCommand
         CommandType.RemoveQueueItem => new RemoveQueueItemCommand(),
         CommandType.MoveQueueItem => new MoveQueueItemCommand(),
         CommandType.Purchase => new PurchaseCommand(),
+        CommandType.FaithPurchase => new FaithPurchaseCommand(),
         CommandType.SetResearch => new SetResearchCommand(),
         CommandType.SetCivic => new SetCivicCommand(),
         CommandType.AppointGovernor => new AppointGovernorCommand(),

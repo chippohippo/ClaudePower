@@ -9,7 +9,7 @@ namespace UnbrokenAges.Sim.Systems;
 /// * <b>Hegemony</b>: one team holds every original capital, or holds 60% of the world's population (in cities above 50 loyalty)
 ///   and 60% of its land. No last-city-standing grind.
 /// * <b>Exodus</b>: launch the Exodus Ark, the last of four Spaceport projects (SpaceSystem).
-/// * <b>Concord</b>: 20 diplomatic victory points from the World Congress (CongressSystem).
+/// * <b>Concord</b>: 16 diplomatic victory points from the World Congress (CongressSystem).
 /// * <b>Culture</b>: visiting tourists outnumber every other living civilization's domestic tourists (CultureSystem).
 /// * <b>Spiritual</b>: a religion followed by most of the cities of every other living civilization (at least two of them).
 /// * <b>Score</b>: highest score when the turn limit ends. Every score source is a visible line, all game long.

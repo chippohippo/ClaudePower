@@ -138,12 +138,18 @@ public sealed class SimpleAi : IAiController
             wantBuilder = false;
             return (ProductionKind.Unit, builder.Index, -1);
         }
+        if (SocietyAi.WantsSanctuary(s, player, city) is var (sanctuary, sanctuaryTile)) return (ProductionKind.District, sanctuary, sanctuaryTile);
+        // On the Exodus road the space programme comes before everything else in peacetime.
+        if (VictoryAi.Focus(s, player) == VictoryFocus.Exodus && SocietyAi.WantsSpace(s, player, city) is var (launchKind, launchDef, launchTile))
+            return (launchKind, launchDef, launchTile);
         // A horde keeps a standing army even in peace: its research comes from the battlefield.
         int peaceArmy = NationSystem.Kind(s, player) == SignatureKind.Horde ? 2 * cityCount + 3 : cityCount + 2;
         if (soldier != null && military < peaceArmy) return (ProductionKind.Unit, soldier.Index, -1);
         if (SocietyAi.WantsMissionary(s, player, city) is { } missionary) return (ProductionKind.Unit, missionary.Index, -1);
         if (SocietyAi.WantsTrader(s, player, city) is { } trader) return (ProductionKind.Unit, trader.Index, -1);
         if (SocietyAi.WantsSpace(s, player, city) is var (spaceKind, spaceDef, spaceTile)) return (spaceKind, spaceDef, spaceTile);
+        if (VictoryAi.Focus(s, player) == VictoryFocus.Culture && VictoryAi.CultureProduction(s, player, city) is var (cultureKind, cultureDef, cultureTile))
+            return (cultureKind, cultureDef, cultureTile);
         if (SocietyAi.WantsWonder(s, player, city) is var (wonder, wonderTile)) return (ProductionKind.District, wonder, wonderTile);
         // Prefer the best-scoring specialty district (same scorer the player's lens uses).
         var districtChoice = db.Districts
@@ -217,7 +223,9 @@ public sealed class SimpleAi : IAiController
         if (d.Spread is { SourceBuildingIndex: >= 0 } spread &&
             ProductionSystem.Validate(s, city, ProductionKind.Building, spread.SourceBuildingIndex, -1) == null)
             return (ProductionKind.Building, spread.SourceBuildingIndex);
-        if (d.AscensionProjectIndex >= 0 && ProductionSystem.Validate(s, city, ProductionKind.Project, d.AscensionProjectIndex, -1) == null)
+        // The Ascension project is the default road's goal; a civilization on another road spends its cities there instead.
+        if (d.AscensionProjectIndex >= 0 && VictoryAi.Focus(s, player) == VictoryFocus.Ascension &&
+            ProductionSystem.Validate(s, city, ProductionKind.Project, d.AscensionProjectIndex, -1) == null)
             return (ProductionKind.Project, d.AscensionProjectIndex);
         foreach (var b in db.Buildings)
             if (b.PrereqTechIndex >= 0 && db.Techs[b.PrereqTechIndex].DivergenceIndex == player.Divergence &&

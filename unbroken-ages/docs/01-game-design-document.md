@@ -189,6 +189,11 @@ and reassigning one resets the timer. Late game adds **Councils**: a governor ca
 
 * **Technology and Civic trees** are separate, each with boosts worth 40% of cost; boost text is shown on the node.
   Nine eras run from Ancient to Future.
+* **Pacing to the calendar:** costs rise more steeply through the middle eras (Medieval to Industrial) than at either end, so on a
+  standard game the median people reaches the Industrial era around turn 200 (the calendar's 18th century) and the Information era
+  around turn 300 (AD 2000), leaving the Future era and its Divergence for the last two hundred turns.
+* **Diffusion:** a technology or civic is up to 40% cheaper as more of the other living great powers know it. A people that falls
+  behind catches up; the leader pays full price. (The Divergence's own branches never diffuse.)
 * **Era pacing (Extended Eras):** a setup slider (100 / 150 / 200%) stretches costs per era, so unique units and era
   mechanics stay relevant longer without changing game speed.
 * **Ages:** Golden, Dark and Heroic ages with era score and **dedications**, kept from Civ VI with three changes:
@@ -249,7 +254,7 @@ wars, cannot sign separate peace, and keep their own victory paths only if they 
 * **Fewer, better sessions:** every 40 turns at standard speed, plus *emergency sessions* only for real crises (nuclear use, a climate phase change, a city-state capture).
 * **Players propose resolutions.** Each civ can table one proposal per session from a menu unlocked by civics. Proposals are announced one session ahead.
 * Voting uses Diplomatic Favor with **visible tallies before the vote locks**, so you can lobby and trade votes in the deal screen.
-* **Diplomatic Victory ("Concord")**: 20 victory points earned from *your* proposals passing, aid during emergencies, liberations and peace treaties brokered.
+* **Diplomatic Victory ("Concord")**: 16 victory points earned from *your* proposals passing, aid during emergencies, liberations and peace treaties brokered.
   Random competitions are removed. Congress can be set to *Off / Light / Standard* at setup.
 
 ---
@@ -344,7 +349,7 @@ Medicine tech line. Plague can trigger Dark Age dedications and migrations. It n
 | **Cultural Hegemony** | Your visiting tourists exceed every rival's domestic tourists | Tourism sources itemized; "turns to victory at current rates" shown for every rival |
 | **Hegemony** (domination) | Hold every original capital **or** control 60% of world population and land with loyalty above 50 | No last-city-standing grind; loyalty matters |
 | **Spiritual** | §7 | Schisms create counterplay |
-| **Concord** (diplomatic) | 20 victory points from proposals, aid, liberations and peace | No random competitions |
+| **Concord** (diplomatic) | 16 victory points from proposals, aid, liberations and peace | No random competitions |
 | **Ascension** (Divergence) | Complete your future's final project after remaking ≥ 10% of the world's land | The race is to remake the planet; rival futures' ground acts as a firebreak ([08](08-divergence-tech-tree.md#5-ascension-the-sixth-victory)) |
 | **Score** | Highest score at the turn limit | Score sources visible all game; tie-breakers documented |
 

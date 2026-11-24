@@ -54,6 +54,17 @@ public sealed class MoveUnitCommand : GameCommand
     protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); Destination = r.ReadInt32(); }
 }
 
+/// <summary>Buys a religious unit in a city with faith (ReligionSystem.FaithCost).</summary>
+public sealed class FaithPurchaseCommand : GameCommand
+{
+    public int CityId, DefIndex;
+    public override CommandType Type => CommandType.FaithPurchase;
+    public override string? Validate(GameState s) => OwnCity(s, CityId) is not { } c ? "Not your city." : ReligionSystem.ValidateFaithPurchase(s, c, DefIndex);
+    public override void Apply(GameState s, List<GameEvent> events) => ReligionSystem.PurchaseWithFaith(s, s.GetCity(CityId)!, DefIndex, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(CityId); w.Write(DefIndex); }
+    protected override void ReadPayload(BinaryReader r) { CityId = r.ReadInt32(); DefIndex = r.ReadInt32(); }
+}
+
 public sealed class FoundCityCommand : GameCommand
 {
     public const int MinCityDistance = 4;

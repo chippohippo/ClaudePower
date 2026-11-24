@@ -68,6 +68,9 @@ public partial class CityPanel : PanelContainer
         row.AddChild(Button("▼", () => MoveSelected(+1)));
         row.AddChild(Button("Remove", RemoveSelected));
         row.AddChild(Button("Buy", BuySelected));
+        _faithBuy = Button("Missionary (faith)", BuyMissionary);
+        _faithBuy.TooltipText = "Buy a Missionary with faith: twice its production cost. Needs a founded religion.";
+        row.AddChild(_faithBuy);
 
         var buildHead = new HBoxContainer();
         v.AddChild(buildHead);
@@ -110,6 +113,14 @@ public partial class CityPanel : PanelContainer
             return;
         }
         _cityId = city.Id;
+        if (s.Db.Units.FirstOrDefault(ReligionSystem.IsMissionary) is { } missionary)
+        {
+            var faithCost = ReligionSystem.FaithCost(s, city, missionary.Index).FloorToInt();
+            string? why = ReligionSystem.ValidateFaithPurchase(s, city, missionary.Index);
+            _faithBuy.Text = $"Missionary · {faithCost} faith";
+            _faithBuy.Disabled = why != null;
+            _faithBuy.TooltipText = why ?? $"Buy a Missionary here now for {faithCost} faith (twice its production cost).";
+        }
         var fx = CityEffects.Compute(s, city);
         var report = CityYields.Compute(s, city, fx);
         _title.Text = $"{(city.IsCapital ? "★ " : "")}{city.Name.ToUpperInvariant()}  ·  {city.Population}";
@@ -261,6 +272,17 @@ public partial class CityPanel : PanelContainer
         if (city == null || Selected < 0) return;
         var item = city.Queue.Items[Selected];
         Report(_root.Submit(new PurchaseCommand { CityId = _cityId, Kind = item.Kind, DefIndex = item.DefIndex }));
+    }
+
+    private Button _faithBuy = null!;
+
+    private void BuyMissionary()
+    {
+        var s = _root.State;
+        var city = s?.GetCity(_cityId);
+        var unit = s?.Db.Units.FirstOrDefault(ReligionSystem.IsMissionary);
+        if (s == null || city == null || unit == null) return;
+        Report(_root.Submit(new FaithPurchaseCommand { CityId = _cityId, DefIndex = unit.Index }));
     }
 
     private void Report(CommandResult r)

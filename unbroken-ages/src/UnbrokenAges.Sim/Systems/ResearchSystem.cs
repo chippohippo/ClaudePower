@@ -10,9 +10,34 @@ public static class ResearchSystem
     public static Fx Cost(GameState s, ProgressNodeDef node) =>
         node.Cost * s.Options.GameSpeedPercent / 100 * s.Options.EraPacingPercent / 100;
 
-    /// <summary>Player-specific cost: doctrines are cheaper for the Divergence your history leans toward.</summary>
-    public static Fx Cost(GameState s, PlayerState p, ProgressNodeDef node) =>
-        Cost(s, node) * DivergenceSystem.CostMultiplier(s, p, node);
+    /// <summary>
+    /// Player-specific cost: doctrines are cheaper for the Divergence your history leans toward, and knowledge diffuses: a technology
+    /// or civic is up to <see cref="DiffusionPercent"/>% cheaper as more of the other living great powers know it (none for the
+    /// Divergence's own branches). Peoples that fall behind can catch up; the leader pays full price.
+    /// </summary>
+    public static Fx Cost(GameState s, PlayerState p, ProgressNodeDef node)
+    {
+        Fx cost = Cost(s, node) * DivergenceSystem.CostMultiplier(s, p, node);
+        int known = Known(s, p, node, out int others);
+        return others == 0 || known == 0 ? cost : cost - cost * (DiffusionPercent * known) / (100 * others);
+    }
+
+    public const int DiffusionPercent = 40;
+
+    /// <summary>How many of the other living great powers know the node (out of <paramref name="others"/>).</summary>
+    public static int Known(GameState s, PlayerState p, ProgressNodeDef node, out int others)
+    {
+        others = 0;
+        if (node.DivergenceIndex >= 0) return 0;
+        int known = 0;
+        foreach (var o in s.Players)
+        {
+            if (o.Id == p.Id || !o.IsMajor || !o.IsAlive) continue;
+            others++;
+            if (node is TechDef ? o.Techs[node.Index] : o.Civics[node.Index]) known++;
+        }
+        return known;
+    }
 
     public static bool CanResearch(PlayerState p, TechDef t) =>
         !p.Techs[t.Index] && t.PrereqIndices.All(i => p.Techs[i]) && DivergenceSystem.IsAvailable(p, t);

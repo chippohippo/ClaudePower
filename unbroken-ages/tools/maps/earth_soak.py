@@ -11,10 +11,12 @@ Targets (what a good Earth game looks like):
   T2 expansion   at turn 100 every people has 3+ cities (Venice excepted), and the median people 5+
   T3 survival    all twelve alive at turn 150; 9+ alive at turn 300 on average; 7+ alive at the end
   T4 balance     no people holds more than 30% of the great powers' cities at turn 300, or 40% at the end
-  T5 pace        the median people reaches the Industrial era by turn 250; someone reaches the Information era by turn 450
+  T5 pace        the median people reaches the Industrial era by turn 250 but is not past the Modern era at turn 200 (the calendar's
+                 AD 1725); someone reaches the Information era by turn 450
   T6 decision    every game is decided by the turn limit, and at least a third end with a victory other than Score
   T7 conflict    every game has wars (5+ declarations) and conquests (10+ cities captured)
   T8 speed       under 500 ms per turn on average
+  T9 variety     across the games, at least three kinds of victory, and no kind wins more than half of them
 """
 import argparse, json, os, statistics, subprocess, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -25,7 +27,7 @@ TABLES = {
     "A": "EGYPT,SONG,ROME,ENGLAND,RUSSIA,INDIA,JAPAN,AZTEC,INCA,MALI,ZULU,MONGOLIA",
     "B": "GREECE,PERSIA,SPAIN,FRANCE,GERMANY,OTTOMAN,ARABIA,KOREA,KHMER,BRAZIL,AMERICA,ETHIOPIA",
 }
-INDUSTRIAL, INFORMATION = 4, 7
+INDUSTRIAL, MODERN, INFORMATION = 4, 5, 7
 
 
 def run(table, seed, turns, out):
@@ -44,7 +46,7 @@ def at(report, turn):
 
 
 def evaluate(results, turns):
-    checks = {f"T{i}": [] for i in range(1, 9)}
+    checks = {f"T{i}": [] for i in range(1, 10)}
     rows = []
     for table, seed, ok, r, err in results:
         name = f"{table}{seed}"
@@ -64,14 +66,21 @@ def evaluate(results, turns):
             return best["cities"] / total, best["civ"][4:].title()
         s300, w300 = top(t300); send, wend = top(end)
         checks["T4"].append((name, s300 <= 0.30 and send <= 0.40, f"top t300 {w300} {s300:.0%}, end {wend} {send:.0%}"))
-        era250 = statistics.median(m["era"] for m in at(r, 250))
+        era200 = statistics.median(m["era"] for m in at(r, 200) if m["alive"])
+        era250 = statistics.median(m["era"] for m in at(r, 250) if m["alive"])
         info = next((c["turn"] for c in r["checkpoints"] if any(m["era"] >= INFORMATION for m in c["majors"])), None)
-        checks["T5"].append((name, era250 >= INDUSTRIAL and info is not None and info <= 450, f"median era t250 {era250}, Information by t{info}"))
+        checks["T5"].append((name, era200 <= MODERN and era250 >= INDUSTRIAL and info is not None and info <= 450,
+                             f"median era t200 {era200}, t250 {era250}, Information by t{info}"))
         v = r["victories"][0] if r["victories"] else None
         checks["T6"].append((name, v is not None, f"{v['kind']} by {v['winner'][4:].title()} on turn {v['turn']}" if v else "undecided"))
         checks["T7"].append((name, r["wars"] >= 5 and r["captures"] >= 10, f"{r['wars']} wars, {r['captures']} captures"))
         checks["T8"].append((name, r["msPerTurn"] < 500, f"{r['msPerTurn']:.0f} ms/turn"))
         rows.append((name, r, t300, end, v))
+    kinds = [r["victories"][0]["kind"] for _, r, _, _, _ in rows if r["victories"]]
+    if kinds:
+        counts = {k: kinds.count(k) for k in sorted(set(kinds))}
+        ok = len(counts) >= 3 and max(counts.values()) * 2 <= len(results)
+        checks["T9"].append(("all", ok, ", ".join(f"{k} {n}" for k, n in counts.items())))
     decided = [c for c in checks["T6"] if c[1]]
     non_score = sum(1 for _, ok, text in decided if ok and not text.startswith("Score"))
     t3_avg300 = statistics.mean(int(text.split("t300 ")[1].split(",")[0]) for _, ok, text in checks["T3"]) if checks["T3"] else 0

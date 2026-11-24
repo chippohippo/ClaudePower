@@ -17,7 +17,7 @@ Rules: `Systems/CultureSystem.cs`. Content: the `works` lists on artists in `soc
 ## Tourism and tourists
 
 * **Tourism per turn:** 2 per displayed work, 3 per world wonder, and 2 per natural wonder in your territory.
-  * +25% per era from the Industrial on.
+  * +35% per era from the Industrial on (`TourismPerEraPercent`), so tourism keeps pace with late-era culture.
   * +15% in a Golden or Heroic Age.
 * **Where it goes:** every turn your tourism flows toward each other living civilization. It gets +25% each where:
   * a trade route of yours runs to them;

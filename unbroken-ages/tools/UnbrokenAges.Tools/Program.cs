@@ -142,6 +142,11 @@ void Simulate()
             pop = s.CitiesOf(p.Id).Sum(c => c.Population), techs = p.Techs.Count(x => x), era = s.PlayerEra(p),
             score = VictorySystem.Score(s, p.Id), units = s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(db, u)),
             atWar = MilitaryAi.MajorEnemies(s, p.Id).Count,
+            // How far along each road to victory: peoples dominated by its culture, converted to its religion, its
+            // diplomatic victory points, its Exodus stage, its Divergence (-1 none).
+            culture = CultureSystem.Reach(s, p).Dominated, faith = p.Religion >= 0 ? ReligionSystem.Reach(s, p).Converted : 0,
+            dvp = p.DiplomaticPoints, exodus = p.ExodusStage, divergence = p.Divergence, focus = VictoryAi.Focus(s, p).ToString(),
+            spaceport = s.CitiesOf(p.Id).Any(c => c.Districts.Any(d => db.Districts[d.DefIndex].Id == "DISTRICT_SPACEPORT")),
         }).ToList(),
     });
     int captures = 0, wars = 0;

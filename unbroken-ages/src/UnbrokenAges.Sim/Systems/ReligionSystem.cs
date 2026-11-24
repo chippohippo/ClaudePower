@@ -17,6 +17,8 @@ public static class ReligionSystem
     public const int PantheonCost = 25;
     public const int Radius = 9;
     public const int MissionaryProgress = 60;
+    /// <summary>A missionary converts a city with no religion, or one this small, at once.</summary>
+    public const int InstantConversionPopulation = 3;
 
     public static PlayerState? Founder(GameState s, int religion) =>
         religion < 0 ? null : s.Players.Find(p => p.Religion == religion);
@@ -151,6 +153,35 @@ public static class ReligionSystem
 
     public static bool IsMissionary(UnitDef u) => u.HasTag("Missionary");
 
+    /// <summary>
+    /// Faith buys religious units outright, once a religion is founded: twice their production cost, +25% for each religious unit
+    /// of yours already in the field (a flood of missionaries gets dear).
+    /// </summary>
+    public const int FaithPerProduction = 2, FaithSurchargePercent = 25;
+
+    public static Fx FaithCost(GameState s, CityState city, int unitDef)
+    {
+        int inField = s.Units.Count(u => u.Owner == city.Owner && IsMissionary(s.Db.Units[u.DefIndex]));
+        Fx cost = ProductionSystem.Cost(s, s.Players[city.Owner], ProductionKind.Unit, unitDef) * FaithPerProduction;
+        return (cost + cost * (FaithSurchargePercent * inField) / 100).Floor();
+    }
+
+    public static string? ValidateFaithPurchase(GameState s, CityState city, int unitDef)
+    {
+        if (unitDef < 0 || unitDef >= s.Db.Units.Count || !IsMissionary(s.Db.Units[unitDef])) return "Only religious units can be bought with faith.";
+        var p = s.Players[city.Owner];
+        if (p.Religion < 0) return "Found a religion first.";
+        if (ProductionSystem.Validate(s, city, ProductionKind.Unit, unitDef, -1) is { } err) return err;
+        var cost = FaithCost(s, city, unitDef);
+        return p.Faith < cost ? $"Needs {cost.FloorToInt()} faith." : null;
+    }
+
+    public static void PurchaseWithFaith(GameState s, CityState city, int unitDef, List<GameEvent> events)
+    {
+        s.Players[city.Owner].Faith -= FaithCost(s, city, unitDef);
+        ProductionSystem.Complete(s, city, new QueueItem { Kind = ProductionKind.Unit, DefIndex = unitDef }, events);
+    }
+
     public static CityState? SpreadTarget(GameState s, UnitState u) =>
         s.Cities.Where(c => s.Map.Distance(c.Tile, u.Tile) <= 1).OrderBy(c => s.Map.Distance(c.Tile, u.Tile)).ThenBy(c => c.Id).FirstOrDefault();
 
@@ -172,7 +203,7 @@ public static class ReligionSystem
         var city = SpreadTarget(s, u)!;
         if (city.ReligionCandidate != p.Religion) { city.ReligionCandidate = p.Religion; city.ReligionProgress = Fx.Zero; }
         city.ReligionProgress += Fx.FromInt(MissionaryProgress);
-        if (city.Population <= 6 || city.Religion < 0 || city.ReligionProgress >= Fx.FromInt(ConversionThreshold(city)))
+        if (city.Population <= InstantConversionPopulation || city.Religion < 0 || city.ReligionProgress >= Fx.FromInt(ConversionThreshold(city)))
             Convert(s, city, p.Religion, events);
         s.RemoveUnit(u);
     }

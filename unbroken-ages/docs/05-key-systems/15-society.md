@@ -29,9 +29,11 @@ Tests: `tests/UnbrokenAges.Tests/SocietyTests.cs` (28). Snapshot version 14.
   * Strength per turn: `(10 − distance) × (2 + population)`. It doubles from the holy city and gains +50% from a city with a Sanctuary.
   * A city's own religion counts against a rival's pressure.
   * Net pressure accumulates, at a tenth per turn. The city converts when the total passes `30 + 5 × population`.
-* **Missionaries** (Classical, Astrology): a civilian that needs a founded religion to build.
+* **Missionaries** (Classical, Astrology): a civilian that needs a founded religion to build, or to **buy with faith** for twice its
+  production cost (`FaithPurchaseCommand`; the city screen's Missionary button).
   * Spreading uses up the missionary. It adds 60 progress toward the city's conversion.
-  * Cities of 6 or fewer people, and cities with no religion, convert at once.
+  * Cities of 3 or fewer people, and cities with no religion, convert at once.
+  * Bought with faith: twice the production cost, +25% for each missionary of yours already in the field.
 * **Spiritual victory**: your religion is the majority faith in every other living civilization that has cities, and there are at least two
   of them. Checked at the end of each turn.
 
@@ -144,7 +146,8 @@ average, against 3.4 before this system existed. With both, it is back to 3.4, w
 * Adopts the best government it has unlocked on free turns: Technocracy > Democracy > Communism > Monarchy > …, and Fascism while at war.
 * Values each card by what it would do for its own cities now, checking the requirements, and fills slots best-first.
 * Takes the first free pantheon and founds a religion as soon as a prophet arrives.
-* Trains one missionary at a time and sends it to the nearest unconverted city (its own first).
+* Trains one missionary at a time and sends it to the nearest unconverted city (its own first); on the spiritual road it buys up to four
+  with faith and sends them to the people closest to tipping ([05/13](13-ai.md#victory-focus-victoryai)).
 * Promotes by a strength-weighted score.
 * Raises wonders in its most productive city once that city has a few districts.
 
