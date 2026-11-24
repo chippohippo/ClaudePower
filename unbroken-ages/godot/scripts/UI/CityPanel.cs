@@ -130,9 +130,10 @@ public partial class CityPanel : PanelContainer
                                             : $"\nNext tile (needs culture): {BorderSystem.Describe(s, nextTile)}";
 
         var loyalty = LoyaltySystem.Compute(s, city, LoyaltySystem.Snapshot(s));
-        _loyalty.Text = $"Loyalty {city.Loyalty}/100 ({(loyalty.Total >= Fx.Zero ? "+" : "")}{loyalty.Total}/turn" +
+        static string One(Fx v) => v.ToDouble().ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+        _loyalty.Text = $"Loyalty {One(city.Loyalty)}/100 ({(loyalty.Total >= Fx.Zero ? "+" : "")}{One(loyalty.Total)}/turn" +
                         (loyalty.TurnsUntilFlip > 0 ? $", flips in {loyalty.TurnsUntilFlip}!)" : ")") +
-                        "\n" + string.Join("\n", loyalty.Lines().Select(l => $"  {l.Label}: {l.Value}"));
+                        "\n" + string.Join("\n", loyalty.Lines().Select(l => $"  {l.Label}: {(l.Value >= Fx.Zero ? "+" : "")}{One(l.Value)}"));
         if (city.GovernorDef >= 0 && s.Players[city.Owner].GetGovernor(city.GovernorDef) is { } gov)
             _loyalty.Text += $"\nGovernor: {GovernorSystem.Describe(s, gov)}" +
                              (gov.Established ? "" : $" (establishing {gov.EstablishProgress}/{GovernorSystem.EstablishTurns(s.Db, gov)})");

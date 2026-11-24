@@ -87,7 +87,7 @@ public partial class TopBar : PanelContainer
         _ageBox.TooltipText = $"World currents: Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}\n" +
                               $"If a new era began now: {(next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age")}." +
                               (s.TurnPhases.Count > 1 ? $"\n{TurnPhases.Describe(s)}" : "");
-        _climate.Text = $"{s.Climate.Co2Ppm.FloorToInt()} ppm · +{s.Climate.Temperature}°C";
+        _climate.Text = $"{s.Climate.Co2Ppm.FloorToInt()} ppm · +{s.Climate.Temperature.ToDouble().ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}°C";
         _climateBox.TooltipText = $"Atmospheric CO₂ and warming. Climate phase {s.Climate.Phase} of 7: sea levels rise at higher phases.";
 
         var sig = NationSystem.Signature(s, p);

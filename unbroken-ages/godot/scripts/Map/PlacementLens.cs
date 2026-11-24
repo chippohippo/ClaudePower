@@ -126,7 +126,7 @@ public partial class PlacementLens : Node3D
         var lines = new List<string> { $"{s.Db.Districts[_district].Name}: {c.Adjacency}" };
         foreach (var contrib in c.Detail.Contributions)
         {
-            if (contrib.Amount > Fx.Zero) lines.Add($"  {contrib.Label}  (+{contrib.Amount})");
+            if (contrib.Amount > Fx.Zero) lines.Add($"  {contrib.Label}  (+{contrib.Amount.ToDouble().ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)})");
             else if (contrib.Matches > 0 && contrib.MatchesToNextBonus > 0)
                 lines.Add($"  {contrib.Label}: {contrib.Matches}/{contrib.Per} — {contrib.MatchesToNextBonus} more for +{contrib.Increment}");
         }

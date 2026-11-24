@@ -600,6 +600,7 @@ public partial class GameRoot : Node3D
     {
         SelectedUnit = -1;
         _selectedTile = city.Tile;
+        CloseOverlaysExcept(null);   // the city screen comes to the front
         _cityPanel.ShowCity(city.Id);
         _cityPanel.Visible = true;
         _renderedVersion = -1;
