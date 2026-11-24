@@ -123,3 +123,19 @@ Several rules keep games alive (`ua simulate --players 6 --nations` seats every 
 * Until turn 150 the AI spares a rival's last city and makes peace.
 * Armies are capped and never built into debt.
 * A bankrupt empire loses its costliest unit each turn.
+
+## Unique units
+
+Every nation fields one unique unit, which replaces a generic unit. The nation can no longer build that generic unit (`ProductionSystem`:
+"Replaced by your …"). A unique unit copies its generic's class, prerequisites, resources and upgrade path, then differs in one or two
+telling ways. For example:
+* Rome's Legion and Japan's Samurai: tougher.
+* The Zulu Impi and the Kongo's Ngao Mbeba: need no iron.
+* Russia's Cossack and Carthage's Numidian Cavalry: faster.
+* Greece's Hoplite: strong against cavalry.
+* Korea's Hwacha: long range but fragile.
+* America's Sherman: fast and cheap.
+
+The original six (Medjay, Great Galley, Fire Lance Corps, Keshig, Warak'aq, Mandekalu) are joined by 30 more, listed in `units.json`.
+`RosterTests` checks that every nation has one, and that each betters what it replaces.
+

@@ -110,6 +110,8 @@ public enum GameEventType : byte
     ResolutionPassed,
     /// <summary>Value = the player's new total.</summary>
     DiplomaticPointEarned,
+    /// <summary>A corps or army formed (Value = formation level).</summary>
+    FormationCreated,
 }
 
 /// <summary>

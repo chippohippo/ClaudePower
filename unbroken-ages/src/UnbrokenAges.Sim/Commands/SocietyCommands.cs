@@ -119,3 +119,15 @@ public sealed class VoteCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(Resolution); w.Write(Option); w.Write(Target); w.Write(Extra); }
     protected override void ReadPayload(BinaryReader r) { Resolution = r.ReadInt32(); Option = r.ReadInt32(); Target = r.ReadInt32(); Extra = r.ReadInt32(); }
 }
+
+/// <summary>Merge a partner unit of the same type into this one: a corps, or (with a corps) an army.</summary>
+public sealed class FormCorpsCommand : GameCommand
+{
+    public int UnitId, PartnerId;
+    public override CommandType Type => CommandType.FormCorps;
+    public override string? Validate(GameState s) =>
+        OwnUnit(s, UnitId) is not { } u ? "Not your unit." : OwnUnit(s, PartnerId) is not { } p ? "Not your unit." : SocietySystem.CanForm(s, u, p);
+    public override void Apply(GameState s, List<GameEvent> events) => SocietySystem.Form(s, s.GetUnit(UnitId)!, s.GetUnit(PartnerId)!, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(PartnerId); }
+    protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); PartnerId = r.ReadInt32(); }
+}

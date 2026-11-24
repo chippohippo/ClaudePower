@@ -66,6 +66,9 @@ public static class ProductionSystem
                 if (!player.HasTech(u.PrereqTechIndex) || (!player.HasCivic(u.PrereqCivicIndex) && !NationSystem.IsColonist(s, player, u)))
                     return "Prerequisite not researched.";
                 if (u.CivilizationIndex >= 0 && u.CivilizationIndex != player.CivIndex) return "Unique to another civilization.";
+                if (u.CivilizationIndex < 0 && player.CivIndex >= 0 &&
+                    db.Units.FirstOrDefault(x => x.ReplacesIndex == def && x.CivilizationIndex == player.CivIndex) is { } unique)
+                    return $"Replaced by your {unique.Name}.";
                 if (u.Domain == UnitDomain.Naval && !s.Map.IsAdjacentToSea(city.Tile) && !s.Map.IsAdjacentToChannel(city.Tile)
                     && !city.Districts.Any(d => s.Map.IsWater(d.Tile)))
                     return "Naval units need a coastal or Great River city.";

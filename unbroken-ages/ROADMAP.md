@@ -35,7 +35,8 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **14. Espionage**: spies with ranks, six missions, counterintelligence, capture and grievances.
 - [x] **15. Culture victory**: great works and relics, slots, tourism with affinity, domestic vs visiting tourists, Culture victory.
 - [x] **16. World Congress**: sessions, six resolutions, favor and extra votes, public tallies, victory points, the Concord victory.
-- [ ] **17. Corps and armies**; unique units for the 30 later nations; the orbital layer.
+- [x] **17. Corps and armies; unique units for the 30 later nations.** (The orbital layer remains: item 18.)
+- [ ] **18. Orbital layer** (Beyond Earth): satellites over the map, orbital coverage bonuses, a space race beyond the Spaceport.
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
@@ -100,3 +101,5 @@ policy cards and governments, the turn timer, and Grand-dial governor ageing.
   Society-screen CULTURE column, score line, snapshot v18, 7 tests (277 total).
 - 16. World Congress: `CongressSystem` (sessions, announcement, voting, tallies, effects, points), `VoteCommand`, AI coalition voting,
   Diplomacy-screen Congress section, Concord victory, snapshot v19, 5 tests (282 total).
+- 17. Corps and armies (`FormCorpsCommand`, +10/+17, deeper squads, AI), 30 unique units (one per later nation; generics forbidden
+  where replaced), Great Galley upgrade path, 4 tests (286 total).

@@ -36,5 +36,6 @@ public static class UnitStats
 
     /// <summary>"Swordsman (Heavy)".</summary>
     public static string Name(GameState s, UnitState u) =>
-        VariantOf(s, u) is { } v ? $"{s.Db.Units[u.DefIndex].Name} ({v.Name})" : s.Db.Units[u.DefIndex].Name;
+        (VariantOf(s, u) is { } v ? $"{s.Db.Units[u.DefIndex].Name} ({v.Name})" : s.Db.Units[u.DefIndex].Name) +
+        (u.Formation > 0 ? $" {SocietySystem.FormationName[u.Formation]}" : "");
 }

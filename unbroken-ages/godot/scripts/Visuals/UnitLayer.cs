@@ -131,7 +131,9 @@ public partial class UnitLayer : Node3D
         1 => new[] { Vector3.Zero },
         2 => new[] { new Vector3(-0.19f, 0, 0.06f), new Vector3(0.19f, 0, -0.06f) },
         3 => new[] { new Vector3(0, 0, -0.2f), new Vector3(-0.21f, 0, 0.14f), new Vector3(0.21f, 0, 0.14f) },
-        _ => new[] { new Vector3(-0.13f, 0, -0.2f), new Vector3(0.17f, 0, -0.17f), new Vector3(-0.24f, 0, 0.15f), new Vector3(0.1f, 0, 0.2f) },
+        4 => new[] { new Vector3(-0.13f, 0, -0.2f), new Vector3(0.17f, 0, -0.17f), new Vector3(-0.24f, 0, 0.15f), new Vector3(0.1f, 0, 0.2f) },
+        // Corps and armies: a second and third rank.
+        _ => Enumerable.Range(0, count).Select(i => new Vector3(-0.27f + 0.18f * (i % 4) + (i / 4) * 0.09f, 0, -0.22f + 0.2f * (i / 4))).ToArray(),
     };
 
     private readonly Dictionary<int, TechLook> _looks = new();
@@ -152,6 +154,7 @@ public partial class UnitLayer : Node3D
             perTile[u.Tile] = slot + 1;
             var target = Anchor(s, u.Tile, slot);
             var look = Look(s.Db.Units[u.DefIndex], Looks(s, u.Owner));
+            if (u.Formation > 0 && look.Count > 1) look = look with { Count = Math.Min(7, look.Count + 2 * u.Formation) };   // corps and armies march deeper
             if (!_views.TryGetValue(u.Id, out var view) || view.Def != u.DefIndex || view.Key != look.Key)
             {
                 if (view != null) { view.Move?.Kill(); view.Root.QueueFree(); }

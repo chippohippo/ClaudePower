@@ -48,6 +48,16 @@ public static class SocietyAi
         foreach (var cmd in Spies(s, p)) yield return cmd;
         foreach (var cmd in Votes(s, p, atWar)) yield return cmd;
 
+        // Corps and armies: one merger a turn, when the army is large and two of a kind stand together.
+        int army = s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u));
+        if (army > 2 * s.CitiesOf(p.Id).Count() + 2)
+        {
+            var merge = s.Units.Where(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u)).OrderBy(u => u.Id)
+                .SelectMany(u => s.Units.Where(o => o.Owner == p.Id && o.Id > u.Id && SocietySystem.CanForm(s, u, o) == null).Select(o => (u, o)))
+                .FirstOrDefault();
+            if (merge.u != null) yield return new FormCorpsCommand { Player = p.Id, UnitId = merge.u.Id, PartnerId = merge.o.Id };
+        }
+
         // Traders: open the best route from where they stand; a trader in a city with nowhere to go walks to the capital.
         foreach (var trader in s.Units.Where(u => u.Owner == p.Id && TradeSystem.IsTrader(s.Db.Units[u.DefIndex])).ToList())
         {

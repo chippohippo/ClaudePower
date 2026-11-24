@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 19;
+    public const int Version = 20;
 
     public static byte[] Serialize(GameState s)
     {
@@ -156,7 +156,7 @@ public static class GameStateSerializer
             WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo); w.Write(p.Favor); w.Write(p.DiplomaticPoints);
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
-        foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
+        foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); w.Write(u.Formation); }
         w.Write(s.Camps.Count);
         foreach (var (tile, timer) in s.Camps) { w.Write(tile); w.Write(timer); }
         WriteList(w, s.GreatPeopleTaken.OrderBy(x => x).ToList());
@@ -374,7 +374,7 @@ public static class GameStateSerializer
             p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r); p.Favor = r.ReadInt32(); p.DiplomaticPoints = r.ReadInt32();
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
-        foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }
+        foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); u.Formation = r.ReadByte(); }
         int camps = r.ReadInt32();
         for (int i = 0; i < camps; i++) s.Camps.Add((r.ReadInt32(), r.ReadInt32()));
         foreach (int g in ReadList(r)) s.GreatPeopleTaken.Add(g);

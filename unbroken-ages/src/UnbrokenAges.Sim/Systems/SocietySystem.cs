@@ -174,6 +174,7 @@ public static class SocietySystem
             budget -= total;
             yield return (budget == 0 ? $"{source} (society cap)" : source, total);
         }
+        if (unit.Formation > 0) yield return (FormationName[unit.Formation], FormationStrength[unit.Formation]);
         foreach (int pr in unit.Promotions)
         {
             var promo = db.Promotions[pr];
@@ -183,6 +184,43 @@ public static class SocietySystem
             if (promo.Terrain != 0 && Rugged(s, attacking ? targetTile : unit.Tile)) v += promo.Terrain;
             if (v != 0) yield return (promo.Name, v);
         }
+    }
+
+    // ----- Corps and armies ----------------------------------------------------------------------------
+
+    public static readonly int[] FormationStrength = { 0, 10, 17 };
+    public static readonly string[] FormationName = { "", "Corps", "Army" };
+
+    /// <summary>The civic that allows the next formation: Urbanization for corps, Environmentalism for armies.</summary>
+    public static string FormationCivic(int next) => next == 1 ? "CIVIC_URBANIZATION" : "CIVIC_ENVIRONMENTALISM";
+
+    /// <summary>Two units of the same type (on the same or adjacent tiles, both with moves left) merge into a corps; a corps and a single unit into an army.</summary>
+    public static string? CanForm(GameState s, UnitState into, UnitState partner)
+    {
+        var db = s.Db;
+        if (into.Id == partner.Id) return "Choose another unit.";
+        if (into.Owner != partner.Owner) return "Not your unit.";
+        if (!SupplySystem.IsMilitary(db, into) || db.Units[into.DefIndex].Domain == UnitDomain.Air) return "Only land and sea military units form corps.";
+        if (into.DefIndex != partner.DefIndex) return "Both must be the same type of unit.";
+        if (partner.Formation > 0 && into.Formation > 0) return "Only one of them may already be a corps.";
+        int next = Math.Max(into.Formation, partner.Formation) + 1;
+        if (next > 2) return "An army is as large as a formation gets.";
+        if (!s.Players[into.Owner].HasCivic(db.Civics.IndexOf(FormationCivic(next)))) return next == 1 ? "Corps need Urbanization." : "Armies need Environmentalism.";
+        if (s.Map.Distance(into.Tile, partner.Tile) > 1) return "They must stand together or side by side.";
+        if (into.MovesLeft <= Fx.Zero || partner.MovesLeft <= Fx.Zero) return "Both need moves left.";
+        return null;
+    }
+
+    /// <summary>The partner joins: the formation grows, keeps the better experience and promotions, and ends its turn.</summary>
+    public static void Form(GameState s, UnitState into, UnitState partner, List<GameEvent> events)
+    {
+        into.Formation = (byte)(Math.Max(into.Formation, partner.Formation) + 1);
+        if (partner.Experience > into.Experience) { into.Experience = partner.Experience; into.Promotions = new List<int>(partner.Promotions); }
+        into.Hp = Math.Min(100, Math.Max(into.Hp, partner.Hp));
+        into.MovesLeft = Fx.Zero;
+        s.RemoveUnit(partner);
+        events.Add(new GameEvent(GameEventType.FormationCreated, into.Owner, Tile: into.Tile, Def: into.DefIndex, Value: into.Formation,
+                                 Detail: $"{s.Db.Units[into.DefIndex].Name} {FormationName[into.Formation]}"));
     }
 
     public static int MovesBonus(GameState s, UnitState unit)

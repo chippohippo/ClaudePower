@@ -93,6 +93,7 @@ public static class EventText
             GameEventType.CongressAnnounced => $"The World Congress will meet on turn {e.Value}: {e.Detail}. Vote in diplomacy (P).",
             GameEventType.ResolutionPassed => $"The World Congress resolves — {e.Detail}.",
             GameEventType.DiplomaticPointEarned when mine => $"Diplomatic victory point: you {e.Detail} ({e.Value}/{CongressSystem.VictoryPoints}).",
+            GameEventType.FormationCreated when mine => $"A new {e.Detail} stands ready.",
             GameEventType.EnvoyEarned when mine => $"A new envoy is ready ({e.Value} to send): diplomacy (P).",
             GameEventType.CityStateMet when mine => $"You meet the city-state of {e.Detail}.",
             GameEventType.EnvoySent when mine => $"Your envoy arrives in {e.Detail}.",

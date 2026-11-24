@@ -110,6 +110,14 @@ public partial class UnitPanel : PanelContainer
         if (SupplySystem.IsMilitary(s.Db, u))
         {
             Action("defense", u.Fortified ? "Fortified" : "Fortify", "F", new FortifyCommand { UnitId = u.Id });
+            foreach (var partner in s.Units.Where(o => o.Owner == u.Owner && o.Id != u.Id && o.DefIndex == u.DefIndex && s.Map.Distance(o.Tile, u.Tile) <= 1))
+            {
+                int next = Math.Max(u.Formation, partner.Formation) + 1;
+                if (next > 2) continue;
+                Action("strength", $"Form {SocietySystem.FormationName[next]} (+{SocietySystem.FormationStrength[next]})", "", new FormCorpsCommand { UnitId = u.Id, PartnerId = partner.Id },
+                       "Merge the two into one stronger unit.");
+                break;
+            }
             if (SocietySystem.CanPromote(s, u))
                 foreach (var promo in SocietySystem.Available(s, u))
                     Action("crown", $"Promote: {promo.Name}", "", new PromoteUnitCommand { UnitId = u.Id, Promotion = promo.Index }, promo.Description);

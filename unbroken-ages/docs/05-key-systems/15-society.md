@@ -91,6 +91,16 @@ Tests: `tests/UnbrokenAges.Tests/SocietyTests.cs` (28). Snapshot version 14.
   medics (+10 HP every turn). Tier *n* opens with the *n*th promotion.
 * Promotions show as lines in the combat preview.
 
+## Corps and armies
+
+* **Corps:** two units of the same type, on the same or adjacent tiles and both with moves left, merge into a **Corps** (`FormCorpsCommand`).
+  It needs Urbanization and gives +10 strength.
+* **Armies:** a corps and one more unit of its type form an **Army**. It needs Environmentalism and gives +17 strength.
+* **What the formation keeps:** the better veteran's experience and promotions, and the higher health. Forming ends the turn.
+* **Combat:** the formation's bonus shows as its own line in the preview, outside the +6 society cap.
+* **On the map:** corps and armies march in deeper squads (two and three ranks).
+* **The AI** forms one corps a turn once its army is larger than twice its city count plus two.
+
 ## War weariness
 
 * Rises with every attack outside your own borders (+1), every unit you lose to a civilization (+1), and every city you take (+6). Fighting
@@ -148,7 +158,7 @@ average, against 3.4 before this system existed. With both, it is back to 3.4, w
 | Climate, disasters, power | ✓ (05/03) |
 | Amenities, housing, luxuries | ✓ |
 | Builders, improvements, strategic stockpiles | ✓ |
-| Unit upgrades, unique units | ✓ (unique units for the first 6 nations only) |
+| Unit upgrades, unique units | ✓ (every nation has a unique unit: 36) |
 | Diplomacy: war, peace, denounce, open borders, grievances | ✓ (05/08) |
 | Combat, flanking, support, city sieges | ✓ (05/09) |
 | Border growth, tile purchase | ✓ (05/10) |
@@ -166,14 +176,14 @@ average, against 3.4 before this system existed. With both, it is back to 3.4, w
 | BE virtues | ≈ policy cards |
 | BE alien biome | ≈ the Bloom |
 | BE affinity-driven unit looks | ✓ (tech-driven visuals) |
-| City-states: envoys, suzerains | ✗ not yet |
-| Trade routes and traders | ✗ not yet |
-| Espionage | ✗ not yet (modifier hooks only) |
-| Tourism, great works, Culture victory | ✗ not yet |
-| World Congress, Diplomatic victory | ✗ not yet |
-| Corps and armies | ✗ not yet |
+| City-states: envoys, suzerains | ✓ (05/16) |
+| Trade routes and traders | ✓ (05/17) |
+| Espionage | ✓ (05/18) |
+| Tourism, great works, Culture victory | ✓ (05/19) |
+| World Congress, Diplomatic victory | ✓ (05/20) |
+| Corps and armies | ✓ |
 | BE orbital layer, stations, quests | ✗ not yet |
-| Unique units for the other 30 nations | ✗ not yet |
+| Unique units for the other 30 nations | ✓ |
 
 ## Tuning knobs
 

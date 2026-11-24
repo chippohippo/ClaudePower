@@ -45,10 +45,10 @@ public class ModLoaderTests
     {
         var db = LoadWith("""
         { "units": [
-            { "$op": "delete", "id": "UNIT_SCOUT" },
+            { "$op": "delete", "id": "UNIT_RIVER_BARGE" },
             { "$op": "replace", "id": "UNIT_WARRIOR", "name": "Clubman", "domain": "Land", "unitClass": "Melee", "cost": 35, "strength": 18 } ] }
         """);
-        Assert.False(db.Units.Contains("UNIT_SCOUT"));
+        Assert.False(db.Units.Contains("UNIT_RIVER_BARGE"));
         Assert.Equal("Clubman", db.Units["UNIT_WARRIOR"].Name);
         Assert.Empty(db.Units["UNIT_WARRIOR"].UpgradesTo);
     }

@@ -116,7 +116,9 @@ public partial class GameRoot
                 var city = s.CitiesOf(LocalPlayer).FirstOrDefault();
                 if (city == null) return "no city";
                 ClickTile(city.Tile);
-                var unit = s.Db.Units.First(u => u.Id == "UNIT_WARRIOR");
+                // The Warrior, or the nation's own unit that replaces it (the Medjay, the Hoplite…).
+                var warrior = s.Db.Units.First(u => u.Id == "UNIT_WARRIOR");
+                var unit = s.Db.Units.FirstOrDefault(u => u.ReplacesIndex == warrior.Index && u.CivilizationIndex == me.CivIndex && me.CivIndex >= 0) ?? warrior;
                 return Do(new EnqueueCommand { CityId = city.Id, Kind = ProductionKind.Unit, DefIndex = unit.Index, Repeat = false }).Error;
             }
             case "select-city":

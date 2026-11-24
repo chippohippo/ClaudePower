@@ -316,6 +316,8 @@ public sealed class UnitState
     public int Variant = -1;
     public int Experience;
     public List<int> Promotions = new();
+    /// <summary>0 = a single unit, 1 = a corps, 2 = an army (SocietySystem.FormCorps).</summary>
+    public byte Formation;
 }
 
 /// <summary>Shared state of the whole world: currents and the age history.</summary>
