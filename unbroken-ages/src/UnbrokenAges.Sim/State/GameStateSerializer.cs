@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 18;
+    public const int Version = 19;
 
     public static byte[] Serialize(GameState s)
     {
@@ -153,7 +153,7 @@ public static class GameStateSerializer
             w.Write(p.CityStateIndex); w.Write(p.Influence); w.Write(p.EnvoyTokens); w.Write(p.EnvoysEarned); WriteList(w, p.Envoys); w.Write(p.Suzerain);
             w.Write(p.Spies.Count);
             foreach (var spy in p.Spies) { w.Write(spy.Id); w.Write(spy.Name); w.Write(spy.Level); w.Write(spy.CityId); w.Write((byte)spy.Mission); w.Write(spy.TurnsLeft); }
-            WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo);
+            WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo); w.Write(p.Favor); w.Write(p.DiplomaticPoints);
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
         foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
@@ -172,6 +172,18 @@ public static class GameStateSerializer
         // Culture (version 18).
         w.Write(s.GreatWorks.Count);
         foreach (var g in s.GreatWorks) { w.Write(g.Id); w.Write(g.Name); w.Write(g.Kind); w.Write(g.Creator); w.Write(g.Owner); w.Write(g.CityId); }
+        // World Congress (version 19).
+        var congress = s.Congress;
+        w.Write(congress.NextSession); w.Write(congress.Sessions);
+        w.Write(congress.Pending.Count);
+        foreach (var res in congress.Pending)
+        {
+            w.Write((byte)res.Kind);
+            w.Write(res.Votes.Count);
+            foreach (var vote in res.Votes) { w.Write(vote.Player); w.Write(vote.Option); w.Write(vote.Target); w.Write(vote.Extra); }
+        }
+        w.Write(congress.Active.Count);
+        foreach (var a in congress.Active) { w.Write((byte)a.Kind); w.Write(a.Option); w.Write(a.Target); }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -359,7 +371,7 @@ public static class GameStateSerializer
             for (int k = 0; k < spies; k++)
                 p.Spies.Add(new SpyState { Id = r.ReadInt32(), Name = r.ReadString(), Level = r.ReadInt32(), CityId = r.ReadInt32(),
                                            Mission = (Systems.SpyMission)r.ReadByte(), TurnsLeft = r.ReadInt32() });
-            p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r);
+            p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r); p.Favor = r.ReadInt32(); p.DiplomaticPoints = r.ReadInt32();
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
         foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }
@@ -378,6 +390,18 @@ public static class GameStateSerializer
         int works = r.ReadInt32();
         for (int i = 0; i < works; i++)
             s.GreatWorks.Add(new GreatWorkState { Id = r.ReadInt32(), Name = r.ReadString(), Kind = r.ReadByte(), Creator = r.ReadInt32(), Owner = r.ReadInt32(), CityId = r.ReadInt32() });
+        var congress = s.Congress;
+        congress.NextSession = r.ReadInt32(); congress.Sessions = r.ReadInt32();
+        int pending = r.ReadInt32();
+        for (int i = 0; i < pending; i++)
+        {
+            var res = new PendingResolutionState { Kind = (Systems.ResolutionKind)r.ReadByte() };
+            int votes = r.ReadInt32();
+            for (int k = 0; k < votes; k++) res.Votes.Add(new VoteState { Player = r.ReadInt32(), Option = r.ReadInt32(), Target = r.ReadInt32(), Extra = r.ReadInt32() });
+            congress.Pending.Add(res);
+        }
+        int active = r.ReadInt32();
+        for (int i = 0; i < active; i++) congress.Active.Add(new ActiveResolutionState { Kind = (Systems.ResolutionKind)r.ReadByte(), Option = r.ReadInt32(), Target = r.ReadInt32() });
         return s;
     }
 

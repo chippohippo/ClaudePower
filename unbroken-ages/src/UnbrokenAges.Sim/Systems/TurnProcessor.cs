@@ -64,6 +64,7 @@ public static class TurnProcessor
         TradeSystem.ProcessTurn(s, events);
         EspionageSystem.ProcessTurn(s, events);
         CultureSystem.ProcessTurn(s, events);
+        CongressSystem.ProcessTurn(s, events);
         AgeSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);

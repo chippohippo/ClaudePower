@@ -108,3 +108,14 @@ public sealed class AssignSpyCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(SpyId); w.Write(CityId); w.Write((byte)Mission); }
     protected override void ReadPayload(BinaryReader r) { SpyId = r.ReadInt32(); CityId = r.ReadInt32(); Mission = (SpyMission)r.ReadByte(); }
 }
+
+/// <summary>Cast (or change) a vote on a resolution before the World Congress: option 0 = A, 1 = B; extra votes cost favor.</summary>
+public sealed class VoteCommand : GameCommand
+{
+    public int Resolution, Option, Target = -1, Extra;
+    public override CommandType Type => CommandType.Vote;
+    public override string? Validate(GameState s) => Issuer(s) is not { } p ? "Not a player." : CongressSystem.CanVote(s, p, Resolution, Option, Target, Extra);
+    public override void Apply(GameState s, List<GameEvent> events) => CongressSystem.Vote(s, s.Players[Player], Resolution, Option, Target, Extra);
+    protected override void WritePayload(BinaryWriter w) { w.Write(Resolution); w.Write(Option); w.Write(Target); w.Write(Extra); }
+    protected override void ReadPayload(BinaryReader r) { Resolution = r.ReadInt32(); Option = r.ReadInt32(); Target = r.ReadInt32(); Extra = r.ReadInt32(); }
+}

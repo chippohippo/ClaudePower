@@ -103,6 +103,13 @@ public enum GameEventType : byte
     GreatWorkCreated,
     /// <summary>Player's visiting tourists now outnumber Value's domestic tourists.</summary>
     CulturalDominance,
+    // ----- World Congress -----
+    /// <summary>Value = the session's turn; Detail = the resolutions.</summary>
+    CongressAnnounced,
+    /// <summary>Player = target (-1 for global); Def = ResolutionKind; Value = option.</summary>
+    ResolutionPassed,
+    /// <summary>Value = the player's new total.</summary>
+    DiplomaticPointEarned,
 }
 
 /// <summary>

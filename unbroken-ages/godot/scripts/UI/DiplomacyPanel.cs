@@ -39,6 +39,7 @@ public partial class DiplomacyPanel : PanelContainer
         if (s == null) return;
         int me = _root.LocalPlayer;
         foreach (var child in _rows.GetChildren()) child.QueueFree();
+        Congress(s, me);
         foreach (var other in s.Players.Where(p => p.Id != me && p.IsMajor && p.IsAlive))
         {
             var card = new PanelContainer();
@@ -69,6 +70,79 @@ public partial class DiplomacyPanel : PanelContainer
             AddAction(row, open ? "Close borders" : "Open borders", new SetOpenBordersCommand { Target = other.Id, Open = !open });
         }
         CityStates(s, me);
+    }
+
+    private int _extra;
+
+    /// <summary>
+    /// The World Congress: when it meets, what is in force, and each resolution before it with the live tally (votes are public
+    /// until the session locks them), and buttons to vote A or B — for yourself or another civilization when it names one.
+    /// </summary>
+    private void Congress(Sim.State.GameState s, int me)
+    {
+        var p = s.Players[me];
+        var c = s.Congress;
+        int next = c.NextSession > 0 ? c.NextSession : CongressSystem.FirstSessionTurn(s);
+        _rows.AddChild(new Label
+        {
+            Text = $"WORLD CONGRESS · next session turn {next} ({Math.Max(0, next - s.Turn)} turns) · favor {p.Favor} (+{CongressSystem.FavorPerTurn(s, p)}/turn) · " +
+                   $"diplomatic victory points {p.DiplomaticPoints}/{CongressSystem.VictoryPoints}",
+            ThemeTypeVariation = "HeaderMedium",
+        });
+        foreach (var a in c.Active)
+        {
+            var info = CongressSystem.Info(a.Kind);
+            _rows.AddChild(new Label { Text = $"In force: {info.Name} — {(a.Option == 0 ? info.A : info.B)}" + (a.Target >= 0 ? $" ({s.Players[a.Target].Name})" : ""), Modulate = UiTheme.TextDim });
+        }
+        if (c.Pending.Count == 0)
+        {
+            _rows.AddChild(new Label { Text = $"Resolutions are announced {CongressSystem.Notice} turns before each session.", Modulate = UiTheme.TextDim });
+            return;
+        }
+        var extraRow = new HBoxContainer();
+        extraRow.AddChild(new Label { Text = "Extra votes per resolution: " });
+        var spin = new SpinBox { MinValue = 0, MaxValue = 10, Value = _extra };
+        spin.ValueChanged += v => { _extra = (int)v; Refresh(); };
+        extraRow.AddChild(spin);
+        extraRow.AddChild(new Label { Text = $"  (costs {CongressSystem.VoteCost(_extra)} favor each; spent when the session meets)", Modulate = UiTheme.TextDim });
+        _rows.AddChild(extraRow);
+        for (int i = 0; i < c.Pending.Count; i++)
+        {
+            var r = c.Pending[i];
+            var info = CongressSystem.Info(r.Kind);
+            var (a, b, winner, target) = CongressSystem.Tally(s, r);
+            var mine = r.Votes.FirstOrDefault(v => v.Player == me);
+            var card = new PanelContainer();
+            card.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(0.12f, 0.1f, 0.06f, 0.9f), UiTheme.GoldBright, 1, 6, 10));
+            _rows.AddChild(card);
+            var v = new VBoxContainer();
+            card.AddChild(v);
+            v.AddChild(new Label
+            {
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                Text = $"{info.Name}\nA: {info.A} — {a} vote{(a == 1 ? "" : "s")}\nB: {info.B} — {b} vote{(b == 1 ? "" : "s")}" +
+                       (info.Targeted && target >= 0 ? $"\nLeading target: {s.Players[target].Name}" : "") +
+                       (mine != null ? $"\nYour vote: {(mine.Option == 0 ? "A" : "B")}{(mine.Target >= 0 ? " on " + s.Players[mine.Target].Name : "")} with {1 + mine.Extra}" : ""),
+            });
+            var buttons = new HFlowContainer();
+            v.AddChild(buttons);
+            if (info.Targeted)
+                foreach (var o in s.Players.Where(o => o.IsMajor && o.IsAlive))
+                    for (int option = 0; option < 2; option++)
+                        buttons.AddChild(VoteButton($"{(option == 0 ? "A" : "B")}: {(o.Id == me ? "you" : o.Name)}", new VoteCommand { Resolution = i, Option = option, Target = o.Id, Extra = _extra }));
+            else
+                for (int option = 0; option < 2; option++)
+                    buttons.AddChild(VoteButton(option == 0 ? "Vote A" : "Vote B", new VoteCommand { Resolution = i, Option = option, Extra = _extra }));
+        }
+    }
+
+    private Button VoteButton(string label, GameCommand cmd)
+    {
+        cmd.Player = _root.LocalPlayer;
+        string? why = cmd.Validate(_root.State!);
+        var b = new Button { Text = label, Disabled = why != null, TooltipText = why ?? "" };
+        b.Pressed += () => { _root.Submit(cmd); Refresh(); };
+        return b;
     }
 
     /// <summary>City-states you have met: type, your envoys and the leader's, the suzerain, and what each tier pays.</summary>

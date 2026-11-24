@@ -34,7 +34,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **13. Trade routes**: traders, land and sea routes, domestic / international / city-state yields, war ends them, plunder.
 - [x] **14. Espionage**: spies with ranks, six missions, counterintelligence, capture and grievances.
 - [x] **15. Culture victory**: great works and relics, slots, tourism with affinity, domestic vs visiting tourists, Culture victory.
-- [ ] **16. World Congress**: resolutions, diplomatic favour, a Diplomatic victory.
+- [x] **16. World Congress**: sessions, six resolutions, favor and extra votes, public tallies, victory points, the Concord victory.
 - [ ] **17. Corps and armies**; unique units for the 30 later nations; the orbital layer.
 
 ## Done
@@ -98,3 +98,5 @@ policy cards and governments, the turn timer, and Grand-dial governor ageing.
   AI spies, Espionage screen (E), compact top bar, snapshot v17, 7 tests (270 total).
 - 15. Culture victory: `CultureSystem` (works, slots, storage, tourism, affinity, tourists, victory), 6 new Great Artists with named works,
   Society-screen CULTURE column, score line, snapshot v18, 7 tests (277 total).
+- 16. World Congress: `CongressSystem` (sessions, announcement, voting, tallies, effects, points), `VoteCommand`, AI coalition voting,
+  Diplomacy-screen Congress section, Concord victory, snapshot v19, 5 tests (282 total).

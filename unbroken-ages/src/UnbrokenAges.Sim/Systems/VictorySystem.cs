@@ -8,6 +8,7 @@ namespace UnbrokenAges.Sim.Systems;
 /// * <b>Ascension</b>: the first civilization to complete its Divergence's final project.
 /// * <b>Hegemony</b>: one team holds every original capital, or holds 60% of the world's population (in cities above 50 loyalty)
 ///   and 60% of its land. No last-city-standing grind.
+/// * <b>Concord</b>: 20 diplomatic victory points from the World Congress (CongressSystem).
 /// * <b>Culture</b>: visiting tourists outnumber every other living civilization's domestic tourists (CultureSystem).
 /// * <b>Spiritual</b>: a religion followed by most of the cities of every other living civilization (at least two of them).
 /// * <b>Score</b>: highest score when the turn limit ends. Every score source is a visible line, all game long.
@@ -29,6 +30,8 @@ public static class VictorySystem
                 if (p.Ascended) { Declare(s, p.Id, VictoryKind.Ascension, events); return; }
 
         if (Enabled(s, VictoryKind.Hegemony) && HegemonyWinner(s) is int h and >= 0) { Declare(s, h, VictoryKind.Hegemony, events); return; }
+
+        if (endOfTurn && Enabled(s, VictoryKind.Concord) && CongressSystem.ConcordWinner(s) is int d and >= 0) { Declare(s, d, VictoryKind.Concord, events); return; }
 
         if (endOfTurn && Enabled(s, VictoryKind.Culture) && CultureSystem.CultureWinner(s) is int c and >= 0) { Declare(s, c, VictoryKind.Culture, events); return; }
 
@@ -164,6 +167,7 @@ public static class VictorySystem
         {
             VictoryKind.Ascension => "an Ascension victory: the world it remade is now the world",
             VictoryKind.Hegemony => "a Hegemony victory: every old capital answers to it",
+            VictoryKind.Concord => "a Concord victory: the World Congress follows its lead",
             VictoryKind.Culture => "a Culture victory: the whole world comes to visit",
             VictoryKind.Spiritual => $"a Spiritual victory: the world keeps {(p.Religion >= 0 ? s.Db.Religions[p.Religion].Name : "its faith")}",
             _ => $"a Score victory with {Score(s, player)} points",

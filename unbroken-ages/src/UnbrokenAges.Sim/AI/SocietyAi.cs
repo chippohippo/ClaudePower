@@ -46,6 +46,7 @@ public static class SocietyAi
         foreach (var cmd in Missionaries(s, p)) yield return cmd;
 
         foreach (var cmd in Spies(s, p)) yield return cmd;
+        foreach (var cmd in Votes(s, p, atWar)) yield return cmd;
 
         // Traders: open the best route from where they stand; a trader in a city with nowhere to go walks to the capital.
         foreach (var trader in s.Units.Where(u => u.Owner == p.Id && TradeSystem.IsTrader(s.Db.Units[u.DefIndex])).ToList())
@@ -124,6 +125,34 @@ public static class SocietyAi
             if (city != null && Ok(city, SpyMission.SiphonFunds)) return (city.Id, SpyMission.SiphonFunds);
         }
         return null;
+    }
+
+    /// <summary>
+    /// The World Congress: a civilization near the top promotes itself; the others gang up on the leader. Arms control appeals in
+    /// peace, war wants the opposite; the climate accord passes once the climate has begun to change. Up to half the favor in
+    /// hand is spent, shared between the resolutions.
+    /// </summary>
+    private static IEnumerable<GameCommand> Votes(GameState s, PlayerState p, bool atWar)
+    {
+        var pending = s.Congress.Pending;
+        if (pending.Count == 0) yield break;
+        var leader = s.Players.Where(o => o.IsMajor && o.IsAlive).OrderByDescending(o => VictorySystem.Score(s, o.Id)).ThenBy(o => o.Id).First();
+        bool contender = VictorySystem.Score(s, p.Id) * 5 >= VictorySystem.Score(s, leader.Id) * 4;
+        int budget = p.Favor / 2 / pending.Count;
+        int extra = 0;
+        while (extra < 10 && CongressSystem.VoteCost(extra + 1) <= budget) extra++;
+        for (int i = 0; i < pending.Count; i++)
+        {
+            if (pending[i].Votes.Any(v => v.Player == p.Id)) continue;
+            var info = CongressSystem.Info(pending[i].Kind);
+            int option, target = -1;
+            if (info.Targeted) (option, target) = contender || leader.Id == p.Id ? (0, p.Id) : (1, leader.Id);
+            else if (pending[i].Kind == ResolutionKind.ArmsControl) option = atWar ? 1 : 0;
+            else option = s.Climate.Phase >= 1 ? 0 : 1;
+            var vote = new VoteCommand { Player = p.Id, Resolution = i, Option = option, Target = target, Extra = extra };
+            if (vote.Validate(s) != null) vote.Extra = 0;
+            if (vote.Validate(s) == null) yield return vote;
+        }
     }
 
     public static PlayerState? BestEnvoyTarget(GameState s, PlayerState p)
