@@ -3,6 +3,7 @@ using UnbrokenAges.Client.Audio;
 using UnbrokenAges.Client.Hud;
 using UnbrokenAges.Client.Map;
 using UnbrokenAges.Client.UI;
+using UnbrokenAges.Client.Visuals;
 using UnbrokenAges.Net;
 using UnbrokenAges.Sim.Commands;
 using UnbrokenAges.Sim.Data;
@@ -74,6 +75,8 @@ public partial class GameRoot : Node3D
         AddChild(_camera);
         _map = new HexMapView();
         AddChild(_map);
+        _battleFx = new UnbrokenAges.Client.Visuals.BattleFx();
+        AddChild(_battleFx);
         _lens = new PlacementLens();
         AddChild(_lens);
         // The paper finish over the whole 3D frame (grain, warm grade, aged vignette), on a layer under the interface.
@@ -365,7 +368,18 @@ public partial class GameRoot : Node3D
                     {
                         AudioManager.Sfx(e.Value > 25 ? "clash" : "clash2", -3f);
                         var attacker = s.Units.Where(u => u.Owner == e.Player && u.AttackedThisTurn).OrderBy(u => s.Map.Distance(u.Tile, e.Tile)).FirstOrDefault();
-                        if (attacker != null) _map.Units.Attack(attacker.Id, HexLayout.ToWorld(s.Map.CoordOf(e.Tile), 0));
+                        var target = HexLayout.ToWorld(s.Map.CoordOf(e.Tile), HexMapView.SurfaceY(s.Map, e.Tile));
+                        if (attacker != null) _map.Units.Attack(attacker.Id, target);
+                        // The strike itself: from the attacker (or the city that fired), with the damage it dealt.
+                        var from = attacker != null ? HexLayout.ToWorld(s.Map.CoordOf(attacker.Tile), HexMapView.SurfaceY(s.Map, attacker.Tile))
+                                 : e.City >= 0 && s.GetCity(e.City) is { } fired && fired.Tile != e.Tile ? HexLayout.ToWorld(s.Map.CoordOf(fired.Tile), HexMapView.SurfaceY(s.Map, fired.Tile)) : target;
+                        var def = e.Def >= 0 ? s.Db.Units[e.Def] : null;
+                        var kind = def == null ? BattleFx.Kind.Shell
+                                 : def.Domain == UnitDomain.Air ? BattleFx.Kind.Bomb
+                                 : def.RangedStrength > 0 && (def.HasTag("Siege") || def.Domain == UnitDomain.Naval || s.Db.Eras.IndexOf(def.Era ?? "") >= s.Db.Eras.IndexOf("ERA_RENAISSANCE")) ? BattleFx.Kind.Shell
+                                 : def.RangedStrength > 0 && from.DistanceTo(target) > 1.5f ? BattleFx.Kind.Arrow
+                                 : s.Db.Eras.IndexOf(def.Era ?? "") >= s.Db.Eras.IndexOf("ERA_RENAISSANCE") ? BattleFx.Kind.Shell : BattleFx.Kind.Melee;
+                        _battleFx.Strike(from, target, e.Value, kind);
                     }
                     break;
             }
@@ -373,6 +387,7 @@ public partial class GameRoot : Node3D
     }
 
     public HexMapView MapView => _map;
+    private UnbrokenAges.Client.Visuals.BattleFx _battleFx = null!;
 
     public void ToggleMenu() => _menu.Visible = !_menu.Visible;
 

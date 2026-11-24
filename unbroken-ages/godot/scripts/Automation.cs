@@ -364,6 +364,18 @@ public partial class GameRoot
                 Camera.LookAtHex(c);
                 return null;
             }
+            case "battlefx":
+            {
+                // Debug: one strike of every kind around your capital (melee, arrow, shell, bomb), to see the effects.
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderBy(c => c.Id).FirstOrDefault();
+                if (city == null) return "no city";
+                var ring = Enumerable.Range(0, 6).Select(d => s.Map.Neighbor(city.Tile, d)).Where(n => n >= 0).ToList();
+                Vector3 W(int t) => UnbrokenAges.Client.Map.HexLayout.ToWorld(s.Map.CoordOf(t), UnbrokenAges.Client.Map.HexMapView.SurfaceY(s.Map, t));
+                var kinds = new[] { UnbrokenAges.Client.Visuals.BattleFx.Kind.Melee, UnbrokenAges.Client.Visuals.BattleFx.Kind.Arrow, UnbrokenAges.Client.Visuals.BattleFx.Kind.Shell, UnbrokenAges.Client.Visuals.BattleFx.Kind.Bomb };
+                for (int i = 0; i < kinds.Length && i < ring.Count; i++) _battleFx.Strike(W(city.Tile), W(ring[i]), 18 + 9 * i, kinds[i]);
+                Camera.LookAtHex(s.Map.CoordOf(city.Tile));
+                return null;
+            }
             case "focus-last":
             {
                 var u = s.Units.Where(x => x.Owner == LocalPlayer).OrderByDescending(x => x.Id).FirstOrDefault();
