@@ -864,6 +864,132 @@ public partial class HexMapView : Node3D
         Fill(_supply, items);
     }
 
+    private MultiMeshInstance3D? _reach;
+    private MeshInstance3D? _path;
+    private Label3D? _pathTurns;
+
+    /// <summary>
+    /// The selected unit's reach this turn (Civ's blue wash): every tile it can still enter, and enemies it can strike in red.
+    /// Aircraft show the bases they can fly to. Nothing for other players' units.
+    /// </summary>
+    public void RenderReach(GameState s, UnitState? unit, int viewer)
+    {
+        _reach ??= MakeMulti(new CylinderMesh { TopRadius = 0.92f, BottomRadius = 0.92f, Height = 0.015f, RadialSegments = 6, Rings = 1 },
+            new StandardMaterial3D { VertexColorUseAsAlbedo = true, Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, NoDepthTest = false });
+        var items = new List<(Transform3D, Color, Color)>();
+        if (unit != null && unit.Owner == viewer && unit.MovesLeft > Sim.Core.Fx.Zero)
+        {
+            var map = s.Map;
+            Transform3D At(int t, float lift) => new(Basis.Identity, HexLayout.ToWorld(map.CoordOf(t), SurfaceY(map, t) + lift));
+            foreach (int t in Reachable(s, unit)) items.Add((At(t, 0.035f), new Color(0.35f, 0.75f, 1f, 0.26f), default));
+            if (SupplySystem.IsMilitary(s.Db, unit) && !unit.AttackedThisTurn)
+            {
+                var near = new List<int>();
+                map.CollectRadius(unit.Tile, Math.Max(1, UnitStats.IsRanged(s, unit) ? UnitStats.Range(s, unit) : 1), near);
+                foreach (int t in near)
+                    if (t != unit.Tile && CombatSystem.Preview(s, unit, t).Legal) items.Add((At(t, 0.045f), new Color(1f, 0.3f, 0.25f, 0.42f), default));
+            }
+        }
+        Fill(_reach, items);
+    }
+
+    /// <summary>Tiles the unit can still enter this turn, by the movement rules (a unit with all its moves may always take one step).</summary>
+    public static List<int> Reachable(GameState s, UnitState unit)
+    {
+        var map = s.Map;
+        var result = new List<int>();
+        if (AirSystem.IsAircraft(s.Db, unit))
+        {
+            var near = new List<int>();
+            map.CollectRadius(unit.Tile, UnitStats.Moves(s, unit), near);
+            result.AddRange(near.Where(t => t != unit.Tile && AirSystem.ValidateRebase(s, unit, t) == null));
+            return result;
+        }
+        int full = UnitStats.Moves(s, unit);
+        var best = new Dictionary<int, int> { [unit.Tile] = (int)Math.Floor(unit.MovesLeft.ToDouble() * 100) };   // moves left ×100
+        var open = new PriorityQueue<int, int>();
+        open.Enqueue(unit.Tile, 0);
+        while (open.Count > 0)
+        {
+            int from = open.Dequeue();
+            int left = best[from];
+            if (left <= 0) continue;
+            for (int d = 0; d < 6; d++)
+            {
+                int to = map.Neighbor(from, d);
+                if (to < 0) continue;
+                int cost = Movement.EnterCost(s, unit, from, to);
+                if (cost == Movement.Impassable) continue;
+                if (left < cost * 100 && left < full * 100) continue;
+                int after = Math.Max(0, left - cost * 100);
+                if (best.TryGetValue(to, out int seen) && seen >= after) continue;
+                if (!best.ContainsKey(to)) result.Add(to);
+                best[to] = after;
+                open.Enqueue(to, -after);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>The route the selected unit would take to the hovered tile, with the number of turns at its end.</summary>
+    public void PreviewPath(GameState s, UnitState? unit, int target, int viewer)
+    {
+        if (_path == null)
+        {
+            _path = new MeshInstance3D
+            {
+                MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(1f, 0.92f, 0.55f, 0.95f), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                                                            Transparency = BaseMaterial3D.TransparencyEnum.Alpha, NoDepthTest = true, RenderPriority = 3 },
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(_path);
+            _pathTurns = new Label3D { FontSize = 64, PixelSize = 0.004f, OutlineSize = 12, Modulate = new Color(1f, 0.95f, 0.7f), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true, RenderPriority = 4 };
+            AddChild(_pathTurns);
+        }
+        _path.Visible = false;
+        _pathTurns!.Visible = false;
+        if (unit == null || unit.Owner != viewer || target < 0 || target == unit.Tile || AirSystem.IsAircraft(s.Db, unit)) return;
+        if (s.Units.Any(o => o.Tile == target && o.Owner != unit.Owner) || s.Cities.Any(c => c.Tile == target && c.Owner != unit.Owner)) return;   // attacks show the combat preview
+        var route = Movement.FindPath(s, unit, target, 4000);
+        if (route == null || route.Count == 0) return;
+        var map = s.Map;
+        // Turns: walk the route with the unit's moves, starting from what it has left.
+        int full = UnitStats.Moves(s, unit), turns = 1;
+        double left = unit.MovesLeft.ToDouble();
+        int at = unit.Tile;
+        foreach (int next in route)
+        {
+            int cost = Movement.EnterCost(s, unit, at, next);
+            if (cost == Movement.Impassable) break;
+            if (left <= 0 || left < cost && left < full) { turns++; left = full; }
+            left = Math.Max(0, left - cost);
+            at = next;
+        }
+        // A ribbon of short dashes along the tile centres, just above the ground.
+        var mesh = new ImmediateMesh();
+        mesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        var points = new List<Vector3> { HexLayout.ToWorld(map.CoordOf(unit.Tile), SurfaceY(map, unit.Tile) + 0.08f) };
+        points.AddRange(route.Select(t => HexLayout.ToWorld(map.CoordOf(t), SurfaceY(map, t) + 0.08f)));
+        for (int i = 0; i + 1 < points.Count; i++)
+        {
+            var a = points[i]; var b = points[i + 1];
+            var dir = (b - a); dir.Y = 0;
+            var side = new Vector3(-dir.Z, 0, dir.X).Normalized() * 0.045f;
+            for (float t0 = 0.12f; t0 < 0.9f; t0 += 0.26f)
+            {
+                var p0 = a.Lerp(b, t0); var p1 = a.Lerp(b, Math.Min(0.92f, t0 + 0.16f));
+                mesh.SurfaceAddVertex(p0 - side); mesh.SurfaceAddVertex(p1 - side); mesh.SurfaceAddVertex(p1 + side);
+                mesh.SurfaceAddVertex(p0 - side); mesh.SurfaceAddVertex(p1 + side); mesh.SurfaceAddVertex(p0 + side);
+            }
+        }
+        mesh.SurfaceEnd();
+        _path.Mesh = mesh;
+        _path.Visible = true;
+        _pathTurns.Text = turns == 1 ? "" : $"{turns} turns";
+        _pathTurns.Position = points[^1] + new Vector3(0, 0.45f, 0);
+        _pathTurns.Visible = turns > 1;
+    }
+
     public static float SurfaceY(MapGrid map, int tile)
     {
         var c = HexLayout.ToWorld(map.CoordOf(tile));

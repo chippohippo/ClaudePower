@@ -472,6 +472,7 @@ public partial class GameRoot : Node3D
             if (s.GetUnit(SelectedUnit) is { } sel) _selectedTile = sel.Tile;
             else if (SelectedUnit >= 0) { SelectedUnit = -1; _selectedTile = -1; }
             _map.Render(s, LocalPlayer, _selectedTile);
+            _map.RenderReach(s, s.GetUnit(SelectedUnit), LocalPlayer);
             _map.RenderSupply(s, LocalPlayer, _supplyLens);
             if (_cityPanel.Visible) _cityPanel.Refresh();
             _unitPanel.Refresh();
@@ -524,6 +525,7 @@ public partial class GameRoot : Node3D
             int hovered = s.Map.IndexOf(_camera.PickHex(motion.Position));
             if (_lens.IsActive) _lens.Hover(hovered);
             _map.Hover(hovered, s.Map);
+            _map.PreviewPath(s, s.GetUnit(SelectedUnit), hovered, LocalPlayer);
             if (hovered >= 0 && s.GetUnit(SelectedUnit) is { } attacker && SupplySystem.IsMilitary(s.Db, attacker))
                 _tooltip.ShowFor(s, attacker, hovered, motion.Position);
             else _tooltip.Visible = false;

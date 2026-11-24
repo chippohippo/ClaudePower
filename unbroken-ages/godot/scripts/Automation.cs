@@ -354,6 +354,16 @@ public partial class GameRoot
                 cam.MakeCurrent();
                 return null;
             }
+            case var pv when pv.StartsWith("route:"):
+            {
+                // Debug: preview the selected unit's route to the tile N steps east (as hovering would).
+                if (s.GetUnit(SelectedUnit) is not { } u) return "nothing selected";
+                var c = s.Map.CoordOf(u.Tile);
+                int tile = s.Map.IndexOf(new UnbrokenAges.Sim.Core.HexCoord(c.Q + int.Parse(pv[6..]), c.R));
+                MapView.PreviewPath(s, u, tile, LocalPlayer);
+                Camera.LookAtHex(c);
+                return null;
+            }
             case "focus-last":
             {
                 var u = s.Units.Where(x => x.Owner == LocalPlayer).OrderByDescending(x => x.Id).FirstOrDefault();
