@@ -85,7 +85,7 @@ public static class OutpostSystem
     }
 
     public static int PromoteCost(GameState s, OutpostState o) =>
-        Rules(s).PromoteGold + Rules(s).PromoteGoldPerCity * s.CitiesOf(o.Owner).Count();
+        (Rules(s).PromoteGold + Rules(s).PromoteGoldPerCity * s.CitiesOf(o.Owner).Count()) * (100 - NationSystem.OutpostDiscount(s, o.Owner)) / 100;
 
     public static string? ValidatePromote(GameState s, OutpostState o)
     {

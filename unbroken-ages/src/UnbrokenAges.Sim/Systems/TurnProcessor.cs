@@ -47,6 +47,7 @@ public static class TurnProcessor
             maintenance += s.Units.Where(u => u.Owner == player.Id).Sum(u => db.Units[u.DefIndex].Maintenance);
             player.Gold += gold - maintenance;
             player.Faith += faith;
+            if (player.Gold < Fx.Zero) Bankrupt(s, player, events);
             ResearchSystem.Process(s, player, science, culture, events);
             AccumulateStrategicResources(s, player);
         }
@@ -101,6 +102,20 @@ public static class TurnProcessor
             city.Population++;
             events.Add(new GameEvent(GameEventType.CityGrew, city.Owner, city.Id, city.Tile, Value: city.Population));
         }
+    }
+
+    /// <summary>
+    /// An empire that cannot pay its upkeep: the costliest military unit (then the newest) deserts each turn until the
+    /// treasury is back above zero. Debt never grows without limit.
+    /// </summary>
+    private static void Bankrupt(GameState s, PlayerState player, List<GameEvent> events)
+    {
+        var db = s.Db;
+        var deserter = s.Units.Where(u => u.Owner == player.Id && SupplySystem.IsMilitary(db, u) && db.Units[u.DefIndex].Maintenance > 0)
+                              .OrderByDescending(u => db.Units[u.DefIndex].Maintenance).ThenByDescending(u => u.Id).FirstOrDefault();
+        if (deserter == null) return;
+        s.RemoveUnit(deserter);
+        events.Add(new GameEvent(GameEventType.UnitDisbanded, player.Id, Tile: deserter.Tile, Def: deserter.DefIndex, Detail: db.Units[deserter.DefIndex].Name));
     }
 
     /// <summary>Improved strategic resources add to a capped stockpile each turn (fuel for plants and units).</summary>

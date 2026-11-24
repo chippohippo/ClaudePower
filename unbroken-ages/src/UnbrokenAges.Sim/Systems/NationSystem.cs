@@ -150,6 +150,13 @@ public static class NationSystem
             ? $"{Signature(s, p)!.Name}: Venice does not send out colonists — buy cities instead."
             : null;
 
+    /// <summary>Venice buys its trading outposts up into cities at a discount.</summary>
+    public static int OutpostDiscount(GameState s, int player) =>
+        Is(s, player, SignatureKind.Ledger) ? Math.Clamp(Param(s, s.Players[player], "outpostDiscount", 50), 0, 90) : 0;
+
+    /// <summary>Units that found settlements for this nation (Venice: Waymakers plant trading outposts instead of Settlers).</summary>
+    public static bool IsColonist(GameState s, PlayerState p, UnitDef u) => u.FoundsCity || (u.FoundsOutpost && Kind(s, p) == SignatureKind.Ledger);
+
     /// <summary>Extra purchase discount for a category (Sundiata's units).</summary>
     public static int PurchaseDiscount(GameState s, PlayerState p, ProductionKind kind) =>
         Kind(s, p) == SignatureKind.GoldenRoad && kind == ProductionKind.Unit ? Param(s, p, "unitDiscount", 0) : 0;
@@ -177,7 +184,7 @@ public static class NationSystem
     public static int TurnsToFlood(GameState s, PlayerState p)
     {
         int interval = Math.Max(2, Param(s, p, "interval", 8));
-        return interval - 1 - s.Turn % interval;
+        return interval - 1 - ((s.Turn % interval) + interval) % interval;
     }
 
     // ----- Combat (CombatSystem) -----------------------------------------------------------------------
@@ -261,7 +268,7 @@ public static class NationSystem
         if (Kind(s, buyer) != SignatureKind.Ledger) return "Only a merchant republic can buy cities.";
         if (city.Owner == buyer.Id) return "Already yours.";
         var owner = s.Players[city.Owner];
-        if (city.IsCapital) return "Capitals are not for sale.";
+        if (city.IsCapital && !owner.IsFreeCities) return "Capitals are not for sale.";
         int range = Param(s, buyer, "range", 8);
         if (!s.CitiesOf(buyer.Id).Any(c => s.Map.Distance(c.Tile, city.Tile) <= range)) return $"Too far: must be within {range} tiles of one of your cities.";
         if (!owner.IsFreeCities)

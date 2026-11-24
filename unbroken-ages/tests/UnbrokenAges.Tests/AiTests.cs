@@ -70,16 +70,16 @@ public class AiTests
     }
 
     [Fact]
-    public void AStrongerNeighbour_DeclaresWar_OnlyFromTurnThirty()
+    public void AStrongerNeighbour_DeclaresWar_OnlyFromTheEarliestWarTurn()
     {
         var s = TestWorld.Blank(width: 30);
         TestWorld.City(s, 0, 5, 10);
         TestWorld.City(s, 1, 15, 10);
         for (int i = 0; i < 3; i++) TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 4 + i, 12);
         TestWorld.Unit(s, 1, "UNIT_WARRIOR", 15, 12);
-        s.Turn = MilitaryAi.FirstWarTurn - 1;
+        s.Turn = MilitaryAi.EarliestWarTurn - 1;
         Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[0]));
-        s.Turn = MilitaryAi.FirstWarTurn;
+        s.Turn = MilitaryAi.EarliestWarTurn;
         var war = Assert.IsType<DeclareWarCommand>(MilitaryAi.WarDeclaration(s, s.Players[0]));
         Assert.Equal(1, war.Target);
         Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[1]));               // the weaker side does not start it
@@ -91,6 +91,7 @@ public class AiTests
         var s = AtWar();
         var home = TestWorld.City(s, 0, 3, 10);
         var enemyCity = TestWorld.City(s, 1, 22, 10);
+        TestWorld.City(s, 1, 27, 17);   // a second city, so the first is not the last one the AI spares
         var fresh = TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 10);
         var hurt = TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 14);
         hurt.Hp = 35;
@@ -103,6 +104,7 @@ public class AiTests
     public void TheLosingSide_SuesForPeace_AndTheWinnerTakesItsTime()
     {
         var s = AtWar();
+        TestWorld.City(s, 0, 3, 3); TestWorld.City(s, 0, 8, 3);   // the loser still holds two cities: the winner is not yet sated
         TestWorld.Unit(s, 0, "UNIT_WARRIOR", 5, 5);
         for (int i = 0; i < 3; i++) TestWorld.Unit(s, 1, "UNIT_SWORDSMAN", 20 + i, 15);
         s.Turn += DiplomacySystem.MinWarTurns;
@@ -123,5 +125,33 @@ public class AiTests
         Assert.True(unit.Strength > 0 && unit.Domain == UnitDomain.Land);
         var city = s.Cities.Single();
         Assert.Equal(MilitaryAi.BestLandUnit(s, city)!.Index, unit.Index);
+    }
+
+    [Fact]
+    public void BeforeTurn150_TheAiSparesARivalsLastCity_AndMakesPeace()
+    {
+        var s = AtWar();
+        TestWorld.City(s, 0, 3, 10);
+        var last = TestWorld.City(s, 1, 13, 10);
+        TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 12, 10);
+        s.Turn = 80;
+        Assert.DoesNotContain(MilitaryAi.Fight(s, s.Players[0]).OfType<AttackCommand>(), a => a.TargetTile == last.Tile);
+        s.Turn += DiplomacySystem.MinWarTurns;
+        Assert.Contains(MilitaryAi.Diplomacy(s, s.Players[0]), c => c is ProposePeaceCommand);
+    }
+
+    [Fact]
+    public void VeniceAi_BuysTheCityItCanAfford_MaliAi_BuysItsProduction()
+    {
+        var s = TestWorld.Blank(width: 30, players: 2, leaders: new[] { "LEADER_DANDOLO", "LEADER_MANSA_MUSA" });
+        TestWorld.City(s, 0, 5, 5, population: 3);
+        var free = TestWorld.City(s, s.Players.Count - 1, 9, 5, population: 2);
+        s.Players[0].Gold = 2000;
+        Assert.Contains(NationAi.Commands(s, s.Players[0]), c => c is BuyCityCommand b && b.CityId == free.Id);
+
+        var niani = TestWorld.City(s, 1, 20, 12, population: 3);
+        ProductionSystem.Enqueue(s, niani, ProductionKind.Unit, s.Db.Units.IndexOf("UNIT_WARRIOR"), -1, -1, false);
+        s.Players[1].Gold = 2000;
+        Assert.Contains(NationAi.Commands(s, s.Players[1]), c => c is PurchaseCommand);
     }
 }

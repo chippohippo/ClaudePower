@@ -56,6 +56,8 @@ public enum GameEventType : byte
     DynastyEnded,
     /// <summary>A Song dynasty fell with the loss of a city (Value = loyalty lost everywhere).</summary>
     DynastyFell,
+    /// <summary>An unpaid unit deserted (the treasury was empty).</summary>
+    UnitDisbanded,
 }
 
 /// <summary>

@@ -1,3 +1,4 @@
+using UnbrokenAges.Sim.Core;
 using UnbrokenAges.Sim.Commands;
 using UnbrokenAges.Sim.Data;
 using UnbrokenAges.Sim.State;
@@ -29,7 +30,7 @@ public sealed class SimpleAi : IAiController
 
         commands.AddRange(ExpansionAi.Settlers(s, player));
         commands.AddRange(BuilderAi.Builders(s, player));
-        foreach (var unit in s.Units.Where(u => u.Owner == playerId && db.Units[u.DefIndex].FoundsOutpost).ToList())
+        foreach (var unit in s.Units.Where(u => u.Owner == playerId && db.Units[u.DefIndex].FoundsOutpost && !NationSystem.IsColonist(s, player, db.Units[u.DefIndex])).ToList())
         {
             var plant = new FoundOutpostCommand { Player = playerId, UnitId = unit.Id };
             if (plant.Validate(s) == null) commands.Add(plant);
@@ -60,6 +61,7 @@ public sealed class SimpleAi : IAiController
         }
 
         commands.AddRange(Governors(s, player));
+        commands.AddRange(NationAi.Commands(s, player));
 
         // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))
@@ -91,8 +93,8 @@ public sealed class SimpleAi : IAiController
         var db = s.Db;
         if (PickDivergenceProduction(s, player, city) is { } divergenceItem) return (divergenceItem.Kind, divergenceItem.Def, -1);
         var soldier = MilitaryAi.BestLandUnit(s, city);
-        if (atWar && soldier != null && military < 2 * cityCount + 2) return (ProductionKind.Unit, soldier.Index, -1);
-        if (wantSettler && db.Units.FirstOrDefault(u => u.FoundsCity && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } settler)
+        if (atWar && soldier != null && military < 2 * cityCount + 2 && player.Gold > -50) return (ProductionKind.Unit, soldier.Index, -1);
+        if (wantSettler && db.Units.FirstOrDefault(u => NationSystem.IsColonist(s, player, u) && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null) is { } settler)
         {
             wantSettler = false;
             return (ProductionKind.Unit, settler.Index, -1);
@@ -103,7 +105,9 @@ public sealed class SimpleAi : IAiController
             wantBuilder = false;
             return (ProductionKind.Unit, builder.Index, -1);
         }
-        if (soldier != null && military < cityCount + 2) return (ProductionKind.Unit, soldier.Index, -1);
+        // A horde keeps a standing army even in peace: its research comes from the battlefield.
+        int peaceArmy = NationSystem.Kind(s, player) == SignatureKind.Horde ? 2 * cityCount + 3 : cityCount + 2;
+        if (soldier != null && military < peaceArmy) return (ProductionKind.Unit, soldier.Index, -1);
         // Prefer the best-scoring specialty district (same scorer the player's lens uses).
         var districtChoice = db.Districts
             .Where(d => d.Category == DistrictCategory.Specialty)
@@ -112,7 +116,11 @@ public sealed class SimpleAi : IAiController
             .OrderByDescending(x => x.Best!.Score).ThenBy(x => x.Def.Index)
             .FirstOrDefault();
         if (districtChoice.Best != null) return (ProductionKind.District, districtChoice.Def.Index, districtChoice.Best.Tile);
-        return soldier != null ? (ProductionKind.Unit, soldier.Index, -1) : null;
+        // Then the cheapest building the city can raise; only then more soldiers, and never into bankruptcy.
+        var building = db.Buildings.Where(b => ProductionSystem.CanEnqueue(s, city, ProductionKind.Building, b.Index, -1) == null)
+                                   .OrderBy(b => b.Cost).ThenBy(b => b.Index).FirstOrDefault();
+        if (building != null) return (ProductionKind.Building, building.Index, -1);
+        return soldier != null && military < 3 * cityCount + 3 && player.Gold > Fx.Zero ? (ProductionKind.Unit, soldier.Index, -1) : null;
     }
 
     /// <summary>Seat idle governors in the largest ungoverned cities, then spend a title: appoint first, promote after.</summary>

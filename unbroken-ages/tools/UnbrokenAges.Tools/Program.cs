@@ -27,6 +27,8 @@ string Opt(string name, string fallback)
     return i >= 0 && i + 1 < argv.Count ? argv[i + 1] : fallback;
 }
 
+bool HasOpt(string name) => argv.Contains(name);
+
 string repo = FindRepoRoot();
 GameDatabase LoadDb(IEnumerable<string>? extraMods = null) =>
     ModLoader.LoadFromDirectories(new[] { Path.Combine(repo, "content", "base") }.Concat(extraMods ?? Array.Empty<string>()));
@@ -88,12 +90,16 @@ void Simulate()
     int turns = int.Parse(Opt("--turns", "100"));
     ulong seed = ulong.Parse(Opt("--seed", "1"));
     int players = int.Parse(Opt("--players", "3"));
-    var leaders = db.Leaders.Select(l => l.Id).ToList();
+    int offset = int.Parse(Opt("--leader-offset", "0"));
+    // One leader per nation in turn (offset 1 picks each nation's second leader), so a 6-player game seats every nation.
+    var byNation = db.Civilizations.Select(c => db.Leaders.Where(l => l.CivilizationIndex == c.Index).Select(l => l.Id).ToList()).ToList();
+    string LeaderFor(int i) { var ls = byNation[i % byNation.Count]; return ls[(offset + i / byNation.Count) % ls.Count]; }
+    bool big = players > 4;
     var setup = new GameSetup
     {
         Seed = seed,
-        Map = new MapGenSettings { Width = 64, Height = 40, Seed = seed },
-        Players = Enumerable.Range(0, players).Select(i => new PlayerSetup { Name = $"AI {i}", Leader = leaders[i % leaders.Count] }).ToList(),
+        Map = new MapGenSettings { Width = big ? 84 : 64, Height = big ? 54 : 40, Seed = seed },
+        Players = Enumerable.Range(0, players).Select(i => new PlayerSetup { Name = $"AI {i}", Leader = LeaderFor(i) }).ToList(),
     };
     var s = GameFactory.Create(db, setup);
     var ai = new SimpleAi();
@@ -108,6 +114,17 @@ void Simulate()
         CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
         ContinueIfWon(s);
         foreach (var e in events) tally[e.Type] = tally.GetValueOrDefault(e.Type) + 1;
+        if (Opt("--trace-civ", "") is { Length: > 0 } traced)
+            foreach (var e in events.Where(e => e.Type is GameEventType.CityCaptured or GameEventType.CityFlipped or GameEventType.CityDeclaredIndependence
+                                                   or GameEventType.CityPurchased or GameEventType.WarDeclared or GameEventType.PeaceSigned or GameEventType.PlayerEliminated))
+            {
+                string Name(int id) => id >= 0 && id < s.Players.Count && s.Players[id].CivIndex >= 0 ? db.Civilizations[s.Players[id].CivIndex].Name : $"p{id}";
+                string line = $"   [t{s.Turn}] {e.Type} by {Name(e.Player)} (value {Name(e.Value)}) {e.Detail}";
+                if (line.Contains(traced)) Console.WriteLine(line);
+            }
+        if (s.Turn % 25 == 0 && HasOpt("--nations"))
+            Console.WriteLine($"   t{s.Turn}: " + string.Join(" | ", s.Players.Where(p => !p.IsFreeCities).Select(p =>
+                $"{(p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name[..3] : "?")} c{s.CitiesOf(p.Id).Count()} o{s.Outposts.Count(o => o.Owner == p.Id)} u{s.Units.Count(u => u.Owner == p.Id)} g{p.Gold.FloorToInt()} w{MilitaryAi.MajorEnemies(s, p.Id).Count}")));
         if (s.Turn % 25 == 0)
             Console.WriteLine($"turn {s.Turn,4}: cities={s.Cities.Count} pop={s.Cities.Sum(c => c.Population)} districts={s.Cities.Sum(c => c.Districts.Count - 1)} " +
                               $"techs={s.Players.Sum(p => p.Techs.Count(x => x))} CO2={s.Climate.Co2Ppm}ppm T=+{s.Climate.Temperature}°C phase={s.Climate.Phase} " +
@@ -116,6 +133,16 @@ void Simulate()
     Console.WriteLine($"{turns} turns in {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalMilliseconds / turns:0.0} ms/turn)");
     Console.WriteLine("events: " + string.Join(", ", tally.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
     Console.WriteLine("score: " + string.Join(", ", s.Players.Where(p => !p.IsFreeCities).Select(p => $"{p.Name} {VictorySystem.Score(s, p.Id)}")));
+    Console.WriteLine("nations:");
+    foreach (var p in s.Players.Where(p => !p.IsFreeCities))
+    {
+        string nation = p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name : "-";
+        string leader = p.LeaderIndex >= 0 ? db.Leaders[p.LeaderIndex].Name : "-";
+        var cities = s.CitiesOf(p.Id).ToList();
+        Console.WriteLine($"  {nation,-11} {leader,-20} alive={p.IsAlive,-5} cities={cities.Count,2} pop={cities.Sum(c => c.Population),3} techs={p.Techs.Count(x => x),2} " +
+                          $"civics={p.Civics.Count(x => x),2} gold={p.Gold.FloorToInt(),5} units={s.Units.Count(u => u.Owner == p.Id),2} score={VictorySystem.Score(s, p.Id),4} " +
+                          $"signature: {NationSystem.Status(s, p)} (tally {p.SignatureTally})");
+    }
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
     Console.WriteLine();
     Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");

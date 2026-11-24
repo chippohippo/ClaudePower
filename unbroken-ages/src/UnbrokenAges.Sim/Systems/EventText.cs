@@ -59,6 +59,7 @@ public static class EventText
             GameEventType.DynastyEnded when mine => "The Golden Dynasty draws to a close. The Mandate must be earned again.",
             GameEventType.DynastyFell when mine => $"The loss of {e.Detail} shatters the dynasty: every city loses {e.Value} loyalty.",
             GameEventType.DynastyFell => $"{who}'s dynasty has fallen.",
+            GameEventType.UnitDisbanded when mine => $"The treasury is empty: unpaid, your {e.Detail} deserted.",
             GameEventType.VictoryAchieved => e.Detail,
             GameEventType.PlayerEliminated => mine ? "Your civilization has fallen." : $"{who} has fallen.",
             _ => null,

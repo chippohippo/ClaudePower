@@ -39,6 +39,10 @@ public static class ExpansionAi
         var map = s.Map;
         if (!map.IsLand(tile) || map.IsMountain(tile)) return false;
         if (map.OwnerPlayer[tile] >= 0 && map.OwnerPlayer[tile] != player) return false;
+        // Venice's Waymakers plant trading outposts, which need unclaimed land away from other outposts.
+        if (NationSystem.Is(s, player, SignatureKind.Ledger) && s.Cities.Any(c => c.Owner == player)
+            && (map.OwnerPlayer[tile] >= 0 || s.Outposts.Any(o => map.Distance(o.Tile, tile) < s.Db.Rules.Outposts.MinDistance)))
+            return false;
         return !s.Cities.Any(c => map.Distance(c.Tile, tile) < FoundCityCommand.MinCityDistance);
     }
 
@@ -65,8 +69,8 @@ public static class ExpansionAi
         var db = s.Db;
         int cities = s.Cities.Count(c => c.Owner == p.Id);
         if (cities == 0) return false;
-        bool settlerOut = s.Units.Any(u => u.Owner == p.Id && db.Units[u.DefIndex].FoundsCity)
-                          || s.CitiesOf(p.Id).Any(c => c.Queue.Items.Any(i => i.Kind == ProductionKind.Unit && db.Units[i.DefIndex].FoundsCity));
+        bool settlerOut = s.Units.Any(u => u.Owner == p.Id && NationSystem.IsColonist(s, p, db.Units[u.DefIndex]))
+                          || s.CitiesOf(p.Id).Any(c => c.Queue.Items.Any(i => i.Kind == ProductionKind.Unit && NationSystem.IsColonist(s, p, db.Units[i.DefIndex])));
         if (settlerOut || cities >= MaxCities(s, p)) return false;
         return s.CitiesOf(p.Id).Any(c => BestSite(s, p.Id, c.Tile, Array.Empty<int>()) >= 0);
     }
@@ -75,9 +79,10 @@ public static class ExpansionAi
     public static IEnumerable<GameCommand> Settlers(GameState s, PlayerState p)
     {
         var claimed = new List<int>();
-        foreach (var u in s.Units.Where(u => u.Owner == p.Id && s.Db.Units[u.DefIndex].FoundsCity).ToList())
+        foreach (var u in s.Units.Where(u => u.Owner == p.Id && NationSystem.IsColonist(s, p, s.Db.Units[u.DefIndex])).ToList())
         {
-            var found = new FoundCityCommand { Player = p.Id, UnitId = u.Id };
+            // Venice's Waymakers walk to a city site like settlers, then plant a trading outpost to buy up later.
+            GameCommand found = s.Db.Units[u.DefIndex].FoundsCity ? new FoundCityCommand { Player = p.Id, UnitId = u.Id } : new FoundOutpostCommand { Player = p.Id, UnitId = u.Id };
             bool legalHere = found.Validate(s) == null;
             if (!s.Cities.Any(c => c.Owner == p.Id))
             {
@@ -153,6 +158,8 @@ public static class MilitaryAi
 {
     public const int OddsToAttack = 60;
     public const int FirstWarTurn = 30;
+    /// <summary>No AI starts a war before this turn, however warlike: young civilizations get a chance to found a second city.</summary>
+    public const int EarliestWarTurn = 35;
     public const int NeighbourRange = 14;
 
     /// <summary>Health-weighted strength of a civilization's military.</summary>
@@ -174,13 +181,18 @@ public static class MilitaryAi
         s.Players.Where(o => o.IsAlive && !o.IsFreeCities && o.Id != player && DiplomacySystem.AtWar(s, player, o.Id)).Select(o => o.Id).ToList();
 
     /// <summary>One war at a time, from turn 30, on a neighbour our army outweighs 3 : 2 (and with at least three units).</summary>
+    /// The leader's "war" personality scales it: a Khan (1.8) attacks from turn 17 at near parity, a scholar-emperor (0.4)
+    /// only with an overwhelming army.
     public static GameCommand? WarDeclaration(GameState s, PlayerState p)
     {
-        if (s.Turn < FirstWarTurn || MajorEnemies(s, p.Id).Count > 0) return null;
+        double war = NationAi.Personality(s, p, "war");
+        if (NationSystem.Kind(s, p) == SignatureKind.Horde) war *= 1.25;   // the steppe must ride to learn
+        int firstTurn = Math.Max(EarliestWarTurn, (int)(FirstWarTurn / Math.Max(0.5, war)));
+        if (s.Turn < firstTurn || MajorEnemies(s, p.Id).Count > 0) return null;
         if (s.Units.Count(u => u.Owner == p.Id && SupplySystem.IsMilitary(s.Db, u)) < 3) return null;
         int mine = Strength(s, p.Id);
         foreach (int target in Neighbours(s, p.Id).OrderBy(t => Strength(s, t)).ThenBy(t => t))
-            if (mine * 2 >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
+            if (mine * 2 * war >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
                 return new DeclareWarCommand { Player = p.Id, Target = target };
         return null;
     }
@@ -197,7 +209,8 @@ public static class MilitaryAi
         // Tiles holding something we are at war with (units of any hostile owner, including Free Cities, and enemy cities).
         var hostile = new HashSet<int>();
         foreach (var o in s.Units) if (o.Owner != p.Id && DiplomacySystem.AtWar(s, p.Id, o.Owner)) hostile.Add(o.Tile);
-        foreach (var c in s.Cities) if (c.Owner != p.Id && DiplomacySystem.AtWar(s, p.Id, c.Owner)) hostile.Add(c.Tile);
+        foreach (var c in s.Cities)
+            if (c.Owner != p.Id && DiplomacySystem.AtWar(s, p.Id, c.Owner) && !Spared(s, c)) hostile.Add(c.Tile);
         if (hostile.Count == 0) yield break;
         int[]? supply = null;
         foreach (var u in s.Units.Where(u => u.Owner == p.Id && SupplySystem.IsMilitary(db, u)).ToList())
@@ -275,18 +288,70 @@ public static class MilitaryAi
             int other = rel.A == p.Id ? rel.B : rel.A;
             int mine = Strength(s, p.Id), theirs = Strength(s, other), warTurns = s.Turn - rel.Since;
             bool winning = mine > 0 && mine >= theirs * 2 && warTurns < 30;
+            bool sated = s.Cities.Count(c => c.Owner == other) <= 1 && s.Turn < SparedUntilTurn && !s.Players[other].IsFreeCities;
             if (rel.PeaceProposedBy == other)
             {
-                if (!winning) yield return new AcceptPeaceCommand { Player = p.Id, Target = other };
+                if (!winning || sated) yield return new AcceptPeaceCommand { Player = p.Id, Target = other };
             }
-            else if (rel.Status == DiploStatus.War && rel.PeaceProposedBy < 0 && (mine < theirs || warTurns >= 30)
+            else if (rel.Status == DiploStatus.War && rel.PeaceProposedBy < 0 && (mine < theirs || warTurns >= 30 || sated)
                      && DiplomacySystem.ValidateProposePeace(s, p.Id, other) == null)
                 yield return new ProposePeaceCommand { Player = p.Id, Target = other };
         }
     }
 
+    /// <summary>Until this turn the AI leaves a rival its last city and makes peace instead: no nation is erased in the opening.</summary>
+    public const int SparedUntilTurn = 150;
+
+    private static bool Spared(GameState s, CityState city) =>
+        s.Turn < SparedUntilTurn && !s.Players[city.Owner].IsFreeCities && s.Cities.Count(c => c.Owner == city.Owner) <= 1;
+
     /// <summary>The strongest land unit the city can build now.</summary>
     public static UnitDef? BestLandUnit(GameState s, CityState city) =>
         s.Db.Units.Where(u => u.Domain == UnitDomain.Land && u.Strength > 0 && ProductionSystem.CanEnqueue(s, city, ProductionKind.Unit, u.Index, -1) == null)
                   .OrderByDescending(u => Math.Max(u.Strength, u.RangedStrength)).ThenBy(u => u.Index).FirstOrDefault();
+}
+
+/// <summary>
+/// Plays each nation's signature: Venice buys the cities it can afford, Mali buys what its cities are building, and every
+/// leader's personality weights (data) colour its choices.
+/// </summary>
+public static class NationAi
+{
+    public static double Personality(GameState s, PlayerState p, string key) =>
+        p.LeaderIndex >= 0 && s.Db.Leaders[p.LeaderIndex].Personality.TryGetValue(key, out var v) ? v.ToDouble() : 1.0;
+
+    public static IEnumerable<GameCommand> Commands(GameState s, PlayerState p)
+    {
+        switch (NationSystem.Kind(s, p))
+        {
+            case SignatureKind.Ledger:
+            {
+                // Buy trading outposts up into cities (half price), then cities on the market.
+                var outpost = s.Outposts.Where(o => o.Owner == p.Id && OutpostSystem.ValidatePromote(s, o) == null && p.Gold >= OutpostSystem.PromoteCost(s, o) + 30)
+                                        .OrderBy(o => o.Id).FirstOrDefault();
+                if (outpost != null) { yield return new PromoteOutpostCommand { Player = p.Id, OutpostId = outpost.Id }; break; }
+                // The cheapest city on the market that we can pay for, keeping a small reserve.
+                var buy = s.Cities.Where(c => NationSystem.CanBuy(s, p, c) == null && p.Gold >= NationSystem.CityPrice(s, p, c) + 40)
+                                  .OrderBy(c => NationSystem.CityPrice(s, p, c)).ThenBy(c => c.Id).FirstOrDefault();
+                if (buy != null) yield return new BuyCityCommand { Player = p.Id, CityId = buy.Id };
+                break;
+            }
+            case SignatureKind.GoldenRoad:
+            {
+                // Buy one city's current unit or building outright each turn while the treasury stays healthy.
+                foreach (var city in s.CitiesOf(p.Id).OrderBy(c => c.Id))
+                {
+                    var item = city.Queue.Items.FirstOrDefault();
+                    if (item == null || item.Kind is not (ProductionKind.Unit or ProductionKind.Building)) continue;
+                    var cmd = new PurchaseCommand { Player = p.Id, CityId = city.Id, Kind = item.Kind, DefIndex = item.DefIndex };
+                    if (cmd.Validate(s) == null && p.Gold >= ProductionSystem.PurchaseCost(s, city, item.Kind, item.DefIndex) + 80)
+                    {
+                        yield return cmd;
+                        yield break;
+                    }
+                }
+                break;
+            }
+        }
+    }
 }

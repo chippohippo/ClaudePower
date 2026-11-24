@@ -63,7 +63,8 @@ public static class ProductionSystem
             {
                 if (def < 0 || def >= db.Units.Count) return "Unknown unit.";
                 var u = db.Units[def];
-                if (!player.HasTech(u.PrereqTechIndex) || !player.HasCivic(u.PrereqCivicIndex)) return "Prerequisite not researched.";
+                if (!player.HasTech(u.PrereqTechIndex) || (!player.HasCivic(u.PrereqCivicIndex) && !NationSystem.IsColonist(s, player, u)))
+                    return "Prerequisite not researched.";
                 if (u.CivilizationIndex >= 0 && u.CivilizationIndex != player.CivIndex) return "Unique to another civilization.";
                 if (u.Domain == UnitDomain.Naval && !s.Map.IsAdjacentToSea(city.Tile) && !s.Map.IsAdjacentToChannel(city.Tile)
                     && !city.Districts.Any(d => s.Map.IsWater(d.Tile)))
