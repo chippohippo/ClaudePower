@@ -49,6 +49,7 @@ public static class TurnProcessor
             var tithes = ReligionSystem.FounderIncome(s, player);
             science += tithes.Science; culture += tithes.Culture; gold += tithes.Gold; faith += tithes.Faith;
             NationSystem.AdjustEmpireYields(s, player, ref science, ref culture, ref gold, ref faith);
+            player.LifetimeCulture += culture;
             player.Gold += gold - maintenance;
             player.Faith += faith;
             if (player.Gold < Fx.Zero) Bankrupt(s, player, events);
@@ -62,6 +63,7 @@ public static class TurnProcessor
         CityStateSystem.ProcessTurn(s, events);
         TradeSystem.ProcessTurn(s, events);
         EspionageSystem.ProcessTurn(s, events);
+        CultureSystem.ProcessTurn(s, events);
         AgeSystem.ProcessTurn(s, events);
         OutpostSystem.ProcessTurn(s, events);
         IndustrySystem.ProcessTurn(s);

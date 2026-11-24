@@ -153,6 +153,8 @@ void Simulate()
                           $"suzerain={(cs.Suzerain >= 0 ? s.Players[cs.Suzerain].Name : "-")} met={s.Players.Count(m => m.IsMajor && CityStateSystem.HasMet(s, cs, m.Id))} units={s.Units.Count(u => u.Owner == cs.Id)}");
     Console.WriteLine($"trade routes={s.TradeRoutes.Count} (" + string.Join(", ", s.Players.Where(p => p.IsMajor).Select(p => $"{p.Name} {TradeSystem.Active(s, p.Id)}/{TradeSystem.Capacity(s, p)}")) + ")");
     Console.WriteLine("spies: " + string.Join(", ", s.Players.Where(p => p.IsMajor).Select(p => $"{p.Name} {p.Spies.Count} [{string.Join(" ", p.Spies.Select(x => $"{x.Name}:{EspionageSystem.Ranks[x.Level][..1]}:{x.Mission}"))}]")));
+    Console.WriteLine("culture: " + string.Join(", ", s.Players.Where(p => p.IsMajor && p.IsAlive).Select(p =>
+        $"{p.Name} tourism {CultureSystem.Tourism(s, p)} domestic {CultureSystem.Domestic(p)} reach {CultureSystem.Reach(s, p).Dominated}/{CultureSystem.Reach(s, p).Total} works {s.GreatWorks.Count(g => g.Owner == p.Id)}")));
     Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
                       $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");

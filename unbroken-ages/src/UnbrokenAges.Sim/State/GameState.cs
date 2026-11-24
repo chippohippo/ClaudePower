@@ -8,7 +8,7 @@ public enum AgeState : byte { Normal, Golden, Dark, Heroic }
 public enum PowerDispatchPolicy : byte { CleanestFirst, CheapestFirst }
 public enum TurnMode : byte { Simultaneous, Dynamic, Sequential }
 
-/// <summary>Victory types; also the setup toggles (flags). Spiritual is built (ReligionSystem); Exodus, Culture and Concord are designed (GDD §14) and not yet built.</summary>
+/// <summary>Victory types; also the setup toggles (flags). Spiritual (ReligionSystem) and Culture (CultureSystem) are built; Exodus and Concord are designed (GDD §14) and not yet built.</summary>
 [Flags]
 public enum VictoryKind
 {
@@ -155,6 +155,9 @@ public sealed class PlayerState
     public int Suzerain = -1;
     /// <summary>Spies (EspionageSystem).</summary>
     public List<SpyState> Spies = new();
+    /// <summary>Culture earned over the whole game (domestic tourists = this / 100) and tourism sent toward each player.</summary>
+    public Fx LifetimeCulture;
+    public List<int> TourismTo = new();
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
@@ -225,6 +228,18 @@ public sealed class OutpostState
     public int HarvestTile = -1;
     /// <summary>Tiles this outpost claimed (released if it is razed).</summary>
     public List<int> Tiles = new();
+}
+
+/// <summary>A great work: its name, kind, who made it, and the city it hangs in (-1 = in storage, owned by <see cref="Owner"/>).</summary>
+public sealed class GreatWorkState
+{
+    public int Id;
+    public string Name = "";
+    /// <summary>0 = art (and writing, music), 1 = relic.</summary>
+    public byte Kind;
+    public int Creator;
+    public int Owner;
+    public int CityId = -1;
 }
 
 /// <summary>A spy: codename, rank (0 Recruit … 3 Master Spy), where it works and on what, and turns until the mission resolves.</summary>
@@ -339,6 +354,8 @@ public sealed class GameState
     public HashSet<int> GreatPeopleTaken = new();
     /// <summary>Natural wonders each player has discovered (for era score), as player * 100000 + tile.</summary>
     public HashSet<long> Discoveries = new();
+    /// <summary>Great works of art and relics (CultureSystem).</summary>
+    public List<GreatWorkState> GreatWorks = new();
     /// <summary>Open trade routes (TradeSystem), in the order they were opened.</summary>
     public List<TradeRouteState> TradeRoutes = new();
     public ClimateState Climate = new();

@@ -98,6 +98,11 @@ public enum GameEventType : byte
     SpyMissionSucceeded,
     SpyMissionFailed,
     SpyCaught,
+    // ----- Culture -----
+    /// <summary>Def = the great person; Detail = the work.</summary>
+    GreatWorkCreated,
+    /// <summary>Player's visiting tourists now outnumber Value's domestic tourists.</summary>
+    CulturalDominance,
 }
 
 /// <summary>

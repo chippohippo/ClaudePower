@@ -33,7 +33,7 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
 - [x] **12. City-states**: minor players, influence and envoys, type tiers, suzerain bonuses, self-defence (quests and levies later).
 - [x] **13. Trade routes**: traders, land and sea routes, domestic / international / city-state yields, war ends them, plunder.
 - [x] **14. Espionage**: spies with ranks, six missions, counterintelligence, capture and grievances.
-- [ ] **15. Culture victory**: great works, tourism, theming.
+- [x] **15. Culture victory**: great works and relics, slots, tourism with affinity, domestic vs visiting tourists, Culture victory.
 - [ ] **16. World Congress**: resolutions, diplomatic favour, a Diplomatic victory.
 - [ ] **17. Corps and armies**; unique units for the 30 later nations; the orbital layer.
 
@@ -96,3 +96,5 @@ policy cards and governments, the turn timer, and Grand-dial governor ageing.
   AI traders, unit-panel route buttons, real caravans and merchantmen, snapshot v16, 8 tests (263 total).
 - 14. Espionage: `EspionageSystem` (capacity, recruiting, travel, odds vs defence, six missions, capture), `AssignSpyCommand`,
   AI spies, Espionage screen (E), compact top bar, snapshot v17, 7 tests (270 total).
+- 15. Culture victory: `CultureSystem` (works, slots, storage, tourism, affinity, tourists, victory), 6 new Great Artists with named works,
+  Society-screen CULTURE column, score line, snapshot v18, 7 tests (277 total).

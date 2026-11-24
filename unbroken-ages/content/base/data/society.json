@@ -1163,7 +1163,11 @@
    "class": "Artist",
    "era": "ERA_CLASSICAL",
    "effect": "Culture",
-   "amount": 100
+   "amount": 100,
+   "works": [
+    "The Iliad",
+    "The Odyssey"
+   ]
   },
   {
    "id": "GREAT_PERSON_MURASAKI_SHIKIBU",
@@ -1171,7 +1175,11 @@
    "class": "Artist",
    "era": "ERA_MEDIEVAL",
    "effect": "Culture",
-   "amount": 160
+   "amount": 160,
+   "works": [
+    "The Tale of Genji",
+    "Diary of Lady Murasaki"
+   ]
   },
   {
    "id": "GREAT_PERSON_MICHELANGELO",
@@ -1179,7 +1187,11 @@
    "class": "Artist",
    "era": "ERA_RENAISSANCE",
    "effect": "Culture",
-   "amount": 240
+   "amount": 240,
+   "works": [
+    "The Creation of Adam",
+    "David"
+   ]
   },
   {
    "id": "GREAT_PERSON_LUDWIG_VAN_BEETHOVEN",
@@ -1187,7 +1199,83 @@
    "class": "Artist",
    "era": "ERA_INDUSTRIAL",
    "effect": "Culture",
-   "amount": 320
+   "amount": 320,
+   "works": [
+    "Symphony No. 9",
+    "Moonlight Sonata"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_LI_BAI",
+   "name": "Li Bai",
+   "class": "Artist",
+   "era": "ERA_MEDIEVAL",
+   "effect": "Culture",
+   "amount": 160,
+   "works": [
+    "Quiet Night Thought",
+    "Drinking Alone by Moonlight"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_WILLIAM_SHAKESPEARE",
+   "name": "William Shakespeare",
+   "class": "Artist",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Culture",
+   "amount": 240,
+   "works": [
+    "Hamlet",
+    "The Tempest"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_JOHANN_SEBASTIAN_BACH",
+   "name": "Johann Sebastian Bach",
+   "class": "Artist",
+   "era": "ERA_RENAISSANCE",
+   "effect": "Culture",
+   "amount": 240,
+   "works": [
+    "The Brandenburg Concertos",
+    "Mass in B Minor"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_KATSUSHIKA_HOKUSAI",
+   "name": "Katsushika Hokusai",
+   "class": "Artist",
+   "era": "ERA_INDUSTRIAL",
+   "effect": "Culture",
+   "amount": 320,
+   "works": [
+    "The Great Wave off Kanagawa",
+    "Fine Wind, Clear Morning"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_FRIDA_KAHLO",
+   "name": "Frida Kahlo",
+   "class": "Artist",
+   "era": "ERA_MODERN",
+   "effect": "Culture",
+   "amount": 400,
+   "works": [
+    "The Two Fridas",
+    "Self-Portrait with Thorn Necklace"
+   ]
+  },
+  {
+   "id": "GREAT_PERSON_CHINUA_ACHEBE",
+   "name": "Chinua Achebe",
+   "class": "Artist",
+   "era": "ERA_ATOMIC",
+   "effect": "Culture",
+   "amount": 480,
+   "works": [
+    "Things Fall Apart",
+    "Arrow of God"
+   ]
   },
   {
    "id": "GREAT_PERSON_LAOZI",

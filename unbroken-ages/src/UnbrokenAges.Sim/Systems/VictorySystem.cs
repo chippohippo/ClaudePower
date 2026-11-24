@@ -8,6 +8,7 @@ namespace UnbrokenAges.Sim.Systems;
 /// * <b>Ascension</b>: the first civilization to complete its Divergence's final project.
 /// * <b>Hegemony</b>: one team holds every original capital, or holds 60% of the world's population (in cities above 50 loyalty)
 ///   and 60% of its land. No last-city-standing grind.
+/// * <b>Culture</b>: visiting tourists outnumber every other living civilization's domestic tourists (CultureSystem).
 /// * <b>Spiritual</b>: a religion followed by most of the cities of every other living civilization (at least two of them).
 /// * <b>Score</b>: highest score when the turn limit ends. Every score source is a visible line, all game long.
 /// Each can be switched off at setup. When a team wins, the game pauses on the victory screen; <c>OneMoreTurnCommand</c> keeps
@@ -28,6 +29,8 @@ public static class VictorySystem
                 if (p.Ascended) { Declare(s, p.Id, VictoryKind.Ascension, events); return; }
 
         if (Enabled(s, VictoryKind.Hegemony) && HegemonyWinner(s) is int h and >= 0) { Declare(s, h, VictoryKind.Hegemony, events); return; }
+
+        if (endOfTurn && Enabled(s, VictoryKind.Culture) && CultureSystem.CultureWinner(s) is int c and >= 0) { Declare(s, c, VictoryKind.Culture, events); return; }
 
         if (endOfTurn && Enabled(s, VictoryKind.Spiritual) && ReligionSystem.SpiritualWinner(s) is int r and >= 0) { Declare(s, r, VictoryKind.Spiritual, events); return; }
 
@@ -114,6 +117,7 @@ public static class VictorySystem
             ("Districts", districts * rules.ScorePerDistrict),
             ("Buildings", buildings * rules.ScorePerBuilding),
             ("Wonders", wonders * rules.ScorePerWonder),
+            ("Great works", s.GreatWorks.Count(g => g.Owner == player) * 5),
             ("Technologies", p.Techs.Count(x => x) * rules.ScorePerTech),
             ("Civics", p.Civics.Count(x => x) * rules.ScorePerCivic),
             ("Territory", rules.TilesPerPoint > 0 ? tiles / rules.TilesPerPoint : 0),
@@ -160,6 +164,7 @@ public static class VictorySystem
         {
             VictoryKind.Ascension => "an Ascension victory: the world it remade is now the world",
             VictoryKind.Hegemony => "a Hegemony victory: every old capital answers to it",
+            VictoryKind.Culture => "a Culture victory: the whole world comes to visit",
             VictoryKind.Spiritual => $"a Spiritual victory: the world keeps {(p.Religion >= 0 ? s.Db.Religions[p.Religion].Name : "its faith")}",
             _ => $"a Score victory with {Score(s, player)} points",
         };

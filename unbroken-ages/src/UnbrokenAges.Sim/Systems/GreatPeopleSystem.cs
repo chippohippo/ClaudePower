@@ -77,6 +77,7 @@ public static class GreatPeopleSystem
         s.GreatPeopleTaken.Add(person.Index);
         p.GreatPeopleRecruited[(int)person.Class]++;
         Apply(s, p, person, events);
+        CultureSystem.OnRecruited(s, p, person, events);
         events.Add(new GameEvent(GameEventType.GreatPersonRecruited, p.Id, Def: person.Index, Value: person.Amount, Detail: $"{person.Name} ({person.Class})"));
         AgeSystem.Award(s, p, 2, $"Recruited {person.Name}", events);
     }

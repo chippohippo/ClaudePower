@@ -21,7 +21,7 @@ Civilization VII's age resets or civ-swapping.
 | [`mods/example-river-trade`](mods/example-river-trade) | Example mod showing add / patch / `$append` against the base game |
 | [`godot/`](godot) | Godot 4.3 (.NET) presentation client: hex map renderer with civ and war borders, placement lens, city panel and production queue, combat preview tooltip, diplomacy screen, victory screen, Chronicle, Divergence screen, lobby |
 | [`tools/UnbrokenAges.Tools`](tools/UnbrokenAges.Tools) | `ua` CLI: map preview, mod validator, headless soak sim, dedicated server, bot client |
-| [`tests/`](tests) | 270 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
+| [`tests/`](tests) | 277 tests: systems, determinism, snapshots, mods, real-socket multiplayer, the Divergence, world ages, supply, industry, chronicle |
 
 ## Implemented and tested so far (milestone M0, "foundations")
 
@@ -101,6 +101,11 @@ Civilization VII's age resets or civ-swapping.
   * Missions: steal technology, siphon funds, sabotage production, incite unrest, fabricate scandals in city-states, or guard your
     own cities.
   * Odds are shown up front. Caught spies are lost and cause a diplomatic incident. Use the Espionage screen (E).
+* **Culture victory** ([05/19](docs/05-key-systems/19-culture.md)): Great Artists create named works (*The Iliad*, *Hamlet*, *The
+  Great Wave*…) and Prophets leave relics.
+  * Works hang in palaces, amphitheaters, museums and temples, and earn culture and tourism.
+  * Wonders and natural wonders draw tourists too. Trade, open borders and a shared faith carry more of them.
+  * Outnumber every rival's domestic tourists to win.
 * **Unit variants**: upgrades offer 2–3 honest trade-offs (Heavy, Fordsmen, Longbow, Ram…), shown in the combat preview
   ([05/09](docs/05-key-systems/09-combat.md#unit-variants-and-upgrades)).
 * **Victory**: Ascension, Hegemony (every original capital, or 60% of the world's people and land) and an itemized Score at the turn limit;
@@ -163,7 +168,7 @@ with `xvfb-run` and a software Vulkan driver).
 
 ```bash
 # .NET 8 SDK required
-dotnet test                                        # 270 tests, ~4 s
+dotnet test                                        # 277 tests, ~4 s
 dotnet run --project tools/UnbrokenAges.Tools -- mapgen --seed 7 --size MAPSIZE_STANDARD
 dotnet run --project tools/UnbrokenAges.Tools -- simulate --turns 200 --players 4
 dotnet run --project tools/UnbrokenAges.Tools -- validate mods/example-river-trade

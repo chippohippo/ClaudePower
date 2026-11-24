@@ -20,7 +20,7 @@
       "powerDemand": 3, "poweredYields": { "science": 5 }, "prereqTech": "TECH_ELECTRICITY", "requiresBuildings": ["BUILDING_UNIVERSITY"] },
 
     { "id": "BUILDING_SHRINE", "name": "Shrine", "district": "DISTRICT_SANCTUARY", "cost": 70, "maintenance": 1, "yields": { "faith": 2 }, "prereqTech": "TECH_ASTROLOGY" },
-    { "id": "BUILDING_TEMPLE", "name": "Temple", "district": "DISTRICT_SANCTUARY", "cost": 120, "maintenance": 2, "yields": { "faith": 4 },
+    { "id": "BUILDING_TEMPLE", "name": "Temple", "district": "DISTRICT_SANCTUARY", "cost": 120, "maintenance": 2, "yields": { "faith": 4 }, "greatWorkSlots": 1,
       "prereqCivic": "CIVIC_MYSTICISM", "requiresBuildings": ["BUILDING_SHRINE"] },
 
     { "id": "BUILDING_MARKETPLACE", "name": "Marketplace", "district": "DISTRICT_MARKET", "cost": 120, "yields": { "gold": 3 }, "prereqTech": "TECH_CURRENCY" },
@@ -39,9 +39,9 @@
     { "id": "BUILDING_GRAIN_EXCHANGE", "name": "Grain Exchange", "district": "DISTRICT_RIVER_PORT", "cost": 290, "yields": { "food": 2, "gold": 2 },
       "prereqTech": "TECH_EDUCATION", "requiresBuildings": ["BUILDING_RIVER_DOCKS"] },
 
-    { "id": "BUILDING_AMPHITHEATER", "name": "Amphitheater", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 150, "maintenance": 1, "yields": { "culture": 2 },
+    { "id": "BUILDING_AMPHITHEATER", "name": "Amphitheater", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 150, "maintenance": 1, "yields": { "culture": 2 }, "greatWorkSlots": 2,
       "prereqCivic": "CIVIC_RECORDED_HISTORY" },
-    { "id": "BUILDING_MUSEUM", "name": "Museum", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 290, "maintenance": 2, "yields": { "culture": 3 },
+    { "id": "BUILDING_MUSEUM", "name": "Museum", "district": "DISTRICT_CULTURAL_QUARTER", "cost": 290, "maintenance": 2, "yields": { "culture": 3 }, "greatWorkSlots": 3,
       "prereqCivic": "CIVIC_CIVIL_ENGINEERING", "requiresBuildings": ["BUILDING_AMPHITHEATER"] },
 
     { "id": "BUILDING_WORKSHOP", "name": "Workshop", "district": "DISTRICT_FOUNDRY", "cost": 195, "maintenance": 1, "yields": { "production": 2 },

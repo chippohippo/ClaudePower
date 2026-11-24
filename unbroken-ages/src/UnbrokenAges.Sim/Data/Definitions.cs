@@ -413,6 +413,8 @@ public sealed class BuildingDef : Definition
     public string? PrereqCivic { get; init; }
     public List<string> RequiresBuildings { get; init; } = new();
     public bool ProtectsFromFlood { get; init; }
+    /// <summary>Slots for great works (art and relics) — CultureSystem.</summary>
+    public int GreatWorkSlots { get; init; }
     public string? Civilization { get; init; }
     public string? Replaces { get; init; }
     public List<ModifierDef> Modifiers { get; init; } = new();

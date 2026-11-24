@@ -1455,6 +1455,10 @@
               "type": "boolean"
             }
           }
+        },
+        "greatWorkSlots": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "required": [
@@ -3428,6 +3432,12 @@
         },
         "amount": {
           "type": "integer"
+        },
+        "works": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

@@ -51,7 +51,7 @@ public partial class SocietyPanel : PanelContainer
 
     private static VBoxContainer Column(HBoxContainer parent, string title, Color accent)
     {
-        var col = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(250, 0) };
+        var col = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
         parent.AddChild(col);
         col.AddChild(new ColorRect { Color = accent, CustomMinimumSize = new Vector2(0, 5) });
         col.AddChild(new Label { Text = title, ThemeTypeVariation = "HeaderMedium" });
@@ -89,6 +89,35 @@ public partial class SocietyPanel : PanelContainer
         Faith(s, me);
         GreatPeople(s, me);
         Ages(s, me);
+        Culture(s, me);
+    }
+
+    // ----- Culture -------------------------------------------------------------------------------------
+
+    private void Culture(GameState s, PlayerState me)
+    {
+        var col = Column(_columns, "CULTURE", new Color("#e07bd0"));
+        int tourism = CultureSystem.Tourism(s, me);
+        col.AddChild(Text($"Tourism: {tourism} a turn · your domestic tourists: {CultureSystem.Domestic(me)}"));
+        var (dominated, total) = CultureSystem.Reach(s, me);
+        col.AddChild(Text($"Culturally dominant over {dominated} of {total} civilizations" +
+                          (VictorySystem.Enabled(s, VictoryKind.Culture) ? " (all of them, at least two: Culture victory)." : "."), dominated > 0 ? UiTheme.GoldBright : null));
+        foreach (var o in s.Players.Where(o => o.IsMajor && o.IsAlive && o.Id != me.Id && s.CitiesOf(o.Id).Any()))
+        {
+            int visitors = CultureSystem.Visitors(me, o.Id), domestic = CultureSystem.Domestic(o);
+            int bonus = CultureSystem.Affinity(s, me.Id, o.Id);
+            col.AddChild(Text($"{(visitors > domestic ? "✓" : "·")} {o.Name}: {visitors} of your tourists vs {domestic} of theirs" + (bonus > 0 ? $" (+{bonus}% tourism)" : ""),
+                              visitors > domestic ? UiTheme.GoldBright : null, 13));
+        }
+        col.AddChild(Text("Tourism: 2 per great work on display, 3 per world wonder, 2 per natural wonder in your lands; +25% per era from the Industrial; " +
+                          "+25% toward a civilization you trade with, that opens its borders to you, or whose capital keeps your faith.", UiTheme.TextDim, 12));
+        col.AddChild(new HSeparator());
+        var works = s.GreatWorks.Where(g => g.Owner == me.Id).ToList();
+        int slots = s.CitiesOf(me.Id).Sum(c => CultureSystem.Slots(s, c));
+        col.AddChild(Text($"Great works: {works.Count} ({works.Count(g => g.CityId >= 0)} on display, {slots} slots)"));
+        foreach (var g in works.Take(14))
+            col.AddChild(Text($"  {(g.Kind == 1 ? "✝" : "♪")} {g.Name} — {(s.GetCity(g.CityId)?.Name ?? "in storage")}", UiTheme.TextDim, 12));
+        col.AddChild(Text("Great Artists create works and Great Prophets leave relics. Slots: the palace 1, Amphitheater 2, Museum 3, Temple 1.", UiTheme.TextDim, 12));
     }
 
     // ----- Government and cards ------------------------------------------------------------------------

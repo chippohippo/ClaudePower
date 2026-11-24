@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 17;
+    public const int Version = 18;
 
     public static byte[] Serialize(GameState s)
     {
@@ -153,6 +153,7 @@ public static class GameStateSerializer
             w.Write(p.CityStateIndex); w.Write(p.Influence); w.Write(p.EnvoyTokens); w.Write(p.EnvoysEarned); WriteList(w, p.Envoys); w.Write(p.Suzerain);
             w.Write(p.Spies.Count);
             foreach (var spy in p.Spies) { w.Write(spy.Id); w.Write(spy.Name); w.Write(spy.Level); w.Write(spy.CityId); w.Write((byte)spy.Mission); w.Write(spy.TurnsLeft); }
+            WriteFx(w, p.LifetimeCulture); WriteList(w, p.TourismTo);
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
         foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
@@ -168,6 +169,9 @@ public static class GameStateSerializer
             w.Write(r.Id); w.Write(r.Owner); w.Write(r.Origin); w.Write(r.Destination); w.Write(r.TurnsLeft); w.Write(r.TraderDef);
             WriteList(w, r.Path);
         }
+        // Culture (version 18).
+        w.Write(s.GreatWorks.Count);
+        foreach (var g in s.GreatWorks) { w.Write(g.Id); w.Write(g.Name); w.Write(g.Kind); w.Write(g.Creator); w.Write(g.Owner); w.Write(g.CityId); }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -355,6 +359,7 @@ public static class GameStateSerializer
             for (int k = 0; k < spies; k++)
                 p.Spies.Add(new SpyState { Id = r.ReadInt32(), Name = r.ReadString(), Level = r.ReadInt32(), CityId = r.ReadInt32(),
                                            Mission = (Systems.SpyMission)r.ReadByte(), TurnsLeft = r.ReadInt32() });
+            p.LifetimeCulture = ReadFx(r); p.TourismTo = ReadList(r);
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
         foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }
@@ -370,6 +375,9 @@ public static class GameStateSerializer
                 Id = r.ReadInt32(), Owner = r.ReadInt32(), Origin = r.ReadInt32(), Destination = r.ReadInt32(), TurnsLeft = r.ReadInt32(),
                 TraderDef = r.ReadInt32(), Path = ReadList(r),
             });
+        int works = r.ReadInt32();
+        for (int i = 0; i < works; i++)
+            s.GreatWorks.Add(new GreatWorkState { Id = r.ReadInt32(), Name = r.ReadString(), Kind = r.ReadByte(), Creator = r.ReadInt32(), Owner = r.ReadInt32(), CityId = r.ReadInt32() });
         return s;
     }
 

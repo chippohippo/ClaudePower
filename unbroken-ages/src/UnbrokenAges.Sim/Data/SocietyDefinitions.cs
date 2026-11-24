@@ -90,6 +90,8 @@ public sealed class GreatPersonDef : Definition
     public string? Era { get; init; }
     public GreatPersonEffectKind Effect { get; init; }
     public int Amount { get; init; }
+    /// <summary>Artists: the great works they create when recruited (named; at least one is always made).</summary>
+    public List<string> Works { get; init; } = new();
 
     [JsonIgnore] public int EraOrder { get; private set; }
 
