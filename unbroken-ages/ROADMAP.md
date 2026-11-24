@@ -43,7 +43,11 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       defence that keeps pace with the line, Skip for units, the playtest guide ([docs/PLAYTEST.md](docs/PLAYTEST.md)).
 - [x] **21. Rough edges**: the advisor (tutorial), the air war (bases, carriers, interception), the AI turn off the UI thread,
       last stands and no dogpiles; a visual overhaul (woods, research tree, reach and routes, battle effects, cards).
-- [ ] **22. After the first playtest**: whatever playtesters find.
+- [x] **22. Earth with true start locations**: a 128 × 80 map from Natural Earth, embarkation, and six rounds of 12-civilization
+      Earth soaks until all eight targets held ([05/22](docs/05-key-systems/22-earth.md#results-six-rounds-to-a-good-game)).
+- [ ] **23. Victory variety on Earth**: every round-6 game ended in Ascension; the AI should also pursue Culture, Spiritual and
+      Concord, and research should keep closer to the calendar.
+- [ ] **24. After the first playtest**: whatever playtesters find.
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
