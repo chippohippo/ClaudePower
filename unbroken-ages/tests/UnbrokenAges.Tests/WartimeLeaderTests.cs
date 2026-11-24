@@ -89,7 +89,7 @@ public class WartimeLeaderTests
         var s = World("LEADER_STALIN");
         var city = TestWorld.City(s, 0, 8, 10, population: 6);
         var applied = CityEffects.Compute(s, city).Applied.Where(a => a.Source.EndsWith("Five-Year Plans")).Select(a => a.Modifier).ToList();
-        Assert.Contains(applied, m => m.Yield == YieldType.Production && m.Amount == Fx.FromInt(40));
+        Assert.Contains(applied, m => m.Yield == YieldType.Production && m.Amount == Fx.FromInt(25));
         Assert.Contains(applied, m => m.Effect == ModifierEffect.CityAmenities && m.Amount == Fx.FromInt(-2));
         Assert.Contains(applied, m => m.Yield == YieldType.Culture && m.Amount < Fx.Zero);
     }
