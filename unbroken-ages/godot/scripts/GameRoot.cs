@@ -120,6 +120,8 @@ public partial class GameRoot : Node3D
         ui.AddChild(_victory);
         _tooltip = new CombatTooltip();
         ui.AddChild(_tooltip);
+        Advisor = new Advisor(this);
+        ui.AddChild(Advisor);
         _menu = new GameMenu(this);
         ui.AddChild(_menu);
         _audio = new AudioManager();
@@ -230,8 +232,15 @@ public partial class GameRoot : Node3D
 
     // ----- Command routing -----------------------------------------------------------------------
 
+    /// <summary>What the advisor watches for: units moved, attacks made and screens opened this session.</summary>
+    public Advisor Advisor { get; private set; } = null!;
+    public int UnitsMoved, AttacksMade;
+    public readonly HashSet<string> PanelsOpened = new();
+
     public CommandResult Submit(GameCommand cmd)
     {
+        if (cmd is MoveUnitCommand) UnitsMoved++;
+        if (cmd is AttackCommand) AttacksMade++;
         cmd.Player = LocalPlayer;
         _localVersion++;
         if (_host != null) return Report(_host.SubmitLocal(cmd));
@@ -241,19 +250,70 @@ public partial class GameRoot : Node3D
             return CommandResult.Success;
         }
         if (_local == null) return CommandResult.Fail("No game.");
+        if (_aiTurn != null) return CommandResult.Fail("The other civilizations are still moving.");
         var events = new List<GameEvent>();
         var result = CommandProcessor.Execute(_local, cmd, events);
         if (result.Ok && cmd is EndTurnCommand)
         {
-            // Single player: the AI moves, then the turn resolves.
-            var ai = new UnbrokenAges.Sim.AI.SimpleAi();
-            foreach (var p in _local.Players.Where(p => !p.IsHuman && p.IsMajor && p.IsAlive).ToList())
-                foreach (var aiCmd in ai.TakeTurn(_local, p.Id)) CommandProcessor.Execute(_local, aiCmd, events);
-            CommandProcessor.Execute(_local, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = _local.Turn }, events);
+            OnEvents(_local, events);
+            if (AsyncAiTurns)
+            {
+                // Single player: the AI moves and the turn resolves on a copy of the world, off the frame loop, so the map stays
+                // live (pan, zoom, look around) while the turn button says to wait. The copy replaces the world when it is done.
+                var snapshot = GameStateSerializer.Serialize(_local);
+                var db = Db;
+                _aiTurn = System.Threading.Tasks.Task.Run(() =>
+                {
+                    var world = GameStateSerializer.Deserialize(snapshot, db);
+                    var turnEvents = new List<GameEvent>();
+                    ResolveTurn(world, turnEvents);
+                    return (world, turnEvents);
+                });
+                return Report(result);
+            }
+            events.Clear();
+            ResolveTurn(_local, events);
             SelectNextUnit();
         }
         OnEvents(_local, events);
         return Report(result);
+    }
+
+    /// <summary>Single player and hotseat: every AI civilization moves, then the turn resolves.</summary>
+    private static void ResolveTurn(GameState s, List<GameEvent> events)
+    {
+        var ai = new UnbrokenAges.Sim.AI.SimpleAi();
+        foreach (var p in s.Players.Where(p => !p.IsHuman && p.IsMajor && p.IsAlive).ToList())
+            foreach (var aiCmd in ai.TakeTurn(s, p.Id)) CommandProcessor.Execute(s, aiCmd, events);
+        CommandProcessor.Execute(s, new AdvanceTurnCommand { Player = GameCommand.SystemPlayer, ExpectedTurn = s.Turn }, events);
+    }
+
+    /// <summary>The AI's turn in progress (single player), and whether to run it in the background at all (scripts may not).</summary>
+    private System.Threading.Tasks.Task<(GameState World, List<GameEvent> Events)>? _aiTurn;
+    public bool AsyncAiTurns = true;
+    public bool AiBusy => _aiTurn != null;
+
+    /// <summary>When the AI's turn is done: the new world replaces the old one, and its news arrives.</summary>
+    private void FinishAiTurn()
+    {
+        if (_aiTurn is not { IsCompleted: true } task) return;
+        _aiTurn = null;
+        if (task.IsFaulted)
+        {
+            // Never lose the game to a background failure: resolve the turn here instead, and say so in the log.
+            GD.PushError($"AI turn failed in the background: {task.Exception?.GetBaseException()}");
+            var events = new List<GameEvent>();
+            ResolveTurn(_local!, events);
+            SelectNextUnit();
+            OnEvents(_local!, events);
+            return;
+        }
+        var (world, news) = task.Result;
+        _local = world;
+        _localVersion++;
+        _renderedVersion = -1;
+        SelectNextUnit();
+        OnEvents(world, news);
     }
 
     private CommandResult Report(CommandResult result)
@@ -389,6 +449,7 @@ public partial class GameRoot : Node3D
     public override void _Process(double delta)
     {
         _host?.Poll();
+        FinishAiTurn();
         if (_client != null)
         {
             _client.Poll();
@@ -417,6 +478,7 @@ public partial class GameRoot : Node3D
             _topBar.Refresh();
             _tracker.Refresh();
             _turnCorner.Refresh();
+            Advisor.Refresh();
             if (_research.Visible) _research.Refresh();
             if (_society.Visible) _society.Refresh();
             if (_espionage.Visible) _espionage.Refresh();
@@ -535,15 +597,19 @@ public partial class GameRoot : Node3D
     }
 
     /// <summary>Full-screen overlays are exclusive: opening one closes the others.</summary>
+    /// <summary>Whether a full-screen panel (research, diplomacy, society…) is open: the advisor steps aside for it.</summary>
+    public bool AnyOverlayOpen => new Control[] { _research, _diplomacy, _chronicle, _divergence, _society, _espionage, _cityPanel }.Any(c => c.Visible);
+
     public void CloseOverlaysExcept(Control? keep)
     {
         foreach (Control panel in new Control[] { _research, _diplomacy, _chronicle, _divergence, _society, _espionage })
             if (panel != keep) panel.Visible = false;
     }
 
-    public void ToggleResearch() { _research.Visible = !_research.Visible; if (_research.Visible) { CloseOverlaysExcept(_research); _research.Refresh(); } }
+    public void ToggleResearch() { PanelsOpened.Add("T"); _research.Visible = !_research.Visible; if (_research.Visible) { CloseOverlaysExcept(_research); _research.Refresh(); } }
     public void TogglePanel(string which)
     {
+        PanelsOpened.Add(which);
         Control panel = which switch { "P" => _diplomacy, "C" => _chronicle, "V" => _divergence, "G" => _society, "E" => _espionage, _ => _research };
         panel.Visible = !panel.Visible;
         if (panel.Visible) CloseOverlaysExcept(panel);

@@ -104,7 +104,7 @@ public partial class ResearchPanel : PanelContainer
 
     private void Add(VBoxContainer list, string text, bool current, string? boost, GameCommand cmd)
     {
-        var b = new Button { Text = (current ? "▶ " : "") + text, Alignment = HorizontalAlignment.Left, TooltipText = boost ?? "" };
+        var b = new Button { Text = (current ? "▶ " : "") + text, Alignment = HorizontalAlignment.Left, TooltipText = boost ?? "", ClipText = true };
         b.Pressed += () => { _root.Submit(cmd); Refresh(); };
         list.AddChild(b);
     }

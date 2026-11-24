@@ -59,7 +59,7 @@ public partial class GameRoot
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!_scripted || --_waitFrames > 0) return;
+        if (!_scripted || AiBusy || --_waitFrames > 0) return;   // a step waits for the AI's turn to finish
         if (_pendingShot != null) { Shoot(_pendingShot); _pendingShot = null; _waitFrames = 2; return; }
         if (_script.Count > 0)
         {
@@ -132,15 +132,20 @@ public partial class GameRoot
             case var many when many.StartsWith("turns:"):
             {
                 int n = int.Parse(many[6..]);
-                for (int i = 0; i < n; i++)
+                AsyncAiTurns = false;   // many turns in one step: resolve each before the next
+                try
                 {
-                    // Play like a casual human: keep research, civics and every city's queue busy using the AI's choices.
-                    var ai = new UnbrokenAges.Sim.AI.SimpleAi();
-                    foreach (var c in ai.TakeTurn(s, LocalPlayer).Where(c => c is SetResearchCommand or SetCivicCommand or EnqueueCommand or FoundCityCommand or MoveUnitCommand or BuildImprovementCommand))
-                        Submit(c);
-                    var r = Do(new EndTurnCommand());
-                    if (!r.Ok) return r.Error;
+                    for (int i = 0; i < n; i++)
+                    {
+                        // Play like a casual human: keep research, civics and every city's queue busy using the AI's choices.
+                        var ai = new UnbrokenAges.Sim.AI.SimpleAi();
+                        foreach (var c in ai.TakeTurn(s, LocalPlayer).Where(c => c is SetResearchCommand or SetCivicCommand or EnqueueCommand or FoundCityCommand or MoveUnitCommand or BuildImprovementCommand))
+                            Submit(c);
+                        var r = Do(new EndTurnCommand());
+                        if (!r.Ok) return r.Error;
+                    }
                 }
+                finally { AsyncAiTurns = true; }
                 return null;
             }
             case "move-east":

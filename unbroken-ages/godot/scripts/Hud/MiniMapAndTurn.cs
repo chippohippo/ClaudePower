@@ -74,7 +74,7 @@ public partial class MiniMapAndTurn : VBoxContainer
         var p = s.Players[_root.LocalPlayer];
         (string Label, string Hint, Action? Do) state =
             s.Victory.AwaitingChoice ? ("GAME OVER", "", null) :
-            p.HasEndedTurn ? ("PLEASE WAIT", TurnPhases.Describe(s), null) :
+            p.HasEndedTurn ? ("PLEASE WAIT", _root.AiBusy ? "The other civilizations are moving…" : TurnPhases.Describe(s), null) :
             !s.Cities.Any(c => c.Owner == p.Id) && s.Units.FirstOrDefault(u => u.Owner == p.Id && s.Db.Units[u.DefIndex].FoundsCity) is { } settler
                 ? ("FOUND A CITY", "Select your Settler and press B.", () => _root.SelectUnit(settler.Id)) :
             p.CurrentTech < 0 && s.Db.Techs.Any(t => ResearchSystem.CanResearch(p, t)) ? ("CHOOSE RESEARCH", "Pick what your scholars study next.", () => _root.ToggleByKey("T")) :

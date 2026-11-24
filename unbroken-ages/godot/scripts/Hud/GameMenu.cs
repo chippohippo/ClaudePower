@@ -36,6 +36,11 @@ public partial class GameMenu : PanelContainer
             v.AddChild(row);
         }
         v.AddChild(new HSeparator());
+        var tips = new CheckButton { Text = "Advisor tips", ButtonPressed = _root.Advisor.Enabled };
+        tips.Toggled += on => _root.Advisor.SetEnabled(on);
+        v.AddChild(tips);
+        Add(v, "Start the advisor's lessons over", () => { _root.Advisor.Reset(); tips.ButtonPressed = true; Visible = false; });
+        v.AddChild(new HSeparator());
         Add(v, "Quit to desktop", () => GetTree().Quit());
         Visible = false;
     }

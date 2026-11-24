@@ -21,7 +21,10 @@ you normally would, and tell us where it confuses you, bores you or breaks.
 | City-states | -1 (one per civilization) | |
 | Nation | any. The dossier shows how each plays | Egypt, Rome or England are gentle starts; Venice and the Haudenosaunee are for a second game |
 
-Your Settler is selected: press **B** to found your capital, then follow the big button at the bottom right. It always
+Your Settler is selected: press **B** to found your capital. The **advisor** at the top of the screen then teaches the
+first game a step at a time (research, production, exploring, builders, expanding, districts, neighbours, government, war,
+trade); each tip leaves when you have done what it says. The Esc menu turns it off or starts the lessons over. Then follow
+the big button at the bottom right. It always
 names the next thing that needs you (research, a civic, production, a unit waiting for orders) and becomes **NEXT TURN**
 when nothing does.
 
@@ -63,11 +66,8 @@ when nothing does.
 
 ## Known limitations
 
-- **No tutorial yet.** The turn button, the tooltips and the dossiers carry the teaching.
 - **Aircraft are mobile ranged units.** They fly over any tile and strike up to 3–4 tiles away. There are no carriers,
   air bases or interception yet.
-- **The AI moves when you end the turn.** The screen pauses for a moment (usually well under a second; longer on huge
-  maps late in the game).
 - **Loading is single-player.** In multiplayer, the host saves and restarts from the save.
 - **Balance is from simulations.** Eight AI civilizations over 300 turns typically leave 3–4 standing. Human players will
   find things the AI does not.
