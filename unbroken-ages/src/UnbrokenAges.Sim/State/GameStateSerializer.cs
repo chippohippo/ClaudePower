@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 16;
+    public const int Version = 17;
 
     public static byte[] Serialize(GameState s)
     {
@@ -151,6 +151,8 @@ public static class GameStateSerializer
             WriteList(w, p.Beliefs); WriteArray<int>(w, p.GreatPersonPoints); WriteArray<int>(w, p.GreatPeopleRecruited);
             w.Write(p.EraScore); w.Write(p.AgeEra); w.Write(p.WarWeariness);
             w.Write(p.CityStateIndex); w.Write(p.Influence); w.Write(p.EnvoyTokens); w.Write(p.EnvoysEarned); WriteList(w, p.Envoys); w.Write(p.Suzerain);
+            w.Write(p.Spies.Count);
+            foreach (var spy in p.Spies) { w.Write(spy.Id); w.Write(spy.Name); w.Write(spy.Level); w.Write(spy.CityId); w.Write((byte)spy.Mission); w.Write(spy.TurnsLeft); }
         }
         foreach (var c in s.Cities) { w.Write(c.Religion); WriteFx(w, c.ReligionProgress); w.Write(c.ReligionCandidate); }
         foreach (var u in s.Units) { w.Write(u.Experience); WriteList(w, u.Promotions); }
@@ -349,6 +351,10 @@ public static class GameStateSerializer
             p.GreatPeopleRecruited = new int[7]; ReadArray(r, p.GreatPeopleRecruited);
             p.EraScore = r.ReadInt32(); p.AgeEra = r.ReadInt32(); p.WarWeariness = r.ReadInt32();
             p.CityStateIndex = r.ReadInt32(); p.Influence = r.ReadInt32(); p.EnvoyTokens = r.ReadInt32(); p.EnvoysEarned = r.ReadInt32(); p.Envoys = ReadList(r); p.Suzerain = r.ReadInt32();
+            int spies = r.ReadInt32();
+            for (int k = 0; k < spies; k++)
+                p.Spies.Add(new SpyState { Id = r.ReadInt32(), Name = r.ReadString(), Level = r.ReadInt32(), CityId = r.ReadInt32(),
+                                           Mission = (Systems.SpyMission)r.ReadByte(), TurnsLeft = r.ReadInt32() });
         }
         foreach (var c in s.Cities) { c.Religion = r.ReadInt32(); c.ReligionProgress = ReadFx(r); c.ReligionCandidate = r.ReadInt32(); }
         foreach (var u in s.Units) { u.Experience = r.ReadInt32(); u.Promotions = ReadList(r); }

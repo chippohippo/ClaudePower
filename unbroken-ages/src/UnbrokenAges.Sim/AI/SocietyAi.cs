@@ -45,6 +45,8 @@ public static class SocietyAi
 
         foreach (var cmd in Missionaries(s, p)) yield return cmd;
 
+        foreach (var cmd in Spies(s, p)) yield return cmd;
+
         // Traders: open the best route from where they stand; a trader in a city with nowhere to go walks to the capital.
         foreach (var trader in s.Units.Where(u => u.Owner == p.Id && TradeSystem.IsTrader(s.Db.Units[u.DefIndex])).ToList())
         {
@@ -64,6 +66,64 @@ public static class SocietyAi
         foreach (var u in s.Units.Where(u => u.Owner == p.Id).ToList())
             if (SocietySystem.CanPromote(s, u) && SocietySystem.Available(s, u).OrderByDescending(Score).ThenBy(x => x.Index).FirstOrDefault() is { } promo)
                 yield return new PromoteUnitCommand { Player = p.Id, UnitId = u.Id, Promotion = promo.Index };
+    }
+
+    /// <summary>
+    /// Idle spies: one guards the capital once there are two (or at war); the rest steal technology from the most advanced
+    /// rival they can reach, fabricate scandals where a rival narrowly holds a city-state, or siphon funds from the richest city.
+    /// </summary>
+    private static IEnumerable<GameCommand> Spies(GameState s, PlayerState p)
+    {
+        var idle = p.Spies.Where(x => x.Mission == SpyMission.None).OrderBy(x => x.Id).ToList();
+        if (idle.Count == 0) yield break;
+        bool atWar = MilitaryAi.MajorEnemies(s, p.Id).Count > 0;
+        var capital = ReligionSystem.HolyCity(s, p);
+        bool guarded = p.Spies.Any(x => x.Mission == SpyMission.Counterintelligence);
+        var taken = new HashSet<(int, SpyMission)>(p.Spies.Where(x => x.Mission != SpyMission.None).Select(x => (x.CityId, x.Mission)));
+        foreach (var spy in idle)
+        {
+            if (!guarded && capital != null && (p.Spies.Count >= 2 || atWar))
+            {
+                guarded = true;
+                yield return new AssignSpyCommand { Player = p.Id, SpyId = spy.Id, CityId = capital.Id, Mission = SpyMission.Counterintelligence };
+                continue;
+            }
+            var order = PickMission(s, p, taken);
+            if (order is not var (cityId, mission)) continue;
+            taken.Add((cityId, mission));
+            yield return new AssignSpyCommand { Player = p.Id, SpyId = spy.Id, CityId = cityId, Mission = mission };
+        }
+    }
+
+    private static (int City, SpyMission Mission)? PickMission(GameState s, PlayerState p, HashSet<(int, SpyMission)> taken)
+    {
+        bool Known(CityState c) => c.Tile < p.Revealed.Length && p.Revealed[c.Tile];
+        bool Ok(CityState c, SpyMission m) => !taken.Contains((c.Id, m)) && EspionageSystem.CanAssign(s, p, -1, c.Id, m) is var why &&
+                                             (why == null || why == "No such spy.");
+        // Steal from the most advanced rival.
+        var rivals = s.Players.Where(o => o.IsMajor && o.IsAlive && o.Id != p.Id && !DiplomacySystem.SameTeam(s, o.Id, p.Id))
+                              .OrderByDescending(o => o.Techs.Count(x => x)).ThenBy(o => o.Id).ToList();
+        foreach (var rival in rivals)
+        {
+            if (EspionageSystem.StealableTech(s, p, rival) == null) continue;
+            var city = s.CitiesOf(rival.Id).Where(Known).OrderBy(c => EspionageSystem.Defence(s, c)).ThenByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+            if (city != null && Ok(city, SpyMission.StealTechnology)) return (city.Id, SpyMission.StealTechnology);
+        }
+        // A scandal where a rival holds a city-state we nearly lead.
+        foreach (var cs in CityStateSystem.CityStates(s))
+        {
+            if (cs.Suzerain < 0 || cs.Suzerain == p.Id) continue;
+            int theirs = CityStateSystem.EnvoysFrom(cs, cs.Suzerain), mine = CityStateSystem.EnvoysFrom(cs, p.Id);
+            if (mine == 0 || theirs - mine > 2) continue;
+            if (CityStateSystem.Capital(s, cs) is { } c && Known(c) && Ok(c, SpyMission.FabricateScandal)) return (c.Id, SpyMission.FabricateScandal);
+        }
+        // Otherwise siphon from the richest rival's biggest known city.
+        foreach (var rival in rivals.OrderByDescending(o => o.Gold.Raw).ThenBy(o => o.Id))
+        {
+            var city = s.CitiesOf(rival.Id).Where(Known).OrderByDescending(c => c.Population).ThenBy(c => c.Id).FirstOrDefault();
+            if (city != null && Ok(city, SpyMission.SiphonFunds)) return (city.Id, SpyMission.SiphonFunds);
+        }
+        return null;
     }
 
     public static PlayerState? BestEnvoyTarget(GameState s, PlayerState p)

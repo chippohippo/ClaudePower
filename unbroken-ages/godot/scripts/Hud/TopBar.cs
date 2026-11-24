@@ -32,7 +32,7 @@ public partial class TopBar : PanelContainer
             ShadowColor = new Color(0, 0, 0, 0.45f), ShadowSize = 8,
         });
         var h = new HBoxContainer();
-        h.AddThemeConstantOverride("separation", 22);
+        h.AddThemeConstantOverride("separation", 16);
         AddChild(h);
         h.AddChild(_scienceBox = Icons.Stat("science", UiTheme.Science, "", out _science, 20, "Science per turn"));
         h.AddChild(Icons.Stat("culture", UiTheme.Culture, "", out _culture, 20, "Culture per turn"));
@@ -53,14 +53,18 @@ public partial class TopBar : PanelContainer
         _turn = new Label();
         _turn.AddThemeColorOverride("font_color", UiTheme.GoldBright);
         h.AddChild(_turn);
-        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("faith", "G", "Society (G): government and policy cards, faith, great people, ages"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
+        // The screens, as compact icon-and-key buttons close together so the bar fits 1600 px with every screen on it.
+        var keys = new HBoxContainer();
+        keys.AddThemeConstantOverride("separation", 3);
+        h.AddChild(keys);
+        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("faith", "G", "Society (G): government and policy cards, faith, great people, ages"), ("gate", "E", "Espionage (E): your spies and their missions"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
         {
             var b = Icons.Button(icon, key, UiTheme.GoldBright, () => _root.ToggleByKey(key), tip);
-            b.CustomMinimumSize = new Vector2(46, 28);
-            h.AddChild(b);
+            b.CustomMinimumSize = new Vector2(38, 28);
+            keys.AddChild(b);
         }
         var menu = Icons.Button("turns", "Menu", UiTheme.GoldBright, _root.ToggleMenu, "Menu: save, load, sound (Esc)");
-        h.AddChild(menu);
+        keys.AddChild(menu);
     }
 
     public void Refresh()

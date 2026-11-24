@@ -153,6 +153,8 @@ public sealed class PlayerState
     /// <summary>City-states: envoys each player has sent here (indexed by player id), and the current suzerain (-1 = none).</summary>
     public List<int> Envoys = new();
     public int Suzerain = -1;
+    /// <summary>Spies (EspionageSystem).</summary>
+    public List<SpyState> Spies = new();
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
@@ -223,6 +225,17 @@ public sealed class OutpostState
     public int HarvestTile = -1;
     /// <summary>Tiles this outpost claimed (released if it is razed).</summary>
     public List<int> Tiles = new();
+}
+
+/// <summary>A spy: codename, rank (0 Recruit … 3 Master Spy), where it works and on what, and turns until the mission resolves.</summary>
+public sealed class SpyState
+{
+    public int Id;
+    public string Name = "";
+    public int Level;
+    public int CityId = -1;
+    public Systems.SpyMission Mission;
+    public int TurnsLeft;
 }
 
 /// <summary>A trade route: who runs it, between which cities, for how long, along which tiles.</summary>

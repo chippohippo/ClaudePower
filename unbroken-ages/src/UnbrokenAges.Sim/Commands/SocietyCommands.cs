@@ -96,3 +96,15 @@ public sealed class EstablishTradeRouteCommand : GameCommand
     protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(DestinationCity); }
     protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); DestinationCity = r.ReadInt32(); }
 }
+
+/// <summary>Send a spy to a city on a mission (Counterintelligence for your own cities), or recall it (Mission = None).</summary>
+public sealed class AssignSpyCommand : GameCommand
+{
+    public int SpyId, CityId = -1;
+    public SpyMission Mission;
+    public override CommandType Type => CommandType.AssignSpy;
+    public override string? Validate(GameState s) => Issuer(s) is not { } p ? "Not a player." : EspionageSystem.CanAssign(s, p, SpyId, CityId, Mission);
+    public override void Apply(GameState s, List<GameEvent> events) => EspionageSystem.Assign(s, s.Players[Player], SpyId, CityId, Mission);
+    protected override void WritePayload(BinaryWriter w) { w.Write(SpyId); w.Write(CityId); w.Write((byte)Mission); }
+    protected override void ReadPayload(BinaryReader r) { SpyId = r.ReadInt32(); CityId = r.ReadInt32(); Mission = (SpyMission)r.ReadByte(); }
+}

@@ -40,6 +40,7 @@ public partial class GameRoot : Node3D
     private LobbyScreen _lobby = null!;
     private DivergencePanel _divergence = null!;
     private SocietyPanel _society = null!;
+    private EspionagePanel _espionage = null!;
     private ChroniclePanel _chronicle = null!;
     private DiplomacyPanel _diplomacy = null!;
     private VictoryPanel _victory = null!;
@@ -109,6 +110,8 @@ public partial class GameRoot : Node3D
         ui.AddChild(_divergence);
         _society = new SocietyPanel(this) { Visible = false };
         ui.AddChild(_society);
+        _espionage = new EspionagePanel(this) { Visible = false };
+        ui.AddChild(_espionage);
         _chronicle = new ChroniclePanel(this) { Visible = false };
         ui.AddChild(_chronicle);
         _diplomacy = new DiplomacyPanel(this) { Visible = false };
@@ -396,6 +399,7 @@ public partial class GameRoot : Node3D
             _turnCorner.Refresh();
             if (_research.Visible) _research.Refresh();
             if (_society.Visible) _society.Refresh();
+            if (_espionage.Visible) _espionage.Refresh();
         }
         _victory.Watch();
         _seaTimer -= delta;
@@ -454,7 +458,7 @@ public partial class GameRoot : Node3D
                 if (_menu.Visible) _menu.Visible = false;
                 else if (_lens.IsActive) _lens.Hide();
                 else if (_overlay.ResourceLens) _overlay.ResourceLens = false;
-                else if (_research.Visible || _diplomacy.Visible || _chronicle.Visible || _divergence.Visible || _society.Visible) CloseOverlaysExcept(null);
+                else if (_research.Visible || _diplomacy.Visible || _chronicle.Visible || _divergence.Visible || _society.Visible || _espionage.Visible) CloseOverlaysExcept(null);
                 else if (SelectedUnit >= 0 || _cityPanel.Visible) { SelectedUnit = -1; _selectedTile = -1; _cityPanel.Visible = false; _renderedVersion = -1; }
                 else _menu.Visible = true;
                 break;
@@ -513,20 +517,21 @@ public partial class GameRoot : Node3D
     /// <summary>Full-screen overlays are exclusive: opening one closes the others.</summary>
     public void CloseOverlaysExcept(Control? keep)
     {
-        foreach (Control panel in new Control[] { _research, _diplomacy, _chronicle, _divergence, _society })
+        foreach (Control panel in new Control[] { _research, _diplomacy, _chronicle, _divergence, _society, _espionage })
             if (panel != keep) panel.Visible = false;
     }
 
     public void ToggleResearch() { _research.Visible = !_research.Visible; if (_research.Visible) { CloseOverlaysExcept(_research); _research.Refresh(); } }
     public void TogglePanel(string which)
     {
-        Control panel = which switch { "P" => _diplomacy, "C" => _chronicle, "V" => _divergence, "G" => _society, _ => _research };
+        Control panel = which switch { "P" => _diplomacy, "C" => _chronicle, "V" => _divergence, "G" => _society, "E" => _espionage, _ => _research };
         panel.Visible = !panel.Visible;
         if (panel.Visible) CloseOverlaysExcept(panel);
         if (panel.Visible) (panel as DiplomacyPanel)?.Refresh();
         if (panel.Visible) (panel as ChroniclePanel)?.Refresh();
         if (panel.Visible) (panel as DivergencePanel)?.Refresh();
         if (panel.Visible) (panel as SocietyPanel)?.Refresh();
+        if (panel.Visible) (panel as EspionagePanel)?.Refresh();
         if (panel.Visible) (panel as ResearchPanel)?.Refresh();
     }
 }

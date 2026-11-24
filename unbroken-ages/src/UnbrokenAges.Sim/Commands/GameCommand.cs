@@ -43,6 +43,7 @@ public enum CommandType : byte
     PromoteUnit = 95,
     SendEnvoy = 96,
     EstablishTradeRoute = 97,
+    AssignSpy = 98,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -141,6 +142,7 @@ public abstract class GameCommand
         CommandType.PromoteUnit => new PromoteUnitCommand(),
         CommandType.SendEnvoy => new SendEnvoyCommand(),
         CommandType.EstablishTradeRoute => new EstablishTradeRouteCommand(),
+        CommandType.AssignSpy => new AssignSpyCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

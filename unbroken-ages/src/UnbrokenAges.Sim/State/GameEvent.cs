@@ -92,6 +92,12 @@ public enum GameEventType : byte
     TradeRouteEnded,
     /// <summary>Player = the route's owner, Value = the plunderer.</summary>
     TradeRoutePlundered,
+    // ----- Espionage -----
+    SpyRecruited,
+    /// <summary>Player = the spy's owner, Value = the victim.</summary>
+    SpyMissionSucceeded,
+    SpyMissionFailed,
+    SpyCaught,
 }
 
 /// <summary>
