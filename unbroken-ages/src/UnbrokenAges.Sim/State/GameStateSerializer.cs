@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 21;
+    public const int Version = 23;
 
     public static byte[] Serialize(GameState s)
     {
@@ -187,6 +187,31 @@ public static class GameStateSerializer
         // Space (version 21).
         w.Write(s.Satellites.Count);
         foreach (var sat in s.Satellites) { w.Write(sat.Id); w.Write(sat.Owner); w.Write(sat.Kind); w.Write(sat.Center); w.Write(sat.TurnsLeft); }
+        // Deals, alliances, liberation, patronage and dilemmas (version 22).
+        foreach (var rel in s.Relations) w.Write(rel.DeclaredBy);
+        w.Write(s.Goodwill.Count);
+        foreach (var g in s.Goodwill) { w.Write(g.Holder); w.Write(g.Against); WriteFx(w, g.Amount); w.Write(g.Turn); w.Write(g.Reason); }
+        w.Write(s.Deals.Count);
+        foreach (var d in s.Deals)
+        {
+            w.Write(d.Id); w.Write(d.From); w.Write(d.To); w.Write(d.Turn);
+            w.Write(d.Items.Count);
+            foreach (var i in d.Items) { w.Write((byte)i.Kind); w.Write(i.Giver); w.Write(i.Amount); w.Write(i.Target); }
+        }
+        w.Write(s.Agreements.Count);
+        foreach (var g in s.Agreements) { w.Write(g.Id); w.Write((byte)g.Kind); w.Write(g.From); w.Write(g.To); w.Write(g.Amount); w.Write(g.TurnsLeft); }
+        foreach (var c in s.Cities) w.Write(c.EverLiberated);
+        foreach (var p in s.Players)
+        {
+            w.Write(p.Patronages);
+            w.Write(p.Dilemma != null);
+            if (p.Dilemma is { } d) { w.Write(d.Def); w.Write(d.CityId); w.Write(d.Other); w.Write(d.Deadline); }
+            WriteList(w, p.DilemmasSeen);
+            w.Write(p.TimedEffects.Count);
+            foreach (var t in p.TimedEffects) { w.Write(t.Dilemma); w.Write(t.Option); w.Write(t.CityId); w.Write(t.TurnsLeft); }
+        }
+        // Affinities (version 23).
+        foreach (var p in s.Players) { WriteArray<int>(w, p.AffinityPoints); WriteArray<int>(w, p.AffinityLevels); w.Write(p.LiberationPoints); }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -408,6 +433,38 @@ public static class GameStateSerializer
         int satellites = r.ReadInt32();
         for (int i = 0; i < satellites; i++)
             s.Satellites.Add(new SatelliteState { Id = r.ReadInt32(), Owner = r.ReadInt32(), Kind = r.ReadInt32(), Center = r.ReadInt32(), TurnsLeft = r.ReadInt32() });
+        foreach (var rel in s.Relations) rel.DeclaredBy = r.ReadInt32();
+        int goodwill = r.ReadInt32();
+        for (int i = 0; i < goodwill; i++)
+            s.Goodwill.Add(new Grievance { Holder = r.ReadInt32(), Against = r.ReadInt32(), Amount = ReadFx(r), Turn = r.ReadInt32(), Reason = r.ReadString() });
+        int deals = r.ReadInt32();
+        for (int i = 0; i < deals; i++)
+        {
+            var d = new DealState { Id = r.ReadInt32(), From = r.ReadInt32(), To = r.ReadInt32(), Turn = r.ReadInt32() };
+            int n = r.ReadInt32();
+            for (int k = 0; k < n; k++)
+                d.Items.Add(new DealItemState { Kind = (Systems.DealItemKind)r.ReadByte(), Giver = r.ReadInt32(), Amount = r.ReadInt32(), Target = r.ReadInt32() });
+            s.Deals.Add(d);
+        }
+        int agreements = r.ReadInt32();
+        for (int i = 0; i < agreements; i++)
+            s.Agreements.Add(new AgreementState { Id = r.ReadInt32(), Kind = (Systems.DealItemKind)r.ReadByte(), From = r.ReadInt32(), To = r.ReadInt32(), Amount = r.ReadInt32(), TurnsLeft = r.ReadInt32() });
+        foreach (var c in s.Cities) c.EverLiberated = r.ReadBoolean();
+        foreach (var p in s.Players)
+        {
+            p.Patronages = r.ReadInt32();
+            if (r.ReadBoolean()) p.Dilemma = new PendingDilemmaState { Def = r.ReadInt32(), CityId = r.ReadInt32(), Other = r.ReadInt32(), Deadline = r.ReadInt32() };
+            p.DilemmasSeen = ReadList(r);
+            int timed = r.ReadInt32();
+            for (int k = 0; k < timed; k++)
+                p.TimedEffects.Add(new TimedEffectState { Dilemma = r.ReadInt32(), Option = r.ReadInt32(), CityId = r.ReadInt32(), TurnsLeft = r.ReadInt32() });
+        }
+        foreach (var p in s.Players)
+        {
+            p.AffinityPoints = new int[r.ReadInt32()]; ReadArrayBody(r, p.AffinityPoints);
+            p.AffinityLevels = new int[r.ReadInt32()]; ReadArrayBody(r, p.AffinityLevels);
+            p.LiberationPoints = r.ReadInt32();
+        }
         return s;
     }
 

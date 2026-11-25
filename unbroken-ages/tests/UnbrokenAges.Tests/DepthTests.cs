@@ -203,6 +203,7 @@ public class ChronicleTests
         Assert.Equal(1700, Calendar.Year(196));
         Assert.Equal(1950, Calendar.Year(246));
         Assert.Equal(2000, Calendar.Year(296));
+        Assert.InRange(Calendar.Year(500), 2400, 2410);                 // the tree runs to AD 2400
         Assert.Equal("2340 BC", Calendar.Format(-2340));
         Assert.Equal("AD 1850", Calendar.Format(1850));
         Assert.True(Calendar.Year(76, 150) < -1000);            // slower game speed → fewer years per turn

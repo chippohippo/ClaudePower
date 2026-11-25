@@ -165,6 +165,19 @@ public sealed class PlayerState
     public List<int> CompletedProjects = new();
     /// <summary>Exodus stage reached: 1 First Orbit, 2 Moon Base, 3 Mars Colony, 4 the ark departs.</summary>
     public int ExodusStage;
+    /// <summary>A historic dilemma awaiting this player's choice (DilemmaSystem), or null.</summary>
+    public PendingDilemmaState? Dilemma;
+    /// <summary>Dilemmas this player has faced (definition indices), so each comes at most once.</summary>
+    public List<int> DilemmasSeen = new();
+    /// <summary>Lasting consequences of past choices: modifiers in force for a few more turns.</summary>
+    public List<TimedEffectState> TimedEffects = new();
+    /// <summary>Great people bought with gold or faith (each patronage costs more than the last).</summary>
+    public int Patronages;
+    /// <summary>Affinity points and levels, indexed like the Divergences (AffinitySystem). Levels follow from points.</summary>
+    public int[] AffinityPoints = new int[3];
+    public int[] AffinityLevels = new int[3];
+    /// <summary>Diplomatic victory points earned by liberating cities (capped: liberation is a gesture, not a farm).</summary>
+    public int LiberationPoints;
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);
@@ -217,6 +230,8 @@ public sealed class CityState
     /// <summary>Pressure toward converting to <see cref="ReligionCandidate"/>.</summary>
     public Fx ReligionProgress;
     public int ReligionCandidate = -1;
+    /// <summary>Once liberated, a city earns no second diplomatic point for being liberated again.</summary>
+    public bool EverLiberated;
 
     public DistrictInstance? FindDistrict(int defIndex) => Districts.Find(d => d.DefIndex == defIndex);
     public bool HasBuilding(int buildingIndex) => Districts.Any(d => d.Buildings.Contains(buildingIndex));
@@ -235,6 +250,56 @@ public sealed class OutpostState
     public int HarvestTile = -1;
     /// <summary>Tiles this outpost claimed (released if it is razed).</summary>
     public List<int> Tiles = new();
+}
+
+/// <summary>One line of a deal: who gives what (gold, gold per turn, favor, a strategic resource, a city, open borders) or a joint item (peace, alliance, research agreement).</summary>
+public sealed class DealItemState
+{
+    public Systems.DealItemKind Kind;
+    public int Giver;
+    public int Amount;
+    /// <summary>City id (City) or resource definition (Resource); -1 otherwise.</summary>
+    public int Target = -1;
+}
+
+/// <summary>An offer on the table from one civilization to another, answered by the recipient (DealSystem).</summary>
+public sealed class DealState
+{
+    public int Id;
+    public int From;
+    public int To;
+    public int Turn;
+    public List<DealItemState> Items = new();
+}
+
+/// <summary>A deal that runs on: gold paid every turn, or a research agreement maturing.</summary>
+public sealed class AgreementState
+{
+    public int Id;
+    public Systems.DealItemKind Kind;
+    public int From;
+    public int To;
+    public int Amount;
+    public int TurnsLeft;
+}
+
+/// <summary>A historic dilemma put to a player: which one, where (a city, -1 for the empire), and until when it waits.</summary>
+public sealed class PendingDilemmaState
+{
+    public int Def;
+    public int CityId = -1;
+    /// <summary>Another civilization the dilemma concerns (-1 none).</summary>
+    public int Other = -1;
+    public int Deadline;
+}
+
+/// <summary>A consequence in force: modifiers from a dilemma's choice, in one city or (CityId -1) every city, for a few more turns.</summary>
+public sealed class TimedEffectState
+{
+    public int Dilemma;
+    public int Option;
+    public int CityId = -1;
+    public int TurnsLeft;
 }
 
 /// <summary>A satellite: its owner, kind, the tile it orbits over, and turns until it falls.</summary>
@@ -417,6 +482,11 @@ public sealed class GameState
     public List<ChronicleEntry> Chronicle = new();
     public List<Relation> Relations = new();
     public List<Grievance> Grievances = new();
+    /// <summary>Goodwill: the mirror of grievances (gifts, liberations, help in war), itemized and fading the same way.</summary>
+    public List<Grievance> Goodwill = new();
+    /// <summary>Deals on the table and agreements still running (DealSystem).</summary>
+    public List<DealState> Deals = new();
+    public List<AgreementState> Agreements = new();
     public VictoryState Victory = new();
     /// <summary>Who moves in which order this turn (see TurnPhases).</summary>
     public List<int[]> TurnPhases = new();

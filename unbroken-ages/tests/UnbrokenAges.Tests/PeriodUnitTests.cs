@@ -9,7 +9,7 @@ public class PeriodUnitTests
         var db = TestWorld.Db;
         var chain = new List<string> { "UNIT_WARRIOR" };
         while (db.Units[chain[^1]].UpgradesTo.FirstOrDefault() is { } next) chain.Add(next);
-        Assert.Equal(new[] { "UNIT_WARRIOR", "UNIT_SWORDSMAN", "UNIT_MUSKETMAN", "UNIT_RIFLEMAN", "UNIT_INFANTRY", "UNIT_MECH_INFANTRY" }, chain);
+        Assert.Equal(new[] { "UNIT_WARRIOR", "UNIT_SWORDSMAN", "UNIT_MUSKETMAN", "UNIT_RIFLEMAN", "UNIT_INFANTRY", "UNIT_MECH_INFANTRY", "UNIT_AEGIS_TROOPER", "UNIT_SENTINEL_LANCE", "UNIT_TITAN_GUARD" }, chain);
         // Each step is stronger than the last, and the eras advance.
         for (int i = 1; i < chain.Count; i++) Assert.True(db.Units[chain[i]].Strength > db.Units[chain[i - 1]].Strength, chain[i]);
         Assert.Contains("UNIT_CROSSBOWMAN", db.Units["UNIT_ARCHER"].UpgradesTo);

@@ -45,5 +45,7 @@ public class ClientTextTests
         Assert.Null(VictorySystem.Headline(s));
         s.Victory = new VictoryState { Winner = 0, WinnerTeam = 0, Kind = VictoryKind.Ascension, Turn = 412 };
         Assert.Equal("Egypt wins an Ascension victory on turn 412.", VictorySystem.Headline(s));
+        s.Players[0].Divergence = s.Db.Divergences.IndexOf("DIVERGENCE_SYMBIONT");
+        Assert.Equal("Egypt wins the Transcendence victory (Harmony) on turn 412.", VictorySystem.Headline(s));
     }
 }

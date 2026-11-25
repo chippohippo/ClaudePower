@@ -29,11 +29,55 @@ Ideology (Divergence)            +6 / −8    same future / rival future (doc 08
 Agenda likes (each)                  +6     e.g. Taizu "Civil Over Martial": HighScience, Peaceful
 Agenda dislikes (each)               −8     e.g. Warmonger (declared a war in the last 50 turns)
 ```
-Agenda tags the engine evaluates today: `HighScience`, `Peaceful`, `Warmonger`, `HighLoyalty`, `CitiesInRevolt`. Unknown tags (e.g. `TradePartner`, which waits
+Agenda tags the engine evaluates today: `HighScience`, `Peaceful`, `Warmonger`, `HighLoyalty`, `CitiesInRevolt`, and the affinity
+agendas `Purity`, `Harmony`, `Supremacy` (a people whose primary affinity, or dominant one at level 3+, is that one; Huizong, Trajan and
+Kublai carry them). Unknown tags (e.g. `TradePartner`, which waits
 for the trade system) count as neutral, so data can name them early.
 
-## AI (baseline)
-It accepts every peace offer and offers peace as soon as the minimum war length passes. War planning arrives in roadmap item 9.
+Goodwill mirrors grievances: an itemized, fading list of what a people remembers in your favour (a fair deal, a city liberated, an
+ally who answered its call to arms, refugees taken in). New attitude lines:
+```
+Goodwill                           +Σ/5 (at most +20)
+Trading partners                     +3     a trade route runs between you
+A common foe                         +6     both at war with the same great power
+```
+
+## Deals (GDD §8.3)
+**Code:** [`DealSystem.cs`](../../src/UnbrokenAges.Sim/Systems/DealSystem.cs) · `ProposeDealCommand`, `RespondDealCommand` · tests [`DealTests.cs`](../../tests/UnbrokenAges.Tests/DealTests.cs)
+
+One civilization puts an offer on the table; the other accepts or rejects it within five turns. Everything is checked again on
+acceptance and applied at once.
+
+| Item | Given by | Effect |
+|---|---|---|
+| Gold | one side | paid now |
+| Gold per turn | one side | paid every turn for 30 turns; a payer who cannot pay breaks it (a grievance) |
+| Favor | one side | Diplomatic Favor (trade your votes) |
+| Strategic resource | one side | from the stockpile |
+| City | one side | ceded (never a capital, never the last city) |
+| Open borders | one side | passage for the other's armies |
+| Peace | both | ends the war (after the minimum war length) |
+| Alliance | both | passage both ways, no war between them, and a **call to arms**: when either is attacked, the other may answer with a *defensive war*, which needs no denunciation and earns no warmonger's reputation. At most two alliances each; leaving one is a grievance (`LeaveAllianceCommand`) |
+| Research agreement | both | each pays 100 + 50 × era gold; after 20 turns each gains 40% of the cost of the cheapest technology it could research; at most two running per civilization |
+
+**How a leader weighs a deal** (`DealSystem.Value`, in gold): what it receives minus what it gives. Resources are dear when its own
+stock is low and cheap at the cap; a city is worth 60 + 30 per citizen + 40 per district (+200 for an original capital), and giving
+one costs double unless it goes back to its founders; peace is worth 60+ when losing or weary and −150 or less when clearly winning a
+young war; an alliance is refused below attitude +10; a research agreement is refused below attitude 0. It accepts when the value
+reaches **−2 × attitude** (friends forgive a small loss, the resentful want a premium). `DealSystem.GoldToBalance` is the
+"what would make this work" answer: the gold that would tip the scales, or −1 if none would. The deal screen and the AI read
+the same functions, so the verdict a player previews is the one the AI reaches.
+
+## Liberation
+`LiberateCityCommand` returns a city to the people who founded it (alive, and not at war with you): their grievances against you
+are wiped, they hold 50 goodwill, every other great power 5, and the first liberation of a city earns a **diplomatic victory point**
+(at most two in a game: liberation is a gesture, not a farm) and 3 era score. A liberated original capital becomes its people's capital again.
+
+## AI
+Peace: see [05/13](13-ai.md). Diplomacy beyond war and peace ([05/13 §Diplomacy](13-ai.md#diplomacy)): it answers offers with the
+deal screen's verdict, makes one offer a turn, answers calls to arms, opens borders to friends, denounces those it resents
+(attitude −20 or lower), leaves soured alliances and liberates cities for friends. It no longer starts wars on friends, and it
+counts a rival's free allies (half their strength) before attacking.
 
 ## Next
-Deals (gold, resources, tiles, cities, research agreements), vassals and liberation, World Congress (GDD §8.3–8.4), dynamic turn mode driven by the war graph (roadmap item 8).
+Vassals, tile swaps, joint wars and vote trading in deals; the client's deal table (the sim API is complete).

@@ -393,6 +393,7 @@
   },
   {
    "id": "POLICY_URBAN_PLANNING",
+   "affinity": { "DIVERGENCE_SOVEREIGN": 1 },
    "name": "Urban Planning",
    "slot": "Economic",
    "description": "+1 Production in every city.",
@@ -438,6 +439,7 @@
   },
   {
    "id": "POLICY_NATURAL_PHILOSOPHY",
+   "affinity": { "DIVERGENCE_SYMBIONT": 1 },
    "name": "Natural Philosophy",
    "slot": "Economic",
    "description": "+20% Science in cities with an Academy.",
@@ -498,6 +500,7 @@
   },
   {
    "id": "POLICY_RATIONALISM",
+   "affinity": { "DIVERGENCE_DISCARNATE": 1 },
    "name": "Rationalism",
    "slot": "Economic",
    "description": "+15% Science in every city of 6+ citizens.",

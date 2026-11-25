@@ -65,6 +65,8 @@ public enum ModifierEffect
     CompleteAscension,
     /// <summary>Unit combat strength (policies, governments, beliefs): <c>target</c> = a unit class, or empty for every military unit.</summary>
     UnitStrength,
+    /// <summary>A flat yield for every tile of the city's land whose feature carries the tag in <c>target</c> (amount per tile).</summary>
+    CityYieldPerFeature,
 }
 
 public enum LeaningKind { Building, District, DistrictTag, FeatureTagInBorders, PowerKind, Population, CumulativeEmissions }
@@ -103,9 +105,41 @@ public abstract class Definition
     [JsonIgnore] public int Index { get; internal set; } = -1;
     [JsonIgnore] public string SourceMod { get; internal set; } = "";
 
+    /// <summary>
+    /// Affinity points this grants (affinity id → points): techs and civics when completed, buildings, districts, wonders and projects
+    /// when built, improvements when made, policies while slotted (every few turns). See AffinitySystem.
+    /// </summary>
+    public Dictionary<string, int> Affinity { get; init; } = new();
+    /// <summary>Only a civilization with at least <see cref="RequiresAffinityLevel"/> in this affinity may build or research it.</summary>
+    public string? RequiresAffinity { get; init; }
+    public int RequiresAffinityLevel { get; init; }
+
+    /// <summary>Points per affinity (indexed like Divergences); empty when it grants none.</summary>
+    [JsonIgnore] public int[] AffinityGrants { get; internal set; } = Array.Empty<int>();
+    /// <summary>The affinity it grants most of (-1 none).</summary>
+    [JsonIgnore] public int AffinityIndex { get; internal set; } = -1;
+    [JsonIgnore] public int RequiresAffinityIndex { get; internal set; } = -1;
+
     public bool HasTag(string tag) => Tags.Contains(tag, StringComparer.Ordinal);
 
     internal virtual void Link(LinkContext ctx) { }
+
+    internal void LinkAffinity(LinkContext ctx)
+    {
+        RequiresAffinityIndex = ctx.Resolve(ctx.Db.Divergences, RequiresAffinity, this, "requiresAffinity");
+        if (Affinity.Count == 0) return;
+        var grants = new int[ctx.Db.Divergences.Count];
+        foreach (var (id, points) in Affinity.OrderBy(k => k.Key, StringComparer.Ordinal))
+        {
+            int a = ctx.Resolve(ctx.Db.Divergences, id, this, "affinity");
+            if (a >= 0) grants[a] += points;
+        }
+        AffinityGrants = grants;
+        int best = -1;
+        for (int a = 0; a < grants.Length; a++)
+            if (grants[a] > 0 && (best < 0 || grants[a] > grants[best])) best = a;
+        AffinityIndex = best;
+    }
 }
 
 // ----- Map ---------------------------------------------------------------------------------------
@@ -714,8 +748,14 @@ public abstract class ProgressNodeDef : Definition
     public int BoostPercent { get; init; } = 40;
     /// <summary>Divergence branch this node belongs to (null = shared by everyone).</summary>
     public string? Divergence { get; init; }
-    /// <summary>Researching a doctrine commits the player to its Divergence and locks every other branch forever.</summary>
+    /// <summary>Researching a doctrine commits the player to its Divergence as its primary affinity (the choice point).</summary>
     public bool Doctrine { get; init; }
+    /// <summary>A victory enabler: only a civilization whose primary affinity is this node's Divergence may research it.</summary>
+    public bool Victory { get; init; }
+    /// <summary>Affinity-flavoured boost: once the researcher reaches this level in the affinity, the node costs BoostPercent less.</summary>
+    public string? BoostAffinity { get; init; }
+    public int BoostLevel { get; init; }
+    [JsonIgnore] public int BoostAffinityIndex { get; private set; } = -1;
     /// <summary>Flavour quote shown on the node and in the completion pop-up.</summary>
     public string? Quote { get; init; }
     /// <summary>Empire-wide modifiers granted once the node is completed.</summary>
@@ -729,7 +769,9 @@ public abstract class ProgressNodeDef : Definition
     {
         EraIndex = ctx.Resolve(ctx.Db.Eras, Era, this, "era", required: true);
         DivergenceIndex = ctx.Resolve(ctx.Db.Divergences, Divergence, this, "divergence");
+        BoostAffinityIndex = ctx.Resolve(ctx.Db.Divergences, BoostAffinity, this, "boostAffinity");
         if (Doctrine && DivergenceIndex < 0) ctx.Error(this, "a doctrine must name its 'divergence'.");
+        if (Victory && DivergenceIndex < 0) ctx.Error(this, "a victory node must name its 'divergence'.");
         foreach (var m in Modifiers) m.Link(ctx, this);
     }
 }
@@ -1069,6 +1111,18 @@ public sealed class DivergenceDef : Definition
     public string? AiPersonality { get; init; }
     public int AttitudeTowardSame { get; init; } = 6;
     public int AttitudeTowardOthers { get; init; } = -8;
+    /// <summary>The name of this affinity's victory (Ascension in the engine): "Transcendence", "Emancipation", "the Digital Singularity".</summary>
+    public string? VictoryName { get; init; }
+    /// <summary>Unit tag marking this affinity's units: they kill for its points and draw its level's strength bonus.</summary>
+    public string? UnitTag { get; init; }
+    /// <summary>Its units fight with +1 strength per this many levels the owner holds (0 = none).</summary>
+    public int LevelsPerUnitStrength { get; init; }
+    /// <summary>Cities defend with +1 strength per this many levels (0 = none).</summary>
+    public int LevelsPerCityDefense { get; init; }
+    /// <summary>Its units heal this much more every turn, anywhere (regeneration).</summary>
+    public int UnitHealPerTurn { get; init; }
+    /// <summary>Identity effects that switch on as the owner's level in this affinity rises (committed or not).</summary>
+    public List<AffinityLevelDef> Levels { get; init; } = new();
 
     [JsonIgnore] public int DoctrineTechIndex { get; private set; } = -1;
     [JsonIgnore] public int AscensionProjectIndex { get; private set; } = -1;
@@ -1076,6 +1130,8 @@ public sealed class DivergenceDef : Definition
     internal override void Link(LinkContext ctx)
     {
         DoctrineTechIndex = ctx.Resolve(ctx.Db.Techs, DoctrineTech, this, "doctrineTech", required: true);
+        foreach (var level in Levels)
+            foreach (var m in level.Modifiers) m.Link(ctx, this);
         AscensionProjectIndex = ctx.Resolve(ctx.Db.Projects, AscensionProject, this, "ascensionProject");
         foreach (var m in Modifiers) m.Link(ctx, this);
         foreach (var l in Leanings)
@@ -1103,6 +1159,14 @@ public sealed class DivergenceDef : Definition
         ctx.Error(this, message);
         return -1;
     }
+}
+
+/// <summary>Identity effects that hold in every city of a civilization at or above this level in the affinity.</summary>
+public sealed class AffinityLevelDef
+{
+    public int Level { get; init; }
+    public string? Description { get; init; }
+    public List<ModifierDef> Modifiers { get; init; } = new();
 }
 
 // ----- Industry (production chains) ----------------------------------------------------------------------
@@ -1273,6 +1337,30 @@ public sealed class WorldRulesDef : Definition
     public CombatRules Combat { get; init; } = new();
     public VictoryRules Victory { get; init; } = new();
     public OutpostRules Outposts { get; init; } = new();
+    public AffinityRules Affinity { get; init; } = new();
+}
+
+/// <summary>Affinity tuning (AffinitySystem): level thresholds and the soft exclusivity between affinities.</summary>
+public sealed class AffinityRules
+{
+    /// <summary>Cumulative points for levels 1, 2, 3 … (at most 20 levels).</summary>
+    public List<int> LevelThresholds { get; init; } = new() { 3, 7, 12, 18, 25, 33, 42, 52, 63, 75, 88, 102, 117, 133, 150, 168, 187, 207, 228, 250 };
+    /// <summary>Tagged techs of an affinity cost this much less per level you hold in it…</summary>
+    public int DiscountPercentPerLevel { get; init; } = 2;
+    public int MaxDiscountPercent { get; init; } = 25;
+    /// <summary>…and this much more per level your dominant affinity leads it by.</summary>
+    public int GapPenaltyPercentPerLevel { get; init; } = 4;
+    public int MaxGapPenaltyPercent { get; init; } = 40;
+    /// <summary>Once a primary affinity is chosen, the other affinities' tagged techs cost this much more.</summary>
+    public int CommittedPenaltyPercent { get; init; } = 50;
+    /// <summary>Slotted policies with affinity grant their points every this many turns.</summary>
+    public int PolicyInterval { get; init; } = 10;
+    /// <summary>Points for a kill by a unit of the affinity.</summary>
+    public int PointsPerKill { get; init; } = 1;
+    /// <summary>Attitude between peoples whose dominant affinities (both at least <see cref="KindredLevel"/>) agree or differ.</summary>
+    public int KindredLevel { get; init; } = 3;
+    public int KindredAttitude { get; init; } = 3;
+    public int RivalAttitude { get; init; } = -3;
 }
 
 // ----- Chronicle --------------------------------------------------------------------------------------

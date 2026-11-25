@@ -126,6 +126,7 @@ public sealed class BuildImprovementCommand : GameCommand
         map.SetFlag(u.Tile, TileFlags.Pillaged, false);
         if (--u.Charges <= 0) s.RemoveUnit(u);
         events.Add(new GameEvent(GameEventType.ImprovementBuilt, Player, Tile: u.Tile, Def: Improvement, Detail: def.Name));
+        AffinitySystem.OnImprovementBuilt(s, Player, Improvement, events);
     }
     protected override void WritePayload(BinaryWriter w) { w.Write(UnitId); w.Write(Improvement); }
     protected override void ReadPayload(BinaryReader r) { UnitId = r.ReadInt32(); Improvement = r.ReadInt32(); }

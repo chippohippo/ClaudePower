@@ -7,7 +7,7 @@ tests [`VictoryTests.cs`](../../tests/UnbrokenAges.Tests/VictoryTests.cs)
 ## Victories built so far
 | Victory | Condition | Checked |
 |---|---|---|
-| **Ascension** | First civilization to complete its Divergence's final project ([08 §5](../08-divergence-tech-tree.md)) | after every command and at turn end |
+| **Ascension** (the affinity victories) | First civilization to complete its primary affinity's final project: **Emancipation** (Purity), **Transcendence** (Harmony), **the Digital Singularity** (Supremacy). Each needs the first stage (the branch's old Ascension project, after 10% of the land is remade), the Singularity-era capstone and affinity level 10 ([08](../08-divergence-tech-tree.md#the-affinity-victories)). The headline names it ("Egypt wins the Transcendence victory (Harmony) on turn 452.") | after every command and at turn end |
 | **Hegemony** | One **team** holds every original capital (at least two exist, and every living civilization has founded one), **or** holds ≥ 60% of the world's population, counting only its cities above 50 loyalty, **and** ≥ 60% of all land | after every command (a capture ends the game at once) and at turn end |
 | **Score** | Highest score when the turn limit (`GameOptions.TurnLimit`, default 500, 0 = none) ends. Ties go to more technologies, then to the lower player id | at turn end |
 

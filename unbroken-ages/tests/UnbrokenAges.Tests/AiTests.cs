@@ -78,6 +78,11 @@ public class AiTests
         for (int i = 0; i < 3; i++) TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 4 + i, 12);
         TestWorld.Unit(s, 1, "UNIT_WARRIOR", 15, 12);
         int first = Math.Max(MilitaryAi.EarliestWarTurn, MilitaryAi.FirstWarTurn);   // a leader of ordinary temper
+        s.Turn = first;
+        Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[0]));                 // a one-city people is left to grow in the opening
+        TestWorld.City(s, 1, 15, 4);
+        TestWorld.City(s, 1, 15, 16);
+        TestWorld.City(s, 1, 22, 10);
         s.Turn = first - 1;
         Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[0]));
         s.Turn = first;

@@ -19,7 +19,7 @@ public enum VictoryFocus { Ascension, Culture, Spiritual, Concord, Exodus }
 public static class VictoryAi
 {
     public const int FocusFromTurn = 150;
-    private const double CultureAt = 0.5, SpiritualAt = 0.4, ConcordAt = 0.15, ExodusAt = 0.25;
+    private const double CultureAt = 0.5, SpiritualAt = 0.4, ConcordAt = 0.15, ExodusAt = 0.25, AscensionAt = 0.5;
 
     // Asked for every city every turn: computed once per player per turn (one cache per thread, as the AI may plan off the UI thread).
     [ThreadStatic] private static GameState? cachedState;
@@ -54,6 +54,9 @@ public static class VictoryAi
             p.HasTech(s.Db.Districts[port].PrereqTechIndex))
             Consider(VictoryFocus.Exodus, (double)p.ExodusStage / SpaceSystem.FinalStage + (TopScientist(s) == p.Id ? 0.3 : 0) +
                                           (NationAi.Personality(s, p, "science") - 1) / 2, ExodusAt);
+        // The affinity road is the default, but a people far along it (its steps, from the choice to the final project) holds to it.
+        if (VictorySystem.Enabled(s, VictoryKind.Ascension) && p.Divergence >= 0 && AffinitySystem.VictorySteps(s, p) is { Count: > 0 } steps)
+            Consider(VictoryFocus.Ascension, (double)steps.Count(x => x.Done) / steps.Count, AscensionAt);
         return best;
     }
 

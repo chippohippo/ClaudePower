@@ -191,7 +191,7 @@ void Simulate()
             }
         if (s.Turn % 25 == 0 && HasOpt("--nations"))
             Console.WriteLine($"   t{s.Turn}: " + string.Join(" | ", s.Players.Where(p => p.IsMajor).Select(p =>
-                $"{(p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name[..3] : "?")} c{s.CitiesOf(p.Id).Count()} o{s.Outposts.Count(o => o.Owner == p.Id)} u{s.Units.Count(u => u.Owner == p.Id)} g{p.Gold.FloorToInt()} w{MilitaryAi.MajorEnemies(s, p.Id).Count}")));
+                $"{(p.CivIndex >= 0 ? db.Civilizations[p.CivIndex].Name[..3] : "?")} c{s.CitiesOf(p.Id).Count()} o{s.Outposts.Count(o => o.Owner == p.Id)} u{s.Units.Count(u => u.Owner == p.Id)} g{p.Gold.FloorToInt()} w{MilitaryAi.MajorEnemies(s, p.Id).Count} s{ResearchSystem.Rates(s, p.Id).Science} t{p.Techs.Count(x => x)} a{string.Join("/", p.AffinityLevels)}{(p.Divergence >= 0 ? "*" + p.Divergence : "")}")));
         if (s.Turn % 25 == 0)
             Console.WriteLine($"turn {s.Turn,4}: cities={s.Cities.Count} pop={s.Cities.Sum(c => c.Population)} districts={s.Cities.Sum(c => c.Districts.Count - 1)} " +
                               $"techs={s.Players.Sum(p => p.Techs.Count(x => x))} CO2={s.Climate.Co2Ppm}ppm T=+{s.Climate.Temperature}°C phase={s.Climate.Phase} " +
@@ -207,6 +207,11 @@ void Simulate()
         {
             Console.WriteLine($"{db.Civilizations[p.CivIndex].Name}: era {s.PlayerEra(p)}, gold {p.Gold.FloorToInt()}, researching {(p.CurrentTech >= 0 ? db.Techs[p.CurrentTech].Id : "-")}");
             Console.WriteLine("  techs: " + string.Join(" ", db.Techs.Where(t => p.Techs[t.Index]).Select(t => t.Id[5..])));
+            Console.WriteLine($"  affinity: points {string.Join("/", p.AffinityPoints)} levels {string.Join("/", p.AffinityLevels)} primary {p.Divergence} focus {VictoryAi.Focus(s, p)} " +
+                              $"world remade {string.Join("/", DivergenceSystem.WorldShare(s).Select(x => x.FloorToInt()))}%");
+            Console.WriteLine("  victory: " + string.Join("; ", AffinitySystem.VictorySteps(s, p).Select(x => (x.Done ? "✓ " : "✗ ") + x.Label)) +
+                              $" · next {(AffinitySystem.NextVictoryProject(s, p) is var nv and >= 0 ? db.Projects[nv].Id + " in " + string.Join(", ", s.CitiesOf(p.Id).OrderByDescending(c => c.YieldsLastTurnProduction).Take(3).Select(c => $"{c.Name} ({c.YieldsLastTurnProduction.FloorToInt()} prod, {ProductionSystem.Validate(s, c, ProductionKind.Project, nv, -1) ?? "ok"}, progress {c.ProgressLedger.GetValueOrDefault(QueueItem.MakeKey(ProductionKind.Project, nv, -1)).FloorToInt()})")) : "-")}");
+            Console.WriteLine("  queues: " + string.Join(" | ", s.CitiesOf(p.Id).Where(c => c.Queue.Items.Count > 0).Take(8).Select(c => $"{c.Name}: {ProductionSystem.ItemName(db, c.Queue.Items[0])}")));
             var snap = LoyaltySystem.Snapshot(s);
             foreach (var c in s.CitiesOf(p.Id))
             {
@@ -265,10 +270,15 @@ void Simulate()
     Console.WriteLine("space: satellites " + s.Satellites.Count + " · " + string.Join(", ", s.Players.Where(p => p.IsMajor && p.IsAlive).Select(p => $"{p.Name} exodus {p.ExodusStage}")));
     Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
                       $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
+    Console.WriteLine("diplomacy: alliances [" + string.Join(", ", s.Relations.Where(r => r.Status == DiploStatus.Alliance).Select(r => $"{s.Players[r.A].Name}+{s.Players[r.B].Name}")) +
+                      $"] · agreements {s.Agreements.Count} · offers {s.Deals.Count} · great people bought " +
+                      string.Join(", ", s.Players.Where(p => p.IsMajor && p.Patronages > 0).Select(p => $"{p.Name} {p.Patronages}")) +
+                      $" · dilemmas answered {s.Players.Where(p => p.IsMajor).Sum(p => p.DilemmasSeen.Count)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
     Console.WriteLine();
-    Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");
-    foreach (var entry in s.Chronicle.TakeLast(12)) Console.WriteLine("  " + entry.Text);
+    bool whole = HasOpt("--chronicle");
+    Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries{(whole ? "" : ", last 12")})");
+    foreach (var entry in whole ? s.Chronicle : s.Chronicle.TakeLast(12)) Console.WriteLine("  " + entry.Text);
 }
 
 void Host()

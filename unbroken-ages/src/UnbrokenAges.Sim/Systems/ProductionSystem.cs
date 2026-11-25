@@ -75,7 +75,7 @@ public static class ProductionSystem
                 if (NationSystem.ForbidUnit(s, player, u) is { } forbidden) return forbidden;
                 if (ReligionSystem.IsMissionary(u) && player.Religion < 0) return "Found a religion first.";
                 if (u.FoundsCity && city.Population < 2) return "Settlers require population 2.";
-                return null;
+                return AffinitySystem.RequirementReason(s, player, u);
             }
             case ProductionKind.Building:
             {
@@ -90,11 +90,12 @@ public static class ProductionSystem
                 if (district.Pillaged) return "District is pillaged.";
                 foreach (int req in b.RequiresBuildingIndices)
                     if (!city.HasBuilding(req)) return $"Requires {db.Buildings[req].Name}.";
-                return null;
+                return AffinitySystem.RequirementReason(s, player, b);
             }
             case ProductionKind.District:
             {
                 if (def < 0 || def >= db.Districts.Count) return "Unknown district.";
+                if (AffinitySystem.RequirementReason(s, player, db.Districts[def]) is { } affinity) return affinity;
                 var failures = DistrictPlacement.Check(s, city, def, tile, new PlacementOptions(IgnoreQueueUid: queueUid));
                 return failures.Count == 0 ? null : $"Cannot place here: {string.Join(", ", failures)}.";
             }
@@ -104,6 +105,7 @@ public static class ProductionSystem
                 var p = db.Projects[def];
                 if (p.DivergenceIndex >= 0 && player.Divergence != p.DivergenceIndex) return $"Only {db.Divergences[p.DivergenceIndex].People} can build this.";
                 if (!player.HasTech(p.PrereqTechIndex)) return "Prerequisite not researched.";
+                if (AffinitySystem.RequirementReason(s, player, p) is { } affinity) return affinity;
                 if (p.RequiresWorldTransformedPercent > 0 && p.DivergenceIndex >= 0)
                 {
                     Fx share = DivergenceSystem.WorldShare(s)[p.DivergenceIndex];
@@ -259,6 +261,7 @@ public static class ProductionSystem
         events.Add(new GameEvent(GameEventType.ProductionCompleted, city.Owner, city.Id, item.Tile, item.DefIndex, (int)item.Kind, ItemName(db, item)));
         NationSystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
         AgeSystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
+        AffinitySystem.OnCompleted(s, city, item.Kind, item.DefIndex, events);
     }
 
     private static int? FindNavalSpawn(GameState s, CityState city)

@@ -86,6 +86,7 @@ public sealed class SimpleAi : IAiController
         commands.AddRange(Timed("Governors", () => Governors(s, player)));
         commands.AddRange(Timed("Nation", () => NationAi.Commands(s, player)));
         commands.AddRange(Timed("Society", () => SocietyAi.Commands(s, player)));
+        commands.AddRange(Timed("Deals", () => DiplomacyAi.Commands(s, player)));
 
         // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))
@@ -116,6 +117,9 @@ public sealed class SimpleAi : IAiController
     {
         var db = s.Db;
         if (PickDivergenceProduction(s, player, city) is { } divergenceItem) return (divergenceItem.Kind, divergenceItem.Def, -1);
+        // Before the choice, a people builds for the affinity it leans to once that affinity's buildings open to it.
+        if (player.Divergence < 0 && AffinitySystem.Dominant(player) is var leaning and >= 0 && AffinityBuilding(s, player, city, leaning) is { } leaningItem)
+            return (leaningItem.Kind, leaningItem.Def, -1);
         var soldier = MilitaryAi.BestLandUnit(s, city);
         if (atWar && soldier != null && military < 2 * cityCount + 2 && player.Gold > -50)
         {
@@ -223,13 +227,36 @@ public sealed class SimpleAi : IAiController
         if (d.Spread is { SourceBuildingIndex: >= 0 } spread &&
             ProductionSystem.Validate(s, city, ProductionKind.Building, spread.SourceBuildingIndex, -1) == null)
             return (ProductionKind.Building, spread.SourceBuildingIndex);
-        // The Ascension project is the default road's goal; a civilization on another road spends its cities there instead.
-        // It is raised in one city (the one furthest along, else the most productive): the others build for the empire.
-        if (d.AscensionProjectIndex >= 0 && VictoryAi.Focus(s, player) == VictoryFocus.Ascension && AscensionCity(s, player, d.AscensionProjectIndex) == city.Id &&
-            ProductionSystem.Validate(s, city, ProductionKind.Project, d.AscensionProjectIndex, -1) == null)
-            return (ProductionKind.Project, d.AscensionProjectIndex);
-        foreach (var b in db.Buildings)
-            if (b.PrereqTechIndex >= 0 && db.Techs[b.PrereqTechIndex].DivergenceIndex == player.Divergence &&
+        // The affinity victory is the default road's goal; a civilization on another road spends its cities there instead.
+        // Its chain is raised in one city (the one furthest along, else the most productive): the others build for the empire.
+        // When the next stage waits on the affinity's level, that city raises the affinity's own repeatable project instead.
+        int next = AffinitySystem.NextVictoryProject(s, player);
+        if (next >= 0 && VictoryAi.Focus(s, player) == VictoryFocus.Ascension && AscensionCity(s, player, next) == city.Id)
+        {
+            string? why = ProductionSystem.Validate(s, city, ProductionKind.Project, next, -1);
+            if (why == null) return (ProductionKind.Project, next);
+            if (why.StartsWith("Requires ") && why.Contains(" level ") && AffinityProject(s, player, city) is { } rite) return (ProductionKind.Project, rite);
+        }
+        return AffinityBuilding(s, player, city, player.Divergence);
+    }
+
+    /// <summary>A repeatable project of the affinity that raises its level (Gaian Rite, Heritage Festival, Cognitive Sprint).</summary>
+    private static int? AffinityProject(GameState s, PlayerState player, CityState city)
+    {
+        foreach (var pr in s.Db.Projects)
+            if (pr.Repeatable && pr.AffinityIndex == player.Divergence && !city.Queue.Items.Any(q => q.Kind == ProductionKind.Project && q.DefIndex == pr.Index) &&
+                ProductionSystem.Validate(s, city, ProductionKind.Project, pr.Index, -1) == null)
+                return pr.Index;
+        return null;
+    }
+
+    /// <summary>The cheapest building of the affinity (its branch, or one that grants it) the city can raise.</summary>
+    private static (ProductionKind Kind, int Def)? AffinityBuilding(GameState s, PlayerState player, CityState city, int affinity)
+    {
+        if (affinity < 0) return null;
+        var db = s.Db;
+        foreach (var b in db.Buildings.OrderBy(b => b.Cost).ThenBy(b => b.Index))
+            if (((b.PrereqTechIndex >= 0 && db.Techs[b.PrereqTechIndex].DivergenceIndex == affinity) || b.AffinityIndex == affinity) &&
                 ProductionSystem.Validate(s, city, ProductionKind.Building, b.Index, -1) == null)
                 return (ProductionKind.Building, b.Index);
         return null;
@@ -249,17 +276,46 @@ public sealed class SimpleAi : IAiController
         var available = db.Techs.Where(t => ResearchSystem.CanResearch(player, t)).ToList();
         // At the Threshold: commit to the doctrine our history leans toward (weighted by personality).
         var doctrines = available.Where(t => t.Doctrine).ToList();
-        if (doctrines.Count > 0 && player.Divergence < 0)
+        int aim = player.Divergence;
+        if (aim < 0 && player.HasTech(db.Techs.IndexOf("TECH_THRESHOLD")))
         {
-            int preferred = DivergenceSystem.Preferred(s, player);
-            return doctrines.FirstOrDefault(t => t.DivergenceIndex == preferred) ?? doctrines[0];
+            aim = DivergenceSystem.Preferred(s, player);
+            if (doctrines.FirstOrDefault(t => t.DivergenceIndex == aim) is { } doctrine) return doctrine;
         }
-        if (player.Divergence >= 0)
+        // Past the Threshold the tree is the affinities': the victory techs of our own first, then our affinity's techs, then the
+        // shared ones, and only then a rival affinity's (which our choice has made dear), by what they would cost us.
+        if (aim >= 0 && available.Any(t => AffinitySystem.NodeAffinity(t) >= 0 || t.Era is "ERA_NEAR_FUTURE" or "ERA_ORBITAL" or "ERA_DEEP_SPACE" or "ERA_SINGULARITY"))
         {
-            var own = available.Where(t => t.DivergenceIndex == player.Divergence).OrderBy(t => t.Cost).ThenBy(t => t.Index).FirstOrDefault();
-            if (own != null) return own;
+            // Once committed, beeline for the techs the victory chain needs (the branch's last tech and the capstone).
+            if (player.Divergence >= 0 && VictoryTechs(s, player) is { Count: > 0 } wanted &&
+                available.Where(t => wanted.Contains(t.Index)).OrderBy(t => ResearchSystem.Cost(s, player, t)).ThenBy(t => t.Index).FirstOrDefault() is { } step)
+                return step;
+            return available.OrderBy(t => ResearchSystem.Cost(s, player, t).ToDouble() * AffinityWeight(t, aim)).ThenBy(t => t.Index).First();
         }
         return PickTechClassic(db, player, available);
+    }
+
+    /// <summary>Every tech (with its unresearched prerequisites) that the primary affinity's victory chain still needs.</summary>
+    private static HashSet<int> VictoryTechs(GameState s, PlayerState player)
+    {
+        var db = s.Db;
+        var wanted = new HashSet<int>();
+        void Want(int t)
+        {
+            if (t < 0 || player.Techs[t] || !wanted.Add(t)) return;
+            foreach (int pr in db.Techs[t].PrereqIndices) Want(pr);
+        }
+        int final = db.Divergences[player.Divergence].AscensionProjectIndex;
+        if (final >= 0)
+            foreach (int proj in AffinitySystem.VictoryChain(s, final)) Want(db.Projects[proj].PrereqTechIndex);
+        return wanted;
+    }
+
+    private static double AffinityWeight(TechDef t, int aim)
+    {
+        int a = AffinitySystem.NodeAffinity(t);
+        if (t.Victory && t.DivergenceIndex == aim) return 0.25;
+        return a == aim ? 0.55 : a < 0 ? 0.8 : 1.6;
     }
 
     private static TechDef? PickTechClassic(GameDatabase db, PlayerState player, List<TechDef> available)

@@ -1,3 +1,4 @@
+using UnbrokenAges.Sim.Data;
 using UnbrokenAges.Sim.State;
 using UnbrokenAges.Sim.Systems;
 
@@ -118,6 +119,29 @@ public sealed class VoteCommand : GameCommand
     public override void Apply(GameState s, List<GameEvent> events) => CongressSystem.Vote(s, s.Players[Player], Resolution, Option, Target, Extra);
     protected override void WritePayload(BinaryWriter w) { w.Write(Resolution); w.Write(Option); w.Write(Target); w.Write(Extra); }
     protected override void ReadPayload(BinaryReader r) { Resolution = r.ReadInt32(); Option = r.ReadInt32(); Target = r.ReadInt32(); Extra = r.ReadInt32(); }
+}
+
+/// <summary>Recruit the class's great person now, paying the missing points in gold (or faith).</summary>
+public sealed class PatronizeCommand : GameCommand
+{
+    public GreatPersonClass Class;
+    public bool WithFaith;
+    public override CommandType Type => CommandType.Patronize;
+    public override string? Validate(GameState s) => Issuer(s) is not { } p ? "Not a player." : GreatPeopleSystem.ValidatePatronize(s, p, Class, WithFaith);
+    public override void Apply(GameState s, List<GameEvent> events) => GreatPeopleSystem.Patronize(s, s.Players[Player], Class, WithFaith, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write((byte)Class); w.Write(WithFaith); }
+    protected override void ReadPayload(BinaryReader r) { Class = (GreatPersonClass)r.ReadByte(); WithFaith = r.ReadBoolean(); }
+}
+
+/// <summary>Answer the historic dilemma before the issuer with one of its options.</summary>
+public sealed class ResolveDilemmaCommand : GameCommand
+{
+    public int Option;
+    public override CommandType Type => CommandType.ResolveDilemma;
+    public override string? Validate(GameState s) => Issuer(s) is not { } p ? "Not a player." : DilemmaSystem.ValidateResolve(s, p, Option);
+    public override void Apply(GameState s, List<GameEvent> events) => DilemmaSystem.Resolve(s, s.Players[Player], Option, events);
+    protected override void WritePayload(BinaryWriter w) => w.Write(Option);
+    protected override void ReadPayload(BinaryReader r) => Option = r.ReadInt32();
 }
 
 /// <summary>Merge a partner unit of the same type into this one: a corps, or (with a corps) an army.</summary>

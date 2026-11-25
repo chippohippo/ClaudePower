@@ -47,6 +47,12 @@ public enum CommandType : byte
     Vote = 99,
     FormCorps = 100,
     FaithPurchase = 101,
+    ProposeDeal = 102,
+    RespondDeal = 103,
+    LeaveAlliance = 104,
+    LiberateCity = 105,
+    Patronize = 106,
+    ResolveDilemma = 107,
 }
 
 public readonly record struct CommandResult(bool Ok, string? Error)
@@ -149,6 +155,12 @@ public abstract class GameCommand
         CommandType.AssignSpy => new AssignSpyCommand(),
         CommandType.Vote => new VoteCommand(),
         CommandType.FormCorps => new FormCorpsCommand(),
+        CommandType.ProposeDeal => new ProposeDealCommand(),
+        CommandType.RespondDeal => new RespondDealCommand(),
+        CommandType.LeaveAlliance => new LeaveAllianceCommand(),
+        CommandType.LiberateCity => new LiberateCityCommand(),
+        CommandType.Patronize => new PatronizeCommand(),
+        CommandType.ResolveDilemma => new ResolveDilemmaCommand(),
         _ => throw new InvalidDataException($"Unknown command type {(byte)type}."),
     };
 

@@ -137,7 +137,7 @@ public static class CongressSystem
         c.Pending.Clear();
     }
 
-    private static void Award(GameState s, int player, int points, string why, List<GameEvent> events)
+    public static void Award(GameState s, int player, int points, string why, List<GameEvent> events)
     {
         s.Players[player].DiplomaticPoints += points;
         events.Add(new GameEvent(GameEventType.DiplomaticPointEarned, player, Value: s.Players[player].DiplomaticPoints, Detail: why));

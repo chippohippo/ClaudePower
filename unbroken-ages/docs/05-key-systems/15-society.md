@@ -57,6 +57,36 @@ Tests: `tests/UnbrokenAges.Tests/SocietyTests.cs` (28). Snapshot version 14.
   | General | Every military unit healed, +10 experience |
   | Admiral | +Loyalty in every city, fleets healed |
 
+### Patronage (gold and faith buy great people)
+`PatronizeCommand` recruits the class's person **now**, paying the points still missing: **3 gold or 2 faith a point**, 15% dearer for
+every great person this civilization has already bought (`GreatPeopleSystem.PatronagePrice`). Prophets answer only to faith. The
+race stays a race: patronage is how a rich or devout people snatches a person its rival was about to recruit. The AI buys a prophet
+with faith while religions remain to be founded, and from turn 200 (so the middle eras keep their pace) spends gold above a reserve (250 + 50 per city) on the class its road to victory
+wants (Artists for Culture, Engineers and Scientists for Exodus, Merchants for the Concord, otherwise Engineers and Artists), and faith
+above 500 (1,500 on the Spiritual road) on Artists.
+
+## Historic dilemmas
+**Code:** [`DilemmaSystem.cs`](../../src/UnbrokenAges.Sim/Systems/DilemmaSystem.cs) · data [`dilemmas.json`](../../content/base/data/dilemmas.json) ·
+`ResolveDilemmaCommand` · tests [`DilemmaTests.cs`](../../tests/UnbrokenAges.Tests/DilemmaTests.cs)
+
+GDD §12.4's historic events and city demands, as one system. From turn 60 (the opening is for founding), about once every 24 turns, a civilization faces a
+**dilemma drawn from its circumstances**: the river at a flood-prone town, hoarders in a big city, refugees from a neighbour, veterans
+of a war, a treasure fleet, a restless conquest, a full treasury, a factory strike, the smog of an industrial city. Each has two or
+three answers with a **price and a consequence**: gold, faith, favor, science, culture, era score, loyalty, citizens, a neighbour's
+goodwill or grievance, a push to the world's currents, and modifiers that last a number of turns in the city (or the whole realm).
+The first answer never costs anything: if no one answers within five turns, the council takes it. Each dilemma comes to a
+civilization at most once per game, and the answer is written into the Chronicle.
+
+| Trigger | Where / whom |
+|---|---|
+| `Empire`, `HasReligion`, `Wealthy` (300+ gold), `GoldenAge`, `DarkAge` | the capital |
+| `RiverCity`, `CoastalCity`, `LargeCity` (8+), `RestlessCity` (loyalty < 80), `NewlyTakenCity` (changed hands in the last 30 turns) | that city |
+| `AtWar`, `Neighbour` (a great power within 10 tiles, at peace) | the capital or the nearest city, and that people |
+
+Twenty dilemmas ship, from the Ancient era (*The River's Temper*) to the Information era (*The Machines*); modders add more in JSON.
+The AI scores each answer (gold and faith at face value, a thin treasury makes coins dearer, loyalty counts heavily only where it
+is low, modifiers by their turns) and takes the best it can afford (`DiplomacyAi.PreferredAnswer`).
+
 ## Era score and ages
 
 * **Historic moments** earn era score:
@@ -168,7 +198,7 @@ average, against 3.4 before this system existed. With both, it is back to 3.4, w
 | Score / domination / science-style victories | ✓ (05/11) |
 | Governments and policy cards | ✓ new |
 | Pantheons, religions, beliefs, spread, missionaries, religious victory | ✓ new (no apostles, theological combat or inquisitors) |
-| Great people | ✓ new (recruited automatically; no patronage with gold or faith; no great works) |
+| Great people | ✓ (recruited automatically, or bought with gold or faith) |
 | Era score; Golden, Dark and Heroic ages | ✓ new (no dedications) |
 | Unit experience and promotions | ✓ new |
 | Barbarians | ✓ new (no scouts that report a camp's location) |

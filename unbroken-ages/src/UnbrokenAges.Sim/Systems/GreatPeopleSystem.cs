@@ -72,6 +72,47 @@ public static class GreatPeopleSystem
         }
     }
 
+    // ----- Patronage (GDD §6: every patronage option visible) ---------------------------------------------
+
+    public const int GoldPerPoint = 3;
+    public const int FaithPerPoint = 2;
+    /// <summary>Each great person a civilization has already bought makes the next one this much dearer (percent).</summary>
+    public const int PatronageStepPercent = 15;
+
+    /// <summary>
+    /// The price of recruiting the class's great person now: the points still missing, in gold or faith, dearer with every
+    /// patronage this civilization has made. -1 when there is no one to recruit.
+    /// </summary>
+    public static int PatronagePrice(GameState s, PlayerState p, GreatPersonClass cls, bool faith)
+    {
+        if (Next(s, cls) == null) return -1;
+        int missing = Math.Max(0, Cost(s, cls) - p.GreatPersonPoints[(int)cls]);
+        int perPoint = faith ? FaithPerPoint : GoldPerPoint;
+        return missing * perPoint * (100 + PatronageStepPercent * p.Patronages) / 100;
+    }
+
+    public static string? ValidatePatronize(GameState s, PlayerState p, GreatPersonClass cls, bool faith)
+    {
+        if (!p.IsMajor) return "Only great powers recruit great people.";
+        if ((int)cls < 0 || (int)cls >= 7) return "Unknown class.";
+        if (Next(s, cls) is not { } person) return "No great person of that kind is on offer.";
+        if (cls == GreatPersonClass.Prophet && !faith) return "Prophets answer to faith, not gold.";
+        if (p.GreatPersonPoints[(int)cls] >= Cost(s, cls)) return $"{person.Name} will join you at the end of the turn.";
+        int price = PatronagePrice(s, p, cls, faith);
+        Fx have = faith ? p.Faith : p.Gold;
+        return have < Fx.FromInt(price) ? $"{person.Name} costs {price} {(faith ? "faith" : "gold")}." : null;
+    }
+
+    /// <summary>Pays the missing points with gold or faith and recruits the great person at once.</summary>
+    public static void Patronize(GameState s, PlayerState p, GreatPersonClass cls, bool faith, List<GameEvent> events)
+    {
+        int price = PatronagePrice(s, p, cls, faith);
+        if (faith) p.Faith -= price; else p.Gold -= price;
+        p.Patronages++;
+        p.GreatPersonPoints[(int)cls] = 0;
+        Recruit(s, p, Next(s, cls)!, events);
+    }
+
     public static void Recruit(GameState s, PlayerState p, GreatPersonDef person, List<GameEvent> events)
     {
         s.GreatPeopleTaken.Add(person.Index);

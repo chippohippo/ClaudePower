@@ -191,8 +191,9 @@ and reassigning one resets the timer. Late game adds **Councils**: a governor ca
   Nine eras run from Ancient to Future.
 * **Pacing to the calendar:** costs rise more steeply through the middle eras (×1.6 Medieval to ×1.9 Industrial, easing to ×1.25 in
   the Future) than at either end. On twelve-people Earth games the median people reaches the Industrial era at turns 150–175, the
-  Information era at 225–275 (the calendar reaches AD 2000 at turn 295) and the Future era at 300–350, leaving its Divergence for the
-  last stretch. The middle still runs a little ahead of the calendar.
+  Information era at 225–275 (the calendar reaches AD 2000 at turn 295) and the Future era at 275–300, then the Near Future around turn
+  350 and the Orbital era by turn 400 (the calendar runs two years a turn from AD 2000 and reaches AD 2408 at turn 500). The leaders run
+  ahead through the four new eras and reach the Singularity era around turns 325–425.
 * **Diffusion:** a technology or civic is up to 40% cheaper as more of the other living great powers know it. A people that falls
   behind catches up; the leader pays full price. (The Divergence's own branches never diffuse.)
 * **Era pacing (Extended Eras):** a setup slider (100 / 150 / 200%) stretches costs per era, so unique units and era
@@ -200,9 +201,13 @@ and reassigning one resets the timer. Late game adds **Councils**: a governor ca
 * **Ages:** Golden, Dark and Heroic ages with era score and **dedications**, kept from Civ VI with three changes:
   (1) era score sources are listed up front with progress bars; (2) Dark Ages offer stronger, more interesting policies
   instead of a feeling of punishment; (3) catch-up is visible and opt-in ("Turbulent Ages" mode makes ages swingier).
-* **The Divergence (Future era):** after the shared *Threshold* tech the tree forks into three mutually exclusive futures:
+* **Affinities and the tree to AD 2400:** four eras follow the Future (Near Future, Orbital, Deep Space, Singularity; turn 500 is AD 2408).
+  Every people climbs three **affinities** (Purity, Harmony, Supremacy; levels 0–20 from what it researches, builds, slots and kills
+  with); levels bring identity effects and stronger affinity units, and soft exclusivity makes rival affinities' techs dearer
+  ([08](08-divergence-tech-tree.md#affinities-purity-harmony-supremacy)).
+* **The Divergence (Future era):** after the shared *Threshold* tech the tree forks into three futures (the affinities); choosing one is the choice point:
   **Sovereign** (humanity unchanged, the planet engineered), **Symbiont** (humanity spliced into the biosphere) and **Discarnate** (humanity leaves the body).
-  Researching a doctrine locks the other two branches forever. Your history (flood barriers, forests kept, research labs, emissions) makes one doctrine cheaper.
+  Researching a doctrine (it needs level 3 in its affinity) makes it your primary affinity and locks the other two victories; their basic techs stay open at a price. Your history (flood barriers, forests kept, research labs, emissions) makes one doctrine cheaper.
   Each future is rational and dystopian, and each **remakes the Earth** (Engineered Ground, the Bloom, Substrate), so late-game maps look alien.
   Full design: [08-divergence-tech-tree.md](08-divergence-tech-tree.md).
 * **Great People:** points accrue per class. Every patronage option (gold, faith) is visible, and you can pass on a
@@ -351,7 +356,7 @@ Medicine tech line. Plague can trigger Dark Age dedications and migrations. It n
 | **Hegemony** (domination) | Hold every original capital **or** control 60% of world population and land with loyalty above 50 | No last-city-standing grind; loyalty matters |
 | **Spiritual** | §7 | Schisms create counterplay |
 | **Concord** (diplomatic) | 16 victory points from proposals, aid, liberations and peace | No random competitions |
-| **Ascension** (Divergence) | Complete your future's final project after remaking ≥ 10% of the world's land | The race is to remake the planet; rival futures' ground acts as a firebreak ([08](08-divergence-tech-tree.md#5-ascension-the-sixth-victory)) |
+| **Ascension** (affinity) | Choose a primary affinity, complete its first project after remaking ≥ 10% of the world's land, then its Singularity-era capstone and final project at affinity level 10: **Emancipation** (Purity), **Transcendence** (Harmony), **the Digital Singularity** (Supremacy) | The race is to remake the planet; rival futures' ground acts as a firebreak ([08](08-divergence-tech-tree.md#affinities-purity-harmony-supremacy)) |
 | **Score** | Highest score at the turn limit | Score sources visible all game; tie-breakers documented |
 
 *Built:* Ascension, Hegemony and Score, the victory toggles, elimination, the game-over pause and One More Turn
@@ -452,9 +457,9 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 15 | Better report screens (Better Report Screen) | §17 overview screens | Designed — M2/M3 |
 | 16 | Less religious spam | §7 charges, upkeep, cap | Designed — M4 |
 | 17 | Engaging World Congress | §8.4 | Designed — M4 |
-| 18 | Vassals, puppets, liberation | §4.5, §8.3 | Designed — M4 |
+| 18 | Vassals, puppets, liberation | §4.5, §8.3 | Liberation **built** ([05/08](05-key-systems/08-diplomacy.md#liberation)) / vassals, puppets M4 |
 | 18b | Fair, itemized grievances; transparent attitudes; no surprise-war option | §8.1–8.2, [05/08-diplomacy](05-key-systems/08-diplomacy.md) | **Built** (war, peace, borders, grievances, attitude) |
-| 19 | City and tile trading, research agreements | §8.3 | Designed — M4 |
+| 19 | City and tile trading, research agreements | §8.3 | **Built** in the deal table: gold, gold per turn, favor, resources, cities, open borders, peace, alliances, research agreements ([05/08](05-key-systems/08-diplomacy.md#deals-gdd-83)) / tiles M4 |
 | 20 | Espionage before the Renaissance | §9 Informants from the Classical era | Designed — M4 |
 | 21 | Naval and air depth | §11 | Designed — M3/M4 |
 | 22 | No dominant late-game super unit | Counter-tags, EW platoons | **Built** (counters applied in combat v1) |
@@ -466,7 +471,7 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 27 | Era pacing so UUs matter (Extended Eras) | `EraPacingPercent` | **Built** |
 | 28 | Colourblind modes, UI scaling, keyboard play | §16 | Designed — M2 |
 | 29 | World Builder, TSL Earth | §3.3, §17 | Designed — M4/M5 |
-| 30 | Faith useful late game | §7 faith projects | Designed — M4 |
+| 30 | Faith useful late game | §7 faith projects | Faith buys missionaries and **great people** ([05/15](05-key-systems/15-society.md#patronage-gold-and-faith-buy-great-people)) / faith projects M4 |
 | 31 | Plague mode | §12.3 | Designed — post-launch mode |
 | 32 | Hotseat and async play | §15 | Hotseat M2 / async M5 |
 | 33 | A late game that feels like the future (*Beyond Earth*-style affinities, but on Earth) | §6 The Divergence, [08](08-divergence-tech-tree.md) | **Built** (sim, data, AI, client screen); art M4 |
@@ -477,6 +482,9 @@ Status legend: **Built** = implemented and tested in this repository; **Designed
 | 38 | Remember the story of my civilization | §20 The Chronicle | **Built** |
 | 39 | Leaders and governors with personality and history | §20 Living Governors, [05/02](05-key-systems/02-loyalty-governors.md#living-governors-experience-and-traits) | **Built** (experience, ranks, traits) / ageing M3 |
 | 40 | Less late-game busywork for wide empires | Outposts ([05/12](05-key-systems/12-outposts.md)), Private Enterprise, provinces | Outposts **built** / rest M3 |
+| 41 | Historic events and city demands with real choices | §12.4 | **Built**: 20 data-driven historic dilemmas ([05/15](05-key-systems/15-society.md#historic-dilemmas)) |
+| 42 | Beyond Earth-style affinities and a tree past the present day | §6, [08](08-divergence-tech-tree.md#affinities-purity-harmony-supremacy) | **Built**: Purity, Harmony, Supremacy with levels, identity, units, buildings and victories; 48 techs in four eras to AD 2400 |
+| 43 | AI diplomacy that reacts to you (agendas, alliances, deals) | §8.1, §8.3 | **Built**: attitude-driven wars, denunciations, alliances with calls to arms, offers ([05/13](05-key-systems/13-ai.md#diplomacy)) |
 
 ## Appendix B — Naming & IP hygiene
 

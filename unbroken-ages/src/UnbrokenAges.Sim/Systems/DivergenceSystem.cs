@@ -28,20 +28,32 @@ public static class DivergenceSystem
 
     // ----- Branch locks -----------------------------------------------------------------------------
 
-    public static bool IsAvailable(PlayerState p, ProgressNodeDef node) =>
-        node.DivergenceIndex < 0 || p.Divergence == node.DivergenceIndex || (node.Doctrine && p.Divergence < 0);
+    /// <summary>
+    /// Soft exclusivity (AffinitySystem): a doctrine needs its affinity's level and no doctrine chosen yet; a victory node belongs
+    /// to its affinity's chosen people alone; anything else is open to all (an affinity requirement aside), at a price.
+    /// </summary>
+    public static bool IsAvailable(PlayerState p, ProgressNodeDef node)
+    {
+        if (node.Doctrine) return p.Divergence < 0 && AffinitySystem.Level(p, node.DivergenceIndex) >= node.RequiresAffinityLevel;
+        if (node.Victory) return p.Divergence == node.DivergenceIndex;
+        return node.RequiresAffinityIndex < 0 || AffinitySystem.Level(p, node.RequiresAffinityIndex) >= node.RequiresAffinityLevel;
+    }
 
     public static string? LockReason(GameDatabase db, PlayerState p, ProgressNodeDef node)
     {
         if (IsAvailable(p, node)) return null;
-        var branch = db.Divergences[node.DivergenceIndex];
-        return p.Divergence >= 0
-            ? $"Locked forever: your people became {db.Divergences[p.Divergence].People}."
-            : $"Commit to {branch.Name} first.";
+        if (node.Doctrine)
+            return p.Divergence >= 0 ? $"Your people already chose {db.Divergences[p.Divergence].Name}."
+                                     : $"Requires {db.Divergences[node.DivergenceIndex].Name} level {node.RequiresAffinityLevel}.";
+        if (node.Victory)
+            return p.Divergence >= 0 ? $"Locked: your people chose {db.Divergences[p.Divergence].Name}."
+                                     : $"Choose {db.Divergences[node.DivergenceIndex].Name} as your primary affinity first.";
+        return $"Requires {db.Divergences[node.RequiresAffinityIndex].Name} level {node.RequiresAffinityLevel}.";
     }
 
     public static void OnNodeCompleted(GameState s, PlayerState p, ProgressNodeDef node, List<GameEvent> events)
     {
+        AffinitySystem.OnNodeCompleted(s, p, node, events);
         if (!node.Doctrine || p.Divergence >= 0) return;
         p.Divergence = node.DivergenceIndex;
         p.DivergenceTurn = s.Turn;
@@ -134,7 +146,7 @@ public static class DivergenceSystem
         {
             var d = s.Db.Divergences[l.Divergence];
             Fx weight = d.AiPersonality != null && leader != null && leader.Personality.TryGetValue(d.AiPersonality, out var w) ? w : Fx.One;
-            Fx score = (l.Share + Fx.Ratio(1, 20)) * weight;
+            Fx score = (l.Share + Fx.Ratio(1, 20) + Fx.Ratio(AffinitySystem.Level(p, l.Divergence), 25)) * weight * weight;
             if (score > bestScore) { bestScore = score; best = l.Divergence; }
         }
         return best;
