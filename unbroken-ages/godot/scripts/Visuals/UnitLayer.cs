@@ -25,11 +25,15 @@ public partial class UnitLayer : Node3D
         public int Def;
         public string Key = "";
         public bool Ranged;
+        public bool Military;
         public Tween? Move;
     }
 
     private readonly ModelLibrary _models;
     private readonly Dictionary<int, View> _views = new();
+    /// <summary>Every unit id this layer has seen alive: a unit never seen before, appearing after the first sync, was just raised.</summary>
+    private readonly HashSet<int> _known = new();
+    private bool _synced;
     private readonly Dictionary<int, StandardMaterial3D> _discs = new();
     private static readonly TorusMesh Disc = new() { InnerRadius = 0.44f, OuterRadius = 0.52f, Rings = 32, RingSegments = 6 };
     private static readonly TorusMesh Trim = new() { InnerRadius = 0.395f, OuterRadius = 0.43f, Rings = 32, RingSegments = 6 };
@@ -172,6 +176,7 @@ public partial class UnitLayer : Node3D
                 view = Create(s, u, look);
                 view.Root.Position = target;
                 _views[u.Id] = view;
+                if (_synced && !_known.Contains(u.Id)) Raise(view, HexMapView.CivColor(s, u.Owner));
             }
             else if (view.Tile != u.Tile || view.Root.Position.DistanceTo(target) > 0.01f)
             {
@@ -181,12 +186,62 @@ public partial class UnitLayer : Node3D
             // A garrison shows one squad in front of the city; the rest stay inside the walls (their flags still show).
             view.Root.Visible = !(cityTiles.Contains(u.Tile) && slot > 0);
         }
+        foreach (var u in s.Units) _known.Add(u.Id);
+        var alive = s.Units.Select(u => u.Id).ToHashSet();
         foreach (var id in _views.Keys.Where(id => !seen.Contains(id)).ToList())
         {
-            _views[id].Move?.Kill();
-            _views[id].Root.QueueFree();
+            var gone = _views[id];
             _views.Remove(id);
+            gone.Move?.Kill();
+            // Out of sight: it simply goes. Gone from the world: it falls (a soldier) or settles into its new city (a settler).
+            if (!_synced || alive.Contains(id)) { gone.Root.QueueFree(); continue; }
+            bool founded = cityTiles.Contains(gone.Tile) && !gone.Military;
+            if (founded) Settle(gone); else Fall(gone);
         }
+        _synced = true;
+    }
+
+    // ----- Life and death --------------------------------------------------------------------------------
+
+    /// <summary>A newly raised unit rises out of the ground with a burst of light in its owner's colour.</summary>
+    private void Raise(View view, Color color)
+    {
+        var root = view.Root;
+        root.Scale = new Vector3(0.05f, 0.05f, 0.05f);
+        var t = CreateTween();
+        t.TweenProperty(root, "scale", Vector3.One, 0.55f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        MapFx.Current?.Sparkles(root.Position, color.Lightened(0.3f));
+        MapFx.Current?.Shockwave(root.Position, color.Lightened(0.2f), 0.9f, 0.6f);
+    }
+
+    /// <summary>A fallen army: its figures topple, then it sinks into the earth amid dust and fades.</summary>
+    private void Fall(View view)
+    {
+        var root = view.Root;
+        int i = 0;
+        foreach (var holder in root.GetChildren().OfType<Node3D>().Where(n => n.GetChildCount() > 0 && n is not MeshInstance3D))
+        {
+            var t = CreateTween();
+            t.TweenInterval(0.06f * i++);
+            t.TweenProperty(holder, "rotation_degrees:x", holder.RotationDegrees.X + 82f, 0.45f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        }
+        MapFx.Current?.Dust(root.Position, 1.6f);
+        var sink = CreateTween();
+        sink.TweenInterval(0.7f);
+        sink.TweenProperty(root, "position:y", root.Position.Y - 0.35f, 0.8f).SetEase(Tween.EaseType.In);
+        sink.Parallel().TweenProperty(root, "scale", new Vector3(1f, 0.2f, 1f), 0.8f);
+        sink.TweenCallback(Callable.From(root.QueueFree));
+    }
+
+    /// <summary>Settlers who have founded their city fade upward into a golden glow.</summary>
+    private void Settle(View view)
+    {
+        var root = view.Root;
+        MapFx.Current?.Sparkles(root.Position, new Color(1f, 0.85f, 0.45f), 40);
+        var t = CreateTween();
+        t.TweenProperty(root, "position:y", root.Position.Y + 0.4f, 0.9f).SetEase(Tween.EaseType.Out);
+        t.Parallel().TweenProperty(root, "scale", new Vector3(0.05f, 0.05f, 0.05f), 0.9f).SetEase(Tween.EaseType.In);
+        t.TweenCallback(Callable.From(root.QueueFree));
     }
 
     /// <summary>Where unit number <paramref name="slot"/> on a tile stands (cities and stacks fan out).</summary>
@@ -212,6 +267,7 @@ public partial class UnitLayer : Node3D
         var view = new View { Root = new Node3D { Name = $"unit{u.Id}" }, Def = u.DefIndex, Tile = u.Tile, Key = look.Key };
         AddChild(view.Root);
         view.Ranged = def.RangedStrength > 0 && def.Domain == UnitDomain.Land;
+        view.Military = SupplySystem.IsMilitary(s.Db, u);
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
             _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.4f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.35f };
@@ -250,6 +306,7 @@ public partial class UnitLayer : Node3D
             holder.AddChild(figure);
             view.Root.AddChild(holder);
             SceneTint.Team(figure, color);   // before any tint: generated vehicles carry their owner's colour
+            SceneTint.Finish(figure);
             if (look.Tint != Colors.White || look.Glow.R + look.Glow.G + look.Glow.B > 0.01f) SceneTint.Apply(figure, look.Tint, look.Glow);
             if (look.Addon != null && _models.LoadScene(look.Addon) is { } addon)
             {
@@ -345,17 +402,42 @@ public partial class UnitLayer : Node3D
         ap.Play(name, 0.2);
     }
 
+    /// <summary>
+    /// A march: the squad walks over the ground (not through hills), bobbing with its stride and leaning into it, kicking up dust
+    /// as it sets off and as it arrives. Ships glide and rock on the swell instead; aircraft fly level.
+    /// </summary>
     private void MoveTo(View view, Vector3 target)
     {
         view.Move?.Kill();
-        var from = view.Root.Position;
+        var root = view.Root;
+        var from = root.Position;
         var flat = new Vector3(target.X - from.X, 0, target.Z - from.Z);
-        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
+        if (flat.LengthSquared() > 0.0001f) root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
         foreach (var ap in view.Players) PlayLoop(ap, "Walking_A", "Walk", "walk", "Running_A", "Run");
-        float seconds = Mathf.Clamp(from.DistanceTo(target) * 0.22f, 0.25f, 1.2f);
+        float distance = from.DistanceTo(target);
+        float seconds = Mathf.Clamp(distance * 0.24f, 0.3f, 1.4f);
+        float strides = Mathf.Max(2f, Mathf.Round(distance * 2.2f));
+        bool onFoot = view.Players.Count > 0 || view.Military && !view.Key.Contains("ship") && !view.Key.Contains("boat");
+        if (onFoot) MapFx.Current?.Dust(from, 0.8f);
         view.Move = CreateTween();
-        view.Move.TweenProperty(view.Root, "position", target, seconds).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
-        view.Move.TweenCallback(Callable.From(() => { foreach (var ap in view.Players) PlayLoop(ap, "Idle_A", "Idle", "idle", "static"); }));
+        view.Move.TweenMethod(Callable.From<float>(t =>
+        {
+            if (!GodotObject.IsInstanceValid(root)) return;
+            float e = t * t * (3f - 2f * t);                       // ease in and out
+            var p = from.Lerp(target, e);
+            float ground = HeightField.Current.Surface(p.X, p.Z) + 0.01f;
+            float lift = Mathf.Max(from.Y, target.Y) > ground + 0.2f ? Mathf.Lerp(from.Y, target.Y, e) : ground;   // aircraft keep their height
+            float bob = onFoot ? Mathf.Abs(Mathf.Sin(e * strides * Mathf.Pi)) * 0.035f : Mathf.Sin(t * Mathf.Pi * 2f) * 0.015f;
+            root.Position = new Vector3(p.X, Mathf.Max(lift, ground) + bob, p.Z);
+            root.Rotation = new Vector3(Mathf.Sin(t * Mathf.Pi) * (onFoot ? 0.06f : 0f), root.Rotation.Y, onFoot ? 0f : Mathf.Sin(t * Mathf.Pi * 3f) * 0.05f);
+        }), 0f, 1f, seconds);
+        view.Move.TweenCallback(Callable.From(() =>
+        {
+            if (!GodotObject.IsInstanceValid(root)) return;
+            root.Rotation = new Vector3(0, root.Rotation.Y, 0);
+            if (onFoot) MapFx.Current?.Dust(root.Position, 0.7f);
+            foreach (var ap in view.Players) PlayLoop(ap, "Idle_A", "Idle", "idle", "static");
+        }));
     }
 
     /// <summary>Turns the unit toward the target and plays an attack; the squad returns to idle afterwards.</summary>
@@ -364,6 +446,21 @@ public partial class UnitLayer : Node3D
         if (!_views.TryGetValue(unitId, out var view)) return;
         var flat = new Vector3(target.X - view.Root.Position.X, 0, target.Z - view.Root.Position.Z);
         if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
+        // The body of the attack: a melee squad lunges at the enemy and springs back; archers and guns rock back with the shot.
+        var home = view.Root.Position;
+        var dir = flat.LengthSquared() > 0.0001f ? flat.Normalized() : Vector3.Zero;
+        var lunge = CreateTween();
+        if (view.Ranged || dir == Vector3.Zero)
+        {
+            lunge.TweenProperty(view.Root, "position", home - dir * 0.08f, 0.08f).SetEase(Tween.EaseType.Out);
+            lunge.TweenProperty(view.Root, "position", home, 0.35f).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+        }
+        else
+        {
+            lunge.TweenProperty(view.Root, "position", home + dir * 0.42f + new Vector3(0, 0.06f, 0), 0.22f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.In);
+            lunge.TweenCallback(Callable.From(() => MapFx.Current?.Dust(home + dir * 0.5f, 1.2f)));
+            lunge.TweenProperty(view.Root, "position", home, 0.4f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        }
         foreach (var ap in view.Players)
         {
             var name = view.Ranged ? Find(ap, "Ranged_Bow_Release", "Ranged_2H_Shoot", "Shoot", "Attack") : null;

@@ -87,6 +87,61 @@ public partial class HexMapView : Node3D
     private ShaderMaterial _terrainMat = null!, _waterMat = null!;
     private ImageTexture? _tileData;
 
+    // Revealing the world: when a tile is first discovered, the clock time and the fog it had are written to a second small
+    // texture, and the shaders burn the paper away into the land along a glowing ragged front for a moment.
+    private ImageTexture? _changeData;
+    private byte[]? _lastFog;
+    private float[] _changeTime = Array.Empty<float>();
+    private byte[] _changeFrom = Array.Empty<byte>();
+    private float _clock;
+
+    public override void _Process(double delta)
+    {
+        _clock += (float)delta;
+        _terrainMat.SetShaderParameter("reveal_clock", _clock);
+        _waterMat.SetShaderParameter("reveal_clock", _clock);
+    }
+
+    /// <summary>Replays the discovery of every known tile within <paramref name="radius"/> of <paramref name="center"/> (scripted shots).</summary>
+    public void ReplayDiscovery(MapGrid map, int center, int radius)
+    {
+        if (_lastFog == null) return;
+        var near = new List<int>();
+        map.CollectRadius(center, radius, near);
+        foreach (int t in near)
+        {
+            var off = map.CoordOf(t).ToOffset();
+            int i = off.Row * map.Width + off.Col;
+            if (_lastFog[i] != 2) { _changeTime[i] = _clock; _changeFrom[i] = 2; }
+        }
+        UpdateChangeData(map, _lastFog);
+    }
+
+    private void UpdateChangeData(MapGrid map, byte[] fogBytes)
+    {
+        int n = map.Width * map.Height;
+        bool first = _lastFog == null || _lastFog.Length != n;
+        if (first) { _changeTime = Enumerable.Repeat(-100f, n).ToArray(); _changeFrom = new byte[n]; }
+        else
+            for (int i = 0; i < n; i++)
+                if (_lastFog![i] == 2 && fogBytes[i] != 2) { _changeTime[i] = _clock; _changeFrom[i] = 2; }   // discovered
+        _lastFog = fogBytes;
+        var data = new byte[n * 8];
+        for (int i = 0; i < n; i++)
+        {
+            BitConverter.TryWriteBytes(data.AsSpan(i * 8, 4), _changeTime[i]);
+            BitConverter.TryWriteBytes(data.AsSpan(i * 8 + 4, 4), (float)_changeFrom[i]);
+        }
+        var image = Image.CreateFromData(map.Width, map.Height, false, Image.Format.Rgf, data);
+        if (_changeData == null || first || _changeData.GetWidth() != map.Width)
+        {
+            _changeData = ImageTexture.CreateFromImage(image);
+            _terrainMat.SetShaderParameter("change_data", _changeData);
+            _waterMat.SetShaderParameter("change_data", _changeData);
+        }
+        else _changeData.Update(image);
+    }
+
     /// <summary>RGB noise shared by the paper-map shaders: R stains and colour variation, G grain, B paper fibres.</summary>
     public static Texture2D PaperNoise { get; private set; } = null!;
 
@@ -151,6 +206,9 @@ public partial class HexMapView : Node3D
                 bytes[i] = (byte)layer;
                 bytes[i + 3] = (byte)featureCode;
             }
+        var fogBytes = new byte[map.Width * map.Height];
+        for (int i = 0; i < fogBytes.Length; i++) fogBytes[i] = bytes[i * 4 + 1];
+        UpdateChangeData(map, fogBytes);
         var image = Image.CreateFromData(map.Width, map.Height, false, Image.Format.Rgba8, bytes);
         if (_tileData == null || _tileData.GetWidth() != map.Width || _tileData.GetHeight() != map.Height)
         {

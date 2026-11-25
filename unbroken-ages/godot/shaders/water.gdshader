@@ -46,12 +46,25 @@ void fragment() {
 	int fog = channel(tile_at(a).g);
 	vec3 n1 = texture(wave_a, wp * 0.11 + TIME * vec2(0.010, 0.006)).rgb;
 	vec3 n2 = texture(wave_b, wp * 0.19 - TIME * vec2(0.007, 0.012)).rgb;
-	if (fog == 1) { col = sepia_drawing(col * 0.8, wp); alpha = max(alpha, 0.85); }
-	else if (fog == 2) { col = paper(wp); alpha = 1.0; }
+	int before;
+	float edge;
+	float shown = reveal_progress(a, wp, before, edge);
+	int drawn = shown >= 1.0 ? fog : before;
+	if (drawn == 1) {
+		col = sepia_drawing(col * 0.8, wp);
+		// little pen waves on the drawn sea
+		float wave = sin(wp.x * 5.0 + sin(wp.y * 3.0) * 1.5) * 0.5 + 0.5;
+		float row = 1.0 - smoothstep(0.05, 0.12, abs(fract(wp.y * 1.4 + texture(paper_noise, wp * 0.3).r) - 0.5));
+		col = mix(col, ink_color, row * smoothstep(0.6, 0.9, wave) * 0.35);
+		alpha = max(alpha, 0.85);
+	}
+	else if (drawn == 2) { col = chart(wp); alpha = 1.0; }
+	col = mix(col, vec3(0.16, 0.07, 0.03), edge * 0.85);
+	EMISSION = vec3(1.0, 0.42, 0.08) * edge * 2.2 * step(0.5, float(before));
 	ALBEDO = col;
 	ALPHA = alpha;
-	NORMAL_MAP = fog == 0 ? normalize(mix(n1, n2, 0.5)) : vec3(0.5, 0.5, 1.0);
+	NORMAL_MAP = drawn == 0 ? normalize(mix(n1, n2, 0.5)) : vec3(0.5, 0.5, 1.0);
 	NORMAL_MAP_DEPTH = 0.5;
-	ROUGHNESS = fog == 0 ? 0.08 : 1.0;
-	SPECULAR = fog == 0 ? 0.5 : 0.05;
+	ROUGHNESS = drawn == 0 ? 0.08 : 1.0;
+	SPECULAR = drawn == 0 ? 0.5 : 0.05;
 }

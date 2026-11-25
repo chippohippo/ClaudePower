@@ -12,13 +12,13 @@ public partial class BattleFx : Node3D
     public enum Kind { Melee, Arrow, Shell, Bomb }
 
     /// <summary>A soft round puff: white in the middle, fading to nothing at the rim.</summary>
-    private static readonly GradientTexture2D Puff = new()
+    internal static readonly GradientTexture2D Puff = new()
     {
         Width = 64, Height = 64, Fill = GradientTexture2D.FillEnum.Radial, FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1f, 0.5f),
         Gradient = new Gradient { Colors = new[] { new Color(1, 1, 1, 1), new Color(1, 1, 1, 0.55f), new Color(1, 1, 1, 0) }, Offsets = new[] { 0f, 0.45f, 1f } },
     };
 
-    private static StandardMaterial3D Unshaded(Color c, bool additive = false) => new()
+    internal static StandardMaterial3D Unshaded(Color c, bool additive = false) => new()
     {
         AlbedoTexture = Puff,
         AlbedoColor = c, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, Transparency = BaseMaterial3D.TransparencyEnum.Alpha,

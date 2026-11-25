@@ -1,4 +1,5 @@
 using Godot;
+using Films = UnbrokenAges.Client.UI.Cinematics;
 using UnbrokenAges.Sim.Commands;
 using UnbrokenAges.Sim.Core;
 using UnbrokenAges.Sim.Data;
@@ -56,7 +57,7 @@ public partial class GameRoot
             else if (a.StartsWith("--shot=")) _finalShot = a[7..];
             else if (a == "--quit") _quitWhenDone = true;
         }
-        if (_script.Count > 0 || _finalShot != null || _quitWhenDone) { _scripted = true; _waitFrames = 20; }
+        if (_script.Count > 0 || _finalShot != null || _quitWhenDone) { _scripted = true; _waitFrames = 20; Films.Enabled = false; }
         if (_shotsDir != null) System.IO.Directory.CreateDirectory(_shotsDir);
     }
 
@@ -68,10 +69,12 @@ public partial class GameRoot
         {
             string step = _script.Dequeue();
             string? error = RunStep(step);
+            if (!step.StartsWith("cinematic") && !step.StartsWith("hold")) Camera.Settle();   // scripted shots do not wait for the camera to glide
             GD.Print(error == null ? $"[auto] {step}: ok" : $"[auto] {step}: FAILED: {error}");
             if (error != null) _failed = true;
             _pendingShot = _shotsDir != null ? System.IO.Path.Combine(_shotsDir, $"{++_step:00}-{step.Replace(':', '_')}.png") : null;
-            _waitFrames = 12;
+            _waitFrames = _holdFrames > 0 ? _holdFrames : 12;
+            _holdFrames = 0;
             return;
         }
         if (_finalShot != null) { Shoot(_finalShot); _finalShot = null; _waitFrames = 2; return; }
@@ -80,6 +83,7 @@ public partial class GameRoot
     }
 
     private string? _pendingShot;
+    private int _holdFrames;
 
     private void Shoot(string path)
     {
@@ -163,6 +167,38 @@ public partial class GameRoot
             case "menu": ToggleMenu(); return null;
             case "load": QuickLoad(); return null;
             case "zoom-out": Camera.Zoom(2.2f); return null;
+            case var hd when hd.StartsWith("hold:"): _holdFrames = int.Parse(hd[5..]); return null;
+            case "cinematics:on": Films.Enabled = true; return null;
+            case var bn when bn.StartsWith("burn:"):
+            {
+                var focus = UnbrokenAges.Client.Map.HexLayout.FromWorld(Camera.Focus);
+                int center = s.Map.IndexOf(focus);
+                if (center < 0) return "no tile under the camera";
+                MapView.ReplayDiscovery(s.Map, center, int.Parse(bn[5..]));
+                return null;
+            }
+            case var ci when ci.StartsWith("cinematic:"):
+            {
+                // A demonstration film at our largest city (or the first city anywhere).
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderByDescending(c => c.Population).FirstOrDefault() ?? s.Cities.FirstOrDefault();
+                if (city == null) return "no city";
+                var at = UnbrokenAges.Client.Map.HexLayout.ToWorld(s.Map.CoordOf(city.Tile), UnbrokenAges.Client.Map.HexMapView.SurfaceY(s.Map, city.Tile));
+                string year = Calendar.Format(Calendar.Year(s.Turn, s.Options.GameSpeedPercent));
+                var kind = Enum.Parse<Films.Kind>(ci[10..], true);
+                var (banner, title, light) = kind switch
+                {
+                    Films.Kind.Wonder => ("A wonder of the world", "The Great Library", new Color(1f, 0.82f, 0.45f)),
+                    Films.Kind.Era => ($"{Films.PeopleName(s, LocalPlayer)} enters", "The Medieval Era", Films.EraLight(2)),
+                    Films.Kind.Conquest => ("Conquest", $"{city.Name} Falls", new Color(1f, 0.5f, 0.25f)),
+                    Films.Kind.Victory => ("Victory", $"{Films.PeopleName(s, LocalPlayer)} wins a Culture victory.", new Color(1f, 0.82f, 0.45f)),
+                    _ => ("A people takes root", $"The Founding of {city.Name}", new Color(1f, 0.82f, 0.45f)),
+                };
+                bool was = Films.Enabled;
+                Films.Enabled = true;
+                Cinematics.Play(new Films.Moment(kind, banner, title, $"{city.Name} · {year}", at, light));
+                Films.Enabled = was;
+                return null;
+            }
             case var z when z.StartsWith("zoom:"): Camera.Zoom(float.Parse(z[5..], System.Globalization.CultureInfo.InvariantCulture)); return null;
             case var fc when fc is "focus-city" or "focus-ai" || fc.StartsWith("focus-city:"):
             {

@@ -44,13 +44,25 @@ public static class HexLayout
     }
 }
 
-/// <summary>Classic strategy camera: WASD/arrow pan, edge scroll, wheel zoom with tilt, all rebindable later.</summary>
+/// <summary>
+/// Strategy camera: WASD/arrow pan, edge scroll, wheel zoom with tilt (steeper when far, lower and more cinematic when close), Q/E
+/// to swing around the focus. Every move eases toward its goal rather than jumping. A cinematic can take the camera over
+/// (focus, distance, tilt and swing set directly) and hand it back where it was.
+/// </summary>
 public partial class StrategyCamera : Camera3D
 {
-    private Vector3 _focus;
-    private float _distance = 14f;
+    private Vector3 _focus, _focusGoal;
+    private float _distance = 14f, _distanceGoal = 14f;
+    private float _yaw, _yawGoal;
     public float PanSpeed = 22f;
     public bool EdgeScroll = true;
+    /// <summary>Seconds for a move to settle about two-thirds of the way (0 = jump at once).</summary>
+    public static float Easing = 0.12f;
+
+    // A cinematic's hold on the camera.
+    private bool _cinematic;
+    private Vector3 _cineFocus;
+    private float _cineDistance, _cineTilt, _cineYaw;
 
     public override void _Ready()
     {
@@ -60,28 +72,41 @@ public partial class StrategyCamera : Camera3D
         UpdateTransform();
     }
 
-    public Vector3 Focus => _focus;
+    public Vector3 Focus => _focusGoal;
+    public float Distance => _distanceGoal;
 
     /// <summary>Slow cinematic pan for the title backdrop.</summary>
     public void Drift(float delta)
     {
-        _focus += new Vector3(0.35f, 0, 0.12f) * delta;
+        _focusGoal += new Vector3(0.35f, 0, 0.12f) * delta;
+        _focus = _focusGoal;
         UpdateTransform();
     }
 
-    public void LookAtHex(HexCoord h)
+    public void LookAtHex(HexCoord h) => _focusGoal = HexLayout.ToWorld(h);
+
+    /// <summary>Jumps to the goal at once (scripted shots, loading a game).</summary>
+    public void Settle()
     {
-        _focus = HexLayout.ToWorld(h);
+        _focus = _focusGoal; _distance = _distanceGoal; _yaw = _yawGoal;
         UpdateTransform();
     }
+
+    public void BeginCinematic() { _cinematic = true; _cineFocus = _focus; _cineDistance = _distance; _cineTilt = TiltFor(_distance); _cineYaw = _yaw; }
+    public void SetCinematic(Vector3 focus, float distance, float tilt, float yaw) { _cineFocus = focus; _cineDistance = distance; _cineTilt = tilt; _cineYaw = yaw; UpdateTransform(); }
+    public void EndCinematic() { _cinematic = false; _focus = _cineFocus; _distance = _cineDistance; _yaw = _cineYaw; }
+    public bool InCinematic => _cinematic;
 
     public override void _Process(double delta)
     {
+        if (_cinematic) return;
         var move = Vector3.Zero;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) move.Z -= 1;
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) move.Z += 1;
         if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left)) move.X -= 1;
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) move.X += 1;
+        if (Input.IsKeyPressed(Key.Q)) _yawGoal -= 70f * (float)delta;
+        if (Input.IsKeyPressed(Key.E) && !Input.IsKeyPressed(Key.Ctrl)) _yawGoal += 70f * (float)delta;
         if (EdgeScroll)
         {
             var mouse = GetViewport().GetMousePosition();
@@ -92,37 +117,45 @@ public partial class StrategyCamera : Camera3D
             if (mouse.Y > size.Y - 4) move.Z += 1;
         }
         if (move != Vector3.Zero)
-        {
-            _focus += move.Normalized() * PanSpeed * (_distance / 18f) * (float)delta;
-            UpdateTransform();
-        }
+            _focusGoal += new Basis(Vector3.Up, Mathf.DegToRad(-_yaw)) * move.Normalized() * PanSpeed * (_distanceGoal / 18f) * (float)delta;
+        // Ease toward the goal: frame-rate independent exponential smoothing.
+        float k = Easing <= 0f ? 1f : 1f - Mathf.Exp(-(float)delta / Easing);
+        _focus = _focus.Lerp(_focusGoal, k);
+        _distance = Mathf.Lerp(_distance, _distanceGoal, k);
+        _yaw = Mathf.Lerp(_yaw, _yawGoal, k);
+        UpdateTransform();
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_cinematic) return;
         if (@event is InputEventMouseButton { Pressed: true } mb)
         {
-            if (mb.ButtonIndex == MouseButton.WheelUp) _distance = Mathf.Max(5f, _distance * 0.9f);
-            if (mb.ButtonIndex == MouseButton.WheelDown) _distance = Mathf.Min(90f, _distance * 1.1f);
-            UpdateTransform();
+            if (mb.ButtonIndex == MouseButton.WheelUp) _distanceGoal = Mathf.Max(5f, _distanceGoal * 0.88f);
+            if (mb.ButtonIndex == MouseButton.WheelDown) _distanceGoal = Mathf.Min(90f, _distanceGoal * 1.12f);
         }
     }
 
     /// <summary>Multiplies the camera distance (scripted views, a future zoom slider).</summary>
-    public void Zoom(float factor)
-    {
-        _distance = Mathf.Clamp(_distance * factor, 5f, 90f);
-        UpdateTransform();
-    }
+    public void Zoom(float factor) => _distanceGoal = Mathf.Clamp(_distanceGoal * factor, 5f, 90f);
+
+    /// <summary>Steeper when zoomed out (strategic view), lower when close (a view across the land, like a diorama).</summary>
+    private static float TiltFor(float distance) => Mathf.Lerp(36f, 70f, Mathf.Clamp((distance - 5f) / 55f, 0f, 1f));
 
     private void UpdateTransform()
     {
-        // Steeper when zoomed out (strategic view), lower when close (city view).
-        float tilt = Mathf.Lerp(42f, 70f, Mathf.Clamp((_distance - 5f) / 60f, 0f, 1f));
-        float rad = Mathf.DegToRad(tilt);
-        Position = _focus + new Vector3(0, Mathf.Sin(rad), Mathf.Cos(rad)) * _distance;
-        LookAt(_focus, Vector3.Up);
-        if (Attributes is CameraAttributesPractical dof) dof.DofBlurFarDistance = _distance * 1.6f;
+        var focus = _cinematic ? _cineFocus : _focus;
+        float distance = _cinematic ? _cineDistance : _distance;
+        float rad = Mathf.DegToRad(_cinematic ? _cineTilt : TiltFor(distance));
+        float yaw = Mathf.DegToRad(_cinematic ? _cineYaw : _yaw);
+        var back = new Basis(Vector3.Up, -yaw) * new Vector3(0, Mathf.Sin(rad), Mathf.Cos(rad));
+        Position = focus + back * distance;
+        LookAt(focus, Vector3.Up);
+        if (Attributes is CameraAttributesPractical dof)
+        {
+            dof.DofBlurFarDistance = distance * 1.6f;
+            dof.DofBlurAmount = _cinematic ? 0.11f : 0.06f;        // a cinematic shot softens the background further
+        }
     }
 
     public HexCoord PickHex(Vector2 screen)

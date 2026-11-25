@@ -30,9 +30,15 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 varying vec4 glow;   // INSTANCE_CUSTOM: rgb = glow colour, a = strength (future cities, path units)
+varying vec3 wpos;
+varying vec3 wnormal;
+varying float above;   // height above the model's own base (its origin), for contact shading
 
 void vertex() {
 	glow = INSTANCE_CUSTOM;
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	above = wpos.y - MODEL_MATRIX[3].y;
 	UV = UV * uv_scale + uv_offset;
 	if (sway > 0.0) {
 		vec3 origin = MODEL_MATRIX[3].xyz;
@@ -60,6 +66,15 @@ void fragment() {
 	}
 	hsv.y *= saturation;
 	c = hsv2rgb(hsv) * tint.rgb;
+	if (tint.a >= 0.75) {
+		// A painted finish: a little colour drift across each surface, light from the sky above and a darker seat where the
+		// model meets the ground (so it stands in the land rather than on it).
+		vec3 q = wpos * 3.1;
+		float drift = fract(sin(dot(floor(q), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+		c *= 0.95 + 0.08 * drift;
+		c *= 0.9 + 0.16 * clamp(wnormal.y, 0.0, 1.0);
+		c *= mix(0.6, 1.0, smoothstep(0.0, 0.14, above));
+	}
 	if (tint.a < 0.75) {
 		// remembered: drawn in sepia ink, with cross-hatching in the darker tones, like a cartographer's sketch
 		float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -76,6 +91,11 @@ void fragment() {
 		float base = 0.06 + 0.3 * smoothstep(0.85, 1.0, glow.a) * (0.75 + 0.25 * sin(TIME * 1.4 + MODEL_MATRIX[3].x));
 		EMISSION = glow.rgb * glow.a * (base + 1.6 * smoothstep(0.72, 0.95, lum0));
 	}
+	if (tint.a >= 0.75) {
+		// rim light: the sky catching the silhouette, so figures and buildings separate from the ground
+		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+		EMISSION += vec3(1.0, 0.9, 0.72) * rim * 0.14 * (0.5 + 0.5 * clamp(wnormal.y + 0.5, 0.0, 1.0));
+	}
 	ROUGHNESS = roughness;
-	SPECULAR = 0.3;
+	SPECULAR = 0.35;
 }

@@ -2,7 +2,8 @@
 // Visible land: aerial PBR textures (Poly Haven, CC0) per terrain, softened toward a painted look, broad colour variation,
 // soft wobbly borders between terrains; rock on steep slopes, snow on high peaks, sand where the ground meets the sea, a
 // wet sandy seabed under shallow water, and drifting cloud shadows. Remembered land: a sepia watercolour on parchment.
-// Unexplored: parchment with an inked hex grid. The frontier between known and unknown is a burnt ink edge.
+// Unexplored: a portolan chart (rhumb lines, compass roses, folds, foxing) with a hand-inked hex grid. The frontier between
+// known and unknown is a burnt ink edge, and newly seen land burns through the paper along a glowing ragged front.
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 
@@ -99,9 +100,8 @@ vec3 shaped(vec3 col, vec2 wp, float y, float slope) {
 	return col;
 }
 
-vec3 look(vec4 d, vec2 wp, float y, float slope) {
-	int fog = channel(d.g);
-	if (fog == 2) return paper(wp);
+vec3 look_fog(vec4 d, vec2 wp, float y, float slope, int fog) {
+	if (fog == 2) return chart(wp);
 	vec3 c = shaped(land_color(d, wp), wp, y, slope);
 	if (channel(d.a) == 13) {
 		// Inca terraces: green steps cut along the contours of owned hills and mountains, stone risers between them.
@@ -111,7 +111,18 @@ vec3 look(vec4 d, vec2 wp, float y, float slope) {
 		float steep = smoothstep(0.75, 0.95, slope);
 		c = mix(c, mix(vec3(0.42, 0.38, 0.32), field, riser), (1.0 - steep) * 0.85 * smoothstep(0.05, 0.2, y));
 	}
-	return fog == 1 ? sepia_drawing(c, wp) : c;
+	if (fog == 1) c = hatch(sepia_drawing(c, wp), wp, slope * 1.5 + smoothstep(0.6, 1.2, y) * 0.3);
+	return c;
+}
+
+// The tile's look, burning from what it was into what it is for a moment after its fog changes.
+vec3 look(vec4 d, vec2 axial, vec2 wp, float y, float slope) {
+	int fog = channel(d.g);
+	int before;
+	float edge;
+	float p = reveal_progress(axial, wp, before, edge);
+	vec3 c = p >= 1.0 ? look_fog(d, wp, y, slope, fog) : look_fog(d, wp, y, slope, before);
+	return mix(c, vec3(0.16, 0.07, 0.03), edge * 0.85);
 }
 
 void fragment() {
@@ -123,7 +134,7 @@ void fragment() {
 	vec4 da = tile_at(a);
 	vec4 db = tile_at(b);
 	float wa = 0.5 + 0.5 * smoothstep(0.0, 0.34, edge);
-	vec3 col = mix(look(db, wp, wpos.y, slope), look(da, wp, wpos.y, slope), wa);
+	vec3 col = mix(look(db, b, wp, wpos.y, slope), look(da, a, wp, wpos.y, slope), wa);
 	int fa = channel(da.g), fb = channel(db.g);
 	int normal_layer = slope > 0.45 ? 5 : channel(da.r);
 	vec3 normal_ts = texture(normal_tex, vec3(wp * tiling, float(normal_layer))).rgb;
@@ -133,9 +144,10 @@ void fragment() {
 	float gedge;
 	hex_pair(wp, ga, gb, gedge);
 	int fog_here = channel(tile_at(ga).g);
-	float line = 1.0 - smoothstep(0.0, fog_here == 0 ? 0.03 : 0.045, gedge);
-	float pen = 0.75 + 0.25 * texture(paper_noise, wp * 2.3).g;
-	if (wpos.y > 0.0 || fog_here != 0) col = mix(col, fog_here == 0 ? col * 0.72 : ink_color, line * (fog_here == 0 ? 0.22 : 0.6) * pen);
+	if (fog_here != 0) hex_pair(wobble(wp, 0.12), ga, gb, gedge);   // on the paper the grid is drawn by hand
+	float line = 1.0 - smoothstep(0.0, fog_here == 0 ? 0.03 : 0.04, gedge);
+	float pen = 0.6 + 0.4 * texture(paper_noise, wp * 2.3).g;
+	if (wpos.y > 0.0 || fog_here != 0) col = mix(col, fog_here == 0 ? col * 0.72 : ink_color, line * (fog_here == 0 ? 0.22 : 0.4) * pen);
 
 	// the frontier of the known world: a ragged, burnt ink edge on the paper
 	if (fa != fb && (fa == 2 || fb == 2)) {
@@ -150,6 +162,11 @@ void fragment() {
 		float cloud = texture(paper_noise, wp * 0.022 + vec2(TIME * 0.004, TIME * 0.0025)).r;
 		col *= 1.0 - cloud_shadows * smoothstep(0.52, 0.72, cloud);
 	}
+	// embers glowing along the burning edge of a newly revealed tile
+	int before_a;
+	float ember;
+	reveal_progress(a, wp, before_a, ember);
+	EMISSION = vec3(1.0, 0.42, 0.08) * ember * 2.2 * step(0.5, float(before_a));
 	ALBEDO = col;
 	NORMAL_MAP = fa == 0 ? normal_ts : vec3(0.5, 0.5, 1.0);
 	NORMAL_MAP_DEPTH = 0.9;

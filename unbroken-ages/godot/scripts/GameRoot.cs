@@ -70,6 +70,8 @@ public partial class GameRoot : Node3D
             RotationDegrees = new Vector3(-38, 42, 0), ShadowEnabled = true, LightEnergy = 1.0f, LightColor = new Color("#ffe2bd"),
             DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits, DirectionalShadowMaxDistance = 60f, ShadowBlur = 1.5f,
         });
+        // A cool fill from the far side of the sky, without shadows: the shade side of hills and figures keeps its form.
+        AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-28, 222, 0), LightEnergy = 0.22f, LightColor = new Color("#a9c8ff"), ShadowEnabled = false });
         AddChild(new WorldEnvironment { Environment = BuildEnvironment() });
         _camera = new StrategyCamera();
         AddChild(_camera);
@@ -77,10 +79,13 @@ public partial class GameRoot : Node3D
         AddChild(_map);
         _battleFx = new UnbrokenAges.Client.Visuals.BattleFx();
         AddChild(_battleFx);
+        AddChild(new UnbrokenAges.Client.Visuals.MapFx());
+        AddChild(new UnbrokenAges.Client.Visuals.CloudLayer(HexMapView.PaperNoise));
         _lens = new PlacementLens();
         AddChild(_lens);
         // The paper finish over the whole 3D frame (grain, warm grade, aged vignette), on a layer under the interface.
         var grade = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/paper_grade.gdshader") };
+        _grade = grade;
         grade.SetShaderParameter("paper_noise", HexMapView.PaperNoise);
         var gradeLayer = new CanvasLayer { Layer = 0 };
         AddChild(gradeLayer);
@@ -91,6 +96,9 @@ public partial class GameRoot : Node3D
         var theme = UiTheme.Build();
         var ui = new CanvasLayer { Layer = 1 };
         AddChild(ui);
+        _ui = ui;
+        _cinematics = new Cinematics(this);
+        AddChild(_cinematics);
         _overlay = new MapOverlay(this);
         ui.AddChild(_overlay);
         _topBar = new TopBar(this) { Visible = false };
@@ -99,6 +107,8 @@ public partial class GameRoot : Node3D
         ui.AddChild(_tracker);
         _feed = new NotificationFeed(this);
         ui.AddChild(_feed);
+        _turnBanner = new TurnBanner();
+        ui.AddChild(_turnBanner);
         _cityPanel = new CityPanel(this, _lens) { Visible = false };
         ui.AddChild(_cityPanel);
         _unitPanel = new UnitPanel(this);
@@ -164,7 +174,7 @@ public partial class GameRoot : Node3D
         _backdrop = world;
         _map.Render(world, 0, -1, seeEverything: true);
         var capital = world.Cities.FirstOrDefault();
-        if (capital != null) _camera.LookAtHex(world.Map.CoordOf(capital.Tile));
+        if (capital != null) { _camera.LookAtHex(world.Map.CoordOf(capital.Tile)); _camera.Settle(); }
     }
 
     /// <summary>
@@ -348,12 +358,16 @@ public partial class GameRoot : Node3D
     private void OnEvents(GameState s, IReadOnlyList<GameEvent> events)
     {
         _feed.Add(s, events);
+        if (LocalPlayer >= 0 && LocalPlayer < s.Players.Count) _cinematics.Consider(s, events, LocalPlayer, VisibilitySystem.Visible(s, LocalPlayer));
         foreach (var e in events)
         {
             bool mine = e.Player == LocalPlayer;
             switch (e.Type)
             {
-                case GameEventType.TurnAdvanced: AudioManager.Sfx("bell", -14f, 1.15f); break;
+                case GameEventType.TurnAdvanced:
+                    AudioManager.Sfx("bell", -14f, 1.15f);
+                    _turnBanner.Announce(s.Turn, Calendar.Format(Calendar.Year(s.Turn, s.Options.GameSpeedPercent)));
+                    break;
                 case GameEventType.CityFounded when mine: AudioManager.Sfx("bell", -4f); AudioManager.Sfx("build", -6f); break;
                 case GameEventType.ProductionCompleted when mine: AudioManager.Sfx("build", -8f); break;
                 case GameEventType.TechResearched when mine: case GameEventType.CivicCompleted when mine: AudioManager.Sfx("page", -4f); break;
@@ -387,6 +401,21 @@ public partial class GameRoot : Node3D
     }
 
     public HexMapView MapView => _map;
+    private ShaderMaterial _grade = null!;
+    private CanvasLayer _ui = null!;
+    private Cinematics _cinematics = null!;
+    private TurnBanner _turnBanner = null!;
+    public Cinematics Cinematics => _cinematics;
+
+    /// <summary>The interface steps aside for a cinematic.</summary>
+    public void SetHudVisible(bool visible) => _ui.Visible = visible;
+
+    /// <summary>The paper grade's vignette and warmth (deepened during a cinematic).</summary>
+    public void SetGrade(float vignette, float warmth)
+    {
+        _grade.SetShaderParameter("vignette", vignette);
+        _grade.SetShaderParameter("warmth", warmth);
+    }
     private UnbrokenAges.Client.Visuals.BattleFx _battleFx = null!;
 
     public void ToggleMenu() => _menu.Visible = !_menu.Visible;

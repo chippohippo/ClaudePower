@@ -173,6 +173,25 @@ public static class SceneTint
                 }
     }
 
+    /// <summary>
+    /// The finish every unit figure gets: a rim of sky light on the silhouette, so small figures read clearly against the
+    /// land, and a touch of sheen. Materials are copied, so the shared scene stays untouched.
+    /// </summary>
+    public static void Finish(Node root)
+    {
+        foreach (var mi in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
+            for (int i = 0; i < mi.GetSurfaceOverrideMaterialCount(); i++)
+                if (mi.GetActiveMaterial(i) is BaseMaterial3D b)
+                {
+                    var copy = (BaseMaterial3D)b.Duplicate();
+                    copy.RimEnabled = true;
+                    copy.Rim = 0.45f;
+                    copy.RimTint = 0.35f;
+                    copy.Roughness = Mathf.Min(b.Roughness, 0.75f);
+                    mi.SetSurfaceOverrideMaterial(i, copy);
+                }
+    }
+
     /// <summary>The marker colour generated vehicles paint their team parts in (tools/assets/vehicles.py: TEAM).</summary>
     private static readonly Color TeamMarker = new(0.18f, 0.42f, 0.85f);
 
