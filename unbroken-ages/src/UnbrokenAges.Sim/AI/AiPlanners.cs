@@ -259,12 +259,24 @@ public static class MilitaryAi
         int mine = Strength(s, p.Id);
         // No dogpiles: leave a rival that is making its last stand, or already fighting another great power, alone.
         // Nor one that has just made peace with anyone: a people at war with its neighbours one after another never recovers.
-        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 && !JustAtPeace(s, t) &&
-                                                              !(DiplomacySystem.Find(s, p.Id, t) is { } rel && rel.Status != DiploStatus.War && s.Turn - rel.Since < WarCooldown))
-                                                 .OrderBy(t => Strength(s, t)).ThenBy(t => t))
-            if (mine * 2 * war >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
+        // Friends are spared, the resented come first, and a rival's allies count toward its strength (they will answer its call).
+        var candidates = Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 && !JustAtPeace(s, t) &&
+                                                        !(DiplomacySystem.Find(s, p.Id, t) is { } rel && rel.Status != DiploStatus.War && s.Turn - rel.Since < WarCooldown))
+                                            .Select(t => (Target: t, Attitude: DiplomacySystem.Attitude(s, p.Id, t).Total))
+                                            .Where(x => x.Attitude < DealSystem.FriendAttitude).ToList();
+        foreach (var (target, attitude) in candidates.OrderBy(x => Strength(s, x.Target) + 4 * x.Attitude).ThenBy(x => x.Target))
+            if (mine * 2 * war >= (Strength(s, target) + AlliedHelp(s, target, p.Id)) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
                 return new DeclareWarCommand { Player = p.Id, Target = target };
         return null;
+    }
+
+    /// <summary>Half the strength of the target's allies that are free to answer its call (not already at war with a great power).</summary>
+    public static int AlliedHelp(GameState s, int target, int attacker)
+    {
+        int help = 0;
+        foreach (int ally in DiplomacySystem.Allies(s, target))
+            if (ally != attacker && s.Players[ally].IsAlive && MajorEnemies(s, ally).Count == 0) help += Strength(s, ally) / 2;
+        return help;
     }
 
     /// <summary>

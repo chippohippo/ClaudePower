@@ -265,10 +265,15 @@ void Simulate()
     Console.WriteLine("space: satellites " + s.Satellites.Count + " · " + string.Join(", ", s.Players.Where(p => p.IsMajor && p.IsAlive).Select(p => $"{p.Name} exodus {p.ExodusStage}")));
     Console.WriteLine($"camps={s.Camps.Count} raiders={s.Units.Count(u => s.Players[u.Owner].IsFreeCities)} " +
                       $"natural wonders={Enumerable.Range(0, s.Map.Count).Count(t => s.Map.Feature[t] >= 0 && db.Features[s.Map.Feature[t]].NaturalWonder)}");
+    Console.WriteLine("diplomacy: alliances [" + string.Join(", ", s.Relations.Where(r => r.Status == DiploStatus.Alliance).Select(r => $"{s.Players[r.A].Name}+{s.Players[r.B].Name}")) +
+                      $"] · agreements {s.Agreements.Count} · offers {s.Deals.Count} · great people bought " +
+                      string.Join(", ", s.Players.Where(p => p.IsMajor && p.Patronages > 0).Select(p => $"{p.Name} {p.Patronages}")) +
+                      $" · dilemmas answered {s.Players.Where(p => p.IsMajor).Sum(p => p.DilemmasSeen.Count)}");
     Console.WriteLine($"final state hash {GameStateSerializer.Hash(s):X16} ({GameStateSerializer.Serialize(s).Length / 1024} KiB snapshot)");
     Console.WriteLine();
-    Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries, last 12)");
-    foreach (var entry in s.Chronicle.TakeLast(12)) Console.WriteLine("  " + entry.Text);
+    bool whole = HasOpt("--chronicle");
+    Console.WriteLine($"THE CHRONICLE ({s.Chronicle.Count} entries{(whole ? "" : ", last 12")})");
+    foreach (var entry in whole ? s.Chronicle : s.Chronicle.TakeLast(12)) Console.WriteLine("  " + entry.Text);
 }
 
 void Host()

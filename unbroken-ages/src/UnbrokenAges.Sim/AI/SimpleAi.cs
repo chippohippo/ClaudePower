@@ -86,6 +86,7 @@ public sealed class SimpleAi : IAiController
         commands.AddRange(Timed("Governors", () => Governors(s, player)));
         commands.AddRange(Timed("Nation", () => NationAi.Commands(s, player)));
         commands.AddRange(Timed("Society", () => SocietyAi.Commands(s, player)));
+        commands.AddRange(Timed("Deals", () => DiplomacyAi.Commands(s, player)));
 
         // Upgrades with the preset (standard) variant, keeping 100 gold in reserve.
         foreach (var unit in s.Units.Where(u => u.Owner == playerId && SupplySystem.IsMilitary(db, u)))

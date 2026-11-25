@@ -53,3 +53,58 @@ public sealed class SetOpenBordersCommand : TargetedCommand
     protected override void WritePayload(BinaryWriter w) { base.WritePayload(w); w.Write(Open); }
     protected override void ReadPayload(BinaryReader r) { base.ReadPayload(r); Open = r.ReadBoolean(); }
 }
+
+/// <summary>Put a deal on the table for <see cref="TargetedCommand.Target"/> (it replaces any earlier offer to them).</summary>
+public sealed class ProposeDealCommand : TargetedCommand
+{
+    public List<DealItemState> Items = new();
+    public override CommandType Type => CommandType.ProposeDeal;
+    public override string? Validate(GameState s) => Alive(s) ?? DealSystem.Validate(s, Player, Target, Items);
+    public override void Apply(GameState s, List<GameEvent> events) => DealSystem.Propose(s, Player, Target, Items, events);
+    protected override void WritePayload(BinaryWriter w)
+    {
+        base.WritePayload(w);
+        w.Write(Items.Count);
+        foreach (var i in Items) { w.Write((byte)i.Kind); w.Write(i.Giver); w.Write(i.Amount); w.Write(i.Target); }
+    }
+    protected override void ReadPayload(BinaryReader r)
+    {
+        base.ReadPayload(r);
+        int n = r.ReadInt32();
+        if (n < 0 || n > DealSystem.MaxItems) throw new InvalidDataException("Too many deal items.");
+        Items = new List<DealItemState>(n);
+        for (int k = 0; k < n; k++)
+            Items.Add(new DealItemState { Kind = (DealItemKind)r.ReadByte(), Giver = r.ReadInt32(), Amount = r.ReadInt32(), Target = r.ReadInt32() });
+    }
+}
+
+/// <summary>Accept or reject the offer <see cref="DealId"/> addressed to the issuer.</summary>
+public sealed class RespondDealCommand : GameCommand
+{
+    public int DealId;
+    public bool Accept;
+    public override CommandType Type => CommandType.RespondDeal;
+    public override string? Validate(GameState s) => Issuer(s) == null ? "Invalid player." : DealSystem.ValidateRespond(s, Player, DealId, Accept);
+    public override void Apply(GameState s, List<GameEvent> events) => DealSystem.Respond(s, Player, DealId, Accept, events);
+    protected override void WritePayload(BinaryWriter w) { w.Write(DealId); w.Write(Accept); }
+    protected override void ReadPayload(BinaryReader r) { DealId = r.ReadInt32(); Accept = r.ReadBoolean(); }
+}
+
+/// <summary>Leave the alliance with the target.</summary>
+public sealed class LeaveAllianceCommand : TargetedCommand
+{
+    public override CommandType Type => CommandType.LeaveAlliance;
+    public override string? Validate(GameState s) => Alive(s) ?? DiplomacySystem.ValidateLeaveAlliance(s, Player, Target);
+    public override void Apply(GameState s, List<GameEvent> events) => DiplomacySystem.LeaveAlliance(s, Player, Target, events);
+}
+
+/// <summary>Return a city to the people who founded it.</summary>
+public sealed class LiberateCityCommand : GameCommand
+{
+    public int CityId;
+    public override CommandType Type => CommandType.LiberateCity;
+    public override string? Validate(GameState s) => Issuer(s) == null ? "Invalid player." : DiplomacySystem.ValidateLiberate(s, Player, CityId);
+    public override void Apply(GameState s, List<GameEvent> events) => DiplomacySystem.Liberate(s, Player, CityId, events);
+    protected override void WritePayload(BinaryWriter w) => w.Write(CityId);
+    protected override void ReadPayload(BinaryReader r) => CityId = r.ReadInt32();
+}

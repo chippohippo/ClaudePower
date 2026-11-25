@@ -19,6 +19,8 @@ public sealed class Relation
     /// <summary>A lets B's military units cross A's territory.</summary>
     public bool AGrantsB;
     public bool BGrantsA;
+    /// <summary>Who declared the current (or last) war (-1 unknown): their victim's allies may answer a call to arms.</summary>
+    public int DeclaredBy = -1;
 }
 
 /// <summary>An itemized, decaying reason for one leader to resent another (always visible in the UI).</summary>

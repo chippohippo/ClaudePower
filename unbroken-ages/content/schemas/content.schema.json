@@ -5,6 +5,7 @@
   "description": "A content file holds any number of categories, each an array of entries. Entries are add (default), replace, patch or delete operations ($op). In patches, arrays accept {\"$append\": [...]}, {\"$prepend\": [...]}, {\"$removeWhere\": {...}}, {\"$remove\": [...]}. The C# loader (ModLoader) is authoritative; this schema powers editor autocomplete.",
   "type": "object",
   "properties": {
+    "dilemmas": {"type": "array", "items": {"$ref": "#/$defs/dilemma"}},
     "$schema": {
       "type": "string"
     },
@@ -197,6 +198,153 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "dilemma": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        },
+        "$op": {
+          "enum": [
+            "add",
+            "replace",
+            "patch",
+            "delete"
+          ]
+        },
+        "trigger": {
+          "enum": [
+            "Empire",
+            "RiverCity",
+            "CoastalCity",
+            "LargeCity",
+            "RestlessCity",
+            "NewlyTakenCity",
+            "AtWar",
+            "Neighbour",
+            "HasReligion",
+            "Wealthy",
+            "GoldenAge",
+            "DarkAge"
+          ]
+        },
+        "minEra": {
+          "type": "string"
+        },
+        "maxEra": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "gold": {
+                    "type": "integer"
+                  },
+                  "faith": {
+                    "type": "integer"
+                  },
+                  "favor": {
+                    "type": "integer"
+                  },
+                  "science": {
+                    "type": "integer"
+                  },
+                  "culture": {
+                    "type": "integer"
+                  },
+                  "eraScore": {
+                    "type": "integer"
+                  },
+                  "loyalty": {
+                    "type": "integer"
+                  },
+                  "population": {
+                    "type": "integer"
+                  },
+                  "relations": {
+                    "type": "integer"
+                  },
+                  "warWeariness": {
+                    "type": "integer"
+                  },
+                  "progress": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "strife": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "calamity": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "modifiers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/modifier"
+                    }
+                  },
+                  "turns": {
+                    "type": "integer"
+                  },
+                  "empireWide": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/arrayPatch"
+            }
+          ]
+        }
+      }
+    },
     "map": {
       "type": "object",
       "description": "A scripted map: one character per tile, row by row, plus true start locations as [column, row].",
@@ -2213,7 +2361,7 @@
                 "Workshop",
                 "Grandeur",
                 "Winter",
-                "Satrapy",
+                "Satrapy", "Ruhr", "Rinascimento",
                 "FlowerWar",
                 "LongCount",
                 "Highland",

@@ -1,0 +1,193 @@
+{
+  // Historic dilemmas: situations drawn from a civilization's circumstances, each with two or three answers that carry a price
+  // and a consequence (GDD §12.4; docs/05-key-systems/15-society.md#historic-dilemmas). The first option is what the council
+  // does when nobody answers, so it never costs anything. {city} and {other} name where it happens and whom it concerns.
+  "$schema": "../../schemas/content.schema.json",
+  "dilemmas": [
+    {
+      "id": "DILEMMA_RIVER_LEVEES", "name": "The River's Temper", "trigger": "RiverCity", "maxEra": "ERA_RENAISSANCE",
+      "description": "The river at {city} has burst its banks twice in living memory.",
+      "options": [
+        { "name": "Trust the floods", "description": "the silt feeds the fields", "turns": 20, "calamity": 2,
+          "modifiers": [ { "effect": "CityYieldFlat", "yield": "Food", "amount": 2 } ] },
+        { "name": "Raise levees", "description": "80 gold for walls of earth", "gold": -80, "loyalty": 10, "eraScore": 2, "turns": 20,
+          "modifiers": [ { "effect": "CityYieldFlat", "yield": "Production", "amount": 2 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_GRAIN_HOARDERS", "name": "The Hoarders", "trigger": "LargeCity", "minEra": "ERA_CLASSICAL", "maxEra": "ERA_INDUSTRIAL",
+      "description": "Merchants in {city} are hoarding grain while prices climb.",
+      "options": [
+        { "name": "Let the market work", "description": "the merchants pay their taxes", "gold": 60, "loyalty": -10 },
+        { "name": "Open the state granaries", "description": "bread for everyone, at the treasury's cost", "gold": -50, "loyalty": 10, "turns": 10,
+          "modifiers": [ { "effect": "CityAmenities", "amount": 1 }, { "effect": "CityYieldPercent", "yield": "Food", "amount": 15 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_REFUGEES", "name": "At the Gates", "trigger": "Neighbour", "minEra": "ERA_CLASSICAL", "weight": 12,
+      "description": "Refugees from {other} gather at the gates of {city}.",
+      "options": [
+        { "name": "Turn them away", "description": "{other} will not forget it", "relations": -10 },
+        { "name": "Take them in", "description": "new citizens, crowded streets, and {other}'s gratitude", "population": 1, "relations": 25, "turns": 10,
+          "modifiers": [ { "effect": "CityAmenities", "amount": -1 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_BORDER_PASTURES", "name": "The Disputed Pastures", "trigger": "Neighbour", "maxEra": "ERA_INDUSTRIAL",
+      "description": "Herders from {city} and from {other} quarrel over the same pastures.",
+      "options": [
+        { "name": "Stand firm", "description": "{city} cheers; {other} bristles", "loyalty": 10, "relations": -15 },
+        { "name": "Split the pastures", "description": "{city} grumbles; {other} is pleased", "loyalty": -5, "relations": 20 }
+      ]
+    },
+    {
+      "id": "DILEMMA_HERETIC", "name": "The Preacher", "trigger": "HasReligion", "minEra": "ERA_MEDIEVAL",
+      "description": "A preacher in {city} denounces the priesthood as corrupt, and crowds come to hear him.",
+      "options": [
+        { "name": "Banish him", "description": "order is kept", "loyalty": 5, "turns": 10,
+          "modifiers": [ { "effect": "CityAmenities", "amount": -1 } ] },
+        { "name": "Hear his grievances", "description": "a reformed clergy, at a cost in faith", "faith": -50, "eraScore": 2, "turns": 15, "empireWide": true,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Culture", "amount": 10 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_PILGRIMS", "name": "The Pilgrim Roads", "trigger": "HasReligion",
+      "description": "Pilgrims crowd the roads to {city}, the heart of your faith.",
+      "options": [
+        { "name": "Tax the pilgrims", "description": "a toll at every gate", "gold": 100, "loyalty": -5 },
+        { "name": "Build hostels", "description": "60 gold, and the faithful come in greater numbers", "gold": -60, "turns": 15, "empireWide": true,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Faith", "amount": 20 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_VETERANS", "name": "The Veterans", "trigger": "AtWar", "minEra": "ERA_CLASSICAL",
+      "description": "Veterans of the war with {other} demand land and pensions.",
+      "options": [
+        { "name": "Pay them in glory", "description": "the people grow weary of the war", "warWeariness": 8 },
+        { "name": "Pay them in gold", "description": "100 gold, and the cities stand behind the war", "gold": -100, "warWeariness": -8, "loyalty": 5, "empireWide": true }
+      ]
+    },
+    {
+      "id": "DILEMMA_SECRET_ENVOY", "name": "A Secret Envoy", "trigger": "AtWar",
+      "description": "An envoy from {other} arrives in secret, asking what peace would cost.",
+      "options": [
+        { "name": "Send him back in chains", "description": "the armouries work day and night", "relations": -15, "strife": 5, "turns": 10, "empireWide": true,
+          "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 15 } ] },
+        { "name": "Listen", "description": "the door to peace stays open", "relations": 20, "warWeariness": -4, "strife": -3 }
+      ]
+    },
+    {
+      "id": "DILEMMA_TREASURE_FLEET", "name": "The Treasure Fleet", "trigger": "CoastalCity", "minEra": "ERA_RENAISSANCE", "maxEra": "ERA_INDUSTRIAL",
+      "description": "A treasure fleet limps into {city}, battered by storms.",
+      "options": [
+        { "name": "Seize the cargo for the crown", "description": "150 gold; the captains will remember", "gold": 150, "loyalty": -10 },
+        { "name": "Let the captains keep it", "description": "they invest it in {city}", "loyalty": 5, "turns": 20,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Gold", "amount": 25 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_EXPEDITION", "name": "Beyond the Charts", "trigger": "CoastalCity", "minEra": "ERA_MEDIEVAL", "maxEra": "ERA_MODERN",
+      "description": "A captain from {city} seeks backing to chart unknown seas.",
+      "options": [
+        { "name": "Not one coin", "description": "the captain sails for someone else" },
+        { "name": "Fund the voyage", "description": "120 gold for maps, specimens and stories", "gold": -120, "science": 150, "eraScore": 3 }
+      ]
+    },
+    {
+      "id": "DILEMMA_ACADEMY_CHARTER", "name": "The Scholars' Charter", "trigger": "Empire", "minEra": "ERA_CLASSICAL", "maxEra": "ERA_RENAISSANCE",
+      "description": "Scholars petition for a charter: the freedom to teach whatever they please.",
+      "options": [
+        { "name": "Refuse", "description": "the old certainties hold", "loyalty": 5, "empireWide": true },
+        { "name": "Grant the charter", "description": "60 gold, and new ideas spread", "gold": -60, "progress": 2, "turns": 15, "empireWide": true,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Science", "amount": 10 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_FESTIVAL", "name": "A Festival of the Age", "trigger": "GoldenAge",
+      "description": "The people of {city} want a festival to mark the glories of the age.",
+      "options": [
+        { "name": "Work, not wine", "description": "the workshops stay open", "turns": 10,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Production", "amount": 10 } ] },
+        { "name": "Hold the festival", "description": "80 gold for a celebration remembered for generations", "gold": -80, "eraScore": 3, "turns": 10, "empireWide": true,
+          "modifiers": [ { "effect": "CityAmenities", "amount": 2 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_SCAPEGOATS", "name": "Hard Times", "trigger": "DarkAge",
+      "description": "In hard times, crowds in {city} blame the foreign quarter for their troubles.",
+      "options": [
+        { "name": "Let them rage", "description": "the anger is spent on others", "loyalty": 10, "strife": 5 },
+        { "name": "Protect the foreign quarter", "description": "40 gold for the watch; the merchants stay", "gold": -40, "eraScore": 2, "turns": 20,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Gold", "amount": 15 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_NOTABLES", "name": "The Old Notables", "trigger": "NewlyTakenCity",
+      "description": "The old notables of {city} offer their loyalty, for a price.",
+      "options": [
+        { "name": "No bargains with the conquered", "description": "their resentment simmers", "loyalty": -5 },
+        { "name": "Confirm their privileges", "description": "100 gold, and {city} settles under your rule", "gold": -100, "loyalty": 25, "turns": 10,
+          "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 3 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_SELF_RULE", "name": "Pamphlets", "trigger": "RestlessCity", "weight": 12,
+      "description": "Pamphlets in {city} call for self-rule.",
+      "options": [
+        { "name": "Crack down", "description": "order returns, sullen", "loyalty": 15, "strife": 3, "turns": 15,
+          "modifiers": [ { "effect": "CityAmenities", "amount": -1 } ] },
+        { "name": "Grant a provincial council", "description": "60 gold, and {city} governs its own affairs", "gold": -60, "turns": 15,
+          "modifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 4 }, { "effect": "CityYieldPercent", "yield": "Culture", "amount": 10 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_FULL_TREASURY", "name": "An Overflowing Treasury", "trigger": "Wealthy",
+      "description": "The treasury overflows, and each of your ministers has a plan for it.",
+      "options": [
+        { "name": "Keep it for a rainy day", "description": "the vaults stay full" },
+        { "name": "Build roads and aqueducts", "description": "200 gold for the works", "gold": -200, "turns": 10, "empireWide": true,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Production", "amount": 15 } ] },
+        { "name": "Patronize the arts", "description": "200 gold for painters, poets and players", "gold": -200, "culture": 200, "eraScore": 3 }
+      ]
+    },
+    {
+      "id": "DILEMMA_STRIKE", "name": "The Strike", "trigger": "LargeCity", "minEra": "ERA_INDUSTRIAL", "maxEra": "ERA_ATOMIC",
+      "description": "Factory workers in {city} walk out over twelve-hour shifts.",
+      "options": [
+        { "name": "Break the strike", "description": "the furnaces relit, the workers bitter", "loyalty": -15, "strife": 3, "turns": 10,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Production", "amount": 10 } ] },
+        { "name": "Shorten the working day", "description": "80 gold, and a city at peace with itself", "gold": -80, "loyalty": 10, "eraScore": 1, "turns": 20,
+          "modifiers": [ { "effect": "CityAmenities", "amount": 2 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_SMOG", "name": "The Winter Smog", "trigger": "LargeCity", "minEra": "ERA_INDUSTRIAL",
+      "description": "A choking smog settles over {city} every winter.",
+      "options": [
+        { "name": "Prosperity has a smell", "description": "the factories run as they are", "calamity": 3, "turns": 15,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Production", "amount": 10 } ] },
+        { "name": "Regulate the furnaces", "description": "100 gold; cleaner air across the realm", "gold": -100, "turns": 20, "empireWide": true,
+          "modifiers": [ { "effect": "CityEmissionsPercent", "amount": -25 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_AIRWAVES", "name": "The Airwaves", "trigger": "Empire", "minEra": "ERA_MODERN",
+      "description": "A new broadcasting service asks who will control the airwaves.",
+      "options": [
+        { "name": "A state broadcaster", "description": "one voice for the nation", "loyalty": 8, "empireWide": true },
+        { "name": "A free press", "description": "argument, scandal and new ideas", "progress": 2, "turns": 20, "empireWide": true,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Culture", "amount": 10 }, { "effect": "CityLoyaltyPerTurn", "amount": -1 } ] }
+      ]
+    },
+    {
+      "id": "DILEMMA_AUTOMATION", "name": "The Machines", "trigger": "LargeCity", "minEra": "ERA_INFORMATION",
+      "description": "Machines in {city} now do the work of thousands.",
+      "options": [
+        { "name": "Let the market adjust", "description": "output soars, and so does resentment", "turns": 20,
+          "modifiers": [ { "effect": "CityYieldPercent", "yield": "Production", "amount": 15 }, { "effect": "CityAmenities", "amount": -1 } ] },
+        { "name": "A dividend for every citizen", "description": "150 gold, and the machines work for everyone", "gold": -150, "loyalty": 10, "turns": 20,
+          "modifiers": [ { "effect": "CityAmenities", "amount": 2 } ] }
+      ]
+    }
+  ]
+}

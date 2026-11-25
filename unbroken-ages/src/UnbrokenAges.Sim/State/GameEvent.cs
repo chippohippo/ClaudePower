@@ -120,6 +120,28 @@ public enum GameEventType : byte
     ExodusStageReached,
     /// <summary>The capital fell and the government moved to this city (Player = its owner).</summary>
     CapitalMoved,
+    // ----- Deals, alliances, liberation -----
+    /// <summary>Player offers Value a deal (Def = deal id; Detail = its items).</summary>
+    DealProposed,
+    /// <summary>Player accepted Value's deal (Detail = its items).</summary>
+    DealAccepted,
+    DealRejected,
+    /// <summary>Player and Value are now allies.</summary>
+    AllianceFormed,
+    /// <summary>Player left its alliance with Value.</summary>
+    AllianceEnded,
+    /// <summary>Player's ally (Def) was attacked by Value: Player may answer with a defensive war.</summary>
+    CalledToArms,
+    /// <summary>A city changed hands in a deal (Player = the new owner, Value = the old).</summary>
+    CityCeded,
+    /// <summary>A city returned to its founders (Player = the founders, Value = the liberator).</summary>
+    CityLiberated,
+    /// <summary>Value = science gained; Detail = the partner.</summary>
+    ResearchAgreementCompleted,
+    /// <summary>A historic dilemma awaits Player's choice (Def = the dilemma).</summary>
+    DilemmaPresented,
+    /// <summary>Player chose (Def = the dilemma, Value = the option; Detail = the outcome).</summary>
+    DilemmaResolved,
 }
 
 /// <summary>
