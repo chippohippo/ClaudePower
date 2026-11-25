@@ -116,7 +116,7 @@ public static class DilemmaSystem
         return Fill(s, text, d);
     }
 
-    private static string Fill(GameState s, string text, PendingDilemmaState d) =>
+    public static string Fill(GameState s, string text, PendingDilemmaState d) =>
         text.Replace("{city}", s.GetCity(d.CityId)?.Name ?? "the capital").Replace("{other}", d.Other >= 0 ? EventText.Civ(s, d.Other) : "a neighbour");
 
     public static string? ValidateResolve(GameState s, PlayerState p, int option)

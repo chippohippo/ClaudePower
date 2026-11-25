@@ -109,6 +109,11 @@ public partial class GameRoot : Node3D
         ui.AddChild(_feed);
         _turnBanner = new TurnBanner();
         ui.AddChild(_turnBanner);
+        ui.AddChild(new AffinityMeter(this));
+        _dilemma = new DilemmaDialog(this);
+        ui.AddChild(_dilemma);
+        _deals = new DealTable(this);
+        ui.AddChild(_deals);
         _cityPanel = new CityPanel(this, _lens) { Visible = false };
         ui.AddChild(_cityPanel);
         _unitPanel = new UnitPanel(this);
@@ -407,6 +412,11 @@ public partial class GameRoot : Node3D
     private CanvasLayer _ui = null!;
     private Cinematics _cinematics = null!;
     private TurnBanner _turnBanner = null!;
+    private DilemmaDialog _dilemma = null!;
+    private DealTable _deals = null!;
+
+    /// <summary>Opens the deal table with another great power.</summary>
+    public void OpenDeal(int other) => _deals.Open(other);
     public Cinematics Cinematics => _cinematics;
 
     /// <summary>The interface steps aside for a cinematic.</summary>

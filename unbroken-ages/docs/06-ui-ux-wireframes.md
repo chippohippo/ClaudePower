@@ -246,6 +246,26 @@ civilization's score is itemized. An eliminated player sees "Your civilization h
 Borders are drawn in the owner's colour, your own brighter. A civilization **at war with you** gets a **red double line**: the doubling
 carries the meaning for colourblind players, and the red is a reinforcement. **Implemented:** `HexMapView.DrawBorders`.
 
+## 7g. Dilemmas, the deal table, patronage, affinities (implemented)
+
+* **Dilemma card**: when a historic dilemma arises, a parchment card names it (engraved title), where and when, the situation in
+  italic, and each answer as a button with its consequences spelled out ("+10 loyalty · their grievance", "+2 Food, +15% Food for
+  10 turns"); unaffordable answers are disabled with the reason; the council's default is marked; **Later** sets it aside for the
+  turn. `UI/DilemmaDialog.cs`.
+* **Deal table** (Diplomacy → *Trade…*): what you give and what they give (gold, gold a turn for 30 turns, favor, strategic
+  resources in stock, open borders) and joint items (peace when at war; otherwise an alliance or a research agreement). A live
+  verdict says whether they would take it and how much gold would tip it (**Balance with gold** adds it). Offers on the table are
+  listed at the top of the Diplomacy screen with **Accept** / **Decline**; allies get **Leave alliance**. `UI/DealTable.cs`.
+* **Patronage**: each great-person class in the Society screen (G) has *Patronize · N gold* and *· N faith* (prophets faith only).
+* **Liberate** on the city screen for a city whose founders are alive: it returns the city and forgives their grievances.
+* **Affinity meter** (under the top bar, once a point is earned): Purity, Harmony and Supremacy with level, a bar to the next level
+  and a ★ on the primary; the tooltip lists the next level's effect and the victory's steps. `Hud/AffinityMeter.cs`.
+* **Affinity films**: choosing the doctrine plays *An affinity awakens* (a tall pillar of light in the affinity's colour, a slow
+  ring and drifting motes), and levels 5, 10, 15 and 20 play *Harmony deepens · Level 10*.
+* **Research tree**: affinity techs carry a ◆ and a tint in their affinity's colour and list the affinity cost changes in the tooltip;
+  other affinities' basic techs stay visible (only their victory techs close after the choice). The Divergence screen (V) shows
+  each affinity's level, its victory and the doctrine's level requirement.
+
 ## 8. Accessibility checklist (applies to every screen)
 Text ≥ 14 px at 100% scale; contrast ≥ 4.5:1; no information carried by colour alone; full keyboard and controller navigation (Steam Deck);
 reduced-motion mode; subtitles and audio cues for notifications; screen-reader labels on every Control (Godot AccessKit); remappable everything.

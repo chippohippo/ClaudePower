@@ -40,6 +40,7 @@ public partial class DiplomacyPanel : PanelContainer
         int me = _root.LocalPlayer;
         foreach (var child in _rows.GetChildren()) child.QueueFree();
         Congress(s, me);
+        Offers(s, me);
         foreach (var other in s.Players.Where(p => p.Id != me && p.IsMajor && p.IsAlive))
         {
             var card = new PanelContainer();
@@ -68,8 +69,39 @@ public partial class DiplomacyPanel : PanelContainer
             AddAction(row, "Denounce", new DenounceCommand { Target = other.Id });
             bool open = DiplomacySystem.Find(s, me, other.Id) is { } r && (r.A == me ? r.AGrantsB : r.BGrantsA);
             AddAction(row, open ? "Close borders" : "Open borders", new SetOpenBordersCommand { Target = other.Id, Open = !open });
+            if (DiplomacySystem.Allied(s, me, other.Id)) AddAction(row, "Leave alliance", new LeaveAllianceCommand { Target = other.Id });
+            int target = other.Id;
+            var trade = new Button { Text = "Trade…", TooltipText = "Open the deal table: gold, resources, borders, alliances, research." };
+            trade.Pressed += () => _root.OpenDeal(target);
+            row.AddChild(trade);
         }
         CityStates(s, me);
+    }
+
+    /// <summary>Offers on the table addressed to you, with Accept and Decline; and your own offers awaiting an answer.</summary>
+    private void Offers(Sim.State.GameState s, int me)
+    {
+        var mine = s.Deals.Where(d => d.To == me || d.From == me).ToList();
+        if (mine.Count == 0) return;
+        var head = new Label { Text = "OFFERS ON THE TABLE" };
+        head.AddThemeColorOverride("font_color", UiTheme.GoldBright);
+        _rows.AddChild(head);
+        foreach (var deal in mine)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+            _rows.AddChild(row);
+            bool toMe = deal.To == me;
+            string who = Cinematics.PeopleName(s, toMe ? deal.From : deal.To);
+            row.AddChild(new Label
+            {
+                Text = (toMe ? $"{who} offers: " : $"You offered {who}: ") + DealSystem.Describe(s, deal) + (toMe ? "" : " (awaiting their answer)"),
+                SizeFlagsHorizontal = SizeFlags.ExpandFill, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(520, 0),
+            });
+            if (!toMe) continue;
+            AddAction(row, "Accept", new RespondDealCommand { DealId = deal.Id, Accept = true });
+            AddAction(row, "Decline", new RespondDealCommand { DealId = deal.Id, Accept = false });
+        }
     }
 
     private int _extra;

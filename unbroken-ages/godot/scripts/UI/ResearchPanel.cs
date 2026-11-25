@@ -136,7 +136,8 @@ public partial class TreeView : Control
         _rects.Clear(); _links.Clear(); _eras.Clear();
         var db = s.Db;
         IReadOnlyList<ProgressNodeDef> all = _civics ? db.Civics.Cast<ProgressNodeDef>().ToList() : db.Techs.Cast<ProgressNodeDef>().ToList();
-        var nodes = all.Where(n => !n.Doctrine && (n.DivergenceIndex < 0 || n.DivergenceIndex == p.Divergence)).ToList();
+        // Every node but the doctrines (chosen on the Divergence screen) and the victory techs of affinities you did not choose.
+        var nodes = all.Where(n => !n.Doctrine && (n.DivergenceIndex < 0 || !n.Victory || n.DivergenceIndex == p.Divergence)).ToList();
         // Columns by depth (one step further than the deepest prerequisite), so every line runs left to right.
         var byIndex = nodes.ToDictionary(n => n.Index);
         var depth = new Dictionary<int, int>();
@@ -179,18 +180,29 @@ public partial class TreeView : Control
         var color = done ? Done : active ? Active : open ? Open : Locked;
         var card = new PanelContainer { Position = rect.Position, Size = rect.Size, CustomMinimumSize = rect.Size, MouseDefaultCursorShape = done ? CursorShape.Arrow : CursorShape.PointingHand };
         var bg = done ? new Color("#2a2414") : active ? new Color("#0f2d44") : open ? new Color("#12233a") : new Color("#141a22");
+        // Affinity techs carry their affinity's colour: a tint, a diamond before the name, and the cost changes in the tooltip.
+        int affinity = AffinitySystem.NodeAffinity(n);
+        var affColor = affinity >= 0 ? Hud.AffinityMeter.Of(s, affinity) : default;
+        if (affinity >= 0) bg = bg.Lerp(affColor, 0.16f);
         card.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, color, active ? 3 : 2, 8, 6));
         var cost = ResearchSystem.Cost(s, p, n).FloorToInt();
         var (science, culture) = ResearchSystem.Rates(s, p.Id);
         int rate = _civics ? culture : science;
         var unlocks = ResearchPanel.Unlocks(s, p, _civics ? -1 : n.Index, _civics ? n.Index : -1);
-        card.TooltipText = $"{n.Name}\nCost {cost}" + (n.Boost != null ? $"\nBoost: {n.Boost}" : "") + (unlocks.Count > 0 ? "\nUnlocks: " + string.Join(", ", unlocks) : "") + (n.Quote != null ? $"\n\n{n.Quote}" : "");
+        card.TooltipText = $"{n.Name}\nCost {cost}" + (affinity >= 0 ? $"\n{AffinitySystem.Name(s, affinity)} affinity" +
+                           string.Concat(AffinitySystem.CostLines(s, p, n).Select(l => $"\n  {l.Label} {l.Percent:+0;-0}%")) : "") + (n.Boost != null ? $"\nBoost: {n.Boost}" : "") + (unlocks.Count > 0 ? "\nUnlocks: " + string.Join(", ", unlocks) : "") + (n.Quote != null ? $"\n\n{n.Quote}" : "");
         var v = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         v.AddThemeConstantOverride("separation", 1);
         card.AddChild(v);
         var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         var name = new Label { Text = (planned >= 0 ? $"{planned + 1}. " : "") + n.Name, ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
         name.AddThemeColorOverride("font_color", done ? UiTheme.GoldBright : open || active ? UiTheme.Text : UiTheme.TextDim);
+        if (affinity >= 0)
+        {
+            var mark = new Label { Text = "◆", MouseFilter = MouseFilterEnum.Ignore };
+            mark.AddThemeColorOverride("font_color", affColor);
+            top.AddChild(mark);
+        }
         top.AddChild(name);
         top.AddChild(new Label { Text = done ? "✓" : rate > 0 ? $"{(cost + rate - 1) / rate}t" : "—", ThemeTypeVariation = "Caption", MouseFilter = MouseFilterEnum.Ignore });
         v.AddChild(top);

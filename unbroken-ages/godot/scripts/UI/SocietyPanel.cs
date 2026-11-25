@@ -109,7 +109,7 @@ public partial class SocietyPanel : PanelContainer
             col.AddChild(Text($"{(visitors > domestic ? "✓" : "·")} {o.Name}: {visitors} of your tourists vs {domestic} of theirs" + (bonus > 0 ? $" (+{bonus}% tourism)" : ""),
                               visitors > domestic ? UiTheme.GoldBright : null, 13));
         }
-        col.AddChild(Text("Tourism: 2 per great work on display, 3 per world wonder, 2 per natural wonder in your lands; +25% per era from the Industrial; " +
+        col.AddChild(Text("Tourism: 2 per great work on display, 3 per world wonder, 2 per natural wonder in your lands; +35% per era from the Industrial; " +
                           "+25% toward a civilization you trade with, that opens its borders to you, or whose capital keeps your faith.", UiTheme.TextDim, 12));
         col.AddChild(new HSeparator());
         var works = s.GreatWorks.Where(g => g.Owner == me.Id).ToList();
@@ -245,6 +245,24 @@ public partial class SocietyPanel : PanelContainer
             col.AddChild(Text($"   next: {who}", UiTheme.TextDim, 12));
             var bar = new ProgressBar { MaxValue = cost, Value = Math.Min(cost, me.GreatPersonPoints[c]), ShowPercentage = false, CustomMinimumSize = new Vector2(0, 6) };
             col.AddChild(bar);
+            // Patronage: buy the missing points outright (gold, or faith; prophets answer to faith alone).
+            if (next != null)
+            {
+                var buy = new HBoxContainer();
+                buy.AddThemeConstantOverride("separation", 6);
+                foreach (bool faith in cls == GreatPersonClass.Prophet ? new[] { true } : new[] { false, true })
+                {
+                    int price = GreatPeopleSystem.PatronagePrice(s, me, cls, faith);
+                    var cmd = new PatronizeCommand { Player = me.Id, Class = cls, WithFaith = faith };
+                    string? why = cmd.Validate(s);
+                    var b = new Button { Text = $"Patronize · {price} {(faith ? "faith" : "gold")}", Disabled = why != null,
+                                         TooltipText = why ?? $"Recruit {next.Name} at the end of the turn. Each patronage costs 15% more than the last." };
+                    b.AddThemeFontSizeOverride("font_size", 12);
+                    b.Pressed += () => { _root.Submit(cmd); Refresh(); };
+                    buy.AddChild(b);
+                }
+                col.AddChild(buy);
+            }
         }
         col.AddChild(Text("Points come from districts: Academy → Scientists, Foundry → Engineers, Market → Merchants, Cultural Quarter → Artists, " +
                           "Sanctuary → Prophets, Garrison → Generals, Harbor → Admirals (+1 per building).", UiTheme.TextDim, 12));

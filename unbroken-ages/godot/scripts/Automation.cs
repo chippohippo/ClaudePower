@@ -169,6 +169,20 @@ public partial class GameRoot
             case "zoom-out": Camera.Zoom(2.2f); return null;
             case var hd when hd.StartsWith("hold:"): _holdFrames = int.Parse(hd[5..]); return null;
             case "cinematics:on": Films.Enabled = true; return null;
+            case "dilemma": return DilemmaSystem.Present(s, me, new()) || me.Dilemma != null ? null : "no dilemma can arise now";
+            case var af when af.StartsWith("affinity:"):
+            {
+                var parts = af.Split(':');
+                AffinitySystem.Award(s, me, int.Parse(parts[1]), int.Parse(parts[2]), "a scripted test", new());
+                return null;
+            }
+            case "deal":
+            {
+                var other = s.Players.Where(o => o.IsMajor && o.IsAlive && o.Id != LocalPlayer).OrderBy(o => o.Id).FirstOrDefault();
+                if (other == null) return "no one to deal with";
+                OpenDeal(other.Id);
+                return null;
+            }
             case var bn when bn.StartsWith("burn:"):
             {
                 var focus = UnbrokenAges.Client.Map.HexLayout.FromWorld(Camera.Focus);

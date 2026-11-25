@@ -16,7 +16,7 @@ namespace UnbrokenAges.Client.UI;
 /// </summary>
 public partial class Cinematics : CanvasLayer
 {
-    public enum Kind { Founding, Wonder, Era, Faith, Conquest, Loss, NaturalWonder, Victory, Defeat }
+    public enum Kind { Founding, Wonder, Era, Faith, Conquest, Loss, NaturalWonder, Victory, Defeat, Awakening }
 
     public sealed record Moment(Kind Kind, string Banner, string Title, string Subtitle, Vector3 Where, Color Light);
 
@@ -197,6 +197,12 @@ public partial class Cinematics : CanvasLayer
                 fx.Shockwave(at, m.Light, 2.8f, 1.1f);
                 fx.Sparkles(at, m.Light, 50);
                 break;
+            case Kind.Awakening:
+                // The affinity rises from the city: a tall pillar in its colour, a slow ring, and motes drifting up for long.
+                fx.LightPillar(at, m.Light, 5f, 11f, 0.5f);
+                fx.Shockwave(at, m.Light, 4.2f, 1.8f);
+                for (int i = 0; i < 4; i++) GetTree().CreateTimer(0.8f * i).Timeout += () => { if (_playing == m) fx.Sparkles(at, m.Light, 40); };
+                break;
             case Kind.Era:
             case Kind.Faith:
             case Kind.NaturalWonder:
@@ -306,6 +312,20 @@ public partial class Cinematics : CanvasLayer
                 case GameEventType.CityCaptured when e.Value == me:
                     Play(new Moment(Kind.Loss, "A city is lost", e.Detail ?? "", $"taken by {Civ(e.Player)} · {year}", At(e.Tile), new Color(0.6f, 0.5f, 0.45f)));
                     break;
+                case GameEventType.DivergenceChosen when mine:
+                {
+                    var capital = s.GetCity(s.Players[me].CapitalCityId);
+                    var d = s.Db.Divergences[e.Def];
+                    Play(new Moment(Kind.Awakening, "An affinity awakens", d.Name, $"{d.Creed} · {year}", At(capital?.Tile ?? -1), Hud.AffinityMeter.Of(s, e.Def)));
+                    break;
+                }
+                case GameEventType.AffinityLevelUp when mine && e.Value % 5 == 0 && e.Value > 0:
+                {
+                    var capital = s.GetCity(s.Players[me].CapitalCityId);
+                    Play(new Moment(Kind.Awakening, $"{AffinitySystem.Name(s, e.Def)} deepens", $"Level {e.Value}",
+                                    $"{Civ(me)} · {year}", At(capital?.Tile ?? -1), Hud.AffinityMeter.Of(s, e.Def)));
+                    break;
+                }
                 case GameEventType.NaturalWonderDiscovered when mine:
                     Play(new Moment(Kind.NaturalWonder, "A wonder of nature", e.Detail ?? "", $"discovered · {year}", At(e.Tile), new Color(0.6f, 1f, 0.75f)));
                     break;

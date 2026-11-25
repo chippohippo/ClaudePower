@@ -71,6 +71,9 @@ public partial class CityPanel : PanelContainer
         _faithBuy = Button("Missionary (faith)", BuyMissionary);
         _faithBuy.TooltipText = "Buy a Missionary with faith: twice its production cost. Needs a founded religion.";
         row.AddChild(_faithBuy);
+        _liberate = Button("Liberate", () => { if (_root.Submit(new LiberateCityCommand { CityId = _cityId }).Ok) Visible = false; });
+        _liberate.TooltipText = "Return this city to the people who founded it: their grievances against you are forgiven, and a liberated capital is theirs again.";
+        row.AddChild(_liberate);
 
         var buildHead = new HBoxContainer();
         v.AddChild(buildHead);
@@ -121,6 +124,8 @@ public partial class CityPanel : PanelContainer
             _faithBuy.Disabled = why != null;
             _faithBuy.TooltipText = why ?? $"Buy a Missionary here now for {faithCost} faith (twice its production cost).";
         }
+        _liberate.Visible = new LiberateCityCommand { Player = _root.LocalPlayer, CityId = city.Id }.Validate(s) == null;
+        if (_liberate.Visible) _liberate.Text = $"Liberate for {Cinematics.PeopleName(s, city.OriginalOwner)}";
         var fx = CityEffects.Compute(s, city);
         var report = CityYields.Compute(s, city, fx);
         _title.Text = $"{(city.IsCapital ? "★ " : "")}{city.Name.ToUpperInvariant()}  ·  {city.Population}";
@@ -274,7 +279,7 @@ public partial class CityPanel : PanelContainer
         Report(_root.Submit(new PurchaseCommand { CityId = _cityId, Kind = item.Kind, DefIndex = item.DefIndex }));
     }
 
-    private Button _faithBuy = null!;
+    private Button _faithBuy = null!, _liberate = null!;
 
     private void BuyMissionary()
     {
