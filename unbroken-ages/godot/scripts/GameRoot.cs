@@ -192,6 +192,8 @@ public partial class GameRoot : Node3D
             ReflectedLightSource = Godot.Environment.ReflectionSource.Sky,
             TonemapMode = Godot.Environment.ToneMapper.Aces, TonemapExposure = 0.9f, TonemapWhite = 5f,
             SsaoEnabled = true, SsaoRadius = 0.6f, SsaoIntensity = 1.6f, SsaoPower = 1.4f,
+            // Light bouncing between things: sunlit sand warms the underside of a wall, a red roof tints the figures beside it.
+            SsilEnabled = true, SsilRadius = 1.6f, SsilIntensity = 0.9f, SsilSharpness = 0.98f, SsilNormalRejection = 1f,
             GlowEnabled = true, GlowIntensity = 0.25f, GlowBloom = 0.02f, GlowHdrThreshold = 1.6f,
             FogEnabled = true, FogLightColor = new Color("#a9c3d6"), FogDensity = 0.004f, FogAerialPerspective = 0.35f, FogSkyAffect = 0f,
             AdjustmentEnabled = true, AdjustmentSaturation = 1.12f, AdjustmentContrast = 1.06f,
