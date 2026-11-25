@@ -50,7 +50,7 @@ continent and several seeds, and checks each game against these targets:
 | T2 expansion | at turn 100 every people has 3+ cities (Venice excepted), and the median people 5+ |
 | T3 survival | all twelve alive at turn 150; 9+ alive at turn 300 on average; 7+ alive at the end |
 | T4 balance | no people holds more than 30% of the great powers' cities at turn 300, or 40% at the end |
-| T5 pace | the median people reaches the Industrial era by turn 250; someone reaches the Information era by turn 450 |
+| T5 pace | the median people reaches the Industrial era by turn 250 but is not past the Modern era at turn 200 (the calendar's AD 1725); someone reaches the Information era by turn 450 |
 | T6 decision | every game is decided by the turn limit, and at least a third end with a victory other than Score |
 | T7 conflict | every game has wars (5+ declarations) and conquests (10+ cities captured) |
 | T8 speed | under 500 ms per turn on average |
@@ -85,6 +85,26 @@ Two checks after round 6. Four games on fresh seeds (5 and 6) also met every tar
 8-player regression games keep 6–8 peoples alive (4–7 before this work), with more cities (67–84, was 52–72) and no
 runaway: the largest people holds 20 of 79 cities at most.
 
-What the targets do not yet ask for, and the next rounds should: every round-6 game was won by **Ascension**. Spiritual,
-Culture and Concord victories are possible on Earth but the AI rarely pursues them. Research also outruns the 500-turn
-calendar (the Information era by turn 150–175), which leaves the late eras long.
+## Victory variety: six more rounds
+After round 6 every game was won by Ascension, research ran far ahead of the calendar, and small peoples stalled for good (England,
+Japan, Mali and Mongolia at 10–11 technologies at turn 450). A ninth target was added, **T9 variety** (at least three kinds of victory,
+none winning more than half), and T5 now also checks that the median people is not past the Modern era at turn 200. The soak's report
+records, every 25 turns, how far each people is along each road and which road its AI has taken.
+
+| Round | Games | Victories | What it showed, and the change it led to |
+|---|---|---|---|
+| 7 | 8 | Ascension 6, Concord 1, Spiritual 1 | Changes tried: **pacing**: research costs rise more steeply through the middle eras. **Diffusion**: a technology or civic is up to 40% cheaper as more of the other great powers know it. **Faith buys missionaries.** **Victory focus** for the AI ([05/13](13-ai.md#victory-focus-victoryai)). Tourism +35% per era from the Industrial. Russia, the only people with a religion, won a Spiritual victory on turn 193. |
+| 8 | 8 | Ascension 5, Concord 2, Spiritual 1 | Changes tried: missionaries convert at once only towns of 3 or fewer (was 6); each one bought with faith costs 25% more per missionary already out; the Concord needs 16 points (20 was out of reach with twelve peoples sharing two resolutions a session); Exodus-focused cities put the space programme first. Russia was still the world's only religion (Spiritual on turn 190): peoples with no religion now **raise a Sanctuary** while prophets remain. |
+| 9 | 8 | Ascension 3, Concord 3, Exodus 1, Score 1 | T9 passed, but Ethiopia, fought by four neighbours in turn, was under three cities at turn 100. The AI now gives a people that has just made peace a **15-turn respite**. |
+| 10 | 12 | Ascension 8, Concord 2, Exodus 1, Spiritual 1 | Brazil, alone in South America, ascended in all six table-B games. It was raising the Ascension project in every city at once. |
+| 11 | 4 (table B) | Score 4 | The project is now raised in one city; a city raising a victory project is **revealed to every great power**; AI spies **sabotage** the victory project furthest along. Eleven rivals' saboteurs stopped Ascension altogether. |
+| 12 | 12 | Ascension 6, Concord 2, Exodus 2, Spiritual 1, Score 1 | No more than three saboteurs (anyone's) at one city; the builder's counterintelligence guards its project. **All nine targets met.** |
+
+Round 12 in numbers: victories between turns 330 and 490 (Concord on turns 330 and 390, Spiritual on 325, Exodus on 464 and 490,
+Ascension on 418–483, by four different peoples); every game kept all twelve peoples to turn 150 and 11.6 on average to turn 300;
+the median people reached the Industrial era at turns 150–175, the Information era at 225–275 and the Future era at 300–350; 183–324 ms a
+turn. On generated maps the 300-turn regression games keep 6–8 of 8 peoples alive, the largest holding at most 9 of 67–77 cities.
+
+What is still open: table B (one people alone in South America) ends in Ascension every time, by Brazil, Korea or Ethiopia, and the
+Culture victory, which won in development rounds, did not come up in round 12. Each game also keeps one remnant of two or three cities
+far behind in research (11–12 technologies at turn 300), which diffusion alone cannot lift.

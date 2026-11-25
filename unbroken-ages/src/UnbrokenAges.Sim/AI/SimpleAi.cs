@@ -224,7 +224,8 @@ public sealed class SimpleAi : IAiController
             ProductionSystem.Validate(s, city, ProductionKind.Building, spread.SourceBuildingIndex, -1) == null)
             return (ProductionKind.Building, spread.SourceBuildingIndex);
         // The Ascension project is the default road's goal; a civilization on another road spends its cities there instead.
-        if (d.AscensionProjectIndex >= 0 && VictoryAi.Focus(s, player) == VictoryFocus.Ascension &&
+        // It is raised in one city (the one furthest along, else the most productive): the others build for the empire.
+        if (d.AscensionProjectIndex >= 0 && VictoryAi.Focus(s, player) == VictoryFocus.Ascension && AscensionCity(s, player, d.AscensionProjectIndex) == city.Id &&
             ProductionSystem.Validate(s, city, ProductionKind.Project, d.AscensionProjectIndex, -1) == null)
             return (ProductionKind.Project, d.AscensionProjectIndex);
         foreach (var b in db.Buildings)
@@ -232,6 +233,13 @@ public sealed class SimpleAi : IAiController
                 ProductionSystem.Validate(s, city, ProductionKind.Building, b.Index, -1) == null)
                 return (ProductionKind.Building, b.Index);
         return null;
+    }
+
+    private static int AscensionCity(GameState s, PlayerState player, int project)
+    {
+        long key = QueueItem.MakeKey(ProductionKind.Project, project, -1);
+        return s.CitiesOf(player.Id).OrderByDescending(c => c.ProgressLedger.GetValueOrDefault(key))
+                .ThenByDescending(c => c.YieldsLastTurnProduction).ThenBy(c => c.Id).Select(c => c.Id).FirstOrDefault(-1);
     }
 
     /// <summary>Beeline toward the cheapest tech that unlocks a specialty district; otherwise cheapest available.</summary>

@@ -45,8 +45,9 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       last stands and no dogpiles; a visual overhaul (woods, research tree, reach and routes, battle effects, cards).
 - [x] **22. Earth with true start locations**: a 128 × 80 map from Natural Earth, embarkation, and six rounds of 12-civilization
       Earth soaks until all eight targets held ([05/22](docs/05-key-systems/22-earth.md#results-six-rounds-to-a-good-game)).
-- [ ] **23. Victory variety on Earth**: every round-6 game ended in Ascension; the AI should also pursue Culture, Spiritual and
-      Concord, and research should keep closer to the calendar.
+- [x] **23. Victory variety on Earth**: research paced to the calendar, knowledge diffusion, faith buys missionaries, an AI victory
+      focus, sabotage of victory projects; five kinds of victory across twelve Earth games
+      ([05/22](docs/05-key-systems/22-earth.md#victory-variety-six-more-rounds)).
 - [ ] **24. After the first playtest**: whatever playtesters find.
 
 ## Done

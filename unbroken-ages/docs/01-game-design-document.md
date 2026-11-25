@@ -189,9 +189,10 @@ and reassigning one resets the timer. Late game adds **Councils**: a governor ca
 
 * **Technology and Civic trees** are separate, each with boosts worth 40% of cost; boost text is shown on the node.
   Nine eras run from Ancient to Future.
-* **Pacing to the calendar:** costs rise more steeply through the middle eras (Medieval to Industrial) than at either end, so on a
-  standard game the median people reaches the Industrial era around turn 200 (the calendar's 18th century) and the Information era
-  around turn 300 (AD 2000), leaving the Future era and its Divergence for the last two hundred turns.
+* **Pacing to the calendar:** costs rise more steeply through the middle eras (×1.6 Medieval to ×1.9 Industrial, easing to ×1.25 in
+  the Future) than at either end. On twelve-people Earth games the median people reaches the Industrial era at turns 150–175, the
+  Information era at 225–275 (the calendar reaches AD 2000 at turn 295) and the Future era at 300–350, leaving its Divergence for the
+  last stretch. The middle still runs a little ahead of the calendar.
 * **Diffusion:** a technology or civic is up to 40% cheaper as more of the other living great powers know it. A people that falls
   behind catches up; the leader pays full price. (The Divergence's own branches never diffuse.)
 * **Era pacing (Extended Eras):** a setup slider (100 / 150 / 200%) stretches costs per era, so unique units and era

@@ -83,7 +83,7 @@ public static class TurnProcessor
         Time("GreatPeopleSystem.ProcessTurn", () => GreatPeopleSystem.ProcessTurn(s, events));
         Time("CityStateSystem.ProcessTurn", () => CityStateSystem.ProcessTurn(s, events));
         Time("TradeSystem.ProcessTurn", () => TradeSystem.ProcessTurn(s, events));
-        Time("EspionageSystem.ProcessTurn", () => EspionageSystem.ProcessTurn(s, events));
+        Time("EspionageSystem.ProcessTurn", () => { VictorySystem.RevealVictoryProjects(s); EspionageSystem.ProcessTurn(s, events); });
         Time("CultureSystem.ProcessTurn", () => CultureSystem.ProcessTurn(s, events));
         Time("CongressSystem.ProcessTurn", () => CongressSystem.ProcessTurn(s, events));
         Time("SpaceSystem.ProcessTurn", () => SpaceSystem.ProcessTurn(s, events));

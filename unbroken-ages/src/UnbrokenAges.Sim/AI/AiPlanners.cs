@@ -258,7 +258,8 @@ public static class MilitaryAi
         if (p.LastWarDeclaredTurn >= 0 && s.Turn - p.LastWarDeclaredTurn < WarCooldown) return null;   // one war at a time, with a breath between
         int mine = Strength(s, p.Id);
         // No dogpiles: leave a rival that is making its last stand, or already fighting another great power, alone.
-        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 &&
+        // Nor one that has just made peace with anyone: a people at war with its neighbours one after another never recovers.
+        foreach (int target in Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 && !JustAtPeace(s, t) &&
                                                               !(DiplomacySystem.Find(s, p.Id, t) is { } rel && rel.Status != DiploStatus.War && s.Turn - rel.Since < WarCooldown))
                                                  .OrderBy(t => Strength(s, t)).ThenBy(t => t))
             if (mine * 2 * war >= Strength(s, target) * 3 && DiplomacySystem.ValidateDeclareWar(s, p.Id, target) == null)
@@ -389,6 +390,13 @@ public static class MilitaryAi
 
     /// <summary>Turns an AI waits after declaring one war before it declares another, and after a peace before attacking the same rival.</summary>
     public const int WarCooldown = 40;
+
+    /// <summary>Turns after a peace treaty during which the AI leaves that people alone.</summary>
+    public const int Respite = 15;
+
+    private static bool JustAtPeace(GameState s, int player) =>
+        s.Relations.Any(r => (r.A == player || r.B == player) && r.Status == DiploStatus.Peace && r.Since > 0 && s.Turn - r.Since < Respite &&
+                             s.Players[r.A == player ? r.B : r.A].IsMajor);
 
     /// <summary>Until this turn the AI leaves a rival its last city and makes peace instead: no nation is erased in the opening.</summary>
     public const int SparedUntilTurn = 150;

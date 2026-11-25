@@ -87,6 +87,23 @@ public class AiTests
     }
 
     [Fact]
+    public void APeopleThatHasJustMadePeace_IsLeftAloneForARespite()
+    {
+        var s = TestWorld.Blank(width: 40, players: 3);
+        TestWorld.City(s, 0, 5, 10);
+        TestWorld.City(s, 1, 15, 10);
+        TestWorld.City(s, 2, 32, 10);
+        for (int i = 0; i < 3; i++) TestWorld.Unit(s, 0, "UNIT_SWORDSMAN", 4 + i, 12);
+        TestWorld.Unit(s, 1, "UNIT_WARRIOR", 15, 12);
+        s.Turn = 200;
+        // Player 1 has just signed peace with player 2 (after a war of its own).
+        s.Relations.Add(new Relation { A = 1, B = 2, Status = DiploStatus.Peace, Since = s.Turn - 5 });
+        Assert.Null(MilitaryAi.WarDeclaration(s, s.Players[0]));
+        s.Turn += MilitaryAi.Respite;
+        Assert.Equal(1, Assert.IsType<DeclareWarCommand>(MilitaryAi.WarDeclaration(s, s.Players[0])).Target);
+    }
+
+    [Fact]
     public void Armies_MarchOnTheNearestEnemyCity_AndTheWoundedFallBack()
     {
         var s = AtWar();

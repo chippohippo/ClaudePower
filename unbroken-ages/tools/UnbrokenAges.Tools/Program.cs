@@ -213,6 +213,9 @@ void Simulate()
                 var lb = LoyaltySystem.Compute(s, c, snap);
                 Console.WriteLine($"  city {c.Name} pop {c.Population} at {c.Tile % s.Map.Width},{c.Tile / s.Map.Width} loyalty {c.Loyalty} ({lb.Total}: dom {lb.DomesticPressure} for {lb.ForeignPressure} | " +
                                   string.Join(", ", lb.Lines().Select(l => $"{l.Label} {l.Value}")) + ")");
+                if (c.Queue.Items.FirstOrDefault() is { } head)
+                    Console.WriteLine($"    building {ProductionSystem.ItemName(db, head)} ({c.ProgressLedger.GetValueOrDefault(head.ProgressKey).FloorToInt()}); spies here: " +
+                                      string.Join(", ", s.Players.SelectMany(o => o.Spies.Where(x => x.CityId == c.Id).Select(x => $"p{o.Id} {x.Mission}"))));
             }
             foreach (var u in s.Units.Where(u => u.Owner == p.Id))
             {

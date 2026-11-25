@@ -135,8 +135,9 @@ Civilization VII's age resets or civ-swapping.
   Natural Earth, with real coastlines, mountain ranges, deserts, forests and 14 Great Rivers along their real courses. Every
   civilization starts at its historical capital, and every city-state and natural wonder stands at its real site. Land units
   embark to cross the sea (Sailing, then Celestial Navigation). `tools/maps/earth_soak.py` plays 12-civilization Earth games to
-  turn 500 against eight targets (expansion, survival, balance, pace, decision, conflict, speed); after six rounds of fixes all
-  eight hold across both tables of peoples ([results](docs/05-key-systems/22-earth.md#results-six-rounds-to-a-good-game)).
+  turn 500 against nine targets (expansion, survival, balance, pace, decision, conflict, speed, victory variety). After twelve
+  rounds of fixes all nine hold over twelve games, won five different ways between turns 325 and 490
+  ([results](docs/05-key-systems/22-earth.md#victory-variety-six-more-rounds)).
 
   ![Earth](docs/screenshots/earth-map.png)
 * **Unit variants**: upgrades offer 2–3 honest trade-offs (Heavy, Fordsmen, Longbow, Ram…), shown in the combat preview

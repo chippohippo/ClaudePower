@@ -44,6 +44,24 @@ public static class VictorySystem
             Declare(s, ScoreLeader(s), VictoryKind.Score, events);
     }
 
+    /// <summary>A project that wins the game or a stage toward it: a Divergence's Ascension project or an Exodus stage.</summary>
+    public static bool IsVictoryProject(GameState s, int project) =>
+        s.Db.Divergences.Any(d => d.AscensionProjectIndex == project) ||
+        s.Db.Projects[project].OnComplete.Any(m => m.Effect == ModifierEffect.ExodusStage);
+
+    /// <summary>
+    /// A city raising a victory project cannot hide it: every great power learns where it is (and so may send spies to sabotage it).
+    /// </summary>
+    public static void RevealVictoryProjects(GameState s)
+    {
+        foreach (var c in s.Cities)
+        {
+            if (c.Queue.Items.FirstOrDefault() is not { Kind: ProductionKind.Project } head || !IsVictoryProject(s, head.DefIndex)) continue;
+            foreach (var p in s.Players)
+                if (p.IsMajor && p.IsAlive && c.Tile < p.Revealed.Length) p.Revealed[c.Tile] = true;
+        }
+    }
+
     // ----- Hegemony ------------------------------------------------------------------------------------
 
     /// <summary>Player (lowest id of the winning team) that has achieved Hegemony, or -1.</summary>

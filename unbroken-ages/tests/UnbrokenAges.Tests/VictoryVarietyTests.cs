@@ -81,4 +81,23 @@ public class VictoryVarietyTests
         me.DiplomaticPoints = 1;
         Assert.Equal(VictoryFocus.Ascension, VictoryAi.Focus(s, me));   // fell back: the default road again
     }
+
+    [Fact]
+    public void AVictoryProject_CannotBeHidden()
+    {
+        var s = TestWorld.Blank(width: 40, players: 3);
+        var works = TestWorld.City(s, 0, 30, 10);
+        int ascension = s.Db.Divergences.First(d => d.AscensionProjectIndex >= 0).AscensionProjectIndex;
+        Assert.True(VictorySystem.IsVictoryProject(s, ascension));
+        Assert.True(VictorySystem.IsVictoryProject(s, s.Db.Projects.IndexOf("PROJECT_FIRST_ORBIT")));
+        Assert.False(VictorySystem.IsVictoryProject(s, s.Db.Projects.IndexOf("PROJECT_SOLAR_ARRAY")));
+
+        foreach (var p in s.Players) p.Revealed = new bool[s.Map.Count];
+        VictorySystem.RevealVictoryProjects(s);
+        Assert.False(s.Players[1].Revealed[works.Tile]);   // nothing to see yet
+        works.Queue.Items.Add(new QueueItem { Kind = ProductionKind.Project, DefIndex = ascension });
+        VictorySystem.RevealVictoryProjects(s);
+        Assert.True(s.Players[1].Revealed[works.Tile]);
+        Assert.True(s.Players[2].Revealed[works.Tile]);
+    }
 }

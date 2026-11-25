@@ -33,8 +33,16 @@ Tests: `tests/UnbrokenAges.Tests/EspionageTests.cs` (7). Snapshot version 17.
   * Otherwise the spy escapes home.
 * **Rolls:** hashed from the turn, the spy and the step, so every peer agrees without drawing on a shared random stream.
 
+## Victory projects cannot be hidden
+
+A city raising a victory project (a Divergence's Ascension project, or an Exodus stage) is revealed to every great power while the project
+is its current build, so anyone may send spies to sabotage it.
+
 ## The AI
 
+* While one of its cities raises a victory project, its counterintelligence moves there and every idle spy joins the guard.
+* First of all, sabotages the victory project furthest along in a rival's city, unless three spies (anyone's) are already at it there:
+  the world slows a runaway without halting it.
 * Guards its capital with one spy once it has two, or once it is at war.
 * Steals technology from the most advanced rival it can reach, choosing the city with the weakest defences.
 * Fabricates scandals where a rival leads a city-state by two envoys or fewer.
