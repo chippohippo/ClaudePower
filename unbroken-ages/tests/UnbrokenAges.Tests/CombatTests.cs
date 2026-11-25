@@ -122,6 +122,8 @@ public class CombatTests
     public void Cities_AreBesieged_ThenCaptured_ByMelee()
     {
         var s = AtWar();
+        s.Players[1].Techs = new bool[s.Db.Techs.Count];      // an Ancient-era defender
+        s.Players[1].Civics = new bool[s.Db.Civics.Count];
         var city = TestWorld.City(s, 1, 14, 10, population: 4);
         TestWorld.City(s, 1, 25, 10); // capital elsewhere, so this one isn't the capital
         int adjacent = s.Map.Neighbor(city.Tile, HexCoord.W);

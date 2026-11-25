@@ -173,6 +173,11 @@ public sealed class PlayerState
     public List<TimedEffectState> TimedEffects = new();
     /// <summary>Great people bought with gold or faith (each patronage costs more than the last).</summary>
     public int Patronages;
+    /// <summary>Affinity points and levels, indexed like the Divergences (AffinitySystem). Levels follow from points.</summary>
+    public int[] AffinityPoints = new int[3];
+    public int[] AffinityLevels = new int[3];
+    /// <summary>Diplomatic victory points earned by liberating cities (capped: liberation is a gesture, not a farm).</summary>
+    public int LiberationPoints;
 
     public GovernorState? GetGovernor(int defIndex) => Governors.Find(g => g.DefIndex == defIndex);
     public bool HasTech(int index) => index < 0 || (index < Techs.Length && Techs[index]);

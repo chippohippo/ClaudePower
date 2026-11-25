@@ -88,6 +88,7 @@ public static class TurnProcessor
         Time("CongressSystem.ProcessTurn", () => CongressSystem.ProcessTurn(s, events));
         Time("DealSystem.ProcessTurn", () => DealSystem.ProcessTurn(s, events));
         Time("DilemmaSystem.ProcessTurn", () => DilemmaSystem.ProcessTurn(s, events));
+        Time("AffinitySystem.ProcessTurn", () => AffinitySystem.ProcessTurn(s, events));
         Time("SpaceSystem.ProcessTurn", () => SpaceSystem.ProcessTurn(s, events));
         Time("AgeSystem.ProcessTurn", () => AgeSystem.ProcessTurn(s, events));
         Time("OutpostSystem.ProcessTurn", () => OutpostSystem.ProcessTurn(s, events));

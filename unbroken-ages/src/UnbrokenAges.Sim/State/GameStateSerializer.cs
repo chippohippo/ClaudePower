@@ -14,7 +14,7 @@ namespace UnbrokenAges.Sim.State;
 public static class GameStateSerializer
 {
     public const uint Magic = 0x56534155; // "UASV"
-    public const int Version = 22;
+    public const int Version = 23;
 
     public static byte[] Serialize(GameState s)
     {
@@ -210,6 +210,8 @@ public static class GameStateSerializer
             w.Write(p.TimedEffects.Count);
             foreach (var t in p.TimedEffects) { w.Write(t.Dilemma); w.Write(t.Option); w.Write(t.CityId); w.Write(t.TurnsLeft); }
         }
+        // Affinities (version 23).
+        foreach (var p in s.Players) { WriteArray<int>(w, p.AffinityPoints); WriteArray<int>(w, p.AffinityLevels); w.Write(p.LiberationPoints); }
     }
 
     private static void WriteList(BinaryWriter w, List<int> list)
@@ -456,6 +458,12 @@ public static class GameStateSerializer
             int timed = r.ReadInt32();
             for (int k = 0; k < timed; k++)
                 p.TimedEffects.Add(new TimedEffectState { Dilemma = r.ReadInt32(), Option = r.ReadInt32(), CityId = r.ReadInt32(), TurnsLeft = r.ReadInt32() });
+        }
+        foreach (var p in s.Players)
+        {
+            p.AffinityPoints = new int[r.ReadInt32()]; ReadArrayBody(r, p.AffinityPoints);
+            p.AffinityLevels = new int[r.ReadInt32()]; ReadArrayBody(r, p.AffinityLevels);
+            p.LiberationPoints = r.ReadInt32();
         }
         return s;
     }

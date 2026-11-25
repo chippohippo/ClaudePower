@@ -231,6 +231,9 @@ public static class DiplomacySystem
 
     // ----- Liberation -----------------------------------------------------------------------------------
 
+    /// <summary>Diplomatic victory points a civilization can earn from liberations in a whole game.</summary>
+    public const int MaxLiberationPoints = 2;
+
     public static string? ValidateLiberate(GameState s, int player, int cityId)
     {
         if (s.GetCity(cityId) is not { } c || c.Owner != player) return "Not your city.";
@@ -267,7 +270,11 @@ public static class DiplomacySystem
         if (!city.EverLiberated)
         {
             city.EverLiberated = true;
-            CongressSystem.Award(s, player, 1, $"liberated {city.Name}", events);
+            if (s.Players[player].LiberationPoints < MaxLiberationPoints)
+            {
+                s.Players[player].LiberationPoints++;
+                CongressSystem.Award(s, player, 1, $"liberated {city.Name}", events);
+            }
             AgeSystem.Award(s, s.Players[player], 3, $"Liberated {city.Name}", events);
         }
     }
@@ -342,6 +349,7 @@ public static class DiplomacySystem
         if (TradePartners(s, from, toward)) b.Add("Trading partners", 3);
         if (SharedEnemy(s, from, toward)) b.Add("A common foe", 6);
         b.Add("Ideology (Divergence)", DivergenceSystem.Attitude(db, p, toward == from ? p : t));
+        b.Add("Affinity", AffinitySystem.Attitude(s, p, t));
 
         if (p.LeaderIndex >= 0)
         {

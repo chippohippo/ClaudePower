@@ -46,7 +46,7 @@ public static class VictorySystem
 
     /// <summary>A project that wins the game or a stage toward it: a Divergence's Ascension project or an Exodus stage.</summary>
     public static bool IsVictoryProject(GameState s, int project) =>
-        s.Db.Divergences.Any(d => d.AscensionProjectIndex == project) ||
+        s.Db.Divergences.Any(d => d.AscensionProjectIndex >= 0 && AffinitySystem.VictoryChain(s, d.AscensionProjectIndex).Contains(project)) ||
         s.Db.Projects[project].OnComplete.Any(m => m.Effect == ModifierEffect.ExodusStage);
 
     /// <summary>
@@ -196,9 +196,15 @@ public static class VictorySystem
         if (!v.Decided) return null;
         var p = s.Players[v.Winner];
         string civ = p.CivIndex >= 0 ? s.Db.Civilizations[p.CivIndex].Name : p.Name;
+        if (v.Kind == VictoryKind.Ascension && p.Divergence >= 0)
+            return $"{civ} wins {AffinityVictoryTitle(s, p.Divergence)} on turn {v.Turn}.";
         string article = v.Kind == VictoryKind.Ascension ? "an" : "a";
         return $"{civ} wins {article} {v.Kind} victory on turn {v.Turn}.";
     }
+
+    /// <summary>"the Transcendence victory (Harmony)": the affinity's own name for Ascension.</summary>
+    public static string AffinityVictoryTitle(GameState s, int affinity) =>
+        $"the {AffinitySystem.VictoryName(s, affinity).Replace("the ", "")} victory ({AffinitySystem.Name(s, affinity)})";
 
     // ----- shared --------------------------------------------------------------------------------------
 
@@ -212,6 +218,7 @@ public static class VictorySystem
         string civ = p.CivIndex >= 0 ? s.Db.Civilizations[p.CivIndex].Name : p.Name;
         string how = kind switch
         {
+            VictoryKind.Ascension when p.Divergence >= 0 => $"{AffinityVictoryTitle(s, p.Divergence)}: the world it remade is now the world",
             VictoryKind.Ascension => "an Ascension victory: the world it remade is now the world",
             VictoryKind.Hegemony => "a Hegemony victory: every old capital answers to it",
             VictoryKind.Exodus => "an Exodus victory: its ark has left for the stars",

@@ -17,7 +17,7 @@ public static class ResearchSystem
     /// </summary>
     public static Fx Cost(GameState s, PlayerState p, ProgressNodeDef node)
     {
-        Fx cost = Cost(s, node) * DivergenceSystem.CostMultiplier(s, p, node);
+        Fx cost = Cost(s, node) * DivergenceSystem.CostMultiplier(s, p, node) * AffinitySystem.CostMultiplier(s, p, node);
         int known = Known(s, p, node, out int others);
         return others == 0 || known == 0 ? cost : cost - cost * (DiffusionPercent * known) / (100 * others);
     }

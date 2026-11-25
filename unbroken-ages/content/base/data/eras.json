@@ -9,7 +9,11 @@
     { "id": "ERA_MODERN",      "name": "Modern Era",      "order": 5 },
     { "id": "ERA_ATOMIC",      "name": "Atomic Era",      "order": 6 },
     { "id": "ERA_INFORMATION", "name": "Information Era", "order": 7 },
-    { "id": "ERA_FUTURE",      "name": "Future Era",      "order": 8 }
+    { "id": "ERA_FUTURE",      "name": "Future Era",      "order": 8 },
+    { "id": "ERA_NEAR_FUTURE", "name": "Near Future Era", "order": 9 },
+    { "id": "ERA_ORBITAL",     "name": "Orbital Era",     "order": 10 },
+    { "id": "ERA_DEEP_SPACE",  "name": "Deep Space Era",  "order": 11 },
+    { "id": "ERA_SINGULARITY", "name": "Singularity Era", "order": 12 }
   ],
   "mapSizes": [
     { "id": "MAPSIZE_DUEL",     "name": "Duel",     "width": 44,  "height": 26, "defaultPlayers": 2,  "greatRivers": 1 },

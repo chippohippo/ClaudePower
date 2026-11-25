@@ -156,6 +156,7 @@ public sealed class GameDatabase
     {
         var ctx = new LinkContext(this, errors);
         foreach (var def in AllDefinitions()) def.Link(ctx);
+        foreach (var def in AllDefinitions()) def.LinkAffinity(ctx);
         Ids = WellKnownIds.Resolve(this, errors);
         ValidateTechTreeAcyclic(errors);
         TechsWithModifiers = Techs.Where(t => t.Modifiers.Count > 0).Select(t => t.Index).ToArray();

@@ -13,51 +13,60 @@ public class DivergenceTests
         var p = s.Players[player];
         p.Techs[Tech(s, "TECH_THRESHOLD")] = true;
         var d = s.Db.Divergences[divergence];
+        AffinitySystem.Award(s, p, d.Index, 9, "test", null);
         p.Techs[d.DoctrineTechIndex] = true;
         DivergenceSystem.OnNodeCompleted(s, p, s.Db.Techs[d.DoctrineTechIndex], new List<GameEvent>());
         foreach (var t in branchTechs) p.Techs[Tech(s, t)] = true;
     }
 
     [Fact]
-    public void Content_DefinesThreeMutuallyExclusiveBranches()
+    public void Content_DefinesThreeAffinities_EachWithAChoicePointAndAVictoryChain()
     {
         var db = TestWorld.Db;
-        Assert.Equal(3, db.Divergences.Count);
+        Assert.Equal(new[] { "Purity", "Harmony", "Supremacy" }, db.Divergences.Select(d => d.Name).ToArray());
         foreach (var d in db.Divergences)
         {
             var doctrine = db.Techs[d.DoctrineTechIndex];
             Assert.True(doctrine.Doctrine);
             Assert.Equal(d.Index, doctrine.DivergenceIndex);
             Assert.Contains(db.Techs["TECH_THRESHOLD"].Index, doctrine.PrereqIndices);
-            Assert.Equal(6, db.Techs.Count(t => t.DivergenceIndex == d.Index));
+            Assert.True(doctrine.RequiresAffinityLevel > 0);
+            Assert.Equal(2, db.Techs.Count(t => t.DivergenceIndex == d.Index && t.Victory));   // the branch's last tech and the capstone
             Assert.True(d.AscensionProjectIndex >= 0);
+            Assert.Equal(2, AffinitySystem.VictoryChain(new GameState(db, new GameOptions(), new UnbrokenAges.Sim.Map.MapGrid(db, 8, 8, false), 1), d.AscensionProjectIndex).Count);
             Assert.All(db.Techs.Where(t => t.DivergenceIndex == d.Index), t => Assert.False(string.IsNullOrEmpty(t.Quote)));
+            Assert.True(d.Levels.Count >= 5);
+            Assert.False(string.IsNullOrEmpty(d.VictoryName));
         }
     }
 
     [Fact]
-    public void ResearchingADoctrine_CommitsAndLocksTheOtherBranchesForever()
+    public void TheDoctrine_NeedsALevel_ThenMakesItsAffinityPrimary_AndLocksOnlyTheOtherVictories()
     {
         var s = TestWorld.Blank();
         var p = s.Players[0];
         p.Techs[Tech(s, "TECH_THRESHOLD")] = true;
-        foreach (var d in s.Db.Divergences) Assert.True(ResearchSystem.CanResearch(p, s.Db.Techs[d.DoctrineTechIndex]));
-        Assert.False(ResearchSystem.CanStudy(p, s.Db.Civics["CIVIC_COMPLIANCE_CODES"])); // branch civics need commitment
+        foreach (var d in s.Db.Divergences) Assert.False(ResearchSystem.CanResearch(p, s.Db.Techs[d.DoctrineTechIndex]));   // level 0
+        Assert.Equal("Requires Purity level 3.", new SetResearchCommand { Player = 0, Tech = Tech(s, "TECH_SOVEREIGN_CHARTER") }.Validate(s));
+        Assert.True(ResearchSystem.CanResearch(p, s.Db.Techs["TECH_GENOME_REGISTRY"]));      // basic branch techs are open to all
+        AffinitySystem.Award(s, p, Div(s, "DIVERGENCE_SOVEREIGN"), 9, "test", null);
+        Assert.Equal(3, AffinitySystem.Level(p, Div(s, "DIVERGENCE_SOVEREIGN")));
 
         Assert.True(CommandProcessor.Execute(s, new SetResearchCommand { Player = 0, Tech = Tech(s, "TECH_SOVEREIGN_CHARTER") }, new()).Ok);
         var events = new List<GameEvent>();
+        Fx chloroplastBefore = ResearchSystem.Cost(s, p, s.Db.Techs["TECH_CHLOROPLAST_SPLICING"]);
         ResearchSystem.Process(s, p, 100_000, Fx.Zero, events);
 
         Assert.Equal(Div(s, "DIVERGENCE_SOVEREIGN"), p.Divergence);
         Assert.Contains(events, e => e.Type == GameEventType.DivergenceChosen);
+        Assert.Contains(events, e => e.Type == GameEventType.AffinityLevelUp);              // the doctrine grants Purity
         Assert.False(ResearchSystem.CanResearch(p, s.Db.Techs["TECH_GRAFTING_ACCORD"]));
-        Assert.False(ResearchSystem.CanResearch(p, s.Db.Techs["TECH_DISCARNATION_EDICT"]));
-        Assert.True(ResearchSystem.CanResearch(p, s.Db.Techs["TECH_GENOME_REGISTRY"]));
-        Assert.True(ResearchSystem.CanStudy(p, s.Db.Civics["CIVIC_COMPLIANCE_CODES"]));
-        Assert.False(ResearchSystem.CanStudy(p, s.Db.Civics["CIVIC_SHARED_BREATH"]));
-
-        var locked = new SetResearchCommand { Player = 0, Tech = Tech(s, "TECH_DISCARNATION_EDICT") }.Validate(s);
-        Assert.Equal("Locked forever: your people became the Sovereign.", locked);
+        Assert.True(ResearchSystem.CanResearch(p, s.Db.Techs["TECH_CHLOROPLAST_SPLICING"])); // still open, but dearer
+        Assert.True(ResearchSystem.Cost(s, p, s.Db.Techs["TECH_CHLOROPLAST_SPLICING"]) > chloroplastBefore);
+        Assert.True(ResearchSystem.CanStudy(p, s.Db.Civics["CIVIC_SHARED_BREATH"]));
+        p.Techs[Tech(s, "TECH_TIDAL_GRAFTING")] = p.Techs[Tech(s, "TECH_BEAST_SHAPING")] = true;
+        Assert.Equal("Locked: your people chose Purity.", new SetResearchCommand { Player = 0, Tech = Tech(s, "TECH_THE_CHORUS") }.Validate(s));
+        Assert.Equal("Your people already chose Purity.", new SetResearchCommand { Player = 0, Tech = Tech(s, "TECH_DISCARNATION_EDICT") }.Validate(s));
     }
 
     [Fact]
@@ -90,9 +99,9 @@ public class DivergenceTests
         var before = CityEffects.Compute(s, city).LoyaltyPerTurn;
         Commit(s, 0, "DIVERGENCE_SOVEREIGN", "TECH_GENOME_REGISTRY");
         var fx = CityEffects.Compute(s, city);
-        Assert.Equal(before + 6, fx.LoyaltyPerTurn);                   // +4 Sovereign, +2 Genome Registry tech
+        Assert.Equal(before + 8, fx.LoyaltyPerTurn);                   // +4 Purity, +2 Genome Registry tech, +2 Purity level 2
         Assert.True(fx.IsImmune(DisasterKind.RiverFlood));             // weather control
-        Assert.Contains(fx.Applied, a => a.Source == "Sovereign Path");
+        Assert.Contains(fx.Applied, a => a.Source == "Purity");
     }
 
     [Fact]
@@ -213,12 +222,14 @@ public class DivergenceTests
     }
 
     [Fact]
-    public void Ascension_RequiresARemadeWorld_ThenCompletes()
+    public void TheAffinityVictory_NeedsARemadeWorld_ThenTheCapstone_AndTheLevel()
     {
         var s = TestWorld.Blank();
         var city = TestWorld.City(s, 0, 10, 10, population: 6);
         Commit(s, 0, "DIVERGENCE_DISCARNATE", "TECH_SUBSTRATE_COMPUTING", "TECH_BODY_FABRICATION", "TECH_THERMAL_INDIFFERENCE",
             "TECH_DISTRIBUTED_COGNITION", "TECH_LAST_UPLOAD");
+        int singularity = s.Db.Projects.IndexOf("PROJECT_DIGITAL_SINGULARITY");
+        Assert.Equal(s.Db.Projects.IndexOf("PROJECT_LAST_UPLOAD"), AffinitySystem.NextVictoryProject(s, s.Players[0]));
         int upload = s.Db.Projects.IndexOf("PROJECT_LAST_UPLOAD");
         Assert.StartsWith("The world must be remade first", ProductionSystem.Validate(s, city, ProductionKind.Project, upload, -1));
         Assert.Equal("Only the Sovereign can build this.",
@@ -232,8 +243,17 @@ public class DivergenceTests
 
         var events = new List<GameEvent>();
         ProductionSystem.Complete(s, city, new QueueItem { Kind = ProductionKind.Project, DefIndex = upload }, events);
+        Assert.False(s.Players[0].Ascended);                            // the first stage only
+        Assert.Equal(singularity, AffinitySystem.NextVictoryProject(s, s.Players[0]));
+        Assert.Equal("Prerequisite not researched.", ProductionSystem.Validate(s, city, ProductionKind.Project, singularity, -1));
+        s.Players[0].Techs[Tech(s, "TECH_SINGULARITY")] = true;
+        Assert.Equal("Requires Supremacy level 10.", ProductionSystem.Validate(s, city, ProductionKind.Project, singularity, -1));
+        AffinitySystem.Award(s, s.Players[0], Div(s, "DIVERGENCE_DISCARNATE"), 100, "test", events);
+        Assert.Null(ProductionSystem.Validate(s, city, ProductionKind.Project, singularity, -1));
+        ProductionSystem.Complete(s, city, new QueueItem { Kind = ProductionKind.Project, DefIndex = singularity }, events);
         Assert.True(s.Players[0].Ascended);
         Assert.Contains(events, e => e.Type == GameEventType.AscensionCompleted);
+        Assert.All(AffinitySystem.VictorySteps(s, s.Players[0]), step => Assert.True(step.Done, step.Label));
     }
 
     [Fact]
@@ -261,6 +281,7 @@ public class DivergenceTests
             "BUILDING_LIBRARY", "BUILDING_UNIVERSITY", "BUILDING_RESEARCH_LAB");
         var p = s.Players[0];
         p.Techs = s.Db.Techs.Select(t => t.DivergenceIndex < 0).ToArray(); // reached the Threshold
+        foreach (var d in s.Db.Divergences) AffinitySystem.Award(s, p, d.Index, 9, "test", null);   // every doctrine within reach
         var commands = new SimpleAi().TakeTurn(s, 0).ToList();
         var research = Assert.Single(commands.OfType<SetResearchCommand>());
         Assert.Equal(Tech(s, "TECH_DISCARNATION_EDICT"), research.Tech);
@@ -274,10 +295,13 @@ public class DivergenceTests
         Commit(s, 0, "DIVERGENCE_SYMBIONT");
         Commit(s, 1, "DIVERGENCE_SYMBIONT");
         Commit(s, 2, "DIVERGENCE_SOVEREIGN");
+        AffinitySystem.Award(s, s.Players[0], 1, 30, "test", null);
         var back = GameStateSerializer.Deserialize(GameStateSerializer.Serialize(s), s.Db);
         Assert.Equal(s.Players[0].Divergence, back.Players[0].Divergence);
         Assert.Equal(GameStateSerializer.Hash(s), GameStateSerializer.Hash(back));
         Assert.Equal(6, DivergenceSystem.Attitude(s.Db, s.Players[0], s.Players[1]));
         Assert.Equal(-8, DivergenceSystem.Attitude(s.Db, s.Players[0], s.Players[2]));
+        Assert.Equal(s.Players[0].AffinityPoints[1], back.Players[0].AffinityPoints[1]);
+        Assert.True(back.Players[0].AffinityLevels[1] >= 6);
     }
 }

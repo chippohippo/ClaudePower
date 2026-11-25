@@ -142,6 +142,8 @@ public enum GameEventType : byte
     DilemmaPresented,
     /// <summary>Player chose (Def = the dilemma, Value = the option; Detail = the outcome).</summary>
     DilemmaResolved,
+    /// <summary>Player reached a new level (Value) in an affinity (Def = the affinity, a Divergence index).</summary>
+    AffinityLevelUp,
 }
 
 /// <summary>

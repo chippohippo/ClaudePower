@@ -54,7 +54,7 @@ public static class ChronicleSystem
 public static class Calendar
 {
     // (turns at standard speed, years per turn)
-    private static readonly (int Turns, int Years)[] Segments = { (75, 40), (60, 25), (60, 20), (50, 5), (50, 1) };
+    private static readonly (int Turns, int Years)[] Segments = { (75, 40), (60, 25), (60, 20), (50, 5), (50, 1), (205, 2) };
 
     public static int Year(int turn, int speedPercent = 100)
     {

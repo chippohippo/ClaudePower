@@ -82,6 +82,7 @@ public sealed class CityEffects
         foreach (var (mods, source) in CongressSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
         foreach (var (mods, source) in SpaceSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
         foreach (var (mods, source) in DilemmaSystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
+        foreach (var (mods, source) in AffinitySystem.CityModifierSources(s, city)) fx.ApplyAll(s, city, mods, source);
 
         var gov = city.GovernorDef >= 0 ? owner.GetGovernor(city.GovernorDef) : null;
         if (gov is { Established: true })
@@ -109,9 +110,29 @@ public sealed class CityEffects
         foreach (var m in modifiers)
         {
             if (!RequirementsMet(s, city, m.Requirements)) continue;
+            if (m.Effect == ModifierEffect.CityYieldPerFeature)
+            {
+                // Per tile of the city's land whose feature carries the tag (the Bloom, woods): a yield that grows with the wild.
+                int tiles = FeatureTiles(s, city, m.Target);
+                if (tiles == 0) continue;
+                FlatYields.Add(m.Yield!.Value, m.Amount * tiles);
+                Applied.Add((source, m));
+                continue;
+            }
             Apply(m);
             Applied.Add((source, m));
         }
+    }
+
+    private static int FeatureTiles(GameState s, CityState city, string? tag)
+    {
+        var map = s.Map;
+        var tiles = new List<int>();
+        map.CollectRadius(city.Tile, Districts.DistrictPlacement.CityRadius, tiles);
+        int n = 0;
+        foreach (int t in tiles)
+            if (map.OwnerCity[t] == city.Id && map.Feature[t] >= 0 && (tag == null || s.Db.Features[map.Feature[t]].HasTag(tag))) n++;
+        return n;
     }
 
     private static bool OnFrontier(GameState s, CityState city, int radius)
@@ -181,7 +202,8 @@ public sealed class CityEffects
                 if (m.Disaster is { } kind) _immunities |= 1 << (int)kind;
                 break;
             case ModifierEffect.UnitStrength:
-                break; // read by SocietySystem.CombatLines
+            case ModifierEffect.CityYieldPerFeature:
+                break; // read by SocietySystem.CombatLines; per-feature yields are counted in ApplyAll
             case ModifierEffect.ClimateCo2Reduction:
             case ModifierEffect.ClimateCooling:
             case ModifierEffect.CompleteAscension:

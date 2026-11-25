@@ -83,7 +83,7 @@ public static class DiplomacyAi
             if (DiplomacySystem.ValidateLiberate(s, p.Id, c.Id) != null || !s.Players[c.OriginalOwner].IsMajor) continue;
             int a = att(c.OriginalOwner);
             bool slipping = c.Loyalty < Fx.FromInt(25) && c.LastLoyaltyDelta < Fx.Zero;
-            if (a >= DealSystem.FriendAttitude + 5 || slipping || (diplomat && !c.EverLiberated && a >= 0))
+            if (a >= DealSystem.FriendAttitude + 5 || slipping || (diplomat && !c.EverLiberated && p.LiberationPoints < DiplomacySystem.MaxLiberationPoints && a >= 0))
                 return new LiberateCityCommand { Player = p.Id, CityId = c.Id };
         }
         return null;

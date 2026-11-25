@@ -33,6 +33,9 @@
                   "roughExtra": 1, "channelCost": 1, "waterCost": 2, "attritionHp": 10, "healHp": 10 },
       "outposts": { "claimRadius": 1, "minDistance": 3, "supplyRange": 6, "goldPerTurn": 1, "bonusGold": 2, "luxuryGold": 3, "strategicPerTurn": 2,
                     "promoteGold": 150, "promoteGoldPerCity": 25 },
+      "affinity": { "levelThresholds": [2, 5, 9, 14, 20, 27, 35, 44, 54, 65, 77, 90, 104, 119, 135, 152, 170, 189, 209, 230],
+                    "discountPercentPerLevel": 2, "maxDiscountPercent": 25, "gapPenaltyPercentPerLevel": 4, "maxGapPenaltyPercent": 40,
+                    "committedPenaltyPercent": 50, "policyInterval": 25, "pointsPerKill": 1, "kindredLevel": 3, "kindredAttitude": 3, "rivalAttitude": -3 },
       "victory": { "hegemonySharePercent": 60, "hegemonyMinLoyalty": 50, "scorePerCitizen": 1, "scorePerCity": 5, "scorePerDistrict": 2,
                    "scorePerBuilding": 1, "scorePerWonder": 15, "scorePerTech": 2, "scorePerCivic": 2, "tilesPerPoint": 5, "scoreForAscension": 100 } }
   ],

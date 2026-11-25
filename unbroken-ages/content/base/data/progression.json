@@ -23,10 +23,10 @@
     { "id": "TECH_ELECTRICITY",          "name": "Electricity",          "era": "ERA_INDUSTRIAL",  "cost": 1870, "prereqs": ["TECH_INDUSTRIALIZATION"] },
     { "id": "TECH_REFINING",             "name": "Refining",             "era": "ERA_MODERN",      "cost": 2125, "prereqs": ["TECH_ELECTRICITY"] },
     { "id": "TECH_FLIGHT",               "name": "Flight",               "era": "ERA_MODERN",      "cost": 2125, "prereqs": ["TECH_ELECTRICITY"] },
-    { "id": "TECH_NUCLEAR_FISSION",      "name": "Nuclear Fission",      "era": "ERA_ATOMIC",      "cost": 2220, "prereqs": ["TECH_REFINING"] },
+    { "id": "TECH_NUCLEAR_FISSION",      "name": "Nuclear Fission",      "era": "ERA_ATOMIC",      "cost": 2220, "prereqs": ["TECH_REFINING"], "affinity": { "DIVERGENCE_DISCARNATE": 1, "DIVERGENCE_SOVEREIGN": 1 } },
     { "id": "TECH_ROCKETRY",             "name": "Rocketry",             "era": "ERA_ATOMIC",      "cost": 2220, "prereqs": ["TECH_FLIGHT"] },
-    { "id": "TECH_RENEWABLE_ENERGY",     "name": "Renewable Energy",     "era": "ERA_INFORMATION", "cost": 2405, "prereqs": ["TECH_ELECTRICITY"] },
-    { "id": "TECH_ROBOTICS",             "name": "Robotics",             "era": "ERA_INFORMATION", "cost": 2800, "prereqs": ["TECH_ROCKETRY"] }
+    { "id": "TECH_RENEWABLE_ENERGY",     "name": "Renewable Energy",     "era": "ERA_INFORMATION", "cost": 2405, "prereqs": ["TECH_ELECTRICITY"], "affinity": { "DIVERGENCE_SYMBIONT": 2 } },
+    { "id": "TECH_ROBOTICS",             "name": "Robotics",             "era": "ERA_INFORMATION", "cost": 2800, "prereqs": ["TECH_ROCKETRY"], "affinity": { "DIVERGENCE_DISCARNATE": 2 } }
   ],
   "civics": [
     { "id": "CIVIC_CODE_OF_LAWS",         "name": "Code of Laws",         "era": "ERA_ANCIENT",     "cost": 20 },
@@ -39,7 +39,7 @@
     { "id": "CIVIC_POLITICAL_PHILOSOPHY", "name": "Political Philosophy", "era": "ERA_CLASSICAL",   "cost": 140, "prereqs": ["CIVIC_STATE_WORKFORCE", "CIVIC_EARLY_EMPIRE"], "governorTitles": 1 },
     { "id": "CIVIC_PUBLIC_GAMES",         "name": "Public Games",         "era": "ERA_CLASSICAL",   "cost": 275, "prereqs": ["CIVIC_STATE_WORKFORCE"] },
     { "id": "CIVIC_CIVIL_ENGINEERING",    "name": "Civil Engineering",    "era": "ERA_RENAISSANCE", "cost": 1750, "prereqs": ["CIVIC_POLITICAL_PHILOSOPHY"], "governorTitles": 1 },
-    { "id": "CIVIC_URBANIZATION",         "name": "Urbanization",         "era": "ERA_INDUSTRIAL",  "cost": 2015, "prereqs": ["CIVIC_CIVIL_ENGINEERING"] },
-    { "id": "CIVIC_ENVIRONMENTALISM",     "name": "Environmentalism",     "era": "ERA_INFORMATION", "cost": 2860, "prereqs": ["CIVIC_URBANIZATION"], "governorTitles": 1 }
+    { "id": "CIVIC_URBANIZATION",         "name": "Urbanization",         "era": "ERA_INDUSTRIAL",  "cost": 2015, "prereqs": ["CIVIC_CIVIL_ENGINEERING"], "affinity": { "DIVERGENCE_SOVEREIGN": 2 } },
+    { "id": "CIVIC_ENVIRONMENTALISM",     "name": "Environmentalism",     "era": "ERA_INFORMATION", "cost": 2860, "prereqs": ["CIVIC_URBANIZATION"], "governorTitles": 1, "affinity": { "DIVERGENCE_SYMBIONT": 1 } }
   ]
 }

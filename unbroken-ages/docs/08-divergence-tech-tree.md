@@ -1,10 +1,13 @@
-# 08 — The Divergence: the Future-Era Tech Tree
+# 08 — The Divergence: Affinities and the Tree to AD 2400
 
 > *"For ten thousand years we changed the world a little and ourselves not at all. That arithmetic has run out."*
 > — The Threshold
 
-At the top of the technology tree humanity **forks**. Every civilization researches the shared **Threshold**. Then it commits
-to one of three **doctrines**, and the other two branches lock for the rest of the game. Each doctrine is a *rational* answer to the
+At the top of the technology tree humanity **forks** into three futures, played as **affinities**: **Purity** (the Sovereign:
+humanity unchanged, the world reshaped), **Harmony** (the Grafted: humanity merged with the living world) and **Supremacy** (the
+Discarnate: machines and minds). Every civilization climbs all three; the shared **Threshold** reveals the three **doctrines**,
+and choosing one makes that affinity **primary** (see [Affinities](#affinities-purity-harmony-supremacy) below, which supersedes the
+hard lock described in §1–§3). Each doctrine is a *rational* answer to the
 same late-game crisis (a hotter, drowning, crowded planet), each is a dystopia when seen from outside, and each **physically remakes
 the Earth**. By the end of a long game the map no longer looks like Earth: pale engineered grids, bioluminescent overgrowth that
 crosses borders, and plains of black, humming glass.
@@ -13,10 +16,106 @@ The idea is in the spirit of the *Beyond Earth* affinities, but it is built for 
 have carried since 4000 BC, and it grows out of what you built. This is not a civ swap: you are still Egypt, and your history decides
 what Egypt becomes.
 
-**Code:** [`DivergenceSystem.cs`](../src/UnbrokenAges.Sim/Systems/DivergenceSystem.cs) · data [`divergence.json`](../content/base/data/divergence.json) ·
+**Code:** [`DivergenceSystem.cs`](../src/UnbrokenAges.Sim/Systems/DivergenceSystem.cs) · [`AffinitySystem.cs`](../src/UnbrokenAges.Sim/Systems/AffinitySystem.cs) ·
+data [`divergence.json`](../content/base/data/divergence.json), [`affinity.json`](../content/base/data/affinity.json) ·
 client [`DivergencePanel.cs`](../godot/scripts/UI/DivergencePanel.cs) · tests [`DivergenceTests.cs`](../tests/UnbrokenAges.Tests/DivergenceTests.cs) · demo `ua future`
 
 ---
+
+## Affinities: Purity, Harmony, Supremacy
+
+The Divergence's three branches are the three affinities (ids unchanged: `DIVERGENCE_SOVEREIGN` = Purity, `DIVERGENCE_SYMBIONT` =
+Harmony, `DIVERGENCE_DISCARNATE` = Supremacy). Tests: [`AffinityTests.cs`](../tests/UnbrokenAges.Tests/AffinityTests.cs).
+
+### Points and levels
+Every player has three tracks of **affinity points**; cumulative thresholds (`worldRules.affinity.levelThresholds`, 2, 5, 9, 14,
+20 … 230) give **levels 0–20**, announced with an `AffinityLevelUp` event. Points come from data: any definition may carry
+`"affinity": { "<affinity id>": points }`.
+
+| Source | When | Examples |
+|---|---|---|
+| Technologies and civics | completed | Robotics +2 Supremacy, Renewable Energy +2 Harmony, Urbanization +2 Purity; every Future-era branch tech +3; new-era techs +2–5 |
+| The doctrine | chosen | +5 to its affinity |
+| Buildings, districts, wonders | built | each affinity building +1 (per city) |
+| Projects | completed | the repeatable Gaian Rite / Heritage Festival / Cognitive Sprint +3; Wake the World Soul / Restore the Coasts / Accelerando +10; the first victory stage +8 |
+| Improvements | made | Reclamation Grid, Grafted Grove, Substrate Array +1 |
+| Policies | every 25 turns while slotted | Urban Planning (Purity), Natural Philosophy (Harmony), Rationalism (Supremacy) +1 |
+| Kills | by a unit of the affinity (its tag: Augmented, Living, Machine) | +1 |
+
+### Soft exclusivity and the choice point
+* A technology tagged with an affinity (its branch, else what it grants most of) costs **2% less per level** you hold in that
+  affinity (at most 25%) and **4% more per level your dominant affinity leads it by** (at most 40%).
+* **The doctrine is the choice point.** Each doctrine needs **level 3** in its affinity, and only one may be chosen. It makes the affinity
+  **primary**: the other two affinities' techs then cost **50% more**, and their **victory techs** (the last branch tech and the
+  Singularity capstone, `"victory": true`) are locked. Their basic techs, buildings and units stay open to anyone with the level.
+* **Affinity boosts:** a technology may name `boostAffinity` and `boostLevel`; reaching that level takes `boostPercent` (40%) off it
+  (Xenobiology at Harmony 2, Longevity Medicine at Purity 2, Neural Interfaces at Supremacy 2; Bioweave, the Orbital Defence Grid and
+  Swarm Intelligence at level 6).
+* `AffinitySystem.CostLines` itemizes every percent for the tree's tooltip.
+
+### Identity that grows with the level
+Data `levels` on each affinity switch on modifiers in every city at the owner's level (committed or not), and each affinity's units draw
+strength from it:
+
+| Level | Purity | Harmony | Supremacy |
+|---|---|---|---|
+| 2 | +2 loyalty a turn | +0.5 Food per tile of woods or the Bloom | +5% Production |
+| 4 | +10% Culture | +1 Housing | +5% Science |
+| 6 | +1 Amenity | citizens eat 10% less | automation: citizens eat 15% less |
+| 8 | +2 Culture (Earth's heritage) | +0.5 Science per Bloom tile | +10% Production |
+| 10 | +3 loyalty a turn | +1 Amenity | +15% unit production |
+| 13 | +10% Production | +0.5 Production per tile of woods or the Bloom | +10% Science |
+| 16 | +15% Culture | +15% Food | +15% Production |
+| Units | +1 strength per 2 levels (Augmented) | +1 per 2 levels (Living); **regenerate 10 HP a turn** | +1 per 2 levels (Machine) |
+| Cities | +1 defence per 2 levels | | |
+
+The per-tile yields use a new modifier effect, `CityYieldPerFeature` (amount per tile of the city's land whose feature carries the tag
+in `target`).
+
+### The tree to AD 2400
+Four eras follow the Future era: **Near Future** (AD 2050–2150), **Orbital** (2150–2250), **Deep Space** (2250–2350) and
+**Singularity** (2350–2400+). The calendar gains a sixth segment (two years a turn from turn 296), so turn 500 is AD 2408. Forty-eight
+techs (twelve per era but the last, nine): three shared lines (energy and antimatter, materials and space infrastructure, computation and
+exotic physics) and three per affinity each era, with cross-branch prerequisites (Powered Armour needs Smart Materials; Ark Genetics
+needs Gene Drives; Planetary Nervous System needs Quantum Networks). Costs continue the curve (3,500 → 5,000). Leaf techs unlock
+projects, not raw science: the World Soul, the Earth Restored and Accelerando each unlock a +10-point project; Symbiotic Ecologies,
+Terraforming and Nanofabrication unlock the repeatable affinity projects; the capstones unlock the victories.
+
+### Units and buildings
+| | Purity (Augmented) | Harmony (Living, regenerate) | Supremacy (Machine) |
+|---|---|---|---|
+| Near Future (level 3) | Aegis Trooper 108 | Bloom Stalker 104 | Automaton Squad 106 |
+| Orbital (level 6) | Sentinel Lance 128 | Thornback 124 | Battle Mind 126 |
+| Deep Space (level 9) | Titan Guard 150 | Xenolith Colossus 146 | Singularity Frame 148 |
+| Buildings | Genome Registry, Arcology Spire, **Heritage Vault**, **Aegis Battery** | Splicing Vats, Bloom Heart, Mycelial Commons, **Gaia Nursery**, **Biosphere Engine** | Substrate Core, Body Foundry, Mind Archive, **Automated Factory**, **Nanoforge** |
+
+Mechanized Infantry upgrades into each line (`upgradesTo` lists all three; the affinity requirement decides). The Future-era branch
+units (Warden Legion, Grafted Behemoth, Hollow Frame and the rest) now need levels 4–7 in their affinity. Looks reuse existing models
+(`units/modern_soldier`, `guard`, `mech`, `Rogue_Hooded`, `elephant`, `trex`, `rover`), tinted in the affinity's colours.
+
+### The affinity victories
+Ascension in the engine; each affinity names its own: **Emancipation** (Purity), **Transcendence** (Harmony), **the Digital Singularity**
+(Supremacy). It is a two-project chain for the primary affinity only: the branch's old Ascension project (the Eternal Bastion, the Chorus
+Wakes, the Last Upload; still needs 10% of the world's land remade) is now the first stage, and the final project (Emancipation,
+Transcendence, The Digital Singularity) needs the Singularity-era capstone, **level 10** in the affinity and the first stage.
+`AffinitySystem.VictorySteps` lists every requirement with whether it is met; `NextVictoryProject` names the next to build.
+
+### AI
+* Before the Threshold the AI researches as before. From the Threshold it aims at the affinity it prefers (`DivergenceSystem.Preferred`:
+  its history's leanings, plus its levels, times the leader's personality squared) and researches by cost weighted toward that affinity
+  (its victory techs first, rival affinities' last); it takes the doctrine as soon as the level allows.
+* It raises its affinity's buildings once open to it (before the choice, those of the affinity it leans to), works through the victory
+  chain in one city, and raises the repeatable affinity project there when the next stage waits on the level. Mechanized Infantry
+  upgrades into whichever line it has the level for; `BestLandUnit` then builds it.
+* Attitude: **+3 "Affinity"** toward a people whose dominant affinity (level 3+) matches, **−3** when it differs (before both choose;
+  afterwards the Divergence's ideology line, +6 / −8, takes over).
+
+### Read API for the client
+`AffinitySystem`: `Level(p, a)`, `Points(p, a)`, `Progress(s, p, a)` (points into the level, points the next needs), `Dominant(p)`,
+`Primary(p)`, `Name(s, a)`, `VictoryName(s, a)`, `NodeAffinity(node)` (tree colouring), `CostLines(s, p, node)`, `ActiveLevels(s, p)`,
+`NextLevel(s, p, a)`, `UnitAffinity(s, unitDef)`, `VictorySteps(s, p)`, `NextVictoryProject(s, p)`; `DivergenceSystem.LockReason`;
+`VictorySystem.AffinityVictoryTitle`. Events: `AffinityLevelUp` (Def = affinity, Value = level) and `DivergenceChosen` (the awakening).
+State: `PlayerState.AffinityPoints` / `AffinityLevels` (snapshot v23).
 
 ## 1. Shape of the tree
 

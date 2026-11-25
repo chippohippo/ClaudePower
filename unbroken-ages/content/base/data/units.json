@@ -97,7 +97,7 @@
     { "id": "UNIT_AT_CREW", "name": "Anti-Tank Crew", "domain": "Land", "unitClass": "AntiCavalry", "era": "ERA_ATOMIC", "cost": 400, "maintenance": 4, "strength": 72,
       "prereqTech": "TECH_ROCKETRY", "strongAgainst": ["Armor"], "description": "Rockets on the shoulder: the answer to armour.", "look": {"model": "units/modern_soldier", "count": 3, "size": 0.72, "tint": "#d4c49a"} },
     { "id": "UNIT_MECH_INFANTRY", "name": "Mechanized Infantry", "domain": "Land", "unitClass": "Melee", "era": "ERA_ATOMIC", "cost": 520, "maintenance": 6, "strength": 88, "moves": 3,
-      "prereqTech": "TECH_ROCKETRY", "upkeep": { "resource": "RESOURCE_OIL", "amount": 1 }, "look": {"model": "units/half_track", "count": 2, "size": 0.55, "byLength": true} },
+      "prereqTech": "TECH_ROCKETRY", "upkeep": { "resource": "RESOURCE_OIL", "amount": 1 }, "upgradesTo": ["UNIT_AEGIS_TROOPER", "UNIT_BLOOM_STALKER", "UNIT_AUTOMATON_SQUAD"], "look": {"model": "units/half_track", "count": 2, "size": 0.55, "byLength": true} },
     { "id": "UNIT_MODERN_ARMOR", "name": "Modern Armor", "domain": "Land", "unitClass": "HeavyCavalry", "era": "ERA_ATOMIC", "cost": 640, "maintenance": 7, "strength": 98, "moves": 4,
       "prereqTech": "TECH_NUCLEAR_FISSION", "resourceCost": { "resource": "RESOURCE_STEEL", "amount": 10 }, "upkeep": { "resource": "RESOURCE_OIL", "amount": 1 }, "tags": ["Armor"], "look": {"model": "units/tank_modern", "count": 2, "size": 0.6, "byLength": true} },
     { "id": "UNIT_CARRIER", "name": "Aircraft Carrier", "domain": "Naval", "unitClass": "NavalCarrier", "era": "ERA_ATOMIC", "cost": 540, "maintenance": 6, "strength": 60,

@@ -60,6 +60,7 @@ public static class CombatSystem
         b.Add("Damaged", -(CityMaxHp(s, city) - city.Hp) / 20);
         if (LastStand(s, city.Owner)) b.Add("Last stand", s.Db.Rules.Combat.LastStandCity);
         foreach (var (label, value) in NationSystem.CityDefenseLines(s, city)) b.Add(label, value);
+        foreach (var (label, value) in AffinitySystem.CityDefenseLines(s, city)) b.Add(label, value);
         return b;
     }
 
@@ -144,6 +145,7 @@ public static class CombatSystem
             b.Add("Anti-air", def.AntiAirStrength - def.Strength);
         foreach (var (label, value) in NationSystem.CombatLines(s, unit, opponent, attacking, ranged, vsCity, targetTile)) b.Add(label, value);
         foreach (var (label, value) in SocietySystem.CombatLines(s, unit, attacking, vsCity, targetTile)) b.Add(label, value);
+        foreach (var (label, value) in AffinitySystem.CombatLines(s, unit)) b.Add(label, value);
         // A land unit caught at sea defends from its boats, whatever its strength ashore.
         if (!attacking && Movement.IsEmbarked(s, unit) && b.Total > rules.EmbarkedStrength) b.Add("Embarked (at sea)", rules.EmbarkedStrength - b.Total);
         return b;
@@ -355,6 +357,7 @@ public static class CombatSystem
         if (killerOwner >= 0 && !s.Players[killerOwner].IsFreeCities) SocietySystem.AddWeariness(s, unit.Owner, 1);
         events.Add(new GameEvent(GameEventType.UnitDestroyed, unit.Owner, Tile: unit.Tile, Def: unit.DefIndex, Detail: s.Db.Units[unit.DefIndex].Name));
         if (killerOwner >= 0) NationSystem.OnUnitDestroyed(s, killerOwner, killer, unit, events);
+        if (killerOwner >= 0) AffinitySystem.OnKill(s, killerOwner, killer, events);
     }
 
     private static void Capture(GameState s, UnitState attacker, CityState city, int victim, List<GameEvent> events)

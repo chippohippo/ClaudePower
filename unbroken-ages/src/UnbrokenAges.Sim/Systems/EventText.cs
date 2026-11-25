@@ -118,6 +118,8 @@ public static class EventText
             GameEventType.ResearchAgreementCompleted when mine => $"Your research agreement with {e.Detail} bears fruit: +{e.Value} science.",
             GameEventType.DilemmaPresented when mine => $"A dilemma: {e.Detail} (choose in the city or society screen).",
             GameEventType.DilemmaResolved when mine => e.Detail,
+            GameEventType.AffinityLevelUp when mine => $"Affinity: {e.Detail}.",
+            GameEventType.AffinityLevelUp when e.Value >= 10 && e.Value % 5 == 0 => $"{who} reaches {AffinitySystem.Name(s, e.Def)} level {e.Value}.",
             GameEventType.VictoryAchieved => e.Detail,
             GameEventType.PlayerEliminated => mine ? "Your civilization has fallen." : $"{who} has fallen.",
             _ => null,
