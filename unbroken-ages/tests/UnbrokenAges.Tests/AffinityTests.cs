@@ -167,6 +167,31 @@ public class AffinityTests
     }
 
     [Fact]
+    public void AffinityWonders_NeedTheLevel_AndGrantTheirAffinity()
+    {
+        var s = TestWorld.Blank();
+        var city = TestWorld.City(s, 0, 8, 8, population: 6);
+        var p = s.Players[0];
+        int wonder = TestWorld.D(s, "WONDER_NOOSPHERE_CORE");
+        int tile = s.Map.Neighbor(city.Tile, HexCoord.E);
+        Assert.Equal("Requires Supremacy level 6.", ProductionSystem.Validate(s, city, ProductionKind.District, wonder, tile));
+        AffinitySystem.Award(s, p, A(s, Supremacy), s.Db.Rules.Affinity.LevelThresholds[5], "test", null);
+        Assert.Null(ProductionSystem.Validate(s, city, ProductionKind.District, wonder, tile));
+        int before = AffinitySystem.Points(p, A(s, Supremacy));
+        ProductionSystem.Complete(s, city, new QueueItem { Kind = ProductionKind.District, DefIndex = wonder, Tile = tile }, new());
+        Assert.Equal(before + 6, AffinitySystem.Points(p, A(s, Supremacy)));
+    }
+
+    [Fact]
+    public void AffinityAgendas_LikePeoplesOfTheirAffinity()
+    {
+        var s = TestWorld.Blank(players: 2, leaders: new[] { "LEADER_TRAJAN", null });
+        Assert.DoesNotContain(DiplomacySystem.Attitude(s, 0, 1).Lines, l => l.Label.EndsWith(": Purity"));
+        AffinitySystem.Award(s, s.Players[1], A(s, Purity), s.Db.Rules.Affinity.LevelThresholds[2], "test", null);
+        Assert.Contains(DiplomacySystem.Attitude(s, 0, 1).Lines, l => l.Label.EndsWith(": Purity") && l.Value > 0);
+    }
+
+    [Fact]
     public void Affinities_SurviveSnapshots()
     {
         var s = TestWorld.Blank();

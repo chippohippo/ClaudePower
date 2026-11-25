@@ -49,6 +49,12 @@ Rules: keep the Ease Charter (docs/09 §1); no Civ VII-style resets; original na
       focus, sabotage of victory projects; five kinds of victory across twelve Earth games
       ([05/22](docs/05-key-systems/22-earth.md#victory-variety-six-more-rounds)).
 - [ ] **24. After the first playtest**: whatever playtesters find.
+- [x] **25. Gameplay pass: decisions and the long future**: a deal table (gold, gold per turn, favor, resources, cities, open
+      borders, peace, alliances with calls to arms, research agreements) with a shared verdict for the AI and the player; goodwill;
+      liberation; great-person patronage; twenty historic dilemmas; an AI that answers and makes offers and lets attitude pick its wars;
+      Beyond Earth-style affinities (Purity, Harmony, Supremacy) built on the Divergence, with levels, identity, units, buildings,
+      victories, and 48 techs in four new eras to AD 2400 ([08](docs/08-divergence-tech-tree.md#affinities-purity-harmony-supremacy),
+      [05/22](docs/05-key-systems/22-earth.md#affinities-and-the-long-future-rounds-1320)).
 
 ## Done
 - 1. Diplomacy core: `DiplomacySystem`, 5 commands, snapshot v4, closed borders, war-only attrition, 9 tests (120 total).
@@ -117,3 +123,7 @@ policy cards and governments, the turn timer, and Grand-dial governor ageing.
   where replaced), Great Galley upgrade path, 4 tests (286 total).
 - 18. Space: `SpaceSystem` (satellites, coverage, Exodus stages and victory), project chains (`requiresProjects`, one-off projects),
   8 space projects, cheaper Spaceport, AI space race, satellite dishes on the map, snapshot v21, 5 tests (291 total).
+- 25. Gameplay pass: `DealSystem` (9 item kinds, `Value`/`WouldAccept`/`GoldToBalance`), alliances and defensive wars, goodwill and new
+  attitude lines, `LiberateCityCommand`, `PatronizeCommand`, `DilemmaSystem` + `dilemmas.json` (20 dilemmas), `DiplomacyAi`;
+  `AffinitySystem` (points, levels, soft exclusivity, identity, combat lines, victory chain), `affinity.json` (4 eras, 48 techs, 9 units,
+  6 buildings, 3 wonders, 9 projects), affinity agendas, calendar to AD 2408, 6 new commands (102–107), snapshot v22–v23, 26 new tests (352 total).

@@ -87,6 +87,7 @@ public class DilemmaTests
         var s = TestWorld.Blank(players: 1);
         var city = TestWorld.City(s, 0, 5, 5, population: 4);
         s.Players[0].Gold = 1000;
+        s.Turn = 200;                                                      // past the opening, when gold buys settlers
         Pose(s, 0, "DILEMMA_NOTABLES", city.Id);
         Assert.Equal(0, DiplomacyAi.PreferredAnswer(s, s.Players[0]));   // loyal city: no need to buy the notables
         city.Loyalty = 30;

@@ -89,6 +89,10 @@ Terraforming and Nanofabrication unlock the repeatable affinity projects; the ca
 | Deep Space (level 9) | Titan Guard 150 | Xenolith Colossus 146 | Singularity Frame 148 |
 | Buildings | Genome Registry, Arcology Spire, **Heritage Vault**, **Aegis Battery** | Splicing Vats, Bloom Heart, Mycelial Commons, **Gaia Nursery**, **Biosphere Engine** | Substrate Core, Body Foundry, Mind Archive, **Automated Factory**, **Nanoforge** |
 
+**Affinity wonders** (one in the world each, level 6): **Gaia's Cradle** (Harmony; +1 Food per woods or Bloom tile, +1 Housing everywhere),
+**The Ark of Humanity** (Purity; +6 Culture, +2 Loyalty everywhere) and **The Noosphere Core** (Supremacy; +8 Science, +5% Science
+everywhere); each grants 6 points (models `future/mushroom_tall`, `future/dome_glass`, `future/structure_detailed`).
+
 Mechanized Infantry upgrades into each line (`upgradesTo` lists all three; the affinity requirement decides). The Future-era branch
 units (Warden Legion, Grafted Behemoth, Hollow Frame and the rest) now need levels 4–7 in their affinity. Looks reuse existing models
 (`units/modern_soldier`, `guard`, `mech`, `Rogue_Hooded`, `elephant`, `trex`, `rover`), tinted in the affinity's colours.

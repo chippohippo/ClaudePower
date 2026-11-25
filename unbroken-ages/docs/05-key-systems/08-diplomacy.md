@@ -29,7 +29,9 @@ Ideology (Divergence)            +6 / −8    same future / rival future (doc 08
 Agenda likes (each)                  +6     e.g. Taizu "Civil Over Martial": HighScience, Peaceful
 Agenda dislikes (each)               −8     e.g. Warmonger (declared a war in the last 50 turns)
 ```
-Agenda tags the engine evaluates today: `HighScience`, `Peaceful`, `Warmonger`, `HighLoyalty`, `CitiesInRevolt`. Unknown tags (e.g. `TradePartner`, which waits
+Agenda tags the engine evaluates today: `HighScience`, `Peaceful`, `Warmonger`, `HighLoyalty`, `CitiesInRevolt`, and the affinity
+agendas `Purity`, `Harmony`, `Supremacy` (a people whose primary affinity, or dominant one at level 3+, is that one; Huizong, Trajan and
+Kublai carry them). Unknown tags (e.g. `TradePartner`, which waits
 for the trade system) count as neutral, so data can name them early.
 
 Goodwill mirrors grievances: an itemized, fading list of what a people remembers in your favour (a fair deal, a city liberated, an
@@ -56,7 +58,7 @@ acceptance and applied at once.
 | Open borders | one side | passage for the other's armies |
 | Peace | both | ends the war (after the minimum war length) |
 | Alliance | both | passage both ways, no war between them, and a **call to arms**: when either is attacked, the other may answer with a *defensive war*, which needs no denunciation and earns no warmonger's reputation. At most two alliances each; leaving one is a grievance (`LeaveAllianceCommand`) |
-| Research agreement | both | each pays 60 + 40 × era gold; after 20 turns each gains 60% of the cost of the cheapest technology it could research |
+| Research agreement | both | each pays 100 + 50 × era gold; after 20 turns each gains 40% of the cost of the cheapest technology it could research; at most two running per civilization |
 
 **How a leader weighs a deal** (`DealSystem.Value`, in gold): what it receives minus what it gives. Resources are dear when its own
 stock is low and cheap at the cap; a city is worth 60 + 30 per citizen + 40 per district (+200 for an original capital), and giving
@@ -69,7 +71,7 @@ the same functions, so the verdict a player previews is the one the AI reaches.
 ## Liberation
 `LiberateCityCommand` returns a city to the people who founded it (alive, and not at war with you): their grievances against you
 are wiped, they hold 50 goodwill, every other great power 5, and the first liberation of a city earns a **diplomatic victory point**
-and 3 era score. A liberated original capital becomes its people's capital again.
+(at most two in a game: liberation is a gesture, not a farm) and 3 era score. A liberated original capital becomes its people's capital again.
 
 ## AI
 Peace: see [05/13](13-ai.md). Diplomacy beyond war and peace ([05/13 §Diplomacy](13-ai.md#diplomacy)): it answers offers with the

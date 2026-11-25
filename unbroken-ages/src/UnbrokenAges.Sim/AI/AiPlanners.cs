@@ -260,7 +260,9 @@ public static class MilitaryAi
         // No dogpiles: leave a rival that is making its last stand, or already fighting another great power, alone.
         // Nor one that has just made peace with anyone: a people at war with its neighbours one after another never recovers.
         // Friends are spared, the resented come first, and a rival's allies count toward its strength (they will answer its call).
+        // In the opening a young people of three cities or fewer is left to grow (no war on it at all, not just no siege).
         var candidates = Neighbours(s, p.Id).Where(t => !CombatSystem.LastStand(s, t) && MajorEnemies(s, t).Count == 0 && !JustAtPeace(s, t) &&
+                                                        !(s.Turn < CapitalsSparedUntilTurn && s.Cities.Count(c => c.Owner == t) <= OpeningCities) &&
                                                         !(DiplomacySystem.Find(s, p.Id, t) is { } rel && rel.Status != DiploStatus.War && s.Turn - rel.Since < WarCooldown))
                                             .Select(t => (Target: t, Attitude: DiplomacySystem.Attitude(s, p.Id, t).Total))
                                             .Where(x => x.Attitude < DealSystem.FriendAttitude).ToList();

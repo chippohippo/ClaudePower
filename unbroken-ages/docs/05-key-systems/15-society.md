@@ -61,7 +61,7 @@ Tests: `tests/UnbrokenAges.Tests/SocietyTests.cs` (28). Snapshot version 14.
 `PatronizeCommand` recruits the class's person **now**, paying the points still missing: **3 gold or 2 faith a point**, 15% dearer for
 every great person this civilization has already bought (`GreatPeopleSystem.PatronagePrice`). Prophets answer only to faith. The
 race stays a race: patronage is how a rich or devout people snatches a person its rival was about to recruit. The AI buys a prophet
-with faith while religions remain to be founded, and spends gold above a reserve (250 + 50 per city) on the class its road to victory
+with faith while religions remain to be founded, and from turn 200 (so the middle eras keep their pace) spends gold above a reserve (250 + 50 per city) on the class its road to victory
 wants (Artists for Culture, Engineers and Scientists for Exodus, Merchants for the Concord, otherwise Engineers and Artists), and faith
 above 500 (1,500 on the Spiritual road) on Artists.
 
@@ -69,7 +69,7 @@ above 500 (1,500 on the Spiritual road) on Artists.
 **Code:** [`DilemmaSystem.cs`](../../src/UnbrokenAges.Sim/Systems/DilemmaSystem.cs) · data [`dilemmas.json`](../../content/base/data/dilemmas.json) ·
 `ResolveDilemmaCommand` · tests [`DilemmaTests.cs`](../../tests/UnbrokenAges.Tests/DilemmaTests.cs)
 
-GDD §12.4's historic events and city demands, as one system. From turn 25, about once every 24 turns, a civilization faces a
+GDD §12.4's historic events and city demands, as one system. From turn 60 (the opening is for founding), about once every 24 turns, a civilization faces a
 **dilemma drawn from its circumstances**: the river at a flood-prone town, hoarders in a big city, refugees from a neighbour, veterans
 of a war, a treasure fleet, a restless conquest, a full treasury, a factory strike, the smog of an industrial city. Each has two or
 three answers with a **price and a consequence**: gold, faith, favor, science, culture, era score, loyalty, citizens, a neighbour's

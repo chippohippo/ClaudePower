@@ -142,6 +142,24 @@
       "modifiers": [ { "effect": "CityProductionPercent", "category": "Unit", "amount": 15 } ] }
   ],
 
+  "districts": [
+    { "id": "WONDER_GAIAS_CRADLE", "name": "Gaia's Cradle", "category": "Wonder", "cost": 260, "countsTowardLimit": false, "uniquePerCiv": true,
+      "prereqTech": "TECH_SYMBIOTIC_ECOLOGIES", "requiresAffinity": "DIVERGENCE_SYMBIONT", "requiresAffinityLevel": 6, "affinity": { "DIVERGENCE_SYMBIONT": 6 },
+      "tags": ["Wonder"], "description": "+6 Harmony. +1 Food for every tile of woods or the Bloom here; +1 Housing in every city.",
+      "modifiers": [ { "effect": "CityYieldPerFeature", "yield": "Food", "amount": 1, "target": "Woods" } ],
+      "empireModifiers": [ { "effect": "CityHousing", "amount": 1 } ], "model": "future/mushroom_tall" },
+    { "id": "WONDER_ARK_OF_HUMANITY", "name": "The Ark of Humanity", "category": "Wonder", "cost": 260, "countsTowardLimit": false, "uniquePerCiv": true,
+      "prereqTech": "TECH_ARK_GENETICS", "requiresAffinity": "DIVERGENCE_SOVEREIGN", "requiresAffinityLevel": 6, "affinity": { "DIVERGENCE_SOVEREIGN": 6 },
+      "tags": ["Wonder"], "description": "+6 Purity. +6 Culture here; +2 Loyalty a turn in every city.",
+      "modifiers": [ { "effect": "CityYieldFlat", "yield": "Culture", "amount": 6 } ],
+      "empireModifiers": [ { "effect": "CityLoyaltyPerTurn", "amount": 2 } ], "model": "future/dome_glass" },
+    { "id": "WONDER_NOOSPHERE_CORE", "name": "The Noosphere Core", "category": "Wonder", "cost": 260, "countsTowardLimit": false, "uniquePerCiv": true,
+      "prereqTech": "TECH_SYNTHETIC_MINDS", "requiresAffinity": "DIVERGENCE_DISCARNATE", "requiresAffinityLevel": 6, "affinity": { "DIVERGENCE_DISCARNATE": 6 },
+      "tags": ["Wonder"], "description": "+6 Supremacy. +8 Science here; +5% Science in every city.",
+      "modifiers": [ { "effect": "CityYieldFlat", "yield": "Science", "amount": 8 } ],
+      "empireModifiers": [ { "effect": "CityYieldPercent", "yield": "Science", "amount": 5 } ], "model": "future/structure_detailed" }
+  ],
+
   "projects": [
     { "id": "PROJECT_GAIAN_RITE", "name": "Gaian Rite", "district": "DISTRICT_CITY_CENTER", "cost": 700, "repeatable": true,
       "prereqTech": "TECH_SYMBIOTIC_ECOLOGIES", "requiresAffinity": "DIVERGENCE_SYMBIONT", "requiresAffinityLevel": 4,

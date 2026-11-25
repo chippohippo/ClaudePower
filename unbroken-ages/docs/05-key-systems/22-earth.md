@@ -108,3 +108,38 @@ turn. On generated maps the 300-turn regression games keep 6–8 of 8 peoples al
 What is still open: table B (one people alone in South America) ends in Ascension every time, by Brazil, Korea or Ethiopia, and the
 Culture victory, which won in development rounds, did not come up in round 12. Each game also keeps one remnant of two or three cities
 far behind in research (11–12 technologies at turn 300), which diffusion alone cannot lift.
+
+## Affinities and the long future: rounds 13–20
+The gameplay pass (deals, alliances, liberation, patronage, dilemmas) and the affinities with the tree to AD 2400
+([08](../08-divergence-tech-tree.md#affinities-purity-harmony-supremacy)) changed the late game completely, so the soak was re-run
+until every target held again. Rounds 13–15 were four-game checks (seeds 1–2), rounds 16–20 the full twelve games.
+
+| Round | Victories | What failed, and the change it led to |
+|---|---|---|
+| 13 | Concord 1, Exodus 3 | Every people chose Harmony (shared pre-Threshold grants favoured it by a point, and a large population leaned Symbiont), and no one won an affinity victory: the chain was slow and the AI researched by cost alone. **Equal pre-Threshold grants** (3 points per affinity), the population leaning cut to 0.08, personality squared in the choice; the victory projects cheaper (3,000 → 1,800 and 2,000); the AI **beelines its victory techs** and weighs the affinity road in its focus (`AscensionAt` 50% of the steps). Liberation earns at most two diplomatic points (one people won the Concord on turn 256 by liberating cities it had taken). |
+| 14 | Ascension 2, Exodus 2 | Too few games to judge T9. |
+| 15 | Ascension 6, Exodus 4, Concord 2 | T2: Japan under three cities at turn 100; T5: one game's median people past the Modern era at turn 200. Research agreements capped at two per people and repaying 40% (was 60%); the AI spends less on dilemmas in the opening. |
+| 16 | Ascension 3, Concord 5, Exodus 3, Culture 1 | T2 (Japan, Germany) and T5 (one game at 5.5). No war on a people of three cities or fewer before turn 100 (it used only to spare their cities); AI research agreements and gold patronage from turn 150. |
+| 17 | Ascension 1, Concord 4, Culture 2, Exodus 5 | T2 again, by a turn: Japan's third settler was two tiles from its site. **Dilemmas from turn 60** (the opening is for founding); the AI values loyalty in young and newly taken towns. |
+| 18 | Ascension 3, Concord 4, Exodus 4, Score 1 | T5 in one game (median era 5.5 at turn 200). Patronage with gold from turn 200. |
+| 19 | Ascension 2, Concord 5, Exodus 5 | T5 again in the same game: half its peoples reached the Information era by turn 200 **through the civic tree** (Environmentalism) with twelve technologies. Environmentalism costs 3,500 (was 2,860). |
+| 20 | Exodus 6, Concord 4, Ascension 2 | **All nine targets met.** |
+
+### Round 20 in numbers
+| | Range over the twelve games |
+|---|---|
+| Alive | all 12 at turn 150 in every game; 11–12 at turn 300 (11.3 on average); 8–12 at turn 500 |
+| Largest people | 12–17% of the great powers' cities at turn 300, 12–27% at the end |
+| Pace | median era at turn 200: 4–5; median people in the Future era at turns 275–300 (AD 2000 is turn 296), Near Future at 350, Orbital by 400 (AD 2208), Singularity by 475–500 in eight games; the first people reaches the Singularity era at turns 325–425, well ahead of the calendar |
+| Affinities | of the living peoples at the end, 31 chose Purity, 67 Harmony, 21 Supremacy, 7 none |
+| Victories | 12 of 12 decided before the limit: Exodus 6 (turns 395–472), Concord 4 (300–420), Ascension 2 (both Transcendence, for Harmony: Song on turn 406, Japan on 485) |
+| Conflict | 47–64 declarations of war and 88–140 cities captured per game |
+| Speed | 257–411 ms a turn on average |
+
+On generated maps (300 turns, 8 peoples, seeds 3, 1 and 5): 7, 8 and 8 peoples alive; 73–81 cities, the largest people 16–26 of them
+(Venice, which buys cities, holds 26 of 73 on seed 1).
+
+What is still open: Harmony is chosen twice as often as Purity and three times as often as Supremacy; affinity victories are rarer
+than the old Ascension (2 of 12) and Exodus is at the T9 ceiling (6 of 12), so the next tuning round should make the affinity chain a
+little quicker or the space race a little slower; the leaders run through the new eras about 100 turns ahead of the calendar while the
+median people keeps to it.

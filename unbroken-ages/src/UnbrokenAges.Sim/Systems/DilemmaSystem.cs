@@ -14,7 +14,8 @@ namespace UnbrokenAges.Sim.Systems;
 /// </summary>
 public static class DilemmaSystem
 {
-    public const int FirstTurn = 25;
+    /// <summary>The opening is for founding: no dilemmas before this turn.</summary>
+    public const int FirstTurn = 60;
     /// <summary>On average one dilemma every this many turns per civilization.</summary>
     public const int Interval = 24;
     public const int AnswerTurns = 5;

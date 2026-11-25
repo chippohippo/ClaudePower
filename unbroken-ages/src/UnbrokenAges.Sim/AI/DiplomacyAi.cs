@@ -16,6 +16,8 @@ namespace UnbrokenAges.Sim.AI;
 public static class DiplomacyAi
 {
     public const int DenounceAttitude = -20;
+    /// <summary>The AI proposes research agreements, and buys great people with gold, only from these turns: the middle eras keep their pace.</summary>
+    public const int ResearchAgreementsFrom = 200, GoldPatronageFrom = 200;
 
     public static IEnumerable<GameCommand> Commands(GameState s, PlayerState p)
     {
@@ -110,7 +112,7 @@ public static class DiplomacyAi
         if (mine >= DealSystem.FriendAttitude + 2 && !DiplomacySystem.Allied(s, p.Id, o.Id) &&
             Propose(s, p, o, new() { new() { Kind = DealItemKind.Alliance, Giver = p.Id } }) is { } alliance)
             return alliance;
-        if (mine >= 0 && Propose(s, p, o, new() { new() { Kind = DealItemKind.ResearchAgreement, Giver = p.Id } }) is { } research &&
+        if (mine >= 0 && s.Turn >= ResearchAgreementsFrom && Propose(s, p, o, new() { new() { Kind = DealItemKind.ResearchAgreement, Giver = p.Id } }) is { } research &&
             DealSystem.Value(s, p.Id, o.Id, research.Items, p.Id) > 0)
             return research;
         // A stockpile at its cap is wasted: sell ten to someone short of it.
@@ -143,7 +145,7 @@ public static class DiplomacyAi
         if (p.Religion < 0 && ReligionSystem.FreeReligions(s).Any() &&
             GreatPeopleSystem.ValidatePatronize(s, p, GreatPersonClass.Prophet, faith: true) == null)
             return new PatronizeCommand { Player = p.Id, Class = GreatPersonClass.Prophet, WithFaith = true };
-        if (s.Turn < 60) return null;
+        if (s.Turn < GoldPatronageFrom) return null;
         int reserve = 250 + 50 * s.CitiesOf(p.Id).Count();
         var wanted = VictoryAi.Focus(s, p) switch
         {
@@ -188,7 +190,8 @@ public static class DiplomacyAi
         var city = s.GetCity(d.CityId);
         var affected = o.EmpireWide ? cities : city != null && city.Owner == p.Id ? new List<CityState> { city } : new List<CityState>();
         bool atWar = MilitaryAi.MajorEnemies(s, p.Id).Count > 0;
-        double reserve = p.Gold.ToDouble() < 150 ? 1.6 : 1.0;   // a thin treasury makes every coin dearer
+        // A thin treasury makes every coin dearer, and so does the opening, when gold buys settlers.
+        double reserve = (p.Gold.ToDouble() < 150 ? 1.6 : 1.0) * (s.Turn < 120 ? 2.5 : 1.0);
         double score = (o.Gold < 0 ? o.Gold * reserve : o.Gold) + o.Faith * 0.8 + o.Favor * 2 + o.Science + o.Culture + o.EraScore * 12 + o.Population * 60;
         score -= o.WarWeariness * (atWar ? 5 : 2);
         if (d.Other >= 0) score += o.Relations * (DiplomacySystem.AtWar(s, p.Id, d.Other) ? 0.2 : 1.5);
@@ -196,7 +199,8 @@ public static class DiplomacyAi
         score -= (o.Strife.ToDouble() * (war > 1.1 ? -1 : 2)) + o.Calamity.ToDouble() * 2;
         foreach (var c in affected)
         {
-            double unrest = c.Loyalty < Fx.FromInt(70) ? 3 : 0.4;
+            // Loyalty matters where it is low, and in young or newly taken towns that are still settling in.
+            double unrest = c.Loyalty < Fx.FromInt(70) ? 3 : c.Loyalty < Fx.FromInt(100) || s.Turn - c.FoundedTurn < 40 || c.TurnsSinceOwnerChange < 30 ? 1.5 : 0.4;
             score += o.Loyalty * unrest;
             foreach (var m in o.Modifiers)
             {

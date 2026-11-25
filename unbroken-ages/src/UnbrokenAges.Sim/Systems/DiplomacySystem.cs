@@ -395,8 +395,16 @@ public static class DiplomacySystem
             "Warmonger" => p.LastWarDeclaredTurn >= 0 && s.Turn - p.LastWarDeclaredTurn <= 50,
             "HighLoyalty" => cities.Count > 0 && cities.Aggregate(Fx.Zero, (sum, c) => sum + c.Loyalty) / cities.Count >= 80,
             "CitiesInRevolt" => cities.Any(c => c.Loyalty < 15),
+            // Affinity agendas: a people whose dominant affinity (level 3 or more, or its primary) is the named one.
+            "Purity" or "Harmony" or "Supremacy" => AffinityAgenda(s, p, tag),
             _ => null, // tags for systems not built yet (e.g. TradePartner) count as neutral
         };
+    }
+
+    private static bool AffinityAgenda(GameState s, PlayerState p, string affinityName)
+    {
+        int a = p.Divergence >= 0 ? p.Divergence : AffinitySystem.Dominant(p);
+        return a >= 0 && (p.Divergence >= 0 || AffinitySystem.Level(p, a) >= s.Db.Rules.Affinity.KindredLevel) && AffinitySystem.Name(s, a) == affinityName;
     }
 
     private static bool DenouncedRecently(GameState s, int a, int b, int minTurnsAgo)

@@ -24,14 +24,20 @@ public static class DealSystem
     public const int GoldPerTurnTurns = 30;
     public const int ResearchAgreementTurns = 20;
     /// <summary>A research agreement repays each partner this share of the cheapest technology it could research.</summary>
-    public const int ResearchAgreementPercent = 60;
+    public const int ResearchAgreementPercent = 40;
     public const int MaxAlliances = 2;
     /// <summary>Attitude at or above which a leader counts another as a friend (alliances, open borders, no wars).</summary>
     public const int FriendAttitude = 10;
     /// <summary>Items a leader will not accept at any price.</summary>
     public const int Refused = -100000;
 
-    public static int ResearchAgreementCost(GameState s, PlayerState p) => 60 + 40 * s.PlayerEra(p);
+    public static int ResearchAgreementCost(GameState s, PlayerState p) => 100 + 50 * s.PlayerEra(p);
+
+    /// <summary>Research agreements a civilization may have running at once.</summary>
+    public const int MaxResearchAgreements = 2;
+
+    public static int ResearchAgreements(GameState s, int player) =>
+        s.Agreements.Count(g => g.Kind == DealItemKind.ResearchAgreement && (g.From == player || g.To == player));
 
     public static DealState? Find(GameState s, int id) => s.Deals.Find(d => d.Id == id);
 
@@ -81,6 +87,8 @@ public static class DealSystem
                                          AllianceCount(s, from) >= MaxAlliances || AllianceCount(s, to) >= MaxAlliances ? $"A civilization keeps at most {MaxAlliances} alliances." : null,
                 DealItemKind.ResearchAgreement => atWar ? "Make peace first." :
                                                   s.Agreements.Any(g => g.Kind == DealItemKind.ResearchAgreement && Pair(g, from, to)) ? "A research agreement is already running." :
+                                                  ResearchAgreements(s, from) >= MaxResearchAgreements || ResearchAgreements(s, to) >= MaxResearchAgreements
+                                                  ? $"A civilization runs at most {MaxResearchAgreements} research agreements." :
                                                   a.Gold < Fx.FromInt(ResearchAgreementCost(s, a)) ? $"{Name(s, from)} cannot fund it ({ResearchAgreementCost(s, a)} gold)." :
                                                   b.Gold < Fx.FromInt(ResearchAgreementCost(s, b)) ? $"{Name(s, to)} cannot fund it ({ResearchAgreementCost(s, b)} gold)." : null,
                 _ => "Unknown item.",

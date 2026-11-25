@@ -40,6 +40,6 @@
     { "id": "CIVIC_PUBLIC_GAMES",         "name": "Public Games",         "era": "ERA_CLASSICAL",   "cost": 275, "prereqs": ["CIVIC_STATE_WORKFORCE"] },
     { "id": "CIVIC_CIVIL_ENGINEERING",    "name": "Civil Engineering",    "era": "ERA_RENAISSANCE", "cost": 1750, "prereqs": ["CIVIC_POLITICAL_PHILOSOPHY"], "governorTitles": 1 },
     { "id": "CIVIC_URBANIZATION",         "name": "Urbanization",         "era": "ERA_INDUSTRIAL",  "cost": 2015, "prereqs": ["CIVIC_CIVIL_ENGINEERING"], "affinity": { "DIVERGENCE_SOVEREIGN": 2 } },
-    { "id": "CIVIC_ENVIRONMENTALISM",     "name": "Environmentalism",     "era": "ERA_INFORMATION", "cost": 2860, "prereqs": ["CIVIC_URBANIZATION"], "governorTitles": 1, "affinity": { "DIVERGENCE_SYMBIONT": 1 } }
+    { "id": "CIVIC_ENVIRONMENTALISM",     "name": "Environmentalism",     "era": "ERA_INFORMATION", "cost": 3500, "prereqs": ["CIVIC_URBANIZATION"], "governorTitles": 1, "affinity": { "DIVERGENCE_SYMBIONT": 1 } }
   ]
 }
