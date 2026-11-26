@@ -58,7 +58,7 @@ void fragment() {
 		col = mix(col, ink_color, row * smoothstep(0.6, 0.9, wave) * 0.35);
 		alpha = max(alpha, 0.85);
 	}
-	else if (drawn == 2) { col = chart(wp); alpha = 1.0; }
+	else if (drawn == 2) { col = chart_sea(chart(wp), wp); alpha = 1.0; }   // here be dragons
 	col = mix(col, vec3(0.16, 0.07, 0.03), edge * 0.85);
 	EMISSION = vec3(1.0, 0.42, 0.08) * edge * 2.2 * step(0.5, float(before));
 	ALBEDO = col;

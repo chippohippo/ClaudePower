@@ -101,7 +101,7 @@ vec3 shaped(vec3 col, vec2 wp, float y, float slope) {
 }
 
 vec3 look_fog(vec4 d, vec2 wp, float y, float slope, int fog) {
-	if (fog == 2) return chart(wp);
+	if (fog == 2) return chart_sea(chart(wp), wp);
 	vec3 c = shaped(land_color(d, wp), wp, y, slope);
 	if (channel(d.a) == 13) {
 		// Inca terraces: green steps cut along the contours of owned hills and mountains, stone risers between them.

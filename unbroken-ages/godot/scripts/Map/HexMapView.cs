@@ -221,6 +221,20 @@ public partial class HexMapView : Node3D
             }
         }
         else _tileData.Update(image);
+        float seed = ChartSeed(map);
+        _terrainMat.SetShaderParameter("chart_seed", seed);
+        _waterMat.SetShaderParameter("chart_seed", seed);
+    }
+
+    /// <summary>
+    /// Where the cartographer drew the sea monsters, ships and wind roses on the unexplored ocean: a number derived from the
+    /// map itself (its terrain), so each map gets its own chart and it never changes during a game.
+    /// </summary>
+    private static float ChartSeed(MapGrid map)
+    {
+        uint h = 2166136261;
+        for (int i = 0; i < map.Count; i++) { h ^= map.Terrain[i]; h *= 16777619; }
+        return (h % 997) * 0.731f;
     }
 
     private static (int Layer, int Feature) Surface(GameState s, int t)
