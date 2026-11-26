@@ -1,0 +1,84 @@
+# Builds the Unbroken Ages Windows installer (UnbrokenAges-Setup-<version>.exe) and publishes it.
+# - Every run uploads the installer as a workflow artifact (Actions tab -> the run -> Artifacts).
+# - Pushing a tag like ua-v0.9.0, or running it by hand with "publish release" ticked, also attaches it to a GitHub Release.
+name: Unbroken Ages Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number shown in the installer"
+        default: "0.9.0"
+      publish_release:
+        description: "Also publish a GitHub Release with the installer"
+        type: boolean
+        default: true
+  push:
+    tags: ["ua-v*"]
+  pull_request:
+    paths: ["unbroken-ages/**", ".github/workflows/unbroken-ages-windows.yml"]
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.3"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  windows-installer:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: unbroken-ages
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Version
+        id: v
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/ua-v* ]]; then V="${GITHUB_REF#refs/tags/ua-v}"; else V="${{ github.event.inputs.version || '0.9.0' }}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Tests
+        run: dotnet test tests/UnbrokenAges.Tests -nologo -v q
+
+      - name: Install Godot ${{ env.GODOT_VERSION }} (.NET), export templates and NSIS
+        run: |
+          set -e
+          mkdir -p ~/godot && cd ~/godot
+          curl -sSL -o g.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          unzip -q g.zip
+          curl -sSL -o t.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
+          unzip -q t.tpz
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
+          mv templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono/
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
+          sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+
+      - name: Export the game and build the installer
+        run: tools/package-windows.sh "${{ steps.v.outputs.version }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UnbrokenAges-Setup-${{ steps.v.outputs.version }}
+          path: unbroken-ages/build/UnbrokenAges-Setup-${{ steps.v.outputs.version }}.exe
+          compression-level: 0
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/ua-v') || github.event.inputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ua-v${{ steps.v.outputs.version }}
+          name: Unbroken Ages ${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          files: unbroken-ages/build/UnbrokenAges-Setup-${{ steps.v.outputs.version }}.exe
+          body: |
+            Windows installer for Unbroken Ages ${{ steps.v.outputs.version }}.
+            Download **UnbrokenAges-Setup-${{ steps.v.outputs.version }}.exe**, run it, and launch the game from the desktop or Start menu.
+            Everything is bundled (including .NET). If Windows SmartScreen warns about an unknown publisher, choose "More info" then "Run anyway".
+            On older or integrated graphics use the "Unbroken Ages (Safe Mode)" shortcut.

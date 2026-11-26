@@ -1,0 +1,48 @@
+UNBROKEN AGES — QUICK START
+===========================
+
+One people. Every age. A turn-based 4X strategy game: found a civilization, grow it from the Ancient
+era to the far future, and win by Score, Hegemony, Culture, Spiritual, Concord, Exodus or Ascension.
+
+STARTING A GAME
+---------------
+1. Launch "Unbroken Ages" from the desktop or Start menu.
+2. In the lobby choose Single player, pick a nation and leader (the dossier shows how each plays),
+   then press Launch. Recommended first game: Small map, 3 AI players, Egypt, Rome or England.
+3. Your Settler is selected: press B to found your capital.
+4. The advisor at the top teaches the first game step by step. The big button at the bottom right
+   always names the next thing that needs you, and becomes NEXT TURN when nothing does.
+
+CONTROLS
+--------
+Select a unit or city ............ Left-click (click a city again to cycle units inside)
+Move or attack ................... Right-click a tile (hover an enemy for the combat preview)
+Found city / Fortify ............. B / F
+Skip a unit this turn ............ Space
+End the turn ..................... Enter, or the turn button
+Research and civics .............. T
+Diplomacy, city-states, Congress . P
+Society (government, faith...) ... G
+Espionage ........................ E
+Chronicle / Divergence ........... C / V
+Supply lens / Resource lens ...... L / R
+Quick save / Quick load .......... F5 / F9
+Pan / Zoom / Close a screen ...... WASD or arrows / mouse wheel / Esc
+Game menu (save, load, audio) .... Esc
+
+SAVES, SETTINGS AND LOGS
+------------------------
+%APPDATA%\Godot\app_userdata\Unbroken Ages\
+  saves\       your saved games (kept when you uninstall)
+  logs\        godot.log, useful if something goes wrong
+The Start menu folder has a "Saves and Logs" shortcut that opens it.
+
+TROUBLESHOOTING
+---------------
+* Black screen, crash on start, or very slow on a laptop: use "Unbroken Ages (Safe Mode)" from the
+  Start menu. It uses the OpenGL renderer, which works on older and integrated graphics.
+* Update your graphics driver if neither works; the game needs Vulkan, DirectX 12 or OpenGL 3.3.
+* Multiplayer (Direct IP): the host uses TCP port 47620. Let the game through Windows Firewall
+  (the installer can do this) and forward the port on your router for games over the internet.
+* Windows SmartScreen may warn that the installer is from an unknown publisher because it is not
+  code-signed. Choose "More info" then "Run anyway".

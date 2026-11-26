@@ -192,7 +192,20 @@ wind-and-surf ambience. Every third-party asset is CC0 or CC-BY 4.0 and credited
 | ![Farms, roads and wagons around a capital](docs/screenshots/village-fields.png) | ![Resource lens](docs/screenshots/resource-lens.png) |
 | ![The industrial age: asphalt, cars and coal smoke](docs/screenshots/living-world.png) | ![One city through every technology look and the three futures](docs/screenshots/tech-ages.png) |
 
-## Play it (first playable)
+## Install on Windows (no tools needed)
+
+Download **UnbrokenAges-Setup-&lt;version&gt;.exe** from the repository's
+[Releases](https://github.com/chippohippo/ClaudePower/releases) page (or the latest
+*Unbroken Ages Windows installer* run under Actions → Artifacts), run it, and launch **Unbroken Ages** from the desktop or Start
+menu. Everything is bundled, including .NET. The installer adds Start menu and desktop shortcuts, a **Safe Mode** shortcut
+(OpenGL, for older or integrated graphics), an optional firewall rule for multiplayer, and an uninstaller; saves are kept in
+`%APPDATA%\Godot\app_userdata\Unbroken Ages`. [installer/HOW-TO-PLAY.txt](installer/HOW-TO-PLAY.txt) is the quick start it ships.
+
+To build the installer yourself: `tools/package-windows.sh 0.9.0` (needs the .NET 8 SDK, Godot 4.3 .NET with its export
+templates in `$GODOT`, and NSIS), or run the **Unbroken Ages Windows installer** workflow from the Actions tab (it publishes a
+Release when "publish release" is ticked or a `ua-v*` tag is pushed).
+
+## Play it from source (first playable)
 
 1. Install the [.NET 8 SDK](https://dotnet.microsoft.com/download) and **Godot 4.3, .NET edition**.
 2. `dotnet build godot/UnbrokenAges.Client.csproj`, then open `godot/project.godot` in Godot and press Play (F5).

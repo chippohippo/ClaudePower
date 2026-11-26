@@ -16,6 +16,7 @@ public partial class TopBar : PanelContainer
     private Label _science = null!, _culture = null!, _faith = null!, _gold = null!, _turn = null!, _age = null!, _climate = null!;
     private HBoxContainer _strategic = null!;
     private Label _signature = null!;
+    private HBoxContainer _bar = null!;
     private PanelContainer _signatureBox = null!;
     private Control _scienceBox = null!, _goldBox = null!, _ageBox = null!, _climateBox = null!;
 
@@ -32,7 +33,7 @@ public partial class TopBar : PanelContainer
             ShadowColor = new Color(0, 0, 0, 0.45f), ShadowSize = 8,
         });
         var h = new HBoxContainer();
-        h.AddThemeConstantOverride("separation", 16);
+        h.AddThemeConstantOverride("separation", 12);
         AddChild(h);
         h.AddChild(_scienceBox = Icons.Stat("science", UiTheme.Science, "", out _science, 20, "Science per turn"));
         h.AddChild(Icons.Stat("culture", UiTheme.Culture, "", out _culture, 20, "Culture per turn"));
@@ -50,6 +51,10 @@ public partial class TopBar : PanelContainer
         h.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         h.AddChild(_climateBox = Icons.Stat("apple", new Color("#9fd0e8"), "", out _climate, 16));
         h.AddChild(_ageBox = Icons.Stat("crown", UiTheme.GoldBright, "", out _age, 18));
+        // The world age is the one thing that gives way (with an ellipsis; the full text is in its tooltip), so the screen
+        // buttons and Menu always stay on screen however long the stats grow. FitAge sizes it.
+        _age.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _bar = h;
         _turn = new Label();
         _turn.AddThemeColorOverride("font_color", UiTheme.GoldBright);
         h.AddChild(_turn);
@@ -65,6 +70,19 @@ public partial class TopBar : PanelContainer
         }
         var menu = Icons.Button("turns", "Menu", UiTheme.GoldBright, _root.ToggleMenu, "Menu: save, load, sound (Esc)");
         keys.AddChild(menu);
+    }
+
+    /// <summary>Gives the world-age label its full text width, or what is left of the bar when everything else is shown.</summary>
+    public override void _Process(double delta) => FitAge();
+
+    private void FitAge()
+    {
+        if (_bar == null || !IsInstanceValid(_bar)) return;
+        var font = _age.GetThemeFont("font");
+        float want = font.GetStringSize(_age.Text, HorizontalAlignment.Left, -1, _age.GetThemeFontSize("font_size")).X + 2;
+        float others = _bar.GetCombinedMinimumSize().X - _age.GetCombinedMinimumSize().X;
+        float room = GetViewportRect().Size.X - 24 - others;   // 24: the bar's own margins
+        _age.CustomMinimumSize = new Vector2(Mathf.Clamp(want, 24, Mathf.Max(24, room)), 0);
     }
 
     public void Refresh()
@@ -84,7 +102,7 @@ public partial class TopBar : PanelContainer
         var w = s.World;
         _age.Text = (WorldSystem.CurrentAge(s)?.Name ?? "An ordinary age") + (p.Age != AgeState.Normal ? $" · your {p.Age} Age" : "");
         int next = WorldSystem.Forecast(s, w.WorldEra + 1);
-        _ageBox.TooltipText = $"World currents: Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}\n" +
+        _ageBox.TooltipText = _age.Text + "\n" + $"World currents: Progress {w.Progress.FloorToInt()} · Strife {w.Strife.FloorToInt()} · Calamity {w.Calamity.FloorToInt()}\n" +
                               $"If a new era began now: {(next >= 0 ? s.Db.WorldAges[next].Name : "an ordinary age")}." +
                               (s.TurnPhases.Count > 1 ? $"\n{TurnPhases.Describe(s)}" : "");
         _climate.Text = $"{s.Climate.Co2Ppm.FloorToInt()} ppm · +{s.Climate.Temperature.ToDouble().ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}°C";

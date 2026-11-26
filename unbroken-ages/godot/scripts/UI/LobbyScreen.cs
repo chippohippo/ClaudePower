@@ -172,12 +172,16 @@ public partial class LobbyScreen : PanelContainer
             },
             Players = Enumerable.Range(0, humans + ais).Select(i => new PlayerSetup
             {
-                Name = i == 0 ? _name.Text : i < humans ? $"Player {i + 1}" : $"AI {i + 1}",
+                Name = i == 0 ? _name.Text : i < humans ? $"Player {i + 1}" : LeaderName(others[i - 1], $"AI {i + 1}"),
                 IsHuman = i < humans,
                 Leader = i == 0 ? mine : others[i - 1],
             }).ToList(),
         };
     }
+
+    /// <summary>AI rivals go by their leader ("Cleopatra"), as in the diplomacy screen's "Cleopatra (Egypt)".</summary>
+    private string LeaderName(string leaderId, string fallback) =>
+        _root.Db.Leaders.IndexOf(leaderId) is var i and >= 0 && _root.Db.Leaders[i].Name.Length > 0 ? _root.Db.Leaders[i].Name : fallback;
 
     private static Control Labeled(string label, Control control)
     {

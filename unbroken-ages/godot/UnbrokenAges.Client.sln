@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnbrokenAges.Client", "UnbrokenAges.Client.csproj", "{C40AC0E1-588D-4795-80C3-127B9F5F03F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnbrokenAges.Sim", "..\src\UnbrokenAges.Sim\UnbrokenAges.Sim.csproj", "{FC9EC8E9-6041-47EF-98B8-2C39E9285464}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnbrokenAges.Net", "..\src\UnbrokenAges.Net\UnbrokenAges.Net.csproj", "{94378206-9505-4874-B312-8B285F60AB09}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C40AC0E1-588D-4795-80C3-127B9F5F03F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C40AC0E1-588D-4795-80C3-127B9F5F03F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C40AC0E1-588D-4795-80C3-127B9F5F03F7}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{C40AC0E1-588D-4795-80C3-127B9F5F03F7}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{FC9EC8E9-6041-47EF-98B8-2C39E9285464}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC9EC8E9-6041-47EF-98B8-2C39E9285464}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC9EC8E9-6041-47EF-98B8-2C39E9285464}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC9EC8E9-6041-47EF-98B8-2C39E9285464}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94378206-9505-4874-B312-8B285F60AB09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94378206-9505-4874-B312-8B285F60AB09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94378206-9505-4874-B312-8B285F60AB09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94378206-9505-4874-B312-8B285F60AB09}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -92,6 +92,9 @@ public partial class GameRoot : Node3D
         var gradeRect = new ColorRect { Material = grade, MouseFilter = Control.MouseFilterEnum.Ignore };
         gradeRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         gradeLayer.AddChild(gradeRect);
+        // The OpenGL (compatibility) renderer has no RenderingDevice, and there the screen texture of the 3D frame reads back
+        // black, which would hide the whole map: skip the finish ("Safe Mode", or Godot's own fallback on old graphics).
+        if (RenderingServer.GetRenderingDevice() == null) gradeLayer.Visible = false;
 
         var theme = UiTheme.Build();
         var ui = new CanvasLayer { Layer = 1 };
