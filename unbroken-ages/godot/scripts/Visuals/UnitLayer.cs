@@ -541,7 +541,7 @@ public partial class UnitLayer : Node3D
         t.TweenCallback(Callable.From(() =>
         {
             if (!GodotObject.IsInstanceValid(root)) return;
-            Flash(root, new Color(0.85f, 0.2f, 0.16f));
+            Flash(root, new Color(0.42f, 0.07f, 0.05f));   // additive: a red tint, not a solid silhouette
             foreach (var ap in view.Players) PlayOnce(ap, Find(ap, HitClips), 1.6f, IdleClips);
             view.Lunge?.Kill();
             var home = view.Home;
