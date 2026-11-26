@@ -65,14 +65,20 @@ public partial class GameRoot : Node3D
     {
         Db = ContentLocator.LoadDatabase();
 
-        AddChild(new DirectionalLight3D
+        var sun = new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-38, 42, 0), ShadowEnabled = true, LightEnergy = 1.0f, LightColor = new Color("#ffe2bd"),
             DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits, DirectionalShadowMaxDistance = 60f, ShadowBlur = 1.5f,
-        });
+        };
+        AddChild(sun);
         // A cool fill from the far side of the sky, without shadows: the shade side of hills and figures keeps its form.
-        AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-28, 222, 0), LightEnergy = 0.22f, LightColor = new Color("#a9c8ff"), ShadowEnabled = false });
-        AddChild(new WorldEnvironment { Environment = BuildEnvironment() });
+        var fill = new DirectionalLight3D { RotationDegrees = new Vector3(-28, 222, 0), LightEnergy = 0.22f, LightColor = new Color("#a9c8ff"), ShadowEnabled = false };
+        AddChild(fill);
+        var environment = BuildEnvironment();
+        AddChild(new WorldEnvironment { Environment = environment });
+        // The sun arcs over the day (Esc menu: Day/night cycle); the clock only runs once a game is on.
+        DayNight = new UnbrokenAges.Client.Visuals.DayNight(sun, fill, environment, () => State != null);
+        AddChild(DayNight);
         _camera = new StrategyCamera();
         AddChild(_camera);
         _map = new HexMapView();
@@ -257,6 +263,7 @@ public partial class GameRoot : Node3D
 
     /// <summary>What the advisor watches for: units moved, attacks made and screens opened this session.</summary>
     public Advisor Advisor { get; private set; } = null!;
+    public UnbrokenAges.Client.Visuals.DayNight DayNight { get; private set; } = null!;
     public int UnitsMoved, AttacksMade;
     public readonly HashSet<string> PanelsOpened = new();
 

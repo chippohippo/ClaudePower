@@ -38,6 +38,9 @@ public partial class DiplomacyPanel : PanelContainer
         var s = _root.State;
         if (s == null) return;
         int me = _root.LocalPlayer;
+        // Portraits are kept between refreshes (building one loads a figure): lift them out before the rows go.
+        foreach (var p in _portraits.Values) p.GetParent()?.RemoveChild(p);
+        _hover.Clear();
         foreach (var child in _rows.GetChildren()) child.QueueFree();
         Congress(s, me);
         Offers(s, me);
@@ -49,20 +52,35 @@ public partial class DiplomacyPanel : PanelContainer
             style.BorderWidthLeft = 6;
             card.AddThemeStyleboxOverride("panel", style);
             _rows.AddChild(card);
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 8);
-            card.AddChild(row);
+            var line = new HBoxContainer();
+            line.AddThemeConstantOverride("separation", 10);
+            card.AddChild(line);
+            if (other.CivIndex >= 0)
+            {
+                // Their leader before their landmark, in their colours: a still portrait that comes alive while the row is hovered.
+                var portrait = Portrait(s, other);
+                line.AddChild(portrait);
+                _hover.Add((card, portrait));
+            }
+            var body = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            body.AddThemeConstantOverride("separation", 6);
+            line.AddChild(body);
+            var row = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            row.AddThemeConstantOverride("h_separation", 8);
+            row.AddThemeConstantOverride("v_separation", 6);
             string civ = other.CivIndex >= 0 ? s.Db.Civilizations[other.CivIndex].Name : other.Name;
+            string leaderName = other.LeaderIndex >= 0 ? s.Db.Leaders[other.LeaderIndex].Name : other.Name;
             var attitude = DiplomacySystem.Attitude(s, other.Id, me);
             var info = new Label
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 CustomMinimumSize = new Vector2(520, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                Text = $"{other.Name} ({civ}) · {DiplomacySystem.StatusName(s, me, other.Id)} · score {VictorySystem.Score(s, other.Id)}\n" +
+                Text = $"{leaderName} of {civ} · {DiplomacySystem.StatusName(s, me, other.Id)} · score {VictorySystem.Score(s, other.Id)}\n" +
                        $"Attitude toward you: {attitude.Total:+0;-0;0}  " + string.Join(", ", attitude.Lines.Select(l => $"{l.Label} {l.Value:+0;-0}")) + "\n" +
                        $"Their grievances against you: {DiplomacySystem.GrievanceTotal(s, other.Id, me).FloorToInt()} · yours against them: {DiplomacySystem.GrievanceTotal(s, me, other.Id).FloorToInt()}",
             };
-            row.AddChild(info);
+            body.AddChild(info);
+            body.AddChild(row);
             AddAction(row, "Declare war", new DeclareWarCommand { Target = other.Id });
             AddAction(row, "Propose peace", new ProposePeaceCommand { Target = other.Id });
             AddAction(row, "Accept peace", new AcceptPeaceCommand { Target = other.Id });
@@ -76,6 +94,36 @@ public partial class DiplomacyPanel : PanelContainer
             row.AddChild(trade);
         }
         CityStates(s, me);
+    }
+
+    private readonly Dictionary<int, Visuals.LeaderPortrait> _portraits = new();
+    private readonly List<(Control Card, Visuals.LeaderPortrait Portrait)> _hover = new();
+
+    public override void _Process(double delta)
+    {
+        if (!Visible) return;
+        var mouse = GetGlobalMousePosition();
+        foreach (var (card, portrait) in _hover)
+            if (IsInstanceValid(card)) portrait.Live = card.IsVisibleInTree() && card.GetGlobalRect().HasPoint(mouse);
+    }
+
+    public override void _ExitTree()
+    {
+        foreach (var p in _portraits.Values) if (p.GetParent() == null) p.Free();
+        _portraits.Clear();
+    }
+
+    private Visuals.LeaderPortrait Portrait(Sim.State.GameState s, Sim.State.PlayerState other)
+    {
+        if (!_portraits.TryGetValue(other.Id, out var portrait))
+        {
+            portrait = new Visuals.LeaderPortrait(new Vector2(116, 116), live: false) { SizeFlagsVertical = SizeFlags.ShrinkCenter };
+            _portraits[other.Id] = portrait;
+        }
+        var leader = other.LeaderIndex >= 0 ? s.Db.Leaders[other.LeaderIndex] : null;
+        portrait.TooltipText = leader != null ? $"{leader.Name}, {leader.Epithet}" : other.Name;
+        portrait.Show(leader, s.Db.Civilizations[other.CivIndex], Map.HexMapView.CivColor(s, other.Id), Map.HexMapView.CivSecondary(s, other.Id));
+        return portrait;
     }
 
     /// <summary>Offers on the table addressed to you, with Accept and Decline; and your own offers awaiting an answer.</summary>
@@ -218,7 +266,7 @@ public partial class DiplomacyPanel : PanelContainer
         }
     }
 
-    private void AddAction(HBoxContainer row, string label, GameCommand cmd)
+    private void AddAction(Container row, string label, GameCommand cmd)
     {
         var s = _root.State!;
         cmd.Player = _root.LocalPlayer;

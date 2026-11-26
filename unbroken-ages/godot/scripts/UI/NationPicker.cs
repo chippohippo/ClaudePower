@@ -19,6 +19,7 @@ public partial class NationPicker : VBoxContainer
         CustomMinimumSize = new Vector2(0, 250),
     };
     private int _nation;
+    private readonly Visuals.LeaderPortrait _portrait = new(new Vector2(250, 290), live: true);
 
     /// <summary>The chosen leader's id (the nation follows from it).</summary>
     public string SelectedLeader { get; private set; } = "";
@@ -61,10 +62,18 @@ public partial class NationPicker : VBoxContainer
         _leaders.AddThemeConstantOverride("separation", 8);
         AddChild(_leaders);
 
-        var frame = new PanelContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        // The dossier, with the chosen leader standing before their nation's landmark beside it.
+        var bottom = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        bottom.AddThemeConstantOverride("separation", 8);
+        AddChild(bottom);
+        var portraitFrame = new PanelContainer { SizeFlagsVertical = SizeFlags.ShrinkBegin };
+        portraitFrame.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color("#0a1320"), new Color(UiTheme.Gold, 0.5f), 1, 8, 3));
+        portraitFrame.AddChild(_portrait);
+        bottom.AddChild(portraitFrame);
+        var frame = new PanelContainer { SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         frame.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color("#0a1320"), new Color(UiTheme.Gold, 0.5f), 1, 8, 12));
         frame.AddChild(_dossier);
-        AddChild(frame);
+        bottom.AddChild(frame);
 
         if (_db.Civilizations.Count > 0) SelectNation(0);
     }
@@ -116,6 +125,8 @@ public partial class NationPicker : VBoxContainer
         SelectedLeader = leader.Id;
         foreach (var b in _leaders.GetChildren().OfType<Button>()) b.SetPressedNoSignal(b.Text.StartsWith(leader.Name));
         var civ = _db.Civilizations[_nation];
+        _portrait.Show(leader, civ, new Color(civ.Colors.Primary), new Color(civ.Colors.Secondary));
+        _portrait.TooltipText = $"{leader.Name} of {civ.Name}";
         string gold = UiTheme.GoldBright.ToHtml(false), dim = UiTheme.TextDim.ToHtml(false), colour = new Color(civ.Colors.Primary).Lightened(0.35f).ToHtml(false);
         var uniques = _db.Units.Where(u => u.CivilizationIndex == civ.Index).ToList();
         string text =
