@@ -118,7 +118,7 @@ public partial class LifeLayer : Node3D
         bool Known(int t) => t >= 0 && t < revealed.Length && revealed[t];
 
         // ---- Roads: per civilization, a spanning tree over its cities (shortest land paths), then spurs to resources ----
-        var roads = new Dictionary<RoadKind, List<(Vector3[] Pts, float Half)>>();
+        var roads = new Dictionary<RoadKind, List<(Vector3[] Pts, float Half, bool Rail)>>();
         var looks = Enumerable.Range(0, s.Players.Count).Select(p => TechLook.For(s, p)).ToArray();
         _looks = looks;
         foreach (var group in s.Cities.Where(c => Known(c.Tile)).GroupBy(c => c.Owner))
@@ -355,9 +355,57 @@ public partial class LifeLayer : Node3D
 
     private TechLook[] _looks = Array.Empty<TechLook>();
 
-    private void AddRoad(MapGrid map, List<int> tiles, Func<int, bool> known, Dictionary<RoadKind, List<(Vector3[] Pts, float Half)>> into,
+    /// <summary>A bridge to build: deck from bank to bank, as wide as the road (and its railway) it carries.</summary>
+    private readonly record struct Bridge(Vector3 A, Vector3 B, float Half, RoadKind Kind, bool Rail, bool Long);
+    private readonly List<Bridge> _bridges = new();
+
+    /// <summary>All bridges currently built, as (bank, bank) pairs in world space (for tests and debug views).</summary>
+    public IReadOnlyList<(Vector3 A, Vector3 B)> Bridges => _bridgeEnds;
+    private readonly List<(Vector3 A, Vector3 B)> _bridgeEnds = new();
+
+    /// <summary>Railway track: the carriageway is widened by this factor and the track laid on the outer half.</summary>
+    private const float RailWidth = 1.9f;
+
+    private void AddRoad(MapGrid map, List<int> tiles, Func<int, bool> known, Dictionary<RoadKind, List<(Vector3[] Pts, float Half, bool Rail)>> into,
                          RoadKind kind, float widthScale, TechLook traffic, bool trunk)
     {
+        // Trunk roads of a railway age carry a track beside them (a trade road only if both ends have railways, which the
+        // lesser road standard already says: Macadam and better is industrial).
+        bool rail = trunk && traffic.Rail && kind is >= RoadKind.Macadam and <= RoadKind.Smart;
+        float half = RoadHalf(kind) * widthScale * (rail ? RailWidth : 1f);
+
+        // Where the road crosses an edge river, or a short stretch of Great River channel / lake, it needs a bridge. The
+        // tiles either side are kept on their centres so the crossing is square to the bank.
+        var straight = new HashSet<int>();
+        for (int i = 1; i < tiles.Count; i++)
+        {
+            int a = tiles[i - 1], b = tiles[i];
+            if (!known(a) || !known(b)) continue;
+            if (!map.IsWater(a) && !map.IsWater(b) && Dir(map, a, b) is var d && d >= 0 && map.HasRiverEdge(a, d))
+            {
+                straight.Add(a); straight.Add(b);
+                var ca = HexLayout.ToWorld(map.CoordOf(a), 0); var cb = HexLayout.ToWorld(map.CoordOf(b), 0);
+                var mid = (ca + cb) * 0.5f; var dir = (cb - ca).Normalized();
+                AddBridge(mid - dir * 0.36f, mid + dir * 0.36f, half, kind, rail, false);
+            }
+            // a run of one or two inland-water tiles between two land tiles
+            if (!map.IsWater(a) && map.IsWater(b))
+            {
+                int j = i;
+                while (j < tiles.Count && map.IsWater(tiles[j]) && !map.IsSea(tiles[j]) && known(tiles[j])) j++;
+                if (j < tiles.Count && j - i <= 2 && !map.IsWater(tiles[j]) && known(tiles[j]))
+                {
+                    int c = tiles[j];
+                    straight.Add(a); straight.Add(c);
+                    for (int k = i; k < j; k++) straight.Add(tiles[k]);
+                    var ca = HexLayout.ToWorld(map.CoordOf(a), 0); var c0 = HexLayout.ToWorld(map.CoordOf(b), 0);
+                    var c1 = HexLayout.ToWorld(map.CoordOf(tiles[j - 1]), 0); var cc = HexLayout.ToWorld(map.CoordOf(c), 0);
+                    var dirA = (c0 - ca).Normalized(); var dirC = (cc - c1).Normalized();
+                    AddBridge((ca + c0) * 0.5f - dirA * 0.3f, (c1 + cc) * 0.5f + dirC * 0.3f, half, kind, rail, true);
+                }
+            }
+        }
+
         // Split where the path leaves the known map; each known run becomes a smooth polyline.
         var run = new List<Vector3>();
         void Flush()
@@ -366,7 +414,7 @@ public partial class LifeLayer : Node3D
             {
                 var pts = Smooth(run);
                 if (!into.TryGetValue(kind, out var list)) into[kind] = list = new();
-                list.Add((pts, RoadHalf(kind) * widthScale));
+                list.Add((pts, half, rail));
                 _roadPaths.Add(pts);
                 AddTraffic(pts, traffic, trunk);
             }
@@ -377,10 +425,32 @@ public partial class LifeLayer : Node3D
             if (!known(t)) { Flush(); continue; }
             var p = HexLayout.ToWorld(map.CoordOf(t), 0);
             // Wander a little off the centre line so roads do not look ruled (engineered roads less so).
-            p += new Vector3(Rand(t, 11) - 0.5f, 0, Rand(t, 12) - 0.5f) * (kind >= RoadKind.Macadam ? 0.18f : 0.35f);
+            if (!straight.Contains(t))
+                p += new Vector3(Rand(t, 11) - 0.5f, 0, Rand(t, 12) - 0.5f) * (kind >= RoadKind.Macadam ? 0.18f : 0.35f);
             run.Add(p);
         }
         Flush();
+    }
+
+    private static int Dir(MapGrid map, int from, int to)
+    {
+        for (int d = 0; d < 6; d++) if (map.Neighbor(from, d) == to) return d;
+        return -1;
+    }
+
+    private void AddBridge(Vector3 a, Vector3 b, float half, RoadKind kind, bool rail, bool isLong)
+    {
+        // Two roads over the same crossing share one bridge: keep the grander.
+        var mid = (a + b) * 0.5f;
+        for (int i = 0; i < _bridges.Count; i++)
+        {
+            var o = _bridges[i];
+            if (((o.A + o.B) * 0.5f).DistanceTo(mid) > 0.25f) continue;
+            if (kind > o.Kind || (rail && !o.Rail) || half > o.Half)
+                _bridges[i] = o with { Kind = (RoadKind)Math.Max((int)kind, (int)o.Kind), Rail = rail || o.Rail, Half = Math.Max(half, o.Half) };
+            return;
+        }
+        _bridges.Add(new Bridge(a, b, half, kind, rail, isLong));
     }
 
     /// <summary>Chaikin corner-cutting (twice), then resampled every ~0.15 units and lifted onto the ground.</summary>
@@ -410,7 +480,7 @@ public partial class LifeLayer : Node3D
 
     private HexMapView? _mapView;
 
-    private ArrayMesh RoadMesh(Dictionary<RoadKind, List<(Vector3[] Pts, float Half)>> roads, MapGrid? map)
+    private ArrayMesh RoadMesh(Dictionary<RoadKind, List<(Vector3[] Pts, float Half, bool Rail)>> roads, MapGrid? map)
     {
         var mesh = new ArrayMesh();
         foreach (var (kind, list) in roads.OrderBy(kv => kv.Key))
@@ -420,8 +490,10 @@ public partial class LifeLayer : Node3D
             st.Begin(Mesh.PrimitiveType.Triangles);
             var hf = HeightField.Current;
             float lift = 0.045f + (int)kind * 0.002f;   // higher standards drawn over lower where they meet
-            foreach (var (pts, half) in list)
+            foreach (var (pts, half, rail) in list)
             {
+                // UV2.x = 1 on a road with a railway: the shader lays the track on the outer half (UV.x 0.5 → 1).
+                var uv2 = new Vector2(rail ? 1f : 0f, 0f);
                 float v = 0;
                 for (int i = 0; i < pts.Length - 1; i++)
                 {
@@ -437,7 +509,7 @@ public partial class LifeLayer : Node3D
                     float v1 = v + pts[i].DistanceTo(pts[i + 1]);
                     var a0 = Lift(pts[i] - s0); var b0 = Lift(pts[i] + s0);
                     var a1 = Lift(pts[i + 1] - s1); var b1 = Lift(pts[i + 1] + s1);
-                    void V(Vector3 p, float u, float vv) { st.SetNormal(Vector3.Up); st.SetUV(new Vector2(u, vv)); st.AddVertex(p); }
+                    void V(Vector3 p, float u, float vv) { st.SetNormal(Vector3.Up); st.SetUV(new Vector2(u, vv)); st.SetUV2(uv2); st.AddVertex(p); }
                     V(a0, 0, v); V(a1, 0, v1); V(b1, 1, v1);
                     V(a0, 0, v); V(b1, 1, v1); V(b0, 1, v);
                     v = v1;
@@ -450,7 +522,119 @@ public partial class LifeLayer : Node3D
             st.SetMaterial(mat);
             st.Commit(mesh);
         }
+        BridgeMesh(mesh, map);
         return mesh;
+    }
+
+    /// <summary>
+    /// Bridges, one surface for all: a slightly arched deck with parapets, built to the road's standard — timber trestles
+    /// for tracks and footpaths, a stone arch from Engineering, a steel truss in the industrial age, and pale concrete or
+    /// the futures' own materials beyond. A railway bridge carries the track (steel rails on sleepers) beside the road.
+    /// </summary>
+    private void BridgeMesh(ArrayMesh mesh, MapGrid? map)
+    {
+        _bridgeEnds.Clear();
+        if (_bridges.Count == 0) return;
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        var hf = HeightField.Current;
+        void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color col)
+        {
+            var n = (b - a).Cross(d - a).Normalized();
+            void V(Vector3 p) { st.SetColor(col); st.SetNormal(n); st.AddVertex(p); }
+            V(a); V(d); V(c); V(a); V(c); V(b);   // clockwise as seen from the outside: Godot's front face
+        }
+        // A box whose bottom centre line runs a → b, `w` wide and `h` tall (perpendicular to the run, upright).
+        void Beam(Vector3 a, Vector3 b, float w, float h, Color col)
+        {
+            var dir = (b - a).Normalized();
+            var side = dir.Cross(Vector3.Up).Normalized() * (w * 0.5f);
+            if (side.LengthSquared() < 1e-6f) side = Vector3.Right * (w * 0.5f);
+            var up = side.Cross(dir).Normalized() * h;
+            if (up.Y < 0) up = -up;
+            Vector3 a0 = a - side, a1 = a + side, b0 = b - side, b1 = b + side;
+            Quad(a0 + up, a1 + up, b1 + up, b0 + up, col);       // top
+            Quad(a0, b0, b1, a1, col * 0.7f);                     // bottom
+            Quad(a1, b1, b1 + up, a1 + up, col * 0.85f);          // sides
+            Quad(b0, a0, a0 + up, b0 + up, col * 0.85f);
+            Quad(a0, a1, a1 + up, a0 + up, col * 0.8f);           // ends
+            Quad(b1, b0, b0 + up, b1 + up, col * 0.8f);
+        }
+        foreach (var br in _bridges)
+        {
+            _bridgeEnds.Add((br.A, br.B));
+            var k = br.Kind;
+            bool wood = k <= RoadKind.Track, stone = k == RoadKind.Stone, steel = k is RoadKind.Macadam or RoadKind.Asphalt;
+            Color deckCol = wood ? new Color(0.38f, 0.26f, 0.15f) : stone ? new Color(0.62f, 0.58f, 0.52f)
+                          : steel ? new Color(0.3f, 0.3f, 0.32f) : k == RoadKind.Symbiont ? new Color(0.35f, 0.5f, 0.28f)
+                          : k == RoadKind.Discarnate ? new Color(0.12f, 0.1f, 0.18f) : new Color(0.82f, 0.83f, 0.85f);
+            Color railCol = wood ? new Color(0.34f, 0.22f, 0.12f) : stone ? new Color(0.55f, 0.51f, 0.46f)
+                          : steel ? new Color(0.42f, 0.16f, 0.12f) : deckCol * 0.85f;   // steel trusses in red lead paint
+            var flat = br.B - br.A; flat.Y = 0;
+            float len = flat.Length();
+            var dir = flat / len;
+            var side = new Vector3(-dir.Z, 0, dir.X);
+            float bank = Math.Max(Math.Max(hf.Surface(br.A.X, br.A.Z), hf.Surface(br.B.X, br.B.Z)), 0f);
+            float deckHalf = br.Half * (br.Rail ? 1f : 1.25f) + 0.03f;
+            float arch = stone ? 0.07f : wood ? 0.035f : 0.02f;
+            float baseY = bank + 0.05f;
+            int n = br.Long ? 14 : 8;
+            Vector3 At(int i, float off) { float t = i / (float)n; return br.A.Lerp(br.B, t) with { Y = baseY + arch * Mathf.Sin(Mathf.Pi * t) } + side * off; }
+            for (int i = 0; i < n; i++)
+            {
+                // deck slab
+                var c0 = At(i, 0); var c1 = At(i + 1, 0);
+                Beam(c0 - Vector3.Up * 0.03f, c1 - Vector3.Up * 0.03f, deckHalf * 2f, 0.03f, deckCol);
+                // parapets / handrails on both edges
+                foreach (float s in new[] { -1f, 1f })
+                {
+                    float off = s * (deckHalf - 0.012f);
+                    if (wood)
+                    {
+                        Beam(At(i, off) + Vector3.Up * 0.045f, At(i + 1, off) + Vector3.Up * 0.045f, 0.012f, 0.012f, railCol);
+                        Beam(At(i, off), At(i, off) + Vector3.Up * 0.057f, 0.014f, 0.014f, railCol);
+                    }
+                    else if (steel)
+                    {
+                        // a Warren truss: top chord and alternating diagonals
+                        Beam(At(i, off) + Vector3.Up * 0.09f, At(i + 1, off) + Vector3.Up * 0.09f, 0.016f, 0.016f, railCol);
+                        var lo = At(i + (i % 2), off); var hi = At(i + 1 - (i % 2), off) + Vector3.Up * 0.1f;
+                        Beam(lo, hi, 0.012f, 0.012f, railCol);
+                        Beam(At(i, off), At(i, off) + Vector3.Up * 0.1f, 0.012f, 0.012f, railCol);
+                    }
+                    else Beam(At(i, off), At(i + 1, off), 0.024f, stone ? 0.05f : 0.04f, railCol);
+                }
+                if (br.Rail)
+                {
+                    // the track: sleepers and two rails on the outer half of the deck (matching road.gdshader)
+                    var a = At(i, 0); var b = At(i + 1, 0);
+                    for (int q = 0; q < 3; q++)
+                    {
+                        var m = a.Lerp(b, (q + 0.5f) / 3f);
+                        Beam(m + side * (br.Half * 0.12f), m + side * (br.Half * 0.88f), 0.018f, 0.008f, new Color(0.3f, 0.2f, 0.12f));
+                    }
+                    foreach (float r in new[] { 0.24f, 0.76f })
+                        Beam(a + side * (br.Half * r) + Vector3.Up * 0.008f, b + side * (br.Half * r) + Vector3.Up * 0.008f, 0.01f, 0.01f, new Color(0.6f, 0.62f, 0.66f));
+                }
+            }
+            // piers: wooden trestles or stone piers standing in the water under the ends and the middle
+            var piers = br.Long ? new[] { 0.2f, 0.5f, 0.8f } : wood ? new[] { 0.25f, 0.75f } : new[] { 0.5f };
+            foreach (float t in piers)
+            {
+                var top = br.A.Lerp(br.B, t) with { Y = baseY + arch * Mathf.Sin(Mathf.Pi * t) - 0.03f };
+                var foot = top with { Y = Math.Min(hf.Surface(top.X, top.Z), 0f) - 0.25f };
+                if (wood)
+                    foreach (float s in new[] { -0.7f, 0.7f })
+                        Beam(foot + side * (deckHalf * s), top + side * (deckHalf * s), 0.018f, 0.018f, railCol);
+                else
+                    Beam(foot - side * deckHalf * 0.85f, foot + side * deckHalf * 0.85f, 0.07f, top.Y - foot.Y, stone ? deckCol * 0.85f : new Color(0.55f, 0.53f, 0.5f));
+            }
+        }
+        _bridges.Clear();
+        var mat = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/bridge.gdshader") };
+        if (map != null && (_mapView ??= GetParentOrNull<HexMapView>()) is { } view) view.ShareMapUniforms(mat, map);
+        st.SetMaterial(mat);
+        st.Commit(mesh);
     }
 
     // ----- Traffic ----------------------------------------------------------------------------------

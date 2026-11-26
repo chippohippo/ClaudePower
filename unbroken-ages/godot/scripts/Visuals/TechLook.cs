@@ -37,6 +37,15 @@ public sealed record TechLook(Architecture Architecture, RoadKind Road, Traffic 
 
     public bool IsFuture => Path >= 0;
 
+    /// <summary>
+    /// Railways: from Railroad (or, in content without that tech, Industrialization — the age of steam) its trunk roads carry
+    /// a steel track on wooden sleepers beside the carriageway. The Divergence futures lay their own conduits instead.
+    /// </summary>
+    public bool Rail { get; init; }
+
+    /// <summary>The technology that lays railways: TECH_RAILROAD when the content has it, else TECH_INDUSTRIALIZATION.</summary>
+    public static string RailTech(UnbrokenAges.Sim.Data.GameDatabase db) => db.Techs.IndexOf("TECH_RAILROAD") >= 0 ? "TECH_RAILROAD" : "TECH_INDUSTRIALIZATION";
+
     public static TechLook For(GameState s, int player)
     {
         if (player < 0 || player >= s.Players.Count) return Default;
@@ -86,7 +95,10 @@ public sealed record TechLook(Architecture Architecture, RoadKind Road, Traffic 
             traffic = Traffic.Sovereign + path;
         }
         bool renewable = Has("TECH_RENEWABLE_ENERGY");
-        return new TechLook(arch, road, traffic, path, depth, Has("TECH_INDUSTRIALIZATION") && !renewable, renewable, Has("TECH_ELECTRICITY"));
+        return new TechLook(arch, road, traffic, path, depth, Has("TECH_INDUSTRIALIZATION") && !renewable, renewable, Has("TECH_ELECTRICITY"))
+        {
+            Rail = path < 0 && Has(RailTech(db)),
+        };
     }
 
     // ----- Palettes for the futures -----------------------------------------------------------------
