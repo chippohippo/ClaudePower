@@ -84,6 +84,8 @@ public partial class GameRoot
 
     private string? _pendingShot;
     private int _holdFrames;
+    /// <summary>The fight staged by the "fight:" step, for "strike".</summary>
+    private (int Attacker, int Tile) _fight = (-1, -1);
 
     private void Shoot(string path)
     {
@@ -430,6 +432,41 @@ public partial class GameRoot
                 Camera.LookAtHex(s.Map.CoordOf(city.Tile));
                 return null;
             }
+            case var fg when fg.StartsWith("fight:"):
+            {
+                // Debug: stage a fight near your capital — fight:<attacker>+<defender>[+kill] (UNIT_ ids without the prefix).
+                // Your attacker and a hostile defender (Free Cities, or a rival you declare war on) stand side by side; "+kill"
+                // leaves the defender at 1 HP so the blow destroys it. The "strike" step then makes the attack.
+                var parts = fg[6..].Split('+');
+                if (parts.Length < 2) return "fight:<attacker>+<defender>[+kill]";
+                int atkDef = s.Db.Units.IndexOf("UNIT_" + parts[0].ToUpperInvariant()), defDef = s.Db.Units.IndexOf("UNIT_" + parts[1].ToUpperInvariant());
+                if (atkDef < 0 || defDef < 0) return "no such unit";
+                var city = s.Cities.Where(c => c.Owner == LocalPlayer).OrderBy(c => c.Id).FirstOrDefault();
+                if (city == null) return "no city";
+                int foe = s.FreeCitiesPlayer?.Id ?? s.Players.First(p => p.Id != LocalPlayer && p.IsMajor).Id;
+                if (!DiplomacySystem.AtWar(s, LocalPlayer, foe) && Do(new DeclareWarCommand { Target = foe }).Error is { } war) return war;
+                bool Open(int t) => t >= 0 && s.Map.IsLand(t) && !s.Map.IsMountain(t) && !s.Units.Any(x => x.Tile == t) && !s.Cities.Any(c => c.Tile == t);
+                var area = new List<int>();
+                s.Map.CollectRadius(city.Tile, 3, area);
+                foreach (var a in area.Where(Open).OrderBy(t => s.Map.Distance(t, city.Tile)).ThenBy(t => t))
+                {
+                    int b = Enumerable.Range(0, 6).Select(d => s.Map.Neighbor(a, d)).Where(Open).DefaultIfEmpty(-1).First();
+                    if (b < 0) continue;
+                    var attacker = new UnitState { Id = s.AllocateId(), Owner = LocalPlayer, DefIndex = atkDef, Tile = a, MovesLeft = s.Db.Units[atkDef].Moves };
+                    var defender = new UnitState { Id = s.AllocateId(), Owner = foe, DefIndex = defDef, Tile = b, MovesLeft = 0, Hp = parts.Contains("kill") ? 1 : 100 };
+                    s.AddUnit(attacker);
+                    s.AddUnit(defender);
+                    _fight = (attacker.Id, b);
+                    _localVersion++;
+                    Camera.LookAtHex(s.Map.CoordOf(b));
+                    return null;
+                }
+                return "no room for a fight";
+            }
+            case var sk when sk == "strike" || sk.StartsWith("strike:"):
+                // Debug: the staged fight's attack (see "fight:"); "strike:N" takes its screenshot N frames later (mid-swing).
+                if (sk.Length > 7) _holdFrames = int.Parse(sk[7..]);
+                return _fight.Attacker < 0 ? "no fight staged" : Do(new AttackCommand { UnitId = _fight.Attacker, TargetTile = _fight.Tile }).Error;
             case "focus-last":
             {
                 var u = s.Units.Where(x => x.Owner == LocalPlayer).OrderByDescending(x => x.Id).FirstOrDefault();

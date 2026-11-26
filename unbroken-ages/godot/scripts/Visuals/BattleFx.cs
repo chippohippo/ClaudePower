@@ -11,6 +11,14 @@ public partial class BattleFx : Node3D
 {
     public enum Kind { Melee, Arrow, Shell, Bomb }
 
+    /// <summary>The map's battle effects, for the unit layer's muzzle flashes and wrecks.</summary>
+    public static BattleFx? Current { get; private set; }
+    public override void _Ready() => Current = this;
+    public override void _ExitTree() { if (Current == this) Current = null; }
+
+    /// <summary>How long a melee lunge takes to reach the enemy: the blow (and its dust and number) lands then.</summary>
+    public const float MeleeContact = 0.22f;
+
     /// <summary>A soft round puff: white in the middle, fading to nothing at the rim.</summary>
     internal static readonly GradientTexture2D Puff = new()
     {
@@ -26,12 +34,15 @@ public partial class BattleFx : Node3D
         BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles, VertexColorUseAsAlbedo = true,
     };
 
-    public void Strike(Vector3 from, Vector3 to, int damage, Kind kind)
+    /// <summary>Plays one strike and returns how many seconds from now it lands, so the target can flinch (or fall) on the blow.</summary>
+    public float Strike(Vector3 from, Vector3 to, int damage, Kind kind)
     {
         if (kind == Kind.Melee)
         {
-            Impact(to, kind, damage);
-            return;
+            var land = CreateTween();
+            land.TweenInterval(MeleeContact);
+            land.TweenCallback(Callable.From(() => Impact(to, kind, damage)));
+            return MeleeContact;
         }
         // A projectile: an arrow is a dark streak, a shell a glowing ball, a bomb falls from above.
         var shot = new MeshInstance3D
@@ -57,6 +68,21 @@ public partial class BattleFx : Node3D
             if (p.DistanceSquaredTo(ahead) > 1e-6f) shot.LookAt(ahead, Vector3.Up);
         }), 0f, 1f, seconds);
         tween.TweenCallback(Callable.From(() => { shot.QueueFree(); Impact(to, kind, damage); }));
+        return seconds;
+    }
+
+    /// <summary>A gun's flash: a burst of flame and a puff of smoke with a quick orange light (also a wreck's explosion).</summary>
+    public void MuzzleFlash(Vector3 at, float strength = 1f)
+    {
+        AddBurst(at, amount: (int)(10 * strength), lifetime: 0.25f, size: 0.09f * strength, speed: 0.9f * strength,
+                 colorA: new Color(1f, 0.85f, 0.45f, 1f), colorB: new Color(1f, 0.35f, 0.1f, 0f), additive: true, gravity: -0.5f);
+        AddBurst(at, amount: (int)(8 * strength), lifetime: 0.9f, size: 0.14f * strength, speed: 0.35f * strength,
+                 colorA: new Color(0.55f, 0.52f, 0.5f, 0.7f), colorB: new Color(0.5f, 0.48f, 0.46f, 0f), additive: false, gravity: -0.2f);
+        var flash = new OmniLight3D { LightColor = new Color(1f, 0.65f, 0.3f), LightEnergy = 2.5f * strength, OmniRange = 1.2f * strength, Position = at };
+        AddChild(flash);
+        var fade = CreateTween();
+        fade.TweenProperty(flash, "light_energy", 0f, 0.18f);
+        fade.TweenCallback(Callable.From(flash.QueueFree));
     }
 
     private void Impact(Vector3 at, Kind kind, int damage)
