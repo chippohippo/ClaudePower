@@ -17,8 +17,11 @@ namespace UnbrokenAges.Client.Hud;
 ///   bar; yours are clickable, and the selected one is outlined in gold.</item>
 /// <item><b>Resource icons</b> on every resource you know about (hidden when zoomed far out). The <b>resource lens</b> (R)
 ///   turns them into full badges: name, yields, and whether the tile is improved — or which improvement it wants.</item>
+/// <item><b>Yield lens</b> (Y): food, production, gold, science, culture and faith on every known tile.</item>
 /// </list>
-/// Positions follow the camera every frame; labels behind the camera or off-screen are hidden.
+/// Positions follow the camera every frame; labels behind the camera or off-screen are hidden. At <b>strategic zoom</b>
+/// (<see cref="StrategyCamera.Strategic"/>) banners collapse to a pill (population + name), units on one tile share a single
+/// bolder flag with a count, and the townsfolk, animals and traffic are hidden.
 /// </summary>
 public partial class MapOverlay : Control
 {
@@ -31,6 +34,13 @@ public partial class MapOverlay : Control
 
     /// <summary>The resource lens: full badges with yields and improvement status for every known resource.</summary>
     public bool ResourceLens { get; set; }
+
+    /// <summary>The yield lens (Y): what every known tile yields, as icons with numbers.</summary>
+    public bool YieldLens { get; set; }
+
+    private readonly Dictionary<int, (PanelContainer? Panel, long Key)> _yields = new();
+    private readonly Dictionary<int, bool> _bannerCompact = new();
+    private readonly Dictionary<int, Label> _stackCounts = new();
 
     public MapOverlay(GameRoot root) => _root = root;
 
@@ -49,6 +59,8 @@ public partial class MapOverlay : Control
         var visible = VisibilitySystem.Visible(s, _root.LocalPlayer);
         var revealed = s.Players[_root.LocalPlayer].Revealed;
         var view = GetViewportRect();
+        bool strategic = cam.Strategic;
+        _root.MapView.Life.Decorations = !strategic;
 
         var seenCities = new HashSet<int>();
         foreach (var c in s.Cities)
@@ -58,10 +70,10 @@ public partial class MapOverlay : Control
             var b = Banner(s, c);
             var world = HexLayout.ToWorld(s.Map.CoordOf(c.Tile), 2.1f);
             Place(b.Panel, cam, world, view, center: true);
-            UpdateBanner(s, c, b, visible[c.Tile]);
+            UpdateBanner(s, c, b, visible[c.Tile], strategic);
             UpdateBuy(s, c, b.Panel);
         }
-        foreach (var id in _banners.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _banners[id].Panel.QueueFree(); _banners.Remove(id); }
+        foreach (var id in _banners.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _banners[id].Panel.QueueFree(); _banners.Remove(id); _bannerCompact.Remove(id); }
         foreach (var id in _buy.Keys.Where(id => !seenCities.Contains(id)).ToList()) { _buy[id].QueueFree(); _buy.Remove(id); }
 
         // Resource icons (always, when close enough to read them) and the resource lens (R).
@@ -80,19 +92,159 @@ public partial class MapOverlay : Control
             }
         foreach (var t in _badges.Keys.Where(t => !seenBadges.Contains(t)).ToList()) { _badges[t].Panel.QueueFree(); _badges.Remove(t); }
 
+        UpdateYieldLens(s, cam, view, visible, revealed);
+
+        // At strategic zoom one flag stands for every unit on its tile: the selected unit, else a military one, else the first.
+        Dictionary<int, (int Lead, int Count)>? stacks = null;
+        if (strategic)
+        {
+            stacks = new();
+            foreach (var u in s.Units)
+            {
+                if (u.Tile < 0 || !visible[u.Tile]) continue;
+                if (!stacks.TryGetValue(u.Tile, out var st)) { stacks[u.Tile] = (u.Id, 1); continue; }
+                var lead = s.GetUnit(st.Lead);
+                bool better = u.Id == _root.SelectedUnit
+                              || (lead != null && lead.Id != _root.SelectedUnit && IsCivilian(s, lead) && !IsCivilian(s, u));
+                stacks[u.Tile] = (better ? u.Id : st.Lead, st.Count + 1);
+            }
+        }
+
         var seenUnits = new HashSet<int>();
+        var seenStacks = new HashSet<int>();
         foreach (var u in s.Units)
         {
             if (u.Tile < 0 || !visible[u.Tile]) continue;
             seenUnits.Add(u.Id);
             var f = Flag(s, u);
             var anchor = _root.MapView.Units.WorldOf(u.Id) ?? HexLayout.ToWorld(s.Map.CoordOf(u.Tile), 0);
-            Place(f.Flag, cam, anchor + new Vector3(0, 1.0f, 0), view, center: true);
+            // Keep this order (place, then style): a new flag first lays out with the theme's panel margins, which gives the
+            // flags their familiar size.
+            if (stacks == null) Place(f.Flag, cam, anchor + new Vector3(0, 1.0f, 0), view, center: true);
+            else
+            {
+                // Centred on the tile itself (not a figure's offset), so it sits under a city's banner instead of on it.
+                Place(f.Flag, cam, HexLayout.ToWorld(s.Map.CoordOf(u.Tile), anchor.Y), view, center: true);
+                f.Flag.Position += new Vector2(0, f.Flag.Size.Y * StrategicFlagScale / 2);
+            }
             f.Hp.Value = u.Hp;
             f.Hp.Visible = u.Hp < 100;
-            f.Flag.AddThemeStyleboxOverride("panel", FlagStyle(s, u.Owner, u.Id == _root.SelectedUnit));
+            f.Flag.AddThemeStyleboxOverride("panel", FlagStyle(s, u.Owner, u.Id == _root.SelectedUnit, strategic));
+            f.Flag.PivotOffset = new Vector2(f.Flag.Size.X / 2, f.Flag.Size.Y);
+            f.Flag.Scale = Vector2.One * (strategic ? StrategicFlagScale : 1f);
+            if (stacks == null) continue;
+            var stack = stacks[u.Tile];
+            if (stack.Lead != u.Id) { f.Flag.Visible = false; continue; }
+            if (stack.Count < 2) continue;
+            seenStacks.Add(u.Tile);
+            var count = StackCount(u.Tile);
+            count.Text = stack.Count.ToString();
+            count.Visible = f.Flag.Visible;
+            // On the top-right corner of the scaled flag.
+            var topRight = f.Flag.Position + f.Flag.PivotOffset + new Vector2(f.Flag.Size.X / 2, -f.Flag.Size.Y) * f.Flag.Scale;
+            count.Position = topRight - new Vector2(count.Size.X * 0.6f, count.Size.Y * 0.4f);
         }
         foreach (var id in _flags.Keys.Where(id => !seenUnits.Contains(id)).ToList()) { _flags[id].Flag.QueueFree(); _flags.Remove(id); }
+        foreach (var t in _stackCounts.Keys.Where(t => !seenStacks.Contains(t)).ToList()) { _stackCounts[t].QueueFree(); _stackCounts.Remove(t); }
+    }
+
+    private const float StrategicFlagScale = 1.3f;
+
+    private static bool IsCivilian(GameState s, UnitState u) => s.Db.Units[u.DefIndex].Strength <= 0;
+
+    /// <summary>The "3" on a strategic-zoom flag that stands for a stack of units.</summary>
+    private Label StackCount(int tile)
+    {
+        if (_stackCounts.TryGetValue(tile, out var l)) return l;
+        l = new Label { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(18, 18) };
+        l.AddThemeFontSizeOverride("font_size", 12);
+        l.AddThemeColorOverride("font_color", new Color("#0b1422"));
+        l.AddThemeStyleboxOverride("normal", UiTheme.Box(UiTheme.GoldBright, new Color("#0b1422"), 1, 9, 1));
+        AddChild(l);
+        _stackCounts[tile] = l;
+        return l;
+    }
+
+    // ----- Yield lens --------------------------------------------------------------------------------
+
+    /// <summary>What the local player can see a tile yield: no resource they cannot see yet, plus their nation's bonus at home.</summary>
+    private static YieldSet KnownYields(GameState s, int player, int t)
+    {
+        var map = s.Map;
+        var y = map.TileYields(t);
+        int r = map.Resource[t];
+        if (r >= 0 && HexMapView.VisibleResource(s, player, t) < 0) y -= s.Db.Resources[r].Yields;
+        if (map.OwnerCity[t] >= 0 && s.GetCity(map.OwnerCity[t]) is { } c && c.Owner == player) y += NationSystem.TileBonus(s, player, t);
+        return y;
+    }
+
+    private void UpdateYieldLens(GameState s, StrategyCamera cam, Rect2 view, bool[] visible, bool[] revealed)
+    {
+        if (!YieldLens)
+        {
+            if (_yields.Count == 0) return;
+            foreach (var y in _yields.Values) y.Panel?.QueueFree();
+            _yields.Clear();
+            return;
+        }
+        float scale = Mathf.Clamp(20f / cam.CurrentDistance, 0.8f, 1f);   // a little smaller far out, never unreadable
+        for (int t = 0; t < s.Map.Count && t < revealed.Length; t++)
+        {
+            if (!revealed[t]) continue;
+            var world = HexLayout.ToWorld(s.Map.CoordOf(t), 0);
+            world.Y = Visuals.HeightField.Current.Surface(world.X, world.Z) + 0.1f;
+            bool onScreen = !cam.IsPositionBehind(world) && view.Grow(40).HasPoint(cam.UnprojectPosition(world));
+            if (!onScreen)
+            {
+                if (_yields.TryGetValue(t, out var off) && off.Panel != null) off.Panel.Visible = false;
+                continue;
+            }
+            var y = KnownYields(s, _root.LocalPlayer, t);
+            long key = visible[t] ? 1 : 0;
+            foreach (var (type, _, _) in YieldIcons) key = key * 64 + Math.Clamp(y[type].FloorToInt(), 0, 63);
+            if (!_yields.TryGetValue(t, out var e) || e.Key != key)
+            {
+                e.Panel?.QueueFree();
+                e = (YieldPanel(y, visible[t]), key);
+                _yields[t] = e;
+            }
+            if (e.Panel == null) continue;   // nothing to show (a bare mountain)
+            e.Panel.PivotOffset = e.Panel.Size / 2;
+            e.Panel.Scale = Vector2.One * scale;
+            Place(e.Panel, cam, world, view, center: true);
+            e.Panel.Position += new Vector2(0, e.Panel.Size.Y / 2);   // centred on the tile, not standing on it
+        }
+    }
+
+    private PanelContainer? YieldPanel(YieldSet y, bool lit)
+    {
+        var entries = YieldIcons.Select(x => (x.Icon, x.Color, V: y[x.Type].FloorToInt())).Where(x => x.V > 0).ToList();
+        if (entries.Count == 0) return null;
+        var panel = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore };
+        var bg = new Color("#0b1422");
+        bg.A = 0.72f;
+        panel.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, new Color(1, 1, 1, 0.12f), 1, 8, 2));
+        var grid = new GridContainer { Columns = entries.Count <= 2 ? entries.Count : entries.Count <= 4 ? 2 : 3, MouseFilter = MouseFilterEnum.Ignore };
+        grid.AddThemeConstantOverride("h_separation", 4);
+        grid.AddThemeConstantOverride("v_separation", 0);
+        panel.AddChild(grid);
+        foreach (var (icon, color, v) in entries)
+        {
+            var cell = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+            cell.AddThemeConstantOverride("separation", 1);
+            cell.AddChild(Icons.Rect(icon, color, 16));
+            var l = new Label { Text = v.ToString(), VerticalAlignment = VerticalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+            l.AddThemeFontSizeOverride("font_size", 14);
+            l.AddThemeColorOverride("font_color", color.Lightened(0.35f));
+            l.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.9f));
+            l.AddThemeConstantOverride("outline_size", 3);
+            cell.AddChild(l);
+            grid.AddChild(cell);
+        }
+        panel.Modulate = new Color(1, 1, 1, lit ? 1f : 0.7f);
+        AddChild(panel);
+        MoveChild(panel, 0);   // under banners and unit flags
+        return panel;
     }
 
     private static void Place(Control c, Camera3D cam, Vector3 world, Rect2 view, bool center)
@@ -265,13 +417,24 @@ public partial class MapOverlay : Control
         return b;
     }
 
-    private void UpdateBanner(GameState s, CityState c, (PanelContainer Panel, Label Pop, Label Name, Label Strength, ProgressBar Build, Label BuildText, ProgressBar Hp) b, bool visible)
+    private void UpdateBanner(GameState s, CityState c, (PanelContainer Panel, Label Pop, Label Name, Label Strength, ProgressBar Build, Label BuildText, ProgressBar Hp) b, bool visible, bool compact)
     {
         var color = HexMapView.CivColor(s, c.Owner);
         bool mine = c.Owner == _root.LocalPlayer;
         var bg = color.Darkened(0.55f);
         bg.A = 0.93f;
-        b.Panel.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, HexMapView.CivSecondary(s, c.Owner), 2, 14, 7));
+        b.Panel.AddThemeStyleboxOverride("panel", UiTheme.Box(bg, HexMapView.CivSecondary(s, c.Owner), 2, compact ? 11 : 14, compact ? 3 : 7));
+        if (!_bannerCompact.TryGetValue(c.Id, out var was) || was != compact)
+        {
+            // Strategic zoom: a pill with the population and the name; close up, the full banner exactly as before.
+            _bannerCompact[c.Id] = compact;
+            b.Pop.AddThemeFontSizeOverride("font_size", compact ? 12 : 15);
+            if (b.Pop.GetParent() is Control disc) disc.CustomMinimumSize = compact ? new Vector2(20, 20) : new Vector2(26, 26);
+            b.Name.AddThemeFontSizeOverride("font_size", compact ? 14 : 17);
+            if (b.Name.GetParent() is HBoxContainer row) row.AddThemeConstantOverride("separation", compact ? 5 : 8);
+            if (b.Strength.GetParent() is Control sbox) sbox.Visible = !compact;
+        }
+        if (compact) b.Panel.ResetSize();   // the pill hugs its contents (a container never shrinks by itself)
         b.Pop.Text = c.Population.ToString();
         b.Name.Text = (c.IsCapital ? "★ " : "") + c.Name.ToUpperInvariant();
         b.Name.AddThemeColorOverride("font_color", color.Lightened(0.55f));
@@ -279,9 +442,9 @@ public partial class MapOverlay : Control
         int max = CombatSystem.CityMaxHp(s, c);
         b.Hp.MaxValue = max;
         b.Hp.Value = c.Hp;
-        b.Hp.Visible = c.Hp < max;
+        b.Hp.Visible = c.Hp < max && !compact;
         var item = mine && c.Queue.Items.Count > 0 ? c.Queue.Items[0] : null;
-        b.Build.Visible = b.BuildText.Visible = mine;
+        b.Build.Visible = b.BuildText.Visible = mine && !compact;
         if (mine)
         {
             if (item == null) { b.Build.Value = 0; b.BuildText.Text = "Choose production"; b.BuildText.AddThemeColorOverride("font_color", UiTheme.GoldBright); }
@@ -327,12 +490,12 @@ public partial class MapOverlay : Control
         return f;
     }
 
-    private static StyleBoxFlat FlagStyle(GameState s, int owner, bool selected)
+    private static StyleBoxFlat FlagStyle(GameState s, int owner, bool selected, bool strategic = false)
     {
         var color = HexMapView.CivColor(s, owner);
-        var bg = color.Darkened(0.35f);
-        bg.A = 0.95f;
-        var box = UiTheme.Box(bg, selected ? UiTheme.GoldBright : HexMapView.CivSecondary(s, owner), selected ? 3 : 2, 8, 4);
+        var bg = color.Darkened(strategic ? 0.1f : 0.35f);   // bolder nation colour when read from far away
+        bg.A = strategic ? 1f : 0.95f;
+        var box = UiTheme.Box(bg, selected ? UiTheme.GoldBright : HexMapView.CivSecondary(s, owner), selected || strategic ? 3 : 2, 8, 4);
         box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 14;   // a shield
         return box;
     }

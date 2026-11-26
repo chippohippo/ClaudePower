@@ -26,6 +26,7 @@ Society (government, faith...) ... G
 Espionage ........................ E
 Chronicle / Divergence ........... C / V
 Supply lens / Resource lens ...... L / R
+Yield lens ....................... Y
 Quick save / Quick load .......... F5 / F9
 Pan / Zoom / Close a screen ...... WASD or arrows / mouse wheel / Esc
 Game menu (save, load, audio) .... Esc

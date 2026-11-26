@@ -43,6 +43,7 @@ when nothing does.
 | Espionage | E |
 | Chronicle · Divergence | C · V |
 | Supply lens · Resource lens | L · R |
+| Yield lens | Y |
 | Quick save · quick load | F5 · F9 |
 | Pan · zoom · close a screen | WASD or arrows · mouse wheel · Esc |
 

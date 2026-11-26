@@ -74,6 +74,20 @@ public partial class StrategyCamera : Camera3D
 
     public Vector3 Focus => _focusGoal;
     public float Distance => _distanceGoal;
+    /// <summary>The eased distance the camera is at this frame (what is on screen, unlike the goal).</summary>
+    public float CurrentDistance => _cinematic ? _cineDistance : _distance;
+
+    /// <summary>Strategic zoom: entered beyond <see cref="StrategicEnter"/>, left below <see cref="StrategicExit"/> (hysteresis,
+    /// so it does not flicker at the threshold). Map labels collapse and decoration clutter hides while it is on.</summary>
+    public bool Strategic { get; private set; }
+    public const float StrategicEnter = 26f, StrategicExit = 22f;
+
+    private void UpdateStrategic()
+    {
+        float d = CurrentDistance;
+        if (!Strategic && d > StrategicEnter) Strategic = true;
+        else if (Strategic && d < StrategicExit) Strategic = false;
+    }
 
     /// <summary>Slow cinematic pan for the title backdrop.</summary>
     public void Drift(float delta)
@@ -151,6 +165,7 @@ public partial class StrategyCamera : Camera3D
         var back = new Basis(Vector3.Up, -yaw) * new Vector3(0, Mathf.Sin(rad), Mathf.Cos(rad));
         Position = focus + back * distance;
         LookAt(focus, Vector3.Up);
+        UpdateStrategic();
         if (Attributes is CameraAttributesPractical dof)
         {
             dof.DofBlurFarDistance = distance * 1.6f;

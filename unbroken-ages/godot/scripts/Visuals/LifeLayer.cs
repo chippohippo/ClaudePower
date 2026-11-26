@@ -69,6 +69,13 @@ public partial class LifeLayer : Node3D
         BuildSmoke();
     }
 
+    /// <summary>Townsfolk, animals, traffic and birds (roads and smoke stay). The strategic zoom hides them as clutter.</summary>
+    public bool Decorations
+    {
+        get => _dynamic.Visible;
+        set { _dynamic.Visible = value; if (_birds != null) _birds.Visible = value; }
+    }
+
     /// <summary>All roads currently drawn, as world-space polylines (for tests and the overlay).</summary>
     public IReadOnlyList<Vector3[]> Roads => _roadPaths;
     private readonly List<Vector3[]> _roadPaths = new();

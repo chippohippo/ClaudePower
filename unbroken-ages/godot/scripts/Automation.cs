@@ -14,7 +14,7 @@ namespace UnbrokenAges.Client;
 ///   --autostart[=seed]     start a single-player game at once (Small map, you + 2 AI)
 ///   --leader=LEADER_X      your leader for --autostart (the AIs get other nations)
 ///   --do=a,b,c             actions, one every few frames: found, research, produce, end, next, move-east, attack,
-///                          panel:T|P|C|V|G|E, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources,
+///                          panel:T|P|C|V|G|E, save, load, zoom-out, zoom:F, focus-city, focus-ai, lens:resources, lens:yields,
 ///                          select-city, focus-road, era:N, tech:A+B, path:N, paths, spawn:A+B, wonders:A+B, focus-wonder, focus-camp, reveal (debug), wait
 ///   --shots=dir            screenshot after every action (dir/NN-action.png)
 ///   --shot=file.png        screenshot at the end
@@ -233,6 +233,7 @@ public partial class GameRoot
                 return null;
             }
             case "lens:resources": ToggleByKey("R"); return null;
+            case "lens:yields": ToggleByKey("Y"); return null;
             case var pa when pa.StartsWith("path:") || pa == "paths":
             {
                 // Debug: research the whole shared tree and commit to a Divergence (path:0 Sovereign, 1 Symbiont, 2 Discarnate

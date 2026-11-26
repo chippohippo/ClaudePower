@@ -62,7 +62,7 @@ public partial class TopBar : PanelContainer
         var keys = new HBoxContainer();
         keys.AddThemeConstantOverride("separation", 3);
         h.AddChild(keys);
-        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("faith", "G", "Society (G): government and policy cards, faith, great people, ages"), ("gate", "E", "Espionage (E): your spies and their missions"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved") })
+        foreach (var (icon, key, tip) in new[] { ("science", "T", "Research and civics (T)"), ("hand", "P", "Diplomacy (P)"), ("faith", "G", "Society (G): government and policy cards, faith, great people, ages"), ("gate", "E", "Espionage (E): your spies and their missions"), ("culture", "C", "The Chronicle (C)"), ("crown", "V", "The Divergence (V)"), ("arrow", "L", "Supply lens (L)"), ("pouch", "R", "Resource lens (R): every resource you know, its yields, and whether it is improved"), ("farm", "Y", "Yield lens (Y): food, production, gold, science, culture and faith on every tile you know") })
         {
             var b = Icons.Button(icon, key, UiTheme.GoldBright, () => _root.ToggleByKey(key), tip);
             b.CustomMinimumSize = new Vector2(38, 28);
