@@ -14,29 +14,32 @@ Legend: ✅ in the game · 🟡 partial · ❌ missing · **P0–P3** priority o
 | | Forest, rainforest (jungle), marsh, floodplains, oasis, ice, cliffs, reef, volcano | ✅ | `HexMapView.cs` scatters KayKit trees / Kenney plants; floodplain, marsh, oasis are painted by the shader |
 | | Resources (bonus, luxury, strategic) | ✅ | `models/resources` + resource lens (R) |
 | | Farms, mines, pastures, plantations, camps, fishing boats, roads, rivers | ✅ | `HexMapView.cs`, `LifeLayer.cs` (roads by era, boats, livestock), `river.gdshader` |
-| | **Railroads** | ❌ **P1** | roads go dirt → paved; no rail look after Railroad |
-| | **Bridges** | ❌ **P1** | roads cross edge rivers with no bridge |
+| | Railroads | ✅ | `road.gdshader`: rails on sleepers beside the road from Industrialization (or a Railroad tech) |
+| | Bridges | ✅ | `LifeLayer.cs` `BridgeMesh`, `bridge.gdshader`: timber → stone arch → steel truss → concrete |
 | | Borders, war borders | ✅ | `HexMapView.cs` |
-| | **Yield icons on tiles** | ❌ **P0** | no yield lens; icons exist in `ui/icons` |
-| | City banners | 🟡 **P0** | full-size at every zoom: they overlap when zoomed out (`MapOverlay.cs`) |
+| | Yield icons on tiles | ✅ | yield lens (Y), `MapOverlay.cs` |
+| | City banners | ✅ | compact pill at strategic zoom (`MapOverlay.cs`) |
 | | Fog: parchment, hatched, hand-drawn grid, burn-in reveal | ✅ | `terrain.gdshader` `chart()` / `hatch()` / `sepia_drawing()` |
-| | **Fog: sea monsters, compass roses, ships** | ❌ **P1** | unexplored ocean is plain paper |
+| | Fog: sea monsters, compass roses, ships | ✅ | `hexmap.gdshaderinc` `chart_sea()`, seeded per map |
 | | Mini-map | ✅ | `MiniMapAndTurn.cs` |
 | **Cities** | Grow with population and era, architectural styles, sprawl over hexes | ✅ | `CityLayout.cs`, `TechLook.cs`, `models/era`, `models/landmarks` |
 | | Districts, buildings, 14 + 9 wonder models | ✅ | `models/buildings`, `models/wonders` |
 | **Units** | Ancient → Information (and the futures), unique units | ✅ | `UnitLayer.cs` `UnitLook` table, `models/units` |
 | | Idle, move, embark | ✅ | KayKit rigs carry 132 clips; embark swaps to a boat |
-| | **Attack, hit, death animations** | ❌ **P0** | battles show projectiles and numbers (`BattleFx.cs`) but figures do not swing, flinch or fall |
-| | **Readable silhouettes when zoomed out** | 🟡 **P0** | badges stack and overlap; no strategic LOD |
-| **Leaders** | **Portraits (animated)** | ❌ **P1** | lobby and diplomacy are text only |
-| | **Diplomacy backgrounds** | ❌ **P1** | none |
+| | Attack, hit, death animations | ✅ | `UnitLayer.cs` combat region: lunge/shoot/recoil, flinch, death clip or wreck, then sink |
+| | Readable silhouettes when zoomed out | ✅ | one bold flag per tile with a count at strategic zoom |
+| **Leaders** | Portraits (animated) | ✅ | `LeaderPortrait.cs`: live 3D figure in nation colours (lobby, diplomacy) |
+| | Diplomacy backgrounds | ✅ | nation landmark, banner and sky palette behind each portrait |
 | **UI** | Yield, resource, district icons; tech and civic trees; city, unit panels; tooltips; fonts (Cinzel, EB Garamond, Inter-style) | ✅ | `UiTheme.cs`, `ResearchPanel.cs`, `assets/ui` |
 | | Per-tech / per-unit icons | 🟡 P2 | trees use era and category icons; a Kenney icon per unit class would help |
 | **Polish** | Water shader, particles (smoke, fire, dust), soft shadows, selection rings, border glow, clouds, bloom, SSAO/SSIL | ✅ | `water.gdshader`, `smoke.gdshader`, `BattleFx.cs`, `MapFx.cs`, `CloudLayer.cs` |
-| | **Day/night cycle + dynamic lighting** | ❌ **P1** | fixed late-morning sun |
-| | **Smooth zoom with LOD** | 🟡 **P0** | zoom is smooth; nothing changes level of detail |
+| | Day/night cycle + dynamic lighting | ✅ | `DayNight.cs`, toggle in the Esc menu |
+| | Smooth zoom with LOD | ✅ | strategic mode above distance 26 (exit below 22): banners, flags, clutter |
 
 ## 2. Prioritised plan
+
+*Status: P0 and P1 shipped in the first visual pass. Open follow-ups: lit windows at night, a cape or uniform tint for
+20th-century leader portraits, trains on railways, and a melee attacker's flinch from counter-damage.*
 
 **P0 — readable at strategic zoom (this pass).**
 1. *Strategic LOD.* Beyond a camera distance threshold: city banners collapse to a compact pill (population + name),
