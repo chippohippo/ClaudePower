@@ -27,6 +27,13 @@ public partial class UnitLayer : Node3D
         public bool Ranged;
         public bool Military;
         public Tween? Move;
+        // Combat (see "Battle"): who owns it, what kind of thing it is, where it stands at rest, and how long a fight holds it.
+        public int Owner;
+        public bool Vehicle;
+        public UnitDomain Domain;
+        public Vector3 Home;
+        public double BusyUntil;
+        public Tween? Lunge;
     }
 
     private readonly ModelLibrary _models;
@@ -175,14 +182,17 @@ public partial class UnitLayer : Node3D
                 if (view != null) { view.Move?.Kill(); view.Root.QueueFree(); }
                 view = Create(s, u, look);
                 view.Root.Position = target;
+                view.Home = target;
                 _views[u.Id] = view;
                 if (_synced && !_known.Contains(u.Id)) Raise(view, HexMapView.CivColor(s, u.Owner));
             }
-            else if (view.Tile != u.Tile || view.Root.Position.DistanceTo(target) > 0.01f)
+            else if (view.Tile != u.Tile || view.Home.DistanceTo(target) > 0.01f)
             {
-                MoveTo(view, target);
+                // A squad still in the middle of a fight finishes its swing before it marches (a victor advancing into the tile).
+                if (Busy(view)) DeferMove(view, target); else MoveTo(view, target);
             }
             view.Tile = u.Tile;
+            view.Home = target;
             // A garrison shows one squad in front of the city; the rest stay inside the walls (their flags still show).
             view.Root.Visible = !(cityTiles.Contains(u.Tile) && slot > 0);
         }
@@ -196,7 +206,7 @@ public partial class UnitLayer : Node3D
             // Out of sight: it simply goes. Gone from the world: it falls (a soldier) or settles into its new city (a settler).
             if (!_synced || alive.Contains(id)) { gone.Root.QueueFree(); continue; }
             bool founded = cityTiles.Contains(gone.Tile) && !gone.Military;
-            if (founded) Settle(gone); else Fall(gone);
+            if (founded) Settle(gone); else Die(gone);
         }
         _synced = true;
     }
@@ -212,25 +222,6 @@ public partial class UnitLayer : Node3D
         t.TweenProperty(root, "scale", Vector3.One, 0.55f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
         MapFx.Current?.Sparkles(root.Position, color.Lightened(0.3f));
         MapFx.Current?.Shockwave(root.Position, color.Lightened(0.2f), 0.9f, 0.6f);
-    }
-
-    /// <summary>A fallen army: its figures topple, then it sinks into the earth amid dust and fades.</summary>
-    private void Fall(View view)
-    {
-        var root = view.Root;
-        int i = 0;
-        foreach (var holder in root.GetChildren().OfType<Node3D>().Where(n => n.GetChildCount() > 0 && n is not MeshInstance3D))
-        {
-            var t = CreateTween();
-            t.TweenInterval(0.06f * i++);
-            t.TweenProperty(holder, "rotation_degrees:x", holder.RotationDegrees.X + 82f, 0.45f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
-        }
-        MapFx.Current?.Dust(root.Position, 1.6f);
-        var sink = CreateTween();
-        sink.TweenInterval(0.7f);
-        sink.TweenProperty(root, "position:y", root.Position.Y - 0.35f, 0.8f).SetEase(Tween.EaseType.In);
-        sink.Parallel().TweenProperty(root, "scale", new Vector3(1f, 0.2f, 1f), 0.8f);
-        sink.TweenCallback(Callable.From(root.QueueFree));
     }
 
     /// <summary>Settlers who have founded their city fade upward into a golden glow.</summary>
@@ -268,6 +259,8 @@ public partial class UnitLayer : Node3D
         AddChild(view.Root);
         view.Ranged = def.RangedStrength > 0 && def.Domain == UnitDomain.Land;
         view.Military = SupplySystem.IsMilitary(s.Db, u);
+        view.Owner = u.Owner;
+        view.Domain = def.Domain;
         var color = HexMapView.CivColor(s, u.Owner);
         if (!_discs.TryGetValue(u.Owner, out var mat))
             _discs[u.Owner] = mat = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.4f, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.35f };
@@ -351,6 +344,9 @@ public partial class UnitLayer : Node3D
                 ap.Seek(GD.Randf() * 2.0, true);   // squads do not breathe in lockstep
             }
         }
+        // Hulls, guns and craft have no rig: in a fight they recoil, and when destroyed they tip over and burn.
+        view.Vehicle = view.Players.Count == 0 && (def.Domain is UnitDomain.Naval or UnitDomain.Air || def.UnitClass == "Siege"
+                       || def.HasTag("Siege") || def.HasTag("Armor") || def.HasTag("Drone"));
         return view;
     }
 
@@ -440,35 +436,250 @@ public partial class UnitLayer : Node3D
         }));
     }
 
-    /// <summary>Turns the unit toward the target and plays an attack; the squad returns to idle afterwards.</summary>
+    #region Combat: attack, flinch and death
+
+    // Clip fallback chains. KayKit rigs (Knight, Barbarian, Rogue, Ranger, Skeleton...) carry the first names; the Kenney mini
+    // figures use lower-case dashed names (attack-melee-right, holding-right-shoot, die); the mech and the beasts use Attack/Hit.
+    private static readonly string[] MeleeClips = { "Melee_1H_Attack_Chop", "Melee_2H_Attack_Chop", "Melee_1H_Attack_Slice_Diagonal", "Attack", "attack-melee-right", "Stomp" };
+    private static readonly string[] RangedClips = { "Ranged_Bow_Release", "Ranged_2H_Shoot", "Ranged_1H_Shoot", "Throw", "holding-right-shoot", "holding-both-shoot", "Shoot" };
+    private static readonly string[] HitClips = { "Hit_A", "Hit_B", "Melee_Block_Hit", "Hit", "hit" };
+    private static readonly string[] DeathClips = { "Death_A", "Death_B", "Skeletons_Death", "die", "down" };
+    private static readonly string[] IdleClips = { "Idle_A", "Idle", "idle", "static" };
+
+    /// <summary>When a blow lands on each tile (seconds, engine clock): a unit that dies there falls when it is struck, not before.</summary>
+    private readonly Dictionary<int, double> _hitAt = new();
+
+    /// <summary>The layer's own clock, advanced by frame time like its tweens (wall time drifts from them on slow frames).</summary>
+    private double _clock;
+    private double Now => _clock;
+    public override void _Process(double delta) => _clock += delta;
+    private bool Busy(View v) => v.BusyUntil > Now;
+
+    /// <summary>
+    /// One exchange of a battle on <paramref name="tile"/>: the attacker (if any — a city's bombard has none) strikes, and every
+    /// other nation's unit standing there flinches when the blow lands <paramref name="impactDelay"/> seconds from now. A unit
+    /// the blow destroys is gone from the next sync; its view stays as a ghost that plays its death from that moment (see Die).
+    /// </summary>
+    public void Battle(int attackerId, int attackerOwner, int tile, Vector3 target, float impactDelay)
+    {
+        double hit = Now + impactDelay;
+        _hitAt[tile] = Math.Max(_hitAt.GetValueOrDefault(tile), hit);
+        Vector3? from = null;
+        if (attackerId >= 0 && _views.TryGetValue(attackerId, out var attacker))
+        {
+            Attack(attackerId, target);
+            from = attacker.Home;
+            // An attacker killed by the counter-blow falls when the blows meet, not the moment the sim removes it.
+            if (!attacker.Ranged && !attacker.Vehicle) _hitAt[attacker.Tile] = Math.Max(_hitAt.GetValueOrDefault(attacker.Tile), hit);
+        }
+        foreach (var v in _views.Values.Where(v => v.Tile == tile && v.Owner != attackerOwner && v.Root.Visible))
+            Flinch(v, from ?? v.Home + Vector3.Forward, impactDelay);
+    }
+
+    /// <summary>
+    /// Turns the unit toward the target and plays its attack. A melee squad lunges at the enemy and springs back; archers and
+    /// gunmen rock back with the shot; hulls, guns and craft recoil with a flash at the muzzle. The squad returns to idle.
+    /// </summary>
     public void Attack(int unitId, Vector3 target)
     {
         if (!_views.TryGetValue(unitId, out var view)) return;
-        var flat = new Vector3(target.X - view.Root.Position.X, 0, target.Z - view.Root.Position.Z);
-        if (flat.LengthSquared() > 0.0001f) view.Root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
-        // The body of the attack: a melee squad lunges at the enemy and springs back; archers and guns rock back with the shot.
-        var home = view.Root.Position;
+        var root = view.Root;
+        var home = view.Home;
+        var flat = new Vector3(target.X - home.X, 0, target.Z - home.Z);
+        if (flat.LengthSquared() > 0.0001f) root.Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Z), 0);
         var dir = flat.LengthSquared() > 0.0001f ? flat.Normalized() : Vector3.Zero;
-        var lunge = CreateTween();
-        if (view.Ranged || dir == Vector3.Zero)
+        view.Lunge?.Kill();
+        view.Move?.Kill();
+        root.Position = home;
+        var lunge = view.Lunge = CreateTween();
+        float busy;
+        if (view.Vehicle)
         {
-            lunge.TweenProperty(view.Root, "position", home - dir * 0.08f, 0.08f).SetEase(Tween.EaseType.Out);
-            lunge.TweenProperty(view.Root, "position", home, 0.35f).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+            // A kick back along the barrel, then it settles; the muzzle flashes toward the target.
+            BattleFx.Current?.MuzzleFlash(home + dir * 0.32f + new Vector3(0, view.Domain == UnitDomain.Air ? 0.4f : 0.18f, 0), view.Domain == UnitDomain.Naval ? 1.4f : 1f);
+            lunge.TweenProperty(root, "position", home - dir * 0.12f, 0.06f).SetEase(Tween.EaseType.Out);
+            lunge.Parallel().TweenProperty(root, "rotation:x", -0.12f, 0.06f);
+            lunge.TweenProperty(root, "position", home, 0.4f).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+            lunge.Parallel().TweenProperty(root, "rotation:x", 0f, 0.3f);
+            busy = 0.46f;
+        }
+        else if (view.Ranged || dir == Vector3.Zero)
+        {
+            lunge.TweenProperty(root, "position", home + dir * 0.05f, 0.1f).SetEase(Tween.EaseType.Out);
+            lunge.TweenProperty(root, "position", home - dir * 0.06f, 0.08f).SetEase(Tween.EaseType.Out);
+            lunge.TweenProperty(root, "position", home, 0.3f).SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+            busy = 0.5f;
         }
         else
         {
-            lunge.TweenProperty(view.Root, "position", home + dir * 0.42f + new Vector3(0, 0.06f, 0), 0.22f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.In);
+            // In to the enemy, a puff of dust where they meet, and back to its own tile.
+            lunge.TweenProperty(root, "position", home + dir * 0.42f + new Vector3(0, 0.06f, 0), BattleFx.MeleeContact).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.In);
             lunge.TweenCallback(Callable.From(() => MapFx.Current?.Dust(home + dir * 0.5f, 1.2f)));
-            lunge.TweenProperty(view.Root, "position", home, 0.4f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            lunge.TweenInterval(0.08f);
+            lunge.TweenProperty(root, "position", home, 0.32f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            busy = BattleFx.MeleeContact + 0.42f;
         }
-        foreach (var ap in view.Players)
+        lunge.TweenCallback(Callable.From(() => { if (GodotObject.IsInstanceValid(root)) root.Rotation = new Vector3(0, root.Rotation.Y, 0); }));
+        view.BusyUntil = Now + busy;
+        foreach (var ap in view.Players.Concat(view.Riders))
         {
-            var name = view.Ranged ? Find(ap, "Ranged_Bow_Release", "Ranged_2H_Shoot", "Shoot", "Attack") : null;
-            name ??= Find(ap, "Melee_1H_Attack_Chop", "1H_Melee_Attack", "Attack", "Stomp", "Throw", "Shoot");
-            if (name == null) continue;
-            ap.GetAnimation(name).LoopMode = Animation.LoopModeEnum.None;
-            ap.Play(name, 0.1);
-            ap.Queue(Find(ap, "Idle_A", "Idle", "idle") ?? name);
+            var name = view.Ranged ? Find(ap, RangedClips) : null;
+            name ??= Find(ap, MeleeClips);
+            PlayOnce(ap, name, 1.5f, view.Riders.Contains(ap) ? new[] { "Sit_Chair_Idle", "Sit_Floor_Idle", "Sit" } : IdleClips);
         }
     }
+
+    /// <summary>Struck: after <paramref name="delay"/>, the unit staggers back from the blow, plays its hit, and flashes red.</summary>
+    private void Flinch(View view, Vector3 from, float delay)
+    {
+        var root = view.Root;
+        var away = new Vector3(view.Home.X - from.X, 0, view.Home.Z - from.Z);
+        away = away.LengthSquared() > 0.0001f ? away.Normalized() : Vector3.Back;
+        view.BusyUntil = Math.Max(view.BusyUntil, Now + delay + 0.4f);
+        var t = CreateTween();
+        t.TweenInterval(delay);
+        t.TweenCallback(Callable.From(() =>
+        {
+            if (!GodotObject.IsInstanceValid(root)) return;
+            Flash(root, new Color(0.85f, 0.2f, 0.16f));
+            foreach (var ap in view.Players) PlayOnce(ap, Find(ap, HitClips), 1.6f, IdleClips);
+            view.Lunge?.Kill();
+            var home = view.Home;
+            var knock = view.Lunge = CreateTween();
+            float k = view.Vehicle ? 0.05f : 0.1f;
+            knock.TweenProperty(root, "position", home + away * k, 0.07f).SetEase(Tween.EaseType.Out);
+            knock.TweenProperty(root, "position", home, 0.28f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.InOut);
+        }));
+    }
+
+    /// <summary>A brief glow over every mesh of a unit (its figures, hull and ring), fading in a quarter of a second.</summary>
+    private void Flash(Node3D root, Color color)
+    {
+        var overlay = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BlendMode = BaseMaterial3D.BlendModeEnum.Add, AlbedoColor = color, CullMode = BaseMaterial3D.CullModeEnum.Back,
+        };
+        var meshes = root.FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>().Where(m => m.MaterialOverlay == null).ToList();
+        foreach (var m in meshes) m.MaterialOverlay = overlay;
+        var t = CreateTween();
+        t.TweenProperty(overlay, "albedo_color", new Color(0, 0, 0, 0), 0.28f).SetEase(Tween.EaseType.In);
+        t.TweenCallback(Callable.From(() =>
+        {
+            foreach (var m in meshes) if (GodotObject.IsInstanceValid(m) && m.MaterialOverlay == overlay) m.MaterialOverlay = null;
+        }));
+    }
+
+    private static void PlayOnce(AnimationPlayer ap, string? name, float speed, string[] then)
+    {
+        if (name == null || !GodotObject.IsInstanceValid(ap)) return;
+        ap.GetAnimation(name).LoopMode = Animation.LoopModeEnum.None;
+        ap.Play(name, 0.08, speed);
+        ap.ClearQueue();
+        if (Find(ap, then) is { } idle) ap.Queue(idle);
+    }
+
+    /// <summary>A marching order that waits for the squad's swing to finish.</summary>
+    private void DeferMove(View view, Vector3 target)
+    {
+        view.Move?.Kill();
+        var t = view.Move = CreateTween();
+        t.TweenInterval(Math.Max(0.01, view.BusyUntil - Now));
+        t.TweenCallback(Callable.From(() =>
+        {
+            if (!GodotObject.IsInstanceValid(view.Root)) return;
+            view.Lunge?.Kill();
+            view.Move = null;
+            MoveTo(view, target);
+        }));
+    }
+
+    /// <summary>
+    /// A unit gone from the world: its view lingers as a ghost for about a second and a half. If it was struck this moment it
+    /// waits for the blow to land. Soldiers play their death and sink into the earth amid dust; figures without a death clip
+    /// topple; hulls and guns tip over smoking and sink; ships list and go down; aircraft fall out of the sky trailing smoke.
+    /// </summary>
+    private void Die(View view)
+    {
+        var root = view.Root;
+        view.Lunge?.Kill();
+        double wait = Math.Max(0, _hitAt.GetValueOrDefault(view.Tile) - Now);
+        if (wait <= 0) _hitAt.Remove(view.Tile);
+        var t = CreateTween();
+        if (wait > 0) t.TweenInterval(wait + 0.06);
+        t.TweenCallback(Callable.From(() =>
+        {
+            if (!GodotObject.IsInstanceValid(root)) return;
+            root.Position = new Vector3(root.Position.X, view.Home.Y, root.Position.Z);
+            if (view.Vehicle) Wreck(view); else Fall(view);
+        }));
+    }
+
+    private void Fall(View view)
+    {
+        var root = view.Root;
+        int i = 0;
+        foreach (var holder in root.GetChildren().OfType<Node3D>().Where(n => n.GetChildCount() > 0 && n is not MeshInstance3D))
+        {
+            var players = holder.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().ToList();
+            var clip = players.Select(ap => Find(ap, DeathClips)).FirstOrDefault(c => c != null);
+            if (clip != null)
+            {
+                // The death clip ends lying down; it is not followed by idle, so the figure stays down.
+                foreach (var ap in players)
+                {
+                    if (Find(ap, DeathClips) is not { } name) continue;
+                    ap.ClearQueue();
+                    ap.GetAnimation(name).LoopMode = Animation.LoopModeEnum.None;
+                    ap.Play(name, 0.06, 1.7f + 0.12f * (i % 3));   // a squad does not drop in unison
+                }
+                i++;
+                continue;
+            }
+            var t = CreateTween();
+            t.TweenInterval(0.06f * i++);
+            t.TweenProperty(holder, "rotation_degrees:x", holder.RotationDegrees.X + 82f, 0.42f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        }
+        MapFx.Current?.Dust(root.Position, 1.6f);
+        var sink = CreateTween();
+        sink.TweenInterval(0.85f);
+        sink.TweenProperty(root, "position:y", root.Position.Y - 0.32f, 0.6f).SetEase(Tween.EaseType.In);
+        sink.Parallel().TweenProperty(root, "scale", new Vector3(1f, 0.15f, 1f), 0.6f).SetEase(Tween.EaseType.In);
+        sink.TweenCallback(Callable.From(root.QueueFree));
+    }
+
+    private void Wreck(View view)
+    {
+        var root = view.Root;
+        var t = CreateTween();
+        BattleFx.Current?.MuzzleFlash(root.Position + new Vector3(0, 0.2f, 0), 2f);
+        MapFx.Current?.Smoke(root.Position + new Vector3(0, 0.1f, 0), 2.2f);
+        switch (view.Domain)
+        {
+            case UnitDomain.Naval:
+                // Lists to one side, bow up, and slips under.
+                t.TweenProperty(root, "rotation:z", 0.45f, 0.6f).SetEase(Tween.EaseType.Out);
+                t.Parallel().TweenProperty(root, "rotation:x", -0.3f, 1.0f);
+                t.Parallel().TweenProperty(root, "position:y", root.Position.Y - 0.5f, 1.4f).SetEase(Tween.EaseType.In);
+                break;
+            case UnitDomain.Air:
+                // Spins down out of the sky and bursts on the ground.
+                t.TweenProperty(root, "position:y", root.Position.Y - 0.45f, 0.9f).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Quad);
+                t.Parallel().TweenProperty(root, "rotation:y", root.Rotation.Y + 4f, 0.9f);
+                t.Parallel().TweenProperty(root, "rotation:x", 0.7f, 0.9f);
+                t.TweenCallback(Callable.From(() => { MapFx.Current?.Flames(root.Position); BattleFx.Current?.MuzzleFlash(root.Position, 2.2f); }));
+                t.TweenInterval(0.3f);
+                break;
+            default:
+                // Tips over on its side, burning, and settles into the ground.
+                MapFx.Current?.Flames(root.Position + new Vector3(0, 0.1f, 0));
+                t.TweenProperty(root, "rotation:z", 1.15f, 0.45f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
+                t.TweenInterval(0.45f);
+                t.TweenProperty(root, "position:y", root.Position.Y - 0.3f, 0.55f).SetEase(Tween.EaseType.In);
+                break;
+        }
+        t.TweenCallback(Callable.From(root.QueueFree));
+    }
+
+    #endregion
 }

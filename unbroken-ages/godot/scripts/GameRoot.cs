@@ -393,7 +393,6 @@ public partial class GameRoot : Node3D
                         AudioManager.Sfx(e.Value > 25 ? "clash" : "clash2", -3f);
                         var attacker = s.Units.Where(u => u.Owner == e.Player && u.AttackedThisTurn).OrderBy(u => s.Map.Distance(u.Tile, e.Tile)).FirstOrDefault();
                         var target = HexLayout.ToWorld(s.Map.CoordOf(e.Tile), HexMapView.SurfaceY(s.Map, e.Tile));
-                        if (attacker != null) _map.Units.Attack(attacker.Id, target);
                         // The strike itself: from the attacker (or the city that fired), with the damage it dealt.
                         var from = attacker != null ? HexLayout.ToWorld(s.Map.CoordOf(attacker.Tile), HexMapView.SurfaceY(s.Map, attacker.Tile))
                                  : e.City >= 0 && s.GetCity(e.City) is { } fired && fired.Tile != e.Tile ? HexLayout.ToWorld(s.Map.CoordOf(fired.Tile), HexMapView.SurfaceY(s.Map, fired.Tile)) : target;
@@ -403,7 +402,8 @@ public partial class GameRoot : Node3D
                                  : def.RangedStrength > 0 && (def.HasTag("Siege") || def.Domain == UnitDomain.Naval || s.Db.Eras.IndexOf(def.Era ?? "") >= s.Db.Eras.IndexOf("ERA_RENAISSANCE")) ? BattleFx.Kind.Shell
                                  : def.RangedStrength > 0 && from.DistanceTo(target) > 1.5f ? BattleFx.Kind.Arrow
                                  : s.Db.Eras.IndexOf(def.Era ?? "") >= s.Db.Eras.IndexOf("ERA_RENAISSANCE") ? BattleFx.Kind.Shell : BattleFx.Kind.Melee;
-                        _battleFx.Strike(from, target, e.Value, kind);
+                        float lands = _battleFx.Strike(from, target, e.Value, kind);
+                        _map.Units.Battle(attacker?.Id ?? -1, e.Player, e.Tile, target, lands);   // swing, flinch on the blow, fall if it kills
                     }
                     break;
             }
