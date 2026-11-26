@@ -236,6 +236,11 @@ public partial class GameRoot
             }
             case "lens:resources": ToggleByKey("R"); return null;
             case "lens:yields": ToggleByKey("Y"); return null;
+            case var tod when tod.StartsWith("time:"):
+                // Hold the day/night cycle at a time of day for screenshots (0 dawn, 0.3 noon, 0.66 golden dusk, 0.85 night).
+                if (!double.TryParse(tod[5..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var timeOfDay)) return "time:<0..1>";
+                DayNight.Freeze(timeOfDay);
+                return null;
             case var pa when pa.StartsWith("path:") || pa == "paths":
             {
                 // Debug: research the whole shared tree and commit to a Divergence (path:0 Sovereign, 1 Symbiont, 2 Discarnate

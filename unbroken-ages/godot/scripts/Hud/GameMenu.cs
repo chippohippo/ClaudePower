@@ -3,7 +3,7 @@ using UnbrokenAges.Client.UI;
 
 namespace UnbrokenAges.Client.Hud;
 
-/// <summary>Pause menu (Esc): resume, save, load, music / effects / ambience volume, quit. Volumes are remembered per machine.</summary>
+/// <summary>Pause menu (Esc): resume, save, load, music / effects / ambience volume, quit, advisor tips, day/night cycle. Settings are remembered per machine.</summary>
 public partial class GameMenu : PanelContainer
 {
     private readonly GameRoot _root;
@@ -39,6 +39,9 @@ public partial class GameMenu : PanelContainer
         var tips = new CheckButton { Text = "Advisor tips", ButtonPressed = _root.Advisor.Enabled };
         tips.Toggled += on => _root.Advisor.SetEnabled(on);
         v.AddChild(tips);
+        var dayNight = new CheckButton { Text = "Day/night cycle", ButtonPressed = _root.DayNight.Enabled, TooltipText = "The sun crosses the sky every few minutes; off keeps a fixed late-morning light." };
+        dayNight.Toggled += on => _root.DayNight.Enabled = on;
+        v.AddChild(dayNight);
         Add(v, "Start the advisor's lessons over", () => { _root.Advisor.Reset(); tips.ButtonPressed = true; Visible = false; });
         v.AddChild(new HSeparator());
         Add(v, "Quit to desktop", () => GetTree().Quit());
